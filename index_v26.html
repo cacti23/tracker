@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DSA Notebook — curated patterns, templates and questions for FAANG interview preparation.">
+  <meta name="theme-color" content="#0f1117">
+  <title>DSA Notebook</title>
+  <!-- ═══ THEME INIT — DO NOT MOVE. Must execute before stylesheet renders to avoid flash of wrong theme. ═══ -->
+  <script>
+    (function() {
+      const t = localStorage.getItem('dsa-theme') || 'dark'
+      document.documentElement.setAttribute('data-bs-theme', t)
+    })()
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /*
+     * v25 — Lean CSS philosophy:
+     * Set Bootstrap --bs-* vars in [data-bs-theme="dark"|"light"] → Bootstrap renders components.
+     * Custom CSS only for things Bootstrap cannot express: layout, custom components,
+     * visual flourishes. Zero !important wars except where Bootstrap utilities require it.
+     *
+     * AI INSTRUCTIONS:
+     * - Design tokens live in :root (dark) and [data-bs-theme="light"] — change colors there only.
+     * - Never hardcode colors in CSS rules or JS templates — always use var(--token-name).
+     * - Never add Bootstrap utility classes that hardcode colors (text-light, text-white, bg-dark etc).
+     * - Utility classes for font sizes etc live in section 15a — add new ones there.
+     * - Status/difficulty maps live in BADGE / STATUS MAPS block in JS — update there only.
+     * - To add a new topic: append to TOPICS array + TOPIC_MODULES object. No other changes needed.
+     */
+
+    /* ── 1. DESIGN TOKENS ───────────────────────────────────────────────────── */
+    :root {
+      /* Dark theme — deep navy, not pitch black. Each level is perceptibly different. */
+      --bg-base:     #0f1117;   /* page background                */
+      --bg-surface:  #161b27;   /* sidebar, header                */
+      --bg-elevated: #1c2333;   /* cards, accordions              */
+      --bg-hover:    #242e42;   /* hover, active accordion        */
+      --border:      rgba(99,120,180,0.25);  /* clearly visible    */
+      --border-glow: rgba(99,162,255,0.45);
+      --accent:      #4f8ef7;
+      --accent-dim:  rgba(79,142,247,0.13);
+      --accent-glow: rgba(79,142,247,0.22);
+      --green:       #3dd68c;   --green-dim:  rgba(61,214,140,0.12);
+      --yellow:      #f0c060;   --yellow-dim: rgba(240,192,96,0.12);
+      --red:         #f76e6e;   --red-dim:    rgba(247,110,110,0.12);
+      --purple:      #b48ef7;   --purple-dim: rgba(180,142,247,0.12);
+      --teal:        #4fd1c5;   --teal-dim:   rgba(79,209,197,0.12);
+      --text-primary:#dde3f0;   /* softer than pure white, less eye strain */
+      --text-muted:  #8a9bc0;
+      --text-faint:  #4d5c7a;   /* lifted from near-invisible #3d4a6a     */
+      --radius:      10px;
+      --radius-lg:   14px;
+      --font-body:   'Outfit', system-ui, sans-serif;
+      --font-mono:   'Space Mono', 'Courier New', monospace;
+      /* Type scale — use these tokens, not raw rem values */
+      --fs-xs:   0.68rem;   /* meta labels, badges         */
+      --fs-sm:   0.78rem;   /* secondary text, small prose */
+      --fs-base: 0.88rem;   /* body, accordion titles      */
+      /* 4px spacing grid */
+      --sp-1: 0.25rem;   /* 4px  */
+      --sp-2: 0.5rem;    /* 8px  */
+      --sp-3: 0.75rem;   /* 12px */
+      --sp-4: 1rem;      /* 16px */
+      --sp-6: 1.5rem;    /* 24px */
+    }
+
+    /* ── 2. BOOTSTRAP COMPONENT VARS ───────────────────────────────────────────
+     * The ONLY correct way to retheme Bootstrap 5.3.
+     * No !important needed — Bootstrap reads these vars for every component.
+     */
+    [data-bs-theme="dark"] {
+      --bs-body-bg:                  var(--bg-base);
+      --bs-body-color:               var(--text-primary);
+      --bs-body-font-family:         var(--font-body);
+      --bs-body-font-size:           1rem;
+      --bs-border-color:             var(--border);
+      --bs-border-color-translucent: var(--border);
+      --bs-secondary-color:          var(--text-muted);
+      --bs-secondary-bg:             var(--bg-surface);
+      --bs-tertiary-bg:              var(--bg-elevated);
+      /* Card */
+      --bs-card-bg:                  var(--bg-elevated);
+      --bs-card-border-color:        var(--border);
+      --bs-card-cap-bg:              var(--bg-elevated);
+      --bs-card-color:               var(--text-primary);
+      --bs-card-border-radius:       var(--radius-lg);
+      /* Accordion */
+      --bs-accordion-bg:             var(--bg-elevated);
+      --bs-accordion-border-color:   var(--border);
+      --bs-accordion-border-radius:  var(--radius);
+      --bs-accordion-inner-border-radius: calc(var(--radius) - 1px);
+      --bs-accordion-btn-bg:         var(--bg-elevated);
+      --bs-accordion-btn-color:      var(--text-primary);
+      --bs-accordion-btn-focus-box-shadow: none;
+      --bs-accordion-btn-padding-x:  1rem;
+      --bs-accordion-btn-padding-y:  0.7rem;
+      --bs-accordion-active-bg:      var(--bg-hover);
+      --bs-accordion-active-color:   var(--text-primary);
+      --bs-accordion-body-padding-x: 1.1rem;
+      --bs-accordion-body-padding-y: 1rem;
+      /* Nav */
+      --bs-nav-link-color:           var(--text-muted);
+      --bs-nav-link-hover-color:     var(--text-primary);
+      /* Progress */
+      --bs-progress-bg:              rgba(255,255,255,0.05);
+      --bs-progress-border-radius:   99px;
+      --bs-progress-height:          0.35rem;
+      /* Table */
+      --bs-table-bg:                 transparent;
+      --bs-table-hover-bg:           var(--bg-hover);
+      --bs-table-border-color:       var(--border);
+      /* Badge */
+      --bs-badge-border-radius:      6px;
+      --bs-badge-font-weight:        500;
+    }
+
+    /* ── 2a. LIGHT THEME TOKEN OVERRIDES ────────────────────────────────────────
+     * Bootstrap handles all component colors. We only override our custom tokens.
+     * AI: to adjust light theme, change values here only.                        */
+    [data-bs-theme="light"] {
+      --bg-base:     #f0f2f7;   /* page — off-white, not pure white              */
+      --bg-surface:  #f8f9fc;   /* sidebar, header — one step lighter than base  */
+      --bg-elevated: #ffffff;   /* cards, accordions — white pops off the base   */
+      --bg-hover:    #e8ecf5;
+      --border:      rgba(60,80,140,0.18);
+      --border-glow: rgba(79,142,247,0.4);
+      --text-primary:#1a1d2e;
+      --text-muted:  #4a5270;
+      --text-faint:  #7a85a8;   /* lifted for readability                        */
+    }
+
+    /* ── 3. BASE — only what Bootstrap does not set ─────────────────────────── */
+    html { scroll-behavior: smooth; }
+    pre, code { font-family: var(--font-mono); }
+    pre {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.76rem;
+      line-height: 1.7;
+    }
+    code { color: var(--accent); font-size: 0.82em; }
+    small, .small { font-size: 0.8rem; }
+
+    /* ── 5. SIDEBAR — Bootstrap has no sidebar component ───────────────────── */
+    #sidebar {
+      width: 260px; min-height: 100vh; flex-shrink: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+    #sidebar.collapsed { width: 0; overflow: hidden; }
+    #sidebar nav { padding: 0.6rem; overflow-y: auto; flex: 1; }
+
+    .sidebar-brand {
+      padding: 1rem 1.1rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; white-space: nowrap;
+    }
+    .sidebar-brand-name {
+      font-size: 0.88rem; font-weight: 700; letter-spacing: 0.03em;
+      color: var(--text-primary); display: flex; align-items: center; gap: 0.45rem;
+    }
+    .sidebar-brand-name .bolt {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 7px; font-size: 0.85rem;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+    .sidebar-close-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text-muted); width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.8rem;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .sidebar-close-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+    .sidebar-section-label {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-faint); padding: 0.5rem 0.75rem 0.3rem; white-space: nowrap;
+    }
+    .sidebar-footer {
+      padding: 0.65rem 1.1rem; border-top: 1px solid var(--border);
+      font-size: 0.68rem; color: var(--text-faint); white-space: nowrap;
+    }
+
+    /* ── 6. SIDEBAR NAV BUTTONS ─────────────────────────────────────────────── */
+    button.nav-link {
+      -webkit-appearance: none; appearance: none;
+      background: transparent; border: 1px solid transparent;
+      cursor: pointer; width: 100%; text-align: left;
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.75rem; border-radius: var(--radius); margin-bottom: 2px;
+      font-size: 0.82rem; font-weight: 500; font-family: var(--font-body);
+      color: var(--text-muted);
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+      white-space: nowrap;
+    }
+    button.nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+    button.nav-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button.nav-link:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+    /* Scoped to #sidebar — id specificity beats any Bootstrap .nav-link rule */
+    #sidebar button.nav-link.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: var(--border-glow);
+      border-left: 3px solid var(--accent);
+      padding-left: calc(0.75rem - 2px); /* compensate 3px border */
+    }
+    .nav-topic-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-topic-label { flex: 1; }
+
+    /* ── 7. HEADER — Bootstrap has no sticky glassmorphic header ────────────── */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1.4rem;
+      display: flex; align-items: center; gap: 0.85rem;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-menu-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-muted); width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1rem; flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .header-menu-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+    #page-title {
+      font-size: 0.92rem; font-weight: 600; color: var(--text-primary);
+      margin: 0; padding: 0; border: none; background: transparent;
+      cursor: pointer; transition: color 0.15s;
+    }
+    #page-title:hover { color: var(--accent); }
+
+    /* ── 8. CARD — Bootstrap renders bg/border via vars; we add shadow + hover ─ */
+    .card {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.22s, border-color 0.18s;
+    }
+    [data-bs-theme="light"] .card {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .card[role="button"]:hover {
+      transform: translateY(-3px) scale(1.004); cursor: pointer;
+      box-shadow: 0 0 0 1px var(--border-glow), 0 8px 32px var(--accent-glow);
+      border-color: var(--border-glow) !important; /* beats Bootstrap border utility on hover only */
+    }
+
+    /* ── 9. PROGRESS BARS — Bootstrap renders bg; we add gradient + glow ────── */
+    /* bg-success/warning use !important in Bootstrap — must match to override */
+    .progress-bar.bg-success { background: linear-gradient(90deg, #2ebd7a, var(--green)) !important; }
+    .progress-bar.bg-warning { background: linear-gradient(90deg, #d4943a, var(--yellow)) !important; }
+
+    /* ── 10. BADGES — Bootstrap solid colors; we want muted tints ──────────── */
+    /* bg-X utilities use !important — must match specificity + source order to win */
+    .badge.bg-primary   { background: var(--accent-dim)  !important; color: var(--accent)      !important; border: 1px solid rgba(79,142,247,0.3)   !important; }
+    .badge.bg-secondary { background: var(--bg-elevated)  !important; color: var(--text-muted)  !important; }
+    .badge.bg-success   { background: var(--green-dim)   !important; color: var(--green)        !important; border: 1px solid rgba(61,214,140,0.25)  !important; }
+    .badge.bg-warning   { background: var(--yellow-dim)  !important; color: var(--yellow)       !important; border: 1px solid rgba(240,192,96,0.25)  !important; }
+    .badge.bg-danger    { background: var(--red-dim)     !important; color: var(--red)          !important; border: 1px solid rgba(247,110,110,0.25) !important; }
+    .badge.bg-dark      { background: var(--bg-surface)  !important; color: var(--text-muted)   !important; border: 1px solid var(--border) !important; }
+    .badge-tag { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-glow); font-size: 0.62rem; }
+
+    /* ── 11. ACCORDION — Bootstrap renders via vars; we add chevron tint ────── */
+    .accordion-button::after,
+    .accordion-button:not(.collapsed)::after {
+      filter: invert(55%) sepia(60%) saturate(400%) hue-rotate(195deg) brightness(110%);
+      opacity: 0.8;
+    }
+    .accordion-button { font-size: var(--fs-base); font-weight: 500; font-family: var(--font-body); align-items: flex-start; }
+    /* Each item is a self-contained card — full border on all sides, gap via margin */
+    .accordion-item   { margin-bottom: 0.5rem; border: 1px solid var(--border) !important; border-radius: var(--radius) !important; overflow: hidden; }
+    /* Open state — accent left border signals which question is active */
+    .accordion-button:not(.collapsed) {
+      border-left: 3px solid var(--accent);
+      padding-left: calc(var(--bs-accordion-btn-padding-x) - 2px); /* compensate for border width */
+    }
+
+    /* ── 12. SECTION NAV PILLS (topic tabs) ─────────────────────────────────── */
+    .section-nav-pills { gap: 4px; }
+    .section-nav-pills button.nav-link {
+      padding: 0.32rem 0.85rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 0; border: 1px solid transparent;
+    }
+    .section-nav-pills button.nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .section-nav-pills button.nav-link.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
+
+    /* ── 13. ACCORDION QUESTION HEADER — custom two-row layout ─────────────── */
+    .q-header-content { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 0.28rem; padding-right: 0.5rem; }
+    .q-title  { font-size: 0.86rem; font-weight: 600; color: var(--text-primary); line-height: 1.35; }
+    .q-meta   { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
+    .q-badge  { font-size: 0.6rem !important; padding: 0.15em 0.45em; }
+    .q-badge-sep { width: 1px; height: 12px; background: var(--border); display: inline-block; }
+
+    /* ── 14. STATUS CYCLE BUTTON ────────────────────────────────────────────── */
+    .status-cycle-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid transparent;
+      font-size: 0.85rem; flex-shrink: 0; margin-right: 0.6rem;
+      cursor: pointer; background: var(--bg-hover); line-height: 1;
+      transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .status-cycle-btn:hover { transform: scale(1.18); border-color: var(--border-glow); background: var(--bg-hover); }
+    .status-cycle-btn.bg-success  { background: var(--green-dim);  border-color: rgba(61,214,140,0.3); }
+    .status-cycle-btn.bg-warning  { background: var(--yellow-dim); border-color: rgba(240,192,96,0.3); }
+    .status-cycle-btn.bg-secondary { background: var(--bg-elevated); border-color: var(--border); }
+
+    /* ── 15. LC HEADER LINK ─────────────────────────────────────────────────── */
+    .lc-header-link {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.15em 0.5em; border-radius: 5px; border: 1px solid transparent;
+      color: var(--text-faint); font-size: 0.68rem; font-weight: 500;
+      white-space: nowrap; cursor: pointer; background: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .lc-header-link:hover { color: var(--accent); border-color: var(--border-glow); background: var(--accent-dim); }
+
+    /* ── 15a. UTILITY CLASSES — named aliases for recurring inline styles ────
+     * AI: use var(--fs-xs/sm/base) tokens for font sizes, not raw rem values.
+     * Add new utilities here rather than using inline style="".              */
+    .text-xxs   { font-size: 0.62rem; }        /* badge labels only           */
+    .text-xs    { font-size: var(--fs-xs); }   /* meta, secondary labels      */
+    .text-sm    { font-size: var(--fs-sm); }   /* small prose, descriptions   */
+    /* Legacy aliases — kept for compatibility, prefer text-xs/text-sm above  */
+    .text-xs-custom  { font-size: var(--fs-xs); }
+    .text-2xs        { font-size: 0.70rem; }
+    .text-sm-custom  { font-size: var(--fs-sm); }
+    .icon-lg         { font-size: 2rem; }
+    .icon-xl         { font-size: 1.4rem; }
+    .ph-id           { font-size: var(--fs-xs); opacity: 0.7; }
+    .ph-count        { font-size: var(--fs-xs); font-weight: 400; opacity: 0.65; }
+    .section-label-heading { font-size: 0.65rem; letter-spacing: 0.08em; }
+    /* AI: use these for progress bars instead of inline style="height:Xpx" */
+    .progress-xs     { height: 5px; }
+    .progress-sm     { height: 6px; }
+    .progress-md     { height: 8px; }
+
+    /* ── 16. INFO BOXES ─────────────────────────────────────────────────────── */
+    .gotcha-box  { background: var(--red-dim);    border-left: 3px solid var(--red);    padding: 0.55rem 0.9rem; border-radius: 0 var(--radius) var(--radius) 0; }
+    .faang-box   { background: var(--green-dim);  border-left: 3px solid var(--green);  padding: 0.55rem 0.9rem; border-radius: 0 var(--radius) var(--radius) 0; }
+    .insight-box { background: var(--accent-dim); border-left: 3px solid var(--accent); padding: 0.55rem 0.9rem; border-radius: 0 var(--radius) var(--radius) 0; }
+    .tip-box     { background: var(--yellow-dim); border-left: 3px solid var(--yellow); padding: 0.75rem 1rem;   border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.84rem; }
+
+    /* ── 16a. WHEN TO USE / AVOID ───────────────────────────────────────────── */
+    .wtu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 640px) { .wtu-grid { grid-template-columns: 1fr; } }
+    .wtu-use  { background: var(--green-dim);  border: 1px solid rgba(61,214,140,0.2);  border-radius: var(--radius); padding: 0.75rem 0.9rem; }
+    .wtu-avoid{ background: var(--red-dim);    border: 1px solid rgba(247,110,110,0.2); border-radius: var(--radius); padding: 0.75rem 0.9rem; }
+    .wtu-label{ font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .wtu-use   .wtu-label { color: var(--green); }
+    .wtu-avoid .wtu-label { color: var(--red); }
+    .wtu-list { list-style: none; padding: 0; margin: 0; }
+    .wtu-list li { font-size: var(--fs-xs); color: var(--text-muted); padding: 0.3rem 0; border-bottom: 1px solid var(--border); line-height: 1.5; }
+    .wtu-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .wtu-list li::before { margin-right: 0.4rem; }
+
+    /* ── 17. DECISION TREE ──────────────────────────────────────────────────── */
+    .tree-node         { border-left: 2px solid var(--border); padding-left: 1rem; margin-left: 0.5rem; }
+    .tree-question     { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.55rem 0.85rem; margin-bottom: 0.4rem; }
+    .tree-leaf         { background: var(--accent-dim); border: 1px solid rgba(79,142,247,0.3); border-radius: var(--radius); padding: 0.55rem 0.85rem; margin-bottom: 0.4rem; }
+    .tree-leaf-unknown { background: var(--red-dim); border: 1px solid rgba(247,110,110,0.25); border-radius: var(--radius); padding: 0.55rem 0.85rem; }
+    .tree-branch-yes { color: var(--green); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.05em; }
+    .tree-branch-no  { color: var(--red);   font-weight: 700; font-size: 0.7rem; letter-spacing: 0.05em; }
+
+    /* ── 18. PATTERN HEADINGS ───────────────────────────────────────────────── */
+    .ph    { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.8rem; border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.8rem; font-weight: 600; margin: 1.75rem 0 0.6rem; letter-spacing: 0.02em; }
+    /* AI: first pattern heading needs no top margin — controlled by CSS, not JS */
+    #tab-questions .ph:first-of-type { margin-top: 0; }
+    .ph-p1 { background: var(--accent-dim);  border-left: 3px solid var(--accent);  color: var(--accent); }
+    .ph-p2 { background: var(--green-dim);   border-left: 3px solid var(--green);   color: var(--green); }
+    .ph-p3 { background: var(--yellow-dim);  border-left: 3px solid var(--yellow);  color: var(--yellow); }
+    .ph-p4 { background: var(--purple-dim);  border-left: 3px solid var(--purple);  color: var(--purple); }
+    .ph-p5 { background: var(--red-dim);     border-left: 3px solid var(--red);     color: var(--red); }
+    .ph-p6 { background: var(--teal-dim);    border-left: 3px solid var(--teal);    color: var(--teal); }
+
+    /* ── 19. PATTERN CARD ───────────────────────────────────────────────────── */
+    /* border-secondary utility no longer on the element — no !important needed */
+    .pattern-card { border-left: 3px solid var(--accent); }
+
+    /* ── 20. ANIMATIONS ─────────────────────────────────────────────────────── */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .anim-fade-in { animation: fadeIn 0.22s ease both; }
+
+    /* ── 21. SCROLLBAR ──────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar       { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+
+    /* ── 22. REDUCED MOTION ─────────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="d-flex">
+
+  <!-- ═══ SIDEBAR ═══
+       AI: nav buttons are rendered by renderNavTopics() in JS.
+       To add sidebar items: update TOPICS array in JS.            -->
+  <aside id="sidebar" class="d-flex flex-column p-0">
+
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">
+        <span class="bolt">⚡</span>
+        DSA Notebook
+      </div>
+      <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar">✕</button>
+    </div>
+
+    <nav class="flex-grow-1 p-2 overflow-auto">
+      <button type="button" id="nav-dashboard" onclick="loadDashboard()"
+        class="nav-link">
+        <span class="nav-topic-icon">🏠</span>
+        <span class="nav-topic-label">Dashboard</span>
+      </button>
+      <p class="sidebar-section-label">Topics</p>
+      <div id="nav-topics"></div>
+    </nav>
+
+    <div class="sidebar-footer">v26 · DSA Notebook</div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="flex-grow-1 d-flex flex-column" style="min-width:0; min-height:100vh;">
+
+    <!-- Top Bar -->
+    <header>
+      <button type="button" onclick="toggleSidebar()" class="header-menu-btn" title="Toggle sidebar">☰</button>
+      <h1 id="page-title" class="fs-6 fw-semibold mb-0"
+          role="button" onclick="loadDashboard()" title="Go to Dashboard">
+        🏠 Dashboard
+      </h1>
+      <div id="header-tabs" class="ms-2"></div>
+      <button type="button" onclick="toggleTheme()" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme">🌙</button>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-grow-1 p-4">
+
+      <!-- ── VIEW: Dashboard ──
+           AI: rendered by loadDashboard(). Shows overall progress + topic cards. -->
+      <div id="view-dashboard">
+        <!-- Overall progress bar — rendered by loadDashboard() -->
+        <div id="overall-tracker" class="mb-4"></div>
+        <!-- Per-topic cards — rendered by loadDashboard() -->
+        <div class="row g-3" id="topic-cards"></div>
+      </div>
+
+      <!-- ── VIEW: Topic ──
+           AI: rendered by loadTopic(key). Three sub-tabs: questions/patterns/templates.
+           Each tab rendered by renderQuestions/renderPatterns/renderTemplates(mod). -->
+      <div id="view-topic" class="d-none">
+
+        <!-- Progress tracker (always visible) -->
+        <div id="topic-tracker"></div>
+
+        <!-- Decision Tree + Interview Tips (always visible, collapsible) -->
+        <div id="topic-always-visible" class="mb-3"></div>
+
+        <!-- Sub-tabs: rendered by buildTopicTabs() from TOPIC_TABS registry in JS -->
+        <!-- AI: to add a tab, update TOPIC_TABS in JS — do not edit here -->
+        <ul class="nav section-nav-pills mb-3" id="topic-tabs"></ul>
+
+        <!-- Tab panes: one div per entry in TOPIC_TABS, rendered by buildTopicTabs() -->
+        <div id="topic-tab-panes"></div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══ SCRIPT ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="data.js"></script>
+<script>
+/* <![CDATA[ */
+
+// ─── HTML GENERATION STYLE ───────────────────────────────────────────────────
+// AI: all HTML generation uses string concatenation (+ operator) with escHtml()
+// for any user-facing data. Template literals (backticks) are used only in
+// buildNav() and buildTopicTabs() where interpolation is cleaner and no
+// user data is concatenated directly. Do not mix styles within a function.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── BADGE / STATUS MAPS ──────────────────────────────────────────────────────
+// AI: all status/difficulty display mappings live here — update here only.
+const DIFFICULTY_BADGE = { Easy: 'success', Medium: 'warning', Hard: 'danger' }
+const STATUS_BADGE      = { Solved: 'success', 'In Progress': 'warning', Pending: 'secondary' }
+const STATUS_DOT        = { Solved: 'bg-success', 'In Progress': 'bg-warning', Pending: 'bg-secondary' }
+const STATUS_EMOJI      = { Solved: '✅', 'In Progress': '🚧', Pending: '📋' }
+const STATUS_CYCLE      = { Pending: 'In Progress', 'In Progress': 'Solved', Solved: 'Pending' }
+
+// ─── QUICK-REF PANEL IDs ──────────────────────────────────────────────────────
+// AI: if adding a new collapsible panel to the topic reference section,
+// add its ID here and reference QR_IDS.yourKey in renderTopicAlwaysVisible.
+const QR_IDS = {
+  whenToUse:    'qr-wtu',
+  decisionTree: 'qr-dtree',
+  tips:         'qr-tips',
+}
+
+// ─── TOPIC TABS ───────────────────────────────────────────────────────────────
+// AI: single source of truth for tab definitions.
+// Adding a tab here automatically renders it in the HTML nav and wires up
+// the tab pane. You must also add a render function and call it in renderCurrentTab().
+const TOPIC_TABS = [
+  { key: 'questions',  label: 'Questions'  },
+  { key: 'patterns',   label: 'Patterns'   },
+  { key: 'templates',  label: 'Templates'  },
+]
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentTopicKey = null
+let currentTab = 'questions'
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  syncThemeIcon()
+  buildNav()
+  loadDashboard()
+})
+
+// ─── BUILD NAV ────────────────────────────────────────────────────────────────
+function buildNav() {
+  const container = document.getElementById('nav-topics')
+  container.innerHTML = TOPICS.map(t => {
+    const mod = TOPIC_MODULES[t.key]
+    const qCount = mod ? Object.keys(mod.questions).length : 0
+    return `
+      <button type="button"
+         id="nav-${t.key}"
+         onclick="loadTopic('${t.key}')"
+         class="nav-link">
+        <span class="nav-topic-icon">${t.icon}</span>
+        <span class="nav-topic-label">${t.label}</span>
+        <span class="badge bg-secondary rounded-pill text-xxs">${qCount}</span>
+      </button>
+    `
+  }).join('')
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function loadDashboard() {
+  showView('view-dashboard')
+  document.getElementById('page-title').textContent = '🏠 Dashboard'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const dash = document.getElementById('nav-dashboard')
+  if (dash) dash.classList.add('active')
+  currentTopicKey = null
+
+  // One-pass: compute global totals + per-topic stats simultaneously
+  let totalQ = 0, totalSolved = 0, totalInProg = 0, totalPending = 0
+  const topicStats = TOPICS.map(t => {
+    const mod = TOPIC_MODULES[t.key]
+    if (!mod) return { key: t.key, icon: t.icon, label: t.label, mod: null }
+    const qKeys  = Object.keys(mod.questions)
+    const solved  = qKeys.filter(k => getStatus(k) === 'Solved').length
+    const inProg  = qKeys.filter(k => getStatus(k) === 'In Progress').length
+    const pending = qKeys.filter(k => getStatus(k) === 'Pending').length
+    totalQ       += qKeys.length
+    totalSolved  += solved
+    totalInProg  += inProg
+    totalPending += pending
+    return {
+      key: t.key, icon: t.icon, label: t.label, mod,
+      total: qKeys.length, solved, inProg, pending,
+      pct:       qKeys.length ? Math.round(solved / qKeys.length * 100) : 0,
+      inProgPct: qKeys.length ? Math.round(inProg / qKeys.length * 100) : 0
+    }
+  })
+
+  const solvedPct  = totalQ ? Math.round(totalSolved / totalQ * 100) : 0
+  const inProgPct  = totalQ ? Math.round(totalInProg / totalQ * 100) : 0
+
+  // ── Overall tracker ─────────────────────────────────────────────────────────
+  document.getElementById('overall-tracker').innerHTML =
+    '<div class="card">' +
+    '<div class="card-body">' +
+    '<div class="d-flex align-items-center justify-content-between mb-2">' +
+    '<h6 class="mb-0 fw-semibold">Overall Progress</h6>' +
+    '<span class="text-secondary small">' + totalSolved + ' / ' + totalQ + ' solved</span>' +
+    '</div>' +
+    '<div class="progress progress-md mb-2">' +
+    '<div class="progress-bar bg-success" style="width:' + solvedPct + '%" title="Solved: ' + totalSolved + '"></div>' +
+    '<div class="progress-bar bg-warning" style="width:' + inProgPct + '%" title="In Progress: ' + totalInProg + '"></div>' +
+    '</div>' +
+    '<div class="d-flex gap-3 small">' +
+    '<span class="text-success">✅ <strong>' + totalSolved + '</strong> Solved</span>' +
+    '<span class="text-warning">🚧 <strong>' + totalInProg + '</strong> In Progress</span>' +
+    '<span class="text-secondary">📋 <strong>' + totalPending + '</strong> Pending</span>' +
+    '<span class="ms-auto text-secondary">' + solvedPct + '% · ' + totalQ + ' total</span>' +
+    '</div>' +
+    '</div></div>'
+
+  // ── Per-topic cards ──────────────────────────────────────────────────────────
+  document.getElementById('topic-cards').innerHTML = topicStats.map(s => {
+    if (!s.mod) {
+      return (
+        '<div class="col-12 col-md-6 col-lg-4">' +
+        '<div class="card h-100 text-center" role="button" onclick="loadTopic(\'' + s.key + '\')">' +
+        '<div class="card-body d-flex flex-column justify-content-center align-items-center py-4">' +
+        '<div class="icon-lg mb-2">' + s.icon + '</div>' +
+        '<h6 class="mb-1">' + escHtml(s.label) + '</h6>' +
+        '<span class="badge bg-secondary">Coming soon</span>' +
+        '</div></div></div>'
+      )
+    }
+    return (
+      '<div class="col-12 col-md-6 col-lg-4">' +
+      '<div class="card h-100" role="button" onclick="loadTopic(\'' + s.key + '\')">' +
+      '<div class="card-body">' +
+      '<div class="d-flex align-items-center gap-2 mb-2">' +
+      '<span class="icon-xl">' + s.icon + '</span>' +
+      '<h6 class="mb-0 fw-semibold">' + escHtml(s.label) + '</h6>' +
+      '</div>' +
+      '<div class="d-flex flex-wrap gap-3 small text-secondary mb-3">' +
+      '<span>📝 ' + s.total + ' questions</span>' +
+      '<span>🧩 ' + s.mod.patterns.length + ' patterns</span>' +
+      '<span>💻 ' + s.mod.templates.length + ' templates</span>' +
+      '</div>' +
+      '<div class="d-flex justify-content-between small mb-1">' +
+      '<span class="text-secondary">Progress</span>' +
+      '<span class="fw-semibold">' + s.solved + ' / ' + s.total + '</span>' +
+      '</div>' +
+      '<div class="progress progress-sm mb-2">' +
+      '<div class="progress-bar bg-success" style="width:' + s.pct + '%"></div>' +
+      '<div class="progress-bar bg-warning" style="width:' + s.inProgPct + '%"></div>' +
+      '</div>' +
+      '<div class="d-flex gap-3 small">' +
+      '<span class="text-success">✅ ' + s.solved + '</span>' +
+      '<span class="text-warning">🚧 ' + s.inProg + '</span>' +
+      '<span class="text-secondary">📋 ' + s.pending + '</span>' +
+      '</div>' +
+      '</div></div></div>'
+    )
+  }).join('')
+}
+
+// ─── BUILD TOPIC TABS ─────────────────────────────────────────────────────────
+// AI: renders tab nav + pane divs from TOPIC_TABS. Called once per loadTopic().
+// To add a tab: update TOPIC_TABS constant — this function needs no changes.
+function buildTopicTabs() {
+  const nav   = document.getElementById('topic-tabs')
+  const panes = document.getElementById('topic-tab-panes')
+  if (!nav || !panes) return
+
+  nav.innerHTML = TOPIC_TABS.map((t, i) =>
+    `<li class="nav-item">
+      <button class="nav-link${i === 0 ? ' active' : ''}" type="button"
+        data-tab="${t.key}" onclick="showTopicTab('${t.key}')">${t.label}</button>
+    </li>`
+  ).join('')
+
+  panes.innerHTML = TOPIC_TABS.map((t, i) =>
+    `<div id="tab-${t.key}"${i > 0 ? ' class="d-none"' : ''}></div>`
+  ).join('')
+}
+
+// ─── LOAD TOPIC ───────────────────────────────────────────────────────────────
+function loadTopic(key) {
+  const topic = TOPICS.find(t => t.key === key)
+  if (!topic) return
+
+  currentTopicKey = key
+  currentTab = TOPIC_TABS[0].key  // always start on first tab
+
+  showView('view-topic')
+  document.getElementById('page-title').textContent = topic.icon + ' ' + topic.label
+  setActiveNav(key)
+  buildTopicTabs()  // renders nav + panes from TOPIC_TABS registry
+
+  const mod = TOPIC_MODULES[key]
+  renderTopicTracker(mod)
+  renderTopicAlwaysVisible(mod)
+  renderCurrentTab()
+}
+
+// ─── SHOW TOPIC TAB ───────────────────────────────────────────────────────────
+function showTopicTab(tab) {
+  currentTab = tab
+  document.querySelectorAll('#topic-tabs .nav-link').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-tab') === tab)
+  })
+  renderCurrentTab()
+}
+
+function renderCurrentTab() {
+  // AI: tab visibility is driven by TOPIC_TABS — do not hardcode tab keys here
+  TOPIC_TABS.forEach(t => {
+    const el = document.getElementById('tab-' + t.key)
+    if (el) el.classList.toggle('d-none', t.key !== currentTab)
+  })
+
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (!mod) {
+    const el = document.getElementById('tab-' + currentTab)
+    if (el) el.innerHTML = '<div class="text-center py-5 text-secondary"><span class="icon-lg">⏳</span><p class="mt-3 small">Module coming soon.</p></div>'
+    return
+  }
+
+  if (currentTab === 'questions') renderQuestions(mod)
+  if (currentTab === 'patterns')  renderPatterns(mod)
+  if (currentTab === 'templates') renderTemplates(mod)
+}
+
+// ─── QUESTIONS TAB ────────────────────────────────────────────────────────────
+// AI: if adding P7, P8 etc — add to PATTERN_HEADING_CLASS here AND
+// add matching .ph-p7, .ph-p8 CSS rules in section 18 of the stylesheet.
+const PATTERN_HEADING_CLASS = { P1: 'ph-p1', P2: 'ph-p2', P3: 'ph-p3', P4: 'ph-p4', P5: 'ph-p5', P6: 'ph-p6' }
+
+function renderQuestions(mod) {
+  const container = document.getElementById('tab-questions')
+  const qEntries = Object.entries(mod.questions)
+
+  if (qEntries.length === 0) {
+    container.innerHTML = '<div class="text-center py-5"><span style="font-size:2rem;" class="text-secondary">📭</span><p class="text-secondary mt-3 small">No questions yet.</p></div>'
+    return
+  }
+
+  const byPattern = {}
+  mod.patterns.forEach(p => { byPattern[p.id] = [] })
+  byPattern['_other'] = []
+
+  qEntries.forEach(([k, q]) => {
+    const pat = mod.patterns.find(p => p.questionIds.includes(k))
+    if (pat) byPattern[pat.id].push([k, q])
+    else byPattern['_other'].push([k, q])
+  })
+
+  let html = ''
+  mod.patterns.forEach(p => {
+    const qs = byPattern[p.id]
+    if (!qs.length) return
+    const phCls = 'ph ' + (PATTERN_HEADING_CLASS[p.id] || '')
+    html += '<div class="' + phCls + '">'
+    html += '<span class="ph-id">' + p.id + '</span>'
+    html += '<span>' + escHtml(p.name) + '</span>'
+    html += '<span class="ms-auto ph-count">' + qs.length + ' question' + (qs.length !== 1 ? 's' : '') + '</span>'
+    html += '</div>'
+    html += '<div class="accordion mb-2" id="acc-q-' + p.id + '">'
+    qs.forEach(([k, q], i) => { html += buildQuestionAccordionItem(k, q, 'q-' + p.id, i) })
+    html += '</div>'
+  })
+
+  if (byPattern['_other'].length) {
+    html += '<div class="accordion mb-3" id="acc-q-other">'
+    byPattern['_other'].forEach(([k, q], i) => { html += buildQuestionAccordionItem(k, q, 'q-other', i) })
+    html += '</div>'
+  }
+
+  container.innerHTML = html
+}
+
+function buildQuestionAccordionItem(lcKey, q, groupId, index) {
+  const id = 'acc-' + groupId + '-' + index
+  const status = getStatus(lcKey)
+
+  const templateBadges = (q.templateRefs || []).map(t =>
+    '<span class="badge bg-primary bg-opacity-25 border border-primary text-xxs">' + t + '</span>'
+  ).join('')
+
+  const tags = (q.tags || []).map(t => '<span class="badge badge-tag me-1">' + t + '</span>').join('')
+  const altApproaches = (q.alternateApproaches || []).map(a =>
+    '<span class="badge bg-secondary me-1" title="' + escHtml(a.tradeoff) + '">' + escHtml(a.technique) + '</span>'
+  ).join('')
+
+  const insightRow    = q.keyInsight    ? '<div class="insight-box mb-2 small"><strong class="text-info">💡 Insight:</strong> '  + escHtml(q.keyInsight)   + '</div>' : ''
+  const shrinkRow     = q.shrinkTrigger ? '<p class="mb-2 small"><span class="text-secondary">Shrink trigger:</span> <code>' + escHtml(q.shrinkTrigger) + '</code></p>' : ''
+  const complexityRow = (q.timeComplexity || q.spaceComplexity) ?
+    '<div class="d-flex gap-3 mb-2">' +
+    (q.timeComplexity  ? '<span class="text-secondary small">⏱ ' + q.timeComplexity  + '</span>' : '') +
+    (q.spaceComplexity ? '<span class="text-secondary small">💾 ' + q.spaceComplexity + '</span>' : '') +
+    '</div>' : ''
+  const gotchaRow  = q.gotcha    ? '<div class="gotcha-box mb-2 small"><strong class="text-danger">⚠ Gotcha:</strong> '  + escHtml(q.gotcha)    + '</div>' : ''
+  const faangRow   = q.faangNote ? '<div class="faang-box mb-2 small"><strong class="text-success">★ FAANG:</strong> '  + escHtml(q.faangNote) + '</div>' : ''
+  const altRow     = altApproaches ? '<div class="mb-2 small"><span class="text-secondary">Alt approaches:</span> ' + altApproaches + '</div>' : ''
+
+  return (
+    '<div class="accordion-item">' +
+    '<h2 class="accordion-header">' +
+    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + id + '">' +
+
+    // ── Status dot + LC button — left side of header row
+    '<span class="status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary') + '"' +
+    ' title="Status: ' + status + ' — click to cycle"' +
+    ' onclick="event.stopPropagation(); cycleQuestionStatus(\'' + lcKey + '\', this)"' +
+    ' data-lc-key="' + lcKey + '">' +
+    STATUS_EMOJI[status] +
+    '</span>' +
+    '<span class="status-cycle-btn bg-secondary"' +
+    ' title="Open on LeetCode"' +
+    ' onclick="event.stopPropagation(); window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
+
+    // ── Title + sub-row (badges) — two-line layout
+    '<span class="q-header-content">' +
+    '<span class="q-title">' + escHtml(q.title) + '</span>' +
+    '<span class="q-meta">' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge">' + q.difficulty + '</span>' +
+    (templateBadges ? '<span class="q-badge-sep"></span>' + templateBadges : '') +
+    '</span>' +
+    '</span>' +
+
+    '</button></h2>' +
+    '<div id="' + id + '" class="accordion-collapse collapse">' +
+    '<div class="accordion-body small">' +
+    (tags ? '<div class="mb-3 d-flex flex-wrap gap-1">' + tags + '</div>' : '') +
+    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow +
+    '</div></div></div>'
+  )
+}
+
+function setQuestionStatus(lcKey, status, btnEl) {
+  setStatus(lcKey, status)
+  // Update cycle button in header
+  const itemEl = btnEl ? btnEl.closest('.accordion-item') : document.querySelector('[data-lc-key="' + lcKey + '"]')?.closest('.accordion-item')
+  if (itemEl) {
+    // AI: querySelector uses [data-lc-key] to find the status dot explicitly.
+    // Do NOT use .status-cycle-btn — there are two per item (status + LC button).
+    const cycleBtn = itemEl.querySelector('[data-lc-key]')
+    if (cycleBtn) {
+      cycleBtn.className = 'status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary')
+      cycleBtn.title     = 'Status: ' + status + ' — click to cycle'
+      cycleBtn.textContent = { 'Solved': '✅', 'In Progress': '🚧', 'Pending': '📋' }[status] || '📋'
+    }
+  }
+  // Refresh topic tracker
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) renderTopicTracker(mod)
+}
+
+function cycleQuestionStatus(lcKey, cycleBtn) {
+  const current = getStatus(lcKey)
+  const next    = STATUS_CYCLE[current] || 'In Progress'
+  setQuestionStatus(lcKey, next, cycleBtn)
+}
+
+// ─── PATTERNS TAB ─────────────────────────────────────────────────────────────
+function renderPatterns(mod) {
+  const container = document.getElementById('tab-patterns')
+  container.innerHTML = mod.patterns.map(p => {
+    const signals = p.recognitionSignals.map(s => `<li class="mb-1">${escHtml(s)}</li>`).join('')
+    const qLinks  = p.questionIds.map(k => {
+      const q = mod.questions[k]
+      return q ? `<span class="badge bg-dark border border-secondary me-1" style="font-size:0.7rem;">${escHtml(q.title.replace(/\(.+\)/, '').trim())} <span class="text-${DIFFICULTY_BADGE[q.difficulty]}">${q.difficulty}</span></span>` : ''
+    }).join('')
+
+    return `
+      <div class="card pattern-card mb-3">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-primary">${p.id}</span>
+            <h6 class="mb-0 fw-semibold">${escHtml(p.name)}</h6>
+          </div>
+          <div class="insight-box mb-3 small">${escHtml(p.mentalModel)}${p.keyQuestion ? `<br><strong class="text-warning">Key question:</strong> ${escHtml(p.keyQuestion)}` : ''}</div>
+          <p class="text-secondary small fw-semibold mb-1 text-uppercase section-label-heading">Recognition Signals</p>
+          <ul class="text-secondary small mb-3">${signals}</ul>
+          <p class="text-secondary small fw-semibold mb-1 text-uppercase section-label-heading">Questions</p>
+          <div class="flex-wrap">${qLinks}</div>
+        </div>
+      </div>`
+  }).join('')
+}
+
+// ─── TEMPLATES TAB ────────────────────────────────────────────────────────────
+function renderTemplates(mod) {
+  const container = document.getElementById('tab-templates')
+  container.innerHTML = `
+    <div class="accordion" id="acc-templates">
+      ${mod.templates.map((t, i) => {
+        const id = `tmpl-${i}`
+        return `
+          <div class="accordion-item mb-2">
+            <h2 class="accordion-header">
+              <button class="accordion-button${i > 0 ? ' collapsed' : ''} rounded" type="button"
+                data-bs-toggle="collapse" data-bs-target="#${id}">
+                <span class="badge bg-dark border border-secondary me-2">${t.id}</span>
+                <span class="small fw-semibold">${escHtml(t.name)}</span>
+              </button>
+            </h2>
+            <div id="${id}" class="accordion-collapse collapse${i === 0 ? ' show' : ''}">
+              <div class="accordion-body">
+                <p class="text-secondary small mb-3">${escHtml(t.description)}</p>
+                <pre><code>${escHtml(t.code)}</code></pre>
+              </div>
+            </div>
+          </div>`
+      }).join('')}
+    </div>`
+}
+
+// ─── TOPIC TRACKER (always visible) ─────────────────────────────────────────
+function renderTopicTracker(mod) {
+  const el = document.getElementById('topic-tracker')
+  if (!el) return
+  if (!mod) { el.innerHTML = ''; return }
+
+  const qKeys     = Object.keys(mod.questions)
+  const solved    = qKeys.filter(k => getStatus(k) === 'Solved').length
+  const inProg    = qKeys.filter(k => getStatus(k) === 'In Progress').length
+  const pending   = qKeys.filter(k => getStatus(k) === 'Pending').length
+  const pct       = qKeys.length ? Math.round(solved    / qKeys.length * 100) : 0
+  const inProgPct = qKeys.length ? Math.round(inProg    / qKeys.length * 100) : 0
+
+  el.innerHTML =
+    '<div class="card mb-3">' +
+    '<div class="card-body py-2 px-3">' +
+    '<div class="d-flex align-items-center justify-content-between mb-1">' +
+    '<span class="text-secondary text-sm-custom">' + escHtml(mod.goal) + '</span>' +
+    '<span class="small text-secondary ms-3 flex-shrink-0">' + solved + ' / ' + qKeys.length + '</span>' +
+    '</div>' +
+    '<div class="progress progress-xs mb-1">' +
+    '<div class="progress-bar bg-success" style="width:' + pct + '%"></div>' +
+    '<div class="progress-bar bg-warning" style="width:' + inProgPct + '%"></div>' +
+    '</div>' +
+    '<div class="d-flex gap-3 small">' +
+    '<span class="text-success">✅ <strong>' + solved + '</strong></span>' +
+    '<span class="text-warning">🚧 <strong>' + inProg + '</strong></span>' +
+    '<span class="text-secondary">📋 <strong>' + pending + '</strong></span>' +
+    '<span class="ms-auto text-secondary text-xxs">' + pct + '% complete</span>' +
+    '</div>' +
+    '</div></div>'
+}
+
+// ─── ALWAYS-VISIBLE: WHEN TO USE + DECISION TREE + INTERVIEW TIPS ────────────
+function renderTopicAlwaysVisible(mod) {
+  const el = document.getElementById('topic-always-visible')
+  if (!el) return
+  if (!mod) { el.innerHTML = ''; return }
+
+  const tipsHtml = mod.interviewTips.map((tip, i) =>
+    '<div class="tip-box mb-2 d-flex gap-2 small">' +
+    '<span class="fw-bold text-warning flex-shrink-0">' + (i + 1) + '.</span>' +
+    '<span>' + escHtml(tip) + '</span></div>'
+  ).join('')
+
+  // When to Use / Avoid — only render if data exists
+  const wtu = mod.whenToUse
+  const wtuHtml = wtu ? (
+    '<div class="wtu-grid">' +
+    '<div class="wtu-use">' +
+    '<div class="wtu-label">✅ Use when</div>' +
+    '<ul class="wtu-list">' +
+    wtu.use.map(s => '<li>' + escHtml(s) + '</li>').join('') +
+    '</ul></div>' +
+    '<div class="wtu-avoid">' +
+    '<div class="wtu-label">❌ Avoid when</div>' +
+    '<ul class="wtu-list">' +
+    wtu.avoid.map(s => '<li>' + escHtml(s) + '</li>').join('') +
+    '</ul></div>' +
+    '</div>'
+  ) : '<p class="text-secondary small">Not yet documented.</p>'
+
+  el.innerHTML =
+    '<div class="accordion" id="accord-quick-ref">' +
+
+    // ── When to Use / Avoid ──
+    '<div class="accordion-item mb-1">' +
+    '<h2 class="accordion-header">' +
+    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + QR_IDS.whenToUse + '">' +
+    '<span class="me-2">🎯</span>' +
+    '<span class="small fw-semibold">When to Use / Avoid</span>' +
+    '<span class="ms-2 text-secondary text-2xs">&#8212; pattern recognition before you start</span>' +
+    '</button></h2>' +
+    '<div id="' + QR_IDS.whenToUse + '" class="accordion-collapse collapse">' +
+    '<div class="accordion-body small">' + wtuHtml + '</div>' +
+    '</div></div>' +
+
+    // ── Decision Tree ──
+    /*
+    '<div class="accordion-item mb-1">' +
+    '<h2 class="accordion-header">' +
+    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + QR_IDS.decisionTree + '">' +
+    '<span class="me-2">🌿</span>' +
+    '<span class="small fw-semibold">Decision Tree</span>' +
+    '<span class="ms-2 text-secondary text-2xs">&#8212; identify your pattern before writing code</span>' +
+    '</button></h2>' +
+    '<div id="' + QR_IDS.decisionTree + '" class="accordion-collapse collapse">' +
+    '<div class="accordion-body small">' +
+    '<p class="text-secondary mb-3">' + escHtml(mod.decisionTree.description) + '</p>' +
+    buildTreeNode(mod.decisionTree.node) +
+    '</div></div></div>' +
+    */
+
+    // ── Interview Tips ──
+    '<div class="accordion-item">' +
+    '<h2 class="accordion-header">' +
+    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + QR_IDS.tips + '">' +
+    '<span class="me-2">💡</span>' +
+    '<span class="small fw-semibold">Interview Tips</span>' +
+    '<span class="ms-2 badge bg-secondary rounded-pill text-xxs">' + mod.interviewTips.length + '</span>' +
+    '</button></h2>' +
+    '<div id="' + QR_IDS.tips + '" class="accordion-collapse collapse">' +
+    '<div class="accordion-body">' + tipsHtml + '</div>' +
+    '</div></div></div>'
+}
+
+function buildTreeNode(node) {
+  if (!node) return ''
+  let html = `<div class="tree-question mb-1"><span class="text-warning me-2">❓</span><strong class="small">${escHtml(node.question)}</strong></div>`
+  html += `<div class="tree-node">`
+
+  if (node.yes) {
+    html += `<div class="mb-1"><span class="tree-branch-yes">YES →</span></div>`
+    if (node.yes.leaf) html += buildTreeLeaf(node.yes.leaf)
+    if (node.yes.node) html += buildTreeNode(node.yes.node)
+  }
+  if (node.no) {
+    html += `<div class="mb-1 mt-2"><span class="tree-branch-no">NO →</span></div>`
+    if (node.no.leaf) html += buildTreeLeaf(node.no.leaf)
+    if (node.no.node) html += buildTreeNode(node.no.node)
+  }
+
+  html += `</div>`
+  return html
+}
+
+function buildTreeLeaf(leaf) {
+  if (!leaf.pattern) {
+    return `<div class="tree-leaf-unknown small mb-2"><span class="text-warning me-1">⚠️</span>${escHtml(leaf.label)}</div>`
+  }
+  const examples = (leaf.exampleProblems || []).map(k =>
+    `<span class="badge bg-dark border border-secondary me-1" style="font-size:0.65rem;">${k}</span>`
+  ).join('')
+  return `
+    <div class="tree-leaf mb-2 small">
+      <span class="badge bg-primary me-1">${leaf.pattern}</span>
+      <span class="badge bg-secondary me-2">${leaf.template}</span>
+      <strong>${escHtml(leaf.label)}</strong>
+      ${examples ? `<div class="mt-1">${examples}</div>` : ''}
+    </div>`
+}
+
+// renderInterviewTips removed — now rendered inside renderTopicAlwaysVisible
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed')
+}
+
+// ─── THEME TOGGLE ─────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement
+  const isDark = html.getAttribute('data-bs-theme') === 'dark'
+  const next = isDark ? 'light' : 'dark'
+  html.setAttribute('data-bs-theme', next)
+  localStorage.setItem('dsa-theme', next)
+  document.getElementById('theme-toggle-btn').textContent = next === 'dark' ? '🌙' : '☀️'
+}
+
+function syncThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+  const btn = document.getElementById('theme-toggle-btn')
+  if (btn) btn.textContent = isDark ? '🌙' : '☀️'
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function showView(id) {
+  ['view-dashboard', 'view-topic'].forEach(v => {
+    const el = document.getElementById(v)
+    if (v === id) {
+      el.classList.remove('d-none', 'anim-fade-in')
+      void el.offsetWidth // reflow to restart animation
+      el.classList.add('anim-fade-in')
+    } else {
+      el.classList.add('d-none')
+    }
+  })
+}
+
+function clearActiveNav() {
+  document.querySelectorAll('#nav-topics .nav-link').forEach(l => l.classList.remove('active'))
+  const dash = document.getElementById('nav-dashboard')
+  if (dash) dash.classList.remove('active')
+}
+
+function setActiveNav(key) {
+  clearActiveNav()
+  const el = document.getElementById(`nav-${key}`)
+  if (el) el.classList.add('active')
+}
+
+function escHtml(str) {
+  if (!str) return ''
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+/* ]]> */
+</script>
+</body>
+</html>
