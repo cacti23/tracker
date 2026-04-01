@@ -15,11 +15,11 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     /*
-     * v25 — Lean CSS philosophy:
+     * v26 — Lean CSS philosophy:
      * Set Bootstrap --bs-* vars in [data-bs-theme="dark"|"light"] → Bootstrap renders components.
      * Custom CSS only for things Bootstrap cannot express: layout, custom components,
      * visual flourishes. Zero !important wars except where Bootstrap utilities require it.
@@ -61,12 +61,6 @@
       --fs-xs:   0.68rem;   /* meta labels, badges         */
       --fs-sm:   0.78rem;   /* secondary text, small prose */
       --fs-base: 0.88rem;   /* body, accordion titles      */
-      /* 4px spacing grid */
-      --sp-1: 0.25rem;   /* 4px  */
-      --sp-2: 0.5rem;    /* 8px  */
-      --sp-3: 0.75rem;   /* 12px */
-      --sp-4: 1rem;      /* 16px */
-      --sp-6: 1.5rem;    /* 24px */
     }
 
     /* ── 2. BOOTSTRAP COMPONENT VARS ───────────────────────────────────────────
@@ -328,7 +322,6 @@
     .text-xs    { font-size: var(--fs-xs); }   /* meta, secondary labels      */
     .text-sm    { font-size: var(--fs-sm); }   /* small prose, descriptions   */
     /* Legacy aliases — kept for compatibility, prefer text-xs/text-sm above  */
-    .text-xs-custom  { font-size: var(--fs-xs); }
     .text-2xs        { font-size: 0.70rem; }
     .text-sm-custom  { font-size: var(--fs-sm); }
     .icon-lg         { font-size: 2rem; }
@@ -360,15 +353,7 @@
     .wtu-list li:last-child { border-bottom: none; padding-bottom: 0; }
     .wtu-list li::before { margin-right: 0.4rem; }
 
-    /* ── 17. DECISION TREE ──────────────────────────────────────────────────── */
-    .tree-node         { border-left: 2px solid var(--border); padding-left: 1rem; margin-left: 0.5rem; }
-    .tree-question     { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.55rem 0.85rem; margin-bottom: 0.4rem; }
-    .tree-leaf         { background: var(--accent-dim); border: 1px solid rgba(79,142,247,0.3); border-radius: var(--radius); padding: 0.55rem 0.85rem; margin-bottom: 0.4rem; }
-    .tree-leaf-unknown { background: var(--red-dim); border: 1px solid rgba(247,110,110,0.25); border-radius: var(--radius); padding: 0.55rem 0.85rem; }
-    .tree-branch-yes { color: var(--green); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.05em; }
-    .tree-branch-no  { color: var(--red);   font-weight: 700; font-size: 0.7rem; letter-spacing: 0.05em; }
-
-    /* ── 18. PATTERN HEADINGS ───────────────────────────────────────────────── */
+    /* ── 17. PATTERN HEADINGS ───────────────────────────────────────────────── */
     .ph    { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.8rem; border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.8rem; font-weight: 600; margin: 1.75rem 0 0.6rem; letter-spacing: 0.02em; }
     /* AI: first pattern heading needs no top margin — controlled by CSS, not JS */
     #tab-questions .ph:first-of-type { margin-top: 0; }
@@ -397,6 +382,76 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
+
+    /* ── 23. STATUS FILTER BAR (questions tab) ──────────────────────────────── */
+    .q-filter-bar { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    .q-filter-btn {
+      padding: 0.22rem 0.75rem; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); font-size: var(--fs-xs);
+      font-family: var(--font-body); cursor: pointer; line-height: 1.5;
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+    }
+    .q-filter-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .q-filter-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
+    .q-filter-count { font-size: var(--fs-xs); color: var(--text-faint); margin-left: auto; }
+
+    /* ── 24. COPY BUTTON (template code blocks) ─────────────────────────────── */
+    .pre-wrapper { position: relative; }
+    .copy-btn {
+      position: absolute; top: 0.45rem; right: 0.45rem;
+      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-muted); font-size: 0.65rem; font-family: var(--font-body);
+      padding: 0.18rem 0.55rem; cursor: pointer; opacity: 0;
+      transition: opacity 0.15s, border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .pre-wrapper:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { border-color: var(--border-glow); color: var(--accent); background: var(--accent-dim); }
+    .copy-btn.copied { color: var(--green); border-color: rgba(61,214,140,0.4); background: var(--green-dim); opacity: 1; }
+
+    /* ── 25. QUESTION NOTES ──────────────────────────────────────────────────── */
+    .note-area {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-primary); font-family: var(--font-body);
+      font-size: var(--fs-sm); padding: 0.55rem 0.8rem; resize: vertical; min-height: 64px;
+      transition: border-color 0.15s;
+    }
+    .note-area:focus { outline: none; border-color: var(--border-glow); }
+    .note-area::placeholder { color: var(--text-faint); }
+    .note-saved-flash { color: var(--green); font-size: var(--fs-xs); opacity: 0; transition: opacity 0.3s; }
+    .note-saved-flash.show { opacity: 1; }
+
+    /* ── 26. QUESTION HEADER ACTIONS ─────────────────────────────────────────────────── */
+    /* Action buttons sit outside the accordion <button> so clicks on them       */
+    /* never activate Bootstrap’s toggle, regardless of where in the span they land. */
+    .accordion-header { display: flex; align-items: stretch; }
+    .accordion-header .accordion-button { flex: 1; min-width: 0; }
+    .q-header-actions {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.7rem 0.35rem 0.7rem 0.75rem; flex-shrink: 0;
+      background: var(--bg-elevated); transition: background 0.15s;
+    }
+    .q-header-actions .status-cycle-btn { margin-right: 0; }
+    .accordion-header:has(.accordion-button:not(.collapsed)) .q-header-actions { background: var(--bg-hover); }
+
+    /* ── 27. INLINE PATTERN GUIDE + TEMPLATE ACCORDIONS ────────────────────────── */
+    /* Visually lighter than question items — guide/template are reference, not work. */
+    .pattern-inline-acc .accordion-item  { background: var(--bg-base) !important; margin-bottom: 0.2rem !important; }
+    .pattern-inline-acc .accordion-button { font-size: var(--fs-sm); padding: 0.45rem 0.9rem; background: var(--bg-base) !important; }
+    .pattern-inline-acc .accordion-button:not(.collapsed) { background: var(--bg-hover) !important; border-left-color: var(--border-glow); }
+    .pattern-inline-acc .accordion-body   { background: var(--bg-base); padding: 0.75rem 1rem; }
+
+    /* ── 28. DECISION TREE (Mermaid SVG) ────────────────────────────────────── */
+    .dt-zoom-bar { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem; }
+    .dt-zoom-btn {
+      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-muted); font-size: var(--fs-sm); font-family: var(--font-body);
+      padding: 0.15rem 0.7rem; cursor: pointer; line-height: 1.5; user-select: none;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .dt-zoom-btn:hover { border-color: var(--border-glow); color: var(--accent); background: var(--accent-dim); }
+    .dt-zoom-pct { font-size: var(--fs-xs); color: var(--text-faint); min-width: 3.5ch; text-align: center; }
+    .dt-mermaid-container { overflow: auto; padding: 0.25rem 0; }
+    .dt-mermaid-container svg { display: block; }
   </style>
 </head>
 
@@ -413,7 +468,7 @@
         <span class="bolt">⚡</span>
         DSA Notebook
       </div>
-      <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar">✕</button>
+      <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar" aria-label="Close sidebar">✕</button>
     </div>
 
     <nav class="flex-grow-1 p-2 overflow-auto">
@@ -434,13 +489,13 @@
 
     <!-- Top Bar -->
     <header>
-      <button type="button" onclick="toggleSidebar()" class="header-menu-btn" title="Toggle sidebar">☰</button>
-      <h1 id="page-title" class="fs-6 fw-semibold mb-0"
-          role="button" onclick="loadDashboard()" title="Go to Dashboard">
+      <button type="button" onclick="toggleSidebar()" class="header-menu-btn" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+      <button type="button" id="page-title" class="fs-6 fw-semibold mb-0"
+          onclick="loadDashboard()" title="Go to Dashboard" aria-label="Go to Dashboard">
         🏠 Dashboard
-      </h1>
+      </button>
       <div id="header-tabs" class="ms-2"></div>
-      <button type="button" onclick="toggleTheme()" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme">🌙</button>
+      <button type="button" onclick="toggleTheme()" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
     </header>
 
     <!-- Content -->
@@ -481,6 +536,7 @@
 
 <!-- ═══ SCRIPT ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="data.js"></script>
 <script>
 /* <![CDATA[ */
@@ -495,8 +551,7 @@
 // ─── BADGE / STATUS MAPS ──────────────────────────────────────────────────────
 // AI: all status/difficulty display mappings live here — update here only.
 const DIFFICULTY_BADGE = { Easy: 'success', Medium: 'warning', Hard: 'danger' }
-const STATUS_BADGE      = { Solved: 'success', 'In Progress': 'warning', Pending: 'secondary' }
-const STATUS_DOT        = { Solved: 'bg-success', 'In Progress': 'bg-warning', Pending: 'bg-secondary' }
+const STATUS_DOT       = { Solved: 'bg-success', 'In Progress': 'bg-warning', Pending: 'bg-secondary' }
 const STATUS_EMOJI      = { Solved: '✅', 'In Progress': '🚧', Pending: '📋' }
 const STATUS_CYCLE      = { Pending: 'In Progress', 'In Progress': 'Solved', Solved: 'Pending' }
 
@@ -505,7 +560,7 @@ const STATUS_CYCLE      = { Pending: 'In Progress', 'In Progress': 'Solved', Sol
 // add its ID here and reference QR_IDS.yourKey in renderTopicAlwaysVisible.
 const QR_IDS = {
   whenToUse:    'qr-wtu',
-  decisionTree: 'qr-dtree',
+  decisionTree: 'qr-dt',
   tips:         'qr-tips',
 }
 
@@ -515,16 +570,18 @@ const QR_IDS = {
 // the tab pane. You must also add a render function and call it in renderCurrentTab().
 const TOPIC_TABS = [
   { key: 'questions',  label: 'Questions'  },
-  { key: 'patterns',   label: 'Patterns'   },
-  { key: 'templates',  label: 'Templates'  },
 ]
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let currentTopicKey = null
 let currentTab = 'questions'
+let currentQFilter = 'all'
+let _dtZoom = 1.0
+let _dtNaturalWidth = null
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' })
   syncThemeIcon()
   buildNav()
   loadDashboard()
@@ -535,7 +592,16 @@ function buildNav() {
   const container = document.getElementById('nav-topics')
   container.innerHTML = TOPICS.map(t => {
     const mod = TOPIC_MODULES[t.key]
-    const qCount = mod ? Object.keys(mod.questions).length : 0
+    if (!mod) return `
+      <button type="button" id="nav-${t.key}" onclick="loadTopic('${t.key}')" class="nav-link">
+        <span class="nav-topic-icon">${t.icon}</span>
+        <span class="nav-topic-label">${t.label}</span>
+      </button>
+    `
+    const qKeys   = Object.keys(mod.questions)
+    const solved  = qKeys.filter(k => getStatus(k) === 'Solved').length
+    const total   = qKeys.length
+    const badgeCls = solved === total && total > 0 ? 'bg-success' : solved > 0 ? 'bg-warning' : 'bg-secondary'
     return `
       <button type="button"
          id="nav-${t.key}"
@@ -543,7 +609,7 @@ function buildNav() {
          class="nav-link">
         <span class="nav-topic-icon">${t.icon}</span>
         <span class="nav-topic-label">${t.label}</span>
-        <span class="badge bg-secondary rounded-pill text-xxs">${qCount}</span>
+        <span id="nav-badge-${t.key}" class="badge ${badgeCls} rounded-pill text-xxs">${solved}/${total}</span>
       </button>
     `
   }).join('')
@@ -655,6 +721,9 @@ function buildTopicTabs() {
   const panes = document.getElementById('topic-tab-panes')
   if (!nav || !panes) return
 
+  // Hide tab nav when there is only one tab — a single pill adds no value
+  nav.style.display = TOPIC_TABS.length <= 1 ? 'none' : ''
+
   nav.innerHTML = TOPIC_TABS.map((t, i) =>
     `<li class="nav-item">
       <button class="nav-link${i === 0 ? ' active' : ''}" type="button"
@@ -674,6 +743,7 @@ function loadTopic(key) {
 
   currentTopicKey = key
   currentTab = TOPIC_TABS[0].key  // always start on first tab
+  currentQFilter = 'all'          // reset filter on topic switch
 
   showView('view-topic')
   document.getElementById('page-title').textContent = topic.icon + ' ' + topic.label
@@ -719,12 +789,54 @@ function renderCurrentTab() {
 // add matching .ph-p7, .ph-p8 CSS rules in section 18 of the stylesheet.
 const PATTERN_HEADING_CLASS = { P1: 'ph-p1', P2: 'ph-p2', P3: 'ph-p3', P4: 'ph-p4', P5: 'ph-p5', P6: 'ph-p6' }
 
+// ─── QUESTION FILTER ──────────────────────────────────────────────────────────
+function setQFilter(filter) {
+  currentQFilter = filter
+  document.querySelectorAll('.q-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-filter') === filter)
+  })
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) _renderFilteredQuestions(mod)
+}
+
 function renderQuestions(mod) {
   const container = document.getElementById('tab-questions')
-  const qEntries = Object.entries(mod.questions)
+  const allQEntries = Object.entries(mod.questions)
 
-  if (qEntries.length === 0) {
+  if (allQEntries.length === 0) {
     container.innerHTML = '<div class="text-center py-5"><span style="font-size:2rem;" class="text-secondary">📭</span><p class="text-secondary mt-3 small">No questions yet.</p></div>'
+    return
+  }
+
+  // Count per status for filter buttonslabels
+  const counts = { all: allQEntries.length, Pending: 0, 'In Progress': 0, Solved: 0 }
+  allQEntries.forEach(([k]) => { counts[getStatus(k)]++ })
+
+  const filters = ['all', 'Pending', 'In Progress', 'Solved']
+  const filterLabels = { all: 'All', Pending: '📋 Pending', 'In Progress': '🚧 In Progress', Solved: '✅ Solved' }
+  let html = '<div class="q-filter-bar">'
+  filters.forEach(f => {
+    const isActive = f === currentQFilter
+    html += '<button type="button" class="q-filter-btn' + (isActive ? ' active' : '') + '" data-filter="' + f + '" onclick="setQFilter(\'' + f + '\')">' +
+      filterLabels[f] + ' <span style="opacity:0.6">(' + counts[f] + ')</span></button>'
+  })
+  html += '</div>'
+  html += '<div id="q-filtered-list"></div>'
+  container.innerHTML = html
+  _renderFilteredQuestions(mod)
+}
+
+function _renderFilteredQuestions(mod) {
+  const listEl = document.getElementById('q-filtered-list')
+  if (!listEl) return
+
+  const allQEntries = Object.entries(mod.questions)
+  const filtered = currentQFilter === 'all'
+    ? allQEntries
+    : allQEntries.filter(([k]) => getStatus(k) === currentQFilter)
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="text-center py-5 text-secondary"><p class="small">No ' + currentQFilter + ' questions.</p></div>'
     return
   }
 
@@ -732,7 +844,7 @@ function renderQuestions(mod) {
   mod.patterns.forEach(p => { byPattern[p.id] = [] })
   byPattern['_other'] = []
 
-  qEntries.forEach(([k, q]) => {
+  filtered.forEach(([k, q]) => {
     const pat = mod.patterns.find(p => p.questionIds.includes(k))
     if (pat) byPattern[pat.id].push([k, q])
     else byPattern['_other'].push([k, q])
@@ -748,7 +860,52 @@ function renderQuestions(mod) {
     html += '<span>' + escHtml(p.name) + '</span>'
     html += '<span class="ms-auto ph-count">' + qs.length + ' question' + (qs.length !== 1 ? 's' : '') + '</span>'
     html += '</div>'
-    html += '<div class="accordion mb-2" id="acc-q-' + p.id + '">'
+
+    // ── Inline pattern guide + templates ──
+    const pgId    = 'pia-' + p.id
+    const signals = p.recognitionSignals.map(s => '<li class="mb-1">' + escHtml(s) + '</li>').join('')
+    const keyQHtml = p.keyQuestion ? '<div class="mt-2"><strong class="text-warning">Key question:</strong> ' + escHtml(p.keyQuestion) + '</div>' : ''
+    // Collect unique template IDs from ALL questions in this pattern (not just filtered)
+    const tmplIds = new Set()
+    p.questionIds.forEach(k => { (mod.questions[k]?.templateRefs || []).forEach(t => tmplIds.add(t)) })
+    const pTemplates = mod.templates.filter(t => tmplIds.has(t.id))
+
+    html += '<div class="accordion pattern-inline-acc mb-2" id="' + pgId + '">'
+
+    // Pattern guide item
+    html += '<div class="accordion-item">'
+    html += '<h2 class="accordion-header">'
+    html += '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + pgId + '-guide">'
+    html += '<span class="badge bg-secondary me-2 text-xxs">Guide</span>'
+    html += '<span class="small fw-semibold">' + escHtml(p.name) + '</span>'
+    html += '</button></h2>'
+    html += '<div id="' + pgId + '-guide" class="accordion-collapse collapse">'
+    html += '<div class="accordion-body small">'
+    html += '<div class="insight-box mb-3">' + escHtml(p.mentalModel) + keyQHtml + '</div>'
+    html += '<p class="text-secondary fw-semibold mb-1 text-uppercase section-label-heading">Recognition Signals</p>'
+    html += '<ul class="text-secondary mb-0">' + signals + '</ul>'
+    html += '</div></div></div>'
+
+    // Template items
+    pTemplates.forEach(t => {
+      const tmplId = pgId + '-' + t.id
+      html += '<div class="accordion-item">'
+      html += '<h2 class="accordion-header">'
+      html += '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + tmplId + '">'
+      html += '<span class="badge bg-dark border border-secondary me-2">' + t.id + '</span>'
+      html += '<span class="small fw-semibold">' + escHtml(t.name) + '</span>'
+      html += '</button></h2>'
+      html += '<div id="' + tmplId + '" class="accordion-collapse collapse">'
+      html += '<div class="accordion-body">'
+      html += '<p class="text-secondary small mb-3">' + escHtml(t.description) + '</p>'
+      html += '<div class="pre-wrapper"><button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>'
+      html += '<pre><code>' + escHtml(t.code) + '</code></pre></div>'
+      html += '</div></div></div>'
+    })
+
+    html += '</div>' // end pattern-inline-acc
+
+    html += '<div class="accordion mb-3" id="acc-q-' + p.id + '">'
     qs.forEach(([k, q], i) => { html += buildQuestionAccordionItem(k, q, 'q-' + p.id, i) })
     html += '</div>'
   })
@@ -759,7 +916,7 @@ function renderQuestions(mod) {
     html += '</div>'
   }
 
-  container.innerHTML = html
+  listEl.innerHTML = html
 }
 
 function buildQuestionAccordionItem(lcKey, q, groupId, index) {
@@ -775,8 +932,11 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<span class="badge bg-secondary me-1" title="' + escHtml(a.tradeoff) + '">' + escHtml(a.technique) + '</span>'
   ).join('')
 
+  const conditionLabel = { 'two-pointers': 'Pointer condition', 'binary-search': 'Feasibility check', 'sorting': 'Key condition', 'heap': 'Key condition' }[currentTopicKey] || 'Shrink trigger'
+  const existingNote = getNote(lcKey)
+
   const insightRow    = q.keyInsight    ? '<div class="insight-box mb-2 small"><strong class="text-info">💡 Insight:</strong> '  + escHtml(q.keyInsight)   + '</div>' : ''
-  const shrinkRow     = q.shrinkTrigger ? '<p class="mb-2 small"><span class="text-secondary">Shrink trigger:</span> <code>' + escHtml(q.shrinkTrigger) + '</code></p>' : ''
+  const shrinkRow     = q.shrinkTrigger ? '<p class="mb-2 small"><span class="text-secondary">' + conditionLabel + ':</span> <code>' + escHtml(q.shrinkTrigger) + '</code></p>' : ''
   const complexityRow = (q.timeComplexity || q.spaceComplexity) ?
     '<div class="d-flex gap-3 mb-2">' +
     (q.timeComplexity  ? '<span class="text-secondary small">⏱ ' + q.timeComplexity  + '</span>' : '') +
@@ -785,29 +945,39 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const gotchaRow  = q.gotcha    ? '<div class="gotcha-box mb-2 small"><strong class="text-danger">⚠ Gotcha:</strong> '  + escHtml(q.gotcha)    + '</div>' : ''
   const faangRow   = q.faangNote ? '<div class="faang-box mb-2 small"><strong class="text-success">★ FAANG:</strong> '  + escHtml(q.faangNote) + '</div>' : ''
   const altRow     = altApproaches ? '<div class="mb-2 small"><span class="text-secondary">Alt approaches:</span> ' + altApproaches + '</div>' : ''
+  const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="text-secondary text-xs mb-1">📝 My notes</p>' +
+    '<textarea class="note-area" placeholder="Add your attempt notes, observations, or reminders here…" id="note-' + lcKey + '"' +
+    ' onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
+    '<span class="note-saved-flash" id="note-flash-' + lcKey + '">Saved</span>' +
+    '</div>'
 
   return (
     '<div class="accordion-item">' +
     '<h2 class="accordion-header">' +
-    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + id + '">' +
 
-    // ── Status dot + LC button — left side of header row
+    // ── Status dot + LC button — outside the accordion toggle button
+    '<div class="q-header-actions">' +
     '<span class="status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary') + '"' +
     ' title="Status: ' + status + ' — click to cycle"' +
-    ' onclick="event.stopPropagation(); cycleQuestionStatus(\'' + lcKey + '\', this)"' +
+    ' aria-label="Status: ' + status + ' — click to cycle"' +
+    ' onclick="cycleQuestionStatus(\'' + lcKey + '\', this)"' +
     ' data-lc-key="' + lcKey + '">' +
     STATUS_EMOJI[status] +
     '</span>' +
     '<span class="status-cycle-btn bg-secondary"' +
     ' title="Open on LeetCode"' +
-    ' onclick="event.stopPropagation(); window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
+    ' aria-label="Open ' + escHtml(q.title) + ' on LeetCode"' +
+    ' onclick="window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
+    '</div>' +
 
+    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + id + '">' +
     // ── Title + sub-row (badges) — two-line layout
     '<span class="q-header-content">' +
     '<span class="q-title">' + escHtml(q.title) + '</span>' +
     '<span class="q-meta">' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge">' + q.difficulty + '</span>' +
     (templateBadges ? '<span class="q-badge-sep"></span>' + templateBadges : '') +
+    (existingNote ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>' : '') +
     '</span>' +
     '</span>' +
 
@@ -815,7 +985,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<div id="' + id + '" class="accordion-collapse collapse">' +
     '<div class="accordion-body small">' +
     (tags ? '<div class="mb-3 d-flex flex-wrap gap-1">' + tags + '</div>' : '') +
-    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow +
+    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow + noteRow +
     '</div></div></div>'
   )
 }
@@ -829,14 +999,27 @@ function setQuestionStatus(lcKey, status, btnEl) {
     // Do NOT use .status-cycle-btn — there are two per item (status + LC button).
     const cycleBtn = itemEl.querySelector('[data-lc-key]')
     if (cycleBtn) {
-      cycleBtn.className = 'status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary')
-      cycleBtn.title     = 'Status: ' + status + ' — click to cycle'
-      cycleBtn.textContent = { 'Solved': '✅', 'In Progress': '🚧', 'Pending': '📋' }[status] || '📋'
+      cycleBtn.className  = 'status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary')
+      cycleBtn.title      = 'Status: ' + status + ' — click to cycle'
+      cycleBtn.setAttribute('aria-label', 'Status: ' + status + ' — click to cycle')
+      cycleBtn.textContent = STATUS_EMOJI[status] ?? '📋'
     }
   }
-  // Refresh topic tracker
+  // Refresh topic tracker and sidebar nav badge
   const mod = TOPIC_MODULES[currentTopicKey]
-  if (mod) renderTopicTracker(mod)
+  if (mod) {
+    renderTopicTracker(mod)
+    const navBadge = document.getElementById('nav-badge-' + currentTopicKey)
+    if (navBadge) {
+      const qKeys  = Object.keys(mod.questions)
+      const solved = qKeys.filter(k => getStatus(k) === 'Solved').length
+      navBadge.textContent = solved + '/' + qKeys.length
+      navBadge.className = 'badge rounded-pill text-xxs ' +
+        (solved === qKeys.length ? 'bg-success' : solved > 0 ? 'bg-warning' : 'bg-secondary')
+    }
+  }
+  // If filtered view is active, re-render filtered list to reflect new status
+  if (currentQFilter !== 'all' && mod) _renderFilteredQuestions(mod)
 }
 
 function cycleQuestionStatus(lcKey, cycleBtn) {
@@ -891,12 +1074,165 @@ function renderTemplates(mod) {
             <div id="${id}" class="accordion-collapse collapse${i === 0 ? ' show' : ''}">
               <div class="accordion-body">
                 <p class="text-secondary small mb-3">${escHtml(t.description)}</p>
-                <pre><code>${escHtml(t.code)}</code></pre>
+                <div class="pre-wrapper">
+                  <button type="button" class="copy-btn" onclick="copyCode(this)">Copy</button>
+                  <pre><code>${escHtml(t.code)}</code></pre>
+                </div>
               </div>
             </div>
           </div>`
       }).join('')}
     </div>`
+}
+
+// ─── COPY CODE ────────────────────────────────────────────────────────────────
+function copyCode(btn) {
+  const code = btn.closest('.pre-wrapper').querySelector('code')
+  if (!code) return
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = 'Copied!'
+    btn.classList.add('copied')
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied') }, 2000)
+  }).catch(() => {})
+}
+
+// ─── SAVE NOTE ────────────────────────────────────────────────────────────────
+function saveNoteFromTextarea(lcKey) {
+  const ta = document.getElementById('note-' + lcKey)
+  if (!ta) return
+  setNote(lcKey, ta.value)
+  // Update the 📝 badge in the accordion header without a full re-render
+  const item = ta.closest('.accordion-item')
+  if (item) {
+    const meta = item.querySelector('.q-meta')
+    if (meta) {
+      const existing = meta.querySelector('[title="Has notes"]')
+      if (ta.value.trim() && !existing) {
+        meta.insertAdjacentHTML('beforeend',
+          '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>')
+      } else if (!ta.value.trim() && existing) {
+        const sep = existing.previousElementSibling
+        if (sep && sep.classList.contains('q-badge-sep')) sep.remove()
+        existing.remove()
+      }
+    }
+  }
+  const flash = document.getElementById('note-flash-' + lcKey)
+  if (flash) {
+    flash.classList.add('show')
+    setTimeout(() => flash.classList.remove('show'), 1500)
+  }
+}
+
+// ─── DECISION TREE → MERMAID ─────────────────────────────────────────────────
+function setDtZoom(delta) {
+  _dtZoom = delta === 0 ? 1.0 : Math.min(3, Math.max(0.4, _dtZoom + delta))
+  _applyDtZoom()
+}
+
+function _applyDtZoom() {
+  if (!currentTopicKey) return
+  const svgEl = document.querySelector('#dt-mermaid-' + currentTopicKey + ' svg')
+  if (svgEl && _dtNaturalWidth) {
+    svgEl.style.width = Math.round(_dtNaturalWidth * _dtZoom) + 'px'
+    svgEl.style.height = 'auto'
+  }
+  const pct = document.getElementById('dt-zoom-pct')
+  if (pct) pct.textContent = Math.round(_dtZoom * 100) + '%'
+}
+
+// Looks up a question title across all modules by its LC key
+function getLcTitle(lcKey) {
+  for (const mk of Object.keys(TOPIC_MODULES)) {
+    const q = TOPIC_MODULES[mk].questions?.[lcKey]
+    if (q) return q.title
+  }
+  return null
+}
+
+function treeToMermaid(rootNode) {
+  const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+  const lines = [
+    '%%{init: {"theme": "' + (isDark ? 'dark' : 'default') + '", "themeVariables": {"fontSize": "20px"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 70, "rankSpacing": 80}}}%%',
+    'graph TD'
+  ]
+  let counter = 0
+
+  function sm(str) {
+    return String(str || '').replace(/"/g, '#quot;').replace(/&/g, '&amp;').replace(/[<>]/g, m => m === '<' ? '&lt;' : '&gt;')
+  }
+
+  function walkNode(node, parentId, edgeLabel) {
+    const nid = 'N' + (counter++)
+    lines.push('  ' + nid + '{"' + sm(node.question) + '"}')
+    if (parentId !== null) lines.push('  ' + parentId + ' -->|"' + edgeLabel + '"| ' + nid)
+    walkBranch(node.yes, nid, 'Yes')
+    walkBranch(node.no, nid, 'No')
+  }
+
+  function walkBranch(branch, parentId, edgeLabel) {
+    if (branch.node) {
+      walkNode(branch.node, parentId, edgeLabel)
+    } else if (branch.leaf) {
+      const leaf = branch.leaf
+      const lid = 'L' + (counter++)
+      const badge = leaf.pattern
+        ? (leaf.template ? leaf.pattern + ' · ' + leaf.template : leaf.pattern)
+        : '❓ needs reduction'
+      const exs = leaf.exampleProblems && leaf.exampleProblems.length
+        ? '<br/>' + leaf.exampleProblems.map(k => {
+            const t = getLcTitle(k)
+            return '<i>' + sm(k) + (t ? ' (' + sm(t) + ')' : '') + '</i>'
+          }).join('<br/>')
+        : ''
+      lines.push('  ' + lid + '["' + sm(leaf.label) + '<br/><b>' + sm(badge) + '</b>' + exs + '"]')
+      lines.push('  ' + parentId + ' -->|"' + edgeLabel + '"| ' + lid)
+      lines.push('  class ' + lid + (leaf.pattern ? ' leafMatch' : ' leafUnknown'))
+    }
+  }
+
+  walkNode(rootNode, null, '')
+
+  if (isDark) {
+    lines.push('  classDef leafMatch fill:#162040,stroke:#4f8ef7,color:#c8d8f8,stroke-width:1.5px')
+    lines.push('  classDef leafUnknown fill:#241800,stroke:#f0c060,color:#f0d890,stroke-width:1.5px')
+  } else {
+    lines.push('  classDef leafMatch fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a,stroke-width:1.5px')
+    lines.push('  classDef leafUnknown fill:#fef3c7,stroke:#d97706,color:#92400e,stroke-width:1.5px')
+  }
+
+  return lines.join('\n')
+}
+
+async function _renderDecisionTree(topicKey, mod) {
+  if (!mod || !mod.decisionTree) return
+  const container = document.getElementById('dt-mermaid-' + topicKey)
+  if (!container) return
+  try {
+    const def = treeToMermaid(mod.decisionTree.node)
+    const { svg } = await mermaid.render('dt-svg-' + topicKey + '-' + Date.now(), def)
+    container.innerHTML = svg
+    const svgEl = container.querySelector('svg')
+    if (svgEl) {
+      svgEl.removeAttribute('height')
+      // viewBox is always reliable in Mermaid output: "0 0 W H"
+      const vb = (svgEl.getAttribute('viewBox') || '').split(/[\s,]+/)
+      const vbW = parseFloat(vb[2]) || 0
+      const vbH = parseFloat(vb[3]) || 0
+      // Use viewBox width as natural base; boost small diagrams to at least 1400px
+      _dtNaturalWidth = Math.max(vbW, 1400)
+      if (vbW > 0 && vbH > 0) {
+        // Fix the viewBox-to-CSS aspect ratio so height scales proportionally
+        svgEl.setAttribute('viewBox', '0 0 ' + vbW + ' ' + vbH)
+      }
+      svgEl.style.width = Math.round(_dtNaturalWidth * _dtZoom) + 'px'
+      svgEl.style.height = 'auto'
+    }
+    const pct = document.getElementById('dt-zoom-pct')
+    if (pct) pct.textContent = Math.round(_dtZoom * 100) + '%'
+  } catch (e) {
+    container.innerHTML = '<p class="text-secondary small mb-0">Diagram unavailable.</p>'
+  }
 }
 
 // ─── TOPIC TRACKER (always visible) ─────────────────────────────────────────
@@ -977,7 +1313,6 @@ function renderTopicAlwaysVisible(mod) {
     '</div></div>' +
 
     // ── Decision Tree ──
-    /*
     '<div class="accordion-item mb-1">' +
     '<h2 class="accordion-header">' +
     '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + QR_IDS.decisionTree + '">' +
@@ -986,11 +1321,16 @@ function renderTopicAlwaysVisible(mod) {
     '<span class="ms-2 text-secondary text-2xs">&#8212; identify your pattern before writing code</span>' +
     '</button></h2>' +
     '<div id="' + QR_IDS.decisionTree + '" class="accordion-collapse collapse">' +
-    '<div class="accordion-body small">' +
-    '<p class="text-secondary mb-3">' + escHtml(mod.decisionTree.description) + '</p>' +
-    buildTreeNode(mod.decisionTree.node) +
+    '<div class="accordion-body">' +
+    '<p class="text-secondary small mb-3">' + escHtml(mod.decisionTree.description) + '</p>' +
+    '<div class="dt-zoom-bar">' +
+    '<button type="button" class="dt-zoom-btn" onclick="setDtZoom(-0.25)">− Zoom Out</button>' +
+    '<span class="dt-zoom-pct" id="dt-zoom-pct">' + Math.round(_dtZoom * 100) + '%</span>' +
+    '<button type="button" class="dt-zoom-btn" onclick="setDtZoom(0.25)">+ Zoom In</button>' +
+    '<button type="button" class="dt-zoom-btn ms-2" onclick="setDtZoom(0)" title="Reset zoom">↺ Reset</button>' +
+    '</div>' +
+    '<div id="dt-mermaid-' + currentTopicKey + '" class="dt-mermaid-container"><span class="text-secondary small">Loading…</span></div>' +
     '</div></div></div>' +
-    */
 
     // ── Interview Tips ──
     '<div class="accordion-item">' +
@@ -1003,42 +1343,8 @@ function renderTopicAlwaysVisible(mod) {
     '<div id="' + QR_IDS.tips + '" class="accordion-collapse collapse">' +
     '<div class="accordion-body">' + tipsHtml + '</div>' +
     '</div></div></div>'
-}
 
-function buildTreeNode(node) {
-  if (!node) return ''
-  let html = `<div class="tree-question mb-1"><span class="text-warning me-2">❓</span><strong class="small">${escHtml(node.question)}</strong></div>`
-  html += `<div class="tree-node">`
-
-  if (node.yes) {
-    html += `<div class="mb-1"><span class="tree-branch-yes">YES →</span></div>`
-    if (node.yes.leaf) html += buildTreeLeaf(node.yes.leaf)
-    if (node.yes.node) html += buildTreeNode(node.yes.node)
-  }
-  if (node.no) {
-    html += `<div class="mb-1 mt-2"><span class="tree-branch-no">NO →</span></div>`
-    if (node.no.leaf) html += buildTreeLeaf(node.no.leaf)
-    if (node.no.node) html += buildTreeNode(node.no.node)
-  }
-
-  html += `</div>`
-  return html
-}
-
-function buildTreeLeaf(leaf) {
-  if (!leaf.pattern) {
-    return `<div class="tree-leaf-unknown small mb-2"><span class="text-warning me-1">⚠️</span>${escHtml(leaf.label)}</div>`
-  }
-  const examples = (leaf.exampleProblems || []).map(k =>
-    `<span class="badge bg-dark border border-secondary me-1" style="font-size:0.65rem;">${k}</span>`
-  ).join('')
-  return `
-    <div class="tree-leaf mb-2 small">
-      <span class="badge bg-primary me-1">${leaf.pattern}</span>
-      <span class="badge bg-secondary me-2">${leaf.template}</span>
-      <strong>${escHtml(leaf.label)}</strong>
-      ${examples ? `<div class="mt-1">${examples}</div>` : ''}
-    </div>`
+  _renderDecisionTree(currentTopicKey, mod)
 }
 
 // renderInterviewTips removed — now rendered inside renderTopicAlwaysVisible
@@ -1056,6 +1362,10 @@ function toggleTheme() {
   html.setAttribute('data-bs-theme', next)
   localStorage.setItem('dsa-theme', next)
   document.getElementById('theme-toggle-btn').textContent = next === 'dark' ? '🌙' : '☀️'
+  if (currentTopicKey) {
+    const mod = TOPIC_MODULES[currentTopicKey]
+    if (mod && mod.decisionTree) _renderDecisionTree(currentTopicKey, mod)
+  }
 }
 
 function syncThemeIcon() {
