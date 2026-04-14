@@ -1,0 +1,2345 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DSA Notebook — curated patterns, templates and questions for FAANG interview preparation.">
+  <meta name="theme-color" content="#0f1117">
+  <title>DSA Notebook</title>
+  <!-- ═══ THEME INIT — DO NOT MOVE. Must execute before stylesheet renders to avoid flash of wrong theme. ═══ -->
+  <script>
+    (function() {
+      const t = localStorage.getItem('dsa-theme') || 'dark'
+      document.documentElement.setAttribute('data-bs-theme', t)
+    })()
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /*
+     * v27 — Lean CSS philosophy:
+     * Set Bootstrap --bs-* vars in [data-bs-theme="dark"|"light"] → Bootstrap renders components.
+     * Custom CSS only for things Bootstrap cannot express: layout, custom components,
+     * visual flourishes. Zero !important wars except where Bootstrap utilities require it.
+     *
+     * AI INSTRUCTIONS:
+     * - Design tokens live in :root (dark) and [data-bs-theme="light"] — change colors there only.
+     * - Never hardcode colors in CSS rules or JS templates — always use var(--token-name).
+     * - Never add Bootstrap utility classes that hardcode colors (text-light, text-white, bg-dark etc).
+     * - Utility classes for font sizes etc live in section 15a — add new ones there.
+     * - Status/difficulty maps live in BADGE / STATUS MAPS block in JS — update there only.
+     * - To add a new topic: append to TOPICS array + TOPIC_MODULES object. No other changes needed.
+     */
+
+    /* ── 1. DESIGN TOKENS ───────────────────────────────────────────────────── */
+    :root {
+      /* Dark theme — deep navy, not pitch black. Each level is perceptibly different. */
+      --bg-base:     #0f1117;   /* page background                */
+      --bg-surface:  #161b27;   /* sidebar, header                */
+      --bg-elevated: #1c2333;   /* cards, accordions              */
+      --bg-hover:    #242e42;   /* hover, active accordion        */
+      --border:      rgba(99,120,180,0.25);  /* clearly visible    */
+      --border-glow: rgba(99,162,255,0.45);
+      --accent:      #4f8ef7;
+      --accent-dim:  rgba(79,142,247,0.13);
+      --accent-glow: rgba(79,142,247,0.22);
+      --green:       #3dd68c;   --green-dim:  rgba(61,214,140,0.12);
+      --yellow:      #f0c060;   --yellow-dim: rgba(240,192,96,0.12);
+      --red:         #f76e6e;   --red-dim:    rgba(247,110,110,0.12);
+      --purple:      #b48ef7;   --purple-dim: rgba(180,142,247,0.12);
+      --teal:        #4fd1c5;   --teal-dim:   rgba(79,209,197,0.12);
+      --text-primary:#dde3f0;   /* softer than pure white, less eye strain */
+      --text-muted:  #8a9bc0;
+      --text-faint:  #4d5c7a;   /* lifted from near-invisible #3d4a6a     */
+      --radius:      10px;
+      --radius-lg:   14px;
+      --font-body:   'Outfit', system-ui, sans-serif;
+      --font-mono:   'Space Mono', 'Courier New', monospace;
+      /* Type scale — use these tokens, not raw rem values */
+      --fs-xs:   0.68rem;   /* meta labels, badges         */
+      --fs-sm:   0.78rem;   /* secondary text, small prose */
+      --fs-base: 0.88rem;   /* body, accordion titles      */
+    }
+
+    /* ── 2. BOOTSTRAP COMPONENT VARS ───────────────────────────────────────────
+     * The ONLY correct way to retheme Bootstrap 5.3.
+     * No !important needed — Bootstrap reads these vars for every component.
+     */
+    [data-bs-theme="dark"] {
+      --bs-body-bg:                  var(--bg-base);
+      --bs-body-color:               var(--text-primary);
+      --bs-body-font-family:         var(--font-body);
+      --bs-body-font-size:           1rem;
+      --bs-border-color:             var(--border);
+      --bs-border-color-translucent: var(--border);
+      --bs-secondary-color:          var(--text-muted);
+      --bs-secondary-bg:             var(--bg-surface);
+      --bs-tertiary-bg:              var(--bg-elevated);
+      /* Card */
+      --bs-card-bg:                  var(--bg-elevated);
+      --bs-card-border-color:        var(--border);
+      --bs-card-cap-bg:              var(--bg-elevated);
+      --bs-card-color:               var(--text-primary);
+      --bs-card-border-radius:       var(--radius-lg);
+      /* Accordion */
+      --bs-accordion-bg:             var(--bg-elevated);
+      --bs-accordion-border-color:   var(--border);
+      --bs-accordion-border-radius:  var(--radius);
+      --bs-accordion-inner-border-radius: calc(var(--radius) - 1px);
+      --bs-accordion-btn-bg:         var(--bg-elevated);
+      --bs-accordion-btn-color:      var(--text-primary);
+      --bs-accordion-btn-focus-box-shadow: none;
+      --bs-accordion-btn-padding-x:  1rem;
+      --bs-accordion-btn-padding-y:  0.7rem;
+      --bs-accordion-active-bg:      var(--bg-hover);
+      --bs-accordion-active-color:   var(--text-primary);
+      --bs-accordion-body-padding-x: 1.1rem;
+      --bs-accordion-body-padding-y: 1rem;
+      /* Nav */
+      --bs-nav-link-color:           var(--text-muted);
+      --bs-nav-link-hover-color:     var(--text-primary);
+      /* Progress */
+      --bs-progress-bg:              rgba(255,255,255,0.05);
+      --bs-progress-border-radius:   99px;
+      --bs-progress-height:          0.35rem;
+      /* Table */
+      --bs-table-bg:                 transparent;
+      --bs-table-hover-bg:           var(--bg-hover);
+      --bs-table-border-color:       var(--border);
+      /* Badge */
+      --bs-badge-border-radius:      6px;
+      --bs-badge-font-weight:        500;
+    }
+
+    /* ── 2a. LIGHT THEME TOKEN OVERRIDES ────────────────────────────────────────
+     * Bootstrap handles all component colors. We only override our custom tokens.
+     * AI: to adjust light theme, change values here only.                        */
+    [data-bs-theme="light"] {
+      --bg-base:     #f0f2f7;   /* page — off-white, not pure white              */
+      --bg-surface:  #f8f9fc;   /* sidebar, header — one step lighter than base  */
+      --bg-elevated: #ffffff;   /* cards, accordions — white pops off the base   */
+      --bg-hover:    #e8ecf5;
+      --border:      rgba(60,80,140,0.18);
+      --border-glow: rgba(79,142,247,0.4);
+      --text-primary:#1a1d2e;
+      --text-muted:  #4a5270;
+      --text-faint:  #7a85a8;   /* lifted for readability                        */
+    }
+
+    /* ── 3. BASE — only what Bootstrap does not set ─────────────────────────── */
+    html { scroll-behavior: smooth; }
+    pre, code { font-family: var(--font-mono); }
+    pre {
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-size: 0.76rem;
+      line-height: 1.7;
+    }
+    code { color: var(--accent); font-size: 0.82em; }
+    small, .small { font-size: 0.8rem; }
+
+    /* ── 5. SIDEBAR — Bootstrap has no sidebar component ───────────────────── */
+    #sidebar {
+      width: 260px; min-height: 100vh; flex-shrink: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+    #sidebar.collapsed { width: 0; overflow: hidden; }
+    #sidebar nav { padding: 0.6rem; overflow-y: auto; flex: 1; }
+
+    .sidebar-brand {
+      padding: 1rem 1.1rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; white-space: nowrap;
+    }
+    .sidebar-brand-name {
+      font-size: 0.88rem; font-weight: 700; letter-spacing: 0.03em;
+      color: var(--text-primary); display: flex; align-items: center; gap: 0.45rem;
+    }
+    .sidebar-brand-name .bolt {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 7px; font-size: 0.85rem;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+    .sidebar-close-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text-muted); width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.8rem;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .sidebar-close-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+    .sidebar-section-label {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-faint); padding: 0.5rem 0.75rem 0.3rem; white-space: nowrap;
+    }
+    .sidebar-footer {
+      padding: 0.65rem 1.1rem; border-top: 1px solid var(--border);
+      font-size: 0.68rem; color: var(--text-faint); white-space: nowrap;
+    }
+
+    /* ── 6. SIDEBAR NAV BUTTONS ─────────────────────────────────────────────── */
+    button.nav-link {
+      -webkit-appearance: none; appearance: none;
+      background: transparent; border: 1px solid transparent;
+      cursor: pointer; width: 100%; text-align: left;
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.75rem; border-radius: var(--radius); margin-bottom: 2px;
+      font-size: 0.82rem; font-weight: 500; font-family: var(--font-body);
+      color: var(--text-muted);
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+      white-space: nowrap;
+    }
+    button.nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+    button.nav-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button.nav-link:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+    /* Scoped to #sidebar — id specificity beats any Bootstrap .nav-link rule */
+    #sidebar button.nav-link.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: var(--border-glow);
+      border-left: 3px solid var(--accent);
+      padding-left: calc(0.75rem - 2px); /* compensate 3px border */
+    }
+    .nav-topic-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-topic-label { flex: 1; }
+
+    /* ── 7. HEADER — Bootstrap has no sticky glassmorphic header ────────────── */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1.4rem;
+      display: flex; align-items: center; gap: 0.85rem;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-menu-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-muted); width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1rem; flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .header-menu-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+    #page-title {
+      font-size: 0.92rem; font-weight: 600; color: var(--text-primary);
+      margin: 0; padding: 0; border: none; background: transparent;
+      cursor: pointer; transition: color 0.15s;
+    }
+    #page-title:hover { color: var(--accent); }
+
+    /* ── 8. CARD — Bootstrap renders bg/border via vars; we add shadow + hover ─ */
+    .card {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: transform 0.22s cubic-bezier(0.22,1,0.36,1), box-shadow 0.22s, border-color 0.18s;
+    }
+    [data-bs-theme="light"] .card {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .card[role="button"]:hover {
+      transform: translateY(-3px) scale(1.004); cursor: pointer;
+      box-shadow: 0 0 0 1px var(--border-glow), 0 8px 32px var(--accent-glow);
+      border-color: var(--border-glow) !important; /* beats Bootstrap border utility on hover only */
+    }
+
+    /* ── 9. PROGRESS BARS — Bootstrap renders bg; we add gradient + glow ────── */
+    /* bg-success/warning use !important in Bootstrap — must match to override */
+    .progress-bar.bg-success { background: linear-gradient(90deg, #2ebd7a, var(--green)) !important; }
+    .progress-bar.bg-warning { background: linear-gradient(90deg, #d4943a, var(--yellow)) !important; }
+
+    /* ── 10. BADGES — Bootstrap solid colors; we want muted tints ──────────── */
+    /* bg-X utilities use !important — must match specificity + source order to win */
+    .badge.bg-primary   { background: var(--accent-dim)  !important; color: var(--accent)      !important; border: 1px solid rgba(79,142,247,0.3)   !important; }
+    .badge.bg-secondary { background: var(--bg-elevated)  !important; color: var(--text-muted)  !important; }
+    .badge.bg-success   { background: var(--green-dim)   !important; color: var(--green)        !important; border: 1px solid rgba(61,214,140,0.25)  !important; }
+    .badge.bg-warning   { background: var(--yellow-dim)  !important; color: var(--yellow)       !important; border: 1px solid rgba(240,192,96,0.25)  !important; }
+    .badge.bg-danger    { background: var(--red-dim)     !important; color: var(--red)          !important; border: 1px solid rgba(247,110,110,0.25) !important; }
+    .badge.bg-dark      { background: var(--bg-surface)  !important; color: var(--text-muted)   !important; border: 1px solid var(--border) !important; }
+    .badge-tag { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-glow); font-size: 0.62rem; }
+
+    /* ── 11. ACCORDION — Bootstrap renders via vars; we add chevron tint ────── */
+    .accordion-button::after,
+    .accordion-button:not(.collapsed)::after {
+      filter: invert(55%) sepia(60%) saturate(400%) hue-rotate(195deg) brightness(110%);
+      opacity: 0.8;
+    }
+    .accordion-button { font-size: var(--fs-base); font-weight: 500; font-family: var(--font-body); align-items: flex-start; }
+    /* Each item is a self-contained card — full border on all sides, gap via margin */
+    .accordion-item   { margin-bottom: 0.5rem; border: 1px solid var(--border) !important; border-radius: var(--radius) !important; overflow: hidden; }
+    /* Open state — accent left border signals which question is active */
+    .accordion-button:not(.collapsed) {
+      border-left: 3px solid var(--accent);
+      padding-left: calc(var(--bs-accordion-btn-padding-x) - 2px); /* compensate for border width */
+    }
+
+    /* ── 12. SECTION NAV PILLS (topic tabs) ─────────────────────────────────── */
+    .section-nav-pills { gap: 4px; }
+    .section-nav-pills button.nav-link {
+      padding: 0.32rem 0.85rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 0; border: 1px solid transparent;
+    }
+    .section-nav-pills button.nav-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .section-nav-pills button.nav-link.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
+
+    /* ── 13. ACCORDION QUESTION HEADER — custom two-row layout ─────────────── */
+    .q-header-content { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 0.28rem; padding-right: 0.5rem; }
+    .q-title  { font-size: 0.86rem; font-weight: 600; color: var(--text-primary); line-height: 1.35; }
+    .q-meta   { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
+    .q-badge  { font-size: 0.6rem !important; padding: 0.15em 0.45em; }
+    .q-badge-sep { width: 1px; height: 12px; background: var(--border); display: inline-block; }
+
+    /* ── 14. STATUS CYCLE BUTTON ────────────────────────────────────────────── */
+    .status-cycle-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid transparent;
+      font-size: 0.85rem; flex-shrink: 0; margin-right: 0.6rem;
+      cursor: pointer; background: var(--bg-hover); line-height: 1;
+      transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .status-cycle-btn:hover { transform: scale(1.18); border-color: var(--border-glow); background: var(--bg-hover); }
+    .status-cycle-btn.bg-success  { background: var(--green-dim);  border-color: rgba(61,214,140,0.3); }
+    .status-cycle-btn.bg-warning  { background: var(--yellow-dim); border-color: rgba(240,192,96,0.3); }
+    .status-cycle-btn.bg-secondary { background: var(--bg-elevated); border-color: var(--border); }
+
+    /* ── 15. LC HEADER LINK ─────────────────────────────────────────────────── */
+    .lc-header-link {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.15em 0.5em; border-radius: 5px; border: 1px solid transparent;
+      color: var(--text-faint); font-size: 0.68rem; font-weight: 500;
+      white-space: nowrap; cursor: pointer; background: none;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .lc-header-link:hover { color: var(--accent); border-color: var(--border-glow); background: var(--accent-dim); }
+
+    /* ── 15a. UTILITY CLASSES — named aliases for recurring inline styles ────
+     * AI: use var(--fs-xs/sm/base) tokens for font sizes, not raw rem values.
+     * Add new utilities here rather than using inline style="".              */
+    .text-xxs   { font-size: 0.62rem; }        /* badge labels only           */
+    .text-xs    { font-size: var(--fs-xs); }   /* meta, secondary labels      */
+    .text-sm    { font-size: var(--fs-sm); }   /* small prose, descriptions   */
+    /* Legacy aliases — kept for compatibility, prefer text-xs/text-sm above  */
+    .text-2xs        { font-size: 0.70rem; }
+    .text-sm-custom  { font-size: var(--fs-sm); }
+    .icon-lg         { font-size: 2rem; }
+    .icon-xl         { font-size: 1.4rem; }
+    .ph-id           { font-size: var(--fs-xs); opacity: 0.7; }
+    .ph-count        { font-size: var(--fs-xs); font-weight: 400; opacity: 0.65; }
+    .section-label-heading { font-size: 0.65rem; letter-spacing: 0.08em; }
+    /* AI: use these for progress bars instead of inline style="height:Xpx" */
+    .progress-xs     { height: 5px; }
+    .progress-sm     { height: 6px; }
+    .progress-md     { height: 8px; }
+
+    /* ── 16. INFO BOXES ─────────────────────────────────────────────────────── */
+    .gotcha-box  { background: var(--red-dim);    border-left: 3px solid var(--red);    padding: 0.55rem 0.9rem; border-radius: 0 var(--radius) var(--radius) 0; }
+    .faang-box   { background: var(--green-dim);  border-left: 3px solid var(--green);  padding: 0.55rem 0.9rem; border-radius: 0 var(--radius) var(--radius) 0; }
+    .insight-box { background: var(--accent-dim); border-left: 3px solid var(--accent); padding: 0.55rem 0.9rem; border-radius: 0 var(--radius) var(--radius) 0; }
+    .tip-box     { background: var(--yellow-dim); border-left: 3px solid var(--yellow); padding: 0.75rem 1rem;   border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.84rem; }
+
+    /* ── 16a. WHEN TO USE / AVOID ───────────────────────────────────────────── */
+    .wtu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 640px) { .wtu-grid { grid-template-columns: 1fr; } }
+    .wtu-use  { background: var(--green-dim);  border: 1px solid rgba(61,214,140,0.2);  border-radius: var(--radius); padding: 0.75rem 0.9rem; }
+    .wtu-avoid{ background: var(--red-dim);    border: 1px solid rgba(247,110,110,0.2); border-radius: var(--radius); padding: 0.75rem 0.9rem; }
+    .wtu-label{ font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .wtu-use   .wtu-label { color: var(--green); }
+    .wtu-avoid .wtu-label { color: var(--red); }
+    .wtu-list { list-style: none; padding: 0; margin: 0; }
+    .wtu-list li { font-size: var(--fs-xs); color: var(--text-muted); padding: 0.3rem 0; border-bottom: 1px solid var(--border); line-height: 1.5; }
+    .wtu-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .wtu-list li::before { margin-right: 0.4rem; }
+
+    /* ── 17. PATTERN HEADINGS ───────────────────────────────────────────────── */
+    .ph    { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.8rem; border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.8rem; font-weight: 600; margin: 1.75rem 0 0.6rem; letter-spacing: 0.02em; }
+    /* Pattern heading is a toggle — pointer cursor + hover lift */
+    .ph.pattern-toggle { cursor: pointer; user-select: none; }
+    .ph.pattern-toggle:hover { filter: brightness(1.15); }
+    .ph-toggle-icon { font-size: 0.65rem; flex-shrink: 0; opacity: 0.7; transition: transform 0.15s; }
+    /* AI: first pattern heading needs no top margin — controlled by CSS, not JS */
+    #tab-questions .ph:first-of-type { margin-top: 0; }
+    .ph-p1 { background: var(--accent-dim);  border-left: 3px solid var(--accent);  color: var(--accent); }
+    .ph-p2 { background: var(--green-dim);   border-left: 3px solid var(--green);   color: var(--green); }
+    .ph-p3 { background: var(--yellow-dim);  border-left: 3px solid var(--yellow);  color: var(--yellow); }
+    .ph-p4 { background: var(--purple-dim);  border-left: 3px solid var(--purple);  color: var(--purple); }
+    .ph-p5 { background: var(--red-dim);     border-left: 3px solid var(--red);     color: var(--red); }
+    .ph-p6 { background: var(--teal-dim);    border-left: 3px solid var(--teal);    color: var(--teal); }
+
+    /* ── 19. PATTERN CARD ───────────────────────────────────────────────────── */
+    /* border-secondary utility no longer on the element — no !important needed */
+    .pattern-card { border-left: 3px solid var(--accent); }
+
+    /* ── 20. ANIMATIONS ─────────────────────────────────────────────────────── */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .anim-fade-in { animation: fadeIn 0.22s ease both; }
+
+    /* ── 21. SCROLLBAR ──────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar       { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+
+    /* ── 22. REDUCED MOTION ─────────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* ── 23. STATUS FILTER BAR (questions tab) ──────────────────────────────── */
+    .q-filter-bar { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    .q-filter-btn {
+      padding: 0.22rem 0.75rem; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); font-size: var(--fs-xs);
+      font-family: var(--font-body); cursor: pointer; line-height: 1.5;
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+    }
+    .q-filter-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .q-filter-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
+    .q-filter-count { font-size: var(--fs-xs); color: var(--text-faint); margin-left: auto; }
+
+
+
+    /* ── 25. QUESTION NOTES ──────────────────────────────────────────────────── */
+    .note-area {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-primary); font-family: var(--font-body);
+      font-size: var(--fs-sm); padding: 0.55rem 0.8rem; resize: vertical; min-height: 64px;
+      transition: border-color 0.15s;
+    }
+    .note-area:focus { outline: none; border-color: var(--border-glow); }
+    .note-area::placeholder { color: var(--text-faint); }
+    .note-saved-flash { color: var(--green); font-size: var(--fs-xs); opacity: 0; transition: opacity 0.3s; }
+    .note-saved-flash.show { opacity: 1; }
+
+    /* ── 26. QUESTION HEADER ACTIONS ─────────────────────────────────────────────────── */
+    /* Action buttons sit outside the accordion <button> so clicks on them       */
+    /* never activate Bootstrap’s toggle, regardless of where in the span they land. */
+    .accordion-header { display: flex; align-items: stretch; }
+    .accordion-header .accordion-button { flex: 1; min-width: 0; }
+    .q-header-actions {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.7rem 0.35rem 0.7rem 0.75rem; flex-shrink: 0;
+      background: var(--bg-elevated); transition: background 0.15s;
+    }
+    .q-header-actions .status-cycle-btn { margin-right: 0; }
+    .accordion-header:has(.accordion-button:not(.collapsed)) .q-header-actions { background: var(--bg-hover); }
+
+    /* ── 27. INLINE PATTERN GUIDE ─────────────────────────────────────────────── */
+
+
+
+    /* ── 29. PRACTICE SESSION ───────────────────────────────────────────────── */
+    .pin-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: 0.75rem;
+      flex-shrink: 0; transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .pin-btn:hover { transform: scale(1.18); border-color: var(--border-glow); background: var(--bg-hover); }
+    .pin-btn.pinned { background: var(--accent-dim); border-color: var(--accent-glow); }
+    .ps-ctrl-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .ps-count-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: 0.9rem; line-height:1;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .ps-count-btn:hover { border-color: var(--border-glow); background: var(--bg-hover); }
+    .ps-count-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); background: var(--bg-elevated); }
+    .ps-count-val { font-size: var(--fs-sm); font-weight: 600; min-width: 1.5ch; text-align: center; }
+    .ps-shuffle-btn {
+      padding: 0.22rem 0.7rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: var(--fs-xs);
+      color: var(--text-primary); transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .ps-shuffle-btn:hover { border-color: var(--border-glow); background: var(--accent-dim); color: var(--accent); }
+    .ps-shuffle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ps-timer-bar { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .ps-preset-btn {
+      padding: 0.18rem 0.5rem; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: var(--fs-xs);
+      color: var(--text-muted); font-family: var(--font-mono);
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .ps-preset-btn:hover { border-color: var(--border-glow); color: var(--accent); background: var(--accent-dim); }
+    .ps-preset-btn.ps-active { border-color: var(--accent-glow); background: var(--accent-dim); color: var(--accent); }
+    .ps-timer-display { font-family: var(--font-mono); font-size: 0.9rem; min-width: 4.2ch; text-align: center; color: var(--text-primary); }
+    .ps-timer-display.ps-running { color: var(--accent); }
+    .ps-timer-display.ps-expired { color: var(--red); animation: ps-pulse 1s ease infinite; }
+    @keyframes ps-pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+    .ps-timer-ctrl {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: 0.75rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .ps-timer-ctrl:hover { border-color: var(--border-glow); background: var(--bg-hover); }
+    .ps-q-row { display: flex; align-items: center; gap: 0.42rem; padding: 0.38rem 0.6rem; border-radius: 8px; background: var(--bg-base); border: 1px solid var(--border); margin-bottom: 0.32rem; cursor: pointer; transition: background 0.2s, border-color 0.2s, opacity 0.35s; }
+    .ps-q-row:hover { border-color: var(--border-glow); background: var(--bg-hover); }
+    .ps-q-row.ps-q-solved { background: rgba(40,167,69,0.12); border-color: rgba(40,167,69,0.4); opacity: 0.7; }
+    .ps-q-row.ps-q-solved .ps-q-title { text-decoration: line-through; color: var(--text-faint); }
+    .ps-q-row.ps-q-moving { transition: opacity 0.3s; opacity: 0; }
+    .ps-due-dot { font-size: 0.52rem; color: var(--yellow); flex-shrink: 0; line-height: 1; }
+    /* ── Solve ring (radial solve-count badge on question accordion) ── */
+    .solve-ring-wrap { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; padding: 0 2px; }
+    .solve-ring {
+      display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+      height: 32px; padding: 0 10px; border-radius: 16px; border: 1.5px solid;
+      font-size: 1rem; font-weight: 700; font-family: var(--font-mono); flex-shrink: 0;
+      transition: border-color 0.2s, color 0.2s, box-shadow 0.2s; white-space: nowrap;
+    }
+    .solve-ring-num { font-size: 0.78rem; opacity: 0.9; }
+    .solve-ring-dim    { border-color: var(--border);     color: var(--text-faint); background: var(--bg-base); }
+    .solve-ring-bronze { border-color: #cd7f32;           color: #cd7f32;           background: rgba(205,127,50,0.12); }
+    .solve-ring-silver { border-color: #9ca3af;           color: #9ca3af;           background: rgba(156,163,175,0.12); }
+    .solve-ring-gold   { border-color: #ffd700;           color: #ffd700;           background: rgba(255,215,0,0.12);   box-shadow: 0 0 5px rgba(255,215,0,0.3); }
+    .solve-ring-diamond{ border-color: var(--accent);     color: var(--accent);     background: var(--accent-dim);      box-shadow: 0 0 7px var(--accent-glow); }
+    .solve-ring-adj {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: 0.85rem; line-height: 1;
+      color: var(--text-muted); padding: 0; transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .solve-ring-adj:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+    .ps-q-num { font-size: var(--fs-xs); color: var(--text-faint); min-width: 1.3rem; font-family: var(--font-mono); }
+    .ps-q-title { flex: 1; font-size: var(--fs-sm); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ps-q-link {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--bg-elevated); text-decoration: none; color: var(--text-muted);
+      font-size: 0.7rem; flex-shrink: 0; transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .ps-q-link:hover { border-color: var(--border-glow); color: var(--accent); background: var(--accent-dim); }
+    .ps-pin-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent;
+      background: transparent; cursor: pointer; font-size: 0.72rem; flex-shrink: 0;
+      opacity: 0.18; transition: opacity 0.15s, border-color 0.15s, background 0.15s;
+      padding: 0; line-height: 1;
+    }
+    .ps-pin-btn:hover { opacity: 0.75; border-color: var(--border); background: var(--bg-elevated); }
+    .ps-pin-btn.pinned { opacity: 1; border-color: rgba(255,200,0,0.4); background: rgba(255,200,0,0.1); }
+    .ps-struggle-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent;
+      background: transparent; cursor: pointer; font-size: 0.72rem; flex-shrink: 0;
+      opacity: 0.2; transition: opacity 0.15s, border-color 0.15s, background 0.15s;
+      padding: 0; line-height: 1;
+    }
+    .ps-struggle-btn:hover { opacity: 0.75; border-color: rgba(247,110,110,0.4); background: var(--red-dim); }
+    .ps-struggle-btn.struggled { opacity: 1; border-color: rgba(247,110,110,0.4); background: var(--red-dim); }
+    .ps-q-row.ps-q-struggled { background: rgba(247,110,110,0.08); border-color: rgba(247,110,110,0.3); }
+    .ps-session-done {
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+      padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;
+      background: rgba(61,214,140,0.1); border: 1px solid rgba(61,214,140,0.35);
+      font-size: var(--fs-sm); color: var(--text-primary);
+    }
+    .ps-streak-badge {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.18rem 0.55rem; border-radius: 20px;
+      background: rgba(240,192,96,0.12); border: 1px solid rgba(240,192,96,0.3);
+      font-size: var(--fs-xs); color: var(--yellow); font-weight: 600; white-space: nowrap;
+    }
+    .ps-streak-badge.streak-zero { background: var(--bg-elevated); border-color: var(--border); color: var(--text-faint); }
+    .qp-chip {
+      padding: 0.22rem 0.6rem; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--bg-elevated); cursor: pointer; font-size: var(--fs-xs);
+      color: var(--text-muted); transition: all 0.15s; user-select: none;
+    }
+    .qp-chip:hover { border-color: var(--border-glow); color: var(--text-primary); }
+    .qp-chip.active { background: var(--accent-dim); border-color: var(--border-glow); color: var(--accent); }
+
+    /* ── 30. GUIDE GLOW CARD ─────────────────────────────────────────────────── */
+    @property --guide-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+    @keyframes spin-guide-border { to { --guide-angle: 360deg; } }
+    .guide-glow-wrap {
+      padding: 2px; border-radius: var(--radius);
+      background: conic-gradient(from var(--guide-angle), #ff5f6d, #ffc371, #56ccf2, #2f80ed, #a18cd1, #ffd93d, #ff5f6d);
+      animation: spin-guide-border 4s linear infinite;
+    }
+    .guide-glow-inner {
+      background: var(--bg-elevated);
+      border-radius: calc(var(--radius) - 2px);
+      padding: 0.8rem 1rem;
+    }
+    .guide-label { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+    .guide-analogy { font-size: var(--fs-sm); color: var(--text-primary); line-height: 1.65; }
+    .guide-key-q { font-size: var(--fs-sm); color: var(--text-muted); }
+    .guide-key-q strong { color: var(--yellow); font-weight: 600; }
+    .guide-signals { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+    .guide-spot-label { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); flex-shrink: 0; margin-right: 0.15rem; }
+    .guide-signal-pill {
+      display: inline-block; font-size: 0.6rem; padding: 0.15em 0.52em;
+      border-radius: 20px; background: var(--bg-hover); border: 1px solid var(--border);
+      color: var(--text-muted); line-height: 1.4;
+    }
+  </style>
+</head>
+
+<body>
+<div class="d-flex">
+
+  <!-- ═══ SIDEBAR ═══
+       AI: nav buttons are rendered by renderNavTopics() in JS.
+       To add sidebar items: update TOPICS array in JS.            -->
+  <aside id="sidebar" class="d-flex flex-column p-0">
+
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">
+        <span class="bolt">⚡</span>
+        DSA Notebook
+      </div>
+      <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar" aria-label="Close sidebar">✕</button>
+    </div>
+
+    <nav class="flex-grow-1 p-2 overflow-auto">
+      <button type="button" id="nav-dashboard" onclick="loadDashboard()"
+        class="nav-link">
+        <span class="nav-topic-icon">🏠</span>
+        <span class="nav-topic-label">Dashboard</span>
+      </button>
+      <p class="sidebar-section-label">Topics</p>
+      <div id="nav-topics"></div>
+    </nav>
+
+    <div class="sidebar-footer">v27 · DSA Notebook</div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="flex-grow-1 d-flex flex-column" style="min-width:0; min-height:100vh;">
+
+    <!-- Top Bar -->
+    <header>
+      <button type="button" onclick="toggleSidebar()" class="header-menu-btn" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+      <button type="button" id="page-title" class="fs-6 fw-semibold mb-0"
+          onclick="loadDashboard()" title="Go to Dashboard" aria-label="Go to Dashboard">
+        🏠 Dashboard
+      </button>
+      <div id="header-tabs" class="ms-2"></div>
+      <button type="button" onclick="toggleTheme()" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-grow-1 p-4">
+
+      <!-- ── VIEW: Dashboard ──
+           AI: rendered by loadDashboard(). Shows overall progress + topic cards. -->
+      <div id="view-dashboard">
+        <!-- Overall progress bar — rendered by loadDashboard() -->
+        <div id="overall-tracker" class="mb-4"></div>
+        <!-- Per-topic cards — rendered by loadDashboard() -->
+        <div class="row g-3" id="topic-cards"></div>
+        <!-- Quick Practice panel — rendered by loadDashboard() -->
+        <div id="quick-practice-panel"></div>
+      </div>
+
+      <!-- ── VIEW: Topic ── rendered by loadTopic(key) -->
+      <div id="view-topic" class="d-none">
+
+        <!-- Progress tracker (always visible) -->
+        <div id="topic-tracker"></div>
+
+        <!-- Decision Tree + Interview Tips (always visible, collapsible) -->
+        <div id="topic-always-visible" class="mb-3"></div>
+
+        <!-- Sub-tabs: rendered by buildTopicTabs() from TOPIC_TABS registry in JS -->
+        <!-- AI: to add a tab, update TOPIC_TABS in JS — do not edit here -->
+        <ul class="nav section-nav-pills mb-3" id="topic-tabs"></ul>
+
+        <!-- Tab panes: one div per entry in TOPIC_TABS, rendered by buildTopicTabs() -->
+        <div id="topic-tab-panes"></div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══ SCRIPT ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="data.js"></script>
+<script>
+/* <![CDATA[ */
+
+// ─── HTML GENERATION STYLE ───────────────────────────────────────────────────
+// AI: all HTML generation uses string concatenation (+ operator) with escHtml()
+// for any user-facing data. Template literals (backticks) are used only in
+// buildNav() and buildTopicTabs() where interpolation is cleaner and no
+// user data is concatenated directly. Do not mix styles within a function.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── BADGE / STATUS MAPS ──────────────────────────────────────────────────────
+// AI: all status/difficulty display mappings live here — update here only.
+const DIFFICULTY_BADGE = { Easy: 'success', Medium: 'warning', Hard: 'danger' }
+const STATUS_DOT       = { Solved: 'bg-success', 'In Progress': 'bg-warning', Pending: 'bg-secondary' }
+const STATUS_EMOJI      = { Solved: '✅', 'In Progress': '🚧', Pending: '📋' }
+const STATUS_CYCLE      = { Pending: 'In Progress', 'In Progress': 'Solved', Solved: 'Pending' }
+
+// ─── QUICK-REF PANEL IDs ──────────────────────────────────────────────────────
+const QR_IDS = {
+  practice: 'qr-practice',
+}
+
+// ─── TOPIC TABS ───────────────────────────────────────────────────────────────
+// AI: single source of truth for tab definitions.
+// Adding a tab here automatically renders it in the HTML nav and wires up
+// the tab pane. You must also add a render function and call it in renderCurrentTab().
+const TOPIC_TABS = [
+  { key: 'questions',  label: 'Questions'  },
+]
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentTopicKey = null
+let currentTab = 'questions'
+let currentQFilter = 'all'
+
+// ─── PRACTICE SESSION STATE ──────────────────────────────────────────────────
+let _psQCount     = 5     // question count for per-topic practice
+let _psTimerTotal = 0     // timer set value in seconds (0 = off)
+let _psTimerRem   = 0     // remaining seconds
+let _psTimerRun   = false // is timer running?
+let _psTimerIv    = null  // setInterval handle
+let _psTimerPreset = 0    // last selected preset in minutes
+let _psDoneThisSession      = new Set()  // keys done in current per-topic practice batch
+let _psStruggledThisSession = new Set()  // keys flagged struggled in per-topic session
+let _psCurrentItems         = []         // current ordered list for per-topic session
+
+// ─── DASHBOARD QUICK PRACTICE SESSION STATE ──────────────────────────────────
+// Kept separate from per-topic state so navigating to a topic page and back
+// never wipes the dashboard session progress.
+let _qpDoneThisSession      = new Set()  // keys marked done on the dashboard qp panel
+let _qpStruggledThisSession = new Set()  // keys flagged struggled on the dashboard qp panel
+
+// ─── LAST-PRACTICED TRACKING ─────────────────────────────────────────────────
+// shape: { [lcKey]: ISO timestamp }
+const LAST_PRACTICED_KEY = 'dsa-last-practiced-v1'
+function getLastPracticed(lcKey) {
+  try { return JSON.parse(localStorage.getItem(LAST_PRACTICED_KEY) || '{}')[lcKey] || null } catch { return null }
+}
+function markPracticed(lcKey) {
+  try {
+    const d = JSON.parse(localStorage.getItem(LAST_PRACTICED_KEY) || '{}')
+    d[lcKey] = new Date().toISOString()
+    localStorage.setItem(LAST_PRACTICED_KEY, JSON.stringify(d))
+  } catch {}
+  _updateStreak()
+}
+
+// ─── ADAPTIVE REVIEW INTERVALS ────────────────────────────────────────────────
+// shape: { [lcKey]: days }  — default 3; set to 1 after "struggled"
+const REVIEW_INTERVAL_KEY = 'dsa-review-interval-v1'
+function getReviewInterval(lcKey) {
+  try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] || 3 } catch { return 3 }
+}
+function setReviewInterval(lcKey, days) {
+  try {
+    const d = JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')
+    d[lcKey] = days
+    localStorage.setItem(REVIEW_INTERVAL_KEY, JSON.stringify(d))
+  } catch {}
+}
+
+// ─── STREAK TRACKING ──────────────────────────────────────────────────────────
+const STREAK_KEY = 'dsa-streak-v1'
+function _updateStreak() {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const data  = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}')
+    if (data.date === today) return  // already counted today
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const newStreak  = data.date === yesterday ? (data.streak || 0) + 1 : 1
+    const newLongest = Math.max(newStreak, data.longest || 0)
+    localStorage.setItem(STREAK_KEY, JSON.stringify({ date: today, streak: newStreak, longest: newLongest }))
+  } catch {}
+}
+function getStreak() {
+  try {
+    const data      = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}')
+    const today     = new Date().toISOString().slice(0, 10)
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    if (data.date !== today && data.date !== yesterday) return { streak: 0, longest: data.longest || 0, today: false }
+    return { streak: data.streak || 0, longest: data.longest || 0, today: data.date === today }
+  } catch { return { streak: 0, longest: 0, today: false } }
+}
+
+// A question is "due" if never practiced OR last practiced > N days ago (N = per-key review interval)
+function isDue(lcKey) {
+  const last = getLastPracticed(lcKey)
+  if (!last) return true
+  return (Date.now() - new Date(last).getTime()) > getReviewInterval(lcKey) * 24 * 60 * 60 * 1000
+}
+// ─── QUICK PRACTICE STATE (dashboard) ────────────────────────────────────────
+let _qpTopics  = new Set()  // selected topic keys
+let _qpCount   = 10         // question count
+let _qpResults = null       // last generated results ([lcKey, q][])
+let _qpTimerTotal  = 0      // set value in seconds
+let _qpTimerRem    = 0      // remaining seconds
+let _qpTimerRun    = false  // is running?
+let _qpTimerIv     = null   // setInterval handle
+let _qpTimerPreset = 0      // last preset in minutes
+let _qpDueOnly     = false  // when true: generate only "due for review" questions
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  syncThemeIcon()
+  buildNav()
+  loadDashboard()
+})
+
+// ─── NAV BADGE COLOUR ───────────────────────────────────────────────────────
+// 5-level colour ramp: grey → yellow → teal → blue → green as you fill the topic
+function _navBadgeCls(solved, total) {
+  if (!total)                        return 'bg-secondary'
+  if (solved === total)              return 'bg-success'
+  const pct = solved / total * 100
+  if (pct >= 75)                     return 'bg-primary'   // 75-99 %  → blue (almost!)
+  if (pct >= 50)                     return 'bg-info'      // 50-74 %  → teal
+  if (pct > 0)                       return 'bg-warning'   // 1-49 %   → yellow
+  return 'bg-secondary'                                    // 0 %      → grey
+}
+
+// ─── BUILD NAV ────────────────────────────────────────────────────────────────
+function buildNav() {
+  const container = document.getElementById('nav-topics')
+  container.innerHTML = TOPICS.map(t => {
+    const mod = TOPIC_MODULES[t.key]
+    if (!mod) return `
+      <button type="button" id="nav-${t.key}" onclick="loadTopic('${t.key}')" class="nav-link">
+        <span class="nav-topic-icon">${t.icon}</span>
+        <span class="nav-topic-label">${t.label}</span>
+      </button>
+    `
+    const qKeys   = Object.keys(mod.questions)
+    const solved  = qKeys.filter(k => getStatus(k) === 'Solved').length
+    const total   = qKeys.length
+    const badgeCls = _navBadgeCls(solved, total)
+    return `
+      <button type="button"
+         id="nav-${t.key}"
+         onclick="loadTopic('${t.key}')"
+         class="nav-link">
+        <span class="nav-topic-icon">${t.icon}</span>
+        <span class="nav-topic-label">${t.label}</span>
+        <span id="nav-badge-${t.key}" class="badge ${badgeCls} rounded-pill text-xxs">${solved}/${total}</span>
+      </button>
+    `
+  }).join('')
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function loadDashboard() {
+  showView('view-dashboard')
+  _stopTimer()       // stop per-topic timer if navigating here from a topic page
+  document.getElementById('page-title').textContent = '🏠 Dashboard'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const dash = document.getElementById('nav-dashboard')
+  if (dash) dash.classList.add('active')
+  currentTopicKey = null
+
+  // One-pass: compute global totals + per-topic stats simultaneously
+  let totalQ = 0, totalSolved = 0, totalInProg = 0, totalPending = 0
+  const topicStats = TOPICS.map(t => {
+    const mod = TOPIC_MODULES[t.key]
+    if (!mod) return { key: t.key, icon: t.icon, label: t.label, mod: null }
+    const qKeys  = Object.keys(mod.questions)
+    const solved  = qKeys.filter(k => getStatus(k) === 'Solved').length
+    const inProg  = qKeys.filter(k => getStatus(k) === 'In Progress').length
+    const pending = qKeys.filter(k => getStatus(k) === 'Pending').length
+    totalQ       += qKeys.length
+    totalSolved  += solved
+    totalInProg  += inProg
+    totalPending += pending
+    return {
+      key: t.key, icon: t.icon, label: t.label, mod,
+      total: qKeys.length, solved, inProg, pending,
+      pct:       qKeys.length ? Math.round(solved / qKeys.length * 100) : 0,
+      inProgPct: qKeys.length ? Math.round(inProg / qKeys.length * 100) : 0
+    }
+  })
+
+  const solvedPct  = totalQ ? Math.round(totalSolved / totalQ * 100) : 0
+  const inProgPct  = totalQ ? Math.round(totalInProg / totalQ * 100) : 0
+
+  // Count questions due for review across all topics
+  let totalDue = 0
+  TOPICS.forEach(t => {
+    const mod = TOPIC_MODULES[t.key]
+    if (mod) Object.keys(mod.questions).forEach(k => { if (isDue(k)) totalDue++ })
+  })
+
+  // ── Overall tracker ─────────────────────────────────────────────────────────
+  const streak = getStreak()
+  const streakHtml = streak.streak > 0
+    ? '<span class="ps-streak-badge">🔥 ' + streak.streak + (streak.streak === 1 ? ' day' : ' days') + (streak.longest > streak.streak ? ' <span style="opacity:0.6;font-size:0.62rem">best ' + streak.longest + '</span>' : '') + '</span>'
+    : '<span class="ps-streak-badge streak-zero">🔥 Start streak</span>'
+  document.getElementById('overall-tracker').innerHTML =
+    '<div class="card">' +
+    '<div class="card-body">' +
+    '<div class="d-flex align-items-center gap-2 mb-2">' +
+    '<h6 class="mb-0 fw-semibold me-auto">Overall Progress</h6>' +
+    streakHtml +
+    '<span class="text-secondary small">' + totalSolved + ' / ' + totalQ + ' solved</span>' +
+    '</div>' +
+    '<div class="progress progress-md mb-2">' +
+    '<div class="progress-bar bg-success" style="width:' + solvedPct + '%" title="Solved: ' + totalSolved + '"></div>' +
+    '<div class="progress-bar bg-warning" style="width:' + inProgPct + '%" title="In Progress: ' + totalInProg + '"></div>' +
+    '</div>' +
+    '<div class="d-flex gap-3 small">' +
+    '<span class="text-success">✅ <strong>' + totalSolved + '</strong> Solved</span>' +
+    '<span class="text-warning">🚧 <strong>' + totalInProg + '</strong> In Progress</span>' +
+    '<span class="text-secondary">📋 <strong>' + totalPending + '</strong> Pending</span>' +
+    (totalDue ? '<span class="text-warning ms-auto">⏰ <strong>' + totalDue + '</strong> due for review</span>' : '<span class="ms-auto text-secondary">' + solvedPct + '% · ' + totalQ + ' total</span>') +
+    '</div>' +
+    '</div></div>'
+
+  // ── Per-topic cards ──────────────────────────────────────────────────────────
+  document.getElementById('topic-cards').innerHTML = topicStats.map(s => {
+    if (!s.mod) {
+      return (
+        '<div class="col-12 col-md-6 col-lg-4">' +
+        '<div class="card h-100 text-center" role="button" onclick="loadTopic(\'' + s.key + '\')">' +
+        '<div class="card-body d-flex flex-column justify-content-center align-items-center py-4">' +
+        '<div class="icon-lg mb-2">' + s.icon + '</div>' +
+        '<h6 class="mb-1">' + escHtml(s.label) + '</h6>' +
+        '<span class="badge bg-secondary">Coming soon</span>' +
+        '</div></div></div>'
+      )
+    }
+    return (
+      '<div class="col-12 col-md-6 col-lg-4">' +
+      '<div class="card h-100" role="button" onclick="loadTopic(\'' + s.key + '\')">' +
+      '<div class="card-body">' +
+      '<div class="d-flex align-items-center gap-2 mb-2">' +
+      '<span class="icon-xl">' + s.icon + '</span>' +
+      '<h6 class="mb-0 fw-semibold">' + escHtml(s.label) + '</h6>' +
+      '</div>' +
+      '<div class="d-flex flex-wrap gap-3 small text-secondary mb-3">' +
+      '<span>📝 ' + s.total + ' questions</span>' +
+      '<span>🧩 ' + s.mod.patterns.length + ' patterns</span>' +
+      '</div>' +
+      '<div class="d-flex justify-content-between small mb-1">' +
+      '<span class="text-secondary">Progress</span>' +
+      '<span class="fw-semibold">' + s.solved + ' / ' + s.total + '</span>' +
+      '</div>' +
+      '<div class="progress progress-sm mb-2">' +
+      '<div class="progress-bar bg-success" style="width:' + s.pct + '%"></div>' +
+      '<div class="progress-bar bg-warning" style="width:' + s.inProgPct + '%"></div>' +
+      '</div>' +
+      '<div class="d-flex gap-3 small">' +
+      '<span class="text-success">✅ ' + s.solved + '</span>' +
+      '<span class="text-warning">🚧 ' + s.inProg + '</span>' +
+      '<span class="text-secondary">📋 ' + s.pending + '</span>' +
+      '</div>' +
+      '</div></div></div>'
+    )
+  }).join('')
+  _renderQuickPractice()
+}
+
+// ─── BUILD TOPIC TABS ─────────────────────────────────────────────────────────
+// AI: renders tab nav + pane divs from TOPIC_TABS. Called once per loadTopic().
+// To add a tab: update TOPIC_TABS constant — this function needs no changes.
+function buildTopicTabs() {
+  const nav   = document.getElementById('topic-tabs')
+  const panes = document.getElementById('topic-tab-panes')
+  if (!nav || !panes) return
+
+  // Hide tab nav when there is only one tab — a single pill adds no value
+  nav.style.display = TOPIC_TABS.length <= 1 ? 'none' : ''
+
+  nav.innerHTML = TOPIC_TABS.map((t, i) =>
+    `<li class="nav-item">
+      <button class="nav-link${i === 0 ? ' active' : ''}" type="button"
+        data-tab="${t.key}" onclick="showTopicTab('${t.key}')">${t.label}</button>
+    </li>`
+  ).join('')
+
+  panes.innerHTML = TOPIC_TABS.map((t, i) =>
+    `<div id="tab-${t.key}"${i > 0 ? ' class="d-none"' : ''}></div>`
+  ).join('')
+}
+
+// ─── LOAD TOPIC ───────────────────────────────────────────────────────────────
+function loadTopic(key) {
+  const topic = TOPICS.find(t => t.key === key)
+  if (!topic) return
+
+  currentTopicKey = key
+  currentTab = TOPIC_TABS[0].key  // always start on first tab
+  currentQFilter = 'all'          // reset filter on topic switch
+  _stopTimer()                    // stop any running per-topic practice timer
+  _qpStopTimer()                  // stop QP timer if it was running on dashboard
+
+  // Reset per-topic session completely so a fresh session starts for every topic
+  _psCurrentItems = []
+  _psDoneThisSession.clear()
+  _psStruggledThisSession.clear()
+  _psQCount = 5
+
+  showView('view-topic')
+  document.getElementById('page-title').textContent = topic.icon + ' ' + topic.label
+  setActiveNav(key)
+  buildTopicTabs()  // renders nav + panes from TOPIC_TABS registry
+
+  const mod = TOPIC_MODULES[key]
+  renderTopicTracker(mod)
+  renderTopicAlwaysVisible(mod)
+  renderCurrentTab()
+}
+
+// ─── SHOW TOPIC TAB ───────────────────────────────────────────────────────────
+function showTopicTab(tab) {
+  currentTab = tab
+  document.querySelectorAll('#topic-tabs .nav-link').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-tab') === tab)
+  })
+  renderCurrentTab()
+}
+
+function renderCurrentTab() {
+  // AI: tab visibility is driven by TOPIC_TABS — do not hardcode tab keys here
+  TOPIC_TABS.forEach(t => {
+    const el = document.getElementById('tab-' + t.key)
+    if (el) el.classList.toggle('d-none', t.key !== currentTab)
+  })
+
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (!mod) {
+    const el = document.getElementById('tab-' + currentTab)
+    if (el) el.innerHTML = '<div class="text-center py-5 text-secondary"><span class="icon-lg">⏳</span><p class="mt-3 small">Module coming soon.</p></div>'
+    return
+  }
+
+  if (currentTab === 'questions') renderQuestions(mod)
+}
+
+// ─── QUESTIONS TAB ────────────────────────────────────────────────────────────
+// AI: if adding P7, P8 etc — add to PATTERN_HEADING_CLASS here AND
+// add matching .ph-p7, .ph-p8 CSS rules in section 18 of the stylesheet.
+const PATTERN_HEADING_CLASS = { P1: 'ph-p1', P2: 'ph-p2', P3: 'ph-p3', P4: 'ph-p4', P5: 'ph-p5', P6: 'ph-p6' }
+
+// ─── QUESTION FILTER ──────────────────────────────────────────────────────────
+function setQFilter(filter) {
+  currentQFilter = filter
+  document.querySelectorAll('.q-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-filter') === filter)
+  })
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) _renderFilteredQuestions(mod)
+}
+
+function renderQuestions(mod) {
+  const container = document.getElementById('tab-questions')
+  const allQEntries = Object.entries(mod.questions)
+
+  if (allQEntries.length === 0) {
+    container.innerHTML = '<div class="text-center py-5"><span style="font-size:2rem;" class="text-secondary">📭</span><p class="text-secondary mt-3 small">No questions yet.</p></div>'
+    return
+  }
+
+  // Count per status for filter buttonslabels
+  const counts = { all: allQEntries.length, Pending: 0, 'In Progress': 0, Solved: 0 }
+  allQEntries.forEach(([k]) => { counts[getStatus(k)]++ })
+
+  const filters = ['all', 'Pending', 'In Progress', 'Solved']
+  const filterLabels = { all: 'All', Pending: '📋 Pending', 'In Progress': '🚧 In Progress', Solved: '✅ Solved' }
+  let html = '<div class="q-filter-bar">'
+  filters.forEach(f => {
+    const isActive = f === currentQFilter
+    html += '<button type="button" class="q-filter-btn' + (isActive ? ' active' : '') + '" data-filter="' + f + '" onclick="setQFilter(\'' + f + '\')">' +
+      filterLabels[f] + ' <span style="opacity:0.6">(' + counts[f] + ')</span></button>'
+  })
+  html += '</div>'
+  html += '<div id="q-filtered-list"></div>'
+  container.innerHTML = html
+  _renderFilteredQuestions(mod)
+}
+
+function _renderFilteredQuestions(mod) {
+  const listEl = document.getElementById('q-filtered-list')
+  if (!listEl) return
+
+  const allQEntries = Object.entries(mod.questions)
+  const filtered = currentQFilter === 'all'
+    ? allQEntries
+    : allQEntries.filter(([k]) => getStatus(k) === currentQFilter)
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="text-center py-5 text-secondary"><p class="small">No ' + currentQFilter + ' questions.</p></div>'
+    return
+  }
+
+  const byPattern = {}
+  mod.patterns.forEach(p => { byPattern[p.id] = [] })
+  byPattern['_other'] = []
+
+  filtered.forEach(([k, q]) => {
+    const pat = mod.patterns.find(p => p.questionIds.includes(k))
+    if (pat) byPattern[pat.id].push([k, q])
+    else byPattern['_other'].push([k, q])
+  })
+
+  let html = ''
+  mod.patterns.forEach(p => {
+    const qs = byPattern[p.id]
+    if (!qs.length) return
+    const phCls = 'ph ' + (PATTERN_HEADING_CLASS[p.id] || '')
+    const patColor = ({ P1: 'var(--accent)', P2: 'var(--green)', P3: 'var(--yellow)', P4: 'var(--purple)', P5: 'var(--red)', P6: 'var(--teal)' })[p.id] || 'var(--accent)'
+    const guideId = 'guide-' + currentTopicKey.replace(/[^a-z0-9]/g,'-') + '-' + p.id
+    const signalPills = p.recognitionSignals.map(s => '<span class="guide-signal-pill">' + escHtml(s) + '</span>').join('')
+
+    // ── Pattern heading — click to toggle guide ──
+    html += '<div class="' + phCls + ' pattern-toggle" role="button" onclick="_toggleGuide(\'' + guideId + '\', this)">'
+    html += '<span class="ph-id">' + p.id + '</span>'
+    html += '<span>' + escHtml(p.name) + '</span>'
+    html += '<span class="ms-auto ph-count">' + qs.length + ' question' + (qs.length !== 1 ? 's' : '') + '</span>'
+    html += '<span class="ph-toggle-icon ms-2">▾</span>'
+    html += '</div>'
+
+    // ── Collapsible pattern guide (starts hidden) ──
+    html += '<div id="' + guideId + '" class="guide-glow-wrap mb-3 d-none">'
+    html += '<div class="guide-glow-inner">'
+    // Header
+    html += '<div class="d-flex align-items-center gap-2 mb-2">'
+    html += '<span class="badge text-xxs" style="background:' + patColor + ';color:#0f1117;">' + p.id + '</span>'
+    html += '<span class="guide-label" style="color:' + patColor + ';">' + escHtml(p.name) + '</span>'
+    html += '</div>'
+    // Mental model — core of the pattern (concise)
+    html += '<div class="guide-analogy mb-2">🧠 ' + escHtml(p.mentalModel) + '</div>'
+    // Key question — the decision you need to make
+    if (p.keyQuestion) {
+      html += '<div class="guide-key-q mb-2">🔑 ' + escHtml(p.keyQuestion) + '</div>'
+    }
+    // Top 2 gotchas only — the most critical traps
+    if (p.gotchas && p.gotchas.length) {
+      p.gotchas.slice(0, 2).forEach(g => {
+        html += '<div class="gotcha-box mb-1 text-xs"><strong>⚠</strong> ' + escHtml(g) + '</div>'
+      })
+    }
+    // Recognition signals
+    html += '<div class="guide-signals mt-2">'
+    html += '<span class="guide-spot-label">Spot it →</span>'
+    html += signalPills
+    html += '</div>'
+    html += '</div></div>'
+
+    html += '<div class="accordion mb-3" id="acc-q-' + p.id + '">'
+    qs.forEach(([k, q], i) => { html += buildQuestionAccordionItem(k, q, 'q-' + p.id, i) })
+    html += '</div>'
+  })
+
+  if (byPattern['_other'].length) {
+    html += '<div class="accordion mb-3" id="acc-q-other">'
+    byPattern['_other'].forEach(([k, q], i) => { html += buildQuestionAccordionItem(k, q, 'q-other', i) })
+    html += '</div>'
+  }
+
+  listEl.innerHTML = html
+}
+
+function buildQuestionAccordionItem(lcKey, q, groupId, index) {
+  const id = 'acc-' + groupId + '-' + index
+  const status   = getStatus(lcKey)
+  const solveN   = getSolveCount(lcKey)
+  const solveRing = '<span class="solve-ring-wrap" onclick="event.stopPropagation()" title="' + solveN + ' solve' + (solveN===1?'':'s') + '">'
+    + '<button class="solve-ring-adj" onclick="_adjSolveCount(\'' + lcKey + '\',-1)">−</button>'
+    + '<span class="solve-ring ' + _solveRingCls(solveN) + '" data-solve-key="' + lcKey + '">' + _solveRingEmoji(solveN) + '<span class="solve-ring-num">' + solveN + '</span></span>'
+    + '<button class="solve-ring-adj" onclick="_adjSolveCount(\'' + lcKey + '\',1)">+</button>'
+    + '</span>'
+
+  const tags = (q.tags || []).map(t => '<span class="badge badge-tag me-1">' + t + '</span>').join('')
+  const altApproaches = (q.alternateApproaches || []).map(a =>
+    '<span class="badge bg-secondary me-1" title="' + escHtml(a.tradeoff) + '">' + escHtml(a.technique) + '</span>'
+  ).join('')
+
+  const conditionLabel = { 'two-pointers': 'Pointer condition', 'binary-search': 'Feasibility check', 'sorting': 'Key condition', 'heap': 'Key condition', 'recursion': 'Base case' }[currentTopicKey] || 'Shrink trigger'
+  const existingNote = getNote(lcKey)
+
+  const insightRow    = q.keyInsight    ? '<div class="insight-box mb-2 small"><strong class="text-info">💡 Insight:</strong> '  + escHtml(q.keyInsight)   + '</div>' : ''
+  const shrinkRow     = q.shrinkTrigger ? '<p class="mb-2 small"><span class="text-secondary">' + conditionLabel + ':</span> <code>' + escHtml(q.shrinkTrigger) + '</code></p>' : ''
+  const complexityRow = (q.timeComplexity || q.spaceComplexity) ?
+    '<div class="d-flex gap-3 mb-2">' +
+    (q.timeComplexity  ? '<span class="text-secondary small">⏱ ' + q.timeComplexity  + '</span>' : '') +
+    (q.spaceComplexity ? '<span class="text-secondary small">💾 ' + q.spaceComplexity + '</span>' : '') +
+    '</div>' : ''
+  const gotchaRow  = q.gotcha    ? '<div class="gotcha-box mb-2 small"><strong class="text-danger">⚠ Gotcha:</strong> '  + escHtml(q.gotcha)    + '</div>' : ''
+  const faangRow   = q.faangNote ? '<div class="faang-box mb-2 small"><strong class="text-success">★ FAANG:</strong> '  + escHtml(q.faangNote) + '</div>' : ''
+  const altRow     = altApproaches ? '<div class="mb-2 small"><span class="text-secondary">Alt approaches:</span> ' + altApproaches + '</div>' : ''
+  const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="text-secondary text-xs mb-1">📝 My notes</p>' +
+    '<textarea class="note-area" placeholder="Add your attempt notes, observations, or reminders here…" id="note-' + lcKey + '"' +
+    ' onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
+    '<span class="note-saved-flash" id="note-flash-' + lcKey + '">Saved</span>' +
+    '</div>'
+
+  return (
+    '<div class="accordion-item">' +
+    '<h2 class="accordion-header">' +
+
+    // ── Status dot + LC button — outside the accordion toggle button
+    '<div class="q-header-actions">' +
+    '<span class="status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary') + '"' +
+    ' title="Status: ' + status + ' — click to cycle"' +
+    ' aria-label="Status: ' + status + ' — click to cycle"' +
+    ' onclick="cycleQuestionStatus(\'' + lcKey + '\', this)"' +
+    ' data-lc-key="' + lcKey + '">' +
+    STATUS_EMOJI[status] +
+    '</span>' +
+    '<span class="status-cycle-btn bg-secondary"' +
+    ' title="Open on LeetCode"' +
+    ' aria-label="Open ' + escHtml(q.title) + ' on LeetCode"' +
+    ' onclick="window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
+    '<span class="pin-btn' + (isPinned(lcKey) ? ' pinned' : '') + '"' +
+    ' id="pin-btn-' + lcKey + '"' +
+    ' title="' + (isPinned(lcKey) ? 'Unpin from practice set' : 'Pin — always include in practice') + '"' +
+    ' onclick="toggleQuestionPin(\'' + lcKey + '\', this)">📌</span>' +
+    solveRing +
+    '</div>' +
+
+    '<button class="accordion-button collapsed rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + id + '">' +
+    // ── Title + sub-row (badges) — two-line layout
+    '<span class="q-header-content">' +
+    '<span class="q-title">' + escHtml(q.title) + '</span>' +
+    '<span class="q-meta">' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge">' + q.difficulty + '</span>' +
+    (existingNote ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>' : '') +
+    (isPinned(lcKey) ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge pin-badge" title="Pinned to practice">📌</span>' : '') +
+    '</span>' +
+    '</span>' +
+
+    '</button></h2>' +
+    '<div id="' + id + '" class="accordion-collapse collapse">' +
+    '<div class="accordion-body small">' +
+    (tags ? '<div class="mb-3 d-flex flex-wrap gap-1">' + tags + '</div>' : '') +
+    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow + noteRow +
+    '</div></div></div>'
+  )
+}
+
+function setQuestionStatus(lcKey, status, btnEl) {
+  setStatus(lcKey, status)
+  // Update cycle button in header
+  const itemEl = btnEl ? btnEl.closest('.accordion-item') : document.querySelector('[data-lc-key="' + lcKey + '"]')?.closest('.accordion-item')
+  if (itemEl) {
+    // AI: querySelector uses [data-lc-key] to find the status dot explicitly.
+    // Do NOT use .status-cycle-btn — there are two per item (status + LC button).
+    const cycleBtn = itemEl.querySelector('[data-lc-key]')
+    if (cycleBtn) {
+      cycleBtn.className  = 'status-cycle-btn ' + (STATUS_DOT[status] || 'bg-secondary')
+      cycleBtn.title      = 'Status: ' + status + ' — click to cycle'
+      cycleBtn.setAttribute('aria-label', 'Status: ' + status + ' — click to cycle')
+      cycleBtn.textContent = STATUS_EMOJI[status] ?? '📋'
+    }
+  }
+  // Refresh topic tracker and sidebar nav badge
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) {
+    renderTopicTracker(mod)
+    const navBadge = document.getElementById('nav-badge-' + currentTopicKey)
+    if (navBadge) {
+      const qKeys  = Object.keys(mod.questions)
+      const solved = qKeys.filter(k => getStatus(k) === 'Solved').length
+      navBadge.textContent = solved + '/' + qKeys.length
+      navBadge.className = 'badge rounded-pill text-xxs ' + _navBadgeCls(solved, qKeys.length)
+    }
+  }
+  // If filtered view is active, re-render filtered list to reflect new status
+  if (currentQFilter !== 'all' && mod) _renderFilteredQuestions(mod)
+}
+
+function cycleQuestionStatus(lcKey, cycleBtn) {
+  const current = getStatus(lcKey)
+  const next    = STATUS_CYCLE[current] || 'In Progress'
+  setQuestionStatus(lcKey, next, cycleBtn)
+}
+
+// ─── SAVE NOTE ────────────────────────────────────────────────────────────────
+function saveNoteFromTextarea(lcKey) {
+  const ta = document.getElementById('note-' + lcKey)
+  if (!ta) return
+  setNote(lcKey, ta.value)
+  // Update the 📝 badge in the accordion header without a full re-render
+  const item = ta.closest('.accordion-item')
+  if (item) {
+    const meta = item.querySelector('.q-meta')
+    if (meta) {
+      const existing = meta.querySelector('[title="Has notes"]')
+      if (ta.value.trim() && !existing) {
+        meta.insertAdjacentHTML('beforeend',
+          '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>')
+      } else if (!ta.value.trim() && existing) {
+        const sep = existing.previousElementSibling
+        if (sep && sep.classList.contains('q-badge-sep')) sep.remove()
+        existing.remove()
+      }
+    }
+  }
+  const flash = document.getElementById('note-flash-' + lcKey)
+  if (flash) {
+    flash.classList.add('show')
+    setTimeout(() => flash.classList.remove('show'), 1500)
+  }
+}
+
+// ─── TOPIC TRACKER (always visible) ─────────────────────────────────────────
+function renderTopicTracker(mod) {
+  const el = document.getElementById('topic-tracker')
+  if (!el) return
+  if (!mod) { el.innerHTML = ''; return }
+
+  const qKeys     = Object.keys(mod.questions)
+  const solved    = qKeys.filter(k => getStatus(k) === 'Solved').length
+  const inProg    = qKeys.filter(k => getStatus(k) === 'In Progress').length
+  const pending   = qKeys.filter(k => getStatus(k) === 'Pending').length
+  const pct       = qKeys.length ? Math.round(solved    / qKeys.length * 100) : 0
+  const inProgPct = qKeys.length ? Math.round(inProg    / qKeys.length * 100) : 0
+
+  el.innerHTML =
+    '<div class="card mb-3">' +
+    '<div class="card-body py-2 px-3">' +
+    '<div class="d-flex align-items-center justify-content-between mb-1">' +
+    '<span class="text-secondary text-sm-custom">' + escHtml(mod.goal) + '</span>' +
+    '<span class="small text-secondary ms-3 flex-shrink-0">' + solved + ' / ' + qKeys.length + '</span>' +
+    '</div>' +
+    '<div class="progress progress-xs mb-1">' +
+    '<div class="progress-bar bg-success" style="width:' + pct + '%"></div>' +
+    '<div class="progress-bar bg-warning" style="width:' + inProgPct + '%"></div>' +
+    '</div>' +
+    '<div class="d-flex gap-3 small">' +
+    '<span class="text-success">✅ <strong>' + solved + '</strong></span>' +
+    '<span class="text-warning">🚧 <strong>' + inProg + '</strong></span>' +
+    '<span class="text-secondary">📋 <strong>' + pending + '</strong></span>' +
+    '<span class="ms-auto text-secondary text-xxs">' + pct + '% complete</span>' +
+    '</div>' +
+    '</div></div>'
+}
+
+// ─── ALWAYS-VISIBLE: PRACTICE SESSION ────────────────────────────────────────
+function renderTopicAlwaysVisible(mod) {
+  const el = document.getElementById('topic-always-visible')
+  if (!el) return
+  if (!mod) { el.innerHTML = ''; return }
+
+  el.innerHTML =
+    '<div class="accordion" id="accord-quick-ref">' +
+    '<div class="accordion-item">' +
+    '<h2 class="accordion-header">' +
+    '<button class="accordion-button rounded" type="button" data-bs-toggle="collapse" data-bs-target="#' + QR_IDS.practice + '">' +
+    '<span class="me-2">🎲</span>' +
+    '<span class="small fw-semibold">Practice Session</span>' +
+    '<span class="ms-2 text-secondary text-2xs">&#8212; drill questions now · smart-weighted by solve count</span>' +
+    '</button></h2>' +
+    '<div id="' + QR_IDS.practice + '" class="accordion-collapse collapse show">' +
+    '<div class="accordion-body" id="ps-body">' + _buildPracticePanel(currentTopicKey, mod) + '</div>' +
+    '</div></div></div>'
+}
+
+// ─── PATTERN GUIDE TOGGLE ─────────────────────────────────────────────────────
+function _toggleGuide(id, headerEl) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.classList.toggle('d-none')
+  const icon = headerEl.querySelector('.ph-toggle-icon')
+  if (icon) icon.textContent = el.classList.contains('d-none') ? '▾' : '▴'
+}
+
+// ─── PRACTICE SESSION ─────────────────────────────────────────────────────────
+
+function _shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+// Weighted shuffle: entries with fewer solve counts appear first (more likely to be practiced).
+// Weight = random() / (solveCount + 1) — lower solves → higher weight → sorts earlier.
+function _weightedShuffle(entries) {
+  return entries
+    .map(e => ({ e, w: Math.random() / (getSolveCount(e[0]) + 1) }))
+    .sort((a, b) => b.w - a.w)
+    .map(x => x.e)
+}
+
+// Generate a practice set for a single topic.
+// Priority: Pinned (fills first, capped at count) → Unsolved (weighted) → Solved (weighted).
+function _genPracticeSet(topicKey, count) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return []
+  const all         = Object.entries(mod.questions)
+  const pinned      = _shuffle(all.filter(([k]) => isPinned(k))).slice(0, count)
+  const unpinned    = all.filter(([k]) => !isPinned(k))
+  const unsolved    = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) !== 'Solved'))
+  const solved      = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) === 'Solved'))
+  const fillCount   = Math.max(0, count - pinned.length)
+  return [...pinned, ...[...unsolved, ...solved].slice(0, fillCount)]
+}
+
+// Render a single practice row. showTopic=true adds the topic icon (dashboard).
+function _buildPracticeItem([lcKey, q], i, showTopic) {
+  const pinned = isPinned(lcKey)
+  const status = getStatus(lcKey)
+  // Dashboard (showTopic=true) uses its own session sets so topic navigation never wipes them
+  const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
+  const struggled     = showTopic ? _qpStruggledThisSession.has(lcKey) : _psStruggledThisSession.has(lcKey)
+  const due = isDue(lcKey)
+  let topicIcon = ''
+  if (showTopic) {
+    const tKey = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
+    const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
+    if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
+  }
+  const solvedCls    = doneInSession ? ' ps-q-solved' : ''
+  const struggledCls = struggled ? ' ps-q-struggled' : ''
+  const dueDot = due && !doneInSession ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
+  const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
+  const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
+  const strugBtnCls   = 'ps-struggle-btn' + (struggled ? ' struggled' : '')
+  const strugBtnTitle = struggled ? 'Struggled — reviewing tomorrow (click to clear)' : 'Mark as struggled — review tomorrow'
+  const rowClickFn   = showTopic ? '_qpRowClick' : '_psRowClick'
+  const strugClickFn = showTopic ? '_qpStruggleClick' : '_psStruggleClick'
+  return (
+    '<div class="ps-q-row' + solvedCls + struggledCls + '" data-lc-key="' + lcKey + '" onclick="' + rowClickFn + '(event,\'' + lcKey + '\')">' +
+    '<span class="ps-q-num">' + (i + 1) + '</span>' +
+    dueDot +
+    topicIcon +
+    '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0">' + STATUS_EMOJI[status] + '</span>' +
+    '<button class="' + strugBtnCls + '" title="' + strugBtnTitle + '" onclick="event.stopPropagation();' + strugClickFn + '(this,\'' + lcKey + '\')" aria-label="Mark as struggled">😓</button>' +
+    '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+    '</div>'
+  )
+}
+
+// Build the full inner HTML for the Practice Session accordion body.
+function _buildPracticePanel(topicKey, mod) {
+  const total    = Object.keys(mod.questions).length
+  const count    = Math.max(1, Math.min(_psQCount, total))
+  const pinCount = Object.keys(mod.questions).filter(k => isPinned(k)).length
+
+  // Initialize session list when empty (fresh topic load or after Reset)
+  if (_psCurrentItems.length === 0) {
+    _psCurrentItems = _genPracticeSet(topicKey, count)
+    _psQCount = _psCurrentItems.length
+  }
+
+  let html = ''
+  // ── Controls bar ──────────────────────────────────────────────────────────
+  html += '<div class="ps-ctrl-bar">'
+  html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
+  html += '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
+  html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(1,\'' + topicKey + '\')">+</button>'
+  html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
+  html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
+  html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Reset</button>'
+  if (pinCount) html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
+  html += '</div>'
+  // ── Question list ──────────────────────────────────────────────────────────
+  html += '<div id="ps-list">'
+  html += _psCurrentItems.length
+    ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+    : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
+  html += '</div>'
+  // ── Timer bar ──────────────────────────────────────────────────────────────
+  html += '<div class="ps-timer-bar">'
+  html += '<span class="text-secondary text-xs flex-shrink-0">⏱ Timer:</span>'
+  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===1  ? ' ps-active':'') + '" onclick="_psTimerSet(1,this)">1m</button>'
+  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===5  ? ' ps-active':'') + '" onclick="_psTimerSet(5,this)">5m</button>'
+  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===10 ? ' ps-active':'') + '" onclick="_psTimerSet(10,this)">10m</button>'
+  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===20 ? ' ps-active':'') + '" onclick="_psTimerSet(20,this)">20m</button>'
+  html += '<span class="ps-timer-display' + (_psTimerRun ? ' ps-running' : '') + (_psTimerRem === 0 && _psTimerTotal > 0 ? ' ps-expired' : '') + '" id="ps-timer-disp">' + _fmtTimer(_psTimerRem || _psTimerTotal) + '</span>'
+  html += '<button type="button" class="ps-timer-ctrl" id="ps-timer-play" onclick="_psTimerToggle()" title="Start / Pause">'
+  html += (_psTimerRun ? '⏸' : '▶') + '</button>'
+  html += '<button type="button" class="ps-timer-ctrl" onclick="_psTimerReset()" title="Reset timer">↺</button>'
+  html += '</div>'
+  return html
+}
+
+function _fmtTimer(secs) {
+  if (!secs) return 'Off'
+  const m = Math.floor(secs / 60), s = secs % 60
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+}
+
+function _psAdjCount(delta, topicKey) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return
+  if (_psTimerRun) return  // locked while timer is running — use Reset to restart
+
+  const total = Object.keys(mod.questions).length
+  const currentCount = _psCurrentItems.length
+  const newCount = Math.max(1, Math.min(total, currentCount + delta))
+  if (newCount === currentCount) return
+
+  if (newCount > currentCount) {
+    // Add questions from the remaining pool (not already shown)
+    const currentKeys = new Set(_psCurrentItems.map(([k]) => k))
+    const pool = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k))
+    const unsolved = _weightedShuffle(pool.filter(([k]) => getStatus(k) !== 'Solved'))
+    const solved   = _weightedShuffle(pool.filter(([k]) => getStatus(k) === 'Solved'))
+    const toAdd = [...unsolved, ...solved].slice(0, newCount - currentCount)
+    _psCurrentItems = [..._psCurrentItems, ...toAdd]
+  } else {
+    // Remove from end — skip done-in-session items (preserve their solved state)
+    const toRemove = currentCount - newCount
+    const newItems = [..._psCurrentItems]
+    let removed = 0
+    // Pass 1: remove undone questions from the end
+    for (let i = newItems.length - 1; i >= 0 && removed < toRemove; i--) {
+      if (!_psDoneThisSession.has(newItems[i][0])) { newItems.splice(i, 1); removed++ }
+    }
+    // Pass 2: if still need to remove, take done ones from the end
+    for (let i = newItems.length - 1; i >= 0 && removed < toRemove; i--) {
+      newItems.splice(i, 1); removed++
+    }
+    _psCurrentItems = newItems
+  }
+
+  _psQCount = _psCurrentItems.length
+  const valEl = document.getElementById('ps-count-val')
+  if (valEl) valEl.textContent = _psQCount
+  const listEl = document.getElementById('ps-list')
+  if (listEl) {
+    listEl.innerHTML = _psCurrentItems.length
+      ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+      : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
+  }
+}
+
+function _psSetAll(topicKey) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return
+  if (_psTimerRun) return  // locked while timer is running
+  const currentKeys = new Set(_psCurrentItems.map(([k]) => k))
+  const toAdd = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k))
+  _psCurrentItems = [..._psCurrentItems, ...toAdd]
+  _psQCount = _psCurrentItems.length
+  const valEl = document.getElementById('ps-count-val')
+  if (valEl) valEl.textContent = _psQCount
+  const listEl = document.getElementById('ps-list')
+  if (listEl) listEl.innerHTML = _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+}
+
+function _psShuffle(topicKey) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return
+  _stopTimer()
+
+  // Save which keys were done this session BEFORE clearing, so we can push
+  // them to the bottom of the new set — they've been practiced already today.
+  const prevDone = new Set(_psDoneThisSession)
+  _psDoneThisSession.clear()
+  _psStruggledThisSession.clear()
+
+  const count = Math.max(1, Math.min(_psQCount, Object.keys(mod.questions).length))
+  const generated = _genPracticeSet(topicKey, count)
+
+  // Split: questions NOT done this session appear first, done ones at bottom
+  const fresh  = generated.filter(([k]) => !prevDone.has(k))
+  const done   = generated.filter(([k]) =>  prevDone.has(k))
+  _psCurrentItems = [...fresh, ...done]
+
+  _psQCount = _psCurrentItems.length
+  const valEl = document.getElementById('ps-count-val')
+  if (valEl) valEl.textContent = _psQCount
+  const listEl = document.getElementById('ps-list')
+  if (!listEl) return
+  listEl.innerHTML = _psCurrentItems.length
+    ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+    : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
+}
+
+// ── Solve-count ring helpers ──────────────────────────────────────────────────
+function _solveRingCls(n) {
+  if (n >= 30) return 'solve-ring-diamond'
+  if (n >= 20) return 'solve-ring-gold'
+  if (n >= 10) return 'solve-ring-silver'
+  if (n >= 5)  return 'solve-ring-bronze'
+  return 'solve-ring-dim'
+}
+
+function _solveRingEmoji(n) {
+  if (n >= 30) return '💎'
+  if (n >= 25) return '🏆'
+  if (n >= 20) return '🔥'
+  if (n >= 15) return '⭐'
+  if (n >= 10) return '🥈'
+  if (n >= 5)  return '🥉'
+  if (n >  0)  return '✏️'
+  return '○'
+}
+
+function _adjSolveCount(lcKey, delta) {
+  const counts = JSON.parse(localStorage.getItem(SOLVE_COUNT_KEY) || '{}')
+  counts[lcKey] = Math.max(0, (counts[lcKey] || 0) + delta)
+  localStorage.setItem(SOLVE_COUNT_KEY, JSON.stringify(counts))
+  const n = counts[lcKey]
+  const ring = document.querySelector('[data-solve-key="' + lcKey + '"]')
+  if (ring) {
+    ring.className   = 'solve-ring ' + _solveRingCls(n)
+    ring.innerHTML   = _solveRingEmoji(n) + '<span class="solve-ring-num">' + n + '</span>'
+    ring.title       = n + ' solve' + (n === 1 ? '' : 's')
+  }
+}
+
+// Handle click on a practice row: mark done for this session, increment solve counter, slide to bottom.
+function _psRowClick(event, lcKey) {
+  // Ignore clicks on the link, pin button, or struggle button — they already stopPropagation
+  if (event.target.classList.contains('ps-q-link')) return
+  if (event.target.classList.contains('ps-pin-btn')) return
+  if (event.target.classList.contains('ps-struggle-btn')) return
+
+  const rowEl = event.currentTarget
+  if (!rowEl) return
+
+  // Prevent double-counting if already done this session
+  if (_psDoneThisSession.has(lcKey)) return
+  _psDoneThisSession.add(lcKey)
+
+  // Clean solve: mark practiced + reset to full 3-day review interval
+  markPracticed(lcKey)
+  setReviewInterval(lcKey, 3)
+
+  const newCount = incSolveCount(lcKey)
+
+  // Update solve ring on the main accordion item if visible
+  const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
+  if (acRing) {
+    acRing.className = 'solve-ring ' + _solveRingCls(newCount)
+    acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
+    acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
+  }
+
+  // Animate: flash solved style then move to bottom
+  rowEl.classList.add('ps-q-solved')
+  setTimeout(() => {
+    rowEl.classList.add('ps-q-moving')
+    setTimeout(() => {
+      const list = rowEl.parentElement
+      if (list) {
+        list.appendChild(rowEl)
+        rowEl.classList.remove('ps-q-moving')
+        Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
+          const num = r.querySelector('.ps-q-num')
+          if (num) num.textContent = idx + 1
+        })
+        // Show session-complete banner if every question in this set is done
+        if (_psCurrentItems.length > 0 && _psDoneThisSession.size >= _psCurrentItems.length) {
+          _psShowSessionComplete()
+        }
+      }
+    }, 320)
+  }, 50)
+}
+
+// Toggle pin from inside the practice session row.
+// Updates button visuals immediately without re-rendering the whole list.
+function _psPinToggle(btnEl, lcKey) {
+  const nowPinned = togglePin(lcKey)
+  btnEl.classList.toggle('pinned', nowPinned)
+  btnEl.title = nowPinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
+  // Sync the 📌 ring badge in the question accordion if it is currently visible
+  const acRing = document.querySelector('[data-pin-key="' + lcKey + '"]')
+  if (acRing) {
+    acRing.classList.toggle('pinned', nowPinned)
+    acRing.title = nowPinned ? 'Unpin from practice set' : 'Pin — always include in practice'
+  }
+}
+
+// Toggle "struggled" on a practice row.
+// Not done yet → marks done + sets 1-day review + slides to bottom.
+// Already done → toggles the struggle flag and review interval without re-animating.
+function _psStruggleClick(btnEl, lcKey) {
+  const rowEl = btnEl.closest('.ps-q-row')
+  const wasStruggled = _psStruggledThisSession.has(lcKey)
+
+  if (wasStruggled) {
+    // Un-mark: remove struggle flag, reset to normal 3-day interval
+    _psStruggledThisSession.delete(lcKey)
+    setReviewInterval(lcKey, 3)
+    btnEl.classList.remove('struggled')
+    btnEl.title = 'Mark as struggled — review tomorrow'
+    if (rowEl) rowEl.classList.remove('ps-q-struggled')
+    return
+  }
+
+  // Mark as struggled: 1-day review interval
+  _psStruggledThisSession.add(lcKey)
+  setReviewInterval(lcKey, 1)
+  btnEl.classList.add('struggled')
+  btnEl.title = 'Struggled — reviewing tomorrow (click to clear)'
+  if (rowEl) rowEl.classList.add('ps-q-struggled')
+
+  // If not yet marked done in this session, do that now (same as clicking row)
+  if (!_psDoneThisSession.has(lcKey)) {
+    _psDoneThisSession.add(lcKey)
+    markPracticed(lcKey)
+
+    const newCount = incSolveCount(lcKey)
+    const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
+    if (acRing) {
+      acRing.className = 'solve-ring ' + _solveRingCls(newCount)
+      acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
+      acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
+    }
+
+    if (rowEl) {
+      rowEl.classList.add('ps-q-solved')
+      setTimeout(() => {
+        rowEl.classList.add('ps-q-moving')
+        setTimeout(() => {
+          const list = rowEl.parentElement
+          if (list) {
+            list.appendChild(rowEl)
+            rowEl.classList.remove('ps-q-moving')
+            Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
+              const num = r.querySelector('.ps-q-num')
+              if (num) num.textContent = idx + 1
+            })
+            if (_psCurrentItems.length > 0 && _psDoneThisSession.size >= _psCurrentItems.length) {
+              _psShowSessionComplete()
+            }
+          }
+        }, 320)
+      }, 50)
+    }
+  }
+}
+
+// Show a compact banner at the top of ps-list when all session questions are done.
+function _psShowSessionComplete() {
+  const listEl = document.getElementById('ps-list')
+  if (!listEl || listEl.querySelector('.ps-session-done')) return
+  const total     = _psDoneThisSession.size
+  const struggled = _psStruggledThisSession.size
+  const clean     = total - struggled
+  let msg = '✅ Session complete · '
+  if (struggled === 0) {
+    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
+  } else {
+    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
+    msg += ' · <span style="color:var(--red)">' + struggled + ' struggled — due tomorrow</span>'
+  }
+  listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
+}
+
+function _qpShowSessionComplete() {
+  const listEl = document.getElementById('qp-results')
+  if (!listEl || listEl.querySelector('.ps-session-done')) return
+  const total     = _qpDoneThisSession.size
+  const struggled = _qpStruggledThisSession.size
+  const clean     = total - struggled
+  let msg = '✅ Session complete · '
+  if (struggled === 0) {
+    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
+  } else {
+    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
+    msg += ' · <span style="color:var(--red)">' + struggled + ' struggled — due tomorrow</span>'
+  }
+  listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
+}
+
+// ─── DASHBOARD ROW CLICK HANDLERS ────────────────────────────────────────────
+// These mirror _psRowClick / _psStruggleClick but use _qpDoneThisSession /
+// _qpStruggledThisSession so that topic navigation never clears QP state.
+
+function _qpRowClick(event, lcKey) {
+  if (event.target.classList.contains('ps-q-link')) return
+  if (event.target.classList.contains('ps-pin-btn')) return
+  if (event.target.classList.contains('ps-struggle-btn')) return
+  const rowEl = event.currentTarget
+  if (!rowEl) return
+  if (_qpDoneThisSession.has(lcKey)) return
+  _qpDoneThisSession.add(lcKey)
+  markPracticed(lcKey)
+  setReviewInterval(lcKey, 3)
+  const newCount = incSolveCount(lcKey)
+  const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
+  if (acRing) {
+    acRing.className = 'solve-ring ' + _solveRingCls(newCount)
+    acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
+    acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
+  }
+  rowEl.classList.add('ps-q-solved')
+  setTimeout(() => {
+    rowEl.classList.add('ps-q-moving')
+    setTimeout(() => {
+      const list = rowEl.parentElement
+      if (list) {
+        list.appendChild(rowEl)
+        rowEl.classList.remove('ps-q-moving')
+        Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
+          const num = r.querySelector('.ps-q-num')
+          if (num) num.textContent = idx + 1
+        })
+        // Sync _qpResults order to match DOM so navigating back restores positions
+        if (_qpResults) {
+          const qMap = Object.fromEntries(_qpResults)
+          _qpResults = Array.from(list.querySelectorAll('.ps-q-row[data-lc-key]'))
+            .map(r => { const k = r.getAttribute('data-lc-key'); return k && qMap[k] ? [k, qMap[k]] : null })
+            .filter(Boolean)
+        }
+        if (_qpResults && _qpResults.length > 0 && _qpDoneThisSession.size >= _qpResults.length) {
+          _qpShowSessionComplete()
+        }
+      }
+    }, 320)
+  }, 50)
+}
+
+function _qpStruggleClick(btnEl, lcKey) {
+  const rowEl = btnEl.closest('.ps-q-row')
+  const wasStruggled = _qpStruggledThisSession.has(lcKey)
+  if (wasStruggled) {
+    _qpStruggledThisSession.delete(lcKey)
+    setReviewInterval(lcKey, 3)
+    btnEl.classList.remove('struggled')
+    btnEl.title = 'Mark as struggled — review tomorrow'
+    if (rowEl) rowEl.classList.remove('ps-q-struggled')
+    return
+  }
+  _qpStruggledThisSession.add(lcKey)
+  setReviewInterval(lcKey, 1)
+  btnEl.classList.add('struggled')
+  btnEl.title = 'Struggled — reviewing tomorrow (click to clear)'
+  if (rowEl) rowEl.classList.add('ps-q-struggled')
+  if (!_qpDoneThisSession.has(lcKey)) {
+    _qpDoneThisSession.add(lcKey)
+    markPracticed(lcKey)
+    const newCount = incSolveCount(lcKey)
+    const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
+    if (acRing) {
+      acRing.className = 'solve-ring ' + _solveRingCls(newCount)
+      acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
+      acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
+    }
+    if (rowEl) {
+      rowEl.classList.add('ps-q-solved')
+      setTimeout(() => {
+        rowEl.classList.add('ps-q-moving')
+        setTimeout(() => {
+          const list = rowEl.parentElement
+          if (list) {
+            list.appendChild(rowEl)
+            rowEl.classList.remove('ps-q-moving')
+            Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
+              const num = r.querySelector('.ps-q-num')
+              if (num) num.textContent = idx + 1
+            })
+            // Sync _qpResults order to match DOM so navigating back restores positions
+            if (_qpResults) {
+              const qMap = Object.fromEntries(_qpResults)
+              _qpResults = Array.from(list.querySelectorAll('.ps-q-row[data-lc-key]'))
+                .map(r => { const k = r.getAttribute('data-lc-key'); return k && qMap[k] ? [k, qMap[k]] : null })
+                .filter(Boolean)
+            }
+            if (_qpResults && _qpResults.length > 0 && _qpDoneThisSession.size >= _qpResults.length) {
+              _qpShowSessionComplete()
+            }
+          }
+        }, 320)
+      }, 50)
+    }
+  }
+}
+
+// ── Timer controls ────────────────────────────────────────────────────────────
+function _psTimerSet(mins, btn) {
+  _stopTimer()
+  _psTimerPreset = mins
+  _psTimerTotal  = mins * 60
+  _psTimerRem    = _psTimerTotal
+  // Scope to this panel's timer bar only — avoids clearing dashboard preset buttons
+  const bar = btn ? btn.closest('.ps-timer-bar') : null
+  if (bar) bar.querySelectorAll('.ps-preset-btn').forEach(b => b.classList.remove('ps-active'))
+  if (btn) btn.classList.add('ps-active')
+  _syncTimerDisplay()
+}
+
+function _psTimerToggle() {
+  if (!_psTimerTotal) return   // nothing configured yet
+  if (_psTimerRun) {
+    _stopTimer()
+  } else {
+    if (_psTimerRem <= 0) _psTimerRem = _psTimerTotal
+    _psTimerRun = true
+    const btn = document.getElementById('ps-timer-play')
+    if (btn) btn.textContent = '⏸'
+    _psTimerIv = setInterval(_psTimerTick, 1000)
+    // Lock count controls while session is running
+    ;['ps-btn-dec','ps-btn-inc','ps-btn-all'].forEach(id => { const b = document.getElementById(id); if (b) { b.disabled = true } })
+  }
+}
+
+function _stopTimer() {
+  if (_psTimerIv) { clearInterval(_psTimerIv); _psTimerIv = null }
+  _psTimerRun = false
+  const btn = document.getElementById('ps-timer-play')
+  if (btn) btn.textContent = '▶'
+  // Re-enable count controls when timer is stopped/reset
+  ;['ps-btn-dec','ps-btn-inc','ps-btn-all'].forEach(id => { const b = document.getElementById(id); if (b) { b.disabled = false } })
+}
+
+function _psTimerReset() {
+  _stopTimer()
+  _psTimerRem = _psTimerTotal
+  const disp = document.getElementById('ps-timer-disp')
+  if (disp) disp.classList.remove('ps-expired', 'ps-running')
+  _syncTimerDisplay()
+}
+
+function _psTimerTick() {
+  if (_psTimerRem <= 0) {
+    _stopTimer()
+    _psTimerRem = 0
+    const disp = document.getElementById('ps-timer-disp')
+    if (disp) { disp.textContent = '00:00'; disp.className = 'ps-timer-display ps-expired' }
+    return
+  }
+  _psTimerRem--
+  _syncTimerDisplay()
+}
+
+function _syncTimerDisplay() {
+  const disp = document.getElementById('ps-timer-disp')
+  if (!disp) return
+  const secs = _psTimerRem || _psTimerTotal
+  disp.textContent = _fmtTimer(secs)
+  disp.className = 'ps-timer-display' +
+    (_psTimerRun ? ' ps-running' : '') +
+    (!secs && _psTimerTotal > 0 ? ' ps-expired' : '')
+}
+
+// ── Pin toggle ────────────────────────────────────────────────────────────────
+function toggleQuestionPin(lcKey, btn) {
+  const nowPinned = togglePin(lcKey)
+  btn.classList.toggle('pinned', nowPinned)
+  btn.title = nowPinned ? 'Unpin from practice set' : 'Pin — always include in practice'
+  // Sync the 📌 badge in .q-meta without a full re-render
+  const item = btn.closest('.accordion-item')
+  if (item) {
+    const meta = item.querySelector('.q-meta')
+    if (meta) {
+      const existing = meta.querySelector('.pin-badge')
+      if (nowPinned && !existing) {
+        const sep = document.createElement('span'); sep.className = 'q-badge-sep'
+        const badge = document.createElement('span')
+        badge.className = 'badge bg-secondary q-badge pin-badge'; badge.title = 'Pinned to practice'; badge.textContent = '📌'
+        meta.appendChild(sep); meta.appendChild(badge)
+      } else if (!nowPinned && existing) {
+        const sep = existing.previousElementSibling
+        if (sep && sep.classList.contains('q-badge-sep')) sep.remove()
+        existing.remove()
+      }
+    }
+  }
+  // Sync the 📌 practice-row button if this question is visible in the per-topic practice panel.
+  // NOTE: _psShuffle below fully rebuilds the list, so we only need this sync when
+  // the accordion is on the dashboard (currentTopicKey = null) where _psShuffle won't run.
+  if (!currentTopicKey) {
+    const psPin = document.querySelector('.ps-pin-btn[aria-label="Pin question"][onclick*="' + lcKey + '"]')
+    if (psPin) { psPin.classList.toggle('pinned', nowPinned); psPin.title = nowPinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session' }
+  }
+  // Refresh per-topic practice panel (only when a topic is loaded)
+  if (currentTopicKey) _psShuffle(currentTopicKey)
+  // Update the pinned-count label in the per-topic ctrl bar
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) {
+    const pinCount = Object.keys(mod.questions).filter(k => isPinned(k)).length
+    const ctrl = document.querySelector('#ps-body .ps-ctrl-bar')
+    if (ctrl) {
+      const existing = ctrl.querySelector('.ps-pin-count')
+      if (existing) existing.remove()
+      if (pinCount) {
+        const sp = document.createElement('span')
+        sp.className = 'ms-auto text-xxs text-secondary ps-pin-count'
+        sp.textContent = '📌 ' + pinCount + ' pinned'
+        ctrl.appendChild(sp)
+      }
+    }
+  }
+  // Update the pinned-count label in the QP panel (visible on dashboard)
+  const qpPinLabel = document.querySelector('#quick-practice-panel [title="Pinned questions fill first when generating a set"]')
+  if (qpPinLabel) {
+    let qpPinned = 0
+    _qpTopics.forEach(key => {
+      const m = TOPIC_MODULES[key]
+      if (m) Object.keys(m.questions).forEach(k => { if (isPinned(k)) qpPinned++ })
+    })
+    if (qpPinned > 0) qpPinLabel.textContent = '📌 ' + qpPinned + ' pinned (priority)'
+    else qpPinLabel.style.display = 'none'
+  }
+}
+
+// ─── QUICK PRACTICE (Dashboard) ───────────────────────────────────────────────
+
+function _renderQuickPractice() {
+  const el = document.getElementById('quick-practice-panel')
+  if (!el) return
+  const validTopics = TOPICS.filter(t => TOPIC_MODULES[t.key])
+
+  let totalQ = 0
+  _qpTopics.forEach(key => {
+    const mod = TOPIC_MODULES[key]
+    if (mod) totalQ += Object.keys(mod.questions).length
+  })
+  const maxQ   = totalQ
+  const count  = maxQ ? Math.max(1, Math.min(_qpCount, maxQ)) : _qpCount
+
+  // Count pinned only from SELECTED topics (not all topics)
+  let totalPinned = 0
+  _qpTopics.forEach(key => {
+    const mod = TOPIC_MODULES[key]
+    if (mod) Object.keys(mod.questions).forEach(k => { if (isPinned(k)) totalPinned++ })
+  })
+
+  let html = '<div class="card mt-4"><div class="card-body">'
+  html += '<div class="d-flex align-items-center gap-2 mb-3">'
+  html += '<span class="icon-xl">🎲</span>'
+  html += '<h6 class="mb-0 fw-semibold">Quick Practice</h6>'
+  html += '<span class="text-secondary text-xs mt-1">— pick topics, get a random set</span>'
+  html += '</div>'
+
+  // Topic chips
+  html += '<div class="d-flex flex-wrap gap-2 mb-3">'
+  validTopics.forEach(t => {
+    const isActive = _qpTopics.has(t.key)
+    html += '<button type="button" class="qp-chip' + (isActive ? ' active' : '') + '" onclick="_qpToggleTopic(\'' + t.key + '\')">' +
+      t.icon + ' ' + escHtml(t.label) + '</button>'
+  })
+  const allSelected = validTopics.every(t => _qpTopics.has(t.key))
+  html += '<button type="button" class="qp-chip' + (allSelected ? ' active' : '') + '" onclick="_qpSelectAll()">' +
+    (allSelected ? '✓ All' : '+ All') + '</button>'
+  html += '</div>'
+
+  // Count + generate row
+  const disabled = _qpTopics.size === 0
+  html += '<div class="d-flex align-items-center gap-2 flex-wrap">'
+  html += '<button type="button" class="ps-count-btn" id="qp-btn-dec" onclick="_qpAdjCount(-1)">−</button>'
+  html += '<span class="ps-count-val" id="qp-count-val">' + count + '</span>'
+  html += '<button type="button" class="ps-count-btn" id="qp-btn-inc" onclick="_qpAdjCount(1)">+</button>'
+  html += '<span class="text-secondary text-xs">questions</span>'
+  if (maxQ) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
+  html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">🎲 Generate Set</button>'
+  html += '<button type="button" class="qp-chip' + (_qpDueOnly ? ' active' : '') + ' ms-1" onclick="_qpToggleDueOnly()" title="Show only questions due for review (>3 days since last practice)">⏰ Due only</button>'
+  if (totalPinned) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
+  html += '</div>'
+
+  // Timer bar (mirrors per-topic timer)
+  const qpTimerDisp = _fmtTimer(_qpTimerRem || _qpTimerTotal)
+  html += '<div class="ps-timer-bar mt-2">'
+  html += '<span class="text-secondary text-xs flex-shrink-0">⏱ Timer:</span>'
+  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===5  ? ' ps-active':'') + '" onclick="_qpTimerSet(5,this)">5m</button>'
+  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===10 ? ' ps-active':'') + '" onclick="_qpTimerSet(10,this)">10m</button>'
+  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===20 ? ' ps-active':'') + '" onclick="_qpTimerSet(20,this)">20m</button>'
+  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===30 ? ' ps-active':'') + '" onclick="_qpTimerSet(30,this)">30m</button>'
+  html += '<span class="ps-timer-display' + (_qpTimerRun ? ' ps-running' : '') + (_qpTimerRem===0 && _qpTimerTotal>0 ? ' ps-expired':'') + '" id="qp-timer-disp">' + qpTimerDisp + '</span>'
+  html += '<button type="button" class="ps-timer-ctrl" id="qp-timer-play" onclick="_qpTimerToggle()" title="Start / Pause">' + (_qpTimerRun ? '⏸' : '▶') + '</button>'
+  html += '<button type="button" class="ps-timer-ctrl" onclick="_qpTimerReset()" title="Reset timer">↺</button>'
+  html += '</div>'
+
+  // Results
+  html += '<div id="qp-results" class="mt-3"></div>'
+  html += '</div></div>'
+  el.innerHTML = html
+
+  // Restore previous results if available (preserves solved/struggled styling via _qpDoneThisSession)
+  if (_qpResults && _qpResults.length > 0) {
+    document.getElementById('qp-results').innerHTML =
+      _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+    // Restore session-complete banner if the full set was already finished
+    if (_qpDoneThisSession.size >= _qpResults.length) _qpShowSessionComplete()
+  }
+  // Re-apply +/- lock if timer was running when we navigated away
+  if (_qpTimerRun) {
+    const dec = document.getElementById('qp-btn-dec')
+    const inc = document.getElementById('qp-btn-inc')
+    if (dec) dec.disabled = true
+    if (inc) inc.disabled = true
+  }
+}
+
+function _qpToggleTopic(key) {
+  if (_qpTimerRun) return  // don't change topic selection mid-session
+  if (_qpTopics.has(key)) _qpTopics.delete(key); else _qpTopics.add(key)
+  _qpResults = null  // clear stale results when topic selection changes
+  _renderQuickPractice()
+}
+
+function _qpSelectAll() {
+  if (_qpTimerRun) return  // don't change topic selection mid-session
+  const validTopics = TOPICS.filter(t => TOPIC_MODULES[t.key])
+  const allSelected = validTopics.every(t => _qpTopics.has(t.key))
+  if (allSelected) {
+    _qpTopics.clear()
+  } else {
+    validTopics.forEach(t => _qpTopics.add(t.key))
+  }
+  _qpResults = null
+  _renderQuickPractice()
+}
+
+function _qpAdjCount(delta) {
+  if (_qpTimerRun) return  // locked while timer is running
+  let maxQ = 0
+  _qpTopics.forEach(key => {
+    const mod = TOPIC_MODULES[key]
+    if (mod) maxQ += Object.keys(mod.questions).length
+  })
+  _qpCount = Math.max(1, Math.min(maxQ || 99, _qpCount + delta))
+  const el = document.getElementById('qp-count-val')
+  if (el) el.textContent = _qpCount
+
+  // If results already exist, do smart add/remove instead of resetting
+  if (!_qpResults || _qpResults.length === 0) return
+
+  const currentCount = _qpResults.length
+  if (_qpCount > currentCount) {
+    // Add more from the remaining pool (respect dueOnly filter)
+    const currentKeys = new Set(_qpResults.map(([k]) => k))
+    const pool = []
+    _qpTopics.forEach(key => {
+      const mod = TOPIC_MODULES[key]
+      if (mod) Object.entries(mod.questions).forEach(([k, q]) => {
+        if (currentKeys.has(k)) return
+        if (_qpDueOnly && !isDue(k)) return
+        pool.push([k, q])
+      })
+    })
+    const unsolved = _weightedShuffle(pool.filter(([k]) => getStatus(k) !== 'Solved'))
+    const solved   = _weightedShuffle(pool.filter(([k]) => getStatus(k) === 'Solved'))
+    const toAdd = [...unsolved, ...solved].slice(0, _qpCount - currentCount)
+    _qpResults = [..._qpResults, ...toAdd]
+  } else if (_qpCount < currentCount) {
+    // Remove from end, skip done-in-session items first
+    const toRemove = currentCount - _qpCount
+    const newResults = [..._qpResults]
+    let removed = 0
+    for (let i = newResults.length - 1; i >= 0 && removed < toRemove; i--) {
+      if (!_qpDoneThisSession.has(newResults[i][0])) { newResults.splice(i, 1); removed++ }
+    }
+    for (let i = newResults.length - 1; i >= 0 && removed < toRemove; i--) {
+      newResults.splice(i, 1); removed++
+    }
+    _qpResults = newResults
+  }
+
+  // Sync count display to actual list length and re-render
+  if (el) el.textContent = _qpResults.length
+  const resultsEl = document.getElementById('qp-results')
+  if (resultsEl) {
+    resultsEl.innerHTML = _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+    // Only show session-complete if every question currently in the list is done
+    // (not just because count was reduced below the done count)
+    const doneInCurrentResults = _qpResults.filter(([k]) => _qpDoneThisSession.has(k)).length
+    if (doneInCurrentResults > 0 && doneInCurrentResults >= _qpResults.length) _qpShowSessionComplete()
+  }
+}
+
+function _qpGenerate() {
+  if (_qpTopics.size === 0) return
+  if (_qpTimerRun) return  // don't reset session while timer is running
+
+  // Build candidate pool — respect "Due only" filter when active
+  const seen = new Set()
+  const pool = []
+  _qpTopics.forEach(key => {
+    const mod = TOPIC_MODULES[key]
+    if (!mod) return
+    Object.entries(mod.questions).forEach(([k, q]) => {
+      if (seen.has(k)) return  // dedup
+      seen.add(k)
+      if (_qpDueOnly && !isDue(k)) return  // skip non-due when filter is on
+      pool.push([k, q])
+    })
+  })
+
+  const maxQ  = pool.length
+  if (maxQ === 0) {
+    const el = document.getElementById('qp-results')
+    if (el) el.innerHTML = '<p class="text-secondary text-xs mt-2 mb-0">' + (_qpDueOnly ? 'No questions due for review across the selected topics.' : 'No questions found.') + '</p>'
+    _qpResults = []
+    return
+  }
+  const count = Math.max(1, Math.min(_qpCount, maxQ))
+
+  // Snapshot done-this-session BEFORE clearing, so previously solved questions
+  // land at the bottom of the new set instead of back at the top.
+  const prevDone = new Set(_qpDoneThisSession)
+  _qpDoneThisSession.clear()
+  _qpStruggledThisSession.clear()
+
+  // Pinned questions get highest priority but the total is still capped at count.
+  const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
+  const unpinned    = pool.filter(([k]) => !isPinned(k))
+  const unsolved    = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) !== 'Solved'))
+  const solved      = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) === 'Solved'))
+  const fillCount   = Math.max(0, count - pinned.length)
+  const generated   = [...pinned, ...[...unsolved, ...solved].slice(0, fillCount)]
+
+  const fresh = generated.filter(([k]) => !prevDone.has(k))
+  const done  = generated.filter(([k]) =>  prevDone.has(k))
+  _qpResults = [...fresh, ...done]
+
+  // Lock +/- while timer is running
+  if (_qpTimerRun) {
+    const dec = document.getElementById('qp-btn-dec')
+    const inc = document.getElementById('qp-btn-inc')
+    if (dec) dec.disabled = true
+    if (inc) inc.disabled = true
+  }
+
+  const el = document.getElementById('qp-results')
+  if (el) el.innerHTML = _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+  // Sync _qpCount and display to actual result length (pool may be smaller than requested)
+  _qpCount = _qpResults.length
+  const countEl = document.getElementById('qp-count-val')
+  if (countEl) countEl.textContent = _qpResults.length
+}
+
+function _qpToggleDueOnly() {
+  _qpDueOnly = !_qpDueOnly
+  _qpResults = null
+  // Clear session state too — the pool is changing so done/struggled state against
+  // the old set is meaningless and would pollute the next generated set's prevDone snapshot
+  _qpDoneThisSession.clear()
+  _qpStruggledThisSession.clear()
+  _renderQuickPractice()
+}
+
+// ── Dashboard timer ───────────────────────────────────────────────────────────
+function _qpTimerSet(mins, btn) {
+  _qpStopTimer()
+  _qpTimerPreset = mins
+  _qpTimerTotal  = mins * 60
+  _qpTimerRem    = _qpTimerTotal
+  // Scope selector to qp timer bar only to avoid conflicting with per-topic preset buttons
+  const bar = btn ? btn.closest('.ps-timer-bar') : null
+  if (bar) bar.querySelectorAll('.ps-preset-btn').forEach(b => b.classList.remove('ps-active'))
+  if (btn) btn.classList.add('ps-active')
+  _qpSyncTimerDisplay()
+}
+
+function _qpTimerToggle() {
+  if (!_qpTimerTotal) return
+  if (_qpTimerRun) {
+    _qpStopTimer()
+  } else {
+    if (_qpTimerRem <= 0) _qpTimerRem = _qpTimerTotal
+    _qpTimerRun = true
+    const btn = document.getElementById('qp-timer-play')
+    if (btn) btn.textContent = '⏸'
+    _qpTimerIv = setInterval(_qpTimerTick, 1000)
+    // Lock count controls while running
+    const dec = document.getElementById('qp-btn-dec')
+    const inc = document.getElementById('qp-btn-inc')
+    if (dec) dec.disabled = true
+    if (inc) inc.disabled = true
+  }
+}
+
+function _qpStopTimer() {
+  if (_qpTimerIv) { clearInterval(_qpTimerIv); _qpTimerIv = null }
+  _qpTimerRun = false
+  const btn = document.getElementById('qp-timer-play')
+  if (btn) btn.textContent = '▶'
+  const dec = document.getElementById('qp-btn-dec')
+  const inc = document.getElementById('qp-btn-inc')
+  if (dec) dec.disabled = false
+  if (inc) inc.disabled = false
+}
+
+function _qpTimerReset() {
+  _qpStopTimer()
+  _qpTimerRem = _qpTimerTotal
+  const disp = document.getElementById('qp-timer-disp')
+  if (disp) disp.classList.remove('ps-expired', 'ps-running')
+  _qpSyncTimerDisplay()
+}
+
+function _qpTimerTick() {
+  if (_qpTimerRem <= 0) {
+    _qpStopTimer()
+    _qpTimerRem = 0
+    const disp = document.getElementById('qp-timer-disp')
+    if (disp) { disp.textContent = '00:00'; disp.className = 'ps-timer-display ps-expired' }
+    return
+  }
+  _qpTimerRem--
+  _qpSyncTimerDisplay()
+}
+
+function _qpSyncTimerDisplay() {
+  const disp = document.getElementById('qp-timer-disp')
+  if (!disp) return
+  const secs = _qpTimerRem || _qpTimerTotal
+  disp.textContent = _fmtTimer(secs)
+  disp.className = 'ps-timer-display' +
+    (_qpTimerRun ? ' ps-running' : '') +
+    (!secs && _qpTimerTotal > 0 ? ' ps-expired' : '')
+}
+
+// renderInterviewTips removed — now rendered inside renderTopicAlwaysVisible
+
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed')
+}
+
+// ─── THEME TOGGLE ─────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement
+  const isDark = html.getAttribute('data-bs-theme') === 'dark'
+  const next = isDark ? 'light' : 'dark'
+  html.setAttribute('data-bs-theme', next)
+  localStorage.setItem('dsa-theme', next)
+  document.getElementById('theme-toggle-btn').textContent = next === 'dark' ? '🌙' : '☀️'
+}
+
+function syncThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+  const btn = document.getElementById('theme-toggle-btn')
+  if (btn) btn.textContent = isDark ? '🌙' : '☀️'
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function showView(id) {
+  ['view-dashboard', 'view-topic'].forEach(v => {
+    const el = document.getElementById(v)
+    if (v === id) {
+      el.classList.remove('d-none', 'anim-fade-in')
+      void el.offsetWidth // reflow to restart animation
+      el.classList.add('anim-fade-in')
+    } else {
+      el.classList.add('d-none')
+    }
+  })
+}
+
+function clearActiveNav() {
+  document.querySelectorAll('#nav-topics .nav-link').forEach(l => l.classList.remove('active'))
+  const dash = document.getElementById('nav-dashboard')
+  if (dash) dash.classList.remove('active')
+}
+
+function setActiveNav(key) {
+  clearActiveNav()
+  const el = document.getElementById(`nav-${key}`)
+  if (el) el.classList.add('active')
+}
+
+function escHtml(str) {
+  if (!str) return ''
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+/* ]]> */
+</script>
+</body>
+</html>

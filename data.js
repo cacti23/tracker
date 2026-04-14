@@ -5,14 +5,14 @@
 // AI INSTRUCTIONS FOR THIS FILE:
 // - This file contains ONLY data and data-access helpers. No rendering logic.
 // - To add a new topic: append to TOPICS array + TOPIC_MODULES object at the bottom.
-// - To add a question: add to the relevant module's questions: {} object.
+// - To add a question: add to the relevant module\'s questions: {} object.
 // - Module schema is documented in the MODULE SCHEMA comment block below.
 // - Do NOT add rendering functions, DOM manipulation, or event handlers here.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── MASTER DATA REGISTRY ────────────────────────────────────────────────────
 // Each topic module is self-contained. Add new topic modules to TOPIC_MODULES.
-// TOPICS drives the sidebar and dashboard; each entry's key maps to a module.
+// TOPICS drives the sidebar and dashboard; each entry\'s key maps to a module.
 
 const TOPICS = [
   { key: 'sliding-window', icon: '🪟', label: 'Sliding Window' },
@@ -20,6 +20,7 @@ const TOPICS = [
   { key: 'binary-search',  icon: '🔍', label: 'Binary Search'  },
   { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
   { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },
+  { key: 'recursion',      icon: '🔁', label: 'Recursion'      },
 ]
 
 // Per-question user progress (persisted in localStorage)
@@ -53,6 +54,35 @@ function setNote(lcKey, text) {
   } catch {}
 }
 
+// Per-question pins (persisted in localStorage)
+// shape: string[] (array of lcKeys stored as JSON array)
+const PINS_KEY = 'dsa-pins-v1'
+function getPins() {
+  try { return new Set(JSON.parse(localStorage.getItem(PINS_KEY) || '[]')) } catch { return new Set() }
+}
+function isPinned(lcKey) { return getPins().has(lcKey) }
+function togglePin(lcKey) {
+  const pins = getPins()
+  if (pins.has(lcKey)) pins.delete(lcKey); else pins.add(lcKey)
+  localStorage.setItem(PINS_KEY, JSON.stringify([...pins]))
+  return pins.has(lcKey)
+}
+
+// Per-question practice solve counts (persisted in localStorage)
+// shape: { [lcKey]: number }
+const SOLVE_COUNT_KEY = 'dsa-solve-counts-v1'
+function getSolveCount(lcKey) {
+  try { return JSON.parse(localStorage.getItem(SOLVE_COUNT_KEY) || '{}')[lcKey] || 0 } catch { return 0 }
+}
+function incSolveCount(lcKey) {
+  try {
+    const counts = JSON.parse(localStorage.getItem(SOLVE_COUNT_KEY) || '{}')
+    counts[lcKey] = (counts[lcKey] || 0) + 1
+    localStorage.setItem(SOLVE_COUNT_KEY, JSON.stringify(counts))
+    return counts[lcKey]
+  } catch { return 0 }
+}
+
 // ─── TOPIC MODULE REGISTRY ──────────────────────────────────────────────────
 // SOLID / EXTENSIBILITY CONTRACT
 // ───────────────────────────────
@@ -72,14 +102,9 @@ function setNote(lcKey, text) {
 //  techniqueRegistry: string[] — all technique strings used
 //  whenToUse        : { use: string[], avoid: string[] }
 //                     use   — signals/clues that point TO this pattern
-//                     avoid — traps that look like this pattern but aren't,
+//                     avoid — traps that look like this pattern but aren\'t,
 //                             with what to use instead
 //  interviewTips    : string[] — bullet tips in "Interview Tips" collapsible
-//  decisionTree     : { description: string, node: TreeNode }
-//    TreeNode: { id, question, yes: Branch, no: Branch }
-//    Branch  : { node: TreeNode } | { leaf: TreeLeaf }
-//    TreeLeaf: { id, pattern, template, label, exampleProblems? }
-//  templates : Array<{ id, name, description, code: string (plain JS, no TS generics) }>
 //  patterns  : Array<{ id, name, recognitionSignals: string[], mentalModel, keyQuestion?, questionIds: string[] }>
 //  questions : { [lcKey]: Question }
 //    Question: { leetcode, title, difficulty ('Easy'|'Medium'|'Hard'),
@@ -102,185 +127,91 @@ const TOPIC_MODULES = {
     techniqueRegistry: [
       'sliding-window','two-pointers','prefix-sum','binary-search','hash-map','monotonic-deque'
     ],
-
-    interviewTips: [
-      "Before writing any code, say your invariant aloud: 'My window is valid when X. I shrink when Y.' If you cannot complete that sentence, you do not have the solution yet. Interviewers score invariant clarity independently.",
-      "LC_76 (Minimum Window Substring) is the single most-tested Hard at Meta, Google, Amazon, and Apple. Critical trap: use need.size for `required`, NOT t.length. If t = 'aa', required = 1 not 2 — this single mistake fails the problem.",
-      "LC_239 (Sliding Window Maximum) ends candidates who fumble it. In JavaScript, Array.shift() is O(n) — use an index-based head pointer for true O(n). Mention this unprompted before you start coding.",
-      "Exactly-K subarrays require a reduction: count(exactly K) = atMost(K) − atMost(K−1). Direct exactly-K sliding window breaks because the window is not monotonically valid. This reduction appears in ~30% of Google and Meta sliding window rounds.",
-      "Negative numbers + subarray sum/min/max → stop immediately. Standard sliding window breaks because shrinking no longer monotonically reduces the tracked value. Say: 'Negatives break the shrink invariant — I use prefix sums with a monotonic deque.' LC_862 is the template.",
-      "Reformulation = SDE3 signal. LC_1658: min(prefix+suffix summing to X) ≡ max(subarray summing to totalSum−X). Draw the reformulation on the board first — interviewers score the insight separately from the code.",
-      "When a question lists alternateApproaches, name the inferior approach and explain why you chose sliding window. This signals breadth over pattern memorisation."
-    ],
-
-    whenToUse: {
-      use: [
-        'Problem involves a CONTIGUOUS subarray or substring — non-contiguous rules out sliding window immediately.',
-        'Brute force requires nested loops O(n²) or O(n³) scanning all subarrays — sliding window collapses this to O(n).',
-        'The validity condition is MONOTONIC: if a window of size k is invalid, all windows larger than k are also invalid (or vice versa). This monotonicity is what makes shrinking correct.',
-        'Keywords in the problem: "longest/shortest subarray", "minimum/maximum window", "find all subarrays where X", "at most K distinct", "exactly K occurrences".',
-        'Fixed window size K is stated explicitly — always fixed window (T1/T2). Variable constraints like "at most K" or "sum >= target" — variable window (T3/T4).'
-      ],
-      avoid: [
-        'Array contains NEGATIVE numbers and you need subarray sum/min/max → sliding window breaks. Use Prefix Sum + Monotonic Deque (LC_862 pattern) instead.',
-        'Problem asks for NON-CONTIGUOUS elements (subsequences, subsets) → sliding window cannot skip elements. Use DP or two pointers.',
-        'You cannot define a clear SHRINK TRIGGER — if you cannot say "I shrink when X", sliding window is wrong. Re-examine whether the condition is monotonic.',
-        'Problem asks to COUNT subarrays with EXACTLY K of something directly → direct sliding window breaks. Reduce to atMost(K) - atMost(K-1) first, then apply T5.',
-        'Input is a LINKED LIST — sliding window requires index access. Use fast/slow pointers instead.'
-      ]
-    },
-
-    decisionTree: {
-      description: 'Walk this tree top-to-bottom before writing any code. Identify the pattern, then pick the template.',
-      node: {
-        id: 'root',
-        question: 'Is the window size explicitly fixed as K?',
-        yes: {
-          node: {
-            id: 'fixed-freq-check',
-            question: 'Does correctness require matching character or element frequencies?',
-            yes: { leaf: { id: 'leaf-p1-t2', pattern: 'P1', template: 'T2', label: 'Fixed Window — Frequency Matching', exampleProblems: ['LC_567', 'LC_438'] } },
-            no:  { leaf: { id: 'leaf-p1-t1', pattern: 'P1', template: 'T1', label: 'Fixed Window — Basic',              exampleProblems: ['LC_643', 'LC_1456'] } }
-          }
-        },
-        no: {
-          node: {
-            id: 'counting-check',
-            question: 'Are you COUNTING the number of valid subarrays (not finding a max or min length)?',
-            yes: {
-              node: {
-                id: 'exactly-k-check',
-                question: 'Is the predicate EXACTLY K occurrences of something?',
-                yes: { leaf: { id: 'leaf-p3-t5-exact',   pattern: 'P3', template: 'T5', label: 'Exactly K → atMost(K) - atMost(K-1)',   exampleProblems: ['LC_930', 'LC_992']  } },
-                no:  { leaf: { id: 'leaf-p3-t5-atmost',  pattern: 'P3', template: 'T5', label: 'Count with atMost(K) variant',           exampleProblems: ['LC_930', 'LC_992']  } }
-              }
-            },
-            no: {
-              node: {
-                id: 'negative-check',
-                question: 'Does the array contain NEGATIVE numbers?',
-                yes: { leaf: { id: 'leaf-p4-t6-prefix', pattern: 'P4', template: 'T6', label: 'Prefix Sum + Monotonic Deque — standard sliding window BREAKS with negatives', exampleProblems: ['LC_862'] } },
-                no: {
-                  node: {
-                    id: 'window-minmax-check',
-                    question: 'Do you need window MAX or MIN at every position in O(n)?',
-                    yes: {
-                      node: {
-                        id: 'two-deque-check',
-                        question: 'Do you need both window MAX and MIN simultaneously?',
-                        yes: { leaf: { id: 'leaf-p4-t7',        pattern: 'P4', template: 'T7', label: 'Two Monotonic Deques',    exampleProblems: ['LC_1438'] } },
-                        no:  { leaf: { id: 'leaf-p4-t6-single', pattern: 'P4', template: 'T6', label: 'Single Monotonic Deque', exampleProblems: ['LC_239']  } }
-                      }
-                    },
-                    no: {
-                      node: {
-                        id: 'maximize-check',
-                        question: 'Are you finding LONGEST or MAXIMUM window length?',
-                        yes: { leaf: { id: 'leaf-p2-t3', pattern: 'P2', template: 'T3', label: 'Variable Window — Expand always, shrink when VIOLATED', exampleProblems: ['LC_3', 'LC_1004', 'LC_424', 'LC_904'] } },
-                        no: {
-                          node: {
-                            id: 'minimize-check',
-                            question: 'Are you finding SHORTEST or MINIMUM window length?',
-                            yes: {
-                              node: {
-                                id: 'both-ends-check',
-                                question: 'Does the problem involve picking from BOTH ENDS of the array?',
-                                yes: { leaf: { id: 'leaf-p3-reduction', pattern: 'P3', template: 'T3', label: 'Reduction — reframe both-ends as middle subarray, then apply P2', exampleProblems: ['LC_1658'] } },
-                                no:  { leaf: { id: 'leaf-p3-t4',        pattern: 'P3', template: 'T4', label: 'Variable Window — Expand until VALID, shrink while VALID',          exampleProblems: ['LC_209', 'LC_76'] } }
-                              }
-                            },
-                            no: { leaf: { id: 'leaf-unknown', pattern: null, template: null, label: 'Non-obvious reduction needed. Try: (1) both-ends → middle subarray, (2) prefix sum reformulation. See LC_1658 (Minimum Operations to Reduce X to Zero) as the canonical example.' } }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-
-    templates: [
-      {
-        id: 'T1', name: 'Basic Fixed Window',
-        description: 'Window size is always exactly K. Initialize the first window, then slide by adding the incoming right element and removing the outgoing left element (K positions back). Capture the answer on every iteration.',
-        code: 'function fixedWindowBasic(nums, k) {\n  let windowSum = 0;\n  for (let i = 0; i < k; i++) windowSum += nums[i];\n  let result = windowSum;\n\n  for (let i = k; i < nums.length; i++) {\n    windowSum += nums[i];        // add incoming right element\n    windowSum -= nums[i - k];    // remove outgoing left element\n    result = Math.max(result, windowSum);\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T2', name: 'Fixed Window — Frequency Matching',
-        description: "Fixed window of size len(pattern). A 'matches' counter tracks how many of the 26 characters have their frequency in the window exactly satisfying the required frequency. Window is a valid anagram when matches === 26. Update matches symmetrically on both right-add and left-remove.",
-        code: 'function fixedWindowFrequency(s, p) {\n  if (p.length > s.length) return [];\n\n  const pCount = new Array(26).fill(0);\n  const sCount = new Array(26).fill(0);\n  const a = \'a\'.charCodeAt(0);\n\n  for (const c of p) pCount[c.charCodeAt(0) - a]++;\n\n  let matches = pCount.filter((v, i) => v === sCount[i]).length;\n  const result = [];\n\n  for (let i = 0; i < s.length; i++) {\n    const rc = s.charCodeAt(i) - a;\n    sCount[rc]++;\n    if (sCount[rc] === pCount[rc])          matches++;\n    else if (sCount[rc] === pCount[rc] + 1) matches--;\n\n    if (i >= p.length) {\n      const lc = s.charCodeAt(i - p.length) - a;\n      sCount[lc]--;\n      if (sCount[lc] === pCount[lc])          matches++;\n      else if (sCount[lc] === pCount[lc] - 1) matches--;\n    }\n\n    if (matches === 26) result.push(i - p.length + 1);\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T3', name: 'Variable Window — Maximize / Longest',
-        description: 'Expand right on every iteration without condition. Shrink left ONLY when the invariant is VIOLATED. After the shrink loop exits the window is always valid — capture max length there. The entire problem reduces to answering one question: what constitutes a violation?',
-        code: 'function variableWindowMaximize(nums, k) {\n  let left = 0;\n  let result = 0;\n  const freq = new Map();\n\n  for (let right = 0; right < nums.length; right++) {\n    freq.set(nums[right], (freq.get(nums[right]) ?? 0) + 1);\n\n    while (freq.size > k /* replace with your violation condition */) {\n      freq.set(nums[left], freq.get(nums[left]) - 1);\n      if (freq.get(nums[left]) === 0) freq.delete(nums[left]);\n      left++;\n    }\n\n    result = Math.max(result, right - left + 1);\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T4', name: 'Variable Window — Minimize / Shortest',
-        description: 'Expand right until the window becomes VALID. Then shrink left AS LONG AS the window stays VALID, recording the minimum at each valid state. Then expand again. This is the INVERSE loop logic from T3: T3 shrinks when violated, T4 shrinks while valid.',
-        code: 'function variableWindowMinimize(nums, target) {\n  let left = 0;\n  let windowSum = 0;\n  let result = Infinity;\n\n  for (let right = 0; right < nums.length; right++) {\n    windowSum += nums[right];\n\n    while (windowSum >= target /* replace with your valid condition */) {\n      result = Math.min(result, right - left + 1);\n      windowSum -= nums[left];\n      left++;\n    }\n  }\n\n  return result === Infinity ? 0 : result;\n}'
-      },
-      {
-        id: 'T5', name: 'atMost(K) for Counting — exactlyK = atMostK(k) - atMostK(k-1)',
-        description: "count(exactly K) = count(atMost K) - count(atMost K-1). atMostK uses T3 mechanics but accumulates a count instead of tracking max length. The line 'result += right - left + 1' counts all valid subarrays ending at right.",
-        code: 'function atMostK(nums, k) {\n  if (k < 0) return 0;\n\n  let left = 0;\n  let result = 0;\n  const freq = new Map();\n\n  for (let right = 0; right < nums.length; right++) {\n    freq.set(nums[right], (freq.get(nums[right]) ?? 0) + 1);\n\n    while (freq.size > k) {\n      freq.set(nums[left], freq.get(nums[left]) - 1);\n      if (freq.get(nums[left]) === 0) freq.delete(nums[left]);\n      left++;\n    }\n\n    result += right - left + 1;\n  }\n  return result;\n}\n\nfunction exactlyK(nums, k) {\n  return atMostK(nums, k) - atMostK(nums, k - 1);\n}'
-      },
-      {
-        id: 'T6', name: 'Monotonic Deque — Single (Window Maximum or Prefix Sum variant)',
-        description: 'Deque stores INDICES. Values at those indices are in DECREASING order so the front is always the current window maximum. On each new element: evict stale indices from the front; evict dominated (smaller) indices from the back; push current index; emit front when window is formed.',
-        code: 'function slidingWindowMaximum(nums, k) {\n  const dq = [];\n  const result = [];\n\n  for (let i = 0; i < nums.length; i++) {\n    while (dq.length > 0 && dq[0] < i - k + 1) dq.shift();\n    while (dq.length > 0 && nums[dq[dq.length - 1]] < nums[i]) dq.pop();\n    dq.push(i);\n    if (i >= k - 1) result.push(nums[dq[0]]);\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T7', name: 'Monotonic Deque — Double (Simultaneous Window Max + Min)',
-        description: 'Two deques in parallel: maxDq (decreasing values, front = max) and minDq (increasing values, front = min). Shrink left when the constraint on max - min is violated. On left increment, check both deque fronts independently.',
-        code: 'function longestSubarrayWithLimit(nums, limit) {\n  const maxDq = [];\n  const minDq = [];\n  let left = 0;\n  let result = 0;\n\n  for (let right = 0; right < nums.length; right++) {\n    while (maxDq.length > 0 && nums[maxDq[maxDq.length - 1]] <= nums[right]) maxDq.pop();\n    maxDq.push(right);\n\n    while (minDq.length > 0 && nums[minDq[minDq.length - 1]] >= nums[right]) minDq.pop();\n    minDq.push(right);\n\n    while (nums[maxDq[0]] - nums[minDq[0]] > limit) {\n      left++;\n      if (maxDq[0] < left) maxDq.shift();\n      if (minDq[0] < left) minDq.shift();\n    }\n\n    result = Math.max(result, right - left + 1);\n  }\n  return result;\n}'
-      }
-    ],
-
     patterns: [
       {
         id: 'P1', name: 'Fixed Size Window',
+        analogy: 'A train window scrolling past a landscape — the frame size never changes. As the train moves, the leftmost scene exits and a new scene enters from the right. You never re-scan the whole landscape, just swap one element at a time.',
+        approach: '1) Build first window of size k. 2) Slide: for each i from k to n-1, add nums[i] and subtract nums[i-k]. 3) Capture answer on every slide. That is the entire algorithm.',
         recognitionSignals: [
           'Window size K is explicitly given in the problem',
           'Subarray or substring of length exactly K',
           'Every consecutive K elements must be evaluated'
         ],
         mentalModel: 'Window size never changes. Initialize first window of size K. Slide: add right element, remove element K positions back, update answer.',
+        gotchas: [
+          'Do NOT divide inside the loop for average problems — accumulate integer sums, divide only at return. Division inside the loop causes floating-point drift and is O(1) wasted work per slide.',
+          'Frequency matching (LC_567): update the matches counter AFTER changing the frequency count, not before. The order determines whether you capture the correct before/after state.',
+          'The outgoing element is ALWAYS nums[i - k] — it is exactly k positions behind the current right pointer. This never changes regardless of problem flavour.'
+        ],
+        insights: [
+          'Frequency matching can use a single integer "matches" counter (how many of 26 chars satisfy the required count) instead of comparing two full 26-element arrays each slide — reduces O(26) comparison to O(1) per slide.',
+          'LC_567 and LC_438 are the exact same template — the only delta is LC_438 collects ALL valid start indices instead of returning a boolean. Recognising this means solving both problems in the same sitting.'
+        ],
+        keyQuestion: 'What is the fixed K? What single value do I track per window (sum, count, frequency)?',
         questionIds: ['LC_643', 'LC_1456', 'LC_567', 'LC_438']
       },
       {
         id: 'P2', name: 'Variable Window — Maximize / Longest',
+        analogy: 'Stretching a rubber band over items on a table. You keep adding items to the right — the band stretches. The instant the band would snap (invariant violated), you release items from the left until it holds again. The longest stretch just before a snap is always your best answer.',
+        approach: '1) Expand right on EVERY iteration — unconditionally, no condition check. 2) WHILE the invariant is VIOLATED: shrink left one step. 3) After shrink loop exits, window is guaranteed valid — capture max length here.',
         recognitionSignals: [
           'Longest subarray or substring SUCH THAT a condition holds',
           'Maximum length WHERE some property holds',
           'A smaller window is always valid if a larger one is — the condition is monotonic'
         ],
         mentalModel: 'EXPAND right on every iteration without condition. SHRINK left ONLY when the invariant is VIOLATED. After shrink loop exits the window is always valid — capture max length there.',
+        gotchas: [
+          'Use a WHILE loop to shrink, NOT an if statement. A single removal is not guaranteed to resolve the violation — two of the same character may have been added back to back.',
+          'Answer is right - left + 1 (inclusive). Off-by-one here is the single most common mistake across every P2 problem.',
+          'LC_424 (maxFreq intentionally never decreases on shrink): this is NOT a bug — it is the cleverness. The window can only grow, so we never need a smaller window than the best seen. The stale maxFreq is the entire insight.'
+        ],
+        insights: [
+          'Every P2 problem collapses to one sentence: "What constitutes a violation?" Answer that sentence and you have the full solution — code follows mechanically with no further thought.',
+          'The window NEVER needs to shrink SMALLER than the current max answer. Any window shorter than the current best cannot produce a new best. LC_424 exploits this so aggressively that the loop never truly shrinks — it only stays the same or grows.'
+        ],
         keyQuestion: 'What constitutes a violation? Answer that and you have the full solution.',
         questionIds: ['LC_3', 'LC_1004', 'LC_1493', 'LC_424', 'LC_904']
       },
       {
         id: 'P3', name: 'Variable Window — Minimize / Shortest / Count Exactly K',
+        analogy: 'Two modes. MINIMIZE is like tightening a drawstring bag — expand until it holds everything needed, cinch as tight as possible, record the size, then expand again. COUNT exactly-K is like asking how many staircases have exactly 3 steps — you count staircases with at-most-3 steps, subtract staircases with at-most-2, and the difference is exactly-3.',
+        approach: 'MINIMIZE: Expand right unconditionally. Once window VALID: shrink left WHILE STILL VALID, recording minimum each time. COUNT exactly-K: Call atMost(k) - atMost(k-1). atMost(k) uses the P2 loop structure but accumulates count += right - left + 1 instead of tracking max length.',
         recognitionSignals: [
           'Minimum length subarray or substring such that a condition holds',
           'Smallest window containing all of something',
           'COUNT the number of subarrays where something occurs EXACTLY K times'
         ],
-        mentalModel: 'Two sub-modes: minimize uses inverse shrink logic from P2; exactly-K counting uses atMost(K) - atMost(K-1) transformation.',
+        mentalModel: 'Two sub-modes: minimize uses inverse shrink logic from P2 (shrink WHILE valid, not when violated); exactly-K counting uses atMost(K) - atMost(K-1) transformation.',
+        gotchas: [
+          'THIS IS THE INVERSE OF P2: P2 shrinks when VIOLATED, P3 shrinks WHILE VALID. Mixing these two shrink rules is the most common cross-pattern mistake in sliding window.',
+          'In atMostK: MUST return 0 immediately when k < 0. Without this guard, atMostK(-1) processes the entire array and returns a wrong count, silently corrupting the result.',
+          'LC_76 (Minimum Window Substring): required must equal need.size (count of UNIQUE chars in t), NOT t.length. If t = "aa", need = {a:2}, required = 1 not 2. This single character ruins the entire solution.'
+        ],
+        insights: [
+          'The atMost counting trick: result += right - left + 1 counts ALL valid subarrays ending at right in one shot. With left pushed optimally, every sub-window [left..right], [left+1..right], ... [right..right] is valid — a beautifully subtle observation.',
+          'LC_1658 (Minimum Operations to Reduce X to Zero) is a reduction: min(prefix+suffix summing to X) = n minus max(middle subarray with sum = totalSum-X). Drawing this reformulation BEFORE coding is what separates SDE3 from SDE2 — interviewers score this insight independently from the code.'
+        ],
         questionIds: ['LC_209', 'LC_76', 'LC_930', 'LC_992', 'LC_1658']
       },
       {
         id: 'P4', name: 'Deque-based Sliding Window',
+        analogy: 'A nightclub with a VIP queue showing only guests still in the current time slot. Each new arrival triggers two evictions: (1) anyone whose reservation expired gets kicked from the front, and (2) anyone standing behind the newcomer who is less impressive gets kicked from the back — they can never be the star while someone better is present. The front guest is always the current champion.',
+        approach: '1) For each i: pop front if stale (front index < i - k + 1). 2) Pop back WHILE nums[back] <= nums[i] (dominated by newer, larger value). 3) Push i. 4) Emit nums[deque.front] as the window answer starting at i >= k-1. Negative numbers variant: operate on prefix sums with an INCREASING order deque.',
         recognitionSignals: [
           'Maximum or minimum of every window of size K needed in O(n)',
           'Array contains NEGATIVE numbers with a subarray sum or length constraint',
           'Standard sliding window breaks because shrinking does not monotonically change the tracked value'
         ],
         mentalModel: 'Deque stores INDICES, not values. The ordering invariant on values at those indices guarantees the front is always the window answer. Evict stale indices from front. Evict dominated indices from back.',
+        gotchas: [
+          'In JavaScript, Array.shift() is O(n) — it physically moves every element left. Use a head pointer (let head = 0) and increment it instead of calling shift(). For large inputs this is the difference between O(n) and O(n²). Always mention this in interviews.',
+          'The deque stores INDICES not values — you need the index both to check staleness and to retrieve the value. Storing values loses the ability to check if the front is still in the current window.',
+          'For LC_862 (negative numbers, prefix sum variant): prefix array has n+1 entries where prefix[0]=0. Off-by-one in sizing is the most common bug — declare Array(n+1) not Array(n).'
+        ],
+        insights: [
+          'Why evicting dominated elements is safe: if j < i and nums[j] <= nums[i], then for ANY future window containing j, i is also present (since i is newer and still in range). Since we want max, j can NEVER be the answer while i exists. It is permanently dominated.',
+          'Two deques simultaneously (LC_1438 Longest Subarray With Abs Diff): maxDq (decreasing values, front = max) and minDq (increasing values, front = min). Shrink when max - min > limit. On left increment, check BOTH deque fronts independently — they do not evict at the same step.'
+        ],
         questionIds: ['LC_239', 'LC_1438', 'LC_862']
       }
     ],
@@ -320,175 +251,112 @@ const TOPIC_MODULES = {
     techniqueRegistry: [
       'two-pointers','sliding-window','prefix-sum','binary-search','hash-map','hash-set','monotonic-stack','sorting'
     ],
-
-    interviewTips: [
-      'Before moving a pointer, verbalize WHY the discarded position can never be optimal. That one-sentence proof IS the answer — code follows mechanically. Interviewers score the justification independently of correctness.',
-      'LC_42 (Trapping Rain Water): know all three solutions — two pointers O(1) space, prefix-max arrays O(n), monotonic stack O(n). Interviewers always follow up asking for O(1) space after you describe O(n). Lead with O(1).',
-      'LC_15 (3Sum): three distinct duplicate-skip guards — outer loop skip, left skip after match, right skip after match. Missing any one produces duplicate triplets. Practice until all three are reflex, not recall.',
-      'LC_234 (Palindrome Linked List): offer to restore the second half after checking — unprompted. This is the SDE3 signal that you think about mutation side-effects without being asked.',
-      'LC_141 (Linked List Cycle): the expected follow-up is LC_142 — find the cycle ENTRY point, not just detect it. Mention this unprompted if time allows.',
-      "Dutch National Flag (T5): asymmetric rule — after swap with high, do NOT advance mid (value just received is unknown); after swap with low, DO advance mid (all values in the low region were already processed). State this rule before writing the loop.",
-      'When alternateApproaches lists a hash-set solution, name it and say: "Two pointers achieves the same result in O(1) space given sorted input — that is the trade-off." This shows you chose the approach, not guessed.'
-    ],
-
-    whenToUse: {
-      use: [
-        'Array or string is SORTED (or can be sorted without losing information) and you need pairs/triplets summing to a target — converging pointers replace the O(n²) nested loop.',
-        'Problem involves IN-PLACE array modification: removing duplicates, moving elements, partitioning — write pointer pattern eliminates extra space.',
-        'Input is a LINKED LIST and you need cycle detection, finding the middle, or checking palindrome — fast/slow pointers are the only O(1) space solution.',
-        'Problem involves comparing elements from BOTH ENDS simultaneously — converging pointers are natural.',
-        'You need to reduce kSum (3Sum, 4Sum) to a lower dimension — sort + fix outer elements + two-pointer inner loop is always O(n^(k-1)).'
-      ],
-      avoid: [
-        'Array is UNSORTED and sorting would change the answer (e.g. subarray problems where position matters) → two pointers require sorted input or monotonic properties. Use sliding window or prefix sum.',
-        'You need ALL pairs, not just existence — two pointers find one optimal pair per outer iteration. If you need counts of ALL valid pairs, use hash map instead.',
-        'Problem requires NON-CONTIGUOUS selection (pick any elements, not adjacent) → two pointers only work on contiguous ranges. Use DP or greedy.',
-        'Array contains DUPLICATES and you need all unique results — two pointers work but require careful skip logic at every pointer level. If skip logic becomes complex, hash set may be cleaner.',
-        'Linked list problem needs random access (find kth from end efficiently with indexing) → fast/slow works but count+iterate is simpler. Fast/slow is specifically for cycle/middle/palindrome patterns.'
-      ]
-    },
-    decisionTree: {
-      description: 'Walk this tree before writing any code. Two pointers has five distinct sub-patterns — choosing the wrong one produces O(n²) or worse.',
-      node: {
-        id: 'root',
-        question: 'Is the input a Linked List?',
-        yes: {
-          node: {
-            id: 'll-type-check',
-            question: 'Is the goal cycle detection or finding the middle node?',
-            yes: { leaf: { id: 'leaf-p2-t3-basic',    pattern: 'P2', template: 'T3', label: 'Fast & Slow Pointers — cycle detection or middle',            exampleProblems: ['LC_141', 'LC_876'] } },
-            no:  { leaf: { id: 'leaf-p2-t3-reversal', pattern: 'P2', template: 'T3', label: 'Fast & Slow Pointers + in-place reversal of second half',     exampleProblems: ['LC_234']           } }
-          }
-        },
-        no: {
-          node: {
-            id: 'inplace-check',
-            question: 'Is the goal to MODIFY the array IN-PLACE (remove, move, filter, merge)?',
-            yes: {
-              node: {
-                id: 'merge-check',
-                question: 'Are you merging two sorted sequences where one has extra space at the end?',
-                yes: { leaf: { id: 'leaf-p3-t4-end',   pattern: 'P3', template: 'T4', label: 'Write Pointer from END — prevents overwriting unread elements',                               exampleProblems: ['LC_88']            } },
-                no:  { leaf: { id: 'leaf-p3-t4-front', pattern: 'P3', template: 'T4', label: 'Write Pointer from FRONT — read pointer scans, write pointer places kept elements',           exampleProblems: ['LC_26', 'LC_283']  } }
-              }
-            },
-            no: {
-              node: {
-                id: 'partition-check',
-                question: 'Does the problem require partitioning into 3 or more categories in a SINGLE PASS?',
-                yes: { leaf: { id: 'leaf-p5-t5', pattern: 'P5', template: 'T5', label: 'Three-Way Partition — Dutch National Flag (low / mid / high pointers)', exampleProblems: ['LC_75'] } },
-                no: {
-                  node: {
-                    id: 'sorted-check',
-                    question: 'Is the array SORTED, or does sorting help without losing required information?',
-                    yes: {
-                      node: {
-                        id: 'ksum-check',
-                        question: 'Are you finding k numbers (pairs, triplets, quadruplets) that sum to a target?',
-                        yes: { leaf: { id: 'leaf-p4-t6', pattern: 'P4', template: 'T6', label: 'k-Sum Reduction — fix outer loop(s), converge inner two pointers', exampleProblems: ['LC_15', 'LC_16'] } },
-                        no: {
-                          node: {
-                            id: 'skip-check',
-                            question: 'Does traversal require skipping characters or elements based on a condition?',
-                            yes: { leaf: { id: 'leaf-p1-t2', pattern: 'P1', template: 'T2', label: 'Converging with Skip — inner while loops advance past invalid characters', exampleProblems: ['LC_125', 'LC_680'] } },
-                            no:  { leaf: { id: 'leaf-p1-t1', pattern: 'P1', template: 'T1', label: 'Basic Converging — move left or right based on comparison with target',   exampleProblems: ['LC_167', 'LC_11', 'LC_977', 'LC_42'] } }
-                          }
-                        }
-                      }
-                    },
-                    no: { leaf: { id: 'leaf-unsorted', pattern: null, template: null, label: 'Unsorted, non-linked-list, non-partition problem — two pointers may not apply directly. Consider sorting first (check if sort is allowed), or rethink as sliding-window or prefix-sum.' } }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-
-    templates: [
-      {
-        id: 'T1', name: 'Converging Two Pointers — Basic (Sorted Array)',
-        description: "Left starts at 0, right starts at end. Move left right when current value is too small; move right left when too large. Terminates when left meets right. Requires sorted input or a monotonic comparison property. The decision of which pointer to move is the core insight for each problem.",
-        code: 'function convergingBasic(nums, target) {\n  let left = 0;\n  let right = nums.length - 1;\n\n  while (left < right) {\n    const current = nums[left] + nums[right]; // replace with your evaluation\n\n    if (current === target) {\n      return [left, right];\n    } else if (current < target) {\n      left++;  // need larger — move left right\n    } else {\n      right--; // need smaller — move right left\n    }\n  }\n  return [-1, -1];\n}'
-      },
-      {
-        id: 'T2', name: 'Converging Two Pointers — With Skip Conditions (String)',
-        description: "Same structure as T1 but with inner while loops that advance each pointer past invalid characters before the comparison. For problems allowing ONE deletion on mismatch (LC_680 - Valid Palindrome II), call a helper that runs T2 on a substring when a mismatch is first detected.",
-        code: 'function isAlphanumeric(c) {\n  return /[a-zA-Z0-9]/.test(c);\n}\n\nfunction convergingWithSkip(s) {\n  let left = 0;\n  let right = s.length - 1;\n\n  while (left < right) {\n    while (left < right && !isAlphanumeric(s[left]))  left++;\n    while (left < right && !isAlphanumeric(s[right])) right--;\n\n    if (s[left].toLowerCase() !== s[right].toLowerCase()) return false;\n    left++;\n    right--;\n  }\n  return true;\n}\n\nfunction isPalindromeRange(s, l, r) {\n  while (l < r) {\n    if (s[l] !== s[r]) return false;\n    l++; r--;\n  }\n  return true;\n}\n\nfunction validPalindromeII(s) {\n  let left = 0;\n  let right = s.length - 1;\n  while (left < right) {\n    if (s[left] !== s[right]) {\n      return isPalindromeRange(s, left + 1, right) ||\n             isPalindromeRange(s, left, right - 1);\n    }\n    left++; right--;\n  }\n  return true;\n}'
-      },
-      {
-        id: 'T3', name: "Fast & Slow Pointers (Floyd's Algorithm)",
-        description: "Both pointers start at head. Slow advances 1 step; fast advances 2 steps. If a cycle exists, fast will lap slow and they meet. For finding the middle: when fast reaches null (or fast.next reaches null), slow is at mid. For even-length lists this returns the SECOND middle.",
-        code: '// Variant A — Cycle Detection\nfunction hasCycle(head) {\n  let slow = head;\n  let fast = head;\n\n  while (fast !== null && fast.next !== null) {\n    slow = slow.next;\n    fast = fast.next.next;\n    if (slow === fast) return true;\n  }\n  return false;\n}\n\n// Variant B — Find Middle Node\nfunction findMiddle(head) {\n  let slow = head;\n  let fast = head;\n\n  while (fast !== null && fast.next !== null) {\n    slow = slow.next;\n    fast = fast.next.next;\n  }\n  return slow;\n}'
-      },
-      {
-        id: 'T4', name: 'Write Pointer — Same Direction (In-Place Modification)',
-        description: "Two pointers both start at the same end. 'read' scans every element; 'write' marks the next position to place a valid (kept) element. For merging from end (LC_88): start read pointers at the back of each array and the write pointer at the very end — this prevents overwriting unread input.",
-        code: '// Variant A — Filter in-place (remove duplicates, move zeroes)\nfunction writePointerFilter(nums) {\n  let write = 0;\n\n  for (let read = 0; read < nums.length; read++) {\n    if (nums[read] !== 0 /* replace with KEEP condition */) {\n      nums[write] = nums[read];\n      write++;\n    }\n  }\n  return write;\n}\n\n// Variant B — Merge from end (LC_88)\nfunction mergeSortedFromEnd(nums1, m, nums2, n) {\n  let i = m - 1;\n  let j = n - 1;\n  let write = m + n - 1;\n\n  while (i >= 0 && j >= 0) {\n    if (nums1[i] >= nums2[j]) {\n      nums1[write--] = nums1[i--];\n    } else {\n      nums1[write--] = nums2[j--];\n    }\n  }\n  while (j >= 0) nums1[write--] = nums2[j--];\n}'
-      },
-      {
-        id: 'T5', name: 'Three-Way Partition — Dutch National Flag',
-        description: "Three pointers: 'low' is the right boundary of the 0-region; 'mid' is the current element; 'high' is the left boundary of the 2-region. After swapping mid with high, do NOT increment mid — the value that came from high is unknown. After swapping mid with low, it IS safe to increment mid.",
-        code: 'function dutchNationalFlag(nums) {\n  let low = 0;\n  let mid = 0;\n  let high = nums.length - 1;\n\n  while (mid <= high) {\n    if (nums[mid] === 0) {\n      [nums[low], nums[mid]] = [nums[mid], nums[low]];\n      low++;\n      mid++; // safe — swapped value is known to be 1\n    } else if (nums[mid] === 1) {\n      mid++;\n    } else {\n      [nums[mid], nums[high]] = [nums[high], nums[mid]];\n      high--;\n      // DO NOT increment mid — must re-examine the swapped value\n    }\n  }\n}'
-      },
-      {
-        id: 'T6', name: 'k-Sum Reduction (Fix Outer, Converge Inner)',
-        description: "Sort the array first. Fix (k-2) outer pointers with nested for loops; apply converging two pointers on the remaining subarray. Duplicate skipping is required at ALL pointer levels. The outer loop skips when nums[i] === nums[i-1] (and i > start). After finding a valid k-tuple, both inner pointers skip past their duplicates.",
-        code: 'function threeSum(nums) {\n  nums.sort((a, b) => a - b);\n  const result = [];\n\n  for (let i = 0; i < nums.length - 2; i++) {\n    if (i > 0 && nums[i] === nums[i - 1]) continue;\n\n    let left = i + 1;\n    let right = nums.length - 1;\n\n    while (left < right) {\n      const sum = nums[i] + nums[left] + nums[right];\n\n      if (sum === 0) {\n        result.push([nums[i], nums[left], nums[right]]);\n        while (left < right && nums[left] === nums[left + 1]) left++;\n        while (left < right && nums[right] === nums[right - 1]) right--;\n        left++;\n        right--;\n      } else if (sum < 0) {\n        left++;\n      } else {\n        right--;\n      }\n    }\n  }\n  return result;\n}'
-      }
-    ],
-
     patterns: [
       {
         id: 'P1', name: 'Converging Two Pointers',
+        analogy: 'Two detectives closing in on a suspect from opposite ends of a room. Each clue (comparison result) tells exactly which detective must take a step inward, because the other side has been definitively ruled out. The proof that moving a specific pointer cannot discard the answer IS the algorithm — everything else is syntax.',
+        approach: '1) left = 0, right = n-1. 2) Compute a result using both pointers. 3) If result matches target: record and advance both. 4) If result is too small: left++ (monotonic property says left side is too weak). 5) If result is too large: right-- (right side is too strong). 6) Repeat until left >= right.',
         recognitionSignals: [
           'Array or string problem involving pairs, maxima, or symmetry checks',
           'Input is sorted OR the problem has a monotonic property (moving one pointer always improves or worsens the answer predictably)',
           'Looking for two elements satisfying a condition — shrinking the search space from both ends'
         ],
-        mentalModel: "Left starts at 0, right starts at end. At each step, compare or compute based on both pointers. Move whichever pointer makes the next state more promising. The correctness argument depends entirely on proving that the discarded state can never be optimal.",
-        keyQuestion: "When I move a pointer, which one do I move and WHY can the discarded option never be optimal? That proof IS the algorithm.",
+        mentalModel: 'Left starts at 0, right starts at end. At each step, compare or compute based on both pointers. Move whichever pointer makes the next state more promising. The correctness argument depends entirely on proving that the discarded state can never be optimal.',
+        gotchas: [
+          'Proving WHICH pointer to move and WHY is the entire algorithm. Without the proof, you are guessing. Interviewers score the justification independently of code correctness.',
+          'LC_11 (Container With Most Water): when both heights are equal, moving EITHER pointer is correct — both choices satisfy the proof. Do not treat this as a special case requiring separate logic.',
+          'LC_42 (Trapping Rain Water): process the side with the SMALLER max first (counterintuitive). If leftMax <= rightMax, water at left = leftMax - height[left] because rightMax guarantees leftMax is the true bottleneck.'
+        ],
+        insights: [
+          'Converging pointers work on sorted arrays because the comparison result has monotonic consequences: if the sum is too large with right at its current position, moving right left is ALWAYS an improvement. This monotonicity is what is being exploited.',
+          'LC_977 (Squares of Sorted Array): fill result from index n-1 DOWNWARD, not from 0 upward. Filling from the back picks the LARGEST remaining square each time — a natural fit for the converging approach that almost everyone misses on first attempt.'
+        ],
+        keyQuestion: 'When I move a pointer, which one do I move and WHY can the discarded option never be optimal? That proof IS the algorithm.',
         questionIds: ['LC_167', 'LC_125', 'LC_680', 'LC_11', 'LC_977', 'LC_42']
       },
       {
         id: 'P2', name: 'Fast & Slow Pointers',
+        analogy: 'A rabbit and a tortoise on a jogging track. On a straight path, the rabbit exits first (no cycle). On a circular track, the rabbit eventually laps the tortoise and they meet (cycle detected). Where they meet carries mathematical information about the cycle entrance — a beautiful hidden property of the distances.',
+        approach: '1) slow = head, fast = head. 2) Loop: slow = slow.next, fast = fast.next.next. 3) Cycle detection: if slow === fast, a cycle exists. 4) Cycle entry: reset slow to head, advance BOTH at speed 1 until they meet again — that node is the entry. 5) Middle: when fast reaches null/fast.next null, slow is at the midpoint.',
         recognitionSignals: [
           'Linked list problem involving cycles, midpoints, or position-relative checks',
           'Need to find a position that is a fraction (half, one-third) of the list length without knowing the length',
-          "Floyd's Tortoise and Hare pattern"
+          "Floyd\'s Tortoise and Hare pattern"
         ],
         mentalModel: 'Slow moves 1 step, fast moves 2 steps per iteration. In a cycle they must eventually meet. Without a cycle, fast reaches null first. When fast reaches end, slow is at the structural midpoint.',
+        gotchas: [
+          'Guard condition is BOTH: fast !== null AND fast.next !== null before advancing. Calling fast.next.next when fast.next is null causes a runtime crash, not just wrong output.',
+          'Finding the FIRST middle (for odd-length splits): use while (fast.next !== null && fast.next.next !== null). The standard form gives SECOND middle on even-length lists — which is what LC_234 and merge sort actually need, but always know the difference.',
+          'Phase 2 of cycle entry (LC_142): reset ONLY slow to head. The other pointer stays at the meeting point and advances at speed 1. Resetting BOTH pointers breaks the math — they meet at the entry after exactly F steps.'
+        ],
+        insights: [
+          'The math for cycle entry: let F = distance from head to entry, C = cycle length, D = distance from entry to the meeting point (inside cycle). It can be proven that F = C - D (mod C). This is why resetting one pointer to head and advancing both at speed 1 converges at the entry after exactly F steps.',
+          'LC_287 (Find Duplicate Number): the array IS a linked list where nums[i] is the next pointer. Values are in [1,n] so no index maps to 0, making index 0 the safe "dummy head". The duplicate creates a back-edge that forms the cycle. The cycle entry IS the duplicate.'
+        ],
         questionIds: ['LC_141', 'LC_876', 'LC_234', 'LC_142', 'LC_19', 'LC_160', 'LC_287']
       },
       {
         id: 'P3', name: 'Write Pointer — Same Direction',
+        analogy: 'A copy editor cleaning a manuscript. The read cursor moves through every word without skipping. The write cursor only moves forward when a word is worth keeping. By the time the read cursor hits the end, everything before the write cursor is the clean version — no extra space used, no shifting required.',
+        approach: '1) write = 0. 2) For read from 0 to n-1: if nums[read] satisfies the KEEP condition, set nums[write] = nums[read] and write++. 3) Return write (the new valid length). For merge-from-end (LC_88): start both read pointers at the backs of their arrays, write at the total end — right to left.',
         recognitionSignals: [
           'In-place array modification: remove elements, move elements, filter elements',
           'Merging two sorted arrays/segments where extra space exists at one end',
           'Two pointers both move left-to-right but at different speeds — read outpaces write'
         ],
         mentalModel: 'Maintain a write pointer to the next valid output position. Read pointer scans everything. Only advance write when a kept element is found. For merge-from-end: start all pointers at their respective backs to prevent overwriting unread data.',
+        gotchas: [
+          'Merge from END for LC_88 — merging from the front overwrites nums1 elements that have not been compared yet. Starting from the end gives enough scratch space without a separate buffer.',
+          'For LC_26: elements BEYOND the write pointer position do NOT need to be cleared. The problem only requires returning the new length and the contract says everything after that index is irrelevant.',
+          'For LC_283 (Move Zeroes): two-pass is cleaner than swap-in-place — pass 1 moves all non-zeros to front, pass 2 fills the tail with zeros. Single-pass swap works but is harder to reason about for interviewers.'
+        ],
+        insights: [
+          'The write pointer invariant: write is always <= read, and all positions before write are the processed result. This invariant never breaks by design — read always outpaces write because it advances unconditionally.',
+          'Merging from the end is a general technique whenever you merge INTO a buffer that overlaps with one of the inputs. Working backward eliminates ALL overwrite conflicts with zero extra space.'
+        ],
         questionIds: ['LC_26', 'LC_283', 'LC_88']
       },
       {
         id: 'P4', name: 'k-Sum Reduction',
+        analogy: 'A dish requiring exactly k flavours summing to a target. Fix the outer k-2 ingredients with nested loops — each choice narrows the remaining budget. Then use converging two pointers to find the last two in O(n) instead of O(n²). Each outer loop multiplies time by O(n), but the innermost two-pointer base case is always O(n).',
+        approach: '1) Sort the array. 2) Fix (k-2) outer pointers with nested for loops, each starting after the previous. 3) Apply converging two pointers on the remaining subarray. 4) Duplicate skip at EVERY pointer level — outer: check i > startOfThisLevel, inner: skip after recording a match.',
         recognitionSignals: [
           'Find all unique pairs/triplets/quadruplets (k numbers) summing to a target',
           'Array can be sorted without losing the required output information',
           'Brute force is O(n^k) — target is O(n^(k-1))'
         ],
         mentalModel: 'Sort first. Reduce k-sum to (k-1)-sum with a for loop fixing the outermost element. Base case is 2Sum on a sorted array which is O(n) with converging pointers. Duplicate skipping at every pointer level is mandatory.',
+        gotchas: [
+          '3Sum duplicate skip for i MUST check i > 0 (not just i > start). Without this guard, nums[-1] is undefined in JS and the condition fires erroneously on the very first iteration, skipping valid solutions.',
+          '4Sum: the j-level duplicate guard must check j > i+1, NOT j > 0. After i advances and j resets to i+1, the first j value is fresh and must not be skipped. Getting this wrong is the #1 4Sum bug.',
+          'After recording a valid k-tuple: skip past ALL duplicates for BOTH inner pointers (left and right) before incrementing. Missing either skip produces duplicate results in the output.'
+        ],
+        insights: [
+          'The reduction is general and recursive: kSum → (k-1)Sum via one for loop. The base case is always 2Sum with converging pointers. Stating this reduction before coding is the SDE3 signal for pattern mastery.',
+          '3Sum is O(n²). 4Sum is O(n³). kSum is O(n^(k-1)). The O(n log n) sort is amortized — it is paid once, then the reduction tree takes over and dominates.'
+        ],
+        keyQuestion: 'When I move a pointer, which one do I move and WHY can the discarded option never be optimal?',
         questionIds: ['LC_15', 'LC_16', 'LC_18']
       },
       {
         id: 'P5', name: 'Three-Way Partition',
+        analogy: 'Sorting a shuffled deck of country flags (red, white, blue) into three piles in a single pass. Three pointers mark the right edge of red, the current card, and the left edge of blue. Red cards slide to the left pile, white cards extend the middle, blue cards slide to the right — but EVERY card arriving from the blue pile is a stranger whose colour is unknown and must be re-examined before advancing.',
+        approach: 'low=0, mid=0, high=n-1. While mid <= high: if nums[mid]===0 → swap(low,mid), low++, mid++ (safe, low region contains only examined 0s). If nums[mid]===1 → mid++. If nums[mid]===2 → swap(mid,high), high-- (do NOT increment mid — the swap brought an unexamined value from high).',
         recognitionSignals: [
           'Partition array into exactly 3 mutually exclusive categories in a single O(n) pass',
           'Dutch National Flag or similar color/category sort',
           'Cannot use two separate passes — must maintain three boundaries simultaneously'
         ],
         mentalModel: 'Three pointers define four regions: confirmed-low (before low), confirmed-mid (low to mid-1), unexamined (mid to high), confirmed-high (after high). Process mid: swap with low (safe to advance mid), skip (advance mid), or swap with high (do NOT advance mid — incoming value is unknown).',
+        gotchas: [
+          'After swapping nums[mid] with nums[high]: do NOT increment mid. The value that just arrived from high could be 0, 1, or 2 — it is completely unknown. It must be re-examined. The asymmetry is the ENTIRE trick.',
+          'After swapping nums[mid] with nums[low]: it IS safe to increment mid. The low region contains only already-examined 0s, meaning the value that arrived from low must be 1. No re-examination needed.',
+          'Loop condition is mid <= high (not mid < high). When mid === high, that last element is still unexamined and must be processed.'
+        ],
+        insights: [
+          'Dijkstra named this the Dutch National Flag problem after the three-coloured Dutch flag. The problem in its purest form sorts [0,1,2]. But the three-pointer invariant generalises to ANY three-way categorisation in a single O(n) pass without extra space.',
+          'There are only 3 cases and only 2 of them advance mid. When you see a 1, nothing changes except mid advances — it is the trivial case. The asymmetric increment rule (no mid++ after blue swap) is the one thing to drill until it is reflex.'
+        ],
         questionIds: ['LC_75']
       }
     ],
@@ -505,10 +373,10 @@ const TOPIC_MODULES = {
       'LC_234': { leetcode: 234, title: 'Palindrome Linked List',                          difficulty: 'Medium', templateRefs: ['T3'], tags: ['two-pointers','fast-slow','linked-list','in-place'], keyInsight: 'Three steps: (1) find middle with fast/slow, (2) reverse second half in-place from middle.next, (3) compare first half against reversed second half. For odd length, the true middle node is not compared — correct by design.', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: "Interviewers specifically ask: 'Can you restore the original list after checking?' Always mention this upfront — it shows production code awareness. Restore by reversing the second half again after the check.", faangNote: 'Meta and Amazon favourite. Tests fast/slow + list reversal in a single problem. Proactively offering to restore the list is a concrete SDE3 signal.', alternateApproaches: [{ technique: 'hash-map', tradeoff: 'Copy values to an array, then use converging two pointers. Simpler but O(n) space.', complexity: 'O(n) time, O(n) space' }], link: 'https://leetcode.com/problems/palindrome-linked-list/' },
       'LC_26':  { leetcode: 26,  title: 'Remove Duplicates from Sorted Array',             difficulty: 'Easy',   templateRefs: ['T4'], tags: ['two-pointers','write-pointer','array','sorted-array','in-place'], keyInsight: 'Write pointer tracks the next position for a unique element. Read pointer scans; only writes when nums[read] !== nums[write - 1]. Array is sorted so duplicates are always adjacent.', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Elements beyond the write pointer final position do NOT need to be cleared. The problem requires only returning the new length — content past that index is explicitly irrelevant.', faangNote: null, alternateApproaches: [], link: 'https://leetcode.com/problems/remove-duplicates-from-sorted-array/' },
       'LC_283': { leetcode: 283, title: 'Move Zeroes',                                     difficulty: 'Easy',   templateRefs: ['T4'], tags: ['two-pointers','write-pointer','array','in-place'], keyInsight: 'Write pointer collects all non-zero elements in-place preserving order. After the write pass, fill positions from write to n-1 with zeros. Two linear passes, both O(n).', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Overwrite (not swap) in the first pass. After the pass, explicitly zero-fill the tail. Swapping works but requires careful reasoning — two passes is cleaner and easier to defend.', faangNote: null, alternateApproaches: [], link: 'https://leetcode.com/problems/move-zeroes/' },
-      'LC_88':  { leetcode: 88,  title: 'Merge Sorted Array',                              difficulty: 'Easy',   templateRefs: ['T4'], tags: ['two-pointers','write-pointer','array','sorted-array','merge','in-place'], keyInsight: 'Merge from the END of both arrays into the back of nums1. Merging from the front overwrites elements in nums1 that have not been compared yet. The extra space at the back is exactly the scratch space needed.', shrinkTrigger: null, timeComplexity: 'O(m + n)', spaceComplexity: 'O(1)', gotcha: "After the main while loop: if nums2 still has elements (j >= 0), copy them. If nums1 still has elements (i >= 0), they are already in place — do nothing. Getting this wrong is the most common bug.", faangNote: "State before coding: 'I will merge from the end to avoid overwriting elements in nums1 that I haven't used yet.' That sentence signals experience.", alternateApproaches: [], link: 'https://leetcode.com/problems/merge-sorted-array/' },
+      'LC_88':  { leetcode: 88,  title: 'Merge Sorted Array',                              difficulty: 'Easy',   templateRefs: ['T4'], tags: ['two-pointers','write-pointer','array','sorted-array','merge','in-place'], keyInsight: 'Merge from the END of both arrays into the back of nums1. Merging from the front overwrites elements in nums1 that have not been compared yet. The extra space at the back is exactly the scratch space needed.', shrinkTrigger: null, timeComplexity: 'O(m + n)', spaceComplexity: 'O(1)', gotcha: "After the main while loop: if nums2 still has elements (j >= 0), copy them. If nums1 still has elements (i >= 0), they are already in place — do nothing. Getting this wrong is the most common bug.", faangNote: "State before coding: 'I will merge from the end to avoid overwriting elements in nums1 that I haven\'t used yet.' That sentence signals experience.", alternateApproaches: [], link: 'https://leetcode.com/problems/merge-sorted-array/' },
       'LC_15':  { leetcode: 15,  title: '3Sum',                                            difficulty: 'Medium', templateRefs: ['T6'], tags: ['two-pointers','converging','k-sum','array','sorting'], keyInsight: 'Sort first — enables both the two-pointer inner loop AND the duplicate-skip logic. Three independent duplicate-skip conditions: (1) skip outer i if nums[i] === nums[i-1], (2) after recording skip left past duplicates, (3) skip right past duplicates. All three are mandatory.', shrinkTrigger: null, timeComplexity: 'O(n²)', spaceComplexity: 'O(1)', gotcha: 'The duplicate skip for i must check `i > 0`. Without this guard, when i=0 you compare nums[0] with nums[-1] which is undefined — the condition fires incorrectly and skips valid solutions.', faangNote: 'Most tested k-sum problem across all FAANG. A correct implementation with all three duplicate skips in the right places is sufficient. Any skip missing produces duplicate triplets — wrong answer.', alternateApproaches: [{ technique: 'hash-map', tradeoff: 'Fix two elements, look up complement in a hash set. Duplicate handling becomes more complex. Two pointers preferred.', complexity: 'O(n²) time, O(n) space' }], link: 'https://leetcode.com/problems/3sum/' },
       'LC_16':  { leetcode: 16,  title: '3Sum Closest',                                   difficulty: 'Medium', templateRefs: ['T6'], tags: ['two-pointers','converging','k-sum','array','sorting'], keyInsight: 'Same T6 structure as LC_15 (3Sum). Track closest sum instead of collecting exact matches. No duplicate-collection logic needed — only one closest value tracked. Update when |sum - target| < |closest - target|.', shrinkTrigger: null, timeComplexity: 'O(n²)', spaceComplexity: 'O(1)', gotcha: 'Initialize closest to nums[0] + nums[1] + nums[2], not Infinity. Return immediately if sum === target — closest possible.', faangNote: 'Solve immediately after LC_15 (3Sum). Same template, simpler because no duplicate collection. Demonstrates pattern recognition — a good signal during interviews.', alternateApproaches: [], link: 'https://leetcode.com/problems/3sum-closest/' },
-      'LC_75':  { leetcode: 75,  title: 'Sort Colors',                                    difficulty: 'Medium', templateRefs: ['T5'], tags: ['two-pointers','three-way-partition','array','sorting','in-place'], keyInsight: 'Three-pointer invariant: [0..low-1]=0s, [low..mid-1]=1s, [mid..high]=unexamined, [high+1..n-1]=2s. Process mid: swap with low+increment both (safe); skip+increment mid (already 1); swap with high+decrement high but NOT mid (incoming unknown).', shrinkTrigger: null, timeComplexity: 'O(n) — single pass', spaceComplexity: 'O(1)', gotcha: 'After swapping nums[mid] with nums[high]: do NOT increment mid. The value from high is unknown — could be 0, 1, or 2. After swapping with nums[low]: safe to increment mid because the low-region only contains already-processed 0s so incoming must be 1.', faangNote: "Dijkstra's Dutch National Flag problem. Expected to know by name in senior interviews. The asymmetric increment logic is the precise point interviewers probe.", alternateApproaches: [{ technique: 'sorting', tradeoff: 'Standard sort O(n log n). Two-pass counting sort O(n) but 2 passes. Dutch National Flag is O(n) single pass — always preferred.', complexity: 'O(n log n) time, O(1) space' }], link: 'https://leetcode.com/problems/sort-colors/' },
+      'LC_75':  { leetcode: 75,  title: 'Sort Colors',                                    difficulty: 'Medium', templateRefs: ['T5'], tags: ['two-pointers','three-way-partition','array','sorting','in-place'], keyInsight: 'Three-pointer invariant: [0..low-1]=0s, [low..mid-1]=1s, [mid..high]=unexamined, [high+1..n-1]=2s. Process mid: swap with low+increment both (safe); skip+increment mid (already 1); swap with high+decrement high but NOT mid (incoming unknown).', shrinkTrigger: null, timeComplexity: 'O(n) — single pass', spaceComplexity: 'O(1)', gotcha: 'After swapping nums[mid] with nums[high]: do NOT increment mid. The value from high is unknown — could be 0, 1, or 2. After swapping with nums[low]: safe to increment mid because the low-region only contains already-processed 0s so incoming must be 1.', faangNote: "Dijkstra\'s Dutch National Flag problem. Expected to know by name in senior interviews. The asymmetric increment logic is the precise point interviewers probe.", alternateApproaches: [{ technique: 'sorting', tradeoff: 'Standard sort O(n log n). Two-pass counting sort O(n) but 2 passes. Dutch National Flag is O(n) single pass — always preferred.', complexity: 'O(n log n) time, O(1) space' }], link: 'https://leetcode.com/problems/sort-colors/' },
       'LC_19':  { leetcode: 19,   title: 'Remove Nth Node From End of List',        difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/remove-nth-node-from-end-of-list/',        templateRefs: ['T3'], tags: ['two-pointers','fast-slow','linked-list','offset'], alternateApproaches: [{ technique: 'two-pass', moduleRef: null, tradeoff: 'First pass counts length L. Second pass traverses to node L-n. O(2L) time — same asymptotic but two traversals. One-pass offset technique is strictly cleaner.', complexity: 'O(L) time, O(1) space' }], keyInsight: 'Advance fast pointer n+1 steps from a dummy head, then advance both at the same pace. When fast reaches null, slow is exactly at the node BEFORE the target — enabling O(1) deletion via slow.next = slow.next.next.', shrinkTrigger: 'Advance fast n+1 times from dummy. Then: while (fast !== null) advance both. slow.next = slow.next.next.', timeComplexity: 'O(L) — single-pass', spaceComplexity: 'O(1)', gotcha: 'Use a dummy head node pointing to the real head. Without it, removing the head (when n === list length) requires a special case. Advance fast n+1 times (not n) so slow lands BEFORE the target node — one extra step is the entire trick.', faangNote: 'Canonical "offset fast/slow pointers" problem. State: "Advancing fast by n+1 positions slow just before the target — dummy head eliminates the edge case of removing the head." Interviewers probe whether you reach for a dummy head automatically or add conditional logic.' },
       'LC_160': { leetcode: 160,  title: 'Intersection of Two Linked Lists',           difficulty: 'Easy',   difficultyRank: 1, link: 'https://leetcode.com/problems/intersection-of-two-linked-lists/',           templateRefs: ['T3'], tags: ['two-pointers','linked-list','intersection'], alternateApproaches: [{ technique: 'hash-set', moduleRef: null, tradeoff: 'Traverse list A, add all nodes to a Set. Traverse list B — first match is the intersection. O(m) space. Interviewer will ask for O(1).', complexity: 'O(m + n) time, O(m) space' }], keyInsight: 'Redirect each pointer to the OTHER list head when it reaches null. After m+n steps both pointers have traversed equal total distance and converge at the intersection — or both reach null simultaneously if no intersection exists.', shrinkTrigger: 'While (pA !== pB): pA = pA ? pA.next : headB; pB = pB ? pB.next : headA. Return pA.', timeComplexity: 'O(m + n)', spaceComplexity: 'O(1)', gotcha: 'The loop exits cleanly with no intersection — both pointers reach null at the same step after traversing m+n nodes each. Do NOT special-case null; the redirect IS the termination condition when there is no intersection.', faangNote: 'Meta (Facebook) classic. One sentence: "Both pointers walk total distance m+n regardless of start — they synchronize at the intersection." The hash-set approach scores partial credit; the redirect approach demonstrates insight. Interviewers explicitly ask for O(1) space.' },
       'LC_142': { leetcode: 142, title: 'Linked List Cycle II',                            difficulty: 'Medium', templateRefs: ['T3'], tags: ['two-pointers','fast-slow','linked-list','math'], keyInsight: 'Phase 1: detect the meeting point using fast/slow. Phase 2: reset one pointer to head, keep the other at the meeting point, advance both one step at a time — they meet at the cycle entry. The math: distance from head to entry = distance from meeting point to entry (mod cycle length).', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Do NOT reset both pointers to head. Only one goes back to head. The other stays at the meeting point from Phase 1. Moving both pointers one step at a time (not two) is critical in Phase 2.', faangNote: 'Meta and Amazon ask this as the immediate follow-up to LC_141. When you solve 141, proactively say: "The follow-up is finding the cycle entry — reset one pointer to head, advance both at speed 1, they meet at the entry point." That unprompted insight is a strong SDE3 signal.', alternateApproaches: [{ technique: 'hash-set', tradeoff: 'Store visited nodes, return first revisited. O(n) space — interviewer will ask for O(1).', complexity: 'O(n) time, O(n) space' }], link: 'https://leetcode.com/problems/linked-list-cycle-ii/' },
@@ -531,182 +399,135 @@ const TOPIC_MODULES = {
     techniqueRegistry: [
       'binary-search','two-pointers','prefix-sum','sorting','greedy','divide-and-conquer'
     ],
-
-    interviewTips: [
-      "Name your template before writing code: 'I need the leftmost true position — left-boundary: while(left < right), right = mid on true.' Template selection is scored as a separate signal from whether the code is correct.",
-      'Mid is always `left + Math.floor((right - left) / 2)`. Write it aloud. Even in JavaScript where integer overflow is not a risk at typical scales, stating the derivation shows you understand it.',
-      'T2: while(left < right), right = mid on true. T1: while(left <= right), three-way branch. Never mix them — mixing causes infinite loops. Decide the template first; the loop condition follows automatically.',
-      'Answer-space (P4): before coding write three lines — lo = smallest possible answer, hi = largest possible answer, isFeasible(mid) = ?. These three lines prove mastery. LC_875, LC_1011, and LC_410 all use the exact same shell.',
-      "LC_240 is a deliberate trap. Say: 'This matrix has no row-major property — binary search does not apply. The optimal algorithm is staircase elimination from the top-right: O(m+n).' Recognizing when NOT to use binary search is tested as often as using it.",
-      'LC_4 (Median of Two Sorted Arrays): the O(m+n) merge answer is explicitly suboptimal and will be rejected. If you cannot recall the partition invariant, say so clearly and deliver the O(m+n) solution — partial credit is real.',
-      'LC_81 (Rotated with Duplicates): state O(n) worst case and give a concrete example ([1,1,1,2,1]) before coding. Never claim guaranteed O(log n) for this problem.',
-      "When alternateApproaches lists a worse-complexity approach, name it and explain: 'I could merge in O(m+n) but the problem requires O(log(m+n)) — so I use the partition binary search.' This signals you read the constraint."
-    ],
-
-    whenToUse: {
-      use: [
-        'Input is SORTED (array, matrix with row-major property) and you need to find a target or boundary — binary search is O(log n) vs linear scan O(n).',
-        'You can define a MONOTONIC PREDICATE over a search space: a condition that is false for some prefix and true for the rest (or vice versa). Binary search finds the boundary in O(log n).',
-        'Problem asks for the MINIMUM value satisfying a condition or MAXIMUM value not violating a condition — answer-space binary search (P4). The answer is a value, not an index.',
-        'The search space is an integer range [lo, hi] and you can write an O(n) isFeasible(mid) check — the total complexity becomes O(n log(hi-lo)), far better than brute force.',
-        'Problem involves a ROTATED sorted array — binary search still applies because one half is always sorted, enabling you to determine which half the target is in.'
-      ],
-      avoid: [
-        'Array is UNSORTED and cannot be sorted (order matters for the answer) → binary search requires sorted input or monotonic structure. Use linear scan, hash map, or sliding window.',
-        'You need to find ALL occurrences, not just one boundary → binary search finds the leftmost and rightmost boundary (T2 + T3) but iterating all results still costs O(k). If k is large, consider hash map.',
-        'The predicate is NOT monotonic — condition is true, then false, then true again → binary search requires strict monotonicity. Use a different approach.',
-        'Answer-space binary search where isFeasible() is not obvious or correctness is hard to verify → binary search on answer is powerful but the isFeasible function must be provably correct. If you cannot write it confidently, try greedy or DP first.',
-        'Matrix does NOT have row-major property (each row\'s last < next row\'s first) — LC_240 (Search a 2D Matrix II) trap. Use staircase two-pointer from top-right instead of binary search.'
-      ]
-    },
-    decisionTree: {
-      description: 'Walk this tree before writing any code. Binary search has 6 sub-patterns — applying the wrong template produces infinite loops, off-by-one errors, or missed cases.',
-      node: {
-        id: 'root',
-        question: 'Is the input a 2D MATRIX (not a 1D array)?',
-        yes: {
-          node: {
-            id: 'matrix-type-check',
-            question: "Is the matrix row-major sorted — each row's last element < next row's first element?",
-            yes: { leaf: { id: 'leaf-p5-t6',         pattern: 'P5', template: 'T6', label: '2D Matrix → 1D index mapping, then classic T1 binary search',          exampleProblems: ['LC_74']  } },
-            no:  { leaf: { id: 'leaf-p5-staircase',  pattern: 'P5', template: null, label: 'Staircase elimination from corner — NOT classical binary search. O(m+n). See LC_240 (Search a 2D Matrix II).', exampleProblems: ['LC_240'] } }
-          }
-        },
-        no: {
-          node: {
-            id: 'answer-space-check',
-            question: 'Is the answer a VALUE IN A MATHEMATICAL RANGE (not an index or element in the array)?',
-            yes: { leaf: { id: 'leaf-p4-t4', pattern: 'P4', template: 'T4', label: 'Binary Search on Answer Space — define lo, hi, and isFeasible(mid)', exampleProblems: ['LC_875', 'LC_1011', 'LC_410'] } },
-            no: {
-              node: {
-                id: 'rotated-check',
-                question: 'Is the array sorted but ROTATED, or does it contain exactly one structural modification?',
-                yes: { leaf: { id: 'leaf-p3-t5', pattern: 'P3', template: 'T5', label: 'Rotated Array — determine which half is sorted, check if target is in it', exampleProblems: ['LC_153', 'LC_33', 'LC_81'] } },
-                no: {
-                  node: {
-                    id: 'boundary-check',
-                    question: 'Are you finding a BOUNDARY — first or last position satisfying a condition, or does the array have a structural property (peak, parity, single element)?',
-                    yes: {
-                      node: {
-                        id: 'boundary-direction-check',
-                        question: 'Do you need the LEFTMOST (first true) position?',
-                        yes: { leaf: { id: 'leaf-p2-t2', pattern: 'P2', template: 'T2', label: 'Left Boundary — first position where predicate is true',  exampleProblems: ['LC_35', 'LC_278', 'LC_34', 'LC_162', 'LC_540'] } },
-                        no:  { leaf: { id: 'leaf-p2-t3', pattern: 'P2', template: 'T3', label: 'Right Boundary — last position where predicate is true', exampleProblems: ['LC_34'] } }
-                      }
-                    },
-                    no: {
-                      node: {
-                        id: 'exact-check',
-                        question: 'Are you finding an EXACT value and returning its index (or -1 if absent)?',
-                        yes: { leaf: { id: 'leaf-p1-t1', pattern: 'P1', template: 'T1', label: 'Classic Exact Binary Search', exampleProblems: ['LC_704'] } },
-                        no:  { leaf: { id: 'leaf-unknown', pattern: null, template: null, label: 'Binary search may not apply directly. Revisit: (1) can the problem be reformulated as a feasibility check over a range? (2) can sorting be applied first? (3) is this a two-pointers problem instead?' } }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-
-    templates: [
-      {
-        id: 'T1', name: 'Classic Exact Binary Search',
-        description: 'Find the exact target in a sorted array. Loop terminates when left > right. Returns the index of target or -1. The three-branch structure (equal / less / greater) is the fundamental form all other templates derive from. Use right = nums.length - 1 (closed interval on both ends). Loop condition is left <= right.',
-        code: 'function binarySearchExact(nums, target) {\n  let left = 0;\n  let right = nums.length - 1; // closed interval: both ends inclusive\n\n  while (left <= right) { // <= because both ends are valid candidates\n    const mid = left + Math.floor((right - left) / 2); // overflow-safe\n\n    if (nums[mid] === target) {\n      return mid;\n    } else if (nums[mid] < target) {\n      left = mid + 1;  // target in RIGHT half — discard left incl. mid\n    } else {\n      right = mid - 1; // target in LEFT half — discard right incl. mid\n    }\n  }\n  return -1;\n}'
-      },
-      {
-        id: 'T2', name: 'Left Boundary — First Position Where Predicate is True (Lower Bound)',
-        description: "Find the FIRST index where predicate(mid) is true. Predicate must be monotonic: false...false...true...true. Loop condition is left < right (NOT <=). When predicate is true: right = mid (do NOT add 1 — mid could be the answer). When false: left = mid + 1. Set right = nums.length (open right bound) if target may not exist. Returns left.",
-        code: '// General left-boundary template\nfunction leftBoundary(nums, target) {\n  let left = 0;\n  let right = nums.length; // open right bound — result can be nums.length\n\n  while (left < right) { // NOT <= — loop converges when left === right\n    const mid = left + Math.floor((right - left) / 2);\n\n    if (nums[mid] < target) {\n      left = mid + 1; // predicate false — discard left half incl. mid\n    } else {\n      right = mid;    // predicate true — mid is a CANDIDATE, keep it\n    }\n  }\n  return left;\n}\n\n// Predicate-based variant (e.g. First Bad Version)\nfunction firstTrue(lo, hi, predicate) {\n  while (lo < hi) {\n    const mid = lo + Math.floor((hi - lo) / 2);\n    if (predicate(mid)) {\n      hi = mid;     // mid satisfies predicate — keep as candidate\n    } else {\n      lo = mid + 1; // mid does not satisfy — discard\n    }\n  }\n  return lo;\n}'
-      },
-      {
-        id: 'T3', name: 'Right Boundary — Last Position Where Predicate is True (Upper Bound)',
-        description: "Find the LAST index where predicate(mid) is true using a result-tracking variable. Loop condition is left <= right (closed interval). When predicate is true: record result = mid and move left = mid + 1 to search RIGHT for a later occurrence. When false: move right = mid - 1. Returns result (-1 if predicate was never true).",
-        code: 'function rightBoundary(nums, target) {\n  let left = 0;\n  let right = nums.length - 1;\n  let result = -1;\n\n  while (left <= right) {\n    const mid = left + Math.floor((right - left) / 2);\n\n    if (nums[mid] === target) {\n      result = mid;   // record this position — it might be the last\n      left = mid + 1; // keep searching RIGHT for a later occurrence\n    } else if (nums[mid] < target) {\n      left = mid + 1;\n    } else {\n      right = mid - 1;\n    }\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T4', name: 'Binary Search on Answer Space (Feasibility / Minimize the Answer)',
-        description: "The answer is not an index — it is a VALUE in a mathematical range [lo, hi]. Define isFeasible(mid): returns true if mid is a valid answer. Binary search finds the MINIMUM feasible value. When feasible: hi = mid (do not discard). When not feasible: lo = mid + 1. Loop is lo < hi. CRITICAL: (1) set lo = smallest possible answer, (2) set hi = largest possible answer, (3) write isFeasible — usually an O(n) greedy check.",
-        code: '// Minimize the answer: smallest x in [lo, hi] where isFeasible(x)\nfunction binarySearchOnAnswer(lo, hi, isFeasible) {\n  while (lo < hi) {\n    const mid = lo + Math.floor((hi - lo) / 2);\n\n    if (isFeasible(mid)) {\n      hi = mid;     // mid works — try to find something SMALLER\n    } else {\n      lo = mid + 1; // mid too small — answer must be LARGER\n    }\n  }\n  return lo;\n}\n\n// Example: Koko Eating Bananas — find minimum speed k\nfunction minEatingSpeed(piles, h) {\n  const isFeasible = (speed) => {\n    let hours = 0;\n    for (const pile of piles) hours += Math.ceil(pile / speed);\n    return hours <= h;\n  };\n\n  const lo = 1;\n  const hi = Math.max(...piles);\n  return binarySearchOnAnswer(lo, hi, isFeasible);\n}'
-      },
-      {
-        id: 'T5', name: 'Rotated Sorted Array Binary Search',
-        description: "A rotated array has one inflection point. At any mid, EXACTLY ONE of the two halves is fully sorted. Compare nums[left] with nums[mid] to determine which. Check if target falls within the sorted half. For duplicates (LC_81 - Search in Rotated Sorted Array II): when nums[left]===nums[mid]===nums[right] it is impossible to determine — increment left and decrement right and retry (degrades to O(n) worst case).",
-        code: '// LC_33 (Search in Rotated Sorted Array) variant (no duplicates)\nfunction searchRotated(nums, target) {\n  let left = 0;\n  let right = nums.length - 1;\n\n  while (left <= right) {\n    const mid = left + Math.floor((right - left) / 2);\n    if (nums[mid] === target) return mid;\n\n    if (nums[left] <= nums[mid]) {\n      // LEFT HALF [left..mid] is sorted\n      if (nums[left] <= target && target < nums[mid]) {\n        right = mid - 1; // target in sorted left half\n      } else {\n        left = mid + 1;  // target must be in right half\n      }\n    } else {\n      // RIGHT HALF [mid..right] is sorted\n      if (nums[mid] < target && target <= nums[right]) {\n        left = mid + 1;  // target in sorted right half\n      } else {\n        right = mid - 1; // target must be in left half\n      }\n    }\n  }\n  return -1;\n}\n\n// LC_81 (Search in Rotated Sorted Array II) addition: handle duplicates at boundaries\n// Insert at TOP of while loop before the sorted-half check:\n// if (nums[left] === nums[mid] && nums[mid] === nums[right]) {\n//   left++; right--; continue;\n// }'
-      },
-      {
-        id: 'T6', name: '2D Matrix — Row-Major 1D Index Mapping',
-        description: "When a matrix is row-major sorted (each row's last element < next row's first element), it is logically equivalent to a sorted 1D array of rows*cols elements. Map a 1D index mid to 2D coordinates: row = Math.floor(mid / cols), col = mid % cols. Apply T1 exact binary search on the virtual 1D array.",
-        code: 'function searchMatrix(matrix, target) {\n  const rows = matrix.length;\n  const cols = matrix[0].length;\n  let left = 0;\n  let right = rows * cols - 1; // treat as 1D array of length rows*cols\n\n  while (left <= right) {\n    const mid = left + Math.floor((right - left) / 2);\n    const row = Math.floor(mid / cols); // map 1D → 2D\n    const col = mid % cols;\n    const val = matrix[row][col];\n\n    if (val === target) {\n      return true;\n    } else if (val < target) {\n      left = mid + 1;\n    } else {\n      right = mid - 1;\n    }\n  }\n  return false;\n}'
-      }
-    ],
-
     patterns: [
       {
         id: 'P1', name: 'Classic Exact Binary Search',
+        analogy: 'Looking up a name in a phone book. Open to the exact middle — too early or too late? Flip to the correct half and repeat. Every guess halves the remaining candidates. After log₂(n) guesses, you have either found the name or proven it is not there.',
+        approach: 'left=0, right=n-1. While left<=right: mid=left+Math.floor((right-left)/2). If hit: return mid. If too small: left=mid+1. If too large: right=mid-1. Return -1 if loop exits.',
         recognitionSignals: [
           'Find an exact target value in a sorted array',
           'Return the index of the target or -1 if absent',
           'Three-way branch: found / go left / go right'
         ],
         mentalModel: 'Closed interval [left, right]. Loop while left <= right. Discard mid+1 to right (right=mid-1) when too large; discard left to mid-1 (left=mid+1) when too small. Return mid when hit.',
+        gotchas: [
+          'ALWAYS compute mid as left + Math.floor((right - left) / 2), not (left + right) >> 1. The subtraction form prevents integer overflow in fixed-width languages. State this habit explicitly — interviewers notice the idiom immediately.',
+          'Loop condition is while (left <= right) — the equals sign matters. When left === right, that single remaining element is still a valid candidate and must be checked.',
+          'Updates must be right = mid - 1 and left = mid + 1, NEVER just mid. Using mid without the +1/-1 creates an infinite loop whenever mid does not change between iterations.'
+        ],
+        insights: [
+          'Binary search halves the space on every step: one billion elements require only 30 comparisons. This is why O(log n) is called "basically free" — 2³⁰ > 1,000,000,000.',
+          'Every other binary search variant (boundary search, answer space, rotated array) is the exact same three-way comparison with different update rules for the pointer that lands on a match.'
+        ],
         keyQuestion: 'Is mid the answer, too large, or too small?',
         questionIds: ['LC_704']
       },
       {
         id: 'P2', name: 'Boundary / Predicate Binary Search',
+        analogy: 'Finding the exact moment dawn transitions to day. Every minute before the boundary is dark; every minute after is light. You do not check every minute (O(n)) — you check the midpoint, see if it is dark or light, then narrow in. The boundary can be found in O(log n) comparisons.',
+        approach: 'Define predicate P(x): returns false for a prefix, true for the suffix (monotonic). Use left < right loop. When P(mid) is TRUE: right = mid (mid is a candidate — do not discard). When FALSE: left = mid + 1 (mid cannot be the answer). Return left.',
         recognitionSignals: [
           'Find the FIRST or LAST position satisfying a condition',
           'Search insert position, lower/upper bound',
           'Array has a structural property (peak, single element, parity) enabling binary search even without full sorting'
         ],
-        mentalModel: 'Define a boolean predicate P(x) that is monotonic: false...false...true...true (or vice versa). Binary search finds the boundary. For leftmost-true use T2; for rightmost-true use T3.',
-        keyQuestion: 'What is my predicate? Is it cheap to evaluate? Is it monotonic over the search space?',
-        questionIds: ['LC_35', 'LC_34', 'LC_278', 'LC_162', 'LC_540']
+        mentalModel: 'Define a boolean predicate P(x) that is monotonic: false...false...true...true (or vice versa). Binary search finds the boundary. For leftmost-true use left<right with right=mid. For rightmost-true track result and update left=mid+1 on match.',
+        gotchas: [
+          'This template uses while (left < right) NOT left <= right. Mixing them causes an infinite loop because the update rule is right = mid (not mid-1) — left and right never converge with <=.',
+          'Set right = nums.length (open right bound, not nums.length-1) when the target might not exist — this allows the result to be nums.length, representing "insert at end."',
+          'After the search returns left: ALWAYS validate. If (left === nums.length || nums[left] !== target) return [-1,-1]. Skipping this validation gives false positives when the target is absent.'
+        ],
+        insights: [
+          'The predicate abstraction is powerful: once you define isSatisfied(mid) as a clean boolean, the template is identical regardless of whether you are searching a sorted array, a mathematical function, timestamps, or answer spaces.',
+          'LC_162 (Find Peak Element) teaches that binary search does NOT require a fully sorted array — only a monotonic predicate. nums[mid] < nums[mid+1] tells you which half contains a peak even without globally sorted input.'
+        ],
+        keyQuestion: 'What is my predicate? Is it cheap to evaluate? Is it monotonic (false then true) over the search space?',
+        questionIds: ['LC_35', 'LC_34', 'LC_278', 'LC_162', 'LC_540', 'LC_658']
       },
       {
         id: 'P3', name: 'Rotated / Modified Sorted Array',
+        analogy: 'A sorted necklace that slipped and got rotated at one point. If you look at the bead at mid and the bead at left, you can always tell which arc of the necklace is unbroken (sorted). The target must be in the unbroken arc — search there. Duplicates are like identical beads: you cannot tell which arc they belong to, so you have to shrink the window.',
+        approach: '1) Compare nums[left] with nums[mid]. If nums[left] <= nums[mid]: left half is sorted — check if target is in [nums[left], nums[mid]). 2) Otherwise: right half is sorted — check if target is in (nums[mid], nums[right]]. 3) For duplicates (LC_81): when nums[left]===nums[mid]===nums[right], shrink BOTH ends and retry.',
         recognitionSignals: [
           'Array was sorted but rotated at an unknown pivot',
           'Contains duplicates that complicate the sorted-half determination',
           'Find minimum or search for a target in this modified structure'
         ],
-        mentalModel: 'At any mid in a rotated array, exactly one half is fully sorted. Compare nums[left] with nums[mid] to determine which half. Check if target lies in the sorted half. Discard accordingly. Duplicates at boundaries prevent this — shrink both ends and retry.',
+        mentalModel: 'At any mid in a rotated array, exactly one half is fully sorted. Compare nums[left] with nums[mid] to determine which. Check if target lies in the sorted half. Discard accordingly. Duplicates at boundaries prevent this — shrink both ends and retry.',
+        gotchas: [
+          'Always use nums[left] <= nums[mid] with <= (not strict <). For a two-element subarray where left === mid, the left half is trivially sorted with one element — the equals sign handles this edge case.',
+          'For find minimum (LC_153): compare against nums[right], NOT nums[left]. Comparing against nums[left] breaks for non-rotated input (pivot at the end). Comparing against nums[right] is unambiguous in all cases.',
+          'For LC_81 (duplicates): state the O(n) worst case BEFORE coding. Example: [1,1,1,1,2,1,1]. Never claim guaranteed O(log n) for this variant — the worst case is inherent to the structure.'
+        ],
+        insights: [
+          'At any mid in a rotated array, exactly one half MUST be fully sorted — this invariant is absolute. Two halves cannot both be broken unless the rotation point is exactly at mid, which trivially makes one half a single sorted element.',
+          'LC_81 being O(n) worst case is a fundamental result, not a failure of the algorithm. When all three boundary elements are identical, the rotation point is genuinely indistinguishable. The algorithm correctly degrades.'
+        ],
         keyQuestion: 'Which half is fully sorted? Is my target in that half?',
         questionIds: ['LC_153', 'LC_33', 'LC_81']
       },
       {
         id: 'P4', name: 'Binary Search on Answer Space',
+        analogy: 'Playing The Price is Right — the answer is a number you guess from a range. You do not search the array directly; you binary search the ANSWER itself. For each price guess, you check feasibility in O(n) with a greedy simulation. This transforms an O(n²) brute force into O(n log(range)) — the range factor is usually log(10⁹) or less.',
+        approach: '1) Set lo = minimum possible answer. 2) Set hi = maximum possible answer. 3) Define isFeasible(mid): O(n) greedy check — "can we satisfy all constraints at this answer value?" 4) If feasible: hi = mid (try smaller). If not: lo = mid + 1. 5) Return lo.',
         recognitionSignals: [
           'The answer is a value in a range, not an index in the array',
           'Problem asks to minimize or maximize a value subject to a constraint',
           "A feasibility check ('can we achieve X?') can be written in O(n) or better"
         ],
-        mentalModel: 'Binary search on the ANSWER RANGE [lo, hi]. Define isFeasible(x): can we satisfy the constraint at value x? The feasible region is monotonic. Three design steps: (1) set lo and hi, (2) write isFeasible, (3) apply T4.',
+        mentalModel: 'Binary search on the ANSWER RANGE [lo, hi]. Define isFeasible(x): can we satisfy the constraint at value x? The feasible region is monotonic. Three design steps: (1) set lo and hi, (2) write isFeasible, (3) apply the template.',
+        gotchas: [
+          'lo must be set to the MINIMUM VALID ANSWER, not 1 or 0. For LC_1011 (ship packages): lo = max(weights). A capacity smaller than the heaviest package is unsolvable — the feasibility check always fails and the loop does not terminate correctly.',
+          'For MINIMIZE the answer: if feasible → hi = mid. For MAXIMIZE the answer: if feasible → lo = mid + 1. Swapping these gives the wrong monotonic direction and returns the wrong boundary.',
+          'Write and mentally test isFeasible on a boundary case (exactly feasible, exactly infeasible) BEFORE coding the binary search wrapper. A bug in isFeasible silently corrupts the answer.'
+        ],
+        insights: [
+          'The three design steps for P4 are universal: (1) identify lo/hi, (2) write isFeasible, (3) apply the template. LC_875, LC_1011, LC_410, and LC_719 all use the exact same three-step shell — only isFeasible differs.',
+          'Binary search on the answer works because "if X is feasible, then X+1 is also feasible" (or vice versa) — the feasibility region is always monotonic. This monotonicity must hold for the approach to be valid; verify it mentally before applying.'
+        ],
         keyQuestion: 'What are lo and hi? What does isFeasible(mid) check? Which direction expands feasibility?',
         questionIds: ['LC_875', 'LC_1011', 'LC_410', 'LC_719']
       },
       {
         id: 'P5', name: '2D Matrix Search',
+        analogy: 'Two different books. LC_74 is a book where the pages are sorted AND the last word on page n comes before the first word on page n+1 — the entire book is one giant sorted sequence. LC_240 is a book where each page is internally sorted, but pages are independent — you cannot treat the whole book as one list.',
+        approach: 'LC_74 (row-major): map 1D index mid to row=Math.floor(mid/cols), col=mid%cols. Apply T1 on the virtual range [0, rows*cols-1]. LC_240 (row+col sorted): start at TOP-RIGHT corner. matrix[row][col] > target → col-- (move left). matrix[row][col] < target → row++ (move down). O(m+n).',
         recognitionSignals: [
           'Search in a 2D matrix with sorted rows and/or columns',
           'Determine if binary search applies based on the EXACT sorting structure'
         ],
-        mentalModel: "Two distinct matrix structures require different approaches. Row-major sorted (each row's max < next row's min): treat as 1D, apply T6. Row+column sorted independently (LC_240): binary search does NOT apply — use staircase elimination from the top-right corner.",
-        keyQuestion: 'Is the matrix row-major sorted (use T6 binary search) or only row+column sorted (use staircase O(m+n))?',
-        questionIds: ['LC_74', 'LC_240']
+        mentalModel: 'Two distinct matrix structures require different approaches. Row-major sorted (each row\'s max < next row\'s min): treat as 1D, apply binary search. Row+column sorted independently (LC_240): binary search does NOT apply — use staircase elimination from the top-right corner.',
+        gotchas: [
+          'LC_74 vs LC_240 is the most common matrix binary search trap. LC_240 does NOT have the row-major property — applying the 1D-mapping binary search gives wrong answers. Say instantly: "This matrix lacks row-major order — I use staircase elimination instead."',
+          'For LC_74: the valid 1D range is [0, rows*cols-1] inclusive. Do not forget the -1 — it causes the last element to never be checked.',
+          'Test: does the last element of row i being smaller than the first element of row i+1? Yes → row-major (LC_74 style). No → only row+col sorted (LC_240 style).'
+        ],
+        insights: [
+          'The staircase algorithm (start top-right) for LC_240 works because moving left always decreases the value and moving down always increases it. Exactly ONE of these directions always makes progress toward the target — guaranteed termination in O(m+n).',
+          'Interviewers pair LC_74 and LC_240 specifically to test whether you blindly apply binary search or understand its preconditions. The correct answer to LC_240 is the staircase — saying "binary search does not apply here" is the insight being tested.'
+        ],
+        keyQuestion: 'Is the matrix row-major sorted (use 1D binary search) or only row+column sorted (use staircase O(m+n))?',
+        questionIds: ['LC_74', 'LC_240', 'LC_378', 'LC_1351']
       },
       {
         id: 'P6', name: 'Canonical Hard — Partition-Based Binary Search',
+        analogy: 'Splitting two stacks of sorted exam papers at the exact cut-point where everything to the left of the cut (across both stacks combined) is the bottom half, and everything to the right is the top half. You binary search on the cut position in the smaller stack and derive the corresponding cut in the larger stack from the total count.',
+        approach: '1) Binary search on the SMALLER array partition index i. 2) Derive j = (m+n+1)/2 - i for the second array. 3) Check: maxLeft1 <= minRight2 AND maxLeft2 <= minRight1. 4) If maxLeft1 > minRight2: i too large (right=i-1). If maxLeft2 > minRight1: i too small (left=i+1). 5) Return the median using the four boundary values.',
         recognitionSignals: [
           'Finding a statistical property (median, kth element) across multiple sorted arrays',
           'Partitioning two arrays simultaneously to maintain a global sorted invariant'
         ],
-        mentalModel: "Binary search on the smaller array's partition index. For each candidate partition of array1, compute the corresponding partition of array2. Check the cross-boundary condition (maxLeft1 <= minRight2 and maxLeft2 <= minRight1). Adjust partition based on which condition fails.",
-        keyQuestion: 'Is my partition correct? Which condition fails and which direction do I adjust?',
+        mentalModel: 'Binary search on the smaller array\'s partition index. For each candidate partition of array1, compute the corresponding partition of array2. Check the cross-boundary condition. Adjust partition based on which condition fails.',
+        gotchas: [
+          'ALWAYS binary search on the SMALLER array (swap if nums1 is longer). The time complexity is O(log(min(m,n))) — if you search the larger array you get O(log(max(m,n))) instead.',
+          'Edge cases at partition boundaries: when the partition is at index 0, maxLeft = -Infinity (no elements). When at length n, minRight = +Infinity (no more elements). Forgetting these makes the comparison crash.',
+          'The O(m+n) merge solution is explicitly suboptimal and will be rejected in interviews. If you cannot recall the partition invariant under pressure, say so clearly and deliver O(m+n) — partial credit is real.'
+        ],
+        insights: [
+          'The total left partition has size Math.floor((m+n+1)/2). The +1 is critical: for odd total length it ensures the left side has one more element, making the median always available at maxLeft. Without +1 the median calculation breaks for odd lengths.',
+          'Walking the interviewer through the four boundary values (maxLeft1, minRight1, maxLeft2, minRight2) on a whiteboard before writing any code is how you demonstrate mastery of this problem. The code is secondary.'
+        ],
+        keyQuestion: 'Is my partition correct? Which cross-boundary condition fails and which direction do I adjust?',
         questionIds: ['LC_4']
       }
     ],
@@ -724,10 +545,13 @@ const TOPIC_MODULES = {
       'LC_875': { leetcode: 875, title: 'Koko Eating Bananas',                                    difficulty: 'Medium', templateRefs: ['T4'], tags: ['binary-search','answer-space','feasibility','array','greedy'], keyInsight: 'Answer space: [1, max(piles)]. isFeasible(speed): sum of ceil(pile/speed) for all piles <= h. Monotonic: if speed k works, k+1 also works. Binary search finds the minimum k.', shrinkTrigger: 'isFeasible(mid) === true → try smaller speed (hi = mid). isFeasible(mid) === false → must go faster (lo = mid + 1).', timeComplexity: 'O(n log m) where m = max(piles)', spaceComplexity: 'O(1)', gotcha: 'Use `Math.ceil(pile / speed)` not `Math.floor(pile / speed) + 1`. The floor+1 version overcounts when pile is exactly divisible by speed. Alternative: `Math.floor((pile + speed - 1) / speed)`.', faangNote: 'The canonical first problem for learning P4. Once you solve this, LC_1011 and LC_410 follow the exact same three steps: identify lo/hi, write isFeasible, apply T4.', alternateApproaches: [], link: 'https://leetcode.com/problems/koko-eating-bananas/' },
       'LC_1011':{ leetcode: 1011,title: 'Capacity To Ship Packages Within D Days',               difficulty: 'Medium', templateRefs: ['T4'], tags: ['binary-search','answer-space','feasibility','array','greedy'], keyInsight: 'Answer space: [max(weights), sum(weights)]. lo = largest single weight (minimum possible capacity). hi = total sum. isFeasible(capacity): simulate shipping greedily — accumulate weights, start new day when current load would exceed capacity. Count days; check <= d.', shrinkTrigger: 'isFeasible(mid) === true → try smaller capacity (hi = mid). isFeasible(mid) === false → capacity too small (lo = mid + 1).', timeComplexity: 'O(n log(sum(weights)))', spaceComplexity: 'O(1)', gotcha: 'lo must be max(weights), not 1. A capacity smaller than the heaviest package makes the problem unsolvable — the feasibility check always fails but the binary search would not terminate correctly. Incorrect lo is the #1 bug in P4 problems.', faangNote: 'Solve immediately after LC_875. The isFeasible function differs but the three-step structure is identical. This confirms you have internalized P4 as a pattern.', alternateApproaches: [], link: 'https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/' },
       'LC_410': { leetcode: 410, title: 'Split Array Largest Sum',                                difficulty: 'Hard',   templateRefs: ['T4'], tags: ['binary-search','answer-space','feasibility','array','greedy','prefix-sum'], keyInsight: 'Answer space: [max(nums), sum(nums)]. isFeasible(maxSum): can you split nums into at most k subarrays where each sum <= maxSum? Greedy check: accumulate elements, start new subarray when adding the next would exceed maxSum. If subarrays needed <= k, feasible.', shrinkTrigger: 'isFeasible(mid) === true → try smaller max sum (hi = mid). isFeasible(mid) === false → max sum too small (lo = mid + 1).', timeComplexity: 'O(n log(sum(nums)))', spaceComplexity: 'O(1)', gotcha: 'Since lo = max(nums), every individual element always fits within the capacity — the case of a single element exceeding maxSum cannot occur. This simplifies the greedy check.', faangNote: 'The P4 Hard benchmark. Demonstrating that you can construct the greedy isFeasible for this problem proves P4 mastery. Interviewers also accept DP but expect you to recognize binary search is better.', alternateApproaches: [{ technique: 'prefix-sum', tradeoff: 'DP solution O(n²k) or O(nk) with prefix sums. Binary search + greedy is O(n log(sum)) — strictly better.', complexity: 'O(n * k) time, O(n * k) space' }], link: 'https://leetcode.com/problems/split-array-largest-sum/' },
-      'LC_74':  { leetcode: 74,  title: 'Search a 2D Matrix',                                    difficulty: 'Medium', templateRefs: ['T6'], tags: ['binary-search','matrix','array','sorted-array'], keyInsight: "The row-major property (each row's last < next row's first) means the entire matrix is one sorted sequence read left-to-right, top-to-bottom. Map 1D index mid to (row, col) via T6. Apply T1 on the virtual 1D array of length rows*cols.", shrinkTrigger: 'matrix[row][col] < target → left = mid + 1. matrix[row][col] > target → right = mid - 1.', timeComplexity: 'O(log(m * n))', spaceComplexity: 'O(1)', gotcha: 'Verify the row-major property holds before applying T6. LC_74 guarantees it; LC_240 does NOT. Applying T6 to LC_240 produces wrong answers. This distinction is the interview insight.', faangNote: null, alternateApproaches: [{ technique: 'two-pointers', tradeoff: 'Staircase from top-right: O(m+n). Works on LC_74 but is suboptimal — O(log mn) binary search is better when the row-major property holds.', complexity: 'O(m+n) time, O(1) space' }], link: 'https://leetcode.com/problems/search-a-2d-matrix/' },
+      'LC_74':  { leetcode: 74,  title: 'Search a 2D Matrix',                                    difficulty: 'Medium', templateRefs: ['T6'], tags: ['binary-search','matrix','array','sorted-array'], keyInsight: "The row-major property (each row\'s last < next row\'s first) means the entire matrix is one sorted sequence read left-to-right, top-to-bottom. Map 1D index mid to (row, col) via T6. Apply T1 on the virtual 1D array of length rows*cols.", shrinkTrigger: 'matrix[row][col] < target → left = mid + 1. matrix[row][col] > target → right = mid - 1.', timeComplexity: 'O(log(m * n))', spaceComplexity: 'O(1)', gotcha: 'Verify the row-major property holds before applying T6. LC_74 guarantees it; LC_240 does NOT. Applying T6 to LC_240 produces wrong answers. This distinction is the interview insight.', faangNote: null, alternateApproaches: [{ technique: 'two-pointers', tradeoff: 'Staircase from top-right: O(m+n). Works on LC_74 but is suboptimal — O(log mn) binary search is better when the row-major property holds.', complexity: 'O(m+n) time, O(1) space' }], link: 'https://leetcode.com/problems/search-a-2d-matrix/' },
       'LC_240': { leetcode: 240, title: 'Search a 2D Matrix II',                                  difficulty: 'Medium', templateRefs: [], tags: ['binary-search','matrix','staircase-search','two-pointers','array'], keyInsight: 'IMPORTANT: This problem does NOT have the row-major property — T6 does NOT apply. Optimal: staircase elimination from the TOP-RIGHT corner: if matrix[row][col] > target, move LEFT (col--); if < target, move DOWN (row++). This is a two-pointer technique, not binary search.', shrinkTrigger: 'matrix[row][col] > target → col--. matrix[row][col] < target → row++. Stop when found or out of bounds.', timeComplexity: 'O(m + n)', spaceComplexity: 'O(1)', gotcha: "State to the interviewer: 'This matrix does not have the row-major property so I cannot use the 1D-mapping approach — I will use staircase elimination instead.' Recognizing when NOT to apply binary search is the actual test.", faangNote: 'Interviewers use LC_240 immediately after LC_74 to test whether you blindly apply binary search or understand its preconditions. The correct answer is the staircase as the optimal approach.', alternateApproaches: [{ technique: 'binary-search', tradeoff: 'Binary search each row independently: O(m log n). Not optimal — staircase is O(m+n).', complexity: 'O(m log n) time, O(1) space' }], link: 'https://leetcode.com/problems/search-a-2d-matrix-ii/' },
-      'LC_4':   { leetcode: 4,   title: 'Median of Two Sorted Arrays',                            difficulty: 'Hard',   templateRefs: ['T2'], tags: ['binary-search','boundary-search','divide-and-conquer','array','sorted-array','math'], keyInsight: "Binary search on the smaller array's partition index. For partition i in nums1 and j = (m+n+1)/2 - i in nums2: the partition is correct when maxLeft1 <= minRight2 AND maxLeft2 <= minRight1. If maxLeft1 > minRight2: i too large (right = i - 1). If maxLeft2 > minRight1: i too small (left = i + 1).", shrinkTrigger: 'maxLeft1 > minRight2 → partition of nums1 too far right (right = mid - 1). maxLeft2 > minRight1 → partition of nums1 too far left (left = mid + 1).', timeComplexity: 'O(log(min(m, n)))', spaceComplexity: 'O(1)', gotcha: 'Always binary search on the SMALLER array (swap if needed). Handle edge cases: when a partition is at index 0 (no left elements), maxLeft = -Infinity; when at index n (no right elements), minRight = Infinity.', faangNote: 'The canonical hardest binary search problem. The O(m+n) merge solution is explicitly suboptimal and rejected. The partition invariant is the insight. Draw the four boundary values before coding and walk the interviewer through the invariant — this problem is scored on reasoning clarity.', alternateApproaches: [{ technique: 'two-pointers', tradeoff: 'Merge both arrays, stop at median position. O(m+n) — fails the O(log(m+n)) requirement in the problem statement.', complexity: 'O(m+n) time, O(1) space' }], link: 'https://leetcode.com/problems/median-of-two-sorted-arrays/' },
-      'LC_719': { leetcode: 719, title: 'Find K-th Smallest Pair Distance', difficulty: 'Hard', templateRefs: ['T4'], tags: ['binary-search','answer-space','feasibility','sliding-window','sorting','two-pointers','array'], keyInsight: 'Binary search on the ANSWER: distance value in [0, nums[n-1]-nums[0]] after sorting. isFeasible(mid): count pairs with distance <= mid using a sliding window on the sorted array — for each right, advance left while nums[right]-nums[left] > mid, then count += right - left. If count >= k, the k-th smallest distance is <= mid.', shrinkTrigger: 'Sort first. isFeasible(mid): sliding window count — for each right, while nums[right]-nums[left] > mid: left++. count += right - left. If count >= k → hi = mid. Else → lo = mid + 1.', timeComplexity: 'O(n log n + n log W) where W = nums[n-1]-nums[0]', spaceComplexity: 'O(1) excluding sort', gotcha: 'Sort the array first before binary search — the sliding window feasibility check is only correct on sorted input. lo = 0 (duplicates can have zero distance), hi = nums[n-1]-nums[0]. Count pairs in O(n) with the sliding window; a naive O(n^2) count inside isFeasible makes total complexity O(n^2 log W) — too slow.', faangNote: 'The highest-signal binary search problem in FAANG rounds: it forces explicit composition of two modules. Say: "The answer space is [0, max-min]. The feasibility function asks how many pairs have distance <= mid — that is a sliding window COUNT problem on the sorted array. Binary search on the answer space with sliding window as the feasibility check." Recognizing the cross-module composition is the SDE3 signal.', alternateApproaches: [], link: 'https://leetcode.com/problems/find-k-th-smallest-pair-distance/' }
+      'LC_4':   { leetcode: 4,   title: 'Median of Two Sorted Arrays',                            difficulty: 'Hard',   templateRefs: ['T2'], tags: ['binary-search','boundary-search','divide-and-conquer','array','sorted-array','math'], keyInsight: "Binary search on the smaller array\'s partition index. For partition i in nums1 and j = (m+n+1)/2 - i in nums2: the partition is correct when maxLeft1 <= minRight2 AND maxLeft2 <= minRight1. If maxLeft1 > minRight2: i too large (right = i - 1). If maxLeft2 > minRight1: i too small (left = i + 1).", shrinkTrigger: 'maxLeft1 > minRight2 → partition of nums1 too far right (right = mid - 1). maxLeft2 > minRight1 → partition of nums1 too far left (left = mid + 1).', timeComplexity: 'O(log(min(m, n)))', spaceComplexity: 'O(1)', gotcha: 'Always binary search on the SMALLER array (swap if needed). Handle edge cases: when a partition is at index 0 (no left elements), maxLeft = -Infinity; when at index n (no right elements), minRight = Infinity.', faangNote: 'The canonical hardest binary search problem. The O(m+n) merge solution is explicitly suboptimal and rejected. The partition invariant is the insight. Draw the four boundary values before coding and walk the interviewer through the invariant — this problem is scored on reasoning clarity.', alternateApproaches: [{ technique: 'two-pointers', tradeoff: 'Merge both arrays, stop at median position. O(m+n) — fails the O(log(m+n)) requirement in the problem statement.', complexity: 'O(m+n) time, O(1) space' }], link: 'https://leetcode.com/problems/median-of-two-sorted-arrays/' },
+      'LC_719': { leetcode: 719, title: 'Find K-th Smallest Pair Distance', difficulty: 'Hard', templateRefs: ['T4'], tags: ['binary-search','answer-space','feasibility','sliding-window','sorting','two-pointers','array'], keyInsight: 'Binary search on the ANSWER: distance value in [0, nums[n-1]-nums[0]] after sorting. isFeasible(mid): count pairs with distance <= mid using a sliding window on the sorted array — for each right, advance left while nums[right]-nums[left] > mid, then count += right - left. If count >= k, the k-th smallest distance is <= mid.', shrinkTrigger: 'Sort first. isFeasible(mid): sliding window count — for each right, while nums[right]-nums[left] > mid: left++. count += right - left. If count >= k → hi = mid. Else → lo = mid + 1.', timeComplexity: 'O(n log n + n log W) where W = nums[n-1]-nums[0]', spaceComplexity: 'O(1) excluding sort', gotcha: 'Sort the array first before binary search — the sliding window feasibility check is only correct on sorted input. lo = 0 (duplicates can have zero distance), hi = nums[n-1]-nums[0]. Count pairs in O(n) with the sliding window; a naive O(n^2) count inside isFeasible makes total complexity O(n^2 log W) — too slow.', faangNote: 'The highest-signal binary search problem in FAANG rounds: it forces explicit composition of two modules. Say: "The answer space is [0, max-min]. The feasibility function asks how many pairs have distance <= mid — that is a sliding window COUNT problem on the sorted array. Binary search on the answer space with sliding window as the feasibility check." Recognizing the cross-module composition is the SDE3 signal.', alternateApproaches: [], link: 'https://leetcode.com/problems/find-k-th-smallest-pair-distance/' },
+      'LC_378':  { leetcode: 378,  title: 'Kth Smallest Element in a Sorted Matrix',       difficulty: 'Medium', tags: ['binary-search','answer-space','staircase-search','matrix','sorted-array'], keyInsight: 'Binary search on the VALUE range [matrix[0][0], matrix[n-1][n-1]]. For candidate mid, count elements <= mid using staircase: start at top-right (row=0, col=n-1). If matrix[row][col] <= mid: count += col+1, row++. Else: col--. If count >= k → hi = mid. Else → lo = mid + 1.', shrinkTrigger: 'countLeqMid >= k → hi = mid. countLeqMid < k → lo = mid + 1.', timeComplexity: 'O(n log(max−min))', spaceComplexity: 'O(1)', gotcha: 'The staircase count starts at TOP-RIGHT and adds whole columns (count += col+1 means columns 0..col all <= mid on that row). lo and hi must equal actual matrix values so that the final lo is always a real element in the matrix — guaranteed termination on a valid answer.', faangNote: 'Bridge problem between P4 (answer-space binary search) and P6 staircase. Recognizing that the feasibility function is a staircase count is the SDE3 signal. Interviewers accept a min-heap O(k log n) but the binary search solution demonstrates deeper pattern mastery.', alternateApproaches: [{ technique: 'heap', tradeoff: 'Min-heap with initial row: O(k log n). Simpler code but worse when k is large.', complexity: 'O(k log n) time, O(n) space' }], link: 'https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/' },
+      'LC_1351': { leetcode: 1351, title: 'Count Negative Numbers in a Sorted Matrix',     difficulty: 'Easy',   tags: ['staircase-search','matrix','two-pointers','binary-search'], keyInsight: 'Staircase from BOTTOM-LEFT: start at grid[m-1][0]. If negative: all elements to the right on this row are also negative → count += (n - col), row--. If non-negative: move right (col++). Each step eliminates a row or a column → O(m+n).', shrinkTrigger: 'grid[row][col] < 0 → count += (n − col), row--. grid[row][col] >= 0 → col++.', timeComplexity: 'O(m + n)', spaceComplexity: 'O(1)', gotcha: 'Starting from bottom-left is cleaner here because rows are non-increasing left-to-right and top-to-bottom. The staircase traces the boundary between non-negative and negative values. Binary search per row is O(m log n) — correct but suboptimal; interviewers expect the staircase.', faangNote: 'Use this as a warm-up before LC_240. Teaches the staircase principle in its simplest form: one pointer, two directions, guaranteed O(m+n). Master bottom-left here, then recognize when to use top-right (LC_240, LC_378).', alternateApproaches: [{ technique: 'binary-search', tradeoff: 'Binary search each row for first negative index: O(m log n). Correct but not optimal when m ≈ n.', complexity: 'O(m log n) time, O(1) space' }], link: 'https://leetcode.com/problems/count-negative-numbers-in-a-sorted-matrix/' },
+      'LC_658':  { leetcode: 658,  title: 'Find K Closest Elements',                               difficulty: 'Medium', templateRefs: ['T2'], tags: ['binary-search','boundary-search','lower-bound','array','sorted-array','two-pointers'], keyInsight: 'Binary search on the LEFT BOUNDARY of the k-element window. Compare target - nums[mid] against nums[mid+k] - target. If the right side is strictly closer, shift window right (lo = mid + 1). Otherwise mid is a valid candidate for the window start (hi = mid). Window is nums[lo..lo+k-1].', shrinkTrigger: 'target - nums[mid] > nums[mid + k] - target → lo = mid + 1. Otherwise → hi = mid.', timeComplexity: 'O(log(n-k) + k)', spaceComplexity: 'O(k) — output window', gotcha: 'Set right = n - k (not n - 1) so the window of size k always fits. The comparison is strict > — equal distances are left-biased because hi = mid preserves the leftmost valid window. Do not use absolute values; the signed difference is the correct comparison.', faangNote: 'Amazon and Microsoft upgrade from LC_35. State upfront: "I do not binary search the target — I binary search the start index of the k-length window." Interviewers probe the left-bias rule and why right = n - k not n - 1.', alternateApproaches: [{ technique: 'two-pointers', tradeoff: 'Converge from both ends, removing the farther element each step. O(n-k) time — strictly worse than O(log(n-k)) binary search.', complexity: 'O(n - k) time, O(k) space' }], link: 'https://leetcode.com/problems/find-k-closest-elements/' }
     }
   }
   ,
@@ -737,195 +561,137 @@ const TOPIC_MODULES = {
     relatedTopics: ['binary-search', 'two-pointers', 'sliding-window', 'prefix-sum', 'heap'],
     tagRegistry: ['sorting','merge-sort','quicksort','quickselect','bucket-sort','counting-sort','custom-comparator','multi-key-sort','interval','greedy','inversion-count','array','string','linked-list','hash-map','two-pointers','binary-search','prefix-sum','heap','divide-and-conquer','in-place'],
     techniqueRegistry: ['sorting','merge-sort','quickselect','bucket-sort','two-pointers','binary-search','heap','greedy','hash-map'],
-    interviewTips: [
-      'State your sort key and WHY before writing the comparator. For intervals: \'I sort by end time — the greedy exchange argument shows keeping the earliest-ending interval is strictly better.\' The reasoning is scored as a separate signal from the code.',
-      'For kth element: always present both — quickselect O(n) and heap O(n log k) — then choose. Quickselect when O(n) is required and input can be modified. Heap when k << n, data streams, or input must be preserved.',
-      'LC_179 (Largest Number) comparator proof: \'It is transitive — if a+b > b+a and b+c > c+b, then a+c > c+a. Without transitivity the sort result is implementation-defined.\' One concrete counterexample for naive approaches closes the argument.',
-      'LC_315 (Count of Smaller Numbers) insight: \'When a right-half element merges first, it was smaller than all remaining left-half elements AND originally to their right — each left element gains one count.\' Say this before touching the code.',
-      'Merge sort vs quicksort: merge sort for guaranteed O(n log n), stability, and linked lists. Quicksort for O(1) extra space when mutation is allowed. Have a one-sentence justification before you start.',
-      'LC_164 (Maximum Gap) Pigeonhole: \'n elements in n-1 buckets — at least one is empty. The maximum gap must cross that empty bucket.\' Without this proof the bucket size formula looks arbitrary and interviewers probe it.',
-      'Intervals — sort key is decisive: START for merging overlapping intervals, END for greedy removal or counting non-overlapping ones. Wrong key → wrong greedy → wrong answer. Choose before writing the comparator.',
-      'When alternateApproaches shows a worse-complexity option, name it and explain. For LC_347: \'Bucket sort achieves O(n) because frequency is bounded by array length — no element comparisons needed.\' Shows you understand the improvement, not just the code.'
-    ],
-
-    whenToUse: {
-      use: [
-        'Problem requires ORDERING elements and the natural sort order is insufficient — define a custom comparator that expresses the correct ordering relation.',
-        'Input is a set of INTERVALS — sort by start for merging, sort by end for minimizing removals or counting overlaps. Sorted order transforms an O(n²) comparison into an O(n) sweep.',
-        'You need the KTH largest/smallest element — quickselect O(n) if input can be modified, heap O(n log k) if input must be preserved or k is small.',
-        'Problem involves GROUPING elements that are equivalent under some transformation (anagrams, frequency groups) — sort the transformation result as a canonical key.',
-        'Brute force is O(n²) due to pairwise comparisons and you can sort first — a single O(n log n) sort often enables a subsequent O(n) greedy scan, giving O(n log n) total.'
-      ],
-      avoid: [
-        'You need O(n) time and sorting would cost O(n log n) — consider bucket sort, counting sort, or hash map instead. LC_347 (Top K Frequent) and LC_164 (Maximum Gap) are canonical examples.',
-        'Problem involves SUBARRAYS where position/order matters for the answer — sorting destroys positional information. Use sliding window, prefix sum, or two pointers on the original array.',
-        'You need STABLE relative ordering of equal elements AND JavaScript\'s Array.sort() stability is not guaranteed in your target environment — verify or use a stable sort explicitly.',
-        'Problem is on a LINKED LIST and you need O(1) extra space — merge sort on linked lists uses O(log n) recursion stack. Bottom-up merge sort achieves O(1) but is complex. Verify space constraint first.',
-        'Sorting would require O(n log n) but the problem has an explicit O(n) requirement — this is a signal to look for a linear technique (hash map, counting, bucket sort) instead.'
-      ]
-    },
-    decisionTree: {
-      description: 'Walk this tree before writing any code. The wrong sort pattern leads to wrong complexity or incorrect results.',
-      node: {
-        id: 'root',
-        question: 'Are you asked to IMPLEMENT a sort algorithm from scratch (not use built-in sort)?',
-        yes: {
-          node: {
-            id: 'impl-type-check',
-            question: 'Is the input a linked list (no random access to elements by index)?',
-            yes: { leaf: { id: 'leaf-p1-linkedlist', pattern: 'P1', template: 'T1', label: 'Merge Sort on Linked List — find mid with fast/slow, split, sort halves, merge', exampleProblems: ['LC_148'] } },
-            no: {
-              node: {
-                id: 'augmented-check',
-                question: 'Do you need to COUNT something (e.g. inversions) during the sort itself?',
-                yes: { leaf: { id: 'leaf-p1-augmented', pattern: 'P1', template: 'T1', label: 'Augmented Merge Sort — track index and count during the merge step', exampleProblems: ['LC_315'] } },
-                no:  { leaf: { id: 'leaf-p1-array',     pattern: 'P1', template: 'T1', label: 'Merge Sort on Array — recursive split, merge into temp array, copy back',   exampleProblems: ['LC_912'] } }
-              }
-            }
-          }
-        },
-        no: {
-          node: {
-            id: 'partial-sort-check',
-            question: 'Do you need only the K-th element (not a fully sorted output)?',
-            yes: { leaf: { id: 'leaf-p5-t5', pattern: 'P5', template: 'T5', label: 'Quickselect — partition around pivot, recurse on ONE side only. O(n) expected.', exampleProblems: ['LC_215', 'LC_973'] } },
-            no: {
-              node: {
-                id: 'linear-sort-check',
-                question: 'Are the values bounded in a known range or sorting by frequency (not value)?',
-                yes: { leaf: { id: 'leaf-p6-t6', pattern: 'P6', template: 'T6', label: 'Bucket / Counting Sort — O(n + k). Bucket index encodes the sort key.', exampleProblems: ['LC_347', 'LC_164'] } },
-                no: {
-                  node: {
-                    id: 'interval-check',
-                    question: 'Does the input consist of intervals — pairs of (start, end) values?',
-                    yes: {
-                      node: {
-                        id: 'interval-goal-check',
-                        question: 'Are you MERGING overlapping intervals (not counting or removing)?',
-                        yes: { leaf: { id: 'leaf-p3-merge', pattern: 'P3', template: 'T3', label: 'Sort by START, greedy merge — expand last interval end when overlap found', exampleProblems: ['LC_56'] } },
-                        no:  { leaf: { id: 'leaf-p3-end',   pattern: 'P3', template: 'T3', label: 'Sort by END, greedy count — keep interval ending earliest, skip all overlapping ones', exampleProblems: ['LC_435', 'LC_452'] } }
-                      }
-                    },
-                    no: {
-                      node: {
-                        id: 'comparator-check',
-                        question: 'Is the sort comparison non-trivial — multi-key, string concatenation, or relative ranking?',
-                        yes: { leaf: { id: 'leaf-p2-t2', pattern: 'P2', template: 'T2', label: 'Custom Comparator — define a comparison function that encodes the non-obvious sort order', exampleProblems: ['LC_179', 'LC_937', 'LC_406'] } },
-                        no: {
-                          node: {
-                            id: 'enabler-check',
-                            question: 'Is sorting used purely as preprocessing — to enable grouping, hashing, or a linear scan?',
-                            yes: { leaf: { id: 'leaf-p4-t4', pattern: 'P4', template: 'T4', label: 'Sort as Enabler — sorted form creates canonical key or enables O(n) scan', exampleProblems: ['LC_49', 'LC_274'] } },
-                            no:  { leaf: { id: 'leaf-unknown', pattern: null, template: null, label: 'Sorting may not be the primary technique. Reconsider: (1) is this a two-pointers problem on a pre-sorted input? (2) can binary search apply after sorting? (3) is a heap more appropriate for streaming K-th element queries?' } }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    templates: [
-      {
-        id: 'T1', name: 'Merge Sort — Array and Linked List variants',
-        description: 'Divide-and-conquer: split array at mid, recursively sort both halves, merge the two sorted halves into a temp buffer and copy back. Guaranteed O(n log n) stable sort. For linked lists: find mid with fast/slow pointers, split by setting mid.next = null, recurse on both halves, merge in-place. For augmented merge sort (LC_315): during the merge step, when a right-half element is placed before remaining left-half elements, those elements each receive a count increment.',
-        code: '// --- Array Merge Sort ---\nfunction mergeSort(nums, left, right) {\n  if (left >= right) return;\n  const mid = left + Math.floor((right - left) / 2);\n  mergeSort(nums, left, mid);\n  mergeSort(nums, mid + 1, right);\n  mergeSortedHalves(nums, left, mid, right);\n}\n\nfunction mergeSortedHalves(nums, left, mid, right) {\n  const temp = [];\n  let i = left, j = mid + 1;\n  while (i <= mid && j <= right) {\n    if (nums[i] <= nums[j]) temp.push(nums[i++]); // <= keeps sort STABLE\n    else                    temp.push(nums[j++]);\n  }\n  while (i <= mid)   temp.push(nums[i++]);\n  while (j <= right) temp.push(nums[j++]);\n  for (let k = 0; k < temp.length; k++) nums[left + k] = temp[k];\n}\n// Call: mergeSort(nums, 0, nums.length - 1)\n\n// --- Linked List Merge Sort ---\nfunction sortList(head) {\n  if (!head || !head.next) return head;\n  let slow = head, fast = head.next;\n  while (fast && fast.next) { slow = slow.next; fast = fast.next.next; }\n  const rightHead = slow.next;\n  slow.next = null;\n  const left = sortList(head);\n  const right = sortList(rightHead);\n  return mergeTwoLists(left, right);\n}\n\nfunction mergeTwoLists(l1, l2) {\n  const dummy = { val: 0, next: null };\n  let curr = dummy;\n  while (l1 && l2) {\n    if (l1.val <= l2.val) { curr.next = l1; l1 = l1.next; }\n    else                  { curr.next = l2; l2 = l2.next; }\n    curr = curr.next;\n  }\n  curr.next = l1 ?? l2;\n  return dummy.next;\n}'
-      },
-      {
-        id: 'T2', name: 'Custom Comparator Sort',
-        description: 'Array.sort() accepts a comparator (a, b) => number. Return negative to place a before b; positive to place b before a. For multi-key sort: check primary key first; if equal, fall through to secondary key. For string concatenation comparator (LC_179): compare b+a against a+b as strings — this is a valid total order (transitivity holds). Always verify transitivity — an invalid comparator silently produces wrong results.',
-        code: '// --- Multi-key custom comparator (LC_937) ---\nfunction reorderLogFiles(logs) {\n  const isDigitLog = (log) => /\\d$/.test(log);\n  return logs.sort((a, b) => {\n    const aIsDigit = isDigitLog(a);\n    const bIsDigit = isDigitLog(b);\n    if (!aIsDigit && bIsDigit) return -1;\n    if (aIsDigit && !bIsDigit) return 1;\n    if (aIsDigit && bIsDigit)  return 0;\n    const [aId, ...aContent] = a.split(\' \');\n    const [bId, ...bContent] = b.split(\' \');\n    const contentCmp = aContent.join(\' \').localeCompare(bContent.join(\' \'));\n    if (contentCmp !== 0) return contentCmp;\n    return aId.localeCompare(bId);\n  });\n}\n\n// --- String concatenation comparator (LC_179: Largest Number) ---\nfunction largestNumber(nums) {\n  const strs = nums.map(String);\n  strs.sort((a, b) => (b + a).localeCompare(a + b));\n  if (strs[0] === \'0\') return \'0\';\n  return strs.join(\'\');\n}'
-      },
-      {
-        id: 'T3', name: 'Interval Sort + Greedy',
-        description: 'Sorting key determines the greedy strategy. MERGING overlapping intervals: sort by START — a later start can only extend the current merge window. MINIMIZING removals or counting intersections: sort by END — the interval ending earliest leaves the most room for future intervals. The greedy scan runs in O(n) after the O(n log n) sort. Never sort by start for removal/counting problems.',
-        code: '// --- Sort by START for merging (LC_56) ---\nfunction mergeIntervals(intervals) {\n  intervals.sort((a, b) => a[0] - b[0]);\n  const result = [intervals[0]];\n  for (let i = 1; i < intervals.length; i++) {\n    const last = result[result.length - 1];\n    if (intervals[i][0] <= last[1]) {\n      last[1] = Math.max(last[1], intervals[i][1]);\n    } else {\n      result.push([...intervals[i]]);\n    }\n  }\n  return result;\n}\n\n// --- Sort by END for minimum removal (LC_435) ---\nfunction eraseOverlapIntervals(intervals) {\n  intervals.sort((a, b) => a[1] - b[1]);\n  let removed = 0;\n  let prevEnd = intervals[0][1];\n  for (let i = 1; i < intervals.length; i++) {\n    if (intervals[i][0] < prevEnd) {\n      removed++;\n    } else {\n      prevEnd = intervals[i][1];\n    }\n  }\n  return removed;\n}'
-      },
-      {
-        id: 'T4', name: 'Sort as Enabler — Canonical Key or Linear Scan',
-        description: 'Sorting is a preprocessing step, not the final answer. KEY MODE: sort the characters of each element to produce a canonical hash key (anagrams share the same sorted string). SCAN MODE: sort by the relevant metric, then perform an O(n) scan (H-Index: sort citations descending, scan for the boundary). The sort is O(n log n); the value is in the O(n) step it enables.',
-        code: '// --- Key Mode: sorted characters as anagram group key (LC_49) ---\nfunction groupAnagrams(strs) {\n  const map = new Map();\n  for (const s of strs) {\n    const key = s.split(\'\').sort().join(\'\');\n    if (!map.has(key)) map.set(key, []);\n    map.get(key).push(s);\n  }\n  return [...map.values()];\n}\n\n// --- Scan Mode: sort enables O(n) boundary detection (LC_274: H-Index) ---\nfunction hIndex(citations) {\n  citations.sort((a, b) => b - a);\n  let h = 0;\n  for (let i = 0; i < citations.length; i++) {\n    if (citations[i] >= i + 1) h = i + 1;\n    else break;\n  }\n  return h;\n}'
-      },
-      {
-        id: 'T5', name: 'Quickselect — Partial Sort for K-th Element',
-        description: 'Partition the array around a pivot so all elements left of pivot are <= pivot and all right are >= pivot. The pivot lands at its final sorted position. If that position equals target (n - k for kth largest), return it. Otherwise recurse on ONLY ONE side. Expected O(n). ALWAYS use a random pivot to prevent O(n²) worst case on sorted input.',
-        code: 'function findKthLargest(nums, k) {\n  const target = nums.length - k;\n  let left = 0, right = nums.length - 1;\n  while (left <= right) {\n    const pivotPos = partition(nums, left, right);\n    if (pivotPos === target)     return nums[pivotPos];\n    else if (pivotPos < target)  left  = pivotPos + 1;\n    else                         right = pivotPos - 1;\n  }\n  return -1;\n}\n\nfunction partition(nums, left, right) {\n  const pivotIdx = left + Math.floor(Math.random() * (right - left + 1));\n  [nums[pivotIdx], nums[right]] = [nums[right], nums[pivotIdx]];\n  const pivot = nums[right];\n  let store = left;\n  for (let i = left; i < right; i++) {\n    if (nums[i] <= pivot) {\n      [nums[store], nums[i]] = [nums[i], nums[store]];\n      store++;\n    }\n  }\n  [nums[store], nums[right]] = [nums[right], nums[store]];\n  return store;\n}'
-      },
-      {
-        id: 'T6', name: 'Bucket Sort / Counting Sort (Linear Time)',
-        description: 'When the sort key is a bounded integer in range [0, k], use an array of k+1 buckets. Each element is assigned to a bucket by its key in O(1). Reading buckets in order reconstructs sorted sequence in O(n + k). For frequency bucket sort (LC_347): bucket index IS the frequency. For gap problems (LC_164): Pigeonhole proves the maximum gap must span an empty bucket — only check adjacent non-empty buckets.',
-        code: '// --- Frequency Bucket Sort (LC_347: Top K Frequent Elements) ---\nfunction topKFrequent(nums, k) {\n  const freq = new Map();\n  for (const n of nums) freq.set(n, (freq.get(n) ?? 0) + 1);\n  // Bucket index IS the frequency (max freq = nums.length)\n  const buckets = Array.from({ length: nums.length + 1 }, () => []);\n  for (const [num, count] of freq) buckets[count].push(num);\n  const result = [];\n  for (let i = buckets.length - 1; i >= 1 && result.length < k; i--) {\n    result.push(...buckets[i]);\n  }\n  return result.slice(0, k);\n}\n\n// --- Key insight for LC_164 (Maximum Gap) ---\n// n elements in [min, max] across n-1 buckets → at least one bucket empty (Pigeonhole).\n// Max gap CANNOT be within a single bucket — must cross an empty bucket.\n// Track each bucket min/max only; compare adjacent non-empty buckets.'
-      }
-    ],
     patterns: [
       {
         id: 'P1', name: 'Merge Sort Internals',
+        analogy: 'Organising a messy library by first splitting every book into individual piles of one, then repeatedly merging neighbouring piles by always taking the book with the smaller title from whichever top-of-pile. The splitting phase is trivial and free; all the intelligence lives in the merge step.',
+        approach: '1) Recursively split at mid until size=1 (base case). 2) Merge two sorted halves into a temp buffer by repeatedly picking the smaller head. Use <= for stability. 3) Copy temp back into original array. Linked list variant: fast/slow to find mid, sever with mid.next=null, recurse, merge in-place.',
         recognitionSignals: [
           'Problem explicitly asks you to implement a sorting algorithm',
           'Input is a linked list — no random access, merge sort is the only O(n log n) option',
           'Need to COUNT something that happens during the sort (inversions, smaller elements to the right)'
         ],
         mentalModel: 'Split at the midpoint. Recursively sort both halves. Merge by picking the smaller head each time into a temp buffer. For linked lists: fast/slow to find mid, sever the list, recurse, merge in-place. For augmented counting: when a right-half element is placed before left-half elements during merge, each remaining left-half element\'s count increases by 1.',
+        gotchas: [
+          'Use <= (not <) in the merge comparison to keep the sort STABLE — equal elements from the left half appear before those from the right half. This matters for problems requiring stable sort and for LC_315 counting correctness.',
+          'Do NOT try in-place merge (rotating elements). Every element shift is O(n), making in-place merge O(n²) per level — worse than just sorting again. Always merge into a separate temp buffer.',
+          'For LC_148 (Sort List): start fast at head.next, NOT head. Starting fast at head makes slow land on the SECOND middle for even-length lists, causing infinite recursion on two-element inputs.'
+        ],
+        insights: [
+          'LC_315 (Count of Smaller Numbers After Self): when a right-half element is merged BEFORE remaining left-half elements, each of those left-half elements gains one count (a smaller number originally to their right was just processed). Augmenting the merge to track this is what makes the problem O(n log n) instead of O(n²).',
+          'Merge sort is the ONLY O(n log n) sort on linked lists. Quicksort requires random access (swapping arbitrary indices); heapsort requires a complete array representation. For any linked-list sort question, merge sort is the only professional answer.'
+        ],
         keyQuestion: 'What additional information needs to be tracked DURING the merge step?',
-        questionIds: ['LC_912', 'LC_148', 'LC_315']
+        questionIds: ['LC_912', 'LC_148', 'LC_315', 'LC_493']
       },
       {
         id: 'P2', name: 'Custom Comparator',
+        analogy: 'A pie contest where "bigger pie" is not the judging rule — the rule is "which pie would I prefer to eat first?" You define that preference as a function. Any valid sort only needs your comparator to be consistent: if A beats B and B beats C, then A must beat C (transitivity). Violate transitivity and the sort output is implementation-defined garbage.',
+        approach: 'arr.sort((a, b) => result). Result < 0: a before b. Result > 0: b before a. Result === 0: tie. For multi-key: cascade through keys with early non-zero returns. For string concatenation order: compare (b+a) vs (a+b) as strings using localeCompare.',
         recognitionSignals: [
           'The natural sort order does not produce the required ordering',
           'Sort requires multiple keys (primary + secondary + ...)',
           'Sort key involves string operations — concatenation, lexicographic with exclusions'
         ],
         mentalModel: 'Define a comparison function (a, b) => number. Negative means a before b. Positive means b before a. For multi-key: cascade through keys with early returns. For string concatenation: compare b+a vs a+b as string lexicographic — this forms a valid transitive total order. ALWAYS verify transitivity on paper before an interview; an invalid comparator silently produces wrong results.',
-        keyQuestion: 'What is the exact rule that determines when a should appear before b? Can I express that as a numeric return value?',
+        gotchas: [
+          'String concatenation comparator (LC_179 Largest Number): (b+a).localeCompare(a+b) is correct. But you MUST be able to prove transitivity on the spot: if a+b > b+a and b+c > c+b, then a+c > c+a. State this proof before coding — interviewers score it as a separate signal.',
+          'After sorting for LC_179: check if strs[0] === "0" — if so return "0" not "000...0". The all-zeros edge case is the most missed final check.',
+          'JavaScript Array.sort() is stable in V8 (Node 11+). Returning 0 for equal elements preserves their original relative order — which is exactly what LC_937 (Reorder Log Files) requires for digit logs.'
+        ],
+        insights: [
+          'Multi-key sort (LC_937) works as a priority hierarchy: the outer condition (type check) dominates every inner condition (content, identifier). Think of it as three concentric if-else levels. The outer level takes priority; equal outer values fall through to the next level.',
+          'The concatenation comparator for LC_179 is the canonical example of "natural comparison fails completely." Comparing by value gives [9,30,56]. Comparing by string gives [9,3,56]. The concatenation comparator gives [9,56,3] which joins as "9563" — the correct answer.'
+        ],
+        keyQuestion: 'What is the exact rule determining when a should appear before b? Can I express that as a numeric return value?',
         questionIds: ['LC_179', 'LC_937', 'LC_406']
       },
       {
         id: 'P3', name: 'Interval Sort + Greedy',
+        analogy: 'Scheduling lectures in a single classroom. To fit AS MANY classes as possible, always book the class that finishes EARLIEST — it frees the room for the next class sooner than any other choice. This is sort-by-END. If you are painting the wall in continuous strokes, you need to know where the previous stroke ended — sort-by-START.',
+        approach: 'MERGING: sort by start. For each interval: if it overlaps the last merged interval (start <= last.end), extend last.end = Math.max(last.end, current.end). Otherwise add a new entry. NON-OVERLAPPING / GREEDY: sort by end. Keep a prevEnd pointer. If current.start < prevEnd: skip (overlap). Otherwise keep it and update prevEnd.',
         recognitionSignals: [
           'Input is a set of intervals (pairs of start and end values)',
           'Goal involves merging, counting overlaps, or minimizing removal of overlapping intervals',
           'A sweep from left to right after sorting becomes a simple O(n) scan'
         ],
         mentalModel: 'The sort key determines the greedy strategy. Sort by START when merging — a new interval can only extend the current one. Sort by END when minimizing removals — always keeping the interval ending soonest is optimal by greedy exchange argument. Sorting by start for removal problems is a common wrong approach that produces incorrect greedy decisions.',
+        gotchas: [
+          'Sort by START for merging. Sort by END for non-overlapping/minimum removal. These are OPPOSITE keys — using start when you need end or vice versa gives a wrong greedy strategy that produces wrong answers on small but non-trivial inputs.',
+          'LC_56 (Merge Intervals): always take Math.max(last[1], intervals[i][1]) for the new end. A new interval might be entirely contained inside the last merged interval — in that case the end should NOT change to the smaller value.',
+          'LC_452 (Minimum Arrows): overlap uses strict > not >=. Intervals touching at a single point ([1,2] and [2,3]) CAN be burst with one arrow at x=2. Using >= incorrectly requires two arrows.'
+        ],
+        insights: [
+          'Greedy exchange argument for sort-by-end: any solution that removes an interval ending LATER in a conflict is at least as good as removing the one ending EARLIER. Why? The earlier-ending interval leaves more room for future intervals — swapping can only improve or maintain the count.',
+          'LC_435 (Non-overlapping) and LC_452 (Arrows) are the SAME problem in disguise — both sort by end, greedy sweep. The only code difference is the overlap condition: < vs <=. Recognising this connection halves your preparation time.'
+        ],
         keyQuestion: 'Am I merging (sort by start) or minimizing/counting (sort by end)?',
         questionIds: ['LC_56', 'LC_435', 'LC_452', 'LC_57', 'LC_253']
       },
       {
         id: 'P4', name: 'Sort as Enabler',
+        analogy: 'The Dewey Decimal System at a library. Sorting books creates canonical addresses for every subject — all books on the same topic end up together. You never compare books against each other (that would be O(n²)); sorting gives you the canonical key in O(n log n) and a single O(n) scan finds any boundary.',
+        approach: 'KEY MODE: sort the characters/digits of each element — all anagrams share the same sorted-string key, use it as a hash map key. SCAN MODE: sort by the relevant metric, then one linear scan finds the first boundary violation. The sort is O(n log n); the value is in the O(n) step it unlocks.',
         recognitionSignals: [
           'Grouping elements that are equivalent under some transformation',
           'Sorting by a computed metric enables a single O(n) boundary scan',
           'The answer cannot be directly computed but becomes obvious once the array is in sorted order'
         ],
-        mentalModel: 'Two sub-modes: KEY MODE — sort the internal characters/digits of each element to produce a canonical key for hashing (all anagrams map to the same sorted string). SCAN MODE — sort by the relevant metric, then scan linearly for the first boundary violation. The sort does the heavy work so the scan only needs O(n).',
+        mentalModel: 'Two sub-modes: KEY MODE — sort the characters/digits of each element to produce a canonical hash key (anagrams share the same sorted string). SCAN MODE — sort by the relevant metric, then scan linearly for the first boundary violation. The sort does the heavy work so the scan only needs O(n).',
+        gotchas: [
+          'For alternate anagram key (frequency array): convert counts to string with a separator like counts.join("#"). The "#" separator prevents key collisions from different frequency distributions that happen to share the same digit string.',
+          'H-Index (LC_274): return h at the END of the loop, not just i. If the entire array satisfies citations[i] >= i+1 with no break, h-index is n. Missing this full-loop case incorrectly returns 0.',
+          'Key mode vs scan mode: if you are GROUPING elements by equivalence under a transform — key mode. If you are finding the FIRST position where a sorted sequence violates a boundary — scan mode.'
+        ],
+        insights: [
+          'Sorting to create a canonical key appears everywhere: anagram grouping, isomorphic strings, finding duplicate files by content hash. "These items are the same under some transformation" → sort the transformation result.',
+          'H-Index is a sort-scan problem that LOOKS like a binary search problem. A linear scan after descending sort in O(n) is identical in complexity to binary search in O(log n) after the sort — scan is simpler to reason about and to code correctly.'
+        ],
         keyQuestion: 'Is sorting creating a canonical key (key mode) or enabling a linear boundary scan (scan mode)?',
         questionIds: ['LC_49', 'LC_274']
       },
       {
         id: 'P5', name: 'Quickselect — Partial Sort',
+        analogy: 'Finding the median of a class by only grading half the students. Partition students into "definitely above median" and "definitely below median" based on one grade threshold. Recurse ONLY into the partition containing the median. You never fully sort the class — just narrow down where the median sits.',
+        approach: '1) Random pivot (MANDATORY — see gotchas). 2) Partition: all elements <= pivot go left, > pivot go right, pivot lands at its final sorted index pivotPos. 3) If pivotPos === target: return nums[pivotPos]. 4) If pivotPos < target: recurse right [pivotPos+1..right]. 5) If pivotPos > target: recurse left [left..pivotPos-1].',
         recognitionSignals: [
           'Find the k-th largest or smallest element — full sort is not required',
           'Find k elements closest to a target or origin — exact order among those k does not matter',
           'O(n) expected time is required — O(n log n) full sort is acceptable but interviewer may ask for better'
         ],
         mentalModel: 'Partition around a random pivot. Pivot lands at its final sorted position. If that position equals the target index, return. Otherwise recurse on ONLY ONE side. Expected O(n) because each partition eliminates ~half the array on average. Random pivot is mandatory — without it, O(n²) worst case on sorted input makes the approach worse than full sort.',
+        gotchas: [
+          'Random pivot is NOT optional. On sorted input, a fixed pivot (always leftmost or rightmost) causes pivotPos === left on every call → O(n²) total. State "I use a random pivot to avoid O(n²) worst case" verbally before writing a single line.',
+          'Target index for k-th LARGEST is (n - k) in 0-indexed terms. E.g., 1st largest is index n-1, 2nd largest is n-2. Map the problem to index BEFORE entering the loop.',
+          'Quickselect MODIFIES the input array in-place. If the problem requires input to be preserved, use a min-heap of size k instead — O(n log k) time, O(k) space, non-destructive.'
+        ],
+        insights: [
+          'The expected runtime is O(n): each partition eliminates roughly half the remaining elements. Total work is n + n/2 + n/4 + ... which is a geometric series summing to 2n — O(n). The random pivot is what makes the "roughly half" expectation hold.',
+          'Quickselect and binary search are algorithmic cousins: both eliminate half the search space per step. Binary search works on SORTED data (deterministic elimination). Quickselect works on UNSORTED data (probabilistic elimination via the partition step).'
+        ],
         keyQuestion: 'What is the target index (n-k for kth largest)? After partition, is the pivot to the left or right of target?',
         questionIds: ['LC_215', 'LC_973']
       },
       {
         id: 'P6', name: 'Linear-Time Sort — Bucket / Counting',
+        analogy: 'Sorting mail at a post office by ZIP code. Instead of comparing letters against each other (comparison sort, O(n log n)), each letter drops directly into its ZIP code bin in O(1). Reading all bins in order is the sorted sequence. Empty bins are informative too — a gap in ZIP codes means the maximum gap between addresses MUST span that empty bin.',
+        approach: 'COUNTING SORT: bucket index = value - min. Place each element in O(1). Read in order. FREQUENCY BUCKET (LC_347): bucket index IS the frequency. Create n+1 buckets, place elements by frequency, read from high to low. GAP PROBLEM (LC_164): bucketSize = ceil((max-min)/(n-1)). Track each bucket\'s min and max only. Compare adjacent non-empty buckets.',
         recognitionSignals: [
           'Values or frequencies are bounded in a known range [0, k]',
           'Comparison-based O(n log n) sort is explicitly or implicitly too slow',
           'Maximum gap or spread problem — Pigeonhole principle suggests empty buckets exist'
         ],
         mentalModel: 'Assign each element to a bucket by its bounded key. Each assignment is O(1). Reading all buckets in order is O(n + k). For frequency bucket sort: bucket index IS the frequency value. For gap problems: Pigeonhole guarantees the max gap spans an empty bucket — only adjacent non-empty bucket boundaries need to be compared.',
-        keyQuestion: 'What is the bucket index formula? What does each bucket store? What is the range k?',
+        gotchas: [
+          'Create n+1 buckets for frequency (indices 0 through n inclusive). Maximum possible frequency is n (all elements identical). Using exactly n buckets misses the case where frequency = n — an off-by-one that causes an array index out of bounds.',
+          'LC_164 (Maximum Gap): if max === min, return 0 BEFORE computing bucketSize. Computing ceil(0/(n-1)) = 0 causes division by zero; guard against it explicitly.',
+          'Negative numbers in JavaScript: Math.floor(-0.5) === -1 (rounds toward -Infinity). Bucket index formulas that use Math.floor can give wrong bucket assignments for negative values. For LC_220 specifically, handle negatives with a corrected formula.'
+        ],
+        insights: [
+          'Bucket sort escapes the O(n log n) lower bound for comparison-based sorts because it uses VALUE as the array index — zero comparisons needed. Information theory says comparison sorts need at least n log n comparisons; bucket sort uses direct addressing instead.',
+          'Pigeonhole for LC_164: n elements placed into only n-1 buckets means at least one bucket is ALWAYS empty. Therefore the maximum gap CANNOT be between two elements in the same bucket — it must cross an empty bucket. You only need each bucket\'s min and max; inner bucket values are irrelevant.'
+        ],
+        keyQuestion: 'What is the bucket index formula? What does each bucket store? What is the bounded range k?',
         questionIds: ['LC_347', 'LC_164', 'LC_220']
       }
     ],
@@ -947,7 +713,8 @@ const TOPIC_MODULES = {
       'LC_973': { leetcode: 973, title: 'K Closest Points to Origin', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/k-closest-points-to-origin/', templateRefs: ['T5'], tags: ['sorting','quickselect','heap','array','divide-and-conquer'], alternateApproaches: [{ technique: 'heap', moduleRef: 'heap', tradeoff: 'Max-heap of size k: if current distance < heap max, pop max and push current. O(n log k) — preferred when k is small and input must not be modified.', complexity: 'O(n log k) time, O(k) space' }, { technique: 'sorting', moduleRef: null, tradeoff: 'Sort all points by distance, return first k. O(n log n) — acceptable for small n but suboptimal.', complexity: 'O(n log n) time, O(1) space' }], keyInsight: 'Quickselect on squared Euclidean distance (avoid sqrt). Target index is k-1. After partitioning, return ALL elements from 0 to k-1 — not necessarily in sorted order, but that is not required.', shrinkTrigger: 'Distance comparator: compare x*x + y*y of pivot against each element. Recurse on the side containing index k-1.', timeComplexity: 'O(n) expected', spaceComplexity: 'O(1) excluding output', gotcha: 'Compare squared distances (x*x + y*y) to avoid floating-point sqrt errors. The k elements in [0..k-1] are in any order — add a sort if ordered output is required.', faangNote: '\'I use quickselect with squared Euclidean distance — same technique as Kth Largest, targeting index k-1 instead of n-k.\' Recognizing this pattern connection is the mastery signal.' },
       'LC_347': { leetcode: 347, title: 'Top K Frequent Elements', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/top-k-frequent-elements/', templateRefs: ['T6'], tags: ['sorting','bucket-sort','hash-map','heap','array'], alternateApproaches: [{ technique: 'heap', moduleRef: 'heap', tradeoff: 'Min-heap of size k tracking (frequency, element) pairs. O(n log k) time, O(n + k) space. Better when k is small. Bucket sort is O(n) but requires O(n) bucket space.', complexity: 'O(n log k) time, O(n + k) space' }, { technique: 'sorting', moduleRef: null, tradeoff: 'Count frequencies with a map, sort by frequency descending, return first k. O(n log n) — dominated by O(n) bucket sort.', complexity: 'O(n log n) time, O(n) space' }], keyInsight: 'Bucket index IS the frequency. Create n+1 buckets (index 0 unused, max frequency = n). Place each element into the bucket matching its frequency. Scan from high index to low, collect elements until k are gathered.', shrinkTrigger: null, timeComplexity: 'O(n) — counting and bucket assignment each O(n), scan O(n)', spaceComplexity: 'O(n) — frequency map and buckets', gotcha: 'Create n+1 buckets (indices 0 to n inclusive). Maximum possible frequency is n (all elements identical). Using n buckets misses frequency = n — off-by-one produces array-out-of-bounds.', faangNote: 'The O(n) bucket sort solution signals mastery. Know both bucket sort and heap and state the trade-off.' },
       'LC_164': { leetcode: 164, title: 'Maximum Gap', difficulty: 'Hard', difficultyRank: 3, link: 'https://leetcode.com/problems/maximum-gap/', templateRefs: ['T6'], tags: ['sorting','bucket-sort','array'], alternateApproaches: [{ technique: 'sorting', moduleRef: null, tradeoff: 'Comparison-based sort then scan adjacent pairs. O(n log n) — fails the O(n) time requirement. This is the suboptimal solution the problem is designed to rule out.', complexity: 'O(n log n) time, O(1) space' }], keyInsight: 'Pigeonhole principle: n elements in range [min, max] placed into n-1 buckets means at least one bucket is empty. The maximum gap CANNOT be between two elements in the same bucket — must cross an empty bucket. Compare each bucket min against the previous non-empty bucket max.', shrinkTrigger: 'Bucket index: Math.floor((num - min) / bucketSize) where bucketSize = Math.ceil((max - min) / (n - 1)). Track each bucket\'s min and max only.', timeComplexity: 'O(n) — bucket assignment and scan each O(n)', spaceComplexity: 'O(n) — n-1 buckets', gotcha: 'If all elements are equal (max === min), return 0 before computing bucketSize. Division by zero occurs: bucketSize = ceil(0 / (n-1)) = 0.', faangNote: '\'With n elements across n-1 buckets, at least one bucket is empty by Pigeonhole. The max gap must cross an empty bucket — track each bucket\'s min and max only.\' The Pigeonhole argument IS the interview.' },
-      'LC_220': { leetcode: 220, title: 'Contains Duplicate III', difficulty: 'Hard', templateRefs: ['T6'], tags: ['sorting','bucket-sort','sliding-window','array','hash-map'], keyInsight: 'Create buckets of size t+1. Element x maps to bucket id = floor(x/(t+1)). Two elements in the same bucket are guaranteed within t of each other. Also check left and right adjacent buckets with one comparison each. Maintain at most k active buckets — delete the bucket of the outgoing element on every window slide.', shrinkTrigger: 'Window slide: when i >= k, delete bucket of nums[i-k]. Check new element: same bucket exists, OR left bucket has element with |diff| <= t, OR right bucket has element with |diff| <= t.', timeComplexity: 'O(n) — each element inserted and deleted at most once', spaceComplexity: 'O(min(n, k)) — at most k active buckets', gotcha: 'JavaScript Math.floor on negative numbers rounds toward -Infinity. Use: id = x >= 0 ? Math.floor(x / (t+1)) : Math.floor((x + 1) / (t + 1)) - 1. Without this fix, negative values get wrong bucket ids and the same-bucket guarantee breaks.', faangNote: 'Know both approaches: bucket sort O(n) and sorted-set O(n log k). The interview signal: "Bucket sort maps VALUE proximity to ARRAY INDEX equality — two elements in the same bucket are automatically within t, no explicit comparison needed. Adjacent buckets still need one comparison each." The zero-comparison property for same-bucket elements is the O(n) insight.', alternateApproaches: [{ technique: 'sorted-set', tradeoff: 'Maintain a sorted window of k most recent elements. For each new element x, binary search for any element in [x-t, x+t]. O(n log k) time, O(k) space. Simpler to reason about but requires a BST sorted set not native to JavaScript.', complexity: 'O(n log k) time, O(k) space' }], link: 'https://leetcode.com/problems/contains-duplicate-iii/' }
+      'LC_220': { leetcode: 220, title: 'Contains Duplicate III', difficulty: 'Hard', templateRefs: ['T6'], tags: ['sorting','bucket-sort','sliding-window','array','hash-map'], keyInsight: 'Create buckets of size t+1. Element x maps to bucket id = floor(x/(t+1)). Two elements in the same bucket are guaranteed within t of each other. Also check left and right adjacent buckets with one comparison each. Maintain at most k active buckets — delete the bucket of the outgoing element on every window slide.', shrinkTrigger: 'Window slide: when i >= k, delete bucket of nums[i-k]. Check new element: same bucket exists, OR left bucket has element with |diff| <= t, OR right bucket has element with |diff| <= t.', timeComplexity: 'O(n) — each element inserted and deleted at most once', spaceComplexity: 'O(min(n, k)) — at most k active buckets', gotcha: 'JavaScript Math.floor on negative numbers rounds toward -Infinity. Use: id = x >= 0 ? Math.floor(x / (t+1)) : Math.floor((x + 1) / (t + 1)) - 1. Without this fix, negative values get wrong bucket ids and the same-bucket guarantee breaks.', faangNote: 'Know both approaches: bucket sort O(n) and sorted-set O(n log k). The interview signal: "Bucket sort maps VALUE proximity to ARRAY INDEX equality — two elements in the same bucket are automatically within t, no explicit comparison needed. Adjacent buckets still need one comparison each." The zero-comparison property for same-bucket elements is the O(n) insight.', alternateApproaches: [{ technique: 'sorted-set', tradeoff: 'Maintain a sorted window of k most recent elements. For each new element x, binary search for any element in [x-t, x+t]. O(n log k) time, O(k) space. Simpler to reason about but requires a BST sorted set not native to JavaScript.', complexity: 'O(n log k) time, O(k) space' }], link: 'https://leetcode.com/problems/contains-duplicate-iii/' },
+      'LC_493':  { leetcode: 493,  title: 'Reverse Pairs',                                         difficulty: 'Hard',   templateRefs: ['T1'], tags: ['sorting','merge-sort','inversion-count','divide-and-conquer','array','binary-search'], keyInsight: 'Augmented merge sort with two SEPARATE phases per merge step: (1) COUNT — while both halves are still sorted, use a two-pointer to count i-j pairs where nums[i] > 2 * nums[j] (left i position, right j position). (2) MERGE normally with <= for stability. The phases must be separate because the 2x condition and sort-order condition fire at different thresholds.', shrinkTrigger: 'Count phase: for each i in [left..mid], advance r from mid+1 while nums[i] > 2 * nums[r]; count += r - (mid+1). Then merge phase: standard merge into temp buffer with the <= comparison.', timeComplexity: 'O(n log n)', spaceComplexity: 'O(n) — temp buffer', gotcha: 'Do NOT count and merge simultaneously (unlike LC_315). Merging rearranges elements so the 2x condition and the sort-order condition would fire at different times — counting inline produces double-counts or missed pairs. Count first while both halves are sorted, then merge.', faangNote: 'LC_315 teaches the augmented merge sort template. LC_493 tests whether you understand WHY it works — the 2x multiplier breaks the LC_315 inline-count trick and forces the two-phase approach. If LC_315 felt like following a recipe, LC_493 forces re-derivation.', alternateApproaches: [{ technique: 'binary-search', tradeoff: 'Binary indexed tree (Fenwick tree) with coordinate compression. O(n log n) same asymptotic but requires implementing a BIT — augmented merge sort reuses the T1 template directly.', complexity: 'O(n log n) time, O(n) space' }], link: 'https://leetcode.com/problems/reverse-pairs/' },
     }
   }
   ,
@@ -957,136 +724,93 @@ const TOPIC_MODULES = {
     relatedTopics: ['sorting', 'binary-search', 'greedy'],
     tagRegistry: ['heap','min-heap','max-heap','priority-queue','top-k','k-way-merge','two-heaps','median','greedy','lazy-expansion','streaming','scheduling','array','string','linked-list','matrix','sliding-window','hash-map','sorting','binary-search'],
     techniqueRegistry: ['heap','greedy','sorting','two-pointers','sliding-window','binary-search','hash-map'],
-    interviewTips: [
-      'State min or max heap and WHY in one sentence before coding. \'I need a min-heap of size k because the heap top is always the k-th largest — anything smaller gets ejected.\' That sentence is its own scoring signal.',
-      'JavaScript has no built-in heap. In an interview: (1) implement MinHeap from T1 in 3 minutes, or (2) ask \'Can I assume a PriorityQueue exists?\' and declare its interface. Clarify before starting — never assume silently.',
-      'LC_295 (Median from Stream): articulate BOTH invariants before writing a single line — (1) lower.top ≤ upper.top, (2) |lower.size − upper.size| ≤ 1. Missing either produces wrong medians. Interviewers explicitly probe both.',
-      'LC_480 (Sliding Window Median): the term to name is lazy deletion. Say: \'Heaps have no O(log n) arbitrary removal. I mark evicted elements in a deleteMap and discard them lazily when they surface as the heap top.\' Full explanation before the code.',
-      'LC_1642 (Furthest Building) regret-based greedy: \'I assign ladders optimistically to every climb. When ladders run out, I swap the cheapest past ladder-use for bricks via the min-heap — retroactively fixing the most affordable mistake.\' Say the strategy before writing code.',
-      "When alternateApproaches lists bucket sort vs heap (e.g. LC_347): say 'Bucket sort is O(n) here because frequency is bounded by array length. Heap is O(n log k) but generalises to any ranked collection — I lead with heap unless O(n) is explicitly required.'"
-    ],
-
-    whenToUse: {
-      use: [
-        'You need repeated access to the MINIMUM or MAXIMUM of a dynamic set — heap gives O(log n) insert and O(1) peek, O(log n) extract. Sorting once is O(n log n) but does not handle dynamic insertions.',
-        'Problem involves maintaining the TOP K elements from a stream or large array — min-heap of size k ejects the smallest on every overflow, keeping exactly the k largest at all times.',
-        'You need to MERGE K sorted sequences and extract elements in global sorted order — K-way merge with a heap gives O(n log k) vs O(nk) naive.',
-        'Problem requires a RUNNING MEDIAN or partitioning a dynamic stream into two balanced halves — two-heap pattern (max-heap lower half + min-heap upper half) gives O(log n) insert and O(1) median.'
-      ],
-      avoid: [
-        'You need the kth element from a STATIC array and O(n) time is acceptable — quickselect is strictly better (O(n) expected, O(1) space). Heap is O(n log k) and uses O(k) space.',
-        'All elements are known UPFRONT and you only need the top k once — sort descending and take the first k. O(n log n) sort is simpler than heap management when no streaming is needed.',
-        'You need to DELETE an ARBITRARY element efficiently — heaps only support O(1) delete of the top. Arbitrary deletion is O(n) unless you use lazy deletion (mark + skip). For frequent arbitrary deletes, consider a balanced BST.',
-        'Problem requires the EXACT sorted order of all elements — heap only guarantees the top is optimal. For full sorted output use merge sort O(n log n). Extracting all n elements from a heap is O(n log n) — same as sorting but with more overhead.'
-      ]
-    },
-    decisionTree: {
-      description: 'Walk this tree before writing any code. Every heap pattern uses a different heap structure — wrong choice produces wrong complexity or incorrect results.',
-      node: {
-        id: 'root',
-        question: 'Do you need a RUNNING MEDIAN or must you efficiently partition a dynamic stream into two equal halves?',
-        yes: { leaf: { id: 'leaf-p3-t4', pattern: 'P3', template: 'T4', label: 'Two Heaps — max-heap for lower half, min-heap for upper half, balance after each insert', exampleProblems: ['LC_295', 'LC_480'] } },
-        no: {
-          node: {
-            id: 'kway-check',
-            question: 'Are there MULTIPLE SORTED SEQUENCES (lists, arrays, matrix rows) to merge or extract the global minimum from?',
-            yes: { leaf: { id: 'leaf-p2-t3', pattern: 'P2', template: 'T3', label: 'K-Way Merge — push one element per sorted source into a min-heap, always pop global min and push its successor', exampleProblems: ['LC_23', 'LC_378', 'LC_632'] } },
-            no: {
-              node: {
-                id: 'greedy-check',
-                question: 'Is the problem about SCHEDULING, REORGANIZING, or making greedy choices where the globally most frequent or largest remaining element determines the next step?',
-                yes: { leaf: { id: 'leaf-p4-t5', pattern: 'P4', template: 'T5', label: 'Greedy + Max Heap — always process the highest-frequency or highest-value element next. Use a cooldown queue if re-insertion is delayed.', exampleProblems: ['LC_767', 'LC_621', 'LC_1642'] } },
-                no: {
-                  node: {
-                    id: 'topk-check',
-                    question: 'Are you finding the K-TH element or maintaining the TOP K elements from a stream or large array?',
-                    yes: {
-                      node: {
-                        id: 'topk-lazy-check',
-                        question: 'Are candidates generated lazily — new candidates depend on previously extracted minimums (not all candidates known upfront)?',
-                        yes: { leaf: { id: 'leaf-p1-lazy',  pattern: 'P1', template: 'T2', label: 'Top K with Lazy Expansion — push seed elements, pop minimum, push its neighbours', exampleProblems: ['LC_373'] } },
-                        no:  { leaf: { id: 'leaf-p1-mink',  pattern: 'P1', template: 'T2', label: 'Top K with Min-Heap of Size K — maintain a min-heap; eject smallest when size exceeds K', exampleProblems: ['LC_703', 'LC_215', 'LC_347'] } }
-                      }
-                    },
-                    no: { leaf: { id: 'leaf-unknown', pattern: null, template: null, label: 'Heap may not be the primary technique. Reconsider: (1) is this a sorting problem? (2) is this a monotonic stack/deque problem? (3) is O(n log n) acceptable — if so, sorting may be simpler.' } }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    templates: [
-      {
-        id: 'T1', name: 'MinHeap — Generic Implementation',
-        description: 'JavaScript and TypeScript have no built-in heap. This MinHeap accepts a comparator so it can serve as both a min-heap and a max-heap (negate the comparator). bubbleUp runs after push; sinkDown runs after pop. Both are O(log n). Comparator contract: return negative if a should be at the top (extracted first), positive if b should be at the top.',
-        code: 'class MinHeap {\n  constructor(comparator) {\n    this.heap = [];\n    this.comparator = comparator;\n  }\n\n  push(val) {\n    this.heap.push(val);\n    this._bubbleUp(this.heap.length - 1);\n  }\n\n  pop() {\n    if (this.heap.length === 0) return undefined;\n    const top = this.heap[0];\n    const last = this.heap.pop();\n    if (this.heap.length > 0) {\n      this.heap[0] = last;\n      this._sinkDown(0);\n    }\n    return top;\n  }\n\n  peek()    { return this.heap[0]; }\n  size()    { return this.heap.length; }\n  isEmpty() { return this.heap.length === 0; }\n\n  _bubbleUp(i) {\n    while (i > 0) {\n      const parent = Math.floor((i - 1) / 2);\n      if (this.comparator(this.heap[i], this.heap[parent]) < 0) {\n        [this.heap[i], this.heap[parent]] = [this.heap[parent], this.heap[i]];\n        i = parent;\n      } else break;\n    }\n  }\n\n  _sinkDown(i) {\n    const n = this.heap.length;\n    while (true) {\n      let best = i;\n      const left  = 2 * i + 1;\n      const right = 2 * i + 2;\n      if (left  < n && this.comparator(this.heap[left],  this.heap[best]) < 0) best = left;\n      if (right < n && this.comparator(this.heap[right], this.heap[best]) < 0) best = right;\n      if (best === i) break;\n      [this.heap[i], this.heap[best]] = [this.heap[best], this.heap[i]];\n      i = best;\n    }\n  }\n}\n\n// Min-heap by value:  new MinHeap((a, b) => a - b)\n// Max-heap by value:  new MinHeap((a, b) => b - a)\n// Min-heap by .freq:  new MinHeap((a, b) => a.freq - b.freq)'
-      },
-      {
-        id: 'T2', name: 'Top K Pattern — Min-Heap of Size K',
-        description: 'Maintain a min-heap of EXACTLY K elements. The heap top is always the K-th largest seen so far. For each new element: push it; if heap size exceeds K, pop the minimum. For LAZY EXPANSION (candidates generated dynamically): push only seed elements initially, then after each pop push that element\'s valid neighbours.',
-        code: '// --- Standard Top K: min-heap of size K ---\nfunction findKthLargest(nums, k) {\n  const minHeap = new MinHeap((a, b) => a - b);\n  for (const num of nums) {\n    minHeap.push(num);\n    if (minHeap.size() > k) minHeap.pop();\n  }\n  return minHeap.peek(); // K-th largest\n}\n\n// --- Lazy Expansion: push neighbours on pop (LC_373) ---\nfunction kSmallestPairs(nums1, nums2, k) {\n  if (!nums1.length || !nums2.length) return [];\n  // Seed: first column of the implicit sum grid\n  const minHeap = new MinHeap((a, b) => a[0] - b[0]); // [sum, i, j]\n  for (let i = 0; i < Math.min(nums1.length, k); i++) {\n    minHeap.push([nums1[i] + nums2[0], i, 0]);\n  }\n  const result = [];\n  while (result.length < k && !minHeap.isEmpty()) {\n    const [, i, j] = minHeap.pop();\n    result.push([nums1[i], nums2[j]]);\n    if (j + 1 < nums2.length) minHeap.push([nums1[i] + nums2[j + 1], i, j + 1]);\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T3', name: 'K-Way Merge',
-        description: 'Given K sorted sequences, maintain a min-heap with exactly one element per sequence — always the current minimum of that sequence. Pop the global minimum; push its successor from the same sequence. Total complexity O(n log K) where n = total elements.',
-        code: '// --- K-Way Merge on Linked Lists (LC_23) ---\nfunction mergeKLists(lists) {\n  // [value, listIndex, node]\n  const minHeap = new MinHeap((a, b) => a[0] - b[0]);\n  for (let i = 0; i < lists.length; i++) {\n    if (lists[i]) minHeap.push([lists[i].val, i, lists[i]]);\n  }\n  const dummy = { val: 0, next: null };\n  let curr = dummy;\n  while (!minHeap.isEmpty()) {\n    const [, , node] = minHeap.pop();\n    curr.next = node;\n    curr = curr.next;\n    if (node.next) minHeap.push([node.next.val, 0, node.next]);\n  }\n  return dummy.next;\n}\n\n// --- K-Way Merge on Matrix (LC_378) ---\nfunction kthSmallestMatrix(matrix, k) {\n  const n = matrix.length;\n  const minHeap = new MinHeap((a, b) => a[0] - b[0]); // [value, row, col]\n  for (let r = 0; r < n; r++) minHeap.push([matrix[r][0], r, 0]);\n  let result = 0;\n  for (let count = 0; count < k; count++) {\n    const [val, r, c] = minHeap.pop();\n    result = val;\n    if (c + 1 < n) minHeap.push([matrix[r][c + 1], r, c + 1]);\n  }\n  return result;\n}'
-      },
-      {
-        id: 'T4', name: 'Two Heaps — Dynamic Median',
-        description: 'Lower half in a max-heap (top = largest in lower half). Upper half in a min-heap (top = smallest in upper half). Invariant after every insert: (1) lower.top <= upper.top, (2) sizes differ by at most 1. Median: average of both tops (even count) or lower.top (odd count). For sliding window, use lazy deletion via a deleteMap to handle removals.',
-        code: 'class MedianFinder {\n  constructor() {\n    this.lower = new MinHeap((a, b) => b - a); // max-heap\n    this.upper = new MinHeap((a, b) => a - b); // min-heap\n  }\n\n  addNum(num) {\n    this.lower.push(num); // always push to lower first\n    // Enforce cross-heap invariant\n    if (!this.upper.isEmpty() && this.lower.peek() > this.upper.peek()) {\n      this.upper.push(this.lower.pop());\n    }\n    // Rebalance sizes\n    if (this.lower.size() > this.upper.size() + 1) {\n      this.upper.push(this.lower.pop());\n    } else if (this.upper.size() > this.lower.size()) {\n      this.lower.push(this.upper.pop());\n    }\n  }\n\n  findMedian() {\n    if (this.lower.size() === this.upper.size()) {\n      return (this.lower.peek() + this.upper.peek()) / 2;\n    }\n    return this.lower.peek();\n  }\n}\n\n// Lazy deletion note (LC_480 sliding window median):\n// Maintain a Map deleteCount tracking elements to skip.\n// When popping, discard elements in deleteCount (decrement; remove when 0).\n// Track effective sizes separately (physical size minus pending deletions).'
-      },
-      {
-        id: 'T5', name: 'Greedy + Max Heap (Scheduling / Reorganizing)',
-        description: 'Greedy problems where the next choice should always be the globally most frequent or highest-value remaining element. Use a max-heap keyed by frequency or value. For COOLDOWN scheduling: hold used elements in a queue for n steps before re-pushing. For REGRET-BASED greedy (LC_1642): maintain a min-heap of past choices — swap the current expensive choice with the cheapest past one when the expensive resource runs out.',
-        code: '// --- Reorganize String (LC_767) ---\nfunction reorganizeString(s) {\n  const freq = new Map();\n  for (const c of s) freq.set(c, (freq.get(c) ?? 0) + 1);\n  const maxHeap = new MinHeap((a, b) => b[0] - a[0]); // [count, char]\n  for (const [char, count] of freq) maxHeap.push([count, char]);\n  let result = \'\';\n  while (maxHeap.size() >= 2) {\n    const [cnt1, ch1] = maxHeap.pop();\n    const [cnt2, ch2] = maxHeap.pop();\n    result += ch1 + ch2;\n    if (cnt1 - 1 > 0) maxHeap.push([cnt1 - 1, ch1]);\n    if (cnt2 - 1 > 0) maxHeap.push([cnt2 - 1, ch2]);\n  }\n  if (!maxHeap.isEmpty()) {\n    const [cnt, ch] = maxHeap.pop();\n    if (cnt > 1) return \'\';\n    result += ch;\n  }\n  return result;\n}\n\n// --- Task Scheduler with cooldown (LC_621) ---\nfunction leastInterval(tasks, n) {\n  const freq = new Array(26).fill(0);\n  for (const t of tasks) freq[t.charCodeAt(0) - 65]++;\n  const maxHeap = new MinHeap((a, b) => b - a);\n  for (const f of freq) if (f > 0) maxHeap.push(f);\n  let time = 0;\n  const cooldownQueue = []; // [remaining_count, earliest_reuse_time]\n  while (!maxHeap.isEmpty() || cooldownQueue.length > 0) {\n    time++;\n    if (!maxHeap.isEmpty()) {\n      const cnt = maxHeap.pop() - 1;\n      if (cnt > 0) cooldownQueue.push([cnt, time + n]);\n    }\n    if (cooldownQueue.length > 0 && cooldownQueue[0][1] === time) {\n      maxHeap.push(cooldownQueue.shift()[0]);\n    }\n  }\n  return time;\n}'
-      }
-    ],
     patterns: [
       {
         id: 'P1', name: 'Top K / Kth Element with Min-Heap',
+        analogy: 'A nightclub bouncer maintaining an exclusive VIP list of exactly k names. When a new person arrives, they are compared to the least impressive person on the list. If the newcomer is more impressive, the old person is ejected. After every guest walks by, the list contains exactly the top k by any criterion you define.',
+        approach: '1) Create a min-heap. 2) For each element: push it. 3) If heap.size() > k: pop the minimum (eject the least qualified). 4) After all elements: heap.peek() is the k-th element. For lazy expansion: push only seeds initially; on each pop, push that element\'s valid successors to avoid materialising all O(n²) candidates.',
         recognitionSignals: [
           'Find the K-th largest or smallest element',
           'Maintain the top K elements from a stream or large array without sorting everything',
           'New candidates are generated lazily — each extracted minimum generates the next candidates'
         ],
         mentalModel: 'A min-heap of size K acts as a filter: the heap top is always the K-th largest. Any new element larger than the top displaces it; smaller elements are ignored. For lazy expansion: push only seeds initially; after each pop, push that element\'s valid successors to avoid materialising all O(n²) candidates.',
+        gotchas: [
+          'The min-heap comparator MUST be keyed by your ranking criterion (frequency, distance, value), not by a default numeric comparison. Using the wrong comparator silently ranks by a different dimension.',
+          'For LC_703 (Kth Largest in Stream): the constructor must push ALL initial elements through the add() method, not via direct heap.push. Bypassing add() risks leaving the heap at size > k after initialisation.',
+          'For lazy expansion (LC_373 K Pairs with Smallest Sums): seed with at most min(nums1.length, k) rows. Rows beyond index k-1 cannot contribute to the k-th smallest — seeding all rows when nums1.length >> k wastes O(n) heap operations.'
+        ],
+        insights: [
+          'Naming the heap a "filter" keeps the logic clear: the top is the THRESHOLD. Everything in the heap is above the threshold (more impressive), everything ejected was below it. The heap top is not the best — it is the worst of the best.',
+          'Lazy expansion (pop-then-push-successors) is how implicit O(n²) grids or sorted combinations are searched in O(k log k). You only generate candidates adjacent to confirmed minimums — never explore unneeded regions.'
+        ],
         keyQuestion: 'Are all candidates known upfront (standard min-heap of size K) or generated dynamically (lazy expansion — push neighbours on pop)?',
-        questionIds: ['LC_703', 'LC_215', 'LC_347', 'LC_373', 'LC_355', 'LC_1167']
+        questionIds: ['LC_703', 'LC_215', 'LC_347', 'LC_373', 'LC_355', 'LC_1167', 'LC_2462']
       },
       {
         id: 'P2', name: 'K-Way Merge',
+        analogy: 'Merging k sorted playlists into one master playlist. You always pull the globally smallest track from whichever playlist is currently showing its smallest available track. The heap is your "current front competitor" from each playlist. When a track plays, the next track from that same playlist enters the competition.',
+        approach: '1) Seed heap: push (value, sourceIndex, elementRef) for the CURRENT HEAD of each source. 2) Pop the global minimum from the heap. 3) Output or count that element. 4) If that source has a next element, push it into the heap. 5) Repeat until heap is empty. Total: O(n log k) where n = all elements, k = sources.',
         recognitionSignals: [
           'Multiple sorted lists, arrays, or matrix rows that must be merged or searched globally',
           'Finding the K-th smallest across K sorted sequences',
           'The input is a set of sorted sources — extracting elements one by one in global sorted order'
         ],
         mentalModel: 'Seed the heap with one element from each sorted source (the current minimum of each). Pop the global minimum; push its successor from the same source. The heap always holds one representative per active source. Total cost: O(n log K) where n = total elements and K = number of sources.',
+        gotchas: [
+          'Store [value, sourceIndex, nodeRef] in heap entries. Storing just the value loses track of WHICH source to advance after a pop — resulting in duplicates or missed elements.',
+          'For LC_632 (Smallest Range): track currentMax SEPARATELY from the heap. The heap gives O(log k) minimum, but getting the maximum from the heap requires O(k) scan. Track it as a variable updated on every push.',
+          'For matrix K-way merge (LC_378): seed ALL n rows upfront, not just row 0. The globally k-th smallest element can come from any row — seeding only row 0 forces traversal through that row before touching others.'
+        ],
+        insights: [
+          'K-way merge is the heap\'s "killer application" for sorted data. It reduces merging k sorted lists from O(nk) (naive repeated merge) to O(n log k) by keeping only one current representative per sequence in the heap at any time.',
+          'LC_378 (Kth Smallest in Matrix) has a binary search alternative: binary search on value range [matrix[0][0], matrix[n-1][n-1]], count elements <= mid with the staircase technique in O(n). O(n log(max-min)) time, O(1) space — better space than heap for large k.'
+        ],
         keyQuestion: 'What is each source? What is the successor of a popped element within its source?',
-        questionIds: ['LC_23', 'LC_378', 'LC_632']
+        questionIds: ['LC_23', 'LC_378', 'LC_632', 'LC_759']
       },
       {
         id: 'P3', name: 'Two Heaps — Dynamic Median',
+        analogy: 'Two competing sports teams sorted by score, perfectly balanced. The weakest player on the top team and the strongest player on the bottom team always sit adjacent — their average is the median. When a new player enrolls, you add them to the appropriate team and swap one player between teams if the rosters become unbalanced.',
+        approach: '1) lower = max-heap (lower half), upper = min-heap (upper half). 2) INSERT: always push to lower first — no condition. 3) Fix cross-heap invariant: if lower.peek() > upper.peek(), move lower.top to upper. 4) Fix size invariant: if |lower.size - upper.size| > 1, move one element to balance. 5) Median = lower.peek() (odd count) or average (even count).',
         recognitionSignals: [
           'Find the running median of a growing stream',
           'Sliding window median — add and remove elements dynamically',
           'Partition a dynamic dataset into two halves where both halves need their extreme value quickly'
         ],
         mentalModel: 'Lower half in a max-heap (top = largest lower element). Upper half in a min-heap (top = smallest upper element). Invariant: lower.top <= upper.top AND |lower.size - upper.size| <= 1. Insert: always to lower first, then fix the cross-heap invariant, then rebalance sizes. Median is either lower.top (odd total) or average of both tops (even total).',
+        gotchas: [
+          'ALWAYS insert into lower FIRST, even if the element is large and seems to belong in upper. Direct routing to upper skips the cross-heap invariant enforcement logic and produces wrong medians on the next query.',
+          'Both invariants must be enforced on EVERY single insert: (1) lower.top <= upper.top (cross-heap order), (2) |lower.size - upper.size| <= 1 (balance). Missing either invariant produces silently wrong medians.',
+          'LC_480 (Sliding Window Median): heaps do NOT support O(log n) arbitrary deletion. Use lazy deletion — maintain a Map deleteCount. When a heap top matches a pending deletion entry, discard it and decrement the count. Track EFFECTIVE sizes (physical size minus pending deletions) for rebalancing.'
+        ],
+        insights: [
+          'Why insert to lower first? It elegantly handles ties: if the new element equals lower.top, it belongs in lower. If it is larger, it will be moved to upper by the cross-heap invariant check. One direction always works for any input value.',
+          'The median is always O(1) to read (just peek both tops) because the two-heap invariant guarantees that lower.top and upper.top are always the two central elements of the full sorted stream.'
+        ],
         keyQuestion: 'After inserting, does the cross-heap invariant still hold? Are the sizes balanced?',
         questionIds: ['LC_295', 'LC_480']
       },
       {
         id: 'P4', name: 'Greedy + Max Heap',
+        analogy: 'A hospital triage system that always treats the most critical patient first. The max-heap is the waiting room sorted by urgency — O(log n) to add a new patient and O(log n) to discharge the most critical. Cooldown patients (treated and waiting to be re-admitted) sit in a separate timed queue. Regret-based greedy (LC_1642): you initially assigned a premium resource optimistically, but can retroactively swap to a cheaper resource when the premium runs out.',
+        approach: '1) Count frequencies or sort values. 2) Push into max-heap. 3) Greedy loop: pop the global maximum, process it (use or schedule). 4) COOLDOWN: push the used item into a queue with (remaining count, ready-at time); re-push into heap when the time arrives. 5) REGRET (LC_1642): maintain min-heap of past expensive choices; when expensive resource depletes, pop cheapest past use and pay with cheap resource instead.',
         recognitionSignals: [
           'Scheduling tasks with cooldowns or constraints — always process the most frequent task next',
           'Reorganizing elements so no two identical elements are adjacent',
           'At each step, the globally best remaining choice must be made — heap provides O(log n) argmax'
         ],
         mentalModel: 'Max-heap ensures the best available option is O(log n) accessible. For cooldown scheduling: hold elements in a queue; re-insert once cooldown expires. For regret-based greedy (LC_1642): maintain a min-heap of past choices — if the current step is too expensive, swap it with the cheapest past choice.',
-        keyQuestion: 'What is the best element at each step? Does it need a cooldown before it can be reused? Can a past decision be reversed?',
+        gotchas: [
+          'CPU IDLES when heap is empty but cooldown queue is non-empty. Time still increments during idle cycles. The outer loop must continue as long as EITHER the heap OR the cooldown queue is non-empty — not just when the heap is non-empty.',
+          'Impossibility check for LC_767 (Reorganize String): if any character appears more than ceil(n/2) times, return "" IMMEDIATELY before the loop. Catching this upfront avoids a mid-loop impossible state.',
+          'For LC_1642 (regret greedy): when a ladder runs out, pop the MINIMUM from the ladder-assigned heap (the cheapest past ladder use) and replace it with bricks. The current step KEEPS its ladder. You are retroactively fixing the cheapest past decision, not the current one.'
+        ],
+        insights: [
+          'Regret-based greedy (LC_1642) is a reusable FAANG pattern: assign the expensive resource optimistically to every step. When it runs out, retroactively swap the cheapest past assignment to the cheap resource. This reaches the global optimum without any lookahead.',
+          'The greedy choice from a max-heap is O(log n) per step instead of O(n) per step for an unsorted scan — this is what makes greedy algorithms practical for large inputs. The heap converts an O(n²) greedy to O(n log n).'
+        ],
+        keyQuestion: 'What is the best element at each step? Does it need a cooldown before reuse? Can a past decision be reversed via regret?',
         questionIds: ['LC_767', 'LC_621', 'LC_1642', 'LC_502', 'LC_218']
       }
     ],
@@ -1106,7 +830,189 @@ const TOPIC_MODULES = {
       'LC_502': { leetcode: 502,  title: 'IPO',                                         difficulty: 'Hard',   difficultyRank: 3, link: 'https://leetcode.com/problems/ipo/',                                         templateRefs: ['T5'], tags: ['heap','min-heap','max-heap','greedy','two-heaps','sorting','array'], alternateApproaches: [], keyInsight: 'Sort projects by capital requirement. Use a min-heap of (capitalRequired, profit) for locked projects and a max-heap of profits for currently affordable ones. Each round: move all projects with capitalRequired ≤ current capital from min-heap to max-heap, then pick the highest profit.', shrinkTrigger: 'Each round: while minCapHeap non-empty AND minCapHeap.top()[0] <= currentCapital, pop and push profit to maxProfitHeap. Then: currentCapital += maxProfitHeap.pop(). If maxProfitHeap is empty, break early.', timeComplexity: 'O(n log n + k log n)', spaceComplexity: 'O(n)', gotcha: 'If maxProfitHeap is empty at the start of a round, no affordable project exists — break early. The min-heap is keyed by capital; the max-heap is keyed by profit — do not mix. Capital only grows, so min-heap entries once processed are never re-visited.', faangNote: 'The canonical problem where two heaps serve different roles: one gates feasibility, the other maximizes selection. Say: "The min-heap frontier advances monotonically as capital only grows — I never re-visit processed projects." Contrasts with LC_295 where both heaps partition the same value space.' },
       'LC_355':  { leetcode: 355,  title: 'Design Twitter',                         difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/design-twitter/',                         templateRefs: ['T2'], tags: ['heap','min-heap','top-k','design','hash-map','linked-list'], alternateApproaches: [], keyInsight: 'Each user has a tweet list. getNewsFeed merges the 10 most recent tweets from the user and all followees — exactly a K-way merge top-10 problem. Seed the heap with the most recent tweet from each relevant user. On each pop, push that tweet\'s predecessor if it exists.', shrinkTrigger: 'Pop up to 10 times. On each pop of (timestamp, userId, tweetNode): if tweetNode.next exists, push (tweetNode.next.timestamp, userId, tweetNode.next).', timeComplexity: 'O(F log F) per getNewsFeed where F = number of followees', spaceComplexity: 'O(U + T) where U = users, T = total tweets', gotcha: 'Use a global timestamp counter that increments on every postTweet call — not system time. System time has millisecond granularity and two rapid posts could collide. A simple integer counter guarantees strict ordering.', faangNote: 'Meta interview classic. Tests whether you can apply K-way merge (LC_23) in a design context. The insight: "getNewsFeed is just merging K sorted lists of tweets — I use the same heap pattern as Merge K Sorted Lists." Stating that connection explicitly signals strong pattern recognition.' },
       'LC_218':  { leetcode: 218,  title: 'The Skyline Problem',                    difficulty: 'Hard',   difficultyRank: 3, link: 'https://leetcode.com/problems/the-skyline-problem/',                    templateRefs: ['T4'], tags: ['heap','max-heap','sweep-line','sorting','divide-and-conquer'], alternateApproaches: [{ technique: 'divide-and-conquer', tradeoff: 'Merge skylines like merge sort — split buildings, recurse, merge result arrays. O(n log n) same asymptotic but harder to implement correctly for overlapping ranges.', complexity: 'O(n log n) time, O(n) space' }], keyInsight: 'Sweep line: convert each building [l, r, h] into two events — enter at l with height h, exit at r with height h. Sort events by x (tie-break: entries before exits, taller entries first). Use a max-heap of active heights. At each event: add or remove height. Record a key point whenever the current max height changes.', shrinkTrigger: 'Height change condition: maxHeap.top() !== prevMaxHeight. Record [x, maxHeap.top()] as a key point.', timeComplexity: 'O(n log n)', spaceComplexity: 'O(n)', gotcha: 'Tie-breaking in event sorting is critical: (1) same x, both entries — sort taller first (avoids false intermediate drop). (2) same x, both exits — sort shorter first. (3) same x, entry vs exit — entry first. Getting any tie-break wrong produces spurious key points.', faangNote: 'Google Hard. The sweep-line + max-heap combination appears in many Google Hard problems. Master the event-generation + heap-maintenance pattern here — it transfers directly to problems like "maximum overlap" and "minimum platforms." The tie-breaking rules are the precise test of understanding.' },
-      'LC_1167': { leetcode: 1167, title: 'Minimum Cost to Connect Sticks', difficulty: 'Medium', templateRefs: ['T2'], tags: ['heap','min-heap','greedy','array'], keyInsight: 'Always combine the two shortest sticks first (Huffman greedy). Pop the two minimums, compute cost = their sum, push the sum back, and add cost to the running total. The combined stick participates in future combinations — the heap feedback loop is the pattern. Each of the n-1 combination steps is O(log n).', shrinkTrigger: 'While heap.size() > 1: pop a and b (two minimums). cost += a + b. push(a + b). Return total cost.', timeComplexity: 'O(n log n) — n-1 pop-pairs and n-1 pushes', spaceComplexity: 'O(n) — heap', gotcha: 'The sum pushed back IS a valid input for future steps — do not discard it after adding to cost. This feedback (output of step i becomes input of step i+1) is the defining property of the pattern and what distinguishes it from a simple one-pass top-K problem.', faangNote: 'Amazon asks this in ~20% of heap rounds. The pattern name interviewers expect: Huffman coding greedy. Say: "Combining cheapest sticks first minimizes total cost because every stick participates in all future combinations it merges into — deferring cheap combinations is never better." The pop-combine-push feedback loop applies to any minimum-cost aggregation problem.', alternateApproaches: [], link: 'https://leetcode.com/problems/minimum-cost-to-connect-sticks/' }
+      'LC_1167': { leetcode: 1167, title: 'Minimum Cost to Connect Sticks', difficulty: 'Medium', templateRefs: ['T2'], tags: ['heap','min-heap','greedy','array'], keyInsight: 'Always combine the two shortest sticks first (Huffman greedy). Pop the two minimums, compute cost = their sum, push the sum back, and add cost to the running total. The combined stick participates in future combinations — the heap feedback loop is the pattern. Each of the n-1 combination steps is O(log n).', shrinkTrigger: 'While heap.size() > 1: pop a and b (two minimums). cost += a + b. push(a + b). Return total cost.', timeComplexity: 'O(n log n) — n-1 pop-pairs and n-1 pushes', spaceComplexity: 'O(n) — heap', gotcha: 'The sum pushed back IS a valid input for future steps — do not discard it after adding to cost. This feedback (output of step i becomes input of step i+1) is the defining property of the pattern and what distinguishes it from a simple one-pass top-K problem.', faangNote: 'Amazon asks this in ~20% of heap rounds. The pattern name interviewers expect: Huffman coding greedy. Say: "Combining cheapest sticks first minimizes total cost because every stick participates in all future combinations it merges into — deferring cheap combinations is never better." The pop-combine-push feedback loop applies to any minimum-cost aggregation problem.', alternateApproaches: [], link: 'https://leetcode.com/problems/minimum-cost-to-connect-sticks/' },
+      'LC_2462': { leetcode: 2462, title: 'Total Cost to Hire K Workers',                          difficulty: 'Medium', templateRefs: ['T2'], tags: ['heap','min-heap','top-k','greedy','two-pointers','array'], keyInsight: 'Two min-heaps: leftHeap seeded with first `candidates` workers, rightHeap seeded with last `candidates` workers. Each hiring round: compare both heap tops, pop the minimum (left on tie). Expand the depleted side: left hire → push workers[leftBound++]; right hire → push workers[rightBound--]. Guard leftBound <= rightBound before any push.', shrinkTrigger: 'Hire round: pop smaller of leftHeap.top() vs rightHeap.top() (left on tie). Expand: if from left → push workers[leftBound++]; if from right → push workers[rightBound--]. Guard: leftBound <= rightBound.', timeComplexity: 'O((k + candidates) log candidates)', spaceComplexity: 'O(candidates) — both heaps combined', gotcha: 'Guard leftBound <= rightBound before pushing to either heap. Without this guard, boundaries cross and a single worker enters BOTH heaps — causing a duplicate hire and a wrong total cost. This is the single most common bug in this problem.', faangNote: 'Meta OA 2023–2024 repeated this ~15 times. The two-ended heap generalises to any problem requiring optimal selection from either end without exhausting a candidate window. Say: "I maintain two separate min-heaps — one from each end — and greedily hire the cheapest candidate across both, refilling from the same side after each hire."', alternateApproaches: [], link: 'https://leetcode.com/problems/total-cost-to-hire-k-workers/' },
+      'LC_759':  { leetcode: 759,  title: 'Employee Free Time',                                    difficulty: 'Hard',   templateRefs: ['T3'], tags: ['heap','min-heap','k-way-merge','interval','sorting','array'], keyInsight: 'K-way merge all employee schedules into a single sorted interval stream using a min-heap (one entry per employee). Then sweep: whenever current.start > prevEnd, record free-time gap [prevEnd, current.start]. Update prevEnd = Math.max(prevEnd, current.end) — same merge logic as LC_56. Push next interval from same employee after each pop.', shrinkTrigger: 'On pop (start, eIdx, iIdx): if start > prevEnd → record Interval(prevEnd, start). prevEnd = Math.max(prevEnd, end). Push next interval from employee eIdx if available.', timeComplexity: 'O(n log k) where n = total intervals, k = number of employees', spaceComplexity: 'O(k) — heap holds one interval per employee', gotcha: 'Use Math.max(prevEnd, current.end) when updating prevEnd — identical to LC_56 merge logic. If an interval is fully contained inside the previous one, prevEnd must NOT shrink. Without Math.max, a fully-contained interval incorrectly generates a false free-time gap.', faangNote: 'Google and LinkedIn Hard. Tests composition of K-way merge (LC_23) + interval merging (LC_56). Say: "I run a K-way merge heap over all employee schedule lists, then apply the same merge-and-gap logic as Merge Intervals to identify the free periods."', alternateApproaches: [{ technique: 'sorting', tradeoff: 'Flatten all intervals, sort by start, sweep for gaps. O(n log n) same asymptotic but does not demonstrate K-way merge — Google interviewers expect the heap approach.', complexity: 'O(n log n) time, O(n) space' }], link: 'https://leetcode.com/problems/employee-free-time/' }
+    }
+  },
+
+  'recursion': {
+    description: 'Recursion is the foundation of divide-and-conquer, tree traversal, dynamic programming, and backtracking. The core skill is expressing a problem in terms of a smaller version of itself, defining exact base cases, and trusting the call stack to handle the rest. Every DP and tree problem you face later will feel like a recursion problem with extra constraints.',
+    goal: 'Build a complete recursive mental model through 15 curated problems spanning call stack mechanics, halving, linked list chunk processing, recursive parsing, and divide-and-conquer',
+    relatedTopics: ['sorting', 'heap'],
+
+    tagRegistry: [
+      'recursion', 'divide-and-conquer', 'linked-list', 'math', 'string', 'array',
+      'fast-exponentiation', 'parsing', 'nested', 'stack', 'bit-manipulation', 'two-pointers', 'halving'
+    ],
+
+    techniqueRegistry: [
+      'recursion', 'divide-and-conquer', 'fast-exponentiation', 'recursive-parsing', 'linked-list-recursion'
+    ],
+
+    whenToUse: {
+      use: [
+        'The problem can be broken into smaller identical subproblems',
+        'You need to process a recursive or nested structure (linked list, nested string, expression)',
+        'The input size halves at each step — fast exponentiation, binary recursion',
+        'A divide-and-conquer split produces independent subproblems that combine at the end'
+      ],
+      avoid: [
+        'Recursion depth exceeds ~10,000 — stack overflow risk; use iteration with an explicit stack instead',
+        'Subproblems overlap AND results can be cached — use DP (memoized recursion) instead of pure recursion',
+        'You need to explore all possibilities/permutations — that is backtracking, not pure recursion'
+      ]
+    },
+
+    interviewTips: [
+      'Always state the base case(s) FIRST before writing the recursive step — interviewers score this separately',
+      'Verbalize the "trust the recursion" principle: "Assume the recursive call returns the correct answer for the subproblem. What do I do with it?"',
+      'For linked list recursion: the canonical shape is node.next = recurse(node.next); return node — master this before LC_92 or LC_25',
+      'For halving recursion: always handle negative exponents/indices — this is the most common edge case miss',
+      'For parsing recursion: draw the call tree on the whiteboard BEFORE coding — interviewers at Google and Meta reward this',
+      'Space complexity for recursion is at minimum O(depth) due to the call stack — always mention this'
+    ],
+
+    patterns: [
+      {
+        id: 'P1', name: 'Foundation — Call Stack Mechanics',
+        analogy: 'A stack of plates. Each recursive call adds a plate with the current state. The function can only return when all plates above it have been removed first — LIFO. Each plate only sees what it put on the plate above it, and what it gets back when that plate is removed.',
+        approach: '1) Define the base case — the smallest input where the answer is trivial (empty list, n=0, n=1). 2) Define the recursive case in terms of one smaller version of the same problem. 3) Combine the returned value with the current element. Trust the call stack.',
+        recognitionSignals: [
+          'Problem involves processing a sequential structure (linked list, sequence) until the end',
+          'The operation at each step depends ONLY on the current element and the result of the rest',
+          'Base case is clearly a single trivial answer (empty, zero)'
+        ],
+        mentalModel: 'Ask: "If I already have the answer for head.next, what do I need to do at head?" The call stack handles the rest — you only define one step.',
+        gotchas: [
+          'Forgetting to return the result of the recursive call is the #1 bug — the base case correctly computes the answer but it is never propagated up.',
+          'Mutating node.next BEFORE recursing severs the chain — always recurse first, then reassign the pointer.'
+        ],
+        insights: [
+          'The shape node.next = recurse(node.next); return node is the universal template for linked list node operations. It appears in LC_203, LC_206, LC_21, LC_92, and LC_25 — all variations of this one structure.',
+          'Fibonacci (LC_509) is the simplest proof that recursion maps directly to a mathematical definition. Every tree problem later has this exact same shape.'
+        ],
+        keyQuestion: 'What is the base case? Given the answer for the smaller subproblem, what single operation do I perform at the current step?',
+        questionIds: ['LC_509', 'LC_206', 'LC_203', 'LC_21']
+      },
+      {
+        id: 'P2', name: 'Halving Recursion — Divide at Each Step',
+        analogy: 'Folding a piece of paper in half repeatedly. Each fold halves the problem. After log₂(n) folds you reach a single layer — the base case. When you unfold, each layer combines the result from below with the current state.',
+        approach: '1) Identify the halving mechanism — divide by 2, split on invalid chars. 2) Recurse on one or both halves. 3) Combine results. The key trick: when n is even, compute half = recurse(x, n/2) ONCE and return half * half — reusing the same result is what achieves O(log n).',
+        recognitionSignals: [
+          'The problem size halves at each step naturally',
+          'The answer for n can be expressed using the answer for n/2',
+          'Divide-and-conquer split where halves are independent'
+        ],
+        mentalModel: 'Pow(x, n): if n is even, half = recurse(x, n/2), return half * half. If odd, return x * recurse(x, n-1). The reuse of half is what makes it O(log n) instead of O(n).',
+        gotchas: [
+          'LC_50: negative exponents — convert n to positive, compute, then return 1.0 / result. Missing this gives wrong answers for all negative inputs.',
+          'LC_50: n = Integer.MIN_VALUE causes integer overflow when negated in Java/C++ — cast to long first.',
+          'LC_779: the pattern has a structural property — position k in row n comes from position ceil(k/2) in row n-1, either copied or flipped based on parity. Brute force building the full row is O(2^n) — the recursive insight is O(n).'
+        ],
+        insights: [
+          'Fast exponentiation (LC_50) is the prototype of "reuse the recursive result" — half * half instead of x * recurse(n-1). This same reuse of a cached subresult is the core idea behind memoization in DP.',
+          'O(log n) recursion depth means ~30 stack frames for n = 10^9 — no stack overflow concern. Knowing this lets you confidently recurse on large exponents.'
+        ],
+        keyQuestion: 'Can I express the answer for n using the answer for n/2? Can the same recursive result be reused twice?',
+        questionIds: ['LC_50', 'LC_779']
+      },
+      {
+        id: 'P3', name: 'Linked List Recursion — Chunk Processing',
+        analogy: 'Processing a train by car. For simple operations (reverse, remove) you process one car and recurse on the rest. For chunk operations (k-group reversal), you handle k cars at once, then recurse on the remainder of the train.',
+        approach: 'SINGLE NODE: process current node, recurse on next, return accordingly. BOUNDED (LC_92): advance to range, reverse the bounded section, recurse on the rest. CHUNK (LC_25): confirm k nodes remain, reverse k nodes in-place, tail of reversed chunk connects to recurse(remaining).',
+        recognitionSignals: [
+          'Linked list operation that feels natural as "do something to head, then recurse on the rest"',
+          'Operation involves reversing or processing a fixed-size group within a list'
+        ],
+        mentalModel: 'For k-group: check if k nodes remain — if not, return head (base case). Reverse k nodes. Connect reversed tail to recurse(next group). Return new head.',
+        gotchas: [
+          'LC_92: use a dummy sentinel head so prevLeft always exists even when left = 1. Without it, left=1 means prevLeft = null and the reconnection crashes.',
+          'LC_25: count k nodes first. If fewer than k remain, return head immediately. The counting step IS the base case check — do not skip it.'
+        ],
+        insights: [
+          'LC_206 → LC_24 → LC_92 → LC_25 is a deliberate difficulty ladder. Each adds one constraint: pair (2), bounded range (m to n), arbitrary k. The core reversal mechanism is identical throughout.',
+          'After reversing k nodes, the original head node becomes the TAIL of the reversed segment. This node\'s next pointer must connect to the result of the recursive call — the most common pointer reconnection mistake.'
+        ],
+        keyQuestion: 'What is the chunk size? How do I reconnect the reversed chunk to the recursive result?',
+        questionIds: ['LC_24', 'LC_92', 'LC_25']
+      },
+      {
+        id: 'P4', name: 'Recursive Parsing — Nested Structures',
+        analogy: 'Opening nested Russian dolls. Each doll contains another doll inside. You open the outermost, handle it, open the next, and so on until you hit the innermost (base case). On the way back out, each layer wraps the result from deeper layers.',
+        approach: '1) Identify the delimiter that starts and ends a nested block (brackets, parentheses, word boundaries). 2) On opening delimiter: recurse into the nested block, consume closing delimiter. 3) Combine the inner result with the current context. 4) Return current accumulated result.',
+        recognitionSignals: [
+          'String or expression has nested structure — balanced brackets, recursive grammar',
+          'The structure can be defined as: element = literal | open ELEMENT close',
+          'An iterative approach would require a counter tracking nesting depth — that is a sign to use recursion instead'
+        ],
+        mentalModel: 'Maintain a shared index into the string. Advance character by character. When you hit an opening delimiter, call recurse() — it returns the result of the inner block AND has already advanced the shared index past the closing delimiter.',
+        gotchas: [
+          'LC_394: the number before [ can be multi-digit (e.g. "10[abc]") — parse the full integer with a while loop, not just a single character.',
+          'LC_224: track sign as +1 or -1, not as a character. A minus sign applies to everything in the current parenthesis level.',
+          'LC_273: special case — num == 0 must return "Zero". The inner helper returns "" for 0 but the top-level function must handle 0 separately.'
+        ],
+        insights: [
+          'The shared index pointer pattern: use a single index advanced as a side effect of each recursive call. This avoids substring copying and keeps parsing O(n) instead of O(n²).',
+          'LC_224 and LC_394 share the same skeleton: a recursive parse() function that processes characters until a closing delimiter. The only difference is domain — arithmetic vs string expansion.'
+        ],
+        keyQuestion: 'What delimiter starts and ends a nested block? How do I propagate position advances through recursive calls?',
+        questionIds: ['LC_38', 'LC_394', 'LC_273', 'LC_224']
+      },
+      {
+        id: 'P5', name: 'Divide and Conquer — Split and Combine',
+        analogy: 'Splitting a jigsaw puzzle into two halves, solving each half independently, then merging the edges where the two halves meet. Each half is solved by further splitting. The combining step is where the interesting work happens.',
+        approach: '1) Find all valid split points in the input. 2) For each split point: recursively solve the left and right subproblems independently. 3) Combine every possible left result with every possible right result. Collect all valid combinations.',
+        recognitionSignals: [
+          'The problem decomposition produces two INDEPENDENT subproblems at each split',
+          'The answer for a range [l, r] can be computed from answers for [l, mid] and [mid, r]',
+          'Problem involves an operator or invalid character that forces a split into left and right'
+        ],
+        mentalModel: 'For LC_241: for each operator in the expression, split at it. Recurse both sides. Cross-combine all left results with all right results using the operator. For LC_395: split at characters with frequency < k — they cannot be in any valid substring.',
+        gotchas: [
+          'LC_241: base case is when the string has no operator — it is a pure number. Check for absence of operators, not for length == 1 (multi-digit numbers like "12" would break a length check).',
+          'LC_395: if ALL characters have frequency >= k, the entire string is valid — return s.length immediately without splitting.',
+          'LC_395: split at ALL invalid characters, not just the first one. Resulting segments may still contain further invalid characters.'
+        ],
+        insights: [
+          'LC_241\'s "split at the last operator" framing — what is the last operation evaluated? — appears in LC_95 (Unique BSTs II) and LC_96. Stating this framing at the start of your explanation earns extra points from interviewers.',
+          'LC_395 looks like a sliding window problem and stumps candidates who default to that pattern. The D&C insight — invalid characters are mandatory split points — is the elegant approach that interviewers rarely expect.'
+        ],
+        keyQuestion: 'What are the valid split points? How do I combine the left and right recursive results into the final answer?',
+        questionIds: ['LC_241', 'LC_395']
+      }
+    ],
+
+    questions: {
+      'LC_509': { leetcode: 509, title: 'Fibonacci Number', difficulty: 'Easy', difficultyRank: 1, link: 'https://leetcode.com/problems/fibonacci-number/', templateRefs: ['P1'], tags: ['recursion','math'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Bottom-up O(n) time, O(1) space — no call stack overhead. Preferred in production. Recursive form here is for building the mental model.', complexity: 'O(n) time, O(1) space' }, { technique: 'memoization', tradeoff: 'Cache results to avoid recomputing overlapping subproblems. O(n) time, O(n) space. This is the gateway to DP.', complexity: 'O(n) time, O(n) space' }], keyInsight: 'F(n) = F(n-1) + F(n-2) with F(0)=0, F(1)=1. The problem IS the recursive definition — write the definition as code. Two base cases, one recursive case.', shrinkTrigger: 'n reduces by 1 or 2 on each call. Base case: n <= 1 returns n directly (F(0)=0, F(1)=1 — both covered by returning n).', timeComplexity: 'O(2^n) naive recursion — exponential due to overlapping subproblems', spaceComplexity: 'O(n) — call stack depth', gotcha: 'Two base cases: F(0) = 0, F(1) = 1. A single guard n <= 1 returns n handles both — verify: F(0) returns 0 ✓, F(1) returns 1 ✓. Missing the F(0)=0 case is the most common off-by-one.', faangNote: 'Never asked alone in a real FAANG interview, but every recruiter uses it as a warm-up to watch how you think about base cases and call stack depth. Always state the exponential complexity and immediately offer the memoized or iterative solution as a follow-up.' },
+
+      'LC_206': { leetcode: 206, title: 'Reverse Linked List', difficulty: 'Easy', difficultyRank: 1, link: 'https://leetcode.com/problems/reverse-linked-list/', templateRefs: ['P1'], tags: ['recursion','linked-list'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Three-pointer (prev, curr, next) in O(1) space. Preferred in production — recursive approach uses O(n) stack space.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'Recurse to the end. On the way back, redirect each node\'s next pointer backward. After recurse(head.next) returns the new head: head.next.next = head (redirect); head.next = null (sever). Return the new head unchanged all the way up.', shrinkTrigger: 'Base case: head == null or head.next == null — return head. Each call processes one node and recurses on the rest.', timeComplexity: 'O(n)', spaceComplexity: 'O(n) — call stack', gotcha: 'Set head.next.next = head BEFORE head.next = null. Reversing the order severs the forward pointer before you can use it — you lose the rest of the list.', faangNote: 'The recursive form teaches the call stack clearly. Every FAANG interviewer accepts it but will ask about the O(n) space cost. Always offer the iterative O(1) space solution as a follow-up.' },
+
+      'LC_203': { leetcode: 203, title: 'Remove Linked List Elements', difficulty: 'Easy', difficultyRank: 1, link: 'https://leetcode.com/problems/remove-linked-list-elements/', templateRefs: ['P1'], tags: ['recursion','linked-list'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Sentinel/dummy head pattern — O(1) space. More production-appropriate.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'Universal linked list recursion shape: recurse first, then decide what to return. Set head.next = recurse(head.next). If head.val == val, skip head by returning head.next. Else keep head by returning head.', shrinkTrigger: 'Base case: head == null → return null. Each call processes one node.', timeComplexity: 'O(n)', spaceComplexity: 'O(n) — call stack', gotcha: 'The assignment head.next = recurse(head.next) happens BEFORE the decision to return head or head.next. This correctly stitches the new tail onto head regardless of whether head is kept or skipped.', faangNote: 'Internalise the universal shape here: node.next = recurse(node.next); return condition ? node.next : node. This exact shape recurs in every linked list recursion problem. Master it at Easy difficulty so it feels automatic at Hard.' },
+
+      'LC_21': { leetcode: 21, title: 'Merge Two Sorted Lists', difficulty: 'Easy', difficultyRank: 1, link: 'https://leetcode.com/problems/merge-two-sorted-lists/', templateRefs: ['P1'], tags: ['recursion','linked-list','two-pointers'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Dummy head, iterative pointer advancement. O(1) space. Preferred in production.', complexity: 'O(n+m) time, O(1) space' }], keyInsight: 'Compare heads. The smaller head is the next node in the merged result. Attach it to the result of merging the rest: smallerHead.next = merge(smallerHead.next, otherHead). A clean two-way choice at each recursive step.', shrinkTrigger: 'Base cases: list1 == null → return list2; list2 == null → return list1. Each call reduces total node count by 1.', timeComplexity: 'O(n + m)', spaceComplexity: 'O(n + m) — call stack', gotcha: 'The LARGER head is not modified — only the smaller head\'s next pointer is updated. The larger head stays unchanged and is passed recursively. A common bug is advancing both pointers.', faangNote: 'Table stakes at FAANG. This merge logic is the core of Merge Sort (sorting topic), Merge K Sorted Lists (heap topic), and Sort List. Connecting these dots explicitly scores highly — say: "This is the merge step of merge sort applied recursively."' },
+
+      'LC_50': { leetcode: 50, title: 'Pow(x, n)', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/powx-n/', templateRefs: ['P2'], tags: ['recursion','math','fast-exponentiation','divide-and-conquer'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Bit-manipulation iterative fast power. O(log n) time, O(1) space — same asymptotic as recursive but no call stack overhead.', complexity: 'O(log n) time, O(1) space' }], keyInsight: 'x^n = (x^(n/2))^2 when n is even; x^n = x * (x^(n/2))^2 when n is odd. Compute half = recurse(x, n/2) ONCE, then return half*half or x*half*half. Reusing the same recursive call result is what achieves O(log n) instead of O(n).', shrinkTrigger: 'n halves on each even call. Base case: n == 0 → return 1.0.', timeComplexity: 'O(log n)', spaceComplexity: 'O(log n) — call stack depth', gotcha: 'Negative n: negate n and compute, then return 1.0 / result. n = Integer.MIN_VALUE overflows when negated in 32-bit — cast to long first.', faangNote: 'Asked verbatim at Google, Meta, and Amazon screeners. O(n) repeated multiplication is an automatic fail signal. Lead with: "I can compute x^n in O(log n) by halving the exponent at each step and reusing the result for the even case."' },
+
+      'LC_779': { leetcode: 779, title: 'K-th Symbol in Grammar', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/k-th-symbol-in-grammar/', templateRefs: ['P2'], tags: ['recursion','bit-manipulation','math'], alternateApproaches: [], keyInsight: 'Each element in row n comes from row n-1: parent of position k (1-indexed) is at position ceil(k/2). If k is odd, the child equals the parent. If k is even, the child is the flipped parent. Recurse to row 1 — base case is 0.', shrinkTrigger: 'Base case: n == 1 → return 0. Each call reduces n by 1.', timeComplexity: 'O(n) — n recursive calls', spaceComplexity: 'O(n) — call stack', gotcha: 'k is 1-indexed. Parent of k is Math.ceil(k/2). The flip condition is k % 2 == 0 (even position = flipped parent value). Off-by-one on the index here produces wrong answers on most inputs.', faangNote: 'Pure recursive reasoning problem — there is no iterative shortcut that is simpler. The insight is recognizing the parent-child structure. A candidate who figures this out without a hint signals strong recursive thinking — interviewers note this explicitly.' },
+
+      'LC_24': { leetcode: 24, title: 'Swap Nodes in Pairs', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/swap-nodes-in-pairs/', templateRefs: ['P3'], tags: ['recursion','linked-list'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Process pairs with prev/first/second pointers. O(1) space.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'Take the first two nodes. second.next = recurse(third). first.next = second. Return second as the new head. Three pointer reassignments per pair — recursion handles the rest.', shrinkTrigger: 'Base case: head == null or head.next == null → return head. Each call processes 2 nodes.', timeComplexity: 'O(n)', spaceComplexity: 'O(n) — call stack', gotcha: 'Save second = head.next BEFORE any pointer mutations. Assign second.next = recurse(third) BEFORE first.next = second. Wrong order creates a cycle in the list.', faangNote: 'The "process chunk, recurse on rest" pattern with chunk size 2. Interviewers use this as a warm-up before LC_25 (chunk size k). Solve this first — the pattern for LC_25 becomes immediately obvious.' },
+
+      'LC_92': { leetcode: 92, title: 'Reverse Linked List II', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/reverse-linked-list-ii/', templateRefs: ['P3'], tags: ['recursion','linked-list'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'One-pass with prev, curr, next pointers. O(1) space. More complex to implement correctly — preferred in production.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'Advance to position left, keeping a reference to the node just before it (prevLeft). Reverse exactly (right - left + 1) nodes. Reconnect: prevLeft.next = new head of reversed segment; original left node.next = node at position right+1.', shrinkTrigger: 'Not a size-reducing recursion — bounded reversal within a range. Use a dummy sentinel to handle left=1.', timeComplexity: 'O(n)', spaceComplexity: 'O(right - left) — call stack for bounded reversal', gotcha: 'Always use a dummy/sentinel head so prevLeft exists even when left=1. Without it, left=1 means prevLeft=null and the reconnection crashes with a null pointer.', faangNote: 'Tests whether you can bound a recursive operation to a range — a common FAANG extension pattern. The sentinel node trick is a litmus: candidates who know it automatically signal strong linked list experience.' },
+
+      'LC_38': { leetcode: 38, title: 'Count and Say', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/count-and-say/', templateRefs: ['P4'], tags: ['recursion','string'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Build each string from the previous iteratively. O(1) auxiliary space per step.', complexity: 'O(n * L) where L = output length of step n' }], keyInsight: 'countAndSay(n) = runLengthEncode(countAndSay(n-1)). Get the previous string via recursion, then scan it to produce the run-length encoding. Two-pointer scan: count consecutive identical digits, append count then digit.', shrinkTrigger: 'Base case: n == 1 → return "1". Each call reduces n by 1.', timeComplexity: 'O(n * L_max) where L_max is the output length of the nth term', spaceComplexity: 'O(L_max) per level on the call stack', gotcha: 'Run-length encoding groups consecutive identical characters — "1211" encodes as "111221" (one 1, one 2, two 1s). Do not merge non-consecutive runs of the same digit even if they have the same value.', faangNote: 'Amazon and Microsoft use this as a string recursion warm-up. The recursive form — get previous term recursively, then process — is cleaner than building all strings iteratively and makes the structure explicit.' },
+
+      'LC_394': { leetcode: 394, title: 'Decode String', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/decode-string/', templateRefs: ['P4'], tags: ['recursion','string','parsing','nested','stack'], alternateApproaches: [{ technique: 'stack', tradeoff: 'Explicit stack instead of call stack. O(n) space same asymptotic but iterative — avoids recursion depth limits for deeply nested inputs.', complexity: 'O(n) time, O(n) space' }], keyInsight: 'Maintain a shared index into the string. Parse: read digits to get k. Expect [. Recurse to parse the inner string until ]. Repeat inner string k times. Each recursive call returns the decoded inner string AND has advanced the shared index past the closing ].', shrinkTrigger: 'Base case: index == s.length or s[index] == \']\' — return empty string. Nesting depth equals recursive call depth.', timeComplexity: 'O(n * max_k) — proportional to the expanded output length', spaceComplexity: 'O(n) — call stack plus output string', gotcha: 'The number before [ can be multi-digit (e.g. "10[abc]") — parse a full integer with a while loop accumulating digits, not just a single character.', faangNote: 'Very high Meta and Google frequency. The shared index pattern is the key insight — substring splitting creates O(n²) copies. State: "I use a shared index advanced as a side effect of each recursive call — this keeps parsing O(n)."' },
+
+      'LC_241': { leetcode: 241, title: 'Different Ways to Add Parentheses', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/different-ways-to-add-parentheses/', templateRefs: ['P5'], tags: ['recursion','divide-and-conquer','math','string'], alternateApproaches: [{ technique: 'memoization', tradeoff: 'Cache [start][end] results to avoid recomputing overlapping substrings. Input size is small (≤20 chars) so pure recursion is accepted in interviews, but memoization is the production answer.', complexity: 'O(n * Catalan(n)) time and space with memoization' }], keyInsight: 'For each operator in the expression, it could be the LAST operation evaluated. Split at every operator: left = all results for left substring, right = all results for right substring. Apply the operator to every (left, right) pair and collect all results.', shrinkTrigger: 'Base case: string contains no operator — it is a pure number. Parse and return [number] as a single-element list.', timeComplexity: 'O(n * Catalan(n)) — exponential but input is small', spaceComplexity: 'O(n * Catalan(n))', gotcha: 'Base case is detecting a pure number — check if NO operator exists in the string. Checking length == 1 breaks on multi-digit numbers like "12".', faangNote: 'The "split at the last operator" frame — what is the last operation evaluated? — appears in LC_95 (Unique BSTs II) and LC_96. Stating this framing before coding earns extra points from interviewers.' },
+
+      'LC_395': { leetcode: 395, title: 'Longest Substring with At Least K Repeating Characters', difficulty: 'Medium', difficultyRank: 2, link: 'https://leetcode.com/problems/longest-substring-with-at-least-k-repeating-characters/', templateRefs: ['P5'], tags: ['recursion','divide-and-conquer','string','array'], alternateApproaches: [{ technique: 'sliding-window', tradeoff: 'Fix the number of unique characters from 1 to 26 and use a sliding window for each. O(26n) = O(n) time, O(1) space — better complexity but requires seeing the outer loop trick.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'Any character with frequency < k CANNOT be in any valid substring — it is a mandatory split point. Count frequencies, split at any invalid character, recurse on each segment. If all characters have freq >= k, the entire string is valid — return its length.', shrinkTrigger: 'Base case: s.length < k → return 0. Also base case: all chars have freq >= k → return s.length. Otherwise split at first invalid char and recurse on segments.', timeComplexity: 'O(n * 26) — at most 26 unique split characters per level', spaceComplexity: 'O(n) — call stack', gotcha: 'Split at ALL invalid characters iteratively — resulting segments may still contain further invalid characters that cause additional splits on the next recursive level.', faangNote: 'This problem stumps candidates who default to sliding window. The D&C insight — invalid characters are forced split points — is the elegant approach. Say: "Any character with insufficient frequency is a mandatory boundary. I recurse on the valid segments."' },
+
+      'LC_25': { leetcode: 25, title: 'Reverse Nodes in k-Group', difficulty: 'Hard', difficultyRank: 3, link: 'https://leetcode.com/problems/reverse-nodes-in-k-group/', templateRefs: ['P3'], tags: ['recursion','linked-list'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Process k-groups iteratively with careful pointer management. O(1) space. Complex to implement — four pointer variables needed per group.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'Count k nodes. If fewer than k remain, return head unchanged (base case — do not reverse incomplete groups). Reverse exactly k nodes. Connect the tail of the reversed group to recurse(remaining list). Return the new head of the reversed group.', shrinkTrigger: 'Base case: fewer than k nodes remain → return head. Each call reduces the list by k nodes.', timeComplexity: 'O(n)', spaceComplexity: 'O(n/k) — recursion depth', gotcha: 'After reversing k nodes in-place, the original head node IS the tail of the reversed group. Its next pointer must be assigned to the recursive result — missing this leaves the tail pointing directly to the (k+1)th node, skipping all subsequent reversed groups.', faangNote: 'Meta and Google Hard. Interviewers expect the recursive form first, then ask for O(1) space iterative as a follow-up. Say: "Each recursive call processes one k-group. Call stack depth is n/k — roughly 100 frames for n=1000, k=10, well within limits."' },
+
+      'LC_273': { leetcode: 273, title: 'Integer to English Words', difficulty: 'Hard', difficultyRank: 3, link: 'https://leetcode.com/problems/integer-to-english-words/', templateRefs: ['P4'], tags: ['recursion','math','string'], alternateApproaches: [], keyInsight: 'Split the number into 3-digit chunks (ones, thousands, millions, billions). For each non-zero chunk, call a helper that handles 1–999 recursively: hundreds digit, then recurse on the remainder (tens + ones). Combine chunk results with the appropriate magnitude word.', shrinkTrigger: 'Helper base case: num == 0 → return "". Numbers below 20: direct lookup. Numbers 20–99: tens word + recurse on ones. Numbers 100–999: hundreds + "Hundred" + recurse on remainder.', timeComplexity: 'O(1) — number of digits is bounded (max 10 digits for a 32-bit integer)', spaceComplexity: 'O(1)', gotcha: 'Special case: num == 0 at the top level must return "Zero". The inner helper returns "" for 0 but the entry point must handle zero differently. This is the single most commonly missed edge case.', faangNote: 'Google and Amazon screener classic. Expected answer is recursive chunking — candidates who try to handle every case in one flat loop fail. Say: "I split into billions, millions, thousands, ones groups and recurse on each 3-digit chunk independently."' },
+
+      'LC_224': { leetcode: 224, title: 'Basic Calculator', difficulty: 'Hard', difficultyRank: 3, link: 'https://leetcode.com/problems/basic-calculator/', templateRefs: ['P4'], tags: ['recursion','string','parsing','stack','math'], alternateApproaches: [{ technique: 'stack', tradeoff: 'Explicit stack of (result, sign) pairs. Same O(n) time and space but iterative — avoids recursion depth limits for extremely deeply nested expressions.', complexity: 'O(n) time, O(n) space' }], keyInsight: 'Recursive descent parser. Maintain a shared index. Per level: accumulate numbers with sign tracking. On + or -: apply sign to current number and update sign. On (: recurse into inner expression, add its return value. On ) or end: return current accumulated result.', shrinkTrigger: 'Base case: index reaches end of string or hits ) — return the accumulated result for this level. Recursion depth equals parenthesis nesting depth.', timeComplexity: 'O(n)', spaceComplexity: 'O(n) — call stack depth equals nesting depth', gotcha: 'Track sign as +1 or -1, not as a character. A minus sign applies to everything at the current nesting level until the next operator. On (, the inner result is returned with its own sign applied — the outer level then applies its current sign to that returned value.', faangNote: 'Google Hard — tests whether you can model a grammar recursively. The recursive parser is the SD3 signal. Say: "Each parenthesized subexpression is a subproblem. I recurse into it and return its evaluated value. The call stack models the nesting depth directly."' }
     }
   }
   // ← Add new topic modules here
