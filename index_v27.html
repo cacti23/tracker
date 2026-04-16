@@ -782,9 +782,45 @@ let _qpTimerIv     = null   // setInterval handle
 let _qpTimerPreset = 0      // last preset in minutes
 let _qpDueOnly     = false  // when true: generate only "due for review" questions
 
+// ─── QP STATE PERSISTENCE ─────────────────────────────────────────────────────
+const QP_STATE_KEY = 'dsa-qp-state-v1'
+function _saveQpState() {
+  try {
+    const state = {
+      topics:  Array.from(_qpTopics),
+      count:   _qpCount,
+      dueOnly: _qpDueOnly,
+      results: _qpResults ? _qpResults.map(([k]) => k) : null,
+    }
+    localStorage.setItem(QP_STATE_KEY, JSON.stringify(state))
+  } catch {}
+}
+function _loadQpState() {
+  try {
+    const raw = localStorage.getItem(QP_STATE_KEY)
+    if (!raw) return
+    const state = JSON.parse(raw)
+    if (Array.isArray(state.topics)) state.topics.forEach(k => _qpTopics.add(k))
+    if (typeof state.count   === 'number') _qpCount   = state.count
+    if (typeof state.dueOnly === 'boolean') _qpDueOnly = state.dueOnly
+    if (Array.isArray(state.results)) {
+      // Re-hydrate [lcKey, q] pairs from TOPIC_MODULES
+      const pairs = []
+      state.results.forEach(k => {
+        for (const topicKey of Object.keys(TOPIC_MODULES)) {
+          const q = TOPIC_MODULES[topicKey].questions[k]
+          if (q) { pairs.push([k, q]); break }
+        }
+      })
+      if (pairs.length > 0) _qpResults = pairs
+    }
+  } catch {}
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   syncThemeIcon()
+  _loadQpState()
   buildNav()
   loadDashboard()
 })
@@ -1784,6 +1820,7 @@ function _qpRowClick(event, lcKey) {
           _qpResults = Array.from(list.querySelectorAll('.ps-q-row[data-lc-key]'))
             .map(r => { const k = r.getAttribute('data-lc-key'); return k && qMap[k] ? [k, qMap[k]] : null })
             .filter(Boolean)
+          _saveQpState()
         }
         if (_qpResults && _qpResults.length > 0 && _qpDoneThisSession.size >= _qpResults.length) {
           _qpShowSessionComplete()
@@ -1838,6 +1875,7 @@ function _qpStruggleClick(btnEl, lcKey) {
               _qpResults = Array.from(list.querySelectorAll('.ps-q-row[data-lc-key]'))
                 .map(r => { const k = r.getAttribute('data-lc-key'); return k && qMap[k] ? [k, qMap[k]] : null })
                 .filter(Boolean)
+              _saveQpState()
             }
             if (_qpResults && _qpResults.length > 0 && _qpDoneThisSession.size >= _qpResults.length) {
               _qpShowSessionComplete()
@@ -2069,6 +2107,7 @@ function _qpToggleTopic(key) {
   if (_qpTimerRun) return  // don't change topic selection mid-session
   if (_qpTopics.has(key)) _qpTopics.delete(key); else _qpTopics.add(key)
   _qpResults = null  // clear stale results when topic selection changes
+  _saveQpState()
   _renderQuickPractice()
 }
 
@@ -2082,6 +2121,7 @@ function _qpSelectAll() {
     validTopics.forEach(t => _qpTopics.add(t.key))
   }
   _qpResults = null
+  _saveQpState()
   _renderQuickPractice()
 }
 
@@ -2132,6 +2172,7 @@ function _qpAdjCount(delta) {
 
   // Sync count display to actual list length and re-render
   if (el) el.textContent = _qpResults.length
+  _saveQpState()
   const resultsEl = document.getElementById('qp-results')
   if (resultsEl) {
     resultsEl.innerHTML = _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
@@ -2186,6 +2227,7 @@ function _qpGenerate() {
   const fresh = generated.filter(([k]) => !prevDone.has(k))
   const done  = generated.filter(([k]) =>  prevDone.has(k))
   _qpResults = [...fresh, ...done]
+  _saveQpState()
 
   // Lock +/- while timer is running
   if (_qpTimerRun) {
@@ -2210,6 +2252,7 @@ function _qpToggleDueOnly() {
   // the old set is meaningless and would pollute the next generated set's prevDone snapshot
   _qpDoneThisSession.clear()
   _qpStruggledThisSession.clear()
+  _saveQpState()
   _renderQuickPractice()
 }
 
