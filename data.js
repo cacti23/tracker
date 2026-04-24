@@ -1,4 +1,3 @@
-// ...existing code continues (removed invalid character line)...
 // ─── data.js ─────────────────────────────────────────────────────────────────
 // DSA Notebook — question data, topic modules, and progress storage.
 //
@@ -21,8 +20,8 @@ const TOPICS = [
   { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
   { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },
   { key: 'recursion',      icon: '🔁', label: 'Recursion'      },
-  { key: 'backtracking',   icon: '🔙', label: 'Backtracking'   }, // ← ADD THIS LINE
-]
+  { key: 'backtracking',   icon: '🔙', label: 'Backtracking'   },
+];
 
 // Per-question user progress (persisted in localStorage)
 // shape: { [lcKey]: { status: 'Solved'|'In Progress'|'Pending' } }
@@ -43,17 +42,28 @@ function setStatus(lcKey, status) {
 
 // Per-question personal notes (persisted in localStorage)
 // shape: { [lcKey]: string }
-const NOTES_KEY = 'dsa-notes-v1'
+const NOTES_KEY = 'dsa-notes-v1';
+let _notesCache = null;
+function loadNotes() {
+  if (_notesCache) return _notesCache;
+  try { _notesCache = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch { _notesCache = {}; }
+  return _notesCache;
+}
+function saveNotes(n) { _notesCache = n; localStorage.setItem(NOTES_KEY, JSON.stringify(n)); }
 function getNote(lcKey) {
-  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || '{}')[lcKey] || '' } catch { return '' }
+  return loadNotes()[lcKey] || '';
 }
 function setNote(lcKey, text) {
-  try {
-    const notes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}')
-    if (text.trim()) notes[lcKey] = text; else delete notes[lcKey]
-    localStorage.setItem(NOTES_KEY, JSON.stringify(notes))
-  } catch {}
+  const n = loadNotes();
+  if (text.trim()) n[lcKey] = text; else delete n[lcKey];
+  saveNotes(n);
 }
+
+// Invalidate caches on cross-tab updates
+window.addEventListener('storage', (e) => {
+  if (e.key === PROGRESS_KEY) _progressCache = null;
+  if (e.key === NOTES_KEY) _notesCache = null;
+});
 
 // Per-question pins (persisted in localStorage)
 // shape: string[] (array of lcKeys stored as JSON array)
@@ -1556,7 +1566,20 @@ const TOPIC_MODULES = {
     shrinkTrigger: 'If index === nums.length → check all buckets equal target → return true. Loop k buckets: if buckets[i] + nums[index] <= target → add to bucket, recurse with index+1, remove from bucket. Skip if buckets[i] === buckets[i-1] (duplicate bucket state).',
     timeComplexity: 'O(k^n) worst case — pruning makes it much faster in practice',
     spaceComplexity: 'O(n) recursion stack',
-    gotcha: 'The duplicate bucket skip (if buckets[i] === buckets[i-1] continue) is the critical pruning that makes this solution feasible. Without it the solution TLEs on most inputs. This pruning is the entire performance story for this problem.',
+    gotcha: 'This is classic backtracking with pruning, but unlike path-tracking, there is no explicit "undo" of a path array. Instead, you fill and unfill buckets directly. The key difference from path-tracking is that the return-phase does not build up a solution array; it only checks feasibility. Pruning by skipping duplicate bucket states is the entire performance story for this problem.',
+    faangNote: 'Strong FAANG-style problem that tests bucket-filling backtracking — a distinct pattern not covered by any other question in this list. Sort descending before backtracking and always mention the duplicate bucket pruning explicitly.',
+    alternateApproaches: [
+      {
+        technique: 'Bitmask DP',
+        tradeoff: 'O(2^n * n) time with O(2^n) space. More complex to implement but polynomial in n. Mention as follow-up if interviewer asks about optimization.',
+        complexity: 'O(2^n * n) time, O(2^n) space'
+      }
+    ],
+    keyInsight: 'Bucket-filling backtracking. Create k buckets each targeting sum/k. Try placing each number into each bucket. Prune: skip buckets with the same current sum (identical state — no point trying again). Sort descending first so large numbers fail fast.',
+    shrinkTrigger: 'If index === nums.length → check all buckets equal target → return true. Loop k buckets: if buckets[i] + nums[index] <= target → add to bucket, recurse with index+1, remove from bucket. Skip if buckets[i] === buckets[i-1] (duplicate bucket state).',
+    timeComplexity: 'O(k^n) worst case — pruning makes it much faster in practice',
+    spaceComplexity: 'O(n) recursion stack',
+    gotcha: 'This is classic backtracking with pruning, but unlike path-tracking, there is no explicit "undo" of a path array. Instead, you fill and unfill buckets directly. The key difference from path-tracking is that the return-phase does not build up a solution array; it only checks feasibility. Pruning by skipping duplicate bucket states is the entire performance story for this problem.',
     faangNote: 'Strong FAANG-style problem that tests bucket-filling backtracking — a distinct pattern not covered by any other question in this list. Sort descending before backtracking and always mention the duplicate bucket pruning explicitly.',
     alternateApproaches: [
       {
@@ -1613,7 +1636,7 @@ const TOPIC_MODULES = {
     shrinkTrigger: 'Build a Set from wordDict for O(L) lookup. If memo[start] exists → return it. If start === s.length → return [\'\']. result = []. For each word: if s.startsWith(word, start) → for each suffix in recurse(start + word.length): result.push(word + (suffix ? \' \' + suffix : \'\')). memo[start] = result. Return result.',
     timeComplexity: 'O(n^2 * 2^n) worst case — memoization eliminates redundant recomputation of overlapping suffixes',
     spaceComplexity: 'O(2^n * n) — up to 2^n distinct sentences each of length O(n)',
-    gotcha: 'Memoize a LIST, not a boolean. Storing a boolean (as in LC_139) confirms a solution exists but cannot reconstruct it. Also: sentence strings are built by concatenation during the return phase, not by mutation of a shared path array — there is nothing to explicitly "undo" in the backtracking sense.',
+    gotcha: 'Unlike classic backtracking with path push/pop (choose → explore → unchoose), here the solution is built during the return phase by concatenating strings from recursive calls. There is no explicit path array to undo. Memoization stores lists of results, not booleans. This is the key difference from path-tracking backtracking.',
     faangNote: 'Very high frequency at Amazon, Meta, and Google. Interviewers use this to shatter the misconception that memoization only works for count or boolean problems. The correct framing to state before coding: "Overlapping subproblems here produce lists, not scalars — I memoize the list." If you cannot make that observation unprompted, you will not pass SD3 bar.',
     alternateApproaches: [
       {
@@ -1633,7 +1656,22 @@ const TOPIC_MODULES = {
     templateRefs: ['P5'],
     tags: ['backtracking', 'grid', 'dfs', 'trie', 'pruning', 'in-place'],
     keyInsight: 'Build a Trie from the entire word list before starting any DFS. During grid backtracking, traverse the Trie simultaneously — one Trie node per grid cell visited. If the current character has no matching child in the Trie, prune the entire DFS branch immediately. When a Trie node is marked end-of-word, record the word then set node.word = null to prevent duplicate results from alternate paths.',
-    shrinkTrigger: 'Build Trie from words. DFS from every cell (r, c) starting at Trie root. At each step: if out of bounds OR board[r][c] === \'#\' OR no Trie child for board[r][c] → return. Move to Trie child node. If node.word → results.push(node.word), node.word = null. Mark board[r][c] = \'#\'. Recurse all 4 directions. Restore board[r][c].',
+    shrinkTrigger: 'Build Trie from words. DFS from every cell (r, c) starting at Trie root. At each step: if out of bounds OR board[r][c] === "#" OR no Trie child for board[r][c] → return. Move to Trie child node. If node.word → results.push(node.word), node.word = null. Mark board[r][c] = "#". Recurse all 4 directions. Restore board[r][c].',
+    timeComplexity: 'O(m * n * 4^L) where L is max word length — Trie prefix pruning eliminates the vast majority of branches in practice',
+    spaceComplexity: 'O(W * L) for the Trie where W is number of words and L is average word length',
+    gotcha: 'The node.word = null trick after recording a word is essential. Without it, the same word is added to results multiple times if it can be reached via multiple grid paths. This is cleaner than a separate results Set and eliminates post-processing deduplication entirely.',
+    faangNote: 'Google asks this at L5/L6 as the capstone backtracking question. The expected signal before writing a single line: "Running LC_79 for each word individually is O(W * m * n * 4^L) — too slow. I will build a Trie to prune entire DFS branches that cannot match any word prefix." If you cannot derive the Trie optimization unprompted, you are below SD3 bar for Google backtracking rounds.',
+    alternateApproaches: [
+      {
+        technique: 'Trie leaf pruning after word is found',
+        tradeoff: 'After completing the DFS, walk back up and prune Trie nodes that have no remaining children (their words are all found). Reduces Trie traversal cost significantly when many words share a common prefix and the grid is large. Mention as a follow-up optimization — do not implement during the initial solution.',
+        complexity: 'Same asymptotic, dramatically faster on large dense word lists'
+      }
+    ],
+    templateRefs: ['P5'],
+    tags: ['backtracking', 'grid', 'dfs', 'trie', 'pruning', 'in-place'],
+    keyInsight: 'Build a Trie from the entire word list before starting any DFS. During grid backtracking, traverse the Trie simultaneously — one Trie node per grid cell visited. If the current character has no matching child in the Trie, prune the entire DFS branch immediately. When a Trie node is marked end-of-word, record the word then set node.word = null to prevent duplicate results from alternate paths.',
+    shrinkTrigger: 'Build Trie from words. DFS from every cell (r, c) starting at Trie root. At each step: if out of bounds OR board[r][c] === "#" OR no Trie child for board[r][c] → return. Move to Trie child node. If node.word → results.push(node.word), node.word = null. Mark board[r][c] = "#". Recurse all 4 directions. Restore board[r][c].',
     timeComplexity: 'O(m * n * 4^L) where L is max word length — Trie prefix pruning eliminates the vast majority of branches in practice',
     spaceComplexity: 'O(W * L) for the Trie where W is number of words and L is average word length',
     gotcha: 'The node.word = null trick after recording a word is essential. Without it, the same word is added to results multiple times if it can be reached via multiple grid paths. This is cleaner than a separate results Set and eliminates post-processing deduplication entirely.',
