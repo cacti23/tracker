@@ -21,6 +21,7 @@ const TOPICS = [
   { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
   { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },
   { key: 'recursion',      icon: '🔁', label: 'Recursion'      },
+  { key: 'backtracking',   icon: '🔙', label: 'Backtracking'   }, // ← ADD THIS LINE
 ]
 
 // Per-question user progress (persisted in localStorage)
@@ -1076,5 +1077,576 @@ const TOPIC_MODULES = {
     }
   }
   // ← Add new topic modules here
+    ,
+    'backtracking': {
+      description: 'A systematic algorithm technique that builds candidates to a solution incrementally and abandons a candidate ("backtracks") as soon as it determines the candidate cannot lead to a valid solution. In FAANG interviews, backtracking appears in six distinct forms: subset/combination generation, permutation generation, string partitioning, grid/graph path finding, constraint satisfaction on boards, and constructive enumeration with pruning.',
+      goal: 'Cover 95% of FAANG Backtracking questions by mastering 6 patterns, 6 templates, and 21 curated problems',
+      relatedTopics: ['recursion', 'binary-search', 'sorting'],
+      tagRegistry: [
+        'backtracking', 'subset', 'combination', 'permutation',
+        'duplicate-handling', 'pruning', 'partition', 'string',
+        'grid', 'dfs', 'constraint-satisfaction', 'visited',
+        'start-index', 'target-sum', 'graph', 'path-enumeration',
+        'bucket-filling', 'expression-building', 'memoization',
+        'array', 'board', 'in-place',
+        'hashset-dedup', 'subsequence', 'trie', 'word-break', 'dictionary', 'dag'
+      ],
+      techniqueRegistry: [
+        'backtracking', 'dfs', 'pruning', 'visited-array',
+        'start-index', 'in-place-marking', 'memoization',
+        'constraint-propagation', 'bucket-filling',
+        'expression-building', 'multiplication-undo',
+        'hashset-per-level', 'trie-pruning', 'memoized-backtracking'
+      ],
+      whenToUse: {
+        use: [
+          'Problem asks for ALL valid combinations, subsets, or permutations',
+          'Problem asks you to BUILD a solution incrementally and validate at each step',
+          'Search space is exponential but heavy pruning makes it tractable',
+          'Problem involves choosing from a set of options at each step with constraints',
+          'Keywords: "all possible", "generate all", "find all valid", "enumerate"'
+        ],
+        avoid: [
+          'Only ONE optimal answer needed — use DP or Greedy instead',
+          'Problem has overlapping subproblems without enumeration need — use DP instead',
+          'Graph traversal without path tracking — use plain DFS/BFS instead',
+          'Counting solutions only without enumerating them — use DP instead',
+          'If the backtracking state space has overlapping subproblems AND you only need a count or boolean — memoize the state and use top-down DP instead (e.g., Word Break, Target Sum as count)',
+          'If n > 20 and no aggressive pruning is possible — pure backtracking will TLE; consider bitmask DP or mathematical approach'
+        ]
+      },
+      interviewTips: [
+        'Always verbalize the choose → explore → unchoose rhythm before writing code.',
+        'Draw the decision tree on the whiteboard first. Two minutes drawing saves ten minutes debugging.',
+        'State your pruning conditions explicitly before coding.',
+        'For duplicate handling: always sort first, then skip nums[i] === nums[i-1] at the same recursion level (i > start).',
+        'Distinguish i vs i+1 in recursive calls: i allows reuse, i+1 moves forward.',
+        'Time complexity is almost always O(2^n) or O(n!) — state this proactively.',
+        'In grid backtracking, prefer in-place marking to save O(m*n) space.',
+        'If pure backtracking TLEs, mention memoization on start index as next optimization step.'
+      ],
+      patterns: [
+          {
+            id: 'P1',
+            name: 'Binary Decision / Include-Exclude',
+            analogy: 'At each element you stand at a fork: left path takes the element, right path skips it. You walk every path in the tree, recording the leaf nodes that satisfy your condition.',
+            approach: '1) At each index, make two recursive calls: one including nums[i], one excluding it. 2) Base case: index == nums.length → record current subset. 3) For duplicates: sort first, skip nums[i] == nums[i-1] when i > start.',
+            recognitionSignals: [
+              'Problem asks for ALL subsets or power set',
+              'Each element has a binary in/out decision',
+              'No ordering constraint on the output'
+            ],
+            mentalModel: 'Binary tree of decisions. Left = include. Right = exclude. Every leaf is a valid answer.',
+            keyQuestion: 'Am I including or excluding this element? Have I handled duplicates by sorting and skipping at the same level?',
+            questionIds: ['LC_78', 'LC_90', 'LC_491']
+          },
+          {
+            id: 'P2',
+            name: 'For-loop Choice / Combination with Start Index',
+            analogy: 'You have a menu of items. At each step you pick one item from position i onward — never going back — to avoid counting the same combination twice. You stop when your plate is full or your budget is spent.',
+            approach: '1) Loop from start to end. 2) Choose nums[i], recurse with i+1 (or i for reuse). 3) Unchoose. 4) Prune: if running sum > target, break early (requires sorted input).',
+            recognitionSignals: [
+              'Problem asks for combinations where order does NOT matter',
+              'A target sum must be reached',
+              'Elements may or may not be reused',
+              'Keywords: "combinations that sum to", "choose k from n"'
+            ],
+            mentalModel: 'Forward-only loop. start index prevents revisiting. i vs i+1 controls reuse. Sum-based pruning cuts branches early.',
+            keyQuestion: 'Should I pass i (allow reuse) or i+1 (no reuse)? What is my pruning condition?',
+            questionIds: ['LC_77', 'LC_39', 'LC_40', 'LC_216']
+          },
+          {
+            id: 'P3',
+            name: 'Permutation / Visited-State Backtracking',
+            analogy: 'You are arranging people in a line. At each position you pick anyone not yet placed. A visited badge tracks who is already in the line. After exploring, you remove the badge and try the next person.',
+            approach: '1) Use a visited[] boolean array. 2) At each step, loop all elements, skip visited ones. 3) Mark visited, recurse, unmark. 4) For duplicates: sort first, add condition: if i > 0 && nums[i] == nums[i-1] && !visited[i-1] → skip.',
+            recognitionSignals: [
+              'Problem asks for ALL permutations or arrangements',
+              'Order matters in the output',
+              'Every element must be used exactly once per permutation'
+            ],
+            mentalModel: 'Full loop at every level. visited[] replaces start index. Duplicate skip condition differs from combination duplicate skip.',
+            keyQuestion: 'Have I marked this element visited? For duplicates: is the previous identical element unvisited?',
+            questionIds: ['LC_46', 'LC_47']
+          },
+          {
+            id: 'P4',
+            name: 'Partition / Cut-the-String Backtracking',
+            analogy: 'You have a long ribbon. At each step you cut off a prefix, validate it, then recurse on the remaining ribbon. You collect results only when the ribbon is fully consumed.',
+            approach: '1) Loop end from start+1 to len+1. 2) Take slice s[start:end], validate it. 3) If valid: add to path, recurse with end as new start, remove from path. 4) Base case: start == s.length → record path.',
+            recognitionSignals: [
+              'Input is a string that must be split into valid segments',
+              'Each segment must satisfy a constraint (palindrome, valid number, dictionary word)',
+              'All valid partitions must be returned'
+            ],
+            mentalModel: 'Sliding cut point on a string. Validate prefix, recurse on suffix. Base case is reaching end of string.',
+            keyQuestion: 'Is this prefix valid? What is my validation function? What does fully consumed look like?',
+            questionIds: ['LC_131', 'LC_93', 'LC_17', 'LC_140']
+          },
+          {
+            id: 'P5',
+            name: 'Grid / Graph Path Backtracking',
+            analogy: 'You are walking through a maze, leaving chalk marks on tiles you visit. If you hit a dead end, you erase your last chalk mark and try a different direction.',
+            approach: '1) At each cell, check bounds + visited + constraint. 2) Mark cell visited in-place. 3) Recurse in all valid directions. 4) Unmark cell to restore. 5) For graphs: push node to path, recurse neighbors, pop node.',
+            recognitionSignals: [
+              'Search for a path or all paths in a 2D grid or graph',
+              'Each cell or node can only be used once per path',
+              'Must track the path itself, not just reachability'
+            ],
+            mentalModel: 'DFS with explicit undo. In grids: in-place marking is cleaner. In graphs: path array with push/pop.',
+            keyQuestion: 'How am I marking visited? How am I restoring state? Is this a grid (4 directions) or graph (neighbor list)?',
+            questionIds: ['LC_79', 'LC_797', 'LC_212']
+          },
+          {
+            id: 'P6',
+            name: 'Constraint Satisfaction / Board Backtracking',
+            analogy: 'You are filling a crossword puzzle. Before writing a word, you check it does not conflict with existing letters. If you get stuck, you erase the last word and try the next candidate.',
+            approach: '1) Find the next empty slot. 2) Try all valid candidates. 3) Validate against all constraints. 4) Place candidate, recurse. 5) If recursion fails, remove candidate. 6) If no slot left, solution found.',
+            recognitionSignals: [
+              'Fill a board or grid under strict placement rules',
+              'Each placement must be validated against multiple constraints simultaneously',
+              'Keywords: "valid placement", "no conflict", "fill the board"'
+            ],
+            mentalModel: 'Find empty slot → try candidates → validate all constraints → place → recurse → undo. Pruning is the entire performance story.',
+            keyQuestion: 'What are ALL the constraints I must check before placing? What is my find-next-empty-slot strategy?',
+            questionIds: ['LC_51', 'LC_37', 'LC_698']
+          }
+        ],
+      questions: {
+          'LC_78': {
+            leetcode: 78,
+            title: 'Subsets',
+            difficulty: 'Medium',
+            status: 'Pending',
+            link: 'https://leetcode.com/problems/subsets/',
+            templateRefs: ['P1'],
+            tags: ['backtracking', 'subset', 'array'],
+            keyInsight: 'The core backtracking skeleton lives here. Result is recorded at EVERY node of the tree, not just leaves. The choose → explore → unchoose rhythm must be internalized from this problem before moving to any other.',
+            shrinkTrigger: 'Add current snapshot to result. Loop from start to end: push nums[i], recurse with i+1, pop nums[i].',
+            timeComplexity: 'O(n * 2^n)',
+            spaceComplexity: 'O(n)',
+            gotcha: 'Record result.push([...current]) — not result.push(current). JavaScript arrays are passed by reference. Pushing current directly means every recorded entry points to the same array object. When backtracking unwinds and empties the array, ALL previously recorded entries become empty arrays.',
+            faangNote: 'Asked as a warm-up at Google and Meta to verify the candidate knows the backtracking skeleton before harder problems.',
+            alternateApproaches: [
+              {
+                technique: 'Iterative bit masking',
+                tradeoff: 'Same complexity, no recursion, but harder to extend to constrained variants',
+                complexity: 'O(n * 2^n)'
+              }
+            ]
+          },
+
+                'LC_90': {
+                  leetcode: 90,
+                  title: 'Subsets II',
+                  difficulty: 'Medium',
+                  status: 'Pending',
+                  link: 'https://leetcode.com/problems/subsets-ii/',
+                  templateRefs: ['P1'],
+                  tags: ['backtracking', 'subset', 'array', 'duplicate-handling'],
+                  keyInsight: 'Sort first. Skip duplicate siblings at the same recursion depth using: if (i > start && nums[i] === nums[i-1]) continue. The sort ensures duplicates are adjacent so this check works.',
+                  shrinkTrigger: 'Record snapshot at every node. Loop from start: skip if i > start && nums[i] === nums[i-1]. Push, recurse i+1, pop.',
+                  timeComplexity: 'O(n * 2^n)',
+                  spaceComplexity: 'O(n)',
+                  gotcha: 'The skip condition is i > start, NOT i > 0. Using i > 0 incorrectly skips valid elements at deeper recursion levels. This is the single most common bug in this problem.',
+                  faangNote: 'Google and Meta use this to test duplicate-handling awareness. The i > start vs i > 0 distinction is a direct SD3 signal.',
+                  alternateApproaches: [
+                    {
+                      technique: 'Iterative with set deduplication',
+                      tradeoff: 'Use a Set to deduplicate results. Simpler logic but O(n * 2^n) extra space.',
+                      complexity: 'O(n * 2^n)'
+                    }
+                  ]
+                },
+
+          'LC_46': {
+            leetcode: 46,
+            title: 'Permutations',
+            difficulty: 'Medium',
+            status: 'Pending',
+            link: 'https://leetcode.com/problems/permutations/',
+            templateRefs: ['P3'],
+            tags: ['backtracking', 'permutation', 'visited', 'array'],
+            keyInsight: 'Unlike subsets, permutations loop from index 0 every time. A visited[] array replaces the start index. This is the structural difference between combination-style and permutation-style backtracking.',
+            shrinkTrigger: 'If current.length === nums.length → record result. Else loop all indices: skip if visited[i], mark visited, push, recurse, pop, unmark.',
+            timeComplexity: 'O(n * n!)',
+            spaceComplexity: 'O(n)',
+            gotcha: 'You must unmark visited[i] = false after the recursive call. Forgetting this means subsequent branches incorrectly see elements as used.',
+            faangNote: 'Asked at every major FAANG company. The visited array pattern appears in many harder problems — master it here.',
+            alternateApproaches: [
+              {
+                technique: 'Swap-based in-place',
+                tradeoff: 'O(1) extra space but output order differs and harder to extend to duplicates',
+                complexity: 'O(n * n!)'
+              }
+            ]
+          },
+
+          'LC_47': {
+            leetcode: 47,
+            title: 'Permutations II',
+            difficulty: 'Medium',
+            status: 'Pending',
+            link: 'https://leetcode.com/problems/permutations-ii/',
+            templateRefs: ['P3'],
+            tags: ['backtracking', 'permutation', 'duplicate-handling', 'visited', 'array'],
+            keyInsight: 'Sort first. Duplicate skip condition for permutations: if (i > 0 && nums[i] === nums[i-1] && !visited[i-1]) continue. The !visited[i-1] part ensures we only use the first of identical elements at each level.',
+            shrinkTrigger: 'Same as LC_46 but add duplicate skip: if (i > 0 && nums[i] === nums[i-1] && !visited[i-1]) continue.',
+            timeComplexity: 'O(n * n!)',
+            spaceComplexity: 'O(n)',
+            gotcha: 'The condition !visited[i-1] is counterintuitive. It means: if the previous identical element is NOT currently in our path, skip this one. This enforces a fixed ordering among duplicates.',
+            faangNote: 'Common follow-up to LC_46. Tests whether you truly understand visited-based backtracking vs just memorizing LC_46.',
+            alternateApproaches: []
+          },
+
+          'LC_77': {
+            leetcode: 77,
+            title: 'Combinations',
+            difficulty: 'Medium',
+            status: 'Pending',
+            link: 'https://leetcode.com/problems/combinations/',
+            templateRefs: ['P2'],
+            tags: ['backtracking', 'combination', 'start-index', 'array'],
+            keyInsight: 'The purest form of the start-index pattern. Choose exactly k numbers from 1 to n. No target sum, no reuse — just the forward-only loop with a size constraint. Master this before Combination Sum adds target complexity on top.',
+            shrinkTrigger: 'If current.length === k → record result. Else loop from start to n: push i, recurse with i+1, pop i.',
+            timeComplexity: 'O(k * C(n,k))',
+            spaceComplexity: 'O(k)',
+            gotcha: 'Pruning opportunity: loop only up to n - (k - current.length) + 1. If fewer elements remain than needed to fill k slots, stop early. This is a strong optimization signal in interviews.',
+            faangNote: 'Often asked before Combination Sum to verify the candidate understands the start-index pattern in isolation.',
+            alternateApproaches: []
+          },
+  'LC_39': {
+    leetcode: 39,
+    title: 'Combination Sum',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/combination-sum/',
+    templateRefs: ['P2'],
+    tags: ['backtracking', 'combination', 'target-sum', 'pruning', 'array'],
+    keyInsight: 'Passing i instead of i+1 in the recursive call allows reuse of the same element. Sort the array first so you can break early when candidates[i] > remaining. This pruning is what makes the solution efficient.',
+    shrinkTrigger: 'If remaining === 0 → record result. If remaining < 0 → return. Loop from start: push candidates[i], recurse with i and remaining - candidates[i], pop.',
+    timeComplexity: 'O(n^(target/min)) — exponential but pruned heavily in practice',
+    spaceComplexity: 'O(target/min) recursion depth',
+    gotcha: 'Pass i not i+1 to allow reuse. If you pass i+1 here you are solving LC_40 not this problem. This single character difference is a common interview mistake.',
+    faangNote: 'One of the highest frequency backtracking questions at Amazon and Google. The i vs i+1 distinction is always probed by interviewers.',
+    alternateApproaches: []
+  },
+
+  'LC_40': {
+    leetcode: 40,
+    title: 'Combination Sum II',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/combination-sum-ii/',
+    templateRefs: ['P2'],
+    tags: ['backtracking', 'combination', 'target-sum', 'duplicate-handling', 'pruning', 'array'],
+    keyInsight: 'Combines two concepts: pass i+1 (no reuse) AND skip duplicates at same level (i > start && candidates[i] === candidates[i-1]). Sort first. This problem is the convergence point of the combination and duplicate-handling patterns.',
+    shrinkTrigger: 'Sort first. If remaining === 0 → record. Loop from start: skip if (i > start && candidates[i] === candidates[i-1]). Push, recurse with i+1 and remaining - candidates[i], pop.',
+    timeComplexity: 'O(2^n)',
+    spaceComplexity: 'O(n)',
+    gotcha: 'You need BOTH i+1 (no reuse) AND the duplicate skip condition. Missing either one produces wrong results. Write both conditions explicitly before coding the recursion body.',
+    faangNote: 'Mastering this problem means you can solve LC_39, LC_40, LC_90 as a family. Interviewers use this to test depth of understanding vs surface memorization.',
+    alternateApproaches: []
+  },
+
+  'LC_216': {
+    leetcode: 216,
+    title: 'Combination Sum III',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/combination-sum-iii/',
+    templateRefs: ['P2'],
+    tags: ['backtracking', 'combination', 'target-sum', 'pruning', 'array'],
+    keyInsight: 'Constrained combination: exactly k numbers from 1-9 summing to n. No duplicates in input, no reuse. The small fixed search space (digits 1-9 only) makes pruning extremely aggressive and the solution very clean.',
+    shrinkTrigger: 'If current.length === k && sum === n → record. If current.length > k or sum > n → return. Loop from start to 9: push i, recurse with i+1 and sum+i, pop.',
+    timeComplexity: 'O(C(9,k)) — at most C(9,4) = 126 combinations',
+    spaceComplexity: 'O(k)',
+    gotcha: 'Prune on BOTH conditions: current.length > k AND sum > n. Pruning only one condition misses half the optimization. Both checks should appear at the top of the function.',
+    faangNote: 'Good warm-up problem. If you have solved LC_39 and LC_40 this should take under 10 minutes — a strong positive signal to the interviewer.',
+    alternateApproaches: []
+  },
+
+  'LC_131': {
+    leetcode: 131,
+    title: 'Palindrome Partitioning',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/palindrome-partitioning/',
+    templateRefs: ['P4'],
+    tags: ['backtracking', 'partition', 'string', 'pruning'],
+    keyInsight: 'The foundational partition template. Loop end from start+1 to len+1. Take slice s[start:end], check if palindrome. If yes: push, recurse with end as new start, pop. Base case: start === s.length means full string consumed.',
+    shrinkTrigger: 'If start === s.length → record result. Loop end from start+1 to s.length+1: if isPalindrome(s, start, end-1) → push slice, recurse with end, pop.',
+    timeComplexity: 'O(n * 2^n)',
+    spaceComplexity: 'O(n)',
+    gotcha: 'The isPalindrome check can be precomputed with a 2D DP table to avoid O(n) check per call. Mention this optimization proactively — it shows you think beyond the naive solution.',
+    faangNote: 'Google and Meta favourite. Tests partition template AND string processing simultaneously. Very common in phone screens.',
+    alternateApproaches: [
+      {
+        technique: 'Precompute palindrome DP table',
+        tradeoff: 'O(n^2) preprocessing eliminates repeated palindrome checks. Overall still O(n * 2^n) but with smaller constant factor.',
+        complexity: 'O(n^2) preprocessing + O(n * 2^n) backtracking'
+      }
+    ]
+  },
+
+  'LC_93': {
+    leetcode: 93,
+    title: 'Restore IP Addresses',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/restore-ip-addresses/',
+    templateRefs: ['P4'],
+    tags: ['backtracking', 'partition', 'string', 'pruning'],
+    keyInsight: 'Partition template with hard constraints: exactly 4 segments, each segment 0-255, no leading zeros. Aggressive pruning: if segments === 4 and start === s.length → valid. If segments === 4 but string not consumed → invalid. If remaining string length is impossible for remaining segments → prune.',
+    shrinkTrigger: 'If segments === 4 && start === s.length → record. Loop length 1 to 3: take s[start:start+len], validate (no leading zero, value <= 255), push, recurse with start+len and segments+1, pop.',
+    timeComplexity: 'O(1) — at most 3^4 = 81 combinations to check',
+    spaceComplexity: 'O(1) — fixed recursion depth of 4',
+    gotcha: 'Leading zero check: if segment length > 1 and first char is "0" → invalid. The value check (<=255) alone does not catch "01" or "001". Both checks are required.',
+    faangNote: 'Frequently asked at Amazon. Tests partition template with domain-specific validation. Real-world flavor makes it a consistent interview favourite.',
+    alternateApproaches: []
+  },
+
+  'LC_17': {
+    leetcode: 17,
+    title: 'Letter Combinations of a Phone Number',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/letter-combinations-of-a-phone-number/',
+    templateRefs: ['P4'],
+    tags: ['backtracking', 'partition', 'string', 'array'],
+    keyInsight: 'Cartesian product via backtracking. At each index, loop through the mapped characters for digits[index]. No pruning needed — every complete path is valid. The mapping table is the only domain-specific knowledge required.',
+    shrinkTrigger: 'If index === digits.length → record current string. Else loop chars in phoneMap[digits[index]]: push char, recurse with index+1, pop char.',
+    timeComplexity: 'O(4^n * n) — at most 4 choices per digit (7 and 9 map to 4 chars)',
+    spaceComplexity: 'O(n)',
+    gotcha: 'Handle empty input: if digits is empty return [] immediately. Forgetting this causes index out of bounds on the first recursive call.',
+    faangNote: 'Top 3 most asked backtracking question across all FAANG companies. Often used as the opening backtracking question to warm up the candidate.',
+    alternateApproaches: [
+      {
+        technique: 'Iterative BFS queue',
+        tradeoff: 'Build combinations level by level using a queue. Same complexity but less natural — backtracking is the expected approach.',
+        complexity: 'O(4^n * n)'
+      }
+    ]
+  },
+
+  'LC_22': {
+    leetcode: 22,
+    title: 'Generate Parentheses',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/generate-parentheses/',
+    templateRefs: ['P2'],
+    tags: ['backtracking', 'string', 'pruning', 'constraint-satisfaction'],
+    keyInsight: 'State-based pruning replaces a choices array. Two counters — open and close — drive all decisions. Add "(" if open < n. Add ")" if close < open. Base case: current.length === 2*n. No explicit loop needed — just two conditional recursive calls.',
+    shrinkTrigger: 'If current.length === 2*n → record. If open < n → recurse with open+1. If close < open → recurse with close+1.',
+    timeComplexity: 'O(4^n / sqrt(n)) — the nth Catalan number',
+    spaceComplexity: 'O(n)',
+    gotcha: 'There is no loop here unlike most backtracking problems. The two conditional calls ARE the branching. Students who force a loop pattern onto this problem overcomplicate it significantly.',
+    faangNote: 'Top 3 most asked backtracking question at FAANG. Interviewers love it because it tests whether you can identify state-based pruning vs brute force generation and filtering.',
+    alternateApproaches: [
+      {
+        technique: 'Generate all then filter',
+        tradeoff: 'Generate all 2^(2n) strings then filter valid ones. Exponentially worse — never do this in an interview.',
+        complexity: 'O(2^(2n) * n)'
+      }
+    ]
+  },
+
+  'LC_51': {
+    leetcode: 51,
+    title: 'N-Queens',
+    difficulty: 'Hard',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/n-queens/',
+    templateRefs: ['P6'],
+    tags: ['backtracking', 'constraint-satisfaction', 'board', 'pruning'],
+    keyInsight: 'Three sets track conflicts: cols, diag1 (row-col), diag2 (row+col). Process one row at a time — no need to check rows since we place exactly one queen per row. For each column in the current row check all three sets before placing.',
+    shrinkTrigger: 'If row === n → record board snapshot. Loop col 0 to n-1: if col not in cols AND (row-col) not in diag1 AND (row+col) not in diag2 → place queen, add to all three sets, recurse row+1, remove from all three sets.',
+    timeComplexity: 'O(n!) — n choices for row 1, n-2 for row 2 and so on',
+    spaceComplexity: 'O(n)',
+    gotcha: 'Diagonal keys: diag1 uses row-col (constant along top-left to bottom-right diagonal), diag2 uses row+col (constant along top-right to bottom-left diagonal). Mixing these two up produces incorrect conflict detection that is very hard to debug.',
+    faangNote: 'Classic hard backtracking question asked directly at Google and Meta for senior roles. The interviewer wants to see the three-set optimization — not a brute force board scan for conflicts on every placement.',
+    alternateApproaches: [
+      {
+        technique: 'Bitmask for conflict tracking',
+        tradeoff: 'Replace three sets with three integers and bitwise operations. Marginal performance gain but impressive to mention as an optimization.',
+        complexity: 'O(n!)'
+      }
+    ]
+  },
+
+  'LC_79': {
+    leetcode: 79,
+    title: 'Word Search',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/word-search/',
+    templateRefs: ['P5'],
+    tags: ['backtracking', 'grid', 'dfs', 'in-place', 'visited'],
+    keyInsight: 'In-place visited marking: set board[r][c] = "#" before recursing, restore board[r][c] = word[index] after. This avoids a separate O(m*n) visited array. The four-directional DFS with immediate return on first match is the key efficiency.',
+    shrinkTrigger: 'If index === word.length → return true. If out of bounds or board[r][c] !== word[index] → return false. Mark board[r][c] = "#". Try all 4 directions. Restore board[r][c] = word[index]. Return result.',
+    timeComplexity: 'O(m * n * 4^L) where L is word length',
+    spaceComplexity: 'O(L) recursion stack',
+    gotcha: 'Restore the cell value to word[index] not to some saved original. Since you only enter the cell when board[r][c] === word[index] these are the same value. Writing word[index] makes the intent explicit and avoids confusion during interviews.',
+    faangNote: 'One of the most asked medium backtracking problems across all FAANG. The in-place marking trick is expected knowledge at SDE2 level and above.',
+    alternateApproaches: [
+      {
+        technique: 'Separate visited boolean matrix',
+        tradeoff: 'Cleaner code but O(m*n) extra space. In-place marking is the preferred approach in interviews.',
+        complexity: 'O(m * n * 4^L)'
+      }
+    ]
+  },
+
+  'LC_37': {
+    leetcode: 37,
+    title: 'Sudoku Solver',
+    difficulty: 'Hard',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/sudoku-solver/',
+    templateRefs: ['P6'],
+    tags: ['backtracking', 'constraint-satisfaction', 'board', 'pruning', 'in-place'],
+    keyInsight: 'Three constraint sets per digit: rows[r], cols[c], boxes[boxIndex]. Box index formula: Math.floor(r/3)*3 + Math.floor(c/3). Find next empty cell, try digits 1-9, validate all three constraints, place and recurse, undo if recursion returns false.',
+    shrinkTrigger: 'Find next empty cell. If none found → return true (solved). Try digits 1-9: if digit valid in row + col + box → place digit, recurse, if recurse returns true → return true, else remove digit. If no digit works → return false (trigger backtrack).',
+    timeComplexity: 'O(9^m) where m is number of empty cells',
+    spaceComplexity: 'O(m) recursion stack',
+    gotcha: 'Box index formula is Math.floor(r/3)*3 + Math.floor(c/3). This maps each cell to one of 9 boxes. Getting this formula wrong means box constraints are never correctly enforced — the board will appear to solve but produce invalid sudoku.',
+    faangNote: 'Natural progression after N-Queens. Both are constraint satisfaction problems — N-Queens has simpler constraints, Sudoku has three simultaneous constraints. Mention this relationship to the interviewer.',
+    alternateApproaches: [
+      {
+        technique: 'Constraint propagation before backtracking',
+        tradeoff: 'Propagate naked singles and hidden singles before backtracking. Dramatically reduces search space for hard sudoku boards but significantly more complex to implement.',
+        complexity: 'O(9^m) worst case but much faster in practice'
+      }
+    ]
+  },
+
+  'LC_797': {
+    leetcode: 797,
+    title: 'All Paths From Source to Target',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/all-paths-from-source-to-target/',
+    templateRefs: ['P5'],
+    tags: ['backtracking', 'graph', 'path-enumeration', 'dag'],
+    keyInsight: 'DAG path enumeration via backtracking. Push current node to path, recurse all neighbors, pop current node. No visited array needed because the graph is a DAG — no cycles means no infinite loops. Base case: current node === n-1 (target reached).',
+    shrinkTrigger: 'If node === n-1 → record path snapshot. Else loop neighbors of node: push neighbor, recurse with neighbor, pop neighbor.',
+    timeComplexity: 'O(2^n * n) — at most 2^n paths each of length n',
+    spaceComplexity: 'O(n) recursion stack',
+    gotcha: 'No visited array is needed here because the input is guaranteed to be a DAG. Adding a visited array is not wrong but signals to the interviewer that you did not notice the DAG property — always state this observation explicitly.',
+    faangNote: 'Underrated problem that bridges DFS and backtracking. FAANG interviews increasingly blur this boundary. Solving this cleanly shows you understand backtracking as a general technique beyond just arrays and strings.',
+    alternateApproaches: [
+      {
+        technique: 'BFS with path tracking',
+        tradeoff: 'BFS stores entire path per queue entry — O(2^n * n) space vs O(n) for DFS backtracking. DFS is strictly better here.',
+        complexity: 'O(2^n * n) time and space'
+      }
+    ]
+  },
+
+  'LC_698': {
+    leetcode: 698,
+    title: 'Partition to K Equal Sum Subsets',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/partition-to-k-equal-sum-subsets/',
+    templateRefs: ['P6'],
+    tags: ['backtracking', 'bucket-filling', 'pruning', 'array'],
+    keyInsight: 'Bucket-filling backtracking. Create k buckets each targeting sum/k. Try placing each number into each bucket. Prune: skip buckets with the same current sum (identical state — no point trying again). Sort descending first so large numbers fail fast.',
+    shrinkTrigger: 'If index === nums.length → check all buckets equal target → return true. Loop k buckets: if buckets[i] + nums[index] <= target → add to bucket, recurse with index+1, remove from bucket. Skip if buckets[i] === buckets[i-1] (duplicate bucket state).',
+    timeComplexity: 'O(k^n) worst case — pruning makes it much faster in practice',
+    spaceComplexity: 'O(n) recursion stack',
+    gotcha: 'The duplicate bucket skip (if buckets[i] === buckets[i-1] continue) is the critical pruning that makes this solution feasible. Without it the solution TLEs on most inputs. This pruning is the entire performance story for this problem.',
+    faangNote: 'Strong FAANG-style problem that tests bucket-filling backtracking — a distinct pattern not covered by any other question in this list. Sort descending before backtracking and always mention the duplicate bucket pruning explicitly.',
+    alternateApproaches: [
+      {
+        technique: 'Bitmask DP',
+        tradeoff: 'O(2^n * n) time with O(2^n) space. More complex to implement but polynomial in n. Mention as follow-up if interviewer asks about optimization.',
+        complexity: 'O(2^n * n) time, O(2^n) space'
+      }
+    ]
+  },
+
+  'LC_282': {
+    leetcode: 282,
+    title: 'Expression Add Operators',
+    difficulty: 'Hard',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/expression-add-operators/',
+    templateRefs: ['P2'],
+    tags: ['backtracking', 'expression-building', 'string', 'pruning'],
+    keyInsight: 'Build expression by inserting +, -, * between digits. Track three values during backtracking: current accumulated value, previous operand (for multiplication undo), and the expression string. On multiplication: undo previous addition then apply multiplication using the previous operand.',
+    shrinkTrigger: 'If index === num.length → if current value === target → record expression. Else loop end from index+1 to num.length: take num[index:end] as current number, try +, -, * operators, recurse with updated value and prev operand.',
+    timeComplexity: 'O(4^n * n) — 4 choices per digit position (no op, +, -, *)',
+    spaceComplexity: 'O(n)',
+    gotcha: 'Multiplication requires undoing the previous operation: newValue = currentValue - prev + prev * currentNum. This is the single hardest insight in the problem. Without tracking prev separately, multiplication cannot be handled correctly.',
+    faangNote: 'Hard differentiator question asked at Google and Meta for senior and staff roles. The prev-value trick for multiplication is the key insight interviewers are testing. State it explicitly before coding: "I need to track the previous operand to handle multiplication precedence."',
+    alternateApproaches: []
+  },
+
+  'LC_491': {
+    leetcode: 491,
+    title: 'Non-decreasing Subsequences',
+    difficulty: 'Medium',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/non-decreasing-subsequences/',
+    templateRefs: ['P1'],
+    tags: ['backtracking', 'subset', 'array', 'hashset-dedup', 'subsequence'],
+    keyInsight: 'You cannot sort the input — that would change the original element ordering and produce wrong subsequences. Use a HashSet per recursion level to track which values have already been tried as a branch choice at the current depth. Two separate pruning conditions: (1) skip if nums[i] < last element in current path (violates non-decreasing), (2) skip if nums[i] is already in the level Set (duplicate branch). Both must coexist.',
+    shrinkTrigger: 'If current.length >= 2 → record snapshot. const seen = new Set() at the start of each call. Loop from start: if nums[i] < current.at(-1) OR seen.has(nums[i]) → skip. seen.add(nums[i]). Push nums[i], recurse with i+1, pop.',
+    timeComplexity: 'O(n * 2^n)',
+    spaceComplexity: 'O(n) recursion stack + O(n) per level for the Set',
+    gotcha: 'The Set must be declared INSIDE the recursive function — created fresh at each call frame, not outside. A Set declared outside would block valid branches at deeper recursion levels. Each level independently tracks which values it has tried branching on — that is the entire deduplication contract.',
+    faangNote: 'Amazon uses this immediately after LC_90 to test whether you understand WHEN sorting is valid for dedup. Reaching for sort+skip here fails the follow-up. The HashSet-per-level pattern reappears in graph enumeration problems — internalizing it here pays dividends across the entire backtracking section.',
+    alternateApproaches: []
+  },
+
+  'LC_140': {
+    leetcode: 140,
+    title: 'Word Break II',
+    difficulty: 'Hard',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/word-break-ii/',
+    templateRefs: ['P4'],
+    tags: ['backtracking', 'partition', 'string', 'memoization', 'word-break', 'dictionary'],
+    keyInsight: 'Partition template with memoization on the start index. At each position, try every word in the dictionary as the next segment. If s.startsWith(word, start), recurse on the remainder (start + word.length). Base case: start === s.length → return [\'\'] (one empty sentence tail). Memoize the RETURN VALUE — an array of valid suffix sentences — not just a boolean.',
+    shrinkTrigger: 'Build a Set from wordDict for O(L) lookup. If memo[start] exists → return it. If start === s.length → return [\'\']. result = []. For each word: if s.startsWith(word, start) → for each suffix in recurse(start + word.length): result.push(word + (suffix ? \' \' + suffix : \'\')). memo[start] = result. Return result.',
+    timeComplexity: 'O(n^2 * 2^n) worst case — memoization eliminates redundant recomputation of overlapping suffixes',
+    spaceComplexity: 'O(2^n * n) — up to 2^n distinct sentences each of length O(n)',
+    gotcha: 'Memoize a LIST, not a boolean. Storing a boolean (as in LC_139) confirms a solution exists but cannot reconstruct it. Also: sentence strings are built by concatenation during the return phase, not by mutation of a shared path array — there is nothing to explicitly "undo" in the backtracking sense.',
+    faangNote: 'Very high frequency at Amazon, Meta, and Google. Interviewers use this to shatter the misconception that memoization only works for count or boolean problems. The correct framing to state before coding: "Overlapping subproblems here produce lists, not scalars — I memoize the list." If you cannot make that observation unprompted, you will not pass SD3 bar.',
+    alternateApproaches: [
+      {
+        technique: 'Build wordSet for O(1) word existence check',
+        tradeoff: 'Convert wordDict to a Set before backtracking. Reduces segment validation from O(W) list scan to O(L) hash lookup per candidate. Always do this — there is no downside.',
+        complexity: 'Same asymptotic, smaller constant factor per node'
+      }
+    ]
+  },
+
+  'LC_212': {
+    leetcode: 212,
+    title: 'Word Search II',
+    difficulty: 'Hard',
+    status: 'Pending',
+    link: 'https://leetcode.com/problems/word-search-ii/',
+    templateRefs: ['P5'],
+    tags: ['backtracking', 'grid', 'dfs', 'trie', 'pruning', 'in-place'],
+    keyInsight: 'Build a Trie from the entire word list before starting any DFS. During grid backtracking, traverse the Trie simultaneously — one Trie node per grid cell visited. If the current character has no matching child in the Trie, prune the entire DFS branch immediately. When a Trie node is marked end-of-word, record the word then set node.word = null to prevent duplicate results from alternate paths.',
+    shrinkTrigger: 'Build Trie from words. DFS from every cell (r, c) starting at Trie root. At each step: if out of bounds OR board[r][c] === \'#\' OR no Trie child for board[r][c] → return. Move to Trie child node. If node.word → results.push(node.word), node.word = null. Mark board[r][c] = \'#\'. Recurse all 4 directions. Restore board[r][c].',
+    timeComplexity: 'O(m * n * 4^L) where L is max word length — Trie prefix pruning eliminates the vast majority of branches in practice',
+    spaceComplexity: 'O(W * L) for the Trie where W is number of words and L is average word length',
+    gotcha: 'The node.word = null trick after recording a word is essential. Without it, the same word is added to results multiple times if it can be reached via multiple grid paths. This is cleaner than a separate results Set and eliminates post-processing deduplication entirely.',
+    faangNote: 'Google asks this at L5/L6 as the capstone backtracking question. The expected signal before writing a single line: "Running LC_79 for each word individually is O(W * m * n * 4^L) — too slow. I will build a Trie to prune entire DFS branches that cannot match any word prefix." If you cannot derive the Trie optimization unprompted, you are below SD3 bar for Google backtracking rounds.',
+    alternateApproaches: [
+      {
+        technique: 'Trie leaf pruning after word is found',
+        tradeoff: 'After completing the DFS, walk back up and prune Trie nodes that have no remaining children (their words are all found). Reduces Trie traversal cost significantly when many words share a common prefix and the grid is large. Mention as a follow-up optimization — do not implement during the initial solution.',
+        complexity: 'Same asymptotic, dramatically faster on large dense word lists'
+      }
+    ]
+  }
+        }
+    }
 }
 /* ═══ END DATA.JS ═══════════════════════════════════════════════════════════ */
