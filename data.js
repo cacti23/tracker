@@ -20,7 +20,8 @@ const TOPICS = [
   { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
   { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },
   { key: 'recursion',      icon: '🔁', label: 'Recursion'      },
-  { key: 'backtracking',   icon: '🔙', label: 'Backtracking'   },
+  { key: 'backtracking',        icon: '🔙', label: 'Backtracking'          },
+  { key: 'dynamic-programming', icon: '🧮', label: 'Dynamic Programming'   },
 ];
 
 // Per-question user progress (persisted in localStorage)
@@ -1686,5 +1687,392 @@ const TOPIC_MODULES = {
   }
         }
     }
+  ,
+  'dynamic-programming': {
+    description: 'Dynamic programming converts exponential recursion to polynomial time by storing and reusing subproblem results. In FAANG interviews, DP appears in three forms: (1) 1D DP on arrays or strings where each state depends on a constant number of prior states, (2) 2D DP on two sequences or a grid where each state depends on a submatrix of prior states, and (3) structured DP on trees, intervals, or bitmasks where the state space requires a domain-specific encoding.',
+    goal: 'Cover 95% of FAANG Dynamic Programming questions by mastering 13 patterns and 25 curated problems',
+    relatedTopics: ['recursion', 'backtracking', 'binary-search'],
+
+    tagRegistry: [
+      'dynamic-programming', 'linear-dp', 'knapsack', '0-1-knapsack', 'unbounded-knapsack',
+      'string-dp', 'interval-dp', 'state-machine', 'grid-dp', 'tree-dp',
+      'subsequence', 'bitmask-dp', 'pattern-matching', 'greedy', 'memoization',
+      'bottom-up', 'space-optimisation', 'array', 'string', 'tree', 'matrix',
+      'kadane', 'rolling-array', 'prefix-sum', 'binary-search', 'bit-manipulation',
+      'dfs', 'graph', 'recursion', 'counting'
+    ],
+
+    techniqueRegistry: [
+      'dynamic-programming', 'memoization', 'bottom-up', 'space-optimisation',
+      'greedy', 'binary-search', 'dfs', 'prefix-sum', 'bit-manipulation'
+    ],
+
+    whenToUse: {
+      use: [
+        'Problem asks for an OPTIMAL value (max, min, count) over all valid configurations',
+        'A brute-force recursion has OVERLAPPING subproblems — the same (i, j, state) is computed multiple times',
+        'The answer for a larger input can be expressed entirely in terms of answers for smaller inputs (optimal substructure)',
+        'Keywords: "maximum", "minimum", "number of ways", "can you achieve", "longest", "shortest path"'
+      ],
+      avoid: [
+        'The problem asks for ALL solutions (enumerate) — use backtracking instead',
+        'No overlapping subproblems exist — pure divide-and-conquer suffices',
+        'The greedy choice is provably optimal at every step — DP is unnecessary overhead',
+        'Input size is tiny (n ≤ 20) and DP state space would be exponential — bitmask DP or backtracking may be cleaner'
+      ]
+    },
+
+    interviewTips: [
+      'Always define the state before writing code: "dp[i] represents the maximum X considering the first i elements."',
+      'Derive the recurrence from the last decision: "At index i, I either include or exclude it — which gives the recurrence."',
+      'Identify the base cases explicitly before the loop — wrong base cases silently corrupt every result.',
+      'For 2D DP on two strings: process in row-major order; dp[i][j] always depends on dp[i-1][j-1], dp[i-1][j], dp[i][j-1].',
+      'Space optimization: if dp[i] only depends on dp[i-1] and dp[i-2], use two rolling variables instead of a full array.',
+      'For interval DP: always loop by increasing gap length (len from 2 to n), not by left boundary.',
+      'For state machine DP: draw all states and legal transitions as a diagram before coding — the recurrence follows directly.',
+      'Memoization (top-down) is easier to derive; bottom-up avoids stack overflow and is slightly faster — know both.'
+    ],
+
+    patterns: [
+      {
+        id: 'P1', name: 'Linear DP',
+        analogy: 'Building a tower one brick at a time. Each new brick can only rest on what you have already built. You never need to tear down and rebuild from scratch — you just look at the current top of the tower to decide where the next brick goes.',
+        approach: '1) Define dp[i] as the answer considering only the first i elements. 2) Write the recurrence by asking: "What was the last decision at index i?" 3) Initialize dp[0] (or the boundary). 4) Fill left to right. 5) Return dp[n] or max(dp).',
+        recognitionSignals: [
+          'Optimal value (max sum, min cost) over a contiguous or non-adjacent subarray',
+          'The answer at position i depends only on a constant number of earlier positions',
+          'Keywords: "contiguous subarray", "non-adjacent elements", "pick or skip"'
+        ],
+        mentalModel: 'At each index i, you make a binary choice: use nums[i] or do not. If you use it, you build on dp[i-1] (or dp[i-2] for non-adjacent). If you do not, the best answer is dp[i-1]. Take the max.',
+        gotchas: [
+          'Kadane\'s Algorithm (LC_53): dp[i] is the maximum subarray sum ENDING at index i, not the global maximum. Track a separate running max across all dp[i] values. Confusing these two produces wrong answers on inputs where the optimal subarray does not end at the last element.',
+          'House Robber II (LC_213): the circular constraint means index 0 and index n-1 cannot both be robbed. The clean solution is two independent linear passes — rob houses [0..n-2] and rob houses [1..n-1] — then take the max. Do not try to handle the circularity inline inside a single pass.',
+          'Off-by-one in array sizing: for House Robber, dp has length n+1 where dp[0]=0 and dp[1]=nums[0]. Indexing dp by the house number (1-indexed) keeps the recurrence clean.'
+        ],
+        insights: [
+          'Kadane\'s Algorithm is the O(n) DP version of the O(n²) brute force. The key insight: if dp[i-1] < 0, starting a fresh subarray at i is always better than extending the negative one. This reduces to: dp[i] = Math.max(nums[i], dp[i-1] + nums[i]).',
+          'House Robber I → House Robber II (circular) → House Robber III (tree): each adds one structural constraint on top of the previous. Mastering House Robber I gives you the recurrence; the follow-ups only change the topology.'
+        ],
+        keyQuestion: 'What is the optimal value ending exactly at index i? How does including or excluding nums[i] change the subproblem?',
+        questionIds: ['LC_53', 'LC_198', 'LC_213', 'LC_152']
+      },
+      {
+        id: 'P2', name: '0/1 Knapsack',
+        analogy: 'A thief with a fixed-capacity backpack choosing items. Each item can be taken once or left entirely — no partial items. The thief evaluates every item against the current remaining capacity and takes the best combination.',
+        approach: '1) dp[i][w] = best value using items 0..i with capacity w. 2) Recurrence: dp[i][w] = max(dp[i-1][w], dp[i-1][w-weight[i]] + value[i]). 3) Space-optimize to 1D by iterating the weight dimension RIGHT TO LEFT (prevents using the same item twice). 4) For "count of ways" variants replace max with sum.',
+        recognitionSignals: [
+          'Each item (element) is used at most once',
+          'A capacity, budget, or target must be exactly met or not exceeded',
+          'Keywords: "subset sum", "target sum", "partition equal", "0 or 1 copies of each"'
+        ],
+        mentalModel: 'Two choices per item: include it (capacity shrinks, value grows) or skip it (capacity unchanged). Build a table where rows are items and columns are capacities. Row i depends only on row i-1, enabling 1D space optimization — but iterate RIGHT TO LEFT to avoid using the same item twice.',
+        gotchas: [
+          'RIGHT-TO-LEFT iteration is mandatory for 1D 0/1 knapsack. Iterating left-to-right allows the same item to be counted multiple times — that is the Unbounded Knapsack pattern (P3). Every time you write a 1D knapsack, write the direction as a comment.',
+          'LC_494 (Target Sum): the problem counts the number of ways, not the max value. The recurrence becomes dp[w] += dp[w - nums[i]] (summation, not maximization). The target is (total + target) / 2 — a key algebraic reduction to derive before coding.',
+          'LC_416 (Partition Equal Subset Sum): if the total sum is odd, return false immediately. If any single element exceeds sum/2, also return false. Missing either early exit wastes time on an impossible input.'
+        ],
+        insights: [
+          'LC_416 and LC_494 share the same 0/1 knapsack DP table. LC_416 asks "is dp[target] reachable?" (boolean). LC_494 asks "how many ways to reach target?" (counting). The only code change is whether dp stores a boolean or a count and whether the recurrence uses OR or addition.',
+          'The algebraic reduction for LC_494: assign + to elements in set P and − to elements in set N. Then sum(P) − sum(N) = target AND sum(P) + sum(N) = total. Therefore sum(P) = (total + target) / 2. The problem reduces to: count subsets with sum exactly (total + target) / 2.'
+        ],
+        keyQuestion: 'Is each item used at most once? Does the DP track a max value or a count? Which direction do I iterate the 1D array?',
+        questionIds: ['LC_416', 'LC_494']
+      },
+      {
+        id: 'P3', name: 'Unbounded Knapsack',
+        analogy: 'The same thief but with unlimited copies of each item. A coin can be used as many times as needed to reach the exact target amount. The thief revisits the same coin rack on every step.',
+        approach: '1) dp[w] = best value (or ways) for capacity w. 2) Recurrence: dp[w] = max(dp[w], dp[w - weight[i]] + value[i]). 3) Space: 1D array. 4) Iterate the capacity dimension LEFT TO RIGHT — the same item can be chosen multiple times. 5) For "number of ways" variants: dp[w] += dp[w - coin].',
+        recognitionSignals: [
+          'Each item (coin/denomination) can be used an unlimited number of times',
+          'A target total must be reached with minimum items, or counted in number of ways',
+          'Keywords: "coin change", "denominations", "unlimited uses"'
+        ],
+        mentalModel: 'Identical to 0/1 Knapsack but iterate LEFT TO RIGHT in the 1D array. Left-to-right means when computing dp[w], dp[w - coin] has already been updated in this pass — the same coin can contribute multiple times.',
+        gotchas: [
+          'LEFT-TO-RIGHT for unbounded, RIGHT-TO-LEFT for 0/1. This is the single most important distinction in knapsack DP. Writing the wrong direction silently produces wrong answers with no error.',
+          'LC_322 (Coin Change — minimum coins): initialize dp with Infinity (or amount+1) for all w > 0, and dp[0] = 0. If dp[amount] is still Infinity after the loop, return -1. Forgetting the -1 return on impossible inputs is the most common final-step error.',
+          'LC_518 (Coin Change II — number of ways): initialize dp[0] = 1 (one way to make amount 0: use no coins). All other dp[w] = 0. The recurrence is dp[w] += dp[w - coin] — accumulation, not minimization.'
+        ],
+        insights: [
+          'LC_322 (min coins) and LC_518 (count ways) use the same iteration order (LEFT TO RIGHT) but different DP semantics. Min coins: dp stores the fewest coins to reach w; recurrence takes Math.min. Count ways: dp stores number of combinations; recurrence adds.',
+          'The outer loop (items) vs inner loop (capacity) order matters for combinations vs permutations in LC_518. Outer-coins, inner-amounts = combinations (order irrelevant). Outer-amounts, inner-coins = permutations. The problem asks for combinations — outer loop must be over coins.'
+        ],
+        keyQuestion: 'Can each item be reused? Am I minimizing cost or counting ways? Am I iterating left-to-right (unbounded) or right-to-left (0/1)?',
+        questionIds: ['LC_322', 'LC_518']
+      },
+      {
+        id: 'P4', name: 'String DP (2D)',
+        analogy: 'Aligning two DNA strands on a grid. Each cell represents comparing one character from each strand. The result for a cell comes from the cell diagonally up-left (both matched), directly above (gap in one strand), or directly left (gap in the other).',
+        approach: '1) Build a 2D table dp[i][j] where i indexes string s1 and j indexes string s2 (1-indexed). 2) Fill row by row. 3) dp[i][j] depends on dp[i-1][j-1] (diagonal), dp[i-1][j] (up), dp[i][j-1] (left). 4) Base cases: dp[0][j] = j (or 0), dp[i][0] = i (or 0) depending on the problem.',
+        recognitionSignals: [
+          'Problem involves two strings and asks for longest common part, minimum edits, or matching',
+          'The answer at (i, j) depends on the relationship between s1[i] and s2[j] AND answers for shorter prefixes',
+          'Keywords: "edit distance", "LCS", "longest common", "delete/insert/replace"'
+        ],
+        mentalModel: 'Grid where rows are characters of s1 and columns are characters of s2. At each cell (i, j): if characters match → diagonal + 1 (or + 0 for edit distance). If they differ → take the best of up, left, or diagonal with the appropriate cost.',
+        gotchas: [
+          'Base case indexing: use 1-indexed strings so dp[0][j] and dp[i][0] represent empty-string cases. With 0-indexed strings the base cases require special casing in the loop body — error-prone.',
+          'Edit Distance (LC_72): the three operations correspond to three DP transitions — replace (diagonal + 1 when chars differ), delete (up + 1), insert (left + 1). When characters match, no operation needed: dp[i][j] = dp[i-1][j-1].',
+          'Palindrome Subsequence (LC_516): the two strings ARE the same string and its reverse. Alternatively: dp[i][j] = length of longest palindromic subsequence in s[i..j]. Recurrence: if s[i]===s[j] → dp[i][j] = dp[i+1][j-1] + 2; else → max(dp[i+1][j], dp[i][j-1]).'
+        ],
+        insights: [
+          'LCS, Edit Distance, and Longest Palindromic Subsequence are all 2D string DP problems with the same template. The only difference is what "match" and "mismatch" mean in the recurrence. Mastering one gives you all three.',
+          'Space optimization: each row only depends on the previous row and the current row. A rolling 2-row approach reduces O(m*n) space to O(n). A single array with careful handling of the diagonal value (stored before overwriting) reduces it further to O(n).'
+        ],
+        keyQuestion: 'What does dp[i][j] represent? When s1[i] matches s2[j], what is the recurrence? When they differ?',
+        questionIds: ['LC_1143', 'LC_72', 'LC_516', 'LC_5']
+      },
+      {
+        id: 'P5', name: 'String DP (1D)',
+        analogy: 'Walking along a string one character at a time, looking backward at a small window of previously computed results. Each new character either extends an existing count or resets it, based on a pattern or dictionary match.',
+        approach: '1) dp[i] = answer for the prefix s[0..i-1] (1-indexed for cleaner base cases). 2) For Decode Ways: dp[i] = dp[i-1] (if one-digit decode valid) + dp[i-2] (if two-digit decode valid). 3) For Word Break: dp[i] = true if any j < i has dp[j] = true AND s[j..i-1] is in the dictionary.',
+        recognitionSignals: [
+          'Problem involves decoding, segmenting, or counting ways to interpret a single string',
+          'The answer for s[0..i] depends only on the last 1 or 2 characters and earlier dp values',
+          'Keywords: "number of ways to decode", "can the string be segmented", "word break"'
+        ],
+        mentalModel: 'Linear scan of the string. At each index i, look back at a small window. Extend the dp from valid lookback positions. Base case: dp[0] = 1 (empty prefix has one way to process — do nothing).',
+        gotchas: [
+          'LC_91 (Decode Ways): "0" alone is invalid. "0X" (X > 0) is invalid as a two-digit decode. "30", "40" … are also invalid — only "10" and "20" start a valid two-digit sequence starting with 1 or 2. Check both the one-digit and two-digit validity conditions explicitly.',
+          'LC_139 (Word Break): use a Set for O(1) word lookup — not an array. The inner loop scans all possible split points j < i; for each, check if dp[j] && wordSet.has(s.slice(j, i)). Without the Set, word lookup is O(W) per check making the solution O(n² * W).',
+          'Off-by-one: dp has length n+1. dp[0] = 1 (or true). The answer is dp[n]. Index i in dp corresponds to the prefix of length i.'
+        ],
+        insights: [
+          'Word Break is a special case of unbounded knapsack: words are the "items", string length is the "capacity", dp[i] is "can we exactly fill length i". The left-to-right scan with a dictionary lookup is the same pattern.',
+          'Decode Ways has two transitions at each step (one-digit and two-digit), making it structurally identical to Fibonacci. dp[i] = dp[i-1] + dp[i-2], with validity conditions gating each addend independently.'
+        ],
+        keyQuestion: 'What is the lookback window (1 character, 2 characters, up to a word length)? What validity condition gates each addend?',
+        questionIds: ['LC_91', 'LC_139']
+      },
+      {
+        id: 'P6', name: 'Interval DP',
+        analogy: 'Deciding in what order to multiply a chain of matrices. The total cost depends entirely on which multiplication you perform last — the outermost merge. You build up costs for short intervals first, then extend to longer ones.',
+        approach: '1) dp[i][j] = answer for the subproblem on the range [i, j]. 2) Loop by GAP LENGTH (len from 2 to n), not by left boundary. 3) For each (i, j = i+len-1), try every split point k in (i, j). 4) Recurrence: dp[i][j] = min/max over k of (dp[i][k] + dp[k+1][j] + cost(i, k, j)). 5) Base: dp[i][i] = trivial answer.',
+        recognitionSignals: [
+          'The answer for a range [i, j] depends on the answers for sub-ranges',
+          'Choosing where to "split last" or "merge last" across a range is the central decision',
+          'Keywords: "burst balloons", "matrix chain", "stone merge", "remove boxes"'
+        ],
+        mentalModel: 'Think of the last operation: what is the last element to be burst/merged/removed? Fixing the last operation splits the range into two independent sub-ranges. Try all possible last operations and take the best.',
+        gotchas: [
+          'Burst Balloons (LC_312): the "last burst" framing is critical. Do NOT think about the first balloon to burst — think about the LAST one. If k is the last balloon burst in range (i, j), the balloons at i-1 and j+1 are guaranteed to still be present at that moment. This is the key insight that makes the boundary conditions work.',
+          'Boundary padding: pad the balloons array with sentinel values 1 at both ends (index 0 and n+1). This eliminates boundary checks inside the loop — the sentinels are always "present" and never burst.',
+          'Loop order: iterate by gap length, not by left index. Writing for (let i = 0; ...) as the outer loop produces wrong answers because dp[k+1][j] (a shorter sub-range with a higher start index) has not yet been computed when you are still in the i=0 pass.'
+        ],
+        insights: [
+          'The "last burst" reframe transforms Burst Balloons from a horrifying dependency problem into a clean DP. If you think "first burst", the boundary conditions change dynamically. If you think "last burst", the boundaries i-1 and j+1 are frozen — a fixed cost that can be computed directly.',
+          'Interval DP always has O(n³) time (O(n²) states × O(n) split points) and O(n²) space. This is an inherent lower bound for this class of problems — do not attempt to optimize below it without a fundamentally different insight.'
+        ],
+        keyQuestion: 'What is the LAST operation in the range [i, j]? What does dp[i][j] represent for that last operation?',
+        questionIds: ['LC_312']
+      },
+      {
+        id: 'P7', name: 'State Machine DP',
+        analogy: 'A trading bot with a small set of modes: holding a stock, having just sold, in a cooldown, or idle. Each day the bot transitions from its current mode to a new one based on market action. The DP tracks the maximum profit reachable in each mode.',
+        approach: '1) Identify all possible states (holding, sold, cooldown, idle, etc.). 2) Draw the state transition diagram first. 3) Define dp[state] = max profit in that state on day i. 4) Recurrence: derive from which previous states can legally transition to each current state. 5) Base: set initial states on day 0. 6) Answer: max over all terminal states on day n-1.',
+        recognitionSignals: [
+          'Problem involves making decisions over time with constraints on consecutive actions',
+          'A finite set of "modes" or "states" governs which actions are legal on each step',
+          'Keywords: "cooldown", "at most k transactions", "buy and sell", "hold or rest"'
+        ],
+        mentalModel: 'Draw the state machine diagram before any code. Each node is a state; each edge is a legal action. The DP fills the value of each node at each time step. Transitions between nodes give the recurrence directly.',
+        gotchas: [
+          'Cooldown (LC_309): the three states are HELD (holding stock), SOLD (just sold today — tomorrow is cooldown), REST (cooldown or never bought). On a REST day you can buy or rest; on a SOLD day you must rest. Failing to separate SOLD from REST merges two distinct states into one and gives wrong answers.',
+          '2 Transactions (LC_123): track four states: hold1 (holding first stock), sold1 (sold first stock), hold2 (holding second stock), sold2 (sold second stock). sold2 is the answer. Initialize hold1 and hold2 to -Infinity (you have not yet bought anything).',
+          'For LC_123 in a single pass: update states in REVERSE order (sold2 → hold2 → sold1 → hold1) on each day. Updating in forward order on the same day\'s prices inadvertently allows two transactions in a single day.'
+        ],
+        insights: [
+          'All Buy-and-Sell Stock problems (LC_121, LC_122, LC_123, LC_188, LC_309, LC_714) are state machine DP. The state machine diagram is identical in structure — only the number of allowed transactions and the cooldown/fee change. Drawing the diagram once makes all variants solvable.',
+          'Space optimization: since state n only depends on state n-1, you never need to keep the entire history — only the previous day\'s state values. This reduces O(n * states) to O(states) in all stock DP problems.'
+        ],
+        keyQuestion: 'What are ALL legal states? Draw the transition diagram. What is the recurrence for each state?',
+        questionIds: ['LC_309', 'LC_123']
+      },
+      {
+        id: 'P8', name: 'Grid DP',
+        analogy: 'Navigating a city grid where you can only move right or down. The number of valid routes to a cell equals the sum of valid routes to the cell above and the cell to the left. Blocked cells act as walls — their contribution to the route count is zero.',
+        approach: '1) dp[r][c] = answer for the subproblem at cell (r, c). 2) Fill in row-major order (row by row, left to right). 3) Recurrence: dp[r][c] = dp[r-1][c] + dp[r][c-1] (for paths) or some function of the three neighbors. 4) Base: initialize first row and first column. 5) Space-optimize to a 1D array if dp[r][c] depends only on the current and previous row.',
+        recognitionSignals: [
+          'Problem is defined on a 2D grid and paths or regions must be counted or evaluated',
+          'Movement or expansion is constrained to adjacent cells (up, down, left, right, or diagonal)',
+          'Keywords: "unique paths", "minimum path sum", "maximal square", "count paths"'
+        ],
+        mentalModel: 'Each cell (r, c) represents a subproblem. Its answer is derived from its neighbors — typically top and left. Obstacles set their cell and all dependent cells to 0. First row and column are the base cases.',
+        gotchas: [
+          'Unique Paths II (LC_63): an obstacle in the first row blocks all paths to the right of it. When initializing the first row, stop setting dp[0][c] = 1 as soon as an obstacle is encountered — all subsequent cells in that row must remain 0.',
+          'Maximal Square (LC_221): dp[r][c] = the side length of the largest square with its bottom-right corner at (r, c). Recurrence: dp[r][c] = Math.min(dp[r-1][c], dp[r][c-1], dp[r-1][c-1]) + 1 when matrix[r][c] === \'1\'. The min of three neighbors is non-intuitive — prove it by the "bottleneck corner" argument.',
+          'Answer for Maximal Square is Math.max over all dp[r][c], then squared to get the area. The problem asks for AREA, not side length — squaring at the end is a common miss.'
+        ],
+        insights: [
+          'The Maximal Square recurrence min(top, left, diagonal) + 1 works because the square is limited by its smallest neighboring square. If any one of the three is smaller, the current square cannot extend past that bottleneck.',
+          'Space optimization for grid DP: since dp[r][c] depends only on dp[r-1][c], dp[r][c-1], and dp[r-1][c-1], you only need two rows at a time — or even a single 1D array if you store the diagonal value before overwriting it.'
+        ],
+        keyQuestion: 'What does dp[r][c] represent? Which neighbors does it depend on? How do obstacles affect initialization?',
+        questionIds: ['LC_63', 'LC_221']
+      },
+      {
+        id: 'P9', name: 'Tree DP',
+        analogy: 'Deciding whether to invite each employee to a party. If the manager comes, the direct reports cannot. If the manager stays home, the reports can be invited. The decision for each node depends only on its children — the tree structure IS the DP structure.',
+        approach: '1) Define the DP state at each node as a pair: (max value if node is included, max value if node is excluded). 2) Post-order DFS: compute children first, then derive the parent\'s values from children\'s values. 3) At each node: included = node.val + sum of excluded children; excluded = sum of max(included, excluded) per child.',
+        recognitionSignals: [
+          'Problem is defined on a binary tree or general tree',
+          'The optimal choice at a node depends on decisions made at its children',
+          'Keywords: "house robber on tree", "maximum independent set on tree", "no two adjacent nodes"'
+        ],
+        mentalModel: 'Post-order DFS. Each recursive call returns a pair [withNode, withoutNode]. The parent combines children\'s pairs to compute its own pair. The root\'s max(with, without) is the answer.',
+        gotchas: [
+          'House Robber III (LC_337): return [robThis, skipThis] per node. At the parent: robThis = node.val + left.skipThis + right.skipThis; skipThis = max(left) + max(right). The skipThis case allows (but does not force) robbing each child — take the max of each child\'s pair independently.',
+          'Do NOT use a global memo map keyed by node reference for this problem. The tree has no overlapping subproblems when traversed in post-order — every node is visited exactly once. Adding unnecessary memoization is wasted complexity.',
+          'For general k-ary trees: the same pair [with, without] pattern applies. Sum across all children for both cases.'
+        ],
+        insights: [
+          'Tree DP generalises House Robber (linear DP on a path) to arbitrary tree topology. The "include or exclude" binary decision at each node is identical — only the adjacency structure changes from a line to a tree.',
+          'The post-order DFS return-pair pattern is reusable across many tree DP problems: diameter, balanced check, path sum. Whenever the parent\'s answer depends on ALL children\'s sub-answers, post-order with a tuple return is the right structure.'
+        ],
+        keyQuestion: 'What information does each node need to return to its parent? Write the recurrence as a pair (with, without).',
+        questionIds: ['LC_337']
+      },
+      {
+        id: 'P10', name: 'Subsequence DP',
+        analogy: 'Finding the longest chain of dominoes you can arrange in increasing order of pip count. You can skip dominoes but cannot rearrange them. Each new domino either extends some existing chain ending at a smaller value or starts a new chain of length one.',
+        approach: '1) dp[i] = length of the longest increasing subsequence ending at index i. 2) Recurrence: dp[i] = max(dp[j] + 1) for all j < i where nums[j] < nums[i]. 3) Answer = max(dp). 4) O(n²) is acceptable; O(n log n) uses patience sorting with binary search.',
+        recognitionSignals: [
+          'Problem asks for the longest subsequence satisfying a monotonic property (increasing, non-decreasing)',
+          'Elements can be skipped but their original order must be preserved',
+          'Keywords: "longest increasing subsequence", "LIS", "non-decreasing subsequence"'
+        ],
+        mentalModel: 'dp[i] is the LIS length ending at index i. To compute it, look back at all j < i where nums[j] < nums[i] and take the maximum dp[j]. The answer is the largest dp[i] over all i.',
+        gotchas: [
+          'Initialize all dp[i] = 1 (every element alone is a subsequence of length 1). The recurrence only extends an existing subsequence — it never initializes from zero.',
+          'O(n log n) patience sorting: maintain a "tails" array where tails[i] is the smallest tail element of all increasing subsequences of length i+1. Use binary search (lower_bound) to find where to place each element. The length of tails is the LIS length.',
+          'LIS returns the LENGTH, not the actual subsequence. Reconstructing the subsequence requires backtracking through the dp array — state this proactively if asked.'
+        ],
+        insights: [
+          'The patience sorting trick: tails always stays sorted because we only replace tails[pos] with a smaller value. This invariant makes binary search valid and gives O(n log n) total time.',
+          'LIS has a surprising number of disguised forms in FAANG interviews: longest chain of pairs (LC_646), number of envelopes (LC_354), building maximum height (LC_1691). All reduce to LIS after a clever sort key is applied.'
+        ],
+        keyQuestion: 'What ordering invariant must the subsequence maintain? Can I express dp[i] as an extension of dp[j] for some j < i?',
+        questionIds: ['LC_300']
+      },
+      {
+        id: 'P11', name: 'Bitmask DP',
+        analogy: 'Assigning tasks to workers where each task can only be done once. A bitmask records which tasks are already completed. The state (current worker, completed tasks bitmask) captures everything needed to compute the optimal assignment going forward.',
+        approach: '1) Represent the set of completed/used items as a bitmask integer. 2) dp[mask] = answer when exactly the items in mask have been used. 3) Transition: for each mask, try adding one more item not yet in mask. 4) Base: dp[0] = 0 (empty set). 5) Answer: dp[(1<<n) - 1] (all items used).',
+        recognitionSignals: [
+          'Input size n ≤ 20 (bitmask state space is 2^n)',
+          'Subsets of items must be explored and tracked',
+          'Keywords: "partition into k groups", "assign to teams", "visit all nodes once"'
+        ],
+        mentalModel: 'Each bit in the mask represents whether an item has been used. Transition: pick any unused item (bit = 0), add it, set its bit to 1. The mask grows from 0 to all-ones. dp[mask] stores the best answer for the configuration described by mask.',
+        gotchas: [
+          'LC_698 in bitmask DP context: dp[mask] = running sum of the current in-progress bucket (% target) for the elements already placed in mask — NOT a boolean. Transition: add one more element to the in-progress bucket; the modulo resets it to 0 whenever it hits target, automatically starting the next bucket. dp[(1<<n)-1] >= 0 means all k buckets were filled exactly.',
+          'Time complexity is O(2^n * n) — feasible for n ≤ 20 but not for n ≤ 30. Always state n ≤ 20 as the constraint that makes bitmask DP viable.',
+          'Enumerate subsets of a mask: for (let sub = mask; sub > 0; sub = (sub - 1) & mask). This iterates all submasks in O(3^n) total across all masks — faster than O(4^n) naive double loop.'
+        ],
+        insights: [
+          'Bitmask DP bridges backtracking and DP: it explores the same exponential state space but memoizes every visited (state, mask) pair. When pure backtracking TLEs and n ≤ 20, bitmask DP is almost always the correct upgrade.',
+          'The submask enumeration trick (sub = (sub-1) & mask) is a fundamental bit-manipulation pattern that appears in TSP, SOS DP, and various combinatorial problems. Memorize it.'
+        ],
+        keyQuestion: 'What does each bit represent? What is the state transition from mask to mask | (1 << i)?',
+        questionIds: ['LC_698']
+      },
+      {
+        id: 'P12', name: '2D DP (Pattern Matching)',
+        analogy: 'A regex engine matching a pattern with wildcards against a text, character by character. The "?" wildcard matches exactly one unknown character. The "*" wildcard matches any sequence, including empty. The DP table captures every possible alignment of pattern and text.',
+        approach: '1) dp[i][j] = can pattern[0..i-1] match text[0..j-1]? 2) Base: dp[0][0] = true; dp[i][0] = true only if pattern[0..i-1] is all stars. 3) If pattern[i-1] === \'?\' or chars match: dp[i][j] = dp[i-1][j-1]. 4) If pattern[i-1] === \'*\': dp[i][j] = dp[i-1][j] (star matches empty) OR dp[i][j-1] (star matches one more text char).',
+        recognitionSignals: [
+          'Pattern matching with special characters (wildcards, regex-like symbols)',
+          'The match status at (i, j) depends on the match status at (i-1, j-1), (i-1, j), or (i, j-1)',
+          'Keywords: "wildcard matching", "regular expression matching", "\'?\' matches any single", "\'*\' matches any sequence"'
+        ],
+        mentalModel: 'Grid where rows are pattern characters and columns are text characters. At each cell, decide: does this pattern character consume a text character (diagonal move), skip a text character (left move via *), or skip a pattern character (up move via *).',
+        gotchas: [
+          'Base case dp[i][0]: if pattern[0..i-1] consists entirely of stars, dp[i][0] = true (stars can match empty text). The first non-star pattern character makes dp[i][0] = false for all larger i.',
+          'Star transition is two cases combined with OR: dp[i][j] = dp[i-1][j] (star matches zero characters — skip the star) OR dp[i][j-1] (star matches one more character — consume one text character, keep the star active). Both must be checked.',
+          'LC_44 vs LC_10 (Regular Expression Matching): LC_44 uses \'*\' as any-sequence wildcard. LC_10 uses \'*\' as "zero or more of the preceding element". The recurrences differ significantly — do not conflate them.'
+        ],
+        insights: [
+          'The \'*\' transition dp[i][j] = dp[i-1][j] || dp[i][j-1] models a non-greedy match: the star can match zero characters (dp[i-1][j]) or extend to match one more (dp[i][j-1]). The two cases together cover all possible star expansions.',
+          'Space optimization: since dp[i][j] depends only on dp[i-1][j-1], dp[i-1][j], and dp[i][j-1], a rolling 1D array with a prev variable for the diagonal value reduces O(m*n) space to O(n).'
+        ],
+        keyQuestion: 'What does dp[i][j] represent? What are the transitions for a literal character, \'?\', and \'*\'?',
+        questionIds: ['LC_44', 'LC_10']
+      },
+      {
+        id: 'P13', name: 'DP + Greedy',
+        analogy: 'A frog jumping across lily pads to reach the other shore as fast as possible. At each pad the frog can see how far it could jump. The greedy insight: always jump to the pad that extends your reach the furthest — you never need DP to count steps, just track how far you can currently reach.',
+        approach: '1) Maintain a reach variable = maximum index reachable from jumps taken so far. 2) Scan left to right; at each index i, if i > reach, you cannot get here — return -1 or Infinity. 3) Update farthest = max(farthest, i + nums[i]) at each step. 4) When i reaches the end of the current "jump window", increment steps and set reach = farthest.',
+        recognitionSignals: [
+          'Problem asks for minimum jumps or steps to reach a goal',
+          'At each position, you can advance by any amount up to a local value',
+          'A greedy "maximum reach" argument eliminates the need for O(n²) DP'
+        ],
+        mentalModel: 'The greedy BFS interpretation: treat each jump as a level in BFS. All positions reachable in exactly k jumps form level k. Scan each level in one pass, tracking the farthest reachable position for the next level. Answer = number of levels needed.',
+        gotchas: [
+          'Never update jumps for every position — only increment jumps when you exhaust the current level (i reaches currentEnd). Updating on every step overcounts jumps.',
+          'Set currentEnd = farthest at the end of each level, not at the start. The farthest variable accumulates the maximum reach across all positions in the current level.',
+          'Edge case: if nums.length === 1, return 0 (already at the destination). Guard this before the loop.'
+        ],
+        insights: [
+          'Jump Game II (LC_45) is a greedy problem that LOOKS like DP. The O(n²) DP (dp[i] = min jumps to reach i) is correct but unnecessary. The greedy BFS interpretation reduces it to O(n) with O(1) space — a strong SDE3 signal when you state it immediately.',
+          'Jump Game I (LC_55, can you reach end?) and Jump Game II (minimum jumps) both use the same greedy reach variable. The only difference: LC_55 returns a boolean (can reach ever fall below 0?); LC_45 counts level transitions.'
+        ],
+        keyQuestion: 'What is the farthest index reachable from any position in the current jump level? When does the level end?',
+        questionIds: ['LC_45']
+      }
+    ],
+
+    questions: {
+      'LC_53':  { leetcode: 53,   title: 'Maximum Subarray',                        difficulty: 'Easy',   status: 'Pending', link: 'https://leetcode.com/problems/maximum-subarray/',                        templateRefs: ['P1'],  tags: ['dynamic-programming','linear-dp','kadane','array'], keyInsight: 'Kadane\'s Algorithm: dp[i] = max subarray sum ending at i = Math.max(nums[i], dp[i-1] + nums[i]). Track global max separately. The key insight: if dp[i-1] < 0, starting fresh at nums[i] is always better.', shrinkTrigger: 'dp[i] = Math.max(nums[i], dp[i-1] + nums[i]). Answer = Math.max(...dp).', timeComplexity: 'O(n)', spaceComplexity: 'O(1) with rolling variable', gotcha: 'dp[i] is the max sum ending AT i, not the global max. A separate max variable must track the best dp[i] seen so far. Returning dp[n-1] directly gives wrong answers when the optimal subarray does not end at the last index.', faangNote: 'Table stakes. Every FAANG round may start here. Lead with: "Kadane\'s is O(n) DP — if the running sum goes negative, restart from the current element." Interviewers expect O(1) space.', alternateApproaches: [{ technique: 'divide-and-conquer', tradeoff: 'Split at midpoint, solve each half, combine crossing-sum in O(n). O(n log n) — worse than O(n) Kadane\'s.', complexity: 'O(n log n) time, O(log n) space' }] },
+
+      'LC_198': { leetcode: 198,  title: 'House Robber',                              difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/house-robber/',                              templateRefs: ['P1'],  tags: ['dynamic-programming','linear-dp','array'], keyInsight: 'dp[i] = max money robbing up to house i = Math.max(nums[i] + dp[i-2], dp[i-1]). Either rob house i (add prev2) or skip it (take prev1). Space-optimize to two rolling variables.', shrinkTrigger: 'prev2=0, prev1=0. For each num: curr = Math.max(num + prev2, prev1); prev2=prev1; prev1=curr. Return prev1.', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'prev1 represents the best result up to the previous house — it already accounts for skipping that house. You do NOT need a separate "skip" flag; the recurrence handles it. Off-by-one: initialize both prev1 and prev2 to 0 before iterating (not nums[0] and 0).', faangNote: 'The canonical linear DP warmup. State: "At each house I choose between robbing it (nums[i] + best-two-back) or skipping it (best-one-back). Two rolling variables give O(1) space." Sets up House Robber II — expect it as a follow-up immediately.', alternateApproaches: [] },
+
+      'LC_213': { leetcode: 213,  title: 'House Robber II',                          difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/house-robber-ii/',                          templateRefs: ['P1'],  tags: ['dynamic-programming','linear-dp','array'], keyInsight: 'The circular constraint: house 0 and house n-1 cannot both be robbed. Run two independent House Robber I passes — once on nums[0..n-2] (exclude last) and once on nums[1..n-1] (exclude first). Return the max of the two results.', shrinkTrigger: 'rob(nums[0..n-2]) and rob(nums[1..n-1]). rob(arr): prev2=0, prev1=arr[0]; for i≥1: curr = max(arr[i]+prev2, prev1); prev2=prev1; prev1=curr. Return prev1.', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Do NOT try to handle the circular constraint inline with a single pass — it produces complex conditional logic that is error-prone. Two clean independent passes is the standard solution.', faangNote: 'Follow-up to House Robber I. Interviewers test whether you cleanly reduce the circular constraint to two linear subproblems.', alternateApproaches: [] },
+
+      'LC_152': { leetcode: 152,  title: 'Maximum Product Subarray',                 difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/maximum-product-subarray/',                 templateRefs: ['P1'],  tags: ['dynamic-programming','linear-dp','array'], keyInsight: 'Track both maxSoFar and minSoFar ending at i — a negative × negative flips min to max. At each step: newMax = max(nums[i], curMax*nums[i], curMin*nums[i]); newMin = min(nums[i], curMax*nums[i], curMin*nums[i]). Use the PREVIOUS curMax and curMin to compute both simultaneously.', shrinkTrigger: 'curMax=nums[0], curMin=nums[0], ans=nums[0]. For i=1..n-1: [curMax,curMin]=[Math.max(nums[i],curMax*nums[i],curMin*nums[i]), Math.min(nums[i],curMax*nums[i],curMin*nums[i])]; ans=Math.max(ans,curMax).', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Must update curMax and curMin SIMULTANEOUSLY using the old values. If you overwrite curMax first and then use the new curMax to compute curMin, you get wrong answers. Use destructuring assignment or temp variables to capture both before writing either.', faangNote: 'Universal Kadane follow-up at every FAANG company. State: "Unlike sum, a negative × negative can become the maximum — so I track both max and min product ending at each index and consider all three candidates: nums[i] alone, curMax*nums[i], curMin*nums[i]." Simultaneous-update discipline is what interviewers score.', alternateApproaches: [] },
+
+      'LC_416': { leetcode: 416,  title: 'Partition Equal Subset Sum',               difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/partition-equal-subset-sum/',               templateRefs: ['P2'],  tags: ['dynamic-programming','0-1-knapsack','array'], keyInsight: '0/1 Knapsack boolean variant: can any subset sum to totalSum/2? dp[w] = true if subset summing to w exists. Iterate RIGHT TO LEFT to prevent reuse. Return dp[target].', shrinkTrigger: 'target = sum/2. dp[0]=true, rest false. For each num: for w from target down to num: dp[w] |= dp[w-num].', timeComplexity: 'O(n * sum)', spaceComplexity: 'O(sum)', gotcha: 'If totalSum is odd, return false immediately — no integer target exists. If any element > target, also return false immediately. RIGHT TO LEFT iteration is mandatory to prevent the same element being used twice.', faangNote: 'The canonical 0/1 Knapsack problem at FAANG. Lead with the two early exits (odd sum, element > target) before the DP loop. Interviewers score the direction of iteration explicitly.', alternateApproaches: [] },
+
+      'LC_494': { leetcode: 494,  title: 'Target Sum',                               difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/target-sum/',                               templateRefs: ['P2'],  tags: ['dynamic-programming','0-1-knapsack','counting','array'], keyInsight: 'Algebraic reduction: sum(P) = (totalSum + target) / 2. Count subsets with sum = (totalSum + target) / 2 using 0/1 knapsack counting variant. dp[w] = number of ways to achieve sum w. Iterate RIGHT TO LEFT.', shrinkTrigger: 'target2 = (totalSum + target) / 2. dp[0]=1, rest 0. For each num: for w from target2 down to num: dp[w] += dp[w-num].', timeComplexity: 'O(n * sum)', spaceComplexity: 'O(sum)', gotcha: 'If (totalSum + target) is odd or target > totalSum, return 0 immediately — no valid assignment exists. RIGHT TO LEFT iteration prevents reusing the same element. The recurrence is += (counting), not |= (boolean).', faangNote: 'Tests whether you can derive the algebraic reduction independently. State: "I reduce to counting subsets with sum (total+target)/2 — that is a 0/1 knapsack count problem." Candidates who jump to backtracking miss the O(n*sum) DP solution.', alternateApproaches: [{ technique: 'backtracking', tradeoff: 'DFS with memoization on (index, remaining). O(n * sum) with memo — same asymptotic but larger constant. DP is cleaner.', complexity: 'O(n * sum) time, O(n * sum) space' }] },
+
+      'LC_322': { leetcode: 322,  title: 'Coin Change',                              difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/coin-change/',                              templateRefs: ['P3'],  tags: ['dynamic-programming','unbounded-knapsack','array'], keyInsight: 'Unbounded Knapsack (minimum): dp[w] = fewest coins to make amount w. LEFT TO RIGHT iteration allows reuse. dp[w] = Math.min(dp[w], dp[w - coin] + 1). Return dp[amount] === Infinity ? -1 : dp[amount].', shrinkTrigger: 'dp[0]=0, rest Infinity. For each coin: for w from coin to amount: dp[w] = Math.min(dp[w], dp[w-coin]+1).', timeComplexity: 'O(amount * coins)', spaceComplexity: 'O(amount)', gotcha: 'Initialize with Infinity (or amount+1), not -1. Return -1 only AFTER the loop if dp[amount] is still Infinity. LEFT TO LEFT is correct for unbounded — do not accidentally write right-to-left.', faangNote: 'Most common DP question across all FAANG companies. Master both outer-coins inner-amount and outer-amount inner-coins loop orders and know they produce the same result for this problem.', alternateApproaches: [{ technique: 'BFS', tradeoff: 'BFS on amounts treats each coin as an edge. O(amount * coins) same complexity but O(amount) queue space — DP is cleaner.', complexity: 'O(amount * coins) time, O(amount) space' }] },
+
+      'LC_518': { leetcode: 518,  title: 'Coin Change II',                           difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/coin-change-ii/',                           templateRefs: ['P3'],  tags: ['dynamic-programming','unbounded-knapsack','counting','array'], keyInsight: 'Unbounded Knapsack (counting combinations): dp[w] = number of combinations to make amount w. Outer loop over COINS, inner loop over amounts LEFT TO RIGHT. dp[w] += dp[w - coin]. Return dp[amount].', shrinkTrigger: 'dp[0]=1, rest 0. For each coin: for w from coin to amount: dp[w] += dp[w-coin].', timeComplexity: 'O(amount * coins)', spaceComplexity: 'O(amount)', gotcha: 'Outer-coins, inner-amounts = COMBINATIONS (each coin ordering counted once). Outer-amounts, inner-coins = PERMUTATIONS ([1,2] and [2,1] counted separately). The problem asks for combinations — outer loop MUST be over coins.', faangNote: 'Interviewers probe the combinations vs permutations distinction. State it explicitly before the loop: "Outer loop over coins ensures each denomination is considered in a fixed order — counting combinations, not permutations."', alternateApproaches: [] },
+
+      'LC_1143':{ leetcode: 1143, title: 'Longest Common Subsequence',               difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/longest-common-subsequence/',               templateRefs: ['P4'],  tags: ['dynamic-programming','string-dp','string'], keyInsight: '2D string DP. dp[i][j] = LCS length of text1[0..i-1] and text2[0..j-1]. If text1[i-1] === text2[j-1]: dp[i][j] = dp[i-1][j-1] + 1. Else: dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]).', shrinkTrigger: 'dp[0][j]=dp[i][0]=0. For i=1..m, j=1..n: if match → dp[i][j]=dp[i-1][j-1]+1; else → max(dp[i-1][j], dp[i][j-1]).', timeComplexity: 'O(m * n)', spaceComplexity: 'O(m * n); O(n) with rolling array', gotcha: 'Use 1-indexed strings (loop from 1 to m/n inclusive). dp[0][*] and dp[*][0] are base cases representing empty prefixes — all zeros. Forgetting to allocate dp as (m+1)×(n+1) causes index out-of-bounds.', faangNote: 'Foundation of all 2D string DP. Interviewers expect O(n) space optimization — use a 1D rolling array where prev holds the old diagonal value.', alternateApproaches: [] },
+
+      'LC_72':  { leetcode: 72,   title: 'Edit Distance',                            difficulty: 'Hard',   status: 'Pending', link: 'https://leetcode.com/problems/edit-distance/',                            templateRefs: ['P4'],  tags: ['dynamic-programming','string-dp','string'], keyInsight: 'dp[i][j] = min operations to convert word1[0..i-1] to word2[0..j-1]. If chars match: dp[i][j] = dp[i-1][j-1]. Else: min(dp[i-1][j-1]+1 replace, dp[i-1][j]+1 delete, dp[i][j-1]+1 insert).', shrinkTrigger: 'dp[0][j]=j, dp[i][0]=i. For i=1..m, j=1..n: if word1[i-1]===word2[j-1] → dp[i][j]=dp[i-1][j-1]; else → min(dp[i-1][j-1], dp[i-1][j], dp[i][j-1]) + 1.', timeComplexity: 'O(m * n)', spaceComplexity: 'O(m * n); O(n) with rolling array', gotcha: 'Base cases: dp[i][0] = i (delete all i chars from word1) and dp[0][j] = j (insert j chars to match word2). These are NOT zeros — forgetting them corrupts every cell in the first row and column.', faangNote: 'Google and Amazon Hard. The three operations map directly to three DP transitions — state this mapping before coding. Interviewers probe the base case initialization explicitly.', alternateApproaches: [] },
+
+      'LC_516': { leetcode: 516,  title: 'Longest Palindromic Subsequence',          difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/longest-palindromic-subsequence/',          templateRefs: ['P4'],  tags: ['dynamic-programming','string-dp','string'], keyInsight: 'Interval DP on a single string. dp[i][j] = LPS length in s[i..j]. If s[i]===s[j]: dp[i][j] = dp[i+1][j-1] + 2. Else: dp[i][j] = Math.max(dp[i+1][j], dp[i][j-1]). Fill by increasing gap length.', shrinkTrigger: 'Base: dp[i][i]=1. Fill by gap len=2..n: for i=0..n-gap-1, j=i+gap: if match → dp[i][j]=dp[i+1][j-1]+2; else → max(dp[i+1][j], dp[i][j-1]).', timeComplexity: 'O(n²)', spaceComplexity: 'O(n²); O(n) with rolling array', gotcha: 'Fill by GAP LENGTH not by row. Filling row by row leaves dp[i+1][j-1] uncomputed when you need it. Alternatively: run LCS(s, reverse(s)) — the LPS length equals the LCS of s and its reverse.', faangNote: 'Alternatively solvable as LCS(s, reverse(s)) — state this connection. Interval DP fill order (by gap) is the key technical point interviewers probe.', alternateApproaches: [{ technique: 'LCS on s and reverse(s)', tradeoff: 'Same O(n²) time. LCS is arguably cleaner to implement — avoids the interval DP fill-order subtlety.', complexity: 'O(n²) time, O(n) space' }] },
+
+      'LC_5':   { leetcode: 5,    title: 'Longest Palindromic Substring',            difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/longest-palindromic-substring/',            templateRefs: ['P4'],  tags: ['dynamic-programming','string-dp','string','expand-around-center'], keyInsight: 'Expand-around-center (preferred): for each of the 2n-1 centers (n single-char, n-1 two-char), expand outward while s[l]===s[r]. Track the longest window found. O(n²) time, O(1) space. Alternatively: 2D DP where dp[i][j] = is s[i..j] a palindrome, fill diagonally.', shrinkTrigger: 'ans="". For c=0..2n-2: l=c>>1; r=(c+1)>>1; while l>=0&&r<n&&s[l]===s[r]: l--; r++; if r-l-1>ans.length: ans=s.slice(l+1,r).', timeComplexity: 'O(n²)', spaceComplexity: 'O(1) for expand-around-center; O(n²) for 2D DP', gotcha: 'Two types of centers: odd-length palindromes (single character center) and even-length palindromes (two adjacent identical characters). Missing even-length centers produces wrong answers for inputs like "abba" or "cbbd". The 2n-1 center encoding handles both: center c gives l=c>>1, r=(c+1)>>1.', faangNote: 'Amazon and Meta screener — top-5 frequency across all FAANG DP problems. Always lead with expand-around-center (O(n²) time, O(1) space) over 2D DP — cleaner and space-optimal. If pressed on follow-up, mention Manacher\'s algorithm achieves O(n) by reusing palindrome symmetry.', alternateApproaches: [{ technique: 'Manacher\'s Algorithm', tradeoff: 'O(n) time, O(n) space. Rarely asked to code fully — but naming it and explaining the symmetry reuse is a strong SDE3 signal.', complexity: 'O(n) time, O(n) space' }] },
+
+      'LC_91':  { leetcode: 91,   title: 'Decode Ways',                              difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/decode-ways/',                              templateRefs: ['P5'],  tags: ['dynamic-programming','linear-dp','string','counting'], keyInsight: 'dp[i] = number of ways to decode s[0..i-1]. dp[i] += dp[i-1] if s[i-1] is a valid one-digit decode (\'1\'–\'9\'). dp[i] += dp[i-2] if s[i-2..i-1] is a valid two-digit decode (\'10\'–\'26\').', shrinkTrigger: 'dp[0]=1, dp[1]=(s[0]!==\'0\'?1:0). For i=2..n: oneDigit=parseInt(s[i-1]); twoDigit=parseInt(s.slice(i-2,i)); if 1<=oneDigit<=9: dp[i]+=dp[i-1]; if 10<=twoDigit<=26: dp[i]+=dp[i-2].', timeComplexity: 'O(n)', spaceComplexity: 'O(n); O(1) with rolling variables', gotcha: '"0" alone is not a valid encoding. "30", "40", etc. are also invalid two-digit encodings. Only "10"–"26" are valid two-digit decodings. Validate BOTH one-digit and two-digit conditions separately — do not rely on a single range check.', faangNote: 'Amazon and Meta screener favourite. Structurally identical to Fibonacci with validity gates. State: "This is Fibonacci DP — dp[i] = dp[i-1] + dp[i-2] with each addend gated by a validity check."', alternateApproaches: [] },
+
+      'LC_139': { leetcode: 139,  title: 'Word Break',                               difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/word-break/',                               templateRefs: ['P5'],  tags: ['dynamic-programming','linear-dp','string'], keyInsight: 'dp[i] = true if s[0..i-1] can be segmented using wordDict. For each i, try all split points j < i: if dp[j] && wordSet.has(s.slice(j, i)) → dp[i] = true.', shrinkTrigger: 'wordSet = new Set(wordDict). dp[0]=true, rest false. For i=1..n: for j=0..i-1: if dp[j] && wordSet.has(s.slice(j,i)): dp[i]=true; break.', timeComplexity: 'O(n² * L) where L = max word length', spaceComplexity: 'O(n + W * L) for dp and Set', gotcha: 'Use a Set for O(1) word lookup — not an array scan which is O(W) per check. The break after finding a valid split is an optimization, not correctness-critical. Outer loop is over end index i, inner loop is over split point j.', faangNote: 'Google and Meta classic. Connect to unbounded knapsack: "words are items, string positions are capacities, dp[i] means capacity i can be filled." Candidates who use backtracking without memoization fail on long inputs.', alternateApproaches: [{ technique: 'memoized backtracking', tradeoff: 'Top-down recursion with memo on start index. Same O(n²*L) complexity but recursive — bottom-up DP is cleaner.', complexity: 'O(n² * L) time, O(n) space' }] },
+
+      'LC_312': { leetcode: 312,  title: 'Burst Balloons',                           difficulty: 'Hard',   status: 'Pending', link: 'https://leetcode.com/problems/burst-balloons/',                           templateRefs: ['P6'],  tags: ['dynamic-programming','interval-dp','array'], keyInsight: 'Think LAST BURST: dp[i][j] = max coins from bursting all balloons between i and j (exclusive, padded sentinels). For each k in (i,j): dp[i][j] = max(dp[i][k] + dp[k][j] + nums[i]*nums[k]*nums[j]). Pad nums with 1 at both ends.', shrinkTrigger: 'nums = [1, ...nums, 1]. dp is (n+2)×(n+2) zeroed. For len=2..n+1: for i=0..n+1-len: j=i+len: for k=i+1..j-1: dp[i][j]=max(dp[i][j], dp[i][k]+dp[k][j]+nums[i]*nums[k]*nums[j]).', timeComplexity: 'O(n³)', spaceComplexity: 'O(n²)', gotcha: 'dp[i][j] covers the OPEN interval (i, j) — balloons at i and j are boundaries that are NOT burst in this subproblem. The "last burst" framing ensures that when k is burst last, nums[i] and nums[j] are guaranteed to still exist.', faangNote: 'Google Hard. The "last burst" reframe is the only insight — state it before any code. "I think about which balloon is burst LAST in a range, not first. This freezes the boundaries and gives a clean O(n³) recurrence."', alternateApproaches: [] },
+
+      'LC_309': { leetcode: 309,  title: 'Best Time to Buy and Sell Stock with Cooldown', difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock-with-cooldown/', templateRefs: ['P7'],  tags: ['dynamic-programming','state-machine','array'], keyInsight: 'Three states: HELD (holding stock), SOLD (just sold today), REST (cooldown or never bought). Transitions: HELD → HELD (hold) or SOLD (sell); REST → HELD (buy) or REST (rest); SOLD → REST only (forced cooldown). Space-optimize to O(1) with three variables.', shrinkTrigger: 'held=-Infinity, sold=0, rest=0. For each price: newHeld=max(held, rest-price); newSold=held+price; newRest=max(rest,sold); held=newHeld; sold=newSold; rest=newRest. Return max(sold, rest).', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'SOLD and REST must be distinct states. Merging them into one "not holding" state misses the cooldown constraint — you can buy on the day after REST but not after SOLD. Draw the transition diagram before coding.', faangNote: 'The state machine diagram is the answer. Say: "I draw three states — HELD, SOLD, REST — and derive the recurrence from the legal transitions. The code follows directly from the diagram."', alternateApproaches: [] },
+
+      'LC_123': { leetcode: 123,  title: 'Best Time to Buy and Sell Stock III',      difficulty: 'Hard',   status: 'Pending', link: 'https://leetcode.com/problems/best-time-to-buy-and-sell-stock-iii/',      templateRefs: ['P7'],  tags: ['dynamic-programming','state-machine','array'], keyInsight: 'Four states: hold1 (holding 1st stock), sold1 (completed 1st sale), hold2 (holding 2nd stock), sold2 (completed 2nd sale). sold2 is the answer. Update in REVERSE order to avoid using today\'s price twice.', shrinkTrigger: 'hold1=-Infinity, sold1=0, hold2=-Infinity, sold2=0. For each price: sold2=max(sold2,hold2+price); hold2=max(hold2,sold1-price); sold1=max(sold1,hold1+price); hold1=max(hold1,-price). Return sold2.', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Update in reverse order (sold2 first, hold1 last). Updating hold1 first would use today\'s price twice — allowing a buy and immediate sell on the same day. The reverse update order prevents this.', faangNote: 'The reverse update order is the critical interview point. Explain: "Updating from sold2 down to hold1 uses yesterday\'s values throughout one day\'s update — no double-dipping on a single day\'s price."', alternateApproaches: [] },
+
+      'LC_63':  { leetcode: 63,   title: 'Unique Paths II',                          difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/unique-paths-ii/',                          templateRefs: ['P8'],  tags: ['dynamic-programming','grid-dp','matrix'], keyInsight: 'dp[r][c] = number of distinct paths from (0,0) to (r,c) avoiding obstacles. dp[r][c] = 0 if obstacle. Else dp[r][c] = dp[r-1][c] + dp[r][c-1]. Initialize first row and column carefully — an obstacle blocks all cells after it in that row/column.', shrinkTrigger: 'dp[0][0] = obstacleGrid[0][0] === 1 ? 0 : 1. First row: dp[0][c] = obstacleGrid[0][c]===1 ? 0 : dp[0][c-1]. First col: similar. Inner: if obstacle → 0; else → dp[r-1][c] + dp[r][c-1].', timeComplexity: 'O(m * n)', spaceComplexity: 'O(m * n); O(n) with 1D rolling array', gotcha: 'When initializing the first row, STOP after an obstacle — all cells to its right must be 0. Writing dp[0][c] = obstacleGrid[0][c] ? 0 : 1 ignores the blocking effect of a left-side obstacle.', faangNote: null, alternateApproaches: [] },
+
+      'LC_221': { leetcode: 221,  title: 'Maximal Square',                           difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/maximal-square/',                           templateRefs: ['P8'],  tags: ['dynamic-programming','grid-dp','matrix'], keyInsight: 'dp[r][c] = side length of the largest all-1s square with bottom-right corner at (r,c). If matrix[r][c] = \'1\': dp[r][c] = Math.min(dp[r-1][c], dp[r][c-1], dp[r-1][c-1]) + 1. Track maxSide. Return maxSide².', shrinkTrigger: 'dp[r][c] = matrix[r][c]===\'1\' ? Math.min(dp[r-1][c], dp[r][c-1], dp[r-1][c-1]) + 1 : 0. Answer = Math.max over all dp[r][c], squared.', timeComplexity: 'O(m * n)', spaceComplexity: 'O(m * n); O(n) with 1D rolling array', gotcha: 'Return maxSide² (area), not maxSide (side length). The problem asks for AREA. The min-of-three recurrence is non-intuitive — the bottleneck is the smallest neighboring square: if any one is smaller, the current square cannot extend past it.', faangNote: 'Amazon and Meta favourite. Explain the min(top, left, diagonal) recurrence with the "bottleneck corner" proof: the current square can only be as large as the smallest of its three neighboring squares allows.', alternateApproaches: [] },
+
+      'LC_337': { leetcode: 337,  title: 'House Robber III',                         difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/house-robber-iii/',                         templateRefs: ['P9'],  tags: ['dynamic-programming','tree-dp','dfs','tree'], keyInsight: 'Post-order DFS returning [robThis, skipThis] per node. robThis = node.val + left.skipThis + right.skipThis. skipThis = max(left) + max(right). Each child\'s contribution is independent. Answer = max of root\'s pair.', shrinkTrigger: 'function dfs(node): if !node → [0,0]. [lr, ls] = dfs(left); [rr, rs] = dfs(right). robThis = node.val + ls + rs; skipThis = max(lr,ls) + max(rr,rs). Return [robThis, skipThis].', timeComplexity: 'O(n)', spaceComplexity: 'O(h) call stack where h = tree height', gotcha: 'skipThis = max(left) + max(right) — NOT left.skipThis + right.skipThis. When you skip a parent, each child can independently be robbed or skipped — take the max for each child separately.', faangNote: 'Tests whether you can extend the linear House Robber recurrence to tree topology. The post-order pair return is the key pattern — reusable across all tree DP problems.', alternateApproaches: [{ technique: 'memoization on node reference', tradeoff: 'Cache results by node in a Map. Same O(n) time but adds O(n) space overhead for the map — not needed since post-order DFS visits each node exactly once.', complexity: 'O(n) time, O(n) space' }] },
+
+      'LC_300': { leetcode: 300,  title: 'Longest Increasing Subsequence',           difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/longest-increasing-subsequence/',           templateRefs: ['P10'], tags: ['dynamic-programming','subsequence','binary-search','array'], keyInsight: 'O(n²) DP: dp[i] = LIS length ending at i = 1 + max(dp[j] for j<i where nums[j]<nums[i]). O(n log n): maintain a sorted "tails" array; use binary search to find the replacement position for each element.', shrinkTrigger: 'O(n log n): tails=[]. For each num: pos = lowerBound(tails, num); if pos===tails.length → tails.push(num); else → tails[pos]=num. Return tails.length.', timeComplexity: 'O(n log n) with binary search', spaceComplexity: 'O(n)', gotcha: 'The tails array does NOT store the actual LIS — it is a running monotone structure for length computation only. To reconstruct the actual LIS, you need parent pointers on the dp array — not on tails.', faangNote: 'Lead with O(n²) DP for clarity, then offer O(n log n) patience sorting as an optimization. Stating "tails[i] is the smallest tail element of all LIS of length i+1" is the key invariant interviewers want to hear.', alternateApproaches: [{ technique: 'O(n²) DP', tradeoff: 'Simpler to implement and explain. Acceptable for n ≤ 2500. O(n log n) binary search variant preferred for larger inputs.', complexity: 'O(n²) time, O(n) space' }] },
+
+      'LC_698': { leetcode: 698,  title: 'Partition to K Equal Sum Subsets',         difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/partition-to-k-equal-sum-subsets/',         templateRefs: ['P11'], tags: ['dynamic-programming','bitmask-dp','bit-manipulation','array'], keyInsight: 'Bitmask DP: dp[mask] = current sum of the in-progress bucket when bits in mask are already placed. For each mask, find the next unset bit i and try adding nums[i]. When current bucket sum reaches target, reset to 0 for the next bucket.', shrinkTrigger: 'target=sum/k. dp[0]=0, rest -1. For each mask: if dp[mask]<0 → skip. For each unset bit i: nextMask = mask|(1<<i); nextSum = (dp[mask]+nums[i])%target; dp[nextMask] = nextSum. Return dp[(1<<n)-1] >= 0.', timeComplexity: 'O(2^n * n)', spaceComplexity: 'O(2^n)', gotcha: 'dp[mask] stores (current_bucket_sum % target) — NOT the total sum. The modulo automatically resets the bucket counter when it fills to target. If dp[(1<<n)-1] is non-negative (reached), all k buckets were filled exactly.', faangNote: 'The bitmask DP approach is the O(2^n * n) upgrade over O(k^n) pure backtracking. State: "n ≤ 16 here, so 2^n = 65536 states — bitmask DP is feasible. Pure backtracking is O(k^n) which is too slow without heavy pruning."', alternateApproaches: [{ technique: 'backtracking with pruning', tradeoff: 'O(k^n) worst case but heavy pruning (sort descending, skip duplicate bucket sums) makes it fast in practice. Simpler to implement. See backtracking module for full treatment.', complexity: 'O(k^n) worst case, fast in practice' }] },
+
+      'LC_44':  { leetcode: 44,   title: 'Wildcard Matching',                        difficulty: 'Hard',   status: 'Pending', link: 'https://leetcode.com/problems/wildcard-matching/',                        templateRefs: ['P12'], tags: ['dynamic-programming','string-dp','pattern-matching','string'], keyInsight: 'dp[i][j] = does pattern[0..i-1] match s[0..j-1]? If pattern[i-1] is \'?\' or chars match: dp[i][j] = dp[i-1][j-1]. If pattern[i-1] is \'*\': dp[i][j] = dp[i-1][j] (star=empty) || dp[i][j-1] (star extends).', shrinkTrigger: 'dp[0][0]=true. dp[i][0]=true if pattern[0..i-1] all stars. For i=1..m, j=1..n: if p[i-1]===\'?\' or match → dp[i][j]=dp[i-1][j-1]; if p[i-1]===\'*\' → dp[i][j]=dp[i-1][j]||dp[i][j-1].', timeComplexity: 'O(m * n)', spaceComplexity: 'O(m * n); O(n) with rolling array', gotcha: 'Do NOT conflate LC_44 with LC_10 (Regex Matching). In LC_44, \'*\' matches any sequence standalone. In LC_10, \'*\' means zero-or-more of the preceding character. The star transitions are fundamentally different.', faangNote: 'Google and Amazon Hard. The two star transitions (match-zero = up, match-one-more = left) must be stated before coding. Interviewers probe the base case dp[i][0] for all-star patterns.', alternateApproaches: [{ technique: 'greedy two-pointer', tradeoff: 'O(m*n) worst case for adversarial inputs. DP is strictly cleaner and always O(m*n).', complexity: 'O(m * n) time, O(1) space' }] },
+
+      'LC_10':  { leetcode: 10,   title: 'Regular Expression Matching',               difficulty: 'Hard',   status: 'Pending', link: 'https://leetcode.com/problems/regular-expression-matching/',               templateRefs: ['P12'], tags: ['dynamic-programming','string-dp','pattern-matching','string'], keyInsight: 'dp[i][j] = does p[0..i-1] match s[0..j-1]? Three cases: (1) p[i-1] is literal or \'.\': dp[i][j] = dp[i-1][j-1] && (p[i-1]===\'.\'||p[i-1]===s[j-1]). (2) p[i-1] is \'*\': dp[i][j] = dp[i-2][j] (zero occurrences of p[i-2]) || (dp[i][j-1] && (p[i-2]===\'.\'||p[i-2]===s[j-1])) (one more occurrence).', shrinkTrigger: 'dp[0][0]=true. dp[i][0]=p[i-1]===\'*\'&&dp[i-2][0]. For i=1..m, j=1..n: if p[i-1]!==\'*\': dp[i][j]=dp[i-1][j-1]&&(p[i-1]===\'.\'||p[i-1]===s[j-1]); else: dp[i][j]=dp[i-2][j]||(dp[i][j-1]&&(p[i-2]===\'.\'||p[i-2]===s[j-1])).', timeComplexity: 'O(m * n)', spaceComplexity: 'O(m * n); O(n) with rolling array', gotcha: 'The \'*\' in LC_10 always refers to the preceding element p[i-2] — you need to look two pattern positions back. The zero-occurrences case is dp[i-2][j] (skip BOTH the \'*\' AND the character before it). Do NOT conflate with LC_44 where \'*\' is a standalone wildcard requiring only dp[i-1][j].', faangNote: "Google's preferred Hard DP in onsite rounds — asked more than LC_44 at Google. State before coding: 'When pattern[i-1] is \"*\", there are two cases: zero occurrences (skip X* entirely: dp[i-2][j]) or one more occurrence (match one char and keep * active: dp[i][j-1] with char check). The recurrence follows directly.' This verbal decomposition is the SDE3 signal.", alternateApproaches: [{ technique: 'memoized recursion', tradeoff: 'Top-down with memo on (i, j). Same O(m*n) complexity — bottom-up DP avoids stack overhead and is preferred.', complexity: 'O(m*n) time, O(m*n) space' }] },
+
+      'LC_45':  { leetcode: 45,   title: 'Jump Game II',                             difficulty: 'Medium', status: 'Pending', link: 'https://leetcode.com/problems/jump-game-ii/',                             templateRefs: ['P13'], tags: ['dynamic-programming','greedy','array'], keyInsight: 'Greedy BFS: scan left to right. Track farthest reachable index and the end of the current jump level. When i reaches currentEnd, increment jumps and set currentEnd = farthest. O(n) time, O(1) space.', shrinkTrigger: 'jumps=0, currentEnd=0, farthest=0. For i=0..n-2: farthest=max(farthest, i+nums[i]); if i===currentEnd: jumps++; currentEnd=farthest. Return jumps.', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Loop only to n-2 (not n-1) — incrementing jumps when i reaches the last index overcounts. The last index is the destination, not a jumping-off point.', faangNote: 'Lead with: "This is greedy BFS — I treat all positions reachable in exactly k jumps as one level. I scan each level once and advance to the next when I exhaust the current level." The O(n²) DP solution exists but is unnecessary.', alternateApproaches: [{ technique: 'O(n²) DP', tradeoff: 'dp[i] = min jumps to reach i. For each i, update all reachable positions. O(n²) — greedy is strictly better.', complexity: 'O(n²) time, O(n) space' }] }
+    }
+  }
 }
 /* ═══ END DATA.JS ═══════════════════════════════════════════════════════════ */
