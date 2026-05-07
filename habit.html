@@ -170,6 +170,9 @@
     .streak-badge.hot{background:linear-gradient(135deg,#ff6b35 0%,#f7c948 100%);color:#1a0a00;border-color:transparent}
     .btn-delete{background:none;border:1px solid transparent;border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:.8rem;padding:5px 9px;flex-shrink:0;transition:color .15s,border-color .15s,background .15s}
     .btn-delete:hover{color:#cf222e;border-color:#cf222e;background:var(--red-dim)}
+    .btn-move{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-size:.9rem;font-weight:700;padding:5px 10px;flex-shrink:0;line-height:1;transition:color .15s,border-color .15s,background .15s,transform .1s}
+    .btn-move:hover{color:var(--accent);border-color:var(--accent);background:var(--surface);transform:scale(1.15)}
+    .btn-move:disabled{opacity:.2;cursor:default;pointer-events:none}
     .chevron{font-size:.68rem;color:var(--text-muted);display:inline-block;transition:transform .25s ease;transform:rotate(-90deg);flex-shrink:0;line-height:1}
     .habit-card.expanded .chevron{transform:rotate(0deg)}
     .card-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
@@ -882,6 +885,16 @@
     badge.className='streak-badge'+(st.streak>=7?' hot':'');
     badge.innerHTML='<span>'+(st.streak>=7?'&#x1F525;':'&#x2728;')+'</span> '+st.streak+' day streak';
 
+    var taskIdx=state.tasks.findIndex(function(t){ return t.id===task.id; });
+    var moveUp=document.createElement('button');
+    moveUp.className='btn-move'; moveUp.title='Move up'; moveUp.innerHTML='&#x2191;';
+    if(taskIdx===0) moveUp.disabled=true;
+    moveUp.addEventListener('click',function(e){ e.stopPropagation(); moveTask(task.id,-1); });
+    var moveDown=document.createElement('button');
+    moveDown.className='btn-move'; moveDown.title='Move down'; moveDown.innerHTML='&#x2193;';
+    if(taskIdx===state.tasks.length-1) moveDown.disabled=true;
+    moveDown.addEventListener('click',function(e){ e.stopPropagation(); moveTask(task.id,1); });
+
     var del=document.createElement('button');
     del.className='btn-delete';
     del.textContent='Remove';
@@ -903,7 +916,7 @@
       weekDotsEl.appendChild(wdot);
     }
 
-    hdr.append(ringEl, nameEl, shelfEl, weekDotsEl, badge, del, chevron);
+    hdr.append(ringEl, nameEl, shelfEl, weekDotsEl, badge, moveUp, moveDown, del, chevron);
     hdr.addEventListener('click',function(){ toggleExpand(task.id, card, hdr); });
 
     var body=document.createElement('div');
@@ -1135,6 +1148,14 @@
     if(todayDone===state.tasks.length&&state.tasks.length>0){
       launchConfetti(state.tasks.map(function(t){return t.color;}));
     }
+  }
+
+  function moveTask(taskId, dir) {
+    var idx=state.tasks.findIndex(function(t){ return t.id===taskId; });
+    var newIdx=idx+dir;
+    if(newIdx<0||newIdx>=state.tasks.length) return;
+    var tmp=state.tasks[idx]; state.tasks[idx]=state.tasks[newIdx]; state.tasks[newIdx]=tmp;
+    save(); render();
   }
 
   function deleteTask(taskId) {
