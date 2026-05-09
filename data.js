@@ -142,87 +142,37 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Fixed Size Window',
-        analogy: 'A train window scrolling past a landscape — the frame size never changes. As the train moves, the leftmost scene exits and a new scene enters from the right. You never re-scan the whole landscape, just swap one element at a time.',
-        approach: '1) Build first window of size k. 2) Slide: for each i from k to n-1, add nums[i] and subtract nums[i-k]. 3) Capture answer on every slide. That is the entire algorithm.',
         recognitionSignals: [
           'Window size K is explicitly given in the problem',
           'Subarray or substring of length exactly K',
           'Every consecutive K elements must be evaluated'
         ],
-        mentalModel: 'Window size never changes. Initialize first window of size K. Slide: add right element, remove element K positions back, update answer.',
-        gotchas: [
-          'Do NOT divide inside the loop for average problems — accumulate integer sums, divide only at return. Division inside the loop causes floating-point drift and is O(1) wasted work per slide.',
-          'Frequency matching (LC_567): update the matches counter AFTER changing the frequency count, not before. The order determines whether you capture the correct before/after state.',
-          'The outgoing element is ALWAYS nums[i - k] — it is exactly k positions behind the current right pointer. This never changes regardless of problem flavour.'
-        ],
-        insights: [
-          'Frequency matching can use a single integer "matches" counter (how many of 26 chars satisfy the required count) instead of comparing two full 26-element arrays each slide — reduces O(26) comparison to O(1) per slide.',
-          'LC_567 and LC_438 are the exact same template — the only delta is LC_438 collects ALL valid start indices instead of returning a boolean. Recognising this means solving both problems in the same sitting.'
-        ],
-        keyQuestion: 'What is the fixed K? What single value do I track per window (sum, count, frequency)?',
         questionIds: ['LC_643', 'LC_1456', 'LC_567', 'LC_438']
       },
       {
         id: 'P2', name: 'Variable Window — Maximize / Longest',
-        analogy: 'Stretching a rubber band over items on a table. You keep adding items to the right — the band stretches. The instant the band would snap (invariant violated), you release items from the left until it holds again. The longest stretch just before a snap is always your best answer.',
-        approach: '1) Expand right on EVERY iteration — unconditionally, no condition check. 2) WHILE the invariant is VIOLATED: shrink left one step. 3) After shrink loop exits, window is guaranteed valid — capture max length here.',
         recognitionSignals: [
           'Longest subarray or substring SUCH THAT a condition holds',
           'Maximum length WHERE some property holds',
           'A smaller window is always valid if a larger one is — the condition is monotonic'
         ],
-        mentalModel: 'EXPAND right on every iteration without condition. SHRINK left ONLY when the invariant is VIOLATED. After shrink loop exits the window is always valid — capture max length there.',
-        gotchas: [
-          'Use a WHILE loop to shrink, NOT an if statement. A single removal is not guaranteed to resolve the violation — two of the same character may have been added back to back.',
-          'Answer is right - left + 1 (inclusive). Off-by-one here is the single most common mistake across every P2 problem.',
-          'LC_424 (maxFreq intentionally never decreases on shrink): this is NOT a bug — it is the cleverness. The window can only grow, so we never need a smaller window than the best seen. The stale maxFreq is the entire insight.'
-        ],
-        insights: [
-          'Every P2 problem collapses to one sentence: "What constitutes a violation?" Answer that sentence and you have the full solution — code follows mechanically with no further thought.',
-          'The window NEVER needs to shrink SMALLER than the current max answer. Any window shorter than the current best cannot produce a new best. LC_424 exploits this so aggressively that the loop never truly shrinks — it only stays the same or grows.'
-        ],
-        keyQuestion: 'What constitutes a violation? Answer that and you have the full solution.',
         questionIds: ['LC_3', 'LC_1004', 'LC_1493', 'LC_424', 'LC_904']
       },
       {
         id: 'P3', name: 'Variable Window — Minimize / Shortest / Count Exactly K',
-        analogy: 'Two modes. MINIMIZE is like tightening a drawstring bag — expand until it holds everything needed, cinch as tight as possible, record the size, then expand again. COUNT exactly-K is like asking how many staircases have exactly 3 steps — you count staircases with at-most-3 steps, subtract staircases with at-most-2, and the difference is exactly-3.',
-        approach: 'MINIMIZE: Expand right unconditionally. Once window VALID: shrink left WHILE STILL VALID, recording minimum each time. COUNT exactly-K: Call atMost(k) - atMost(k-1). atMost(k) uses the P2 loop structure but accumulates count += right - left + 1 instead of tracking max length.',
         recognitionSignals: [
           'Minimum length subarray or substring such that a condition holds',
           'Smallest window containing all of something',
           'COUNT the number of subarrays where something occurs EXACTLY K times'
         ],
-        mentalModel: 'Two sub-modes: minimize uses inverse shrink logic from P2 (shrink WHILE valid, not when violated); exactly-K counting uses atMost(K) - atMost(K-1) transformation.',
-        gotchas: [
-          'THIS IS THE INVERSE OF P2: P2 shrinks when VIOLATED, P3 shrinks WHILE VALID. Mixing these two shrink rules is the most common cross-pattern mistake in sliding window.',
-          'In atMostK: MUST return 0 immediately when k < 0. Without this guard, atMostK(-1) processes the entire array and returns a wrong count, silently corrupting the result.',
-          'LC_76 (Minimum Window Substring): required must equal need.size (count of UNIQUE chars in t), NOT t.length. If t = "aa", need = {a:2}, required = 1 not 2. This single character ruins the entire solution.'
-        ],
-        insights: [
-          'The atMost counting trick: result += right - left + 1 counts ALL valid subarrays ending at right in one shot. With left pushed optimally, every sub-window [left..right], [left+1..right], ... [right..right] is valid — a beautifully subtle observation.',
-          'LC_1658 (Minimum Operations to Reduce X to Zero) is a reduction: min(prefix+suffix summing to X) = n minus max(middle subarray with sum = totalSum-X). Drawing this reformulation BEFORE coding is what separates SDE3 from SDE2 — interviewers score this insight independently from the code.'
-        ],
         questionIds: ['LC_209', 'LC_76', 'LC_930', 'LC_992', 'LC_1658']
       },
       {
         id: 'P4', name: 'Deque-based Sliding Window',
-        analogy: 'A nightclub with a VIP queue showing only guests still in the current time slot. Each new arrival triggers two evictions: (1) anyone whose reservation expired gets kicked from the front, and (2) anyone standing behind the newcomer who is less impressive gets kicked from the back — they can never be the star while someone better is present. The front guest is always the current champion.',
-        approach: '1) For each i: pop front if stale (front index < i - k + 1). 2) Pop back WHILE nums[back] <= nums[i] (dominated by newer, larger value). 3) Push i. 4) Emit nums[deque.front] as the window answer starting at i >= k-1. Negative numbers variant: operate on prefix sums with an INCREASING order deque.',
         recognitionSignals: [
           'Maximum or minimum of every window of size K needed in O(n)',
           'Array contains NEGATIVE numbers with a subarray sum or length constraint',
           'Standard sliding window breaks because shrinking does not monotonically change the tracked value'
-        ],
-        mentalModel: 'Deque stores INDICES, not values. The ordering invariant on values at those indices guarantees the front is always the window answer. Evict stale indices from front. Evict dominated indices from back.',
-        gotchas: [
-          'In JavaScript, Array.shift() is O(n) — it physically moves every element left. Use a head pointer (let head = 0) and increment it instead of calling shift(). For large inputs this is the difference between O(n) and O(n²). Always mention this in interviews.',
-          'The deque stores INDICES not values — you need the index both to check staleness and to retrieve the value. Storing values loses the ability to check if the front is still in the current window.',
-          'For LC_862 (negative numbers, prefix sum variant): prefix array has n+1 entries where prefix[0]=0. Off-by-one in sizing is the most common bug — declare Array(n+1) not Array(n).'
-        ],
-        insights: [
-          'Why evicting dominated elements is safe: if j < i and nums[j] <= nums[i], then for ANY future window containing j, i is also present (since i is newer and still in range). Since we want max, j can NEVER be the answer while i exists. It is permanently dominated.',
-          'Two deques simultaneously (LC_1438 Longest Subarray With Abs Diff): maxDq (decreasing values, front = max) and minDq (increasing values, front = min). Shrink when max - min > limit. On left increment, check BOTH deque fronts independently — they do not evict at the same step.'
         ],
         questionIds: ['LC_239', 'LC_1438', 'LC_862']
       }
@@ -266,108 +216,46 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Converging Two Pointers',
-        analogy: 'Two detectives closing in on a suspect from opposite ends of a room. Each clue (comparison result) tells exactly which detective must take a step inward, because the other side has been definitively ruled out. The proof that moving a specific pointer cannot discard the answer IS the algorithm — everything else is syntax.',
-        approach: '1) left = 0, right = n-1. 2) Compute a result using both pointers. 3) If result matches target: record and advance both. 4) If result is too small: left++ (monotonic property says left side is too weak). 5) If result is too large: right-- (right side is too strong). 6) Repeat until left >= right.',
         recognitionSignals: [
           'Array or string problem involving pairs, maxima, or symmetry checks',
           'Input is sorted OR the problem has a monotonic property (moving one pointer always improves or worsens the answer predictably)',
           'Looking for two elements satisfying a condition — shrinking the search space from both ends'
         ],
-        mentalModel: 'Left starts at 0, right starts at end. At each step, compare or compute based on both pointers. Move whichever pointer makes the next state more promising. The correctness argument depends entirely on proving that the discarded state can never be optimal.',
-        gotchas: [
-          'Proving WHICH pointer to move and WHY is the entire algorithm. Without the proof, you are guessing. Interviewers score the justification independently of code correctness.',
-          'LC_11 (Container With Most Water): when both heights are equal, moving EITHER pointer is correct — both choices satisfy the proof. Do not treat this as a special case requiring separate logic.',
-          'LC_42 (Trapping Rain Water): process the side with the SMALLER max first (counterintuitive). If leftMax <= rightMax, water at left = leftMax - height[left] because rightMax guarantees leftMax is the true bottleneck.'
-        ],
-        insights: [
-          'Converging pointers work on sorted arrays because the comparison result has monotonic consequences: if the sum is too large with right at its current position, moving right left is ALWAYS an improvement. This monotonicity is what is being exploited.',
-          'LC_977 (Squares of Sorted Array): fill result from index n-1 DOWNWARD, not from 0 upward. Filling from the back picks the LARGEST remaining square each time — a natural fit for the converging approach that almost everyone misses on first attempt.'
-        ],
-        keyQuestion: 'When I move a pointer, which one do I move and WHY can the discarded option never be optimal? That proof IS the algorithm.',
         questionIds: ['LC_167', 'LC_125', 'LC_680', 'LC_11', 'LC_977', 'LC_42', 'LC_986']
       },
       {
         id: 'P2', name: 'Fast & Slow Pointers',
-        analogy: 'A rabbit and a tortoise on a jogging track. On a straight path, the rabbit exits first (no cycle). On a circular track, the rabbit eventually laps the tortoise and they meet (cycle detected). Where they meet carries mathematical information about the cycle entrance — a beautiful hidden property of the distances.',
-        approach: '1) slow = head, fast = head. 2) Loop: slow = slow.next, fast = fast.next.next. 3) Cycle detection: if slow === fast, a cycle exists. 4) Cycle entry: reset slow to head, advance BOTH at speed 1 until they meet again — that node is the entry. 5) Middle: when fast reaches null/fast.next null, slow is at the midpoint.',
         recognitionSignals: [
           'Linked list problem involving cycles, midpoints, or position-relative checks',
           'Need to find a position that is a fraction (half, one-third) of the list length without knowing the length',
           "Floyd\'s Tortoise and Hare pattern"
         ],
-        mentalModel: 'Slow moves 1 step, fast moves 2 steps per iteration. In a cycle they must eventually meet. Without a cycle, fast reaches null first. When fast reaches end, slow is at the structural midpoint.',
-        gotchas: [
-          'Guard condition is BOTH: fast !== null AND fast.next !== null before advancing. Calling fast.next.next when fast.next is null causes a runtime crash, not just wrong output.',
-          'Finding the FIRST middle (for odd-length splits): use while (fast.next !== null && fast.next.next !== null). The standard form gives SECOND middle on even-length lists — which is what LC_234 and merge sort actually need, but always know the difference.',
-          'Phase 2 of cycle entry (LC_142): reset ONLY slow to head. The other pointer stays at the meeting point and advances at speed 1. Resetting BOTH pointers breaks the math — they meet at the entry after exactly F steps.'
-        ],
-        insights: [
-          'The math for cycle entry: let F = distance from head to entry, C = cycle length, D = distance from entry to the meeting point (inside cycle). It can be proven that F = C - D (mod C). This is why resetting one pointer to head and advancing both at speed 1 converges at the entry after exactly F steps.',
-          'LC_287 (Find Duplicate Number): the array IS a linked list where nums[i] is the next pointer. Values are in [1,n] so no index maps to 0, making index 0 the safe "dummy head". The duplicate creates a back-edge that forms the cycle. The cycle entry IS the duplicate.'
-        ],
         questionIds: ['LC_141', 'LC_876', 'LC_234', 'LC_142', 'LC_19', 'LC_160', 'LC_287']
       },
       {
         id: 'P3', name: 'Write Pointer — Same Direction',
-        analogy: 'A copy editor cleaning a manuscript. The read cursor moves through every word without skipping. The write cursor only moves forward when a word is worth keeping. By the time the read cursor hits the end, everything before the write cursor is the clean version — no extra space used, no shifting required.',
-        approach: '1) write = 0. 2) For read from 0 to n-1: if nums[read] satisfies the KEEP condition, set nums[write] = nums[read] and write++. 3) Return write (the new valid length). For merge-from-end (LC_88): start both read pointers at the backs of their arrays, write at the total end — right to left.',
         recognitionSignals: [
           'In-place array modification: remove elements, move elements, filter elements',
           'Merging two sorted arrays/segments where extra space exists at one end',
           'Two pointers both move left-to-right but at different speeds — read outpaces write'
         ],
-        mentalModel: 'Maintain a write pointer to the next valid output position. Read pointer scans everything. Only advance write when a kept element is found. For merge-from-end: start all pointers at their respective backs to prevent overwriting unread data.',
-        gotchas: [
-          'Merge from END for LC_88 — merging from the front overwrites nums1 elements that have not been compared yet. Starting from the end gives enough scratch space without a separate buffer.',
-          'For LC_26: elements BEYOND the write pointer position do NOT need to be cleared. The problem only requires returning the new length and the contract says everything after that index is irrelevant.',
-          'For LC_283 (Move Zeroes): two-pass is cleaner than swap-in-place — pass 1 moves all non-zeros to front, pass 2 fills the tail with zeros. Single-pass swap works but is harder to reason about for interviewers.'
-        ],
-        insights: [
-          'The write pointer invariant: write is always <= read, and all positions before write are the processed result. This invariant never breaks by design — read always outpaces write because it advances unconditionally.',
-          'Merging from the end is a general technique whenever you merge INTO a buffer that overlaps with one of the inputs. Working backward eliminates ALL overwrite conflicts with zero extra space.'
-        ],
         questionIds: ['LC_26', 'LC_283', 'LC_88']
       },
       {
         id: 'P4', name: 'k-Sum Reduction',
-        analogy: 'A dish requiring exactly k flavours summing to a target. Fix the outer k-2 ingredients with nested loops — each choice narrows the remaining budget. Then use converging two pointers to find the last two in O(n) instead of O(n²). Each outer loop multiplies time by O(n), but the innermost two-pointer base case is always O(n).',
-        approach: '1) Sort the array. 2) Fix (k-2) outer pointers with nested for loops, each starting after the previous. 3) Apply converging two pointers on the remaining subarray. 4) Duplicate skip at EVERY pointer level — outer: check i > startOfThisLevel, inner: skip after recording a match.',
         recognitionSignals: [
           'Find all unique pairs/triplets/quadruplets (k numbers) summing to a target',
           'Array can be sorted without losing the required output information',
           'Brute force is O(n^k) — target is O(n^(k-1))'
         ],
-        mentalModel: 'Sort first. Reduce k-sum to (k-1)-sum with a for loop fixing the outermost element. Base case is 2Sum on a sorted array which is O(n) with converging pointers. Duplicate skipping at every pointer level is mandatory.',
-        gotchas: [
-          '3Sum duplicate skip for i MUST check i > 0 (not just i > start). Without this guard, nums[-1] is undefined in JS and the condition fires erroneously on the very first iteration, skipping valid solutions.',
-          '4Sum: the j-level duplicate guard must check j > i+1, NOT j > 0. After i advances and j resets to i+1, the first j value is fresh and must not be skipped. Getting this wrong is the #1 4Sum bug.',
-          'After recording a valid k-tuple: skip past ALL duplicates for BOTH inner pointers (left and right) before incrementing. Missing either skip produces duplicate results in the output.'
-        ],
-        insights: [
-          'The reduction is general and recursive: kSum → (k-1)Sum via one for loop. The base case is always 2Sum with converging pointers. Stating this reduction before coding is the SDE3 signal for pattern mastery.',
-          '3Sum is O(n²). 4Sum is O(n³). kSum is O(n^(k-1)). The O(n log n) sort is amortized — it is paid once, then the reduction tree takes over and dominates.'
-        ],
-        keyQuestion: 'When I move a pointer, which one do I move and WHY can the discarded option never be optimal?',
         questionIds: ['LC_15', 'LC_16', 'LC_18']
       },
       {
         id: 'P5', name: 'Three-Way Partition',
-        analogy: 'Sorting a shuffled deck of country flags (red, white, blue) into three piles in a single pass. Three pointers mark the right edge of red, the current card, and the left edge of blue. Red cards slide to the left pile, white cards extend the middle, blue cards slide to the right — but EVERY card arriving from the blue pile is a stranger whose colour is unknown and must be re-examined before advancing.',
-        approach: 'low=0, mid=0, high=n-1. While mid <= high: if nums[mid]===0 → swap(low,mid), low++, mid++ (safe, low region contains only examined 0s). If nums[mid]===1 → mid++. If nums[mid]===2 → swap(mid,high), high-- (do NOT increment mid — the swap brought an unexamined value from high).',
         recognitionSignals: [
           'Partition array into exactly 3 mutually exclusive categories in a single O(n) pass',
           'Dutch National Flag or similar color/category sort',
           'Cannot use two separate passes — must maintain three boundaries simultaneously'
-        ],
-        mentalModel: 'Three pointers define four regions: confirmed-low (before low), confirmed-mid (low to mid-1), unexamined (mid to high), confirmed-high (after high). Process mid: swap with low (safe to advance mid), skip (advance mid), or swap with high (do NOT advance mid — incoming value is unknown).',
-        gotchas: [
-          'After swapping nums[mid] with nums[high]: do NOT increment mid. The value that just arrived from high could be 0, 1, or 2 — it is completely unknown. It must be re-examined. The asymmetry is the ENTIRE trick.',
-          'After swapping nums[mid] with nums[low]: it IS safe to increment mid. The low region contains only already-examined 0s, meaning the value that arrived from low must be 1. No re-examination needed.',
-          'Loop condition is mid <= high (not mid < high). When mid === high, that last element is still unexamined and must be processed.'
-        ],
-        insights: [
-          'Dijkstra named this the Dutch National Flag problem after the three-coloured Dutch flag. The problem in its purest form sorts [0,1,2]. But the three-pointer invariant generalises to ANY three-way categorisation in a single O(n) pass without extra space.',
-          'There are only 3 cases and only 2 of them advance mid. When you see a 1, nothing changes except mid advances — it is the trivial case. The asymmetric increment rule (no mid++ after blue swap) is the one thing to drill until it is reflex.'
         ],
         questionIds: ['LC_75']
       }
@@ -416,132 +304,54 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Classic Exact Binary Search',
-        analogy: 'Looking up a name in a phone book. Open to the exact middle — too early or too late? Flip to the correct half and repeat. Every guess halves the remaining candidates. After log₂(n) guesses, you have either found the name or proven it is not there.',
-        approach: 'left=0, right=n-1. While left<=right: mid=left+Math.floor((right-left)/2). If hit: return mid. If too small: left=mid+1. If too large: right=mid-1. Return -1 if loop exits.',
         recognitionSignals: [
           'Find an exact target value in a sorted array',
           'Return the index of the target or -1 if absent',
           'Three-way branch: found / go left / go right'
         ],
-        mentalModel: 'Closed interval [left, right]. Loop while left <= right. Discard mid+1 to right (right=mid-1) when too large; discard left to mid-1 (left=mid+1) when too small. Return mid when hit.',
-        gotchas: [
-          'ALWAYS compute mid as left + Math.floor((right - left) / 2), not (left + right) >> 1. The subtraction form prevents integer overflow in fixed-width languages. State this habit explicitly — interviewers notice the idiom immediately.',
-          'Loop condition is while (left <= right) — the equals sign matters. When left === right, that single remaining element is still a valid candidate and must be checked.',
-          'Updates must be right = mid - 1 and left = mid + 1, NEVER just mid. Using mid without the +1/-1 creates an infinite loop whenever mid does not change between iterations.'
-        ],
-        insights: [
-          'Binary search halves the space on every step: one billion elements require only 30 comparisons. This is why O(log n) is called "basically free" — 2³⁰ > 1,000,000,000.',
-          'Every other binary search variant (boundary search, answer space, rotated array) is the exact same three-way comparison with different update rules for the pointer that lands on a match.'
-        ],
-        keyQuestion: 'Is mid the answer, too large, or too small?',
         questionIds: ['LC_704']
       },
       {
         id: 'P2', name: 'Boundary / Predicate Binary Search',
-        analogy: 'Finding the exact moment dawn transitions to day. Every minute before the boundary is dark; every minute after is light. You do not check every minute (O(n)) — you check the midpoint, see if it is dark or light, then narrow in. The boundary can be found in O(log n) comparisons.',
-        approach: 'Define predicate P(x): returns false for a prefix, true for the suffix (monotonic). Use left < right loop. When P(mid) is TRUE: right = mid (mid is a candidate — do not discard). When FALSE: left = mid + 1 (mid cannot be the answer). Return left.',
         recognitionSignals: [
           'Find the FIRST or LAST position satisfying a condition',
           'Search insert position, lower/upper bound',
           'Array has a structural property (peak, single element, parity) enabling binary search even without full sorting'
         ],
-        mentalModel: 'Define a boolean predicate P(x) that is monotonic: false...false...true...true (or vice versa). Binary search finds the boundary. For leftmost-true use left<right with right=mid. For rightmost-true track result and update left=mid+1 on match.',
-        gotchas: [
-          'This template uses while (left < right) NOT left <= right. Mixing them causes an infinite loop because the update rule is right = mid (not mid-1) — left and right never converge with <=.',
-          'Set right = nums.length (open right bound, not nums.length-1) when the target might not exist — this allows the result to be nums.length, representing "insert at end."',
-          'After the search returns left: ALWAYS validate. If (left === nums.length || nums[left] !== target) return [-1,-1]. Skipping this validation gives false positives when the target is absent.'
-        ],
-        insights: [
-          'The predicate abstraction is powerful: once you define isSatisfied(mid) as a clean boolean, the template is identical regardless of whether you are searching a sorted array, a mathematical function, timestamps, or answer spaces.',
-          'LC_162 (Find Peak Element) teaches that binary search does NOT require a fully sorted array — only a monotonic predicate. nums[mid] < nums[mid+1] tells you which half contains a peak even without globally sorted input.'
-        ],
-        keyQuestion: 'What is my predicate? Is it cheap to evaluate? Is it monotonic (false then true) over the search space?',
         questionIds: ['LC_35', 'LC_34', 'LC_278', 'LC_162', 'LC_540', 'LC_658']
       },
       {
         id: 'P3', name: 'Rotated / Modified Sorted Array',
-        analogy: 'A sorted necklace that slipped and got rotated at one point. If you look at the bead at mid and the bead at left, you can always tell which arc of the necklace is unbroken (sorted). The target must be in the unbroken arc — search there. Duplicates are like identical beads: you cannot tell which arc they belong to, so you have to shrink the window.',
-        approach: '1) Compare nums[left] with nums[mid]. If nums[left] <= nums[mid]: left half is sorted — check if target is in [nums[left], nums[mid]). 2) Otherwise: right half is sorted — check if target is in (nums[mid], nums[right]]. 3) For duplicates (LC_81): when nums[left]===nums[mid]===nums[right], shrink BOTH ends and retry.',
         recognitionSignals: [
           'Array was sorted but rotated at an unknown pivot',
           'Contains duplicates that complicate the sorted-half determination',
           'Find minimum or search for a target in this modified structure'
         ],
-        mentalModel: 'At any mid in a rotated array, exactly one half is fully sorted. Compare nums[left] with nums[mid] to determine which. Check if target lies in the sorted half. Discard accordingly. Duplicates at boundaries prevent this — shrink both ends and retry.',
-        gotchas: [
-          'Always use nums[left] <= nums[mid] with <= (not strict <). For a two-element subarray where left === mid, the left half is trivially sorted with one element — the equals sign handles this edge case.',
-          'For find minimum (LC_153): compare against nums[right], NOT nums[left]. Comparing against nums[left] breaks for non-rotated input (pivot at the end). Comparing against nums[right] is unambiguous in all cases.',
-          'For LC_81 (duplicates): state the O(n) worst case BEFORE coding. Example: [1,1,1,1,2,1,1]. Never claim guaranteed O(log n) for this variant — the worst case is inherent to the structure.'
-        ],
-        insights: [
-          'At any mid in a rotated array, exactly one half MUST be fully sorted — this invariant is absolute. Two halves cannot both be broken unless the rotation point is exactly at mid, which trivially makes one half a single sorted element.',
-          'LC_81 being O(n) worst case is a fundamental result, not a failure of the algorithm. When all three boundary elements are identical, the rotation point is genuinely indistinguishable. The algorithm correctly degrades.'
-        ],
-        keyQuestion: 'Which half is fully sorted? Is my target in that half?',
         questionIds: ['LC_153', 'LC_33', 'LC_81']
       },
       {
         id: 'P4', name: 'Binary Search on Answer Space',
-        analogy: 'Playing The Price is Right — the answer is a number you guess from a range. You do not search the array directly; you binary search the ANSWER itself. For each price guess, you check feasibility in O(n) with a greedy simulation. This transforms an O(n²) brute force into O(n log(range)) — the range factor is usually log(10⁹) or less.',
-        approach: '1) Set lo = minimum possible answer. 2) Set hi = maximum possible answer. 3) Define isFeasible(mid): O(n) greedy check — "can we satisfy all constraints at this answer value?" 4) If feasible: hi = mid (try smaller). If not: lo = mid + 1. 5) Return lo.',
         recognitionSignals: [
           'The answer is a value in a range, not an index in the array',
           'Problem asks to minimize or maximize a value subject to a constraint',
           "A feasibility check ('can we achieve X?') can be written in O(n) or better"
         ],
-        mentalModel: 'Binary search on the ANSWER RANGE [lo, hi]. Define isFeasible(x): can we satisfy the constraint at value x? The feasible region is monotonic. Three design steps: (1) set lo and hi, (2) write isFeasible, (3) apply the template.',
-        gotchas: [
-          'lo must be set to the MINIMUM VALID ANSWER, not 1 or 0. For LC_1011 (ship packages): lo = max(weights). A capacity smaller than the heaviest package is unsolvable — the feasibility check always fails and the loop does not terminate correctly.',
-          'For MINIMIZE the answer: if feasible → hi = mid. For MAXIMIZE the answer: if feasible → lo = mid + 1. Swapping these gives the wrong monotonic direction and returns the wrong boundary.',
-          'Write and mentally test isFeasible on a boundary case (exactly feasible, exactly infeasible) BEFORE coding the binary search wrapper. A bug in isFeasible silently corrupts the answer.'
-        ],
-        insights: [
-          'The three design steps for P4 are universal: (1) identify lo/hi, (2) write isFeasible, (3) apply the template. LC_875, LC_1011, LC_410, and LC_719 all use the exact same three-step shell — only isFeasible differs.',
-          'Binary search on the answer works because "if X is feasible, then X+1 is also feasible" (or vice versa) — the feasibility region is always monotonic. This monotonicity must hold for the approach to be valid; verify it mentally before applying.'
-        ],
-        keyQuestion: 'What are lo and hi? What does isFeasible(mid) check? Which direction expands feasibility?',
         questionIds: ['LC_875', 'LC_1011', 'LC_410', 'LC_719', 'LC_1482']
       },
       {
         id: 'P5', name: '2D Matrix Search',
-        analogy: 'Two different books. LC_74 is a book where the pages are sorted AND the last word on page n comes before the first word on page n+1 — the entire book is one giant sorted sequence. LC_240 is a book where each page is internally sorted, but pages are independent — you cannot treat the whole book as one list.',
-        approach: 'LC_74 (row-major): map 1D index mid to row=Math.floor(mid/cols), col=mid%cols. Apply T1 on the virtual range [0, rows*cols-1]. LC_240 (row+col sorted): start at TOP-RIGHT corner. matrix[row][col] > target → col-- (move left). matrix[row][col] < target → row++ (move down). O(m+n).',
         recognitionSignals: [
           'Search in a 2D matrix with sorted rows and/or columns',
           'Determine if binary search applies based on the EXACT sorting structure'
         ],
-        mentalModel: 'Two distinct matrix structures require different approaches. Row-major sorted (each row\'s max < next row\'s min): treat as 1D, apply binary search. Row+column sorted independently (LC_240): binary search does NOT apply — use staircase elimination from the top-right corner.',
-        gotchas: [
-          'LC_74 vs LC_240 is the most common matrix binary search trap. LC_240 does NOT have the row-major property — applying the 1D-mapping binary search gives wrong answers. Say instantly: "This matrix lacks row-major order — I use staircase elimination instead."',
-          'For LC_74: the valid 1D range is [0, rows*cols-1] inclusive. Do not forget the -1 — it causes the last element to never be checked.',
-          'Test: does the last element of row i being smaller than the first element of row i+1? Yes → row-major (LC_74 style). No → only row+col sorted (LC_240 style).'
-        ],
-        insights: [
-          'The staircase algorithm (start top-right) for LC_240 works because moving left always decreases the value and moving down always increases it. Exactly ONE of these directions always makes progress toward the target — guaranteed termination in O(m+n).',
-          'Interviewers pair LC_74 and LC_240 specifically to test whether you blindly apply binary search or understand its preconditions. The correct answer to LC_240 is the staircase — saying "binary search does not apply here" is the insight being tested.'
-        ],
-        keyQuestion: 'Is the matrix row-major sorted (use 1D binary search) or only row+column sorted (use staircase O(m+n))?',
         questionIds: ['LC_74', 'LC_240', 'LC_378', 'LC_1351']
       },
       {
         id: 'P6', name: 'Canonical Hard — Partition-Based Binary Search',
-        analogy: 'Splitting two stacks of sorted exam papers at the exact cut-point where everything to the left of the cut (across both stacks combined) is the bottom half, and everything to the right is the top half. You binary search on the cut position in the smaller stack and derive the corresponding cut in the larger stack from the total count.',
-        approach: '1) Binary search on the SMALLER array partition index i. 2) Derive j = (m+n+1)/2 - i for the second array. 3) Check: maxLeft1 <= minRight2 AND maxLeft2 <= minRight1. 4) If maxLeft1 > minRight2: i too large (right=i-1). If maxLeft2 > minRight1: i too small (left=i+1). 5) Return the median using the four boundary values.',
         recognitionSignals: [
           'Finding a statistical property (median, kth element) across multiple sorted arrays',
           'Partitioning two arrays simultaneously to maintain a global sorted invariant'
         ],
-        mentalModel: 'Binary search on the smaller array\'s partition index. For each candidate partition of array1, compute the corresponding partition of array2. Check the cross-boundary condition. Adjust partition based on which condition fails.',
-        gotchas: [
-          'ALWAYS binary search on the SMALLER array (swap if nums1 is longer). The time complexity is O(log(min(m,n))) — if you search the larger array you get O(log(max(m,n))) instead.',
-          'Edge cases at partition boundaries: when the partition is at index 0, maxLeft = -Infinity (no elements). When at length n, minRight = +Infinity (no more elements). Forgetting these makes the comparison crash.',
-          'The O(m+n) merge solution is explicitly suboptimal and will be rejected in interviews. If you cannot recall the partition invariant under pressure, say so clearly and deliver O(m+n) — partial credit is real.'
-        ],
-        insights: [
-          'The total left partition has size Math.floor((m+n+1)/2). The +1 is critical: for odd total length it ensures the left side has one more element, making the median always available at maxLeft. Without +1 the median calculation breaks for odd lengths.',
-          'Walking the interviewer through the four boundary values (maxLeft1, minRight1, maxLeft2, minRight2) on a whiteboard before writing any code is how you demonstrate mastery of this problem. The code is secondary.'
-        ],
-        keyQuestion: 'Is my partition correct? Which cross-boundary condition fails and which direction do I adjust?',
         questionIds: ['LC_4', 'LC_786']
       }
     ],
@@ -582,134 +392,56 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Merge Sort Internals',
-        analogy: 'Organising a messy library by first splitting every book into individual piles of one, then repeatedly merging neighbouring piles by always taking the book with the smaller title from whichever top-of-pile. The splitting phase is trivial and free; all the intelligence lives in the merge step.',
-        approach: '1) Recursively split at mid until size=1 (base case). 2) Merge two sorted halves into a temp buffer by repeatedly picking the smaller head. Use <= for stability. 3) Copy temp back into original array. Linked list variant: fast/slow to find mid, sever with mid.next=null, recurse, merge in-place.',
         recognitionSignals: [
           'Problem explicitly asks you to implement a sorting algorithm',
           'Input is a linked list — no random access, merge sort is the only O(n log n) option',
           'Need to COUNT something that happens during the sort (inversions, smaller elements to the right)'
         ],
-        mentalModel: 'Split at the midpoint. Recursively sort both halves. Merge by picking the smaller head each time into a temp buffer. For linked lists: fast/slow to find mid, sever the list, recurse, merge in-place. For augmented counting: when a right-half element is placed before left-half elements during merge, each remaining left-half element\'s count increases by 1.',
-        gotchas: [
-          'Use <= (not <) in the merge comparison to keep the sort STABLE — equal elements from the left half appear before those from the right half. This matters for problems requiring stable sort and for LC_315 counting correctness.',
-          'Do NOT try in-place merge (rotating elements). Every element shift is O(n), making in-place merge O(n²) per level — worse than just sorting again. Always merge into a separate temp buffer.',
-          'For LC_148 (Sort List): start fast at head.next, NOT head. Starting fast at head makes slow land on the SECOND middle for even-length lists, causing infinite recursion on two-element inputs.'
-        ],
-        insights: [
-          'LC_315 (Count of Smaller Numbers After Self): when a right-half element is merged BEFORE remaining left-half elements, each of those left-half elements gains one count (a smaller number originally to their right was just processed). Augmenting the merge to track this is what makes the problem O(n log n) instead of O(n²).',
-          'Merge sort is the ONLY O(n log n) sort on linked lists. Quicksort requires random access (swapping arbitrary indices); heapsort requires a complete array representation. For any linked-list sort question, merge sort is the only professional answer.'
-        ],
-        keyQuestion: 'What additional information needs to be tracked DURING the merge step?',
         questionIds: ['LC_912', 'LC_148', 'LC_315', 'LC_493']
       },
       {
         id: 'P2', name: 'Custom Comparator',
-        analogy: 'A pie contest where "bigger pie" is not the judging rule — the rule is "which pie would I prefer to eat first?" You define that preference as a function. Any valid sort only needs your comparator to be consistent: if A beats B and B beats C, then A must beat C (transitivity). Violate transitivity and the sort output is implementation-defined garbage.',
-        approach: 'arr.sort((a, b) => result). Result < 0: a before b. Result > 0: b before a. Result === 0: tie. For multi-key: cascade through keys with early non-zero returns. For string concatenation order: compare (b+a) vs (a+b) as strings using localeCompare.',
         recognitionSignals: [
           'The natural sort order does not produce the required ordering',
           'Sort requires multiple keys (primary + secondary + ...)',
           'Sort key involves string operations — concatenation, lexicographic with exclusions'
         ],
-        mentalModel: 'Define a comparison function (a, b) => number. Negative means a before b. Positive means b before a. For multi-key: cascade through keys with early returns. For string concatenation: compare b+a vs a+b as string lexicographic — this forms a valid transitive total order. ALWAYS verify transitivity on paper before an interview; an invalid comparator silently produces wrong results.',
-        gotchas: [
-          'String concatenation comparator (LC_179 Largest Number): (b+a).localeCompare(a+b) is correct. But you MUST be able to prove transitivity on the spot: if a+b > b+a and b+c > c+b, then a+c > c+a. State this proof before coding — interviewers score it as a separate signal.',
-          'After sorting for LC_179: check if strs[0] === "0" — if so return "0" not "000...0". The all-zeros edge case is the most missed final check.',
-          'JavaScript Array.sort() is stable in V8 (Node 11+). Returning 0 for equal elements preserves their original relative order — which is exactly what LC_937 (Reorder Log Files) requires for digit logs.'
-        ],
-        insights: [
-          'Multi-key sort (LC_937) works as a priority hierarchy: the outer condition (type check) dominates every inner condition (content, identifier). Think of it as three concentric if-else levels. The outer level takes priority; equal outer values fall through to the next level.',
-          'The concatenation comparator for LC_179 is the canonical example of "natural comparison fails completely." Comparing by value gives [9,30,56]. Comparing by string gives [9,3,56]. The concatenation comparator gives [9,56,3] which joins as "9563" — the correct answer.'
-        ],
-        keyQuestion: 'What is the exact rule determining when a should appear before b? Can I express that as a numeric return value?',
         questionIds: ['LC_179', 'LC_937', 'LC_406']
       },
       {
         id: 'P3', name: 'Interval Sort + Greedy',
-        analogy: 'Scheduling lectures in a single classroom. To fit AS MANY classes as possible, always book the class that finishes EARLIEST — it frees the room for the next class sooner than any other choice. This is sort-by-END. If you are painting the wall in continuous strokes, you need to know where the previous stroke ended — sort-by-START.',
-        approach: 'MERGING: sort by start. For each interval: if it overlaps the last merged interval (start <= last.end), extend last.end = Math.max(last.end, current.end). Otherwise add a new entry. NON-OVERLAPPING / GREEDY: sort by end. Keep a prevEnd pointer. If current.start < prevEnd: skip (overlap). Otherwise keep it and update prevEnd.',
         recognitionSignals: [
           'Input is a set of intervals (pairs of start and end values)',
           'Goal involves merging, counting overlaps, or minimizing removal of overlapping intervals',
           'A sweep from left to right after sorting becomes a simple O(n) scan'
         ],
-        mentalModel: 'The sort key determines the greedy strategy. Sort by START when merging — a new interval can only extend the current one. Sort by END when minimizing removals — always keeping the interval ending soonest is optimal by greedy exchange argument. Sorting by start for removal problems is a common wrong approach that produces incorrect greedy decisions.',
-        gotchas: [
-          'Sort by START for merging. Sort by END for non-overlapping/minimum removal. These are OPPOSITE keys — using start when you need end or vice versa gives a wrong greedy strategy that produces wrong answers on small but non-trivial inputs.',
-          'LC_56 (Merge Intervals): always take Math.max(last[1], intervals[i][1]) for the new end. A new interval might be entirely contained inside the last merged interval — in that case the end should NOT change to the smaller value.',
-          'LC_452 (Minimum Arrows): overlap uses strict > not >=. Intervals touching at a single point ([1,2] and [2,3]) CAN be burst with one arrow at x=2. Using >= incorrectly requires two arrows.'
-        ],
-        insights: [
-          'Greedy exchange argument for sort-by-end: any solution that removes an interval ending LATER in a conflict is at least as good as removing the one ending EARLIER. Why? The earlier-ending interval leaves more room for future intervals — swapping can only improve or maintain the count.',
-          'LC_435 (Non-overlapping) and LC_452 (Arrows) are the SAME problem in disguise — both sort by end, greedy sweep. The only code difference is the overlap condition: < vs <=. Recognising this connection halves your preparation time.'
-        ],
-        keyQuestion: 'Am I merging (sort by start) or minimizing/counting (sort by end)?',
         questionIds: ['LC_56', 'LC_435', 'LC_452', 'LC_57', 'LC_253']
       },
       {
         id: 'P4', name: 'Sort as Enabler',
-        analogy: 'The Dewey Decimal System at a library. Sorting books creates canonical addresses for every subject — all books on the same topic end up together. You never compare books against each other (that would be O(n²)); sorting gives you the canonical key in O(n log n) and a single O(n) scan finds any boundary.',
-        approach: 'KEY MODE: sort the characters/digits of each element — all anagrams share the same sorted-string key, use it as a hash map key. SCAN MODE: sort by the relevant metric, then one linear scan finds the first boundary violation. The sort is O(n log n); the value is in the O(n) step it unlocks.',
         recognitionSignals: [
           'Grouping elements that are equivalent under some transformation',
           'Sorting by a computed metric enables a single O(n) boundary scan',
           'The answer cannot be directly computed but becomes obvious once the array is in sorted order'
         ],
-        mentalModel: 'Two sub-modes: KEY MODE — sort the characters/digits of each element to produce a canonical hash key (anagrams share the same sorted string). SCAN MODE — sort by the relevant metric, then scan linearly for the first boundary violation. The sort does the heavy work so the scan only needs O(n).',
-        gotchas: [
-          'For alternate anagram key (frequency array): convert counts to string with a separator like counts.join("#"). The "#" separator prevents key collisions from different frequency distributions that happen to share the same digit string.',
-          'H-Index (LC_274): return h at the END of the loop, not just i. If the entire array satisfies citations[i] >= i+1 with no break, h-index is n. Missing this full-loop case incorrectly returns 0.',
-          'Key mode vs scan mode: if you are GROUPING elements by equivalence under a transform — key mode. If you are finding the FIRST position where a sorted sequence violates a boundary — scan mode.'
-        ],
-        insights: [
-          'Sorting to create a canonical key appears everywhere: anagram grouping, isomorphic strings, finding duplicate files by content hash. "These items are the same under some transformation" → sort the transformation result.',
-          'H-Index is a sort-scan problem that LOOKS like a binary search problem. A linear scan after descending sort in O(n) is identical in complexity to binary search in O(log n) after the sort — scan is simpler to reason about and to code correctly.'
-        ],
-        keyQuestion: 'Is sorting creating a canonical key (key mode) or enabling a linear boundary scan (scan mode)?',
         questionIds: ['LC_49', 'LC_274', 'LC_1200', 'LC_561']
       },
       {
         id: 'P5', name: 'Quickselect — Partial Sort',
-        analogy: 'Finding the median of a class by only grading half the students. Partition students into "definitely above median" and "definitely below median" based on one grade threshold. Recurse ONLY into the partition containing the median. You never fully sort the class — just narrow down where the median sits.',
-        approach: '1) Random pivot (MANDATORY — see gotchas). 2) Partition: all elements <= pivot go left, > pivot go right, pivot lands at its final sorted index pivotPos. 3) If pivotPos === target: return nums[pivotPos]. 4) If pivotPos < target: recurse right [pivotPos+1..right]. 5) If pivotPos > target: recurse left [left..pivotPos-1].',
         recognitionSignals: [
           'Find the k-th largest or smallest element — full sort is not required',
           'Find k elements closest to a target or origin — exact order among those k does not matter',
           'O(n) expected time is required — O(n log n) full sort is acceptable but interviewer may ask for better'
         ],
-        mentalModel: 'Partition around a random pivot. Pivot lands at its final sorted position. If that position equals the target index, return. Otherwise recurse on ONLY ONE side. Expected O(n) because each partition eliminates ~half the array on average. Random pivot is mandatory — without it, O(n²) worst case on sorted input makes the approach worse than full sort.',
-        gotchas: [
-          'Random pivot is NOT optional. On sorted input, a fixed pivot (always leftmost or rightmost) causes pivotPos === left on every call → O(n²) total. State "I use a random pivot to avoid O(n²) worst case" verbally before writing a single line.',
-          'Target index for k-th LARGEST is (n - k) in 0-indexed terms. E.g., 1st largest is index n-1, 2nd largest is n-2. Map the problem to index BEFORE entering the loop.',
-          'Quickselect MODIFIES the input array in-place. If the problem requires input to be preserved, use a min-heap of size k instead — O(n log k) time, O(k) space, non-destructive.'
-        ],
-        insights: [
-          'The expected runtime is O(n): each partition eliminates roughly half the remaining elements. Total work is n + n/2 + n/4 + ... which is a geometric series summing to 2n — O(n). The random pivot is what makes the "roughly half" expectation hold.',
-          'Quickselect and binary search are algorithmic cousins: both eliminate half the search space per step. Binary search works on SORTED data (deterministic elimination). Quickselect works on UNSORTED data (probabilistic elimination via the partition step).'
-        ],
-        keyQuestion: 'What is the target index (n-k for kth largest)? After partition, is the pivot to the left or right of target?',
         questionIds: ['LC_215', 'LC_973']
       },
       {
         id: 'P6', name: 'Linear-Time Sort — Bucket / Counting',
-        analogy: 'Sorting mail at a post office by ZIP code. Instead of comparing letters against each other (comparison sort, O(n log n)), each letter drops directly into its ZIP code bin in O(1). Reading all bins in order is the sorted sequence. Empty bins are informative too — a gap in ZIP codes means the maximum gap between addresses MUST span that empty bin.',
-        approach: 'COUNTING SORT: bucket index = value - min. Place each element in O(1). Read in order. FREQUENCY BUCKET (LC_347): bucket index IS the frequency. Create n+1 buckets, place elements by frequency, read from high to low. GAP PROBLEM (LC_164): bucketSize = ceil((max-min)/(n-1)). Track each bucket\'s min and max only. Compare adjacent non-empty buckets.',
         recognitionSignals: [
           'Values or frequencies are bounded in a known range [0, k]',
           'Comparison-based O(n log n) sort is explicitly or implicitly too slow',
           'Maximum gap or spread problem — Pigeonhole principle suggests empty buckets exist'
         ],
-        mentalModel: 'Assign each element to a bucket by its bounded key. Each assignment is O(1). Reading all buckets in order is O(n + k). For frequency bucket sort: bucket index IS the frequency value. For gap problems: Pigeonhole guarantees the max gap spans an empty bucket — only adjacent non-empty bucket boundaries need to be compared.',
-        gotchas: [
-          'Create n+1 buckets for frequency (indices 0 through n inclusive). Maximum possible frequency is n (all elements identical). Using exactly n buckets misses the case where frequency = n — an off-by-one that causes an array index out of bounds.',
-          'LC_164 (Maximum Gap): if max === min, return 0 BEFORE computing bucketSize. Computing ceil(0/(n-1)) = 0 causes division by zero; guard against it explicitly.',
-          'Negative numbers in JavaScript: Math.floor(-0.5) === -1 (rounds toward -Infinity). Bucket index formulas that use Math.floor can give wrong bucket assignments for negative values. For LC_220 specifically, handle negatives with a corrected formula.'
-        ],
-        insights: [
-          'Bucket sort escapes the O(n log n) lower bound for comparison-based sorts because it uses VALUE as the array index — zero comparisons needed. Information theory says comparison sorts need at least n log n comparisons; bucket sort uses direct addressing instead.',
-          'Pigeonhole for LC_164: n elements placed into only n-1 buckets means at least one bucket is ALWAYS empty. Therefore the maximum gap CANNOT be between two elements in the same bucket — it must cross an empty bucket. You only need each bucket\'s min and max; inner bucket values are irrelevant.'
-        ],
-        keyQuestion: 'What is the bucket index formula? What does each bucket store? What is the bounded range k?',
         questionIds: ['LC_347', 'LC_164', 'LC_220']
       }
     ],
@@ -749,90 +481,38 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Top K / Kth Element with Min-Heap',
-        analogy: 'A nightclub bouncer maintaining an exclusive VIP list of exactly k names. When a new person arrives, they are compared to the least impressive person on the list. If the newcomer is more impressive, the old person is ejected. After every guest walks by, the list contains exactly the top k by any criterion you define.',
-        approach: '1) Create a min-heap. 2) For each element: push it. 3) If heap.size() > k: pop the minimum (eject the least qualified). 4) After all elements: heap.peek() is the k-th element. For lazy expansion: push only seeds initially; on each pop, push that element\'s valid successors to avoid materialising all O(n²) candidates.',
         recognitionSignals: [
           'Find the K-th largest or smallest element',
           'Maintain the top K elements from a stream or large array without sorting everything',
           'New candidates are generated lazily — each extracted minimum generates the next candidates'
         ],
-        mentalModel: 'A min-heap of size K acts as a filter: the heap top is always the K-th largest. Any new element larger than the top displaces it; smaller elements are ignored. For lazy expansion: push only seeds initially; after each pop, push that element\'s valid successors to avoid materialising all O(n²) candidates.',
-        gotchas: [
-          'The min-heap comparator MUST be keyed by your ranking criterion (frequency, distance, value), not by a default numeric comparison. Using the wrong comparator silently ranks by a different dimension.',
-          'For LC_703 (Kth Largest in Stream): the constructor must push ALL initial elements through the add() method, not via direct heap.push. Bypassing add() risks leaving the heap at size > k after initialisation.',
-          'For lazy expansion (LC_373 K Pairs with Smallest Sums): seed with at most min(nums1.length, k) rows. Rows beyond index k-1 cannot contribute to the k-th smallest — seeding all rows when nums1.length >> k wastes O(n) heap operations.'
-        ],
-        insights: [
-          'Naming the heap a "filter" keeps the logic clear: the top is the THRESHOLD. Everything in the heap is above the threshold (more impressive), everything ejected was below it. The heap top is not the best — it is the worst of the best.',
-          'Lazy expansion (pop-then-push-successors) is how implicit O(n²) grids or sorted combinations are searched in O(k log k). You only generate candidates adjacent to confirmed minimums — never explore unneeded regions.'
-        ],
-        keyQuestion: 'Are all candidates known upfront (standard min-heap of size K) or generated dynamically (lazy expansion — push neighbours on pop)?',
         questionIds: ['LC_703', 'LC_215', 'LC_347', 'LC_373', 'LC_355', 'LC_1167', 'LC_2462']
       },
       {
         id: 'P2', name: 'K-Way Merge',
-        analogy: 'Merging k sorted playlists into one master playlist. You always pull the globally smallest track from whichever playlist is currently showing its smallest available track. The heap is your "current front competitor" from each playlist. When a track plays, the next track from that same playlist enters the competition.',
-        approach: '1) Seed heap: push (value, sourceIndex, elementRef) for the CURRENT HEAD of each source. 2) Pop the global minimum from the heap. 3) Output or count that element. 4) If that source has a next element, push it into the heap. 5) Repeat until heap is empty. Total: O(n log k) where n = all elements, k = sources.',
         recognitionSignals: [
           'Multiple sorted lists, arrays, or matrix rows that must be merged or searched globally',
           'Finding the K-th smallest across K sorted sequences',
           'The input is a set of sorted sources — extracting elements one by one in global sorted order'
         ],
-        mentalModel: 'Seed the heap with one element from each sorted source (the current minimum of each). Pop the global minimum; push its successor from the same source. The heap always holds one representative per active source. Total cost: O(n log K) where n = total elements and K = number of sources.',
-        gotchas: [
-          'Store [value, sourceIndex, nodeRef] in heap entries. Storing just the value loses track of WHICH source to advance after a pop — resulting in duplicates or missed elements.',
-          'For LC_632 (Smallest Range): track currentMax SEPARATELY from the heap. The heap gives O(log k) minimum, but getting the maximum from the heap requires O(k) scan. Track it as a variable updated on every push.',
-          'For matrix K-way merge (LC_378): seed ALL n rows upfront, not just row 0. The globally k-th smallest element can come from any row — seeding only row 0 forces traversal through that row before touching others.'
-        ],
-        insights: [
-          'K-way merge is the heap\'s "killer application" for sorted data. It reduces merging k sorted lists from O(nk) (naive repeated merge) to O(n log k) by keeping only one current representative per sequence in the heap at any time.',
-          'LC_378 (Kth Smallest in Matrix) has a binary search alternative: binary search on value range [matrix[0][0], matrix[n-1][n-1]], count elements <= mid with the staircase technique in O(n). O(n log(max-min)) time, O(1) space — better space than heap for large k.'
-        ],
-        keyQuestion: 'What is each source? What is the successor of a popped element within its source?',
         questionIds: ['LC_23', 'LC_378', 'LC_632', 'LC_759']
       },
       {
         id: 'P3', name: 'Two Heaps — Dynamic Median',
-        analogy: 'Two competing sports teams sorted by score, perfectly balanced. The weakest player on the top team and the strongest player on the bottom team always sit adjacent — their average is the median. When a new player enrolls, you add them to the appropriate team and swap one player between teams if the rosters become unbalanced.',
-        approach: '1) lower = max-heap (lower half), upper = min-heap (upper half). 2) INSERT: always push to lower first — no condition. 3) Fix cross-heap invariant: if lower.peek() > upper.peek(), move lower.top to upper. 4) Fix size invariant: if |lower.size - upper.size| > 1, move one element to balance. 5) Median = lower.peek() (odd count) or average (even count).',
         recognitionSignals: [
           'Find the running median of a growing stream',
           'Sliding window median — add and remove elements dynamically',
           'Partition a dynamic dataset into two halves where both halves need their extreme value quickly'
         ],
-        mentalModel: 'Lower half in a max-heap (top = largest lower element). Upper half in a min-heap (top = smallest upper element). Invariant: lower.top <= upper.top AND |lower.size - upper.size| <= 1. Insert: always to lower first, then fix the cross-heap invariant, then rebalance sizes. Median is either lower.top (odd total) or average of both tops (even total).',
-        gotchas: [
-          'ALWAYS insert into lower FIRST, even if the element is large and seems to belong in upper. Direct routing to upper skips the cross-heap invariant enforcement logic and produces wrong medians on the next query.',
-          'Both invariants must be enforced on EVERY single insert: (1) lower.top <= upper.top (cross-heap order), (2) |lower.size - upper.size| <= 1 (balance). Missing either invariant produces silently wrong medians.',
-          'LC_480 (Sliding Window Median): heaps do NOT support O(log n) arbitrary deletion. Use lazy deletion — maintain a Map deleteCount. When a heap top matches a pending deletion entry, discard it and decrement the count. Track EFFECTIVE sizes (physical size minus pending deletions) for rebalancing.'
-        ],
-        insights: [
-          'Why insert to lower first? It elegantly handles ties: if the new element equals lower.top, it belongs in lower. If it is larger, it will be moved to upper by the cross-heap invariant check. One direction always works for any input value.',
-          'The median is always O(1) to read (just peek both tops) because the two-heap invariant guarantees that lower.top and upper.top are always the two central elements of the full sorted stream.'
-        ],
-        keyQuestion: 'After inserting, does the cross-heap invariant still hold? Are the sizes balanced?',
         questionIds: ['LC_295', 'LC_480']
       },
       {
         id: 'P4', name: 'Greedy + Max Heap',
-        analogy: 'A hospital triage system that always treats the most critical patient first. The max-heap is the waiting room sorted by urgency — O(log n) to add a new patient and O(log n) to discharge the most critical. Cooldown patients (treated and waiting to be re-admitted) sit in a separate timed queue. Regret-based greedy (LC_1642): you initially assigned a premium resource optimistically, but can retroactively swap to a cheaper resource when the premium runs out.',
-        approach: '1) Count frequencies or sort values. 2) Push into max-heap. 3) Greedy loop: pop the global maximum, process it (use or schedule). 4) COOLDOWN: push the used item into a queue with (remaining count, ready-at time); re-push into heap when the time arrives. 5) REGRET (LC_1642): maintain min-heap of past expensive choices; when expensive resource depletes, pop cheapest past use and pay with cheap resource instead.',
         recognitionSignals: [
           'Scheduling tasks with cooldowns or constraints — always process the most frequent task next',
           'Reorganizing elements so no two identical elements are adjacent',
           'At each step, the globally best remaining choice must be made — heap provides O(log n) argmax'
         ],
-        mentalModel: 'Max-heap ensures the best available option is O(log n) accessible. For cooldown scheduling: hold elements in a queue; re-insert once cooldown expires. For regret-based greedy (LC_1642): maintain a min-heap of past choices — if the current step is too expensive, swap it with the cheapest past choice.',
-        gotchas: [
-          'CPU IDLES when heap is empty but cooldown queue is non-empty. Time still increments during idle cycles. The outer loop must continue as long as EITHER the heap OR the cooldown queue is non-empty — not just when the heap is non-empty.',
-          'Impossibility check for LC_767 (Reorganize String): if any character appears more than ceil(n/2) times, return "" IMMEDIATELY before the loop. Catching this upfront avoids a mid-loop impossible state.',
-          'For LC_1642 (regret greedy): when a ladder runs out, pop the MINIMUM from the ladder-assigned heap (the cheapest past ladder use) and replace it with bricks. The current step KEEPS its ladder. You are retroactively fixing the cheapest past decision, not the current one.'
-        ],
-        insights: [
-          'Regret-based greedy (LC_1642) is a reusable FAANG pattern: assign the expensive resource optimistically to every step. When it runs out, retroactively swap the cheapest past assignment to the cheap resource. This reaches the global optimum without any lookahead.',
-          'The greedy choice from a max-heap is O(log n) per step instead of O(n) per step for an unsorted scan — this is what makes greedy algorithms practical for large inputs. The heap converts an O(n²) greedy to O(n log n).'
-        ],
-        keyQuestion: 'What is the best element at each step? Does it need a cooldown before reuse? Can a past decision be reversed via regret?',
         questionIds: ['LC_767', 'LC_621', 'LC_1642', 'LC_502', 'LC_218', 'LC_1675']
       }
     ],
@@ -904,134 +584,38 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Foundation — Call Stack Mechanics',
-        analogy: 'A stack of plates. Each recursive call adds a plate with the current state. The function can only return when all plates above it have been removed first — LIFO. Each plate only sees what it put on the plate above it, and what it gets back when that plate is removed.',
-        approach: '1) Define the base case — the smallest input where the answer is trivial (empty list, n=0, n=1). 2) Define the recursive case in terms of one smaller version of the same problem. 3) Combine the returned value with the current element. Trust the call stack.',
         recognitionSignals: [
           'Problem involves processing a sequential structure (linked list, sequence) until the end',
           'The operation at each step depends ONLY on the current element and the result of the rest',
           'Base case is clearly a single trivial answer (empty, zero)'
         ],
-        mentalModel: 'Ask: "If I already have the answer for head.next, what do I need to do at head?" The call stack handles the rest — you only define one step.',
-        gotchas: [
-          'Forgetting to return the result of the recursive call is the #1 bug — the base case correctly computes the answer but it is never propagated up.',
-          'Mutating node.next BEFORE recursing severs the chain — always recurse first, then reassign the pointer.'
-        ],
-        insights: [
-          'The shape node.next = recurse(node.next); return node is the universal template for linked list node operations. It appears in LC_203, LC_206, LC_21, LC_92, and LC_25 — all variations of this one structure.',
-          'Factorial is the absolute minimum recursion — one base case, one step reduction, one return. Solve it before Fibonacci. The only difference Fibonacci adds is two base cases and two recursive calls.'
-        ],
-        keyQuestion: 'What is the base case? Given the answer for the smaller subproblem, what single operation do I perform at the current step?',
         questionIds: ['GFG_FACTORIAL', 'LC_509', 'LC_206', 'LC_203', 'LC_21']
       },
       {
         id: 'P2', name: 'Halving Recursion — Divide at Each Step',
-        analogy: 'Folding a piece of paper in half repeatedly. Each fold halves the problem. After log₂(n) folds you reach a single layer — the base case. When you unfold, each layer combines the result from below with the current state.',
-        approach: '1) Identify the halving mechanism — divide by 2, split on invalid chars. 2) Recurse on one or both halves. 3) Combine results. The key trick: when n is even, compute half = recurse(x, n/2) ONCE and return half * half — reusing the same result is what achieves O(log n).',
         recognitionSignals: [
           'The problem size halves at each step naturally',
           'The answer for n can be expressed using the answer for n/2',
           'Divide-and-conquer split where halves are independent'
         ],
-        mentalModel: 'Pow(x, n): if n is even, half = recurse(x, n/2), return half * half. If odd, return x * recurse(x, n-1). The reuse of half is what makes it O(log n) instead of O(n).',
-        gotchas: [
-          'LC_50: negative exponents — convert n to positive, compute, then return 1.0 / result. Missing this gives wrong answers for all negative inputs.',
-          'LC_50: n = Integer.MIN_VALUE causes integer overflow when negated in Java/C++ — cast to long first.',
-          'LC_779: the pattern has a structural property — position k in row n comes from position ceil(k/2) in row n-1, either copied or flipped based on parity. Brute force building the full row is O(2^n) — the recursive insight is O(n).'
-        ],
-        insights: [
-          'Fast exponentiation (LC_50) is the prototype of "reuse the recursive result" — half * half instead of x * recurse(n-1). This same reuse of a cached subresult is the core idea behind memoization in DP.',
-          'For LC_50/LC_779: O(log n) depth means ~30 stack frames even for n = 10^9 — no stack overflow concern. For LC_1545: n is the row number (problem constrains n ≤ 30), so depth is also at most 30. Both are safe to recurse without iteration.'
-        ],
-        keyQuestion: 'Can I express the answer for n using the answer for n/2? Can the same recursive result be reused twice?',
         questionIds: ['LC_704', 'LC_50', 'LC_779', 'LC_1545']
       },
       {
         id: 'P3', name: 'Linked List Recursion — Traversal & Chunk Processing',
-        analogy: 'Processing a train by car. For simple operations (reverse, remove) you process one car and recurse on the rest. For chunk operations (k-group reversal), you handle k cars at once, then recurse on the remainder of the train. For multilevel trains (branching cars), you recursively flatten the branch first, splice it in, then continue down the main line.',
-        approach: 'SINGLE NODE: process current node, recurse on next, return accordingly. BOUNDED (LC_92): advance to range, reverse the bounded section, recurse on the rest. CHUNK (LC_25): confirm k nodes remain, reverse k nodes in-place, tail of reversed chunk connects to recurse(remaining). MULTILEVEL (LC_430): when node has a child, recurse to flatten the child list first, splice the flattened child between node and node.next, continue traversal from child tail.',
         recognitionSignals: [
           'Linked list operation that feels natural as "do something to head, then recurse on the rest"',
           'Operation involves reversing or processing a fixed-size group within a list',
           'List has a branching/child pointer — recursion naturally handles each depth level independently'
         ],
-        mentalModel: 'CHUNK (k-group): check if k nodes remain — if not, return head. Reverse k nodes. Connect reversed tail to recurse(next group). Return new head. MULTILEVEL (LC_430): when node has child, recurse to flatten child list and get its tail, splice flattened child between node and node.next (four pointer wires), continue from child tail.',  
-        gotchas: [
-          'LC_92: use a dummy sentinel head so prevLeft always exists even when left = 1. Without it, left=1 means prevLeft = null and the reconnection crashes.',
-          'LC_25: count k nodes first. If fewer than k remain, return head immediately. The counting step IS the base case check — do not skip it.'
-        ],
-        insights: [
-          'LC_206 → LC_24 → LC_92 → LC_25 is a deliberate difficulty ladder. Each adds one constraint: pair (2), bounded range (m to n), arbitrary k. The core reversal mechanism is identical throughout.',
-          'After reversing k nodes, the original head node becomes the TAIL of the reversed segment. This node\'s next pointer must connect to the result of the recursive call — the most common pointer reconnection mistake.'
-        ],
-        keyQuestion: 'What is the chunk size? How do I reconnect the reversed chunk to the recursive result?',
         questionIds: ['LC_24', 'LC_25', 'LC_430']
       },
       {
         id: 'P4', name: 'Recursive Parsing — Nested Structures',
-        analogy: 'Opening nested Russian dolls. Each doll contains another doll inside. You open the outermost, handle it, open the next, and so on until you hit the innermost (base case). On the way back out, each layer wraps the result from deeper layers.',
-        approach: '1) Identify the delimiter that starts and ends a nested block (brackets, parentheses, word boundaries). 2) On opening delimiter: recurse into the nested block, consume closing delimiter. 3) Combine the inner result with the current context. 4) Return current accumulated result.',
         recognitionSignals: [
           'String or expression has nested structure — balanced brackets, recursive grammar',
           'The structure can be defined as: element = literal | open ELEMENT close',
           'An iterative approach would require a counter tracking nesting depth — that is a sign to use recursion instead'
         ],
-        mentalModel: 'Maintain a shared index into the string. Advance character by character. When you hit an opening delimiter, call recurse() — it returns the result of the inner block AND has already advanced the shared index past the closing delimiter.',
-        gotchas: [
-          'LC_394: the number before [ can be multi-digit (e.g. "10[abc]") — parse the full integer with a while loop, not just a single character.',
-          'LC_224: track sign as +1 or -1, not as a character. A minus sign applies to everything in the current parenthesis level.',
-          'LC_273: special case — num == 0 must return "Zero". The inner helper returns "" for 0 but the top-level function must handle 0 separately.'
-        ],
-        insights: [
-          'The shared index pointer pattern: use a single index advanced as a side effect of each recursive call. This avoids substring copying and keeps parsing O(n) instead of O(n²).',
-          'LC_224 and LC_394 share the same skeleton: a recursive parse() function that processes characters until a closing delimiter. The only difference is domain — arithmetic vs string expansion.'
-        ],
-        keyQuestion: 'What delimiter starts and ends a nested block? How do I propagate position advances through recursive calls?',
-        questionIds: ['LC_38', 'LC_394', 'LC_273', 'LC_224']
-      },
-      {
-        id: 'P5', name: 'Divide and Conquer — Split and Combine',
-        analogy: 'Splitting a jigsaw puzzle into two halves, solving each half independently, then merging the edges where the two halves meet. Each half is solved by further splitting. The combining step is where the interesting work happens.',
-        approach: '1) Find all valid split points in the input. 2) For each split point: recursively solve the left and right subproblems independently. 3) Combine every possible left result with every possible right result. Collect all valid combinations.',
-        recognitionSignals: [
-          'The problem decomposition produces two INDEPENDENT subproblems at each split',
-          'The answer for a range [l, r] can be computed from answers for [l, mid] and [mid, r]',
-          'Problem involves an operator or invalid character that forces a split into left and right'
-        ],
-        mentalModel: 'For SORTING D&C (Merge/Quick Sort): split at midpoint or pivot, recurse on both halves, combine via merge or in-place partition. For LC_241: split at each operator (what is the LAST operation?), recurse both sides, cross-combine all result pairs.',
-        gotchas: [
-          'LC_241: base case is when the string has no operator — it is a pure number. Check for absence of operators, not for length == 1 (multi-digit numbers like "12" would break a length check).'
-        ],
-        insights: [
-          'LC_241\'s "split at the last operator" framing — what is the last operation evaluated? — appears in LC_95 (Unique BSTs II) and LC_96. Stating this framing at the start of your explanation earns extra points from interviewers.'
-        ],
-        keyQuestion: 'What are the valid split points? How do I combine the left and right recursive results into the final answer?',
-        questionIds: ['GFG_MERGE_SORT', 'GFG_QUICK_SORT', 'LC_2698', 'LC_241']
-      },
-      {
-        id: 'P6', name: 'Classic Structural Recursion — Insight-Driven',
-        analogy: 'A locksmith who does not try to pick a lock pin by pin but instead realizes that the lock opens when you do three things in the right order. The recursion is not about the mechanism — it is about spotting the correct decomposition. Once you see it, the code writes itself.',
-        approach: '1) Identify the key recursive insight — not obvious from the problem surface. 2) Define sub-problems that are smaller AND independent enough to trust. 3) Define the exact sequence or combination of sub-problem solutions that solve the current problem. The non-obvious step is always step 1.',
-        recognitionSignals: [
-          'No obvious "half the size" or "process one element" split — the decomposition requires a creative insight',
-          'Classic problems with known recursive structures: Tower of Hanoi, Josephus, stack-using-recursion',
-          'The problem requires using the call stack as a data structure (not just as a recursion mechanism)',
-          'A mathematical recurrence can express the answer for n in terms of the answer for n-1'
-        ],
-        mentalModel: 'For Tower of Hanoi: move n-1 to spare, move largest to destination, move n-1 from spare to destination — three sub-problems, middle one trivial. For Stack Reverse: pop top, reverse rest, insert top at bottom — two separate recursive functions. For Josephus: winner(n) = (winner(n-1) + k) % n — mathematical recurrence.',
-        gotchas: [
-          'Tower of Hanoi: the ORDER of the three recursive calls is critical and cannot be swapped. Calls 1 and 3 use different "spare" and "destination" roles — always label all three pegs by role, not by name.',
-          'Stack Reverse: requires TWO recursive functions (reverse + insertAtBottom). Trying to do it in one function conflates two distinct responsibilities and leads to wrong code every time.',
-          'Josephus (LC_1823): the recursion returns a 0-indexed position. The problem expects 1-indexed output. Add 1 only at the very top-level call — adding it inside the recursion corrupts all intermediate positions.'
-        ],
-        insights: [
-          'Stack Reverse crystallizes the deepest insight about recursion: the call stack IS a stack data structure. When you pop off the call stack, you are popping off a physical stack. This mental model directly explains DFS, pre/in/post-order traversal, and balanced parenthesis checking.',
-          'Tower of Hanoi is the canonical "trust the recursion" problem. Step 1 says: move n-1 disks to the spare peg. You do not need to know HOW — you trust the recursive call handles it. This leap of faith is the mental model shift that separates iterative from recursive thinking.',
-          'The Josephus recurrence (winner(n) = (winner(n-1)+k)%n) shows that mathematical insight can reduce a simulation problem from O(n*k) to O(n). Pattern: if a closed-form recurrence exists, recursion beats simulation.'
-        ],
-        keyQuestion: 'What is the key decomposition insight? What are the sub-problems and in what ORDER must they be solved?',
-        questionIds: ['GFG_STACK_REVERSE', 'GFG_TOWER_OF_HANOI', 'LC_1823']
-      }
-    ],
 
     questions: {
       'LC_509': { leetcode: 509, title: 'Fibonacci Number', difficulty: 'Easy', difficultyRank: 1, link: 'https://leetcode.com/problems/fibonacci-number/', templateRefs: ['P1'], tags: ['recursion','math'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Bottom-up O(n) time, O(1) space — no call stack overhead. Preferred in production. Recursive form here is for building the mental model.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'F(n) = F(n-1) + F(n-2) with F(0)=0, F(1)=1. The problem IS the recursive definition — write the definition as code. Two base cases, one recursive case.', shrinkTrigger: 'n reduces by 1 or 2 on each call. Base case: n <= 1 returns n directly (F(0)=0, F(1)=1 — both covered by returning n).', timeComplexity: 'O(2^n) naive recursion — exponential due to overlapping subproblems', spaceComplexity: 'O(n) — call stack depth', gotcha: 'Two base cases: F(0) = 0, F(1) = 1. A single guard n <= 1 returns n handles both — verify: F(0) returns 0 ✓, F(1) returns 1 ✓. Missing the F(0)=0 case is the most common off-by-one.', faangNote: 'Never asked alone in a real FAANG interview, but every recruiter uses it as a warm-up to watch how you think about base cases and call stack depth. Always state the exponential complexity and offer the iterative O(1)-space solution as a follow-up.' },
@@ -1140,86 +724,62 @@ const TOPIC_MODULES = {
           {
             id: 'P1',
             name: 'Binary Decision / Include-Exclude',
-            analogy: 'At each element you stand at a fork: left path takes the element, right path skips it. You walk every path in the tree, recording the leaf nodes that satisfy your condition.',
-            approach: '1) At each index, make two recursive calls: one including nums[i], one excluding it. 2) Base case: index == nums.length → record current subset. 3) For duplicates: sort first, skip nums[i] == nums[i-1] when i > start.',
             recognitionSignals: [
               'Problem asks for ALL subsets or power set',
               'Each element has a binary in/out decision',
               'No ordering constraint on the output'
             ],
-            mentalModel: 'Binary tree of decisions. Left = include. Right = exclude. Every leaf is a valid answer.',
-            keyQuestion: 'Am I including or excluding this element? Have I handled duplicates by sorting and skipping at the same level?',
             questionIds: ['LC_78', 'LC_90', 'LC_491']
           },
           {
             id: 'P2',
             name: 'For-loop Choice / Combination with Start Index',
-            analogy: 'You have a menu of items. At each step you pick one item from position i onward — never going back — to avoid counting the same combination twice. You stop when your plate is full or your budget is spent.',
-            approach: '1) Loop from start to end. 2) Choose nums[i], recurse with i+1 (or i for reuse). 3) Unchoose. 4) Prune: if running sum > target, break early (requires sorted input).',
             recognitionSignals: [
               'Problem asks for combinations where order does NOT matter',
               'A target sum must be reached',
               'Elements may or may not be reused',
               'Keywords: "combinations that sum to", "choose k from n"'
             ],
-            mentalModel: 'Forward-only loop. start index prevents revisiting. i vs i+1 controls reuse. Sum-based pruning cuts branches early.',
-            keyQuestion: 'Should I pass i (allow reuse) or i+1 (no reuse)? What is my pruning condition?',
             questionIds: ['LC_77', 'LC_39', 'LC_40', 'LC_216']
           },
           {
             id: 'P3',
             name: 'Permutation / Visited-State Backtracking',
-            analogy: 'You are arranging people in a line. At each position you pick anyone not yet placed. A visited badge tracks who is already in the line. After exploring, you remove the badge and try the next person.',
-            approach: '1) Use a visited[] boolean array. 2) At each step, loop all elements, skip visited ones. 3) Mark visited, recurse, unmark. 4) For duplicates: sort first, add condition: if i > 0 && nums[i] == nums[i-1] && !visited[i-1] → skip.',
             recognitionSignals: [
               'Problem asks for ALL permutations or arrangements',
               'Order matters in the output',
               'Every element must be used exactly once per permutation'
             ],
-            mentalModel: 'Full loop at every level. visited[] replaces start index. Duplicate skip condition differs from combination duplicate skip.',
-            keyQuestion: 'Have I marked this element visited? For duplicates: is the previous identical element unvisited?',
             questionIds: ['LC_46', 'LC_47']
           },
           {
             id: 'P4',
             name: 'Partition / Cut-the-String Backtracking',
-            analogy: 'You have a long ribbon. At each step you cut off a prefix, validate it, then recurse on the remaining ribbon. You collect results only when the ribbon is fully consumed.',
-            approach: '1) Loop end from start+1 to len+1. 2) Take slice s[start:end], validate it. 3) If valid: add to path, recurse with end as new start, remove from path. 4) Base case: start == s.length → record path.',
             recognitionSignals: [
               'Input is a string that must be split into valid segments',
               'Each segment must satisfy a constraint (palindrome, valid number, dictionary word)',
               'All valid partitions must be returned'
             ],
-            mentalModel: 'Sliding cut point on a string. Validate prefix, recurse on suffix. Base case is reaching end of string.',
-            keyQuestion: 'Is this prefix valid? What is my validation function? What does fully consumed look like?',
             questionIds: ['LC_131', 'LC_93', 'LC_17', 'LC_140']
           },
           {
             id: 'P5',
             name: 'Grid / Graph Path Backtracking',
-            analogy: 'You are walking through a maze, leaving chalk marks on tiles you visit. If you hit a dead end, you erase your last chalk mark and try a different direction.',
-            approach: '1) At each cell, check bounds + visited + constraint. 2) Mark cell visited in-place. 3) Recurse in all valid directions. 4) Unmark cell to restore. 5) For graphs: push node to path, recurse neighbors, pop node.',
             recognitionSignals: [
               'Search for a path or all paths in a 2D grid or graph',
               'Each cell or node can only be used once per path',
               'Must track the path itself, not just reachability'
             ],
-            mentalModel: 'DFS with explicit undo. In grids: in-place marking is cleaner. In graphs: path array with push/pop.',
-            keyQuestion: 'How am I marking visited? How am I restoring state? Is this a grid (4 directions) or graph (neighbor list)?',
             questionIds: ['LC_79', 'LC_797', 'LC_212']
           },
           {
             id: 'P6',
             name: 'Constraint Satisfaction / Board Backtracking',
-            analogy: 'You are filling a crossword puzzle. Before writing a word, you check it does not conflict with existing letters. If you get stuck, you erase the last word and try the next candidate.',
-            approach: '1) Find the next empty slot. 2) Try all valid candidates. 3) Validate against all constraints. 4) Place candidate, recurse. 5) If recursion fails, remove candidate. 6) If no slot left, solution found.',
             recognitionSignals: [
               'Fill a board or grid under strict placement rules',
               'Each placement must be validated against multiple constraints simultaneously',
               'Keywords: "valid placement", "no conflict", "fill the board"'
             ],
-            mentalModel: 'Find empty slot → try candidates → validate all constraints → place → recurse → undo. Pruning is the entire performance story.',
-            keyQuestion: 'What are ALL the constraints I must check before placing? What is my find-next-empty-slot strategy?',
             questionIds: ['LC_51', 'LC_37', 'LC_698']
           }
         ],
@@ -1736,288 +1296,119 @@ const TOPIC_MODULES = {
     patterns: [
       {
         id: 'P1', name: 'Linear DP',
-        analogy: 'Building a tower one brick at a time. Each new brick can only rest on what you have already built. You never need to tear down and rebuild from scratch — you just look at the current top of the tower to decide where the next brick goes.',
-        approach: '1) Define dp[i] as the answer considering only the first i elements. 2) Write the recurrence by asking: "What was the last decision at index i?" 3) Initialize dp[0] (or the boundary). 4) Fill left to right. 5) Return dp[n] or max(dp).',
         recognitionSignals: [
           'Optimal value (max sum, min cost) over a contiguous or non-adjacent subarray',
           'The answer at position i depends only on a constant number of earlier positions',
           'Keywords: "contiguous subarray", "non-adjacent elements", "pick or skip"'
         ],
-        mentalModel: 'At each index i, you make a binary choice: use nums[i] or do not. If you use it, you build on dp[i-1] (or dp[i-2] for non-adjacent). If you do not, the best answer is dp[i-1]. Take the max.',
-        gotchas: [
-          'Kadane\'s Algorithm (LC_53): dp[i] is the maximum subarray sum ENDING at index i, not the global maximum. Track a separate running max across all dp[i] values. Confusing these two produces wrong answers on inputs where the optimal subarray does not end at the last element.',
-          'House Robber II (LC_213): the circular constraint means index 0 and index n-1 cannot both be robbed. The clean solution is two independent linear passes — rob houses [0..n-2] and rob houses [1..n-1] — then take the max. Do not try to handle the circularity inline inside a single pass.',
-          'Off-by-one in array sizing: for House Robber, dp has length n+1 where dp[0]=0 and dp[1]=nums[0]. Indexing dp by the house number (1-indexed) keeps the recurrence clean.'
-        ],
-        insights: [
-          'Kadane\'s Algorithm is the O(n) DP version of the O(n²) brute force. The key insight: if dp[i-1] < 0, starting a fresh subarray at i is always better than extending the negative one. This reduces to: dp[i] = Math.max(nums[i], dp[i-1] + nums[i]).',
-          'House Robber I → House Robber II (circular) → House Robber III (tree): each adds one structural constraint on top of the previous. Mastering House Robber I gives you the recurrence; the follow-ups only change the topology.'
-        ],
-        keyQuestion: 'What is the optimal value ending exactly at index i? How does including or excluding nums[i] change the subproblem?',
         questionIds: ['LC_53', 'LC_198', 'LC_213', 'LC_152']
       },
       {
         id: 'P2', name: '0/1 Knapsack',
-        analogy: 'A thief with a fixed-capacity backpack choosing items. Each item can be taken once or left entirely — no partial items. The thief evaluates every item against the current remaining capacity and takes the best combination.',
-        approach: '1) dp[i][w] = best value using items 0..i with capacity w. 2) Recurrence: dp[i][w] = max(dp[i-1][w], dp[i-1][w-weight[i]] + value[i]). 3) Space-optimize to 1D by iterating the weight dimension RIGHT TO LEFT (prevents using the same item twice). 4) For "count of ways" variants replace max with sum.',
         recognitionSignals: [
           'Each item (element) is used at most once',
           'A capacity, budget, or target must be exactly met or not exceeded',
           'Keywords: "subset sum", "target sum", "partition equal", "0 or 1 copies of each"'
         ],
-        mentalModel: 'Two choices per item: include it (capacity shrinks, value grows) or skip it (capacity unchanged). Build a table where rows are items and columns are capacities. Row i depends only on row i-1, enabling 1D space optimization — but iterate RIGHT TO LEFT to avoid using the same item twice.',
-        gotchas: [
-          'RIGHT-TO-LEFT iteration is mandatory for 1D 0/1 knapsack. Iterating left-to-right allows the same item to be counted multiple times — that is the Unbounded Knapsack pattern (P3). Every time you write a 1D knapsack, write the direction as a comment.',
-          'LC_494 (Target Sum): the problem counts the number of ways, not the max value. The recurrence becomes dp[w] += dp[w - nums[i]] (summation, not maximization). The target is (total + target) / 2 — a key algebraic reduction to derive before coding.',
-          'LC_416 (Partition Equal Subset Sum): if the total sum is odd, return false immediately. If any single element exceeds sum/2, also return false. Missing either early exit wastes time on an impossible input.'
-        ],
-        insights: [
-          'LC_416 and LC_494 share the same 0/1 knapsack DP table. LC_416 asks "is dp[target] reachable?" (boolean). LC_494 asks "how many ways to reach target?" (counting). The only code change is whether dp stores a boolean or a count and whether the recurrence uses OR or addition.',
-          'The algebraic reduction for LC_494: assign + to elements in set P and − to elements in set N. Then sum(P) − sum(N) = target AND sum(P) + sum(N) = total. Therefore sum(P) = (total + target) / 2. The problem reduces to: count subsets with sum exactly (total + target) / 2.'
-        ],
-        keyQuestion: 'Is each item used at most once? Does the DP track a max value or a count? Which direction do I iterate the 1D array?',
         questionIds: ['LC_416', 'LC_494']
       },
       {
         id: 'P3', name: 'Unbounded Knapsack',
-        analogy: 'The same thief but with unlimited copies of each item. A coin can be used as many times as needed to reach the exact target amount. The thief revisits the same coin rack on every step.',
-        approach: '1) dp[w] = best value (or ways) for capacity w. 2) Recurrence: dp[w] = max(dp[w], dp[w - weight[i]] + value[i]). 3) Space: 1D array. 4) Iterate the capacity dimension LEFT TO RIGHT — the same item can be chosen multiple times. 5) For "number of ways" variants: dp[w] += dp[w - coin].',
         recognitionSignals: [
           'Each item (coin/denomination) can be used an unlimited number of times',
           'A target total must be reached with minimum items, or counted in number of ways',
           'Keywords: "coin change", "denominations", "unlimited uses"'
         ],
-        mentalModel: 'Identical to 0/1 Knapsack but iterate LEFT TO RIGHT in the 1D array. Left-to-right means when computing dp[w], dp[w - coin] has already been updated in this pass — the same coin can contribute multiple times.',
-        gotchas: [
-          'LEFT-TO-RIGHT for unbounded, RIGHT-TO-LEFT for 0/1. This is the single most important distinction in knapsack DP. Writing the wrong direction silently produces wrong answers with no error.',
-          'LC_322 (Coin Change — minimum coins): initialize dp with Infinity (or amount+1) for all w > 0, and dp[0] = 0. If dp[amount] is still Infinity after the loop, return -1. Forgetting the -1 return on impossible inputs is the most common final-step error.',
-          'LC_518 (Coin Change II — number of ways): initialize dp[0] = 1 (one way to make amount 0: use no coins). All other dp[w] = 0. The recurrence is dp[w] += dp[w - coin] — accumulation, not minimization.'
-        ],
-        insights: [
-          'LC_322 (min coins) and LC_518 (count ways) use the same iteration order (LEFT TO RIGHT) but different DP semantics. Min coins: dp stores the fewest coins to reach w; recurrence takes Math.min. Count ways: dp stores number of combinations; recurrence adds.',
-          'The outer loop (items) vs inner loop (capacity) order matters for combinations vs permutations in LC_518. Outer-coins, inner-amounts = combinations (order irrelevant). Outer-amounts, inner-coins = permutations. The problem asks for combinations — outer loop must be over coins.'
-        ],
-        keyQuestion: 'Can each item be reused? Am I minimizing cost or counting ways? Am I iterating left-to-right (unbounded) or right-to-left (0/1)?',
         questionIds: ['LC_322', 'LC_518', 'LC_377']
       },
       {
         id: 'P4', name: 'String DP (2D)',
-        analogy: 'Aligning two DNA strands on a grid. Each cell represents comparing one character from each strand. The result for a cell comes from the cell diagonally up-left (both matched), directly above (gap in one strand), or directly left (gap in the other).',
-        approach: '1) Build a 2D table dp[i][j] where i indexes string s1 and j indexes string s2 (1-indexed). 2) Fill row by row. 3) dp[i][j] depends on dp[i-1][j-1] (diagonal), dp[i-1][j] (up), dp[i][j-1] (left). 4) Base cases: dp[0][j] = j (or 0), dp[i][0] = i (or 0) depending on the problem.',
         recognitionSignals: [
           'Problem involves two strings and asks for longest common part, minimum edits, or matching',
           'The answer at (i, j) depends on the relationship between s1[i] and s2[j] AND answers for shorter prefixes',
           'Keywords: "edit distance", "LCS", "longest common", "delete/insert/replace"'
         ],
-        mentalModel: 'Grid where rows are characters of s1 and columns are characters of s2. At each cell (i, j): if characters match → diagonal + 1 (or + 0 for edit distance). If they differ → take the best of up, left, or diagonal with the appropriate cost.',
-        gotchas: [
-          'Base case indexing: use 1-indexed strings so dp[0][j] and dp[i][0] represent empty-string cases. With 0-indexed strings the base cases require special casing in the loop body — error-prone.',
-          'Edit Distance (LC_72): the three operations correspond to three DP transitions — replace (diagonal + 1 when chars differ), delete (up + 1), insert (left + 1). When characters match, no operation needed: dp[i][j] = dp[i-1][j-1].',
-          'Palindrome Subsequence (LC_516): the two strings ARE the same string and its reverse. Alternatively: dp[i][j] = length of longest palindromic subsequence in s[i..j]. Recurrence: if s[i]===s[j] → dp[i][j] = dp[i+1][j-1] + 2; else → max(dp[i+1][j], dp[i][j-1]).'
-        ],
-        insights: [
-          'LCS, Edit Distance, and Longest Palindromic Subsequence are all 2D string DP problems with the same template. The only difference is what "match" and "mismatch" mean in the recurrence. Mastering one gives you all three.',
-          'Space optimization: each row only depends on the previous row and the current row. A rolling 2-row approach reduces O(m*n) space to O(n). A single array with careful handling of the diagonal value (stored before overwriting) reduces it further to O(n).'
-        ],
-        keyQuestion: 'What does dp[i][j] represent? When s1[i] matches s2[j], what is the recurrence? When they differ?',
         questionIds: ['LC_1143', 'LC_72', 'LC_516', 'LC_5', 'LC_115']
       },
       {
         id: 'P5', name: 'String DP (1D)',
-        analogy: 'Walking along a string one character at a time, looking backward at a small window of previously computed results. Each new character either extends an existing count or resets it, based on a pattern or dictionary match.',
-        approach: '1) dp[i] = answer for the prefix s[0..i-1] (1-indexed for cleaner base cases). 2) For Decode Ways: dp[i] = dp[i-1] (if one-digit decode valid) + dp[i-2] (if two-digit decode valid). 3) For Word Break: dp[i] = true if any j < i has dp[j] = true AND s[j..i-1] is in the dictionary.',
         recognitionSignals: [
           'Problem involves decoding, segmenting, or counting ways to interpret a single string',
           'The answer for s[0..i] depends only on the last 1 or 2 characters and earlier dp values',
           'Keywords: "number of ways to decode", "can the string be segmented", "word break"'
         ],
-        mentalModel: 'Linear scan of the string. At each index i, look back at a small window. Extend the dp from valid lookback positions. Base case: dp[0] = 1 (empty prefix has one way to process — do nothing).',
-        gotchas: [
-          'LC_91 (Decode Ways): "0" alone is invalid. "0X" (X > 0) is invalid as a two-digit decode. "30", "40" … are also invalid — only "10" and "20" start a valid two-digit sequence starting with 1 or 2. Check both the one-digit and two-digit validity conditions explicitly.',
-          'LC_139 (Word Break): use a Set for O(1) word lookup — not an array. The inner loop scans all possible split points j < i; for each, check if dp[j] && wordSet.has(s.slice(j, i)). Without the Set, word lookup is O(W) per check making the solution O(n² * W).',
-          'Off-by-one: dp has length n+1. dp[0] = 1 (or true). The answer is dp[n]. Index i in dp corresponds to the prefix of length i.'
-        ],
-        insights: [
-          'Word Break is a special case of unbounded knapsack: words are the "items", string length is the "capacity", dp[i] is "can we exactly fill length i". The left-to-right scan with a dictionary lookup is the same pattern.',
-          'Decode Ways has two transitions at each step (one-digit and two-digit), making it structurally identical to Fibonacci. dp[i] = dp[i-1] + dp[i-2], with validity conditions gating each addend independently.'
-        ],
-        keyQuestion: 'What is the lookback window (1 character, 2 characters, up to a word length)? What validity condition gates each addend?',
         questionIds: ['LC_91', 'LC_139']
       },
       {
         id: 'P6', name: 'Interval DP',
-        analogy: 'Deciding in what order to multiply a chain of matrices. The total cost depends entirely on which multiplication you perform last — the outermost merge. You build up costs for short intervals first, then extend to longer ones.',
-        approach: '1) dp[i][j] = answer for the subproblem on the range [i, j]. 2) Loop by GAP LENGTH (len from 2 to n), not by left boundary. 3) For each (i, j = i+len-1), try every split point k in (i, j). 4) Recurrence: dp[i][j] = min/max over k of (dp[i][k] + dp[k+1][j] + cost(i, k, j)). 5) Base: dp[i][i] = trivial answer.',
         recognitionSignals: [
           'The answer for a range [i, j] depends on the answers for sub-ranges',
           'Choosing where to "split last" or "merge last" across a range is the central decision',
           'Keywords: "burst balloons", "matrix chain", "stone merge", "remove boxes"'
         ],
-        mentalModel: 'Think of the last operation: what is the last element to be burst/merged/removed? Fixing the last operation splits the range into two independent sub-ranges. Try all possible last operations and take the best.',
-        gotchas: [
-          'Burst Balloons (LC_312): the "last burst" framing is critical. Do NOT think about the first balloon to burst — think about the LAST one. If k is the last balloon burst in range (i, j), the balloons at i-1 and j+1 are guaranteed to still be present at that moment. This is the key insight that makes the boundary conditions work.',
-          'Boundary padding: pad the balloons array with sentinel values 1 at both ends (index 0 and n+1). This eliminates boundary checks inside the loop — the sentinels are always "present" and never burst.',
-          'Loop order: iterate by gap length, not by left index. Writing for (let i = 0; ...) as the outer loop produces wrong answers because dp[k+1][j] (a shorter sub-range with a higher start index) has not yet been computed when you are still in the i=0 pass.'
-        ],
-        insights: [
-          'The "last burst" reframe transforms Burst Balloons from a horrifying dependency problem into a clean DP. If you think "first burst", the boundary conditions change dynamically. If you think "last burst", the boundaries i-1 and j+1 are frozen — a fixed cost that can be computed directly.',
-          'Interval DP always has O(n³) time (O(n²) states × O(n) split points) and O(n²) space. This is an inherent lower bound for this class of problems — do not attempt to optimize below it without a fundamentally different insight.'
-        ],
-        keyQuestion: 'What is the LAST operation in the range [i, j]? What does dp[i][j] represent for that last operation?',
         questionIds: ['LC_312', 'LC_1039', 'LC_1547']
       },
       {
         id: 'P7', name: 'State Machine DP',
-        analogy: 'A trading bot with a small set of modes: holding a stock, having just sold, in a cooldown, or idle. Each day the bot transitions from its current mode to a new one based on market action. The DP tracks the maximum profit reachable in each mode.',
-        approach: '1) Identify all possible states (holding, sold, cooldown, idle, etc.). 2) Draw the state transition diagram first. 3) Define dp[state] = max profit in that state on day i. 4) Recurrence: derive from which previous states can legally transition to each current state. 5) Base: set initial states on day 0. 6) Answer: max over all terminal states on day n-1.',
         recognitionSignals: [
           'Problem involves making decisions over time with constraints on consecutive actions',
           'A finite set of "modes" or "states" governs which actions are legal on each step',
           'Keywords: "cooldown", "at most k transactions", "buy and sell", "hold or rest"'
         ],
-        mentalModel: 'Draw the state machine diagram before any code. Each node is a state; each edge is a legal action. The DP fills the value of each node at each time step. Transitions between nodes give the recurrence directly.',
-        gotchas: [
-          'Cooldown (LC_309): the three states are HELD (holding stock), SOLD (just sold today — tomorrow is cooldown), REST (cooldown or never bought). On a REST day you can buy or rest; on a SOLD day you must rest. Failing to separate SOLD from REST merges two distinct states into one and gives wrong answers.',
-          '2 Transactions (LC_123): track four states: hold1 (holding first stock), sold1 (sold first stock), hold2 (holding second stock), sold2 (sold second stock). sold2 is the answer. Initialize hold1 and hold2 to -Infinity (you have not yet bought anything).',
-          'For LC_123 in a single pass: update states in REVERSE order (sold2 → hold2 → sold1 → hold1) on each day. Updating in forward order on the same day\'s prices inadvertently allows two transactions in a single day.'
-        ],
-        insights: [
-          'All Buy-and-Sell Stock problems (LC_121, LC_122, LC_123, LC_188, LC_309, LC_714) are state machine DP. The state machine diagram is identical in structure — only the number of allowed transactions and the cooldown/fee change. Drawing the diagram once makes all variants solvable.',
-          'Space optimization: since state n only depends on state n-1, you never need to keep the entire history — only the previous day\'s state values. This reduces O(n * states) to O(states) in all stock DP problems.'
-        ],
-        keyQuestion: 'What are ALL legal states? Draw the transition diagram. What is the recurrence for each state?',
         questionIds: ['LC_309', 'LC_123', 'LC_714']
       },
       {
         id: 'P8', name: 'Grid DP',
-        analogy: 'Navigating a city grid where you can only move right or down. The number of valid routes to a cell equals the sum of valid routes to the cell above and the cell to the left. Blocked cells act as walls — their contribution to the route count is zero.',
-        approach: '1) dp[r][c] = answer for the subproblem at cell (r, c). 2) Fill in row-major order (row by row, left to right). 3) Recurrence: dp[r][c] = dp[r-1][c] + dp[r][c-1] (for paths) or some function of the three neighbors. 4) Base: initialize first row and first column. 5) Space-optimize to a 1D array if dp[r][c] depends only on the current and previous row.',
         recognitionSignals: [
           'Problem is defined on a 2D grid and paths or regions must be counted or evaluated',
           'Movement or expansion is constrained to adjacent cells (up, down, left, right, or diagonal)',
           'Keywords: "unique paths", "minimum path sum", "maximal square", "count paths"'
         ],
-        mentalModel: 'Each cell (r, c) represents a subproblem. Its answer is derived from its neighbors — typically top and left. Obstacles set their cell and all dependent cells to 0. First row and column are the base cases.',
-        gotchas: [
-          'Unique Paths II (LC_63): an obstacle in the first row blocks all paths to the right of it. When initializing the first row, stop setting dp[0][c] = 1 as soon as an obstacle is encountered — all subsequent cells in that row must remain 0.',
-          'Maximal Square (LC_221): dp[r][c] = the side length of the largest square with its bottom-right corner at (r, c). Recurrence: dp[r][c] = Math.min(dp[r-1][c], dp[r][c-1], dp[r-1][c-1]) + 1 when matrix[r][c] === \'1\'. The min of three neighbors is non-intuitive — prove it by the "bottleneck corner" argument.',
-          'Answer for Maximal Square is Math.max over all dp[r][c], then squared to get the area. The problem asks for AREA, not side length — squaring at the end is a common miss.'
-        ],
-        insights: [
-          'The Maximal Square recurrence min(top, left, diagonal) + 1 works because the square is limited by its smallest neighboring square. If any one of the three is smaller, the current square cannot extend past that bottleneck.',
-          'Space optimization for grid DP: since dp[r][c] depends only on dp[r-1][c], dp[r][c-1], and dp[r-1][c-1], you only need two rows at a time — or even a single 1D array if you store the diagonal value before overwriting it.'
-        ],
-        keyQuestion: 'What does dp[r][c] represent? Which neighbors does it depend on? How do obstacles affect initialization?',
         questionIds: ['LC_62', 'LC_63', 'LC_221', 'LC_64']
       },
       {
         id: 'P9', name: 'Tree DP',
-        analogy: 'Deciding whether to invite each employee to a party. If the manager comes, the direct reports cannot. If the manager stays home, the reports can be invited. The decision for each node depends only on its children — the tree structure IS the DP structure.',
-        approach: '1) Define the DP state at each node as a pair: (max value if node is included, max value if node is excluded). 2) Post-order DFS: compute children first, then derive the parent\'s values from children\'s values. 3) At each node: included = node.val + sum of excluded children; excluded = sum of max(included, excluded) per child.',
         recognitionSignals: [
           'Problem is defined on a binary tree or general tree',
           'The optimal choice at a node depends on decisions made at its children',
           'Keywords: "house robber on tree", "maximum independent set on tree", "no two adjacent nodes"'
         ],
-        mentalModel: 'Post-order DFS. Each recursive call returns a pair [withNode, withoutNode]. The parent combines children\'s pairs to compute its own pair. The root\'s max(with, without) is the answer.',
-        gotchas: [
-          'House Robber III (LC_337): return [robThis, skipThis] per node. At the parent: robThis = node.val + left.skipThis + right.skipThis; skipThis = max(left) + max(right). The skipThis case allows (but does not force) robbing each child — take the max of each child\'s pair independently.',
-          'Do NOT use a global memo map keyed by node reference for this problem. The tree has no overlapping subproblems when traversed in post-order — every node is visited exactly once. Adding unnecessary memoization is wasted complexity.',
-          'For general k-ary trees: the same pair [with, without] pattern applies. Sum across all children for both cases.'
-        ],
-        insights: [
-          'Tree DP generalises House Robber (linear DP on a path) to arbitrary tree topology. The "include or exclude" binary decision at each node is identical — only the adjacency structure changes from a line to a tree.',
-          'The post-order DFS return-pair pattern is reusable across many tree DP problems: diameter, balanced check, path sum. Whenever the parent\'s answer depends on ALL children\'s sub-answers, post-order with a tuple return is the right structure.'
-        ],
-        keyQuestion: 'What information does each node need to return to its parent? Write the recurrence as a pair (with, without).',
         questionIds: ['LC_337', 'LC_124']
       },
       {
         id: 'P10', name: 'Subsequence DP',
-        analogy: 'Finding the longest chain of dominoes you can arrange in increasing order of pip count. You can skip dominoes but cannot rearrange them. Each new domino either extends some existing chain ending at a smaller value or starts a new chain of length one.',
-        approach: '1) dp[i] = length of the longest increasing subsequence ending at index i. 2) Recurrence: dp[i] = max(dp[j] + 1) for all j < i where nums[j] < nums[i]. 3) Answer = max(dp). 4) O(n²) is acceptable; O(n log n) uses patience sorting with binary search.',
         recognitionSignals: [
           'Problem asks for the longest subsequence satisfying a monotonic property (increasing, non-decreasing)',
           'Elements can be skipped but their original order must be preserved',
           'Keywords: "longest increasing subsequence", "LIS", "non-decreasing subsequence"'
         ],
-        mentalModel: 'dp[i] is the LIS length ending at index i. To compute it, look back at all j < i where nums[j] < nums[i] and take the maximum dp[j]. The answer is the largest dp[i] over all i.',
-        gotchas: [
-          'Initialize all dp[i] = 1 (every element alone is a subsequence of length 1). The recurrence only extends an existing subsequence — it never initializes from zero.',
-          'O(n log n) patience sorting: maintain a "tails" array where tails[i] is the smallest tail element of all increasing subsequences of length i+1. Use binary search (lower_bound) to find where to place each element. The length of tails is the LIS length.',
-          'LIS returns the LENGTH, not the actual subsequence. Reconstructing the subsequence requires backtracking through the dp array — state this proactively if asked.'
-        ],
-        insights: [
-          'The patience sorting trick: tails always stays sorted because we only replace tails[pos] with a smaller value. This invariant makes binary search valid and gives O(n log n) total time.',
-          'LIS has a surprising number of disguised forms in FAANG interviews: longest chain of pairs (LC_646), number of envelopes (LC_354), building maximum height (LC_1691). All reduce to LIS after a clever sort key is applied.'
-        ],
-        keyQuestion: 'What ordering invariant must the subsequence maintain? Can I express dp[i] as an extension of dp[j] for some j < i?',
         questionIds: ['LC_300', 'LC_354']
       },
       {
         id: 'P11', name: 'Bitmask DP',
-        analogy: 'Assigning tasks to workers where each task can only be done once. A bitmask records which tasks are already completed. The state (current worker, completed tasks bitmask) captures everything needed to compute the optimal assignment going forward.',
-        approach: '1) Represent the set of completed/used items as a bitmask integer. 2) dp[mask] = answer when exactly the items in mask have been used. 3) Transition: for each mask, try adding one more item not yet in mask. 4) Base: dp[0] = 0 (empty set). 5) Answer: dp[(1<<n) - 1] (all items used).',
         recognitionSignals: [
           'Input size n ≤ 20 (bitmask state space is 2^n)',
           'Subsets of items must be explored and tracked',
           'Keywords: "partition into k groups", "assign to teams", "visit all nodes once"'
         ],
-        mentalModel: 'Each bit in the mask represents whether an item has been used. Transition: pick any unused item (bit = 0), add it, set its bit to 1. The mask grows from 0 to all-ones. dp[mask] stores the best answer for the configuration described by mask.',
-        gotchas: [
-          'LC_698 in bitmask DP context: dp[mask] = running sum of the current in-progress bucket (% target) for the elements already placed in mask — NOT a boolean. Transition: add one more element to the in-progress bucket; the modulo resets it to 0 whenever it hits target, automatically starting the next bucket. dp[(1<<n)-1] >= 0 means all k buckets were filled exactly.',
-          'Time complexity is O(2^n * n) — feasible for n ≤ 20 but not for n ≤ 30. Always state n ≤ 20 as the constraint that makes bitmask DP viable.',
-          'Enumerate subsets of a mask: for (let sub = mask; sub > 0; sub = (sub - 1) & mask). This iterates all submasks in O(3^n) total across all masks — faster than O(4^n) naive double loop.'
-        ],
-        insights: [
-          'Bitmask DP bridges backtracking and DP: it explores the same exponential state space but memoizes every visited (state, mask) pair. When pure backtracking TLEs and n ≤ 20, bitmask DP is almost always the correct upgrade.',
-          'The submask enumeration trick (sub = (sub-1) & mask) is a fundamental bit-manipulation pattern that appears in TSP, SOS DP, and various combinatorial problems. Memorize it.'
-        ],
-        keyQuestion: 'What does each bit represent? What is the state transition from mask to mask | (1 << i)?',
         questionIds: ['LC_698']
       },
       {
         id: 'P12', name: '2D DP (Pattern Matching)',
-        analogy: 'A regex engine matching a pattern with wildcards against a text, character by character. The "?" wildcard matches exactly one unknown character. The "*" wildcard matches any sequence, including empty. The DP table captures every possible alignment of pattern and text.',
-        approach: '1) dp[i][j] = can pattern[0..i-1] match text[0..j-1]? 2) Base: dp[0][0] = true; dp[i][0] = true only if pattern[0..i-1] is all stars. 3) If pattern[i-1] === \'?\' or chars match: dp[i][j] = dp[i-1][j-1]. 4) If pattern[i-1] === \'*\': dp[i][j] = dp[i-1][j] (star matches empty) OR dp[i][j-1] (star matches one more text char).',
         recognitionSignals: [
           'Pattern matching with special characters (wildcards, regex-like symbols)',
           'The match status at (i, j) depends on the match status at (i-1, j-1), (i-1, j), or (i, j-1)',
           'Keywords: "wildcard matching", "regular expression matching", "\'?\' matches any single", "\'*\' matches any sequence"'
         ],
-        mentalModel: 'Grid where rows are pattern characters and columns are text characters. At each cell, decide: does this pattern character consume a text character (diagonal move), skip a text character (left move via *), or skip a pattern character (up move via *).',
-        gotchas: [
-          'Base case dp[i][0]: if pattern[0..i-1] consists entirely of stars, dp[i][0] = true (stars can match empty text). The first non-star pattern character makes dp[i][0] = false for all larger i.',
-          'Star transition is two cases combined with OR: dp[i][j] = dp[i-1][j] (star matches zero characters — skip the star) OR dp[i][j-1] (star matches one more character — consume one text character, keep the star active). Both must be checked.',
-          'LC_44 vs LC_10 (Regular Expression Matching): LC_44 uses \'*\' as any-sequence wildcard. LC_10 uses \'*\' as "zero or more of the preceding element". The recurrences differ significantly — do not conflate them.'
-        ],
-        insights: [
-          'The \'*\' transition dp[i][j] = dp[i-1][j] || dp[i][j-1] models a non-greedy match: the star can match zero characters (dp[i-1][j]) or extend to match one more (dp[i][j-1]). The two cases together cover all possible star expansions.',
-          'Space optimization: since dp[i][j] depends only on dp[i-1][j-1], dp[i-1][j], and dp[i][j-1], a rolling 1D array with a prev variable for the diagonal value reduces O(m*n) space to O(n).'
-        ],
-        keyQuestion: 'What does dp[i][j] represent? What are the transitions for a literal character, \'?\', and \'*\'?',
         questionIds: ['LC_44', 'LC_10']
       },
       {
         id: 'P13', name: 'DP + Greedy',
-        analogy: 'A frog jumping across lily pads to reach the other shore as fast as possible. At each pad the frog can see how far it could jump. The greedy insight: always jump to the pad that extends your reach the furthest — you never need DP to count steps, just track how far you can currently reach.',
-        approach: '1) Maintain a reach variable = maximum index reachable from jumps taken so far. 2) Scan left to right; at each index i, if i > reach, you cannot get here — return -1 or Infinity. 3) Update farthest = max(farthest, i + nums[i]) at each step. 4) When i reaches the end of the current "jump window", increment steps and set reach = farthest.',
         recognitionSignals: [
           'Problem asks for minimum jumps or steps to reach a goal',
           'At each position, you can advance by any amount up to a local value',
           'A greedy "maximum reach" argument eliminates the need for O(n²) DP'
         ],
-        mentalModel: 'The greedy BFS interpretation: treat each jump as a level in BFS. All positions reachable in exactly k jumps form level k. Scan each level in one pass, tracking the farthest reachable position for the next level. Answer = number of levels needed.',
-        gotchas: [
-          'Never update jumps for every position — only increment jumps when you exhaust the current level (i reaches currentEnd). Updating on every step overcounts jumps.',
-          'Set currentEnd = farthest at the end of each level, not at the start. The farthest variable accumulates the maximum reach across all positions in the current level.',
-          'Edge case: if nums.length === 1, return 0 (already at the destination). Guard this before the loop.'
-        ],
-        insights: [
-          'Jump Game II (LC_45) is a greedy problem that LOOKS like DP. The O(n²) DP (dp[i] = min jumps to reach i) is correct but unnecessary. The greedy BFS interpretation reduces it to O(n) with O(1) space — a strong SDE3 signal when you state it immediately.',
-          'Jump Game I (LC_55, can you reach end?) and Jump Game II (minimum jumps) both use the same greedy reach variable. The only difference: LC_55 returns a boolean (can reach ever fall below 0?); LC_45 counts level transitions.'
-        ],
-        keyQuestion: 'What is the farthest index reachable from any position in the current jump level? When does the level end?',
         questionIds: ['LC_45']
       }
     ],
