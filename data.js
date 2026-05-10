@@ -616,6 +616,27 @@ const TOPIC_MODULES = {
           'The structure can be defined as: element = literal | open ELEMENT close',
           'An iterative approach would require a counter tracking nesting depth — that is a sign to use recursion instead'
         ],
+        questionIds: ['LC_38', 'LC_394']
+      },
+      {
+        id: 'P5', name: 'Divide-and-Conquer',
+        recognitionSignals: [
+          'Problem splits into independent subproblems that are combined after solving',
+          'The answer for the full input derives from answers for non-overlapping halves',
+          'No shared state between subproblems — each half can be solved independently'
+        ],
+        questionIds: ['LC_241', 'GFG_MERGE_SORT', 'GFG_QUICK_SORT', 'LC_2698']
+      },
+      {
+        id: 'P6', name: 'Classic Insight-Driven Recursion',
+        recognitionSignals: [
+          'Problem has a well-known recursive decomposition not obvious from the statement',
+          'The key insight is a mathematical recurrence or structural decomposition',
+          'Recognising the pattern drastically simplifies the implementation'
+        ],
+        questionIds: ['GFG_STACK_REVERSE', 'GFG_TOWER_OF_HANOI', 'LC_1823']
+      }
+    ],
 
     questions: {
       'LC_509': { leetcode: 509, title: 'Fibonacci Number', difficulty: 'Easy', difficultyRank: 1, link: 'https://leetcode.com/problems/fibonacci-number/', templateRefs: ['P1'], tags: ['recursion','math'], alternateApproaches: [{ technique: 'iteration', tradeoff: 'Bottom-up O(n) time, O(1) space — no call stack overhead. Preferred in production. Recursive form here is for building the mental model.', complexity: 'O(n) time, O(1) space' }], keyInsight: 'F(n) = F(n-1) + F(n-2) with F(0)=0, F(1)=1. The problem IS the recursive definition — write the definition as code. Two base cases, one recursive case.', shrinkTrigger: 'n reduces by 1 or 2 on each call. Base case: n <= 1 returns n directly (F(0)=0, F(1)=1 — both covered by returning n).', timeComplexity: 'O(2^n) naive recursion — exponential due to overlapping subproblems', spaceComplexity: 'O(n) — call stack depth', gotcha: 'Two base cases: F(0) = 0, F(1) = 1. A single guard n <= 1 returns n handles both — verify: F(0) returns 0 ✓, F(1) returns 1 ✓. Missing the F(0)=0 case is the most common off-by-one.', faangNote: 'Never asked alone in a real FAANG interview, but every recruiter uses it as a warm-up to watch how you think about base cases and call stack depth. Always state the exponential complexity and offer the iterative O(1)-space solution as a follow-up.' },
