@@ -183,6 +183,18 @@
       padding: 0.65rem 1.1rem; border-top: 1px solid var(--border);
       font-size: 0.68rem; color: var(--text-faint); white-space: nowrap;
     }
+    .sidebar-data-btns {
+      display: flex; gap: 0.4rem; padding: 0.5rem 0.7rem;
+      border-top: 1px solid var(--border);
+    }
+    .sidebar-data-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+      padding: 0.36rem 0.5rem; border-radius: var(--radius); border: 1px solid var(--border);
+      background: transparent; font-size: 0.72rem; font-weight: 500; font-family: var(--font-body);
+      color: var(--text-muted); cursor: pointer; white-space: nowrap;
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+    }
+    .sidebar-data-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
     .sidebar-habit-link {
       display: flex; align-items: center; gap: 0.6rem;
       padding: 0.5rem 0.75rem; margin: 0.4rem 0.6rem;
@@ -600,6 +612,16 @@
       <span class="nav-topic-icon">📅</span>
       <span class="nav-topic-label">Habit Tracker</span>
     </a>
+
+    <div class="sidebar-data-btns">
+      <button type="button" class="sidebar-data-btn" onclick="exportData()" title="Download all progress, notes and pins as a JSON backup file">
+        ⬇ Export
+      </button>
+      <button type="button" class="sidebar-data-btn" onclick="document.getElementById('import-file-input').click()" title="Restore progress from a previously exported JSON backup file">
+        ⬆ Import
+      </button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
+    </div>
 
     <div class="sidebar-footer">v29 · DSA Notebook</div>
   </aside>
@@ -2342,6 +2364,64 @@ function setActiveNav(key) {
 function escHtml(str) {
   if (!str) return ''
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// ── DATA BACKUP / RESTORE ────────────────────────────────────────────────────
+const BACKUP_KEYS = [
+  'dsa-progress-v1',
+  'dsa-notes-v1',
+  'dsa-pins-v1',
+  'dsa-solve-counts-v1',
+  'dsa-last-practiced-v1',
+  'dsa-review-interval-v1',
+  'dsa-streak-v1',
+  'dsa-qp-state-v1',
+  'dsa-theme'
+]
+
+function exportData() {
+  const backup = {}
+  BACKUP_KEYS.forEach(key => {
+    const val = localStorage.getItem(key)
+    if (val !== null) backup[key] = val
+  })
+  const json = JSON.stringify(backup, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `dsa-notebook-backup-${new Date().toISOString().slice(0,10)}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function importData(input) {
+  const file = input.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = function(e) {
+    try {
+      const backup = JSON.parse(e.target.result)
+      if (typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Invalid backup format')
+      // Only restore known keys to avoid arbitrary data injection
+      let restored = 0
+      BACKUP_KEYS.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(backup, key) && typeof backup[key] === 'string') {
+          localStorage.setItem(key, backup[key])
+          restored++
+        }
+      })
+      input.value = '' // reset so same file can be re-imported if needed
+      alert(`✅ Restored ${restored} data entr${restored === 1 ? 'y' : 'ies'}. The page will now reload.`)
+      location.reload()
+    } catch (err) {
+      input.value = ''
+      alert('❌ Import failed: the file does not appear to be a valid DSA Notebook backup.\n\n' + err.message)
+    }
+  }
+  reader.readAsText(file)
 }
 
 /* ]]> */
