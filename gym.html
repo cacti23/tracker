@@ -201,6 +201,17 @@
     .adapt-title { font-family: 'DM Mono', monospace; font-size: 10px; color: #16a34a; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
     .adapt-text { font-size: 13px; color: var(--text-muted); line-height: 1.75; }
     .adapt-text strong { color: var(--text); font-weight: 600; }
+    .ex-tracking { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .set-row { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; align-items: center; }
+    .set-num { font-size: 10px; color: var(--text-faint); font-family: 'DM Mono', monospace; font-weight: 600; }
+    .track-input { font-size: 12px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Mono', monospace; }
+    .track-input::placeholder { color: var(--text-faint); }
+    .track-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+    .set-actions { display: flex; gap: 6px; }
+    .set-btn { font-size: 11px; padding: 5px 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
+    .set-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+    .ex-notes-field { font-size: 11px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Sans', sans-serif; resize: none; min-height: 35px; }
+    .ex-notes-field:focus { outline: none; border-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -364,6 +375,54 @@
     userData[dayIdx].notes = text;
     saveUserData();
   }
+  
+  // Exercise tracking - each set tracked individually
+  function getExerciseData(dayIdx, exIdx) {
+    const key = `${dayIdx}-${exIdx}`;
+    return userData[key] || { sets: [{ weight: "", reps: "" }], notes: "" };
+  }
+  function setExerciseSets(dayIdx, exIdx, setsArray) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [], notes: "" };
+    userData[key].sets = setsArray;
+    saveUserData();
+  }
+  function setExerciseSetRep(dayIdx, exIdx, setIdx, field, value) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "" };
+    if (!userData[key].sets[setIdx]) userData[key].sets[setIdx] = { weight: "", reps: "" };
+    userData[key].sets[setIdx][field] = value;
+    saveUserData();
+  }
+  function setExerciseNotes(dayIdx, exIdx, text) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "" };
+    userData[key].notes = text;
+    saveUserData();
+  }
+  function addSet(dayIdx, exIdx) {
+    const exData = getExerciseData(dayIdx, exIdx);
+    exData.sets.push({ weight: "", reps: "" });
+    setExerciseSets(dayIdx, exIdx, exData.sets);
+    window.renderContent();
+  }
+  function removeSet(dayIdx, exIdx) {
+    const exData = getExerciseData(dayIdx, exIdx);
+    if (exData.sets.length > 1) {
+      exData.sets.pop();
+      setExerciseSets(dayIdx, exIdx, exData.sets);
+      window.renderContent();
+    }
+  }
+
+  // Expose to window for global access
+  window.getExerciseData = getExerciseData;
+  window.setExerciseSets = setExerciseSets;
+  window.setExerciseSetRep = setExerciseSetRep;
+  window.setExerciseNotes = setExerciseNotes;
+  window.addSet = addSet;
+  window.removeSet = removeSet;
+  window.renderContent = renderContent;
 
   // ───────────────────── TAG COLORS ─────────────────────
   function getTagColors(dark) {
@@ -447,9 +506,10 @@
           ${day.exercises.map((ex, i) => {
             const tc = tagColors[ex.tag] || tagColors["STRAIGHT SETS"];
             const isChecked = completed.includes(i);
+            const exData = window.getExerciseData(index, i);
             return `
               <div class="expanded-ex" style="border-bottom:${i<day.exercises.length-1?'1px solid var(--border-sub)':'none'};">
-                <div class="expanded-ex-left">
+                <div class="expanded-ex-left" style="width: 100%;">
                   <div class="ex-name-row">
                     <div class="ex-checkbox${isChecked?' checked':''}" data-day="${index}" data-ex="${i}" onclick="toggleCheckbox(this)" style="margin-right:4px;"></div>
                     <span class="expanded-ex-name ${ex.priority?'priority':'normal'}">${ex.name}${ex.priority?'<span style="color:#e05a2b;font-size:10px;">★</span>':''}</span>
@@ -459,6 +519,20 @@
                     ${ex.note ? `<span class="ex-note-inline">${ex.note}</span>` : ''}
                   </div>
                   ${ex.alt ? `<div class="alt-line">🔄 Alt: ${ex.alt}</div>` : ''}
+                  <div class="ex-tracking">
+                    ${exData.sets.map((set, setIdx) => `
+                      <div class="set-row">
+                        <span class="set-num">Set ${setIdx + 1}</span>
+                        <input type="text" class="track-input" placeholder="Weight" value="${set.weight}" onchange="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
+                        <input type="text" class="track-input" placeholder="Reps" value="${set.reps}" onchange="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
+                      </div>
+                    `).join('')}
+                    <div class="set-actions">
+                      <button class="set-btn" onclick="window.addSet(${index},${i})">+ Add Set</button>
+                      <button class="set-btn" onclick="window.removeSet(${index},${i})">− Remove Set</button>
+                    </div>
+                    <textarea class="ex-notes-field" placeholder="Exercise notes" onchange="window.updateExNote(${index},${i},this.value)">${exData.notes}</textarea>
+                  </div>
                 </div>
                 <div class="ex-sets-chip">${ex.sets}</div>
               </div>`;
@@ -588,6 +662,14 @@
     bindCardClicks();
     bindNotesHandler();
   }
+
+  window.updateSetRep = function(dayIdx, exIdx, setIdx, field, value) {
+    window.setExerciseSetRep(dayIdx, exIdx, setIdx, field, value);
+  };
+
+  window.updateExNote = function(dayIdx, exIdx, value) {
+    window.setExerciseNotes(dayIdx, exIdx, value);
+  };
 
   // ───────────────────── GLOBAL ACTIONS ─────────────────────
   window._selectTab = function(tab) {
