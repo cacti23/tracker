@@ -205,6 +205,16 @@
       transition: background 0.14s, color 0.14s, border-color 0.14s;
     }
     .sidebar-habit-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
+    .sidebar-gym-link {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.75rem; margin: 0.4rem 0.6rem;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      background: transparent; text-decoration: none;
+      font-size: 0.82rem; font-weight: 500; font-family: var(--font-body);
+      color: var(--text-muted); white-space: nowrap;
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+    }
+    .sidebar-gym-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
 
     /* ── 6. SIDEBAR NAV BUTTONS ─────────────────────────────────────────────── */
     button.nav-link {
@@ -578,6 +588,47 @@
     .qp-chip:hover { border-color: var(--border-glow); color: var(--text-primary); }
     .qp-chip.active { background: var(--accent-dim); border-color: var(--border-glow); color: var(--accent); }
 
+    /* ── 30. POMODORO TIMER ─────────────────────────────────────────────────── */
+    .pomodoro-widget {
+      display: flex; flex-direction: column; gap: 0.75rem;
+      padding: 1rem 0.75rem; margin: 0.8rem 0.6rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--bg-elevated);
+    }
+    .pomodoro-header { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+    .pomodoro-icon { font-size: 1.1rem; }
+    .pomodoro-mode {
+      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 12px;
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      margin-left: auto; pointer-events: none;
+    }
+    .pomodoro-mode.work { background: rgba(247,110,110,0.15); color: var(--red); }
+    .pomodoro-mode.break { background: rgba(61,214,140,0.15); color: var(--green); }
+    .pomodoro-display {
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700;
+      color: var(--accent); padding: 0.8rem 0;
+      border-radius: 8px; background: var(--bg-base);
+    }
+    .pomodoro-controls { display: flex; gap: 0.4rem; }
+    .pomodoro-btn {
+      flex: 1; padding: 0.35rem 0.6rem; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg-base);
+      color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+      font-family: var(--font-body);
+    }
+    .pomodoro-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+    .pomodoro-btn.active { background: var(--accent-dim); border-color: var(--accent-glow); color: var(--accent); }
+    .pomodoro-settings { display: none; padding-top: 0.65rem; border-top: 1px solid var(--border); }
+    .pomodoro-settings.show { display: flex; flex-direction: column; gap: 0.6rem; }
+    .pomodoro-settings-group { display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; }
+    .pomodoro-settings-label { color: var(--text-muted); font-weight: 600; }
+    .pomodoro-settings-input { width: 50px; padding: 0.3rem 0.4rem; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-primary); border-radius: 4px; font-family: var(--font-mono); font-size: 0.78rem; text-align: center; }
+    .pomodoro-settings-input:focus { outline: none; border-color: var(--accent); background: var(--bg-hover); }
+    .pomodoro-settings-btn { padding: 0.3rem 0.5rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-muted); font-size: 0.7rem; cursor: pointer; transition: all 0.15s; }
+    .pomodoro-settings-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
+
 
   </style>
 </head>
@@ -612,6 +663,35 @@
       <span class="nav-topic-icon">📅</span>
       <span class="nav-topic-label">Habit Tracker</span>
     </a>
+
+    <a href="gym.html" target="_blank" class="sidebar-gym-link">
+      <span class="nav-topic-icon">💪</span>
+      <span class="nav-topic-label">CBum's Gym</span>
+    </a>
+
+    <div class="pomodoro-widget">
+      <div class="pomodoro-header">
+        <span class="pomodoro-icon">⏱</span>
+        <span>Pomodoro</span>
+        <span class="pomodoro-mode work" id="pomodoroMode">Work</span>
+      </div>
+      <div class="pomodoro-display" id="pomodoroDisplay">25:00</div>
+      <div class="pomodoro-controls">
+        <button class="pomodoro-btn" id="pomodoroStartBtn" onclick="togglePomodoro()">▶ Start</button>
+        <button class="pomodoro-btn" onclick="resetPomodoro()">⟲ Reset</button>
+        <button class="pomodoro-btn" onclick="togglePomodoroSettings()">⚙️ Set</button>
+      </div>
+      <div class="pomodoro-settings" id="pomodoroSettings">
+        <div class="pomodoro-settings-group">
+          <span class="pomodoro-settings-label">Work (min):</span>
+          <input type="number" id="pomodoroWorkInput" class="pomodoro-settings-input" min="1" max="60" value="25" onchange="updatePomodoroWorkDuration()">
+        </div>
+        <div class="pomodoro-settings-group">
+          <span class="pomodoro-settings-label">Break (min):</span>
+          <input type="number" id="pomodoroBreakInput" class="pomodoro-settings-input" min="1" max="30" value="5" onchange="updatePomodoroBreakDuration()">
+        </div>
+      </div>
+    </div>
 
     <div class="sidebar-data-btns">
       <button type="button" class="sidebar-data-btn" onclick="exportData()" title="Download all progress, notes and pins as a JSON backup file">
@@ -2422,6 +2502,196 @@ function importData(input) {
     }
   }
   reader.readAsText(file)
+}
+
+// ─── POMODORO TIMER ─────────────────────────────────────────────────────────
+let pomodoroState = {
+  workDuration: 25 * 60,    // 25 minutes in seconds
+  breakDuration: 5 * 60,    // 5 minutes in seconds
+  timeRemaining: 25 * 60,
+  isRunning: false,
+  isWorkMode: true,
+  intervalId: null
+};
+
+function initPomodoro() {
+  try {
+    const saved = localStorage.getItem('pomodoro-state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      pomodoroState.workDuration = parsed.workDuration || (25 * 60);
+      pomodoroState.breakDuration = parsed.breakDuration || (5 * 60);
+      pomodoroState.isWorkMode = parsed.isWorkMode !== undefined ? parsed.isWorkMode : true;
+      pomodoroState.timeRemaining = parsed.timeRemaining || (pomodoroState.isWorkMode ? pomodoroState.workDuration : pomodoroState.breakDuration);
+    }
+  } catch {}
+  updatePomodoroInputs();
+  updatePomodoroDisplay();
+}
+
+function savePomodoroState() {
+  try {
+    localStorage.setItem('pomodoro-state', JSON.stringify({
+      workDuration: pomodoroState.workDuration,
+      breakDuration: pomodoroState.breakDuration,
+      isWorkMode: pomodoroState.isWorkMode,
+      timeRemaining: pomodoroState.timeRemaining
+    }));
+  } catch {}
+}
+
+function togglePomodoroSettings() {
+  const settingsEl = document.getElementById('pomodoroSettings');
+  if (settingsEl) {
+    settingsEl.classList.toggle('show');
+  }
+}
+
+function updatePomodoroWorkDuration() {
+  const input = document.getElementById('pomodoroWorkInput');
+  if (input) {
+    const mins = parseInt(input.value) || 25;
+    pomodoroState.workDuration = mins * 60;
+    if (pomodoroState.isWorkMode && !pomodoroState.isRunning) {
+      pomodoroState.timeRemaining = pomodoroState.workDuration;
+    }
+    savePomodoroState();
+    updatePomodoroDisplay();
+  }
+}
+
+function updatePomodoroBreakDuration() {
+  const input = document.getElementById('pomodoroBreakInput');
+  if (input) {
+    const mins = parseInt(input.value) || 5;
+    pomodoroState.breakDuration = mins * 60;
+    if (!pomodoroState.isWorkMode && !pomodoroState.isRunning) {
+      pomodoroState.timeRemaining = pomodoroState.breakDuration;
+    }
+    savePomodoroState();
+    updatePomodoroDisplay();
+  }
+}
+
+function updatePomodoroInputs() {
+  const workInput = document.getElementById('pomodoroWorkInput');
+  const breakInput = document.getElementById('pomodoroBreakInput');
+  if (workInput) workInput.value = Math.round(pomodoroState.workDuration / 60);
+  if (breakInput) breakInput.value = Math.round(pomodoroState.breakDuration / 60);
+}
+
+function updatePomodoroDisplay() {
+  const mins = Math.floor(pomodoroState.timeRemaining / 60);
+  const secs = pomodoroState.timeRemaining % 60;
+  const display = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  
+  const displayEl = document.getElementById('pomodoroDisplay');
+  const modeEl = document.getElementById('pomodoroMode');
+  const startBtn = document.getElementById('pomodoroStartBtn');
+  
+  if (displayEl) displayEl.textContent = display;
+  if (modeEl) {
+    modeEl.textContent = pomodoroState.isWorkMode ? 'Work' : 'Break';
+    modeEl.className = 'pomodoro-mode ' + (pomodoroState.isWorkMode ? 'work' : 'break');
+  }
+  if (startBtn) {
+    startBtn.textContent = pomodoroState.isRunning ? '⏸ Pause' : '▶ Start';
+  }
+}
+
+function playPomodoroRing() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioContext.currentTime;
+    
+    // Create oscillator for a pleasant bell-like sound
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    // Frequency: 800 Hz for a bell-like tone
+    osc.frequency.value = 800;
+    osc.type = 'sine';
+    
+    // Envelope: quick attack, moderate decay
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    
+    osc.start(now);
+    osc.stop(now + 0.5);
+    
+    // Play second tone for more musical effect
+    setTimeout(() => {
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      osc2.frequency.value = 1000;
+      osc2.type = 'sine';
+      gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      osc2.start(audioContext.currentTime);
+      osc2.stop(audioContext.currentTime + 0.4);
+    }, 150);
+  } catch (err) {
+    // Fallback: use simple console alert if Web Audio fails
+    console.log('Timer completed!');
+  }
+}
+
+function togglePomodoro() {
+  if (pomodoroState.isRunning) {
+    // Pause
+    clearInterval(pomodoroState.intervalId);
+    pomodoroState.isRunning = false;
+    savePomodoroState();
+    updatePomodoroDisplay();
+  } else {
+    // Start
+    pomodoroState.isRunning = true;
+    updatePomodoroDisplay();
+    pomodoroState.intervalId = setInterval(() => {
+      pomodoroState.timeRemaining--;
+      if (pomodoroState.timeRemaining < 0) {
+        // Play ring sound
+        playPomodoroRing();
+        // Switch modes
+        pomodoroState.isWorkMode = !pomodoroState.isWorkMode;
+        pomodoroState.timeRemaining = pomodoroState.isWorkMode ? pomodoroState.workDuration : pomodoroState.breakDuration;
+      }
+      updatePomodoroDisplay();
+      savePomodoroState();
+    }, 1000);
+  }
+}
+
+function resetPomodoro() {
+  clearInterval(pomodoroState.intervalId);
+  pomodoroState.isRunning = false;
+  pomodoroState.isWorkMode = true;
+  pomodoroState.timeRemaining = pomodoroState.workDuration;
+  savePomodoroState();
+  updatePomodoroDisplay();
+}
+
+// Initialize Pomodoro on DOMContentLoaded
+(function() {
+  const originalInit = document.addEventListener;
+  const listeners = [];
+  const hookedAddEventListener = function(type, listener, opts) {
+    if (type === 'DOMContentLoaded') listeners.push(listener);
+    return originalInit.call(document, type, listener, opts);
+  };
+  document.addEventListener = hookedAddEventListener;
+})();
+
+// Call init when existing DOMContentLoaded handler exists or document already loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPomodoro);
+} else {
+  initPomodoro();
 }
 
 /* ]]> */
