@@ -611,6 +611,10 @@
       color: var(--accent); padding: 0.8rem 0;
       border-radius: 8px; background: var(--bg-base);
     }
+    .pomodoro-counter {
+      text-align: center; font-size: 0.75rem; color: var(--text-muted);
+      font-weight: 600; margin-top: 0.4rem; font-family: var(--font-mono);
+    }
     .pomodoro-controls { display: flex; gap: 0.4rem; }
     .pomodoro-btn {
       flex: 1; padding: 0.35rem 0.6rem; border-radius: 6px;
@@ -681,6 +685,7 @@
         <span class="pomodoro-mode work" id="pomodoroMode">Work</span>
       </div>
       <div class="pomodoro-display" id="pomodoroDisplay">25:00</div>
+      <div class="pomodoro-counter" id="pomodoroCounter">0 sessions</div>
       <div class="pomodoro-mode-selector">
         <button class="pomodoro-mode-btn work-btn active" onclick="switchPomodoroMode('work')">🔴 Work</button>
         <button class="pomodoro-mode-btn break-btn" onclick="switchPomodoroMode('break')">🟢 Break</button>
@@ -2522,8 +2527,43 @@ let pomodoroState = {
   isWorkMode: true,
   intervalId: null,
   startTime: null,  // Wall-clock time for accurate tracking across tab switches
-  pausedTime: null
+  pausedTime: null,
+  workSessionsToday: 0,  // Count of completed work sessions
+  lastCountDate: null    // Date to track if it's a new day
 };
+
+function getPomodoroCountKey() {
+  const today = new Date().toDateString();
+  return `pomodoro-count-${today}`;
+}
+
+function initPomodoroCounter() {
+  const today = new Date().toDateString();
+  const countKey = getPomodoroCountKey();
+  try {
+    const saved = localStorage.getItem(countKey);
+    pomodoroState.workSessionsToday = saved ? parseInt(saved) : 0;
+    pomodoroState.lastCountDate = today;
+  } catch {
+    pomodoroState.workSessionsToday = 0;
+  }
+}
+
+function incrementPomodoroCount() {
+  pomodoroState.workSessionsToday++;
+  const countKey = getPomodoroCountKey();
+  try {
+    localStorage.setItem(countKey, pomodoroState.workSessionsToday.toString());
+  } catch {}
+  updatePomodoroCounter();
+}
+
+function updatePomodoroCounter() {
+  const counterEl = document.getElementById('pomodoroCounter');
+  if (counterEl) {
+    counterEl.textContent = `${pomodoroState.workSessionsToday} sessions`;
+  }
+}
 
 function initPomodoro() {
   try {
@@ -2546,6 +2586,7 @@ function initPomodoro() {
   } catch {}
   updatePomodoroInputs();
   updatePomodoroDisplay();
+  initPomodoroCounter();
 }
 
 function savePomodoroState() {
@@ -2713,6 +2754,10 @@ function togglePomodoro() {
       if (pomodoroState.timeRemaining <= 0) {
         // Timer completed
         playPomodoroRing();
+        // Increment counter only when work session completes
+        if (pomodoroState.isWorkMode) {
+          incrementPomodoroCount();
+        }
         pomodoroState.isWorkMode = !pomodoroState.isWorkMode;
         pomodoroState.timeRemaining = pomodoroState.isWorkMode ? pomodoroState.workDuration : pomodoroState.breakDuration;
         pomodoroState.startTime = Date.now();
