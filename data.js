@@ -95,6 +95,111 @@ function incSolveCount(lcKey) {
   } catch { return 0 }
 }
 
+// ─── GLOBAL SEARCH ──────────────────────────────────────────────────────────
+// Search across all topics by title, tags, difficulty, status, notes
+function searchGlobalQuestions(query) {
+  if (!query || query.trim().length === 0) return []
+  
+  const q = query.trim().toLowerCase()
+  const results = []
+  
+  // Iterate through all topics and all questions
+  TOPICS.forEach(topic => {
+    const mod = TOPIC_MODULES[topic.key]
+    if (!mod) return
+    
+    Object.entries(mod.questions).forEach(([lcKey, question]) => {
+      const title = (question.title || '').toLowerCase()
+      const keyInsight = (question.keyInsight || '').toLowerCase()
+      const tags = (question.tags || []).map(t => t.toLowerCase()).join(' ')
+      const difficulty = (question.difficulty || '').toLowerCase()
+      const status = getStatus(lcKey).toLowerCase()
+      const notes = getNote(lcKey).toLowerCase()
+      
+      // Check if query matches any of: title, tags, difficulty, status, notes, keyInsight
+      const matches = title.includes(q) || tags.includes(q) || difficulty.includes(q) || 
+                      status.includes(q) || notes.includes(q) || keyInsight.includes(q)
+      
+      if (matches) {
+        results.push({
+          topicKey: topic.key,
+          topicLabel: topic.label,
+          topicIcon: topic.icon,
+          lcKey,
+          question,
+          status: getStatus(lcKey)
+        })
+      }
+    })
+  })
+  
+  return results
+}
+
+// ─── DAILY QUESTION ─────────────────────────────────────────────────────────
+// Get daily question (randomly selected, persists per day)
+function getDailyQuestion() {
+  const today = new Date().toDateString()
+  const dailyKey = 'dsa-daily-question-' + today
+  let stored = null
+  try {
+    stored = JSON.parse(localStorage.getItem(dailyKey) || 'null')
+  } catch {}
+  
+  // If we already selected one today, return it
+  if (stored && stored.lcKey) {
+    const topicMod = TOPIC_MODULES[stored.topicKey]
+    if (topicMod && topicMod.questions[stored.lcKey]) {
+      return {
+        topicKey: stored.topicKey,
+        topicLabel: stored.topicLabel,
+        topicIcon: stored.topicIcon,
+        lcKey: stored.lcKey,
+        question: topicMod.questions[stored.lcKey],
+        status: getStatus(stored.lcKey),
+        isToday: true
+      }
+    }
+  }
+  
+  // Otherwise, pick a random question
+  const allQuestions = []
+  TOPICS.forEach(topic => {
+    const mod = TOPIC_MODULES[topic.key]
+    if (!mod) return
+    Object.entries(mod.questions).forEach(([lcKey, question]) => {
+      allQuestions.push({
+        topicKey: topic.key,
+        topicLabel: topic.label,
+        topicIcon: topic.icon,
+        lcKey,
+        question
+      })
+    })
+  })
+  
+  if (allQuestions.length === 0) return null
+  
+  const rnd = Math.floor(Math.random() * allQuestions.length)
+  const selected = allQuestions[rnd]
+  
+  // Store for today
+  try {
+    localStorage.setItem(dailyKey, JSON.stringify({
+      topicKey: selected.topicKey,
+      topicLabel: selected.topicLabel,
+      topicIcon: selected.topicIcon,
+      lcKey: selected.lcKey
+    }))
+  } catch {}
+  
+  return {
+    ...selected,
+    status: getStatus(selected.lcKey),
+    isToday: true
+  }
+}
+
 // ─── TOPIC MODULE REGISTRY ──────────────────────────────────────────────────
 // SOLID / EXTENSIBILITY CONTRACT
 // ───────────────────────────────

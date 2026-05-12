@@ -752,15 +752,25 @@
         🏠 Dashboard
       </button>
       <div id="header-tabs" class="ms-2"></div>
+      <input type="text" id="global-search-input" class="form-control form-control-sm" placeholder="🔍 Search by title, tags..." style="width: 200px; margin: 0 1rem;" onkeyup="handleGlobalSearch()">
       <button type="button" onclick="toggleTheme()" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
     </header>
 
     <!-- Content -->
     <main class="flex-grow-1 p-4">
 
+      <!-- ── VIEW: Global Search Results ──
+           AI: rendered by handleGlobalSearch(). Shows search results + daily question. -->
+      <div id="view-search-results" class="d-none">
+        <div id="daily-question-card" class="mb-4"></div>
+        <div id="search-results-list"></div>
+      </div>
+
       <!-- ── VIEW: Dashboard ──
            AI: rendered by loadDashboard(). Shows overall progress + topic cards. -->
       <div id="view-dashboard">
+        <!-- Daily question — rendered by loadDashboard() -->
+        <div id="daily-question-panel" class="mb-4"></div>
         <!-- Overall progress bar — rendered by loadDashboard() -->
         <div id="overall-tracker" class="mb-4"></div>
         <!-- Per-topic cards — rendered by loadDashboard() -->
@@ -998,6 +1008,111 @@ function buildNav() {
   }).join('')
 }
 
+// ─── GLOBAL SEARCH ────────────────────────────────────────────────────────────
+function handleGlobalSearch() {
+  const input = document.getElementById('global-search-input')
+  if (!input) return
+  
+  const query = input.value.trim()
+  
+  if (query.length === 0) {
+    // If search is empty, go back to dashboard
+    document.getElementById('global-search-input').value = ''
+    loadDashboard()
+    return
+  }
+  
+  // Perform search
+  const results = searchGlobalQuestions(query)
+  renderSearchResults(results)
+}
+
+function renderSearchResults(results) {
+  showView('view-search-results')
+  document.getElementById('page-title').textContent = '🔍 Search Results'
+  
+  // Render daily question card at top
+  const dailyQ = getDailyQuestion()
+  if (dailyQ) {
+    document.getElementById('daily-question-card').innerHTML = renderDailyQuestionCard(dailyQ)
+  }
+  
+  // Render search results
+  const resultsList = document.getElementById('search-results-list')
+  if (results.length === 0) {
+    resultsList.innerHTML = '<div class="alert alert-info">No questions match your search. Try different keywords!</div>'
+    return
+  }
+  
+  let html = '<div class="row g-2">'
+  results.forEach(r => {
+    const id = 'qr_' + r.lcKey.replace(/_/g, '')
+    html += `<div class="col-md-6">
+      <div class="card" style="cursor:pointer;" onclick="goToQuestion('${r.topicKey}', '${r.lcKey}')">
+        <div class="card-body p-3">
+          <div class="d-flex gap-2 mb-1">
+            <span>${r.topicIcon} <small class="text-muted">${r.topicLabel}</small></span>
+            <span class="ms-auto"><strong class="badge" style="background:var(--${getDifficultyColor(r.question.difficulty)})">${r.question.difficulty}</strong></span>
+          </div>
+          <h6 class="mb-1">${escHtml(r.question.title)}</h6>
+          <div class="d-flex gap-1 mb-1">
+            <span class="badge bg-secondary text-dark">${r.status}</span>
+            ${r.question.tags.slice(0, 2).map(t => `<span class="badge bg-dark text-secondary">${escHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`
+  })
+  html += '</div>'
+  resultsList.innerHTML = html
+}
+
+function getDifficultyColor(difficulty) {
+  switch(difficulty) {
+    case 'Easy': return 'green'
+    case 'Medium': return 'yellow'
+    case 'Hard': return 'red'
+    default: return 'accent'
+  }
+}
+
+function goToQuestion(topicKey, lcKey) {
+  // Clear search and navigate to topic/question
+  document.getElementById('global-search-input').value = ''
+  loadTopic(topicKey)
+  // Scroll to question
+  setTimeout(() => {
+    const el = document.getElementById('q_' + lcKey.replace(/_/g, ''))
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, 100)
+}
+
+function renderDailyQuestionCard(dailyQ) {
+  const id = 'dq_' + dailyQ.lcKey.replace(/_/g, '')
+  const statusBadge = dailyQ.status === 'Solved' 
+    ? '<span class="badge bg-success">✅ Solved</span>'
+    : dailyQ.status === 'In Progress'
+    ? '<span class="badge bg-warning text-dark">🚧 In Progress</span>'
+    : '<span class="badge bg-secondary">📋 Pending</span>'
+  
+  return `<div class="card border-accent" style="border-left: 4px solid var(--accent);">
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <h5 class="mb-0">📅 Daily Question</h5>
+        <span class="badge bg-accent text-dark">Today</span>
+      </div>
+      <h6 class="mb-2">${escHtml(dailyQ.question.title)}</h6>
+      <div class="d-flex gap-2 align-items-center mb-2">
+        <span>${dailyQ.topicIcon} <small class="text-muted">${dailyQ.topicLabel}</small></span>
+        <span class="badge" style="background:var(--${getDifficultyColor(dailyQ.question.difficulty)})">${dailyQ.question.difficulty}</span>
+        ${statusBadge}
+      </div>
+      <p class="small text-muted mb-2">${escHtml(dailyQ.question.keyInsight || '')}</p>
+      <button class="btn btn-sm btn-accent" onclick="goToQuestion('${dailyQ.topicKey}', '${dailyQ.lcKey}')">▶ Practice Now</button>
+    </div>
+  </div>`
+}
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function loadDashboard() {
   showView('view-dashboard')
@@ -1064,6 +1179,14 @@ function loadDashboard() {
     (totalDue ? '<span class="text-warning ms-auto">⏰ <strong>' + totalDue + '</strong> due for review</span>' : '<span class="ms-auto text-secondary">' + solvedPct + '% · ' + totalQ + ' total</span>') +
     '</div>' +
     '</div></div>'
+
+  // ── Daily Question Panel ─────────────────────────────────────────────────────
+  const dailyQ = getDailyQuestion()
+  if (dailyQ) {
+    document.getElementById('daily-question-panel').innerHTML = renderDailyQuestionCard(dailyQ)
+  } else {
+    document.getElementById('daily-question-panel').innerHTML = ''
+  }
 
   // ── Per-topic cards ──────────────────────────────────────────────────────────
   document.getElementById('topic-cards').innerHTML = topicStats.map(s => {
@@ -2452,7 +2575,7 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  ['view-dashboard', 'view-topic'].forEach(v => {
+  ['view-dashboard', 'view-topic', 'view-search-results'].forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
       el.classList.remove('d-none', 'anim-fade-in')
