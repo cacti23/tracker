@@ -200,6 +200,50 @@ function getDailyQuestion() {
   }
 }
 
+// Get a random daily question excluding a specific one
+function getRandomDailyQuestion(excludeLcKey) {
+  const allQuestions = []
+  TOPICS.forEach(topic => {
+    const mod = TOPIC_MODULES[topic.key]
+    if (!mod) return
+    Object.entries(mod.questions).forEach(([lcKey, question]) => {
+      // Skip the excluded question
+      if (lcKey !== excludeLcKey) {
+        allQuestions.push({
+          topicKey: topic.key,
+          topicLabel: topic.label,
+          topicIcon: topic.icon,
+          lcKey,
+          question
+        })
+      }
+    })
+  })
+  
+  if (allQuestions.length === 0) return null
+  
+  const rnd = Math.floor(Math.random() * allQuestions.length)
+  const selected = allQuestions[rnd]
+  
+  // Store as today's new selection
+  const today = new Date().toDateString()
+  const dailyKey = 'dsa-daily-question-' + today
+  try {
+    localStorage.setItem(dailyKey, JSON.stringify({
+      topicKey: selected.topicKey,
+      topicLabel: selected.topicLabel,
+      topicIcon: selected.topicIcon,
+      lcKey: selected.lcKey
+    }))
+  } catch {}
+  
+  return {
+    ...selected,
+    status: getStatus(selected.lcKey),
+    isToday: true
+  }
+}
+
 // ─── TOPIC MODULE REGISTRY ──────────────────────────────────────────────────
 // SOLID / EXTENSIBILITY CONTRACT
 // ───────────────────────────────

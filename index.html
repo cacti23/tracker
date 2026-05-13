@@ -1087,6 +1087,22 @@ function goToQuestion(topicKey, lcKey) {
   }, 100)
 }
 
+function skipToDailyQuestion(currentLcKey) {
+  const newQ = getRandomDailyQuestion(currentLcKey)
+  if (newQ) {
+    // Update the dashboard daily question card if visible
+    const dailyCard = document.getElementById('daily-question-card')
+    if (dailyCard) {
+      dailyCard.innerHTML = renderDailyQuestionCard(newQ)
+    }
+    // Update dashboard panel if visible
+    const dailyPanel = document.getElementById('daily-question-panel')
+    if (dailyPanel) {
+      dailyPanel.innerHTML = renderDailyQuestionCard(newQ)
+    }
+  }
+}
+
 function renderDailyQuestionCard(dailyQ) {
   const id = 'dq_' + dailyQ.lcKey.replace(/_/g, '')
   const statusBadge = dailyQ.status === 'Solved' 
@@ -1108,7 +1124,10 @@ function renderDailyQuestionCard(dailyQ) {
         ${statusBadge}
       </div>
       <p class="small text-muted mb-2">${escHtml(dailyQ.question.keyInsight || '')}</p>
-      <button class="btn btn-sm btn-accent" onclick="goToQuestion('${dailyQ.topicKey}', '${dailyQ.lcKey}')">▶ Practice Now</button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-accent" onclick="goToQuestion('${dailyQ.topicKey}', '${dailyQ.lcKey}')">▶ Practice Now</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="skipToDailyQuestion('${dailyQ.lcKey}')">⟳ Get Another</button>
+      </div>
     </div>
   </div>`
 }

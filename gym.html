@@ -213,6 +213,29 @@
     .set-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
     .ex-notes-field { font-size: 11px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Sans', sans-serif; resize: none; min-height: 35px; }
     .ex-notes-field:focus { outline: none; border-color: var(--accent); }
+    .pr-indicator { color: #fbbf24; font-size: 13px; margin-left: 4px; font-weight: 600; }
+    .set-best { font-size: 9px; color: var(--text-faint); margin-top: 2px; font-family: 'DM Mono', monospace; }
+    /* ── MOBILE RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .expanded-ex { flex-direction: column; padding: 14px 16px; }
+      .expanded-ex-left { width: 100%; }
+      .ex-sets-chip { margin-top: 10px; align-self: flex-start; }
+      .set-row { grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 2px; }
+      .set-num { grid-column: 1 / -1; font-size: 10px; margin-bottom: 2px; }
+      .track-input { font-size: 14px; padding: 8px; }
+      .timer-section { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .ex-sets-chip { flex: 1; width: 100%; text-align: center; }
+      .container { padding: 0 12px; }
+      .expanded-header { padding: 16px 16px; }
+      .expanded-ex { padding: 12px 12px; }
+      .timer-section { padding: 0 16px; margin: 12px 0; }
+    }
+    @media (max-width: 480px) {
+      .expanded-day-tag { font-size: 24px; }
+      .expanded-ex-name { font-size: 13px; }
+      .track-input { font-size: 13px; padding: 7px; }
+      .set-btn { font-size: 10px; padding: 4px 8px; }
+    }
   </style>
 </head>
 <body>
@@ -416,6 +439,49 @@
     }
   }
 
+  // ──── PR TRACKING ────
+  const prStorageKey = 'gym-pr-history-v1';
+  function getPRData() {
+    try {
+      return JSON.parse(localStorage.getItem(prStorageKey) || '{}');
+    } catch {
+      return {};
+    }
+  }
+  function savePRData(data) {
+    localStorage.setItem(prStorageKey, JSON.stringify(data));
+  }
+  function getExerciseName(dayIdx, exIdx) {
+    return days[dayIdx]?.exercises[exIdx]?.name || '';
+  }
+  function getBestForExercise(dayIdx, exIdx) {
+    const prData = getPRData();
+    const exName = getExerciseName(dayIdx, exIdx);
+    const key = exName;
+    const best = prData[key];
+    return best ? { weight: parseFloat(best.weight) || 0, reps: parseInt(best.reps) || 0, date: best.date } : null;
+  }
+  function isPR(dayIdx, exIdx, weight, reps) {
+    const w = parseFloat(weight) || 0;
+    const r = parseInt(reps) || 0;
+    if (w === 0 || r === 0) return false;
+    const best = getBestForExercise(dayIdx, exIdx);
+    if (!best) return true; // First time
+    // PR if: higher weight at same/higher reps, or same weight with higher reps
+    return w > best.weight || (w === best.weight && r > best.reps);
+  }
+  function updatePRIfNeeded(dayIdx, exIdx, weight, reps) {
+    const w = parseFloat(weight) || 0;
+    const r = parseInt(reps) || 0;
+    if (w === 0 || r === 0) return;
+    if (isPR(dayIdx, exIdx, w, r)) {
+      const prData = getPRData();
+      const exName = getExerciseName(dayIdx, exIdx);
+      prData[exName] = { weight: w.toString(), reps: r.toString(), date: new Date().toISOString().split('T')[0] };
+      savePRData(prData);
+    }
+  }
+
   // Expose to window for global access
   window.getExerciseData = getExerciseData;
   window.setExerciseSets = setExerciseSets;
@@ -424,6 +490,9 @@
   window.addSet = addSet;
   window.removeSet = removeSet;
   window.renderContent = renderContent;
+  window.getBestForExercise = getBestForExercise;
+  window.isPR = isPR;
+  window.updatePRIfNeeded = updatePRIfNeeded;
 
   // ───────────────────── TAG COLORS ─────────────────────
   function getTagColors(dark) {
@@ -521,13 +590,22 @@
                   </div>
                   ${ex.alt ? `<div class="alt-line">🔄 Alt: ${ex.alt}</div>` : ''}
                   <div class="ex-tracking">
-                    ${exData.sets.map((set, setIdx) => `
+                    ${exData.sets.map((set, setIdx) => {
+                      const best = window.getBestForExercise(index, i);
+                      const isCurrPR = window.isPR(index, i, set.weight, set.reps);
+                      const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
+                      return `
                       <div class="set-row">
                         <span class="set-num">Set ${setIdx + 1}</span>
                         <input type="text" class="track-input" placeholder="Weight" value="${set.weight}" onchange="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
                         <input type="text" class="track-input" placeholder="Reps" value="${set.reps}" onchange="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
                       </div>
-                    `).join('')}
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 4px 40px;">
+                        <span class="set-best">${bestText}</span>
+                        ${isCurrPR && set.weight && set.reps ? '<span class="pr-indicator">⭐ PR</span>' : ''}
+                      </div>
+                    `;
+                    }).join('')}
                     <div class="set-actions">
                       <button class="set-btn" onclick="window.addSet(${index},${i})">+ Add Set</button>
                       <button class="set-btn" onclick="window.removeSet(${index},${i})">− Remove Set</button>
@@ -666,6 +744,13 @@
 
   window.updateSetRep = function(dayIdx, exIdx, setIdx, field, value) {
     window.setExerciseSetRep(dayIdx, exIdx, setIdx, field, value);
+    // Check if this creates a new PR
+    const exData = window.getExerciseData(dayIdx, exIdx);
+    if (exData.sets[setIdx]) {
+      window.updatePRIfNeeded(dayIdx, exIdx, exData.sets[setIdx].weight, exData.sets[setIdx].reps);
+    }
+    // Re-render to show updated PR indicator
+    window.renderContent();
   };
 
   window.updateExNote = function(dayIdx, exIdx, value) {
