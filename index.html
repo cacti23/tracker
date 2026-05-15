@@ -558,16 +558,6 @@
     }
     .ps-pin-btn:hover { opacity: 0.75; border-color: var(--border); background: var(--bg-elevated); }
     .ps-pin-btn.pinned { opacity: 1; border-color: rgba(255,200,0,0.4); background: rgba(255,200,0,0.1); }
-    .ps-struggle-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent;
-      background: transparent; cursor: pointer; font-size: 0.72rem; flex-shrink: 0;
-      opacity: 0.2; transition: opacity 0.15s, border-color 0.15s, background 0.15s;
-      padding: 0; line-height: 1;
-    }
-    .ps-struggle-btn:hover { opacity: 0.75; border-color: rgba(247,110,110,0.4); background: var(--red-dim); }
-    .ps-struggle-btn.struggled { opacity: 1; border-color: rgba(247,110,110,0.4); background: var(--red-dim); }
-    .ps-q-row.ps-q-struggled { background: rgba(247,110,110,0.08); border-color: rgba(247,110,110,0.3); }
     .ps-session-done {
       display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
       padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;
@@ -847,14 +837,42 @@ let _psTimerRun   = false // is timer running?
 let _psTimerIv    = null  // setInterval handle
 let _psTimerPreset = 0    // last selected preset in minutes
 let _psDoneThisSession      = new Set()  // keys done in current per-topic practice batch
-let _psStruggledThisSession = new Set()  // keys flagged struggled in per-topic session
 let _psCurrentItems         = []         // current ordered list for per-topic session
+let _psCurrentTopic         = null       // currently active topic key for practice session
+
+// ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
+// Store/restore the practice session (which topic + which questions) to survive page navigation.
+// Format: { topicKey, items: [[lcKey, question], ...], doneInSession: [lcKeys...] }
+const PS_SESSION_KEY = 'dsa-practice-session-v1'
+function _psSaveSession() {
+  if (!_psCurrentTopic || _psCurrentItems.length === 0) return
+  try {
+    const session = {
+      topicKey: _psCurrentTopic,
+      items: _psCurrentItems.map(([lcKey, q]) => [lcKey, { title: q.title, difficulty: q.difficulty }]),
+      doneInSession: Array.from(_psDoneThisSession)
+    }
+    localStorage.setItem(PS_SESSION_KEY, JSON.stringify(session))
+  } catch {}
+}
+function _psLoadSession() {
+  try {
+    const session = JSON.parse(localStorage.getItem(PS_SESSION_KEY) || null)
+    if (!session || !session.topicKey) return null
+    // Restore done state from persisted session
+    if (session.doneInSession) _psDoneThisSession = new Set(session.doneInSession)
+    return session
+  } catch { return null }
+}
+function _psClearSession() {
+  localStorage.removeItem(PS_SESSION_KEY)
+  _psDoneThisSession.clear()
+}
 
 // ─── DASHBOARD QUICK PRACTICE SESSION STATE ──────────────────────────────────
 // Kept separate from per-topic state so navigating to a topic page and back
 // never wipes the dashboard session progress.
 let _qpDoneThisSession      = new Set()  // keys marked done on the dashboard qp panel
-let _qpStruggledThisSession = new Set()  // keys flagged struggled on the dashboard qp panel
 
 // ─── LAST-PRACTICED TRACKING ─────────────────────────────────────────────────
 // shape: { [lcKey]: ISO timestamp }
@@ -872,7 +890,7 @@ function markPracticed(lcKey) {
 }
 
 // ─── ADAPTIVE REVIEW INTERVALS ────────────────────────────────────────────────
-// shape: { [lcKey]: days }  — default 3; set to 1 after "struggled"
+// shape: { [lcKey]: days }  — default 3
 const REVIEW_INTERVAL_KEY = 'dsa-review-interval-v1'
 function getReviewInterval(lcKey) {
   try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] || 3 } catch { return 3 }
@@ -1288,7 +1306,6 @@ function loadTopic(key) {
   // Reset per-topic session completely so a fresh session starts for every topic
   _psCurrentItems = []
   _psDoneThisSession.clear()
-  _psStruggledThisSession.clear()
   _psQCount = 5
 
   showView('view-topic')
@@ -1662,7 +1679,6 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
   const status = getStatus(lcKey)
   // Dashboard (showTopic=true) uses its own session sets so topic navigation never wipes them
   const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
-  const struggled     = showTopic ? _qpStruggledThisSession.has(lcKey) : _psStruggledThisSession.has(lcKey)
   const due = isDue(lcKey)
   let topicIcon = ''
   if (showTopic) {
@@ -1671,23 +1687,18 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
   }
   const solvedCls    = doneInSession ? ' ps-q-solved' : ''
-  const struggledCls = struggled ? ' ps-q-struggled' : ''
   const dueDot = due && !doneInSession ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
   const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
-  const strugBtnCls   = 'ps-struggle-btn' + (struggled ? ' struggled' : '')
-  const strugBtnTitle = struggled ? 'Struggled — reviewing tomorrow (click to clear)' : 'Mark as struggled — review tomorrow'
   const rowClickFn   = showTopic ? '_qpRowClick' : '_psRowClick'
-  const strugClickFn = showTopic ? '_qpStruggleClick' : '_psStruggleClick'
   return (
-    '<div class="ps-q-row' + solvedCls + struggledCls + '" data-lc-key="' + lcKey + '" onclick="' + rowClickFn + '(event,\'' + lcKey + '\')">' +
+    '<div class="ps-q-row' + solvedCls + '" data-lc-key="' + lcKey + '" onclick="' + rowClickFn + '(event,\'' + lcKey + '\')">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     dueDot +
     topicIcon +
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
     '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0">' + STATUS_EMOJI[status] + '</span>' +
-    '<button class="' + strugBtnCls + '" title="' + strugBtnTitle + '" onclick="event.stopPropagation();' + strugClickFn + '(this,\'' + lcKey + '\')" aria-label="Mark as struggled">😓</button>' +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
@@ -1700,28 +1711,56 @@ function _buildPracticePanel(topicKey, mod) {
   const count    = Math.max(1, Math.min(_psQCount, total))
   const pinCount = Object.keys(mod.questions).filter(k => isPinned(k)).length
 
-  // Initialize session list when empty (fresh topic load or after Reset)
+  // Track current topic for persistence
+  const prevTopic = _psCurrentTopic
+  _psCurrentTopic = topicKey
+
+  // Hybrid approach: Empty on first visit, persist if returning mid-session
   if (_psCurrentItems.length === 0) {
-    _psCurrentItems = _genPracticeSet(topicKey, count)
-    _psQCount = _psCurrentItems.length
+    // Check if there's a persisted session from this topic
+    const savedSession = _psLoadSession()
+    if (savedSession && savedSession.topicKey === topicKey) {
+      // Restore persisted session
+      _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, TOPIC_MODULES[topicKey].questions[lcKey] || q])
+      _psQCount = _psCurrentItems.length
+    } else if (prevTopic === topicKey) {
+      // Same topic, generate fresh session
+      _psCurrentItems = _genPracticeSet(topicKey, count)
+      _psQCount = _psCurrentItems.length
+    }
+    // If first visit to this topic: leave empty (no auto-generation)
   }
 
   let html = ''
   // ── Controls bar ──────────────────────────────────────────────────────────
   html += '<div class="ps-ctrl-bar">'
-  html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
-  html += '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
-  html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(1,\'' + topicKey + '\')">+</button>'
-  html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
-  html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
-  html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Reset</button>'
-  if (pinCount) html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
+  
+  if (_psCurrentItems.length === 0) {
+    // Empty state: show Generate button instead of controls
+    html += '<button type="button" class="ps-shuffle-btn" onclick="_psShuffle(\'' + topicKey + '\')">▶ Generate for Practice</button>'
+    html += '<span class="ms-auto text-xxs text-secondary text-muted">Click to start a practice session</span>'
+  } else {
+    // Loaded state: show all controls
+    html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
+    html += '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
+    html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(1,\'' + topicKey + '\')">+</button>'
+    html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
+    html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
+    html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Reset</button>'
+    if (pinCount) html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
+  }
+  
   html += '</div>'
   // ── Question list ──────────────────────────────────────────────────────────
   html += '<div id="ps-list">'
-  html += _psCurrentItems.length
-    ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
-    : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
+  if (_psCurrentItems.length === 0) {
+    html += '<div style="text-align: center; padding: 2rem 1rem;">'
+    html += '<p class="text-secondary text-xs mb-2">No practice session loaded</p>'
+    html += '<p class="text-faint text-xs">Click "Generate for Practice" above to begin</p>'
+    html += '</div>'
+  } else {
+    html += _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+  }
   html += '</div>'
   // ── Timer bar ──────────────────────────────────────────────────────────────
   html += '<div class="ps-timer-bar">'
@@ -1787,6 +1826,7 @@ function _psAdjCount(delta, topicKey) {
       ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
       : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
   }
+  _psSaveSession()  // Persist the updated list
 }
 
 function _psSetAll(topicKey) {
@@ -1801,6 +1841,7 @@ function _psSetAll(topicKey) {
   if (valEl) valEl.textContent = _psQCount
   const listEl = document.getElementById('ps-list')
   if (listEl) listEl.innerHTML = _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+  _psSaveSession()  // Persist the updated list
 }
 
 function _psShuffle(topicKey) {
@@ -1812,7 +1853,6 @@ function _psShuffle(topicKey) {
   // them to the bottom of the new set — they've been practiced already today.
   const prevDone = new Set(_psDoneThisSession)
   _psDoneThisSession.clear()
-  _psStruggledThisSession.clear()
 
   const count = Math.max(1, Math.min(_psQCount, Object.keys(mod.questions).length))
   const generated = _genPracticeSet(topicKey, count)
@@ -1823,6 +1863,8 @@ function _psShuffle(topicKey) {
   _psCurrentItems = [...fresh, ...done]
 
   _psQCount = _psCurrentItems.length
+  _psSaveSession()  // Persist the new session
+  
   const valEl = document.getElementById('ps-count-val')
   if (valEl) valEl.textContent = _psQCount
   const listEl = document.getElementById('ps-list')
@@ -1867,10 +1909,9 @@ function _adjSolveCount(lcKey, delta) {
 
 // Handle click on a practice row: mark done for this session, increment solve counter, slide to bottom.
 function _psRowClick(event, lcKey) {
-  // Ignore clicks on the link, pin button, or struggle button — they already stopPropagation
+  // Ignore clicks on the link or pin button — they already stopPropagation
   if (event.target.classList.contains('ps-q-link')) return
   if (event.target.classList.contains('ps-pin-btn')) return
-  if (event.target.classList.contains('ps-struggle-btn')) return
 
   const rowEl = event.currentTarget
   if (!rowEl) return
@@ -1892,6 +1933,9 @@ function _psRowClick(event, lcKey) {
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
     acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
   }
+
+  // Persist session state after marking as done
+  _psSaveSession()
 
   // Animate: flash solved style then move to bottom
   rowEl.classList.add('ps-q-solved')
@@ -1929,107 +1973,31 @@ function _psPinToggle(btnEl, lcKey) {
   }
 }
 
-// Toggle "struggled" on a practice row.
-// Not done yet → marks done + sets 1-day review + slides to bottom.
-// Already done → toggles the struggle flag and review interval without re-animating.
-function _psStruggleClick(btnEl, lcKey) {
-  const rowEl = btnEl.closest('.ps-q-row')
-  const wasStruggled = _psStruggledThisSession.has(lcKey)
 
-  if (wasStruggled) {
-    // Un-mark: remove struggle flag, reset to normal 3-day interval
-    _psStruggledThisSession.delete(lcKey)
-    setReviewInterval(lcKey, 3)
-    btnEl.classList.remove('struggled')
-    btnEl.title = 'Mark as struggled — review tomorrow'
-    if (rowEl) rowEl.classList.remove('ps-q-struggled')
-    return
-  }
-
-  // Mark as struggled: 1-day review interval
-  _psStruggledThisSession.add(lcKey)
-  setReviewInterval(lcKey, 1)
-  btnEl.classList.add('struggled')
-  btnEl.title = 'Struggled — reviewing tomorrow (click to clear)'
-  if (rowEl) rowEl.classList.add('ps-q-struggled')
-
-  // If not yet marked done in this session, do that now (same as clicking row)
-  if (!_psDoneThisSession.has(lcKey)) {
-    _psDoneThisSession.add(lcKey)
-    markPracticed(lcKey)
-
-    const newCount = incSolveCount(lcKey)
-    const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
-    if (acRing) {
-      acRing.className = 'solve-ring ' + _solveRingCls(newCount)
-      acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
-      acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
-    }
-
-    if (rowEl) {
-      rowEl.classList.add('ps-q-solved')
-      setTimeout(() => {
-        rowEl.classList.add('ps-q-moving')
-        setTimeout(() => {
-          const list = rowEl.parentElement
-          if (list) {
-            list.appendChild(rowEl)
-            rowEl.classList.remove('ps-q-moving')
-            Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
-              const num = r.querySelector('.ps-q-num')
-              if (num) num.textContent = idx + 1
-            })
-            if (_psCurrentItems.length > 0 && _psDoneThisSession.size >= _psCurrentItems.length) {
-              _psShowSessionComplete()
-            }
-          }
-        }, 320)
-      }, 50)
-    }
-  }
-}
 
 // Show a compact banner at the top of ps-list when all session questions are done.
 function _psShowSessionComplete() {
   const listEl = document.getElementById('ps-list')
   if (!listEl || listEl.querySelector('.ps-session-done')) return
-  const total     = _psDoneThisSession.size
-  const struggled = _psStruggledThisSession.size
-  const clean     = total - struggled
-  let msg = '✅ Session complete · '
-  if (struggled === 0) {
-    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
-  } else {
-    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
-    msg += ' · <span style="color:var(--red)">' + struggled + ' struggled — due tomorrow</span>'
-  }
+  const total = _psDoneThisSession.size
+  let msg = '✅ Session complete · <span style="color:var(--green)">' + total + ' solved</span>'
   listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
 }
 
 function _qpShowSessionComplete() {
   const listEl = document.getElementById('qp-results')
   if (!listEl || listEl.querySelector('.ps-session-done')) return
-  const total     = _qpDoneThisSession.size
-  const struggled = _qpStruggledThisSession.size
-  const clean     = total - struggled
-  let msg = '✅ Session complete · '
-  if (struggled === 0) {
-    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
-  } else {
-    msg += '<span style="color:var(--green)">' + clean + ' clean</span>'
-    msg += ' · <span style="color:var(--red)">' + struggled + ' struggled — due tomorrow</span>'
-  }
+  const total = _qpDoneThisSession.size
+  let msg = '✅ Session complete · <span style="color:var(--green)">' + total + ' solved</span>'
   listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
 }
 
 // ─── DASHBOARD ROW CLICK HANDLERS ────────────────────────────────────────────
-// These mirror _psRowClick / _psStruggleClick but use _qpDoneThisSession /
-// _qpStruggledThisSession so that topic navigation never clears QP state.
+// Dashboard QP handlers use _qpDoneThisSession so that topic navigation never clears QP state.
 
 function _qpRowClick(event, lcKey) {
   if (event.target.classList.contains('ps-q-link')) return
   if (event.target.classList.contains('ps-pin-btn')) return
-  if (event.target.classList.contains('ps-struggle-btn')) return
   const rowEl = event.currentTarget
   if (!rowEl) return
   if (_qpDoneThisSession.has(lcKey)) return
@@ -2069,63 +2037,6 @@ function _qpRowClick(event, lcKey) {
       }
     }, 320)
   }, 50)
-}
-
-function _qpStruggleClick(btnEl, lcKey) {
-  const rowEl = btnEl.closest('.ps-q-row')
-  const wasStruggled = _qpStruggledThisSession.has(lcKey)
-  if (wasStruggled) {
-    _qpStruggledThisSession.delete(lcKey)
-    setReviewInterval(lcKey, 3)
-    btnEl.classList.remove('struggled')
-    btnEl.title = 'Mark as struggled — review tomorrow'
-    if (rowEl) rowEl.classList.remove('ps-q-struggled')
-    return
-  }
-  _qpStruggledThisSession.add(lcKey)
-  setReviewInterval(lcKey, 1)
-  btnEl.classList.add('struggled')
-  btnEl.title = 'Struggled — reviewing tomorrow (click to clear)'
-  if (rowEl) rowEl.classList.add('ps-q-struggled')
-  if (!_qpDoneThisSession.has(lcKey)) {
-    _qpDoneThisSession.add(lcKey)
-    markPracticed(lcKey)
-    const newCount = incSolveCount(lcKey)
-    const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
-    if (acRing) {
-      acRing.className = 'solve-ring ' + _solveRingCls(newCount)
-      acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
-      acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
-    }
-    if (rowEl) {
-      rowEl.classList.add('ps-q-solved')
-      setTimeout(() => {
-        rowEl.classList.add('ps-q-moving')
-        setTimeout(() => {
-          const list = rowEl.parentElement
-          if (list) {
-            list.appendChild(rowEl)
-            rowEl.classList.remove('ps-q-moving')
-            Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
-              const num = r.querySelector('.ps-q-num')
-              if (num) num.textContent = idx + 1
-            })
-            // Sync _qpResults order to match DOM so navigating back restores positions
-            if (_qpResults) {
-              const qMap = Object.fromEntries(_qpResults)
-              _qpResults = Array.from(list.querySelectorAll('.ps-q-row[data-lc-key]'))
-                .map(r => { const k = r.getAttribute('data-lc-key'); return k && qMap[k] ? [k, qMap[k]] : null })
-                .filter(Boolean)
-              _saveQpState()
-            }
-            if (_qpResults && _qpResults.length > 0 && _qpDoneThisSession.size >= _qpResults.length) {
-              _qpShowSessionComplete()
-            }
-          }
-        }, 320)
-      }, 50)
-    }
-  }
 }
 
 // ── Timer controls ────────────────────────────────────────────────────────────
@@ -2328,7 +2239,7 @@ function _renderQuickPractice() {
   html += '</div></div>'
   el.innerHTML = html
 
-  // Restore previous results if available (preserves solved/struggled styling via _qpDoneThisSession)
+  // Restore previous results if available (preserves solved styling via _qpDoneThisSession)
   if (_qpResults && _qpResults.length > 0) {
     document.getElementById('qp-results').innerHTML =
       _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
@@ -2455,7 +2366,6 @@ function _qpGenerate() {
   // land at the bottom of the new set instead of back at the top.
   const prevDone = new Set(_qpDoneThisSession)
   _qpDoneThisSession.clear()
-  _qpStruggledThisSession.clear()
 
   // Pinned questions get highest priority but the total is still capped at count.
   const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
@@ -2489,10 +2399,9 @@ function _qpGenerate() {
 function _qpToggleDueOnly() {
   _qpDueOnly = !_qpDueOnly
   _qpResults = null
-  // Clear session state too — the pool is changing so done/struggled state against
+  // Clear session state too — the pool is changing so done state against
   // the old set is meaningless and would pollute the next generated set's prevDone snapshot
   _qpDoneThisSession.clear()
-  _qpStruggledThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
