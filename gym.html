@@ -41,8 +41,6 @@
       --alt-border: rgba(22, 163, 74, 0.25);
       --alt-text: #4ade80;
       --checkbox-border: rgba(255,255,255,0.18);
-      --timer-bg: #0f0f1a;
-      --timer-text: #e05a2b;
       --notes-bg: #0f0f1a;
     }
 
@@ -80,8 +78,6 @@
       --alt-border: rgba(22, 163, 74, 0.2);
       --alt-text: #16a34a;
       --checkbox-border: rgba(0,0,0,0.18);
-      --timer-bg: #ffffff;
-      --timer-text: #e05a2b;
       --notes-bg: #ffffff;
     }
 
@@ -187,10 +183,6 @@
     .ex-note-inline { font-size: 11px; color: var(--note-color); font-style: italic; }
     .ex-sets-chip { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--sets-text); background: var(--sets-chip); padding: 5px 11px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; }
     .alt-line { margin-top: 6px; font-size: 10.5px; color: var(--alt-text); background: var(--alt-bg); border-left: 2px solid var(--alt-border); padding: 4px 10px; border-radius: 3px; font-style: italic; }
-    .timer-section { margin: 14px 26px 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .timer-display { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--timer-text); background: var(--timer-bg); padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); }
-    .timer-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 12px; font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
-    .timer-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
     .notes-area { width: 100%; margin-top: 14px; padding: 10px 14px; background: var(--notes-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; resize: vertical; min-height: 60px; }
     .principles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 10px; margin-bottom: 24px; }
     .principle-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; border-left: 3px solid var(--accent); box-shadow: var(--shadow); }
@@ -223,12 +215,10 @@
       .set-row { grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 2px; }
       .set-num { grid-column: 1 / -1; font-size: 10px; margin-bottom: 2px; }
       .track-input { font-size: 14px; padding: 8px; }
-      .timer-section { flex-direction: column; align-items: flex-start; gap: 8px; }
       .ex-sets-chip { flex: 1; width: 100%; text-align: center; }
       .container { padding: 0 12px; }
       .expanded-header { padding: 16px 16px; }
       .expanded-ex { padding: 12px 12px; }
-      .timer-section { padding: 0 16px; margin: 12px 0; }
     }
     @media (max-width: 480px) {
       .expanded-day-tag { font-size: 24px; }
@@ -366,9 +356,6 @@
   let activeDayIndex = null;
   let currentTab = "split";
   let isDark = true;
-  let timerInterval = null;
-  let timerSeconds = 90;
-  let timerRunning = false;
 
   // completed exercises & notes stored per day (by day index)
   const storageKey = "cbum_split_data";
@@ -533,8 +520,7 @@
     }
     bindEvents();
     if (activeDayIndex !== null) {
-      restoreTimerDisplay();
-      bindTimerButtons();
+
     }
   }
 
@@ -617,12 +603,6 @@
               </div>`;
           }).join('')}
         </div>
-        <div class="timer-section">
-          <span class="timer-display" id="timerDisplay">${formatTime(timerSeconds)}</span>
-          <button class="timer-btn" id="timerStartBtn">▶ Start</button>
-          <button class="timer-btn" id="timerResetBtn">↺ Reset</button>
-          <span style="font-size:10px; color:var(--text-faint); margin-left:auto;">Rest timer</span>
-        </div>
         <div style="padding:0 26px 20px;">
           <textarea class="notes-area" id="dayNotes" placeholder="Add your personal notes for this workout...">${notesText}</textarea>
         </div>
@@ -649,62 +629,7 @@
     `;
   }
 
-  // ───────────────────── TIMER ─────────────────────
-  function formatTime(sec) {
-    const m = Math.floor(sec/60);
-    const s = sec%60;
-    return `${m}:${s<10?'0':''}${s}`;
-  }
 
-  function startTimer() {
-    if (timerRunning) return;
-    timerRunning = true;
-    document.getElementById("timerStartBtn").textContent = "⏸ Pause";
-    timerInterval = setInterval(() => {
-      if (timerSeconds <= 0) {
-        clearInterval(timerInterval);
-        timerRunning = false;
-        document.getElementById("timerStartBtn").textContent = "▶ Start";
-        timerSeconds = 90;
-        updateTimerDisplay();
-        alert("Rest time's up! Get back to work.");
-        return;
-      }
-      timerSeconds--;
-      updateTimerDisplay();
-    }, 1000);
-  }
-
-  function pauseTimer() {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    document.getElementById("timerStartBtn").textContent = "▶ Start";
-  }
-
-  function resetTimer() {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    timerSeconds = 90;
-    updateTimerDisplay();
-    document.getElementById("timerStartBtn").textContent = "▶ Start";
-  }
-
-  function updateTimerDisplay() {
-    const el = document.getElementById("timerDisplay");
-    if (el) el.textContent = formatTime(timerSeconds);
-  }
-
-  function restoreTimerDisplay() {
-    const el = document.getElementById("timerDisplay");
-    if (el) el.textContent = formatTime(timerSeconds);
-  }
-
-  function bindTimerButtons() {
-    const startBtn = document.getElementById("timerStartBtn");
-    const resetBtn = document.getElementById("timerResetBtn");
-    if (startBtn) startBtn.onclick = () => timerRunning ? pauseTimer() : startTimer();
-    if (resetBtn) resetBtn.onclick = resetTimer;
-  }
 
   // ───────────────────── EVENTS ─────────────────────
   window.toggleCheckbox = function(el) {
