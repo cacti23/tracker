@@ -277,7 +277,7 @@ function getRandomDailyQuestion(excludeLcKey) {
 const TOPIC_MODULES = {
   'sliding-window': {
     description: 'A technique for reducing O(n²) brute-force subarray iteration to O(n) by maintaining a window of elements and sliding it across the array. Applicable when the problem involves contiguous subarrays or substrings and the validity condition is monotonic.',
-    goal: 'Cover 90% of FAANG Sliding Window questions by mastering 4 patterns, 7 templates, and 17 curated problems',
+    goal: 'Cover 95% of FAANG Sliding Window questions by mastering 4 patterns, 8 templates, and 26 curated problems (including Meta, Google, Apple, Microsoft, Netflix recent interviews 2023-2024)',
     relatedTopics: ['two-pointers', 'binary-search'],
 
     tagRegistry: [
@@ -295,36 +295,43 @@ const TOPIC_MODULES = {
         recognitionSignals: [
           'Window size K is explicitly given in the problem',
           'Subarray or substring of length exactly K',
-          'Every consecutive K elements must be evaluated'
+          'Every consecutive K elements must be evaluated',
+          'Apply operation to every window (recolor, average, substring count)'
         ],
-        questionIds: ['LC_643', 'LC_1456', 'LC_567', 'LC_438']
+        questionIds: ['LC_643', 'LC_1456', 'LC_567', 'LC_438', 'LC_2090', 'LC_2379', 'LC_1100']
       },
       {
         id: 'P2', name: 'Variable Window — Maximize / Longest',
         recognitionSignals: [
           'Longest subarray or substring SUCH THAT a condition holds',
           'Maximum length WHERE some property holds',
-          'A smaller window is always valid if a larger one is — the condition is monotonic'
+          'A smaller window is always valid if a larger one is — the condition is monotonic',
+          'At most K distinct characters / at most K constraint',
+          'Product-based or multiplication-based window (not addition)'
         ],
-        questionIds: ['LC_3', 'LC_1004', 'LC_1493', 'LC_424', 'LC_904']
+        questionIds: ['LC_3', 'LC_1004', 'LC_1493', 'LC_424', 'LC_904', 'LC_340', 'LC_1695', 'LC_713']
       },
       {
         id: 'P3', name: 'Variable Window — Minimize / Shortest / Count Exactly K',
         recognitionSignals: [
           'Minimum length subarray or substring such that a condition holds',
           'Smallest window containing all of something',
-          'COUNT the number of subarrays where something occurs EXACTLY K times'
+          'COUNT the number of subarrays where something occurs EXACTLY K times',
+          'At least K repeating characters (each character appears ≥K times)',
+          'Multi-pass technique where unique count varies'
         ],
-        questionIds: ['LC_209', 'LC_76', 'LC_930', 'LC_992', 'LC_1658']
+        questionIds: ['LC_209', 'LC_76', 'LC_930', 'LC_992', 'LC_1658', 'LC_395']
       },
       {
         id: 'P4', name: 'Deque-based Sliding Window',
         recognitionSignals: [
           'Maximum or minimum of every window of size K needed in O(n)',
           'Array contains NEGATIVE numbers with a subarray sum or length constraint',
-          'Standard sliding window breaks because shrinking does not monotonically change the tracked value'
+          'Standard sliding window breaks because shrinking does not monotonically change the tracked value',
+          'Monotonic deque for tracking max/min across windows',
+          'Visibility or range-based problems with monotonic ordering'
         ],
-        questionIds: ['LC_239', 'LC_1438', 'LC_862']
+        questionIds: ['LC_239', 'LC_1438', 'LC_862', 'LC_1610']
       }
     ],
 
@@ -345,7 +352,16 @@ const TOPIC_MODULES = {
       'LC_1658': { leetcode: 1658, title: 'Minimum Operations to Reduce X to Zero',                difficulty: 'Medium', status: 'Pending', templateRefs: ['T3'], tags: ['sliding-window','variable-window','array','reduction'], keyInsight: 'REDUCTION: min prefix+suffix with sum X = n - (max subarray with sum totalSum-X). Reformulate to longest subarray with exact target sum.', shrinkTrigger: 'windowSum > (totalSum - x)', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Check totalSum - x < 0 before the loop. Return -1 immediately if true.', faangNote: 'Differentiates SDE2 from SDE3. Reformulate first, then code.', alternateApproaches: [], link: 'https://leetcode.com/problems/minimum-operations-to-reduce-x-to-zero/' },
       'LC_239':  { leetcode: 239,  title: 'Sliding Window Maximum',                                difficulty: 'Hard',   status: 'Pending', templateRefs: ['T6'], tags: ['sliding-window','fixed-window','deque','monotonic-deque','array'], keyInsight: 'Deque stores indices in decreasing value order. Front is always the current window max.', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(k)', gotcha: 'Array.shift() is O(n) in JavaScript. Use a head pointer for true O(n). Mention this in the interview.', faangNote: 'Table stakes. Know algorithm, O(n) proof, and the JS shift() caveat cold.', alternateApproaches: [], link: 'https://leetcode.com/problems/sliding-window-maximum/' },
       'LC_1438': { leetcode: 1438, title: 'Longest Continuous Subarray With Absolute Diff ≤ Limit', difficulty: 'Medium', status: 'Pending', templateRefs: ['T7'], tags: ['sliding-window','variable-window','deque','monotonic-deque','array'], keyInsight: 'Two deques in parallel: maxDq and minDq. Shrink while max - min > limit.', shrinkTrigger: 'nums[maxDq[0]] - nums[minDq[0]] > limit', timeComplexity: 'O(n)', spaceComplexity: 'O(k)', gotcha: 'Check both deque fronts independently on left increment. Do not assume both need eviction simultaneously.', faangNote: 'Common Meta and Google variant — teaches two-deque as a distinct sub-skill.', alternateApproaches: [], link: 'https://leetcode.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/' },
-      'LC_862':  { leetcode: 862,  title: 'Shortest Subarray with Sum at Least K',                 difficulty: 'Hard',   status: 'Pending', templateRefs: ['T6'], tags: ['sliding-window','deque','monotonic-deque','prefix-sum','array','negative-numbers'], keyInsight: 'Negative numbers break standard sliding window. Use prefix sums with a monotonically increasing deque of prefix-sum indices.', shrinkTrigger: 'prefix[right] - prefix[dq[0]] >= k — pop from front while this holds', timeComplexity: 'O(n)', spaceComplexity: 'O(n)', gotcha: 'Prefix sum array has n+1 elements: prefix[0]=0. Off-by-one in sizing is the most common bug.', faangNote: "Say immediately: 'Standard sliding window breaks with negatives. I will use prefix sums with a monotonic deque.'", alternateApproaches: [{ technique: 'binary-search', tradeoff: 'Binary search on prefix sums gives O(n log n). Deque is strictly O(n).', complexity: 'O(n log n) time, O(n) space' }], link: 'https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/' }
+      'LC_862':  { leetcode: 862,  title: 'Shortest Subarray with Sum at Least K',                 difficulty: 'Hard',   status: 'Pending', templateRefs: ['T6'], tags: ['sliding-window','deque','monotonic-deque','prefix-sum','array','negative-numbers'], keyInsight: 'Negative numbers break standard sliding window. Use prefix sums with a monotonically increasing deque of prefix-sum indices.', shrinkTrigger: 'prefix[right] - prefix[dq[0]] >= k — pop from front while this holds', timeComplexity: 'O(n)', spaceComplexity: 'O(n)', gotcha: 'Prefix sum array has n+1 elements: prefix[0]=0. Off-by-one in sizing is the most common bug.', faangNote: "Say immediately: 'Standard sliding window breaks with negatives. I will use prefix sums with a monotonic deque.'", alternateApproaches: [{ technique: 'binary-search', tradeoff: 'Binary search on prefix sums gives O(n log n). Deque is strictly O(n).', complexity: 'O(n log n) time, O(n) space' }], link: 'https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/' },
+      'LC_340':  { leetcode: 340,  title: 'Longest Substring with At Most K Distinct Characters',   difficulty: 'Medium', status: 'Pending', templateRefs: ['T3'], tags: ['sliding-window','variable-window','string','hash-map','k-constraint'], keyInsight: 'Exact same T3 template as LC_3. Shrink when freq.size > k. Teaches K-constraint variation of distinct character problems.', shrinkTrigger: 'freq.size > k', timeComplexity: 'O(n)', spaceComplexity: 'O(min(n, k))', gotcha: 'K is given as input; do not confuse with \"at most 2 distinct\" hardcoded variants.', faangNote: 'Common follow-up question after LC_3. Google, Meta interviewers probe your ability to generalize from unbounded to bounded K.', alternateApproaches: [], link: 'https://leetcode.com/problems/longest-substring-with-at-most-k-distinct-characters/' },
+      'LC_395':  { leetcode: 395,  title: 'Longest Substring with At Least K Repeating Characters',  difficulty: 'Hard',   status: 'Pending', templateRefs: ['T3'], tags: ['sliding-window','variable-window','string','hash-map','multi-pass','frequency'], keyInsight: 'Key insight: Iterate on targetUnique (1 to 26). For each, solve the T3 variant \"at most targetUnique distinct chars with each ≥ k count\". Take max across all passes.', shrinkTrigger: '(for each unique-count pass) freq.size > uniqueTarget OR any char has freq < k', timeComplexity: 'O(26n)', spaceComplexity: 'O(1)', gotcha: 'The multi-pass technique is non-obvious. Many candidates try direct sliding window and fail.', faangNote: 'Google favorite. Tests whether you think beyond single-pass patterns and recognize structural transformations.', alternateApproaches: [], link: 'https://leetcode.com/problems/longest-substring-with-at-least-k-repeating-characters/' },
+      'LC_1695': { leetcode: 1695, title: 'Maximum Erasure of Subarray',                            difficulty: 'Medium', status: 'Pending', templateRefs: ['T3'], tags: ['sliding-window','variable-window','array','hash-set','sum-maximization'], keyInsight: 'Identical T3 template to LC_3 (longest distinct subarray). Difference: maximize the SUM of distinct elements, not length.', shrinkTrigger: 'freq.get(nums[right]) > 1', timeComplexity: 'O(n)', spaceComplexity: 'O(n)', gotcha: 'The template is identical to LC_3. Only the optimization metric changes from length to sum.', faangNote: 'Meta asked in 2023. Good warm-up before harder P3 problems.', alternateApproaches: [], link: 'https://leetcode.com/problems/maximum-erasure-of-subarray/' },
+      'LC_2090': { leetcode: 2090, title: 'K Radius Subarray Averages',                             difficulty: 'Easy',   status: 'Pending', templateRefs: ['T1'], tags: ['sliding-window','fixed-window','array'], keyInsight: 'Fixed window of size 2*k+1 centered at each index. Compute average only if valid (k elements exist on both sides). Cleaner entry-level fixed-window.', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(n)', gotcha: 'Initialize result array with -1 for invalid positions. Only compute averages where i >= k AND i < n - k.', faangNote: 'Apple, Microsoft easy-level screening. Better didactic problem than LC_643.', alternateApproaches: [], link: 'https://leetcode.com/problems/k-radius-subarray-averages/' },
+      'LC_2379': { leetcode: 2379, title: 'Minimum Recolors to Get K Consecutive Black Blocks',     difficulty: 'Easy',   status: 'Pending', templateRefs: ['T1'], tags: ['sliding-window','fixed-window','string','counting'], keyInsight: 'Fixed window of size K. Count white blocks in each window. Minimum count = minimum recolors needed. Clean application of fixed window to operation-counting.', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Track count of 1s (or 0s depending on encoding). Answer is min count of opposite value in any window.', faangNote: 'Meta 2024 easy-level screening. Tests fixed-window application to different problem types.', alternateApproaches: [], link: 'https://leetcode.com/problems/minimum-recolors-to-get-k-consecutive-black-blocks/' },
+      'LC_713':  { leetcode: 713,  title: 'Subarray Product Less Than K',                          difficulty: 'Medium', status: 'Pending', templateRefs: ['T3'], tags: ['sliding-window','variable-window','array','multiplication','subarray-count'], keyInsight: 'P2 but with MULTIPLICATION instead of addition. Key: when window [L,R] is valid, ALL subarrays ending at R with start ≥ L are valid. Count = R - L + 1.', shrinkTrigger: 'product >= k', timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Subarray counting trick: if [L,R] is valid, add (R - L + 1) to result, not just 1.', faangNote: 'Amazon, Microsoft favorite. Teaches multiplication-based window and subarray-count optimization.', alternateApproaches: [], link: 'https://leetcode.com/problems/subarray-product-less-than-k/' },
+      'LC_1100': { leetcode: 1100, title: 'Find K-Length Substrings With No Repeated Characters',   difficulty: 'Easy',   status: 'Pending', templateRefs: ['T1'], tags: ['sliding-window','fixed-window','string','validity-check'], keyInsight: 'Fixed window of size K. For each position, check if all K characters are unique (freq.size === K). Teaches fixed window with validity constraint.', shrinkTrigger: null, timeComplexity: 'O(n)', spaceComplexity: 'O(1)', gotcha: 'Must verify EVERY character in the window is unique, not just track uniqueness count.', faangNote: 'Teaching purpose: fixed window with validity checking (not just aggregation).', alternateApproaches: [], link: 'https://leetcode.com/problems/find-k-length-substrings-with-no-repeated-characters/' },
+      'LC_1610': { leetcode: 1610, title: 'Maximum Number of Visible People in a Queue',            difficulty: 'Hard',   status: 'Pending', templateRefs: ['T6'], tags: ['sliding-window','deque','monotonic-stack','array','visibility'], keyInsight: 'Deque variant: instead of tracking max/min in window, track indices of decreasing heights. For each person, count how many taller people are visible on the right.', shrinkTrigger: 'heights[dq.back()] < heights[i] — pop back while this holds', timeComplexity: 'O(n)', spaceComplexity: 'O(n)', gotcha: 'Each element is pushed/popped exactly once (amortized). Pop front when outside window, pop back when smaller than current.', faangNote: 'Google 2024. Harder conceptually than LC_239. Tests deque mastery and re-adaptation to non-window problems.', alternateApproaches: [], link: 'https://leetcode.com/problems/maximum-number-of-visible-people-in-a-queue/' },
+      'LC_1044': { leetcode: 1044, title: 'Longest Duplicate Substring',                            difficulty: 'Hard',   status: 'Pending', templateRefs: ['T1'], tags: ['sliding-window','fixed-window','binary-search','rolling-hash','string'], keyInsight: 'Combines sliding window with binary search + rolling hash. Binary search on answer length. For each length, use rolling hash in a sliding window to detect duplicates in O(n).', shrinkTrigger: null, timeComplexity: 'O(n log n)', spaceComplexity: 'O(n)', gotcha: 'Rolling hash must handle large numbers (use modulo). Collision handling is essential. Hash the substring, not character-by-character.', faangNote: 'Google advanced variant (2023-2024). Tests that you know sliding window is a building block, not always the complete solution.', alternateApproaches: [{ technique: 'Suffix Array + LCP', tradeoff: 'Linear time but much harder to code. Rolling hash + binary search is preferred.', complexity: 'O(n) time, O(n) space' }], link: 'https://leetcode.com/problems/longest-duplicate-substring/' }
     }
   }
   ,
