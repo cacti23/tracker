@@ -28,9 +28,17 @@
   --st:  #fd7272;
   --tr:  #0be881;
   --us:  #74b9ff; /* union find */
-  --sg:  #fdcb6e; /* segment tree */
+  --sg:  #fdcb6e; /* trees */
   --ms:  #e17055; /* merge sort / divide & conquer */
   --gd:  #55efc4; /* greedy */
+  --bm:  #ff85c0; /* bit manipulation */
+  --ll:  #8be0ff; /* linked list */
+  --sa:  #faa2a2; /* string advanced */
+  --mt:  #c7a3ff; /* matrix */
+  --seg: #ffb88c; /* segment trees */
+  --lca: #b3e5fc; /* LCA */
+  --dijkstra: #81c784; /* dijkstra */
+  --topo: #fff59d; /* topological sort */
 
   --u-col: #ff6b6b;
   --p-col: #ffd32a;
@@ -39,6 +47,10 @@
   --a-col: #48dbfb;
   --c-col: #a29bfe;
   --e2-col:#f368e0;
+  
+  --easy: #54d98c;
+  --medium: #ffd32a;
+  --hard: #ff6b6b;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -414,6 +426,65 @@ mark { background: rgba(255,211,42,0.3); color: #fff; border-radius: 2px; paddin
 .cplx-item:first-child { border-right: 1px solid var(--border); }
 .cplx-item strong { color: var(--text); display: block; font-size: 0.65rem; margin-top: 1px; }
 
+/* Examples section */
+.examples-block {
+  margin: 0 14px 11px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+}
+.examples-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+  display: block;
+}
+.example-item {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.65rem;
+}
+.example-item:last-child { margin-bottom: 0; }
+.example-item a {
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.example-item a:hover { color: var(--a-col); }
+.difficulty-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.difficulty-tag.easy { background: rgba(84,217,140,0.15); color: var(--easy); }
+.difficulty-tag.medium { background: rgba(255,211,42,0.15); color: var(--medium); }
+.difficulty-tag.hard { background: rgba(255,107,107,0.15); color: var(--hard); }
+
+/* Company frequency badges */
+.company-freq {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  margin: 8px 0 0 0;
+}
+.company-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.06);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 /* FAANG note */
 .faang-note {
   margin: 0 14px 12px;
@@ -629,6 +700,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Can I maintain the answer by adding one element on the right and removing one on the left?\"</span> If YES → Sliding Window. Two flavors: <b>Fixed size</b> (window = k) or <b>Variable size</b> (shrink when constraint breaks).",
     use:"Linear sequence. Optimal value over a contiguous range. Single pass possible.",
     avoid:"Non-contiguous elements needed. All combinations required (use backtracking).",
+    examples:[
+      {name:"Longest Substring Without Repeating", difficulty:"medium", slug:"3"},
+      {name:"Minimum Window Substring", difficulty:"hard", slug:"76"},
+      {name:"Sliding Window Maximum", difficulty:"hard", slug:"239"}
+    ],
     faang:"LeetCode classics: Longest Substring Without Repeating, Minimum Window Substring, Maximum Sliding Window. These appear in ~30% of string rounds at FAANG."
   },
   {
@@ -645,6 +721,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Is the array sorted (or can it be)? Am I looking for two values that together satisfy a condition?\"</span> → Two Pointers. Opposite ends for sum/palindrome, same direction for duplicates/partitioning.",
     use:"Array is sorted or sort is allowed. Pairs/triplets. Reversals. Partitioning.",
     avoid:"Unsorted + sort is too expensive. Need all pairs (use hashmap). String matching (use KMP).",
+    examples:[
+      {name:"3Sum", difficulty:"medium", slug:"15"},
+      {name:"Container With Most Water", difficulty:"medium", slug:"11"},
+      {name:"Trapping Rain Water", difficulty:"hard", slug:"42"}
+    ],
     faang:"3Sum, Container With Most Water, Trapping Rain Water. Interviewers love combining this with sorting for O(n log n) solutions."
   },
   {
@@ -662,6 +743,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"If I try value X and it works, does X+1 DEFINITELY work (or fail)?\"</span> → Binary Search on answer. The classic is binary search on array; the advanced is binary searching on the ANSWER SPACE with a feasibility check.",
     use:"Sorted array. Monotonic condition exists. 'Minimum X such that condition holds'.",
     avoid:"Unsorted data. No clear monotonic condition. Small n where linear is fine.",
+    examples:[
+      {name:"Median of Two Sorted Arrays", difficulty:"hard", slug:"4"},
+      {name:"Search in Rotated Array", difficulty:"medium", slug:"33"},
+      {name:"Koko Eating Bananas", difficulty:"medium", slug:"875"}
+    ],
     faang:"Median of Two Sorted Arrays, Search in Rotated Array, Koko Eating Bananas. Advanced 'binary search on answer' appears frequently in SDE3 rounds."
   },
   {
@@ -679,6 +765,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Do I need to repeatedly access the min or max as the dataset changes?\"</span> → Heap. Min-heap for kth largest (keep k elements). Max-heap for kth smallest. Two heaps for median.",
     use:"Repeated access to min/max. k elements from n. Streaming/dynamic data. Merge.",
     avoid:"Static data: just sort. k = n: just sort. Need all elements in order: just sort.",
+    examples:[
+      {name:"Merge K Sorted Lists", difficulty:"hard", slug:"23"},
+      {name:"Find Median from Data Stream", difficulty:"hard", slug:"295"},
+      {name:"Task Scheduler", difficulty:"medium", slug:"621"}
+    ],
     faang:"Merge K Sorted Lists, Find Median From Data Stream, Task Scheduler. Heap problems almost always appear in SDE2/3 system design + coding combo rounds."
   },
   {
@@ -696,6 +787,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Do I need to check if something was seen before, count occurrences, or find a complement in O(1)?\"</span> → HashMap. Prefix sum + HashMap is the killer combo for subarray sum problems.",
     use:"O(1) lookup needed. Counting. Seen-before check. Complement finding (a+b=target → b=target-a).",
     avoid:"Need sorted order. Very small fixed range (use array as map, O(1) space). Need ordering.",
+    examples:[
+      {name:"Two Sum", difficulty:"easy", slug:"1"},
+      {name:"Group Anagrams", difficulty:"medium", slug:"49"},
+      {name:"Subarray Sum Equals K", difficulty:"medium", slug:"560"}
+    ],
     faang:"Two Sum, Group Anagrams, Subarray Sum Equals K. HashMap is the utility pattern — appears in 60%+ of problems as a supporting structure."
   },
   {
@@ -713,6 +809,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Do I need ALL valid configurations and can I abandon (prune) a path early when it violates constraints?\"</span> → Backtracking. Template: choose → explore → unchoose. Prune = the optimization.",
     use:"Need ALL valid configurations. Constraint satisfaction. Decision at each step with undo.",
     avoid:"Only need ONE answer (BFS/DFS faster). Need count of answers (DP faster). No constraints to prune.",
+    examples:[
+      {name:"Combinations", difficulty:"medium", slug:"77"},
+      {name:"Permutations", difficulty:"medium", slug:"46"},
+      {name:"N-Queens", difficulty:"hard", slug:"51"}
+    ],
     faang:"Combination Sum, Permutations, Word Search. Backtracking with pruning is an SDE3 differentiator — naive recursion without pruning gets TLE."
   },
   {
@@ -731,6 +832,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Does solving smaller versions of this problem help solve the bigger one? Is there repeated work in the recursion tree?\"</span> → DP. Build bottom-up (tabulation) or memoize top-down. State = what changes between subproblems.",
     use:"Overlapping subproblems exist. Need optimal VALUE (not all solutions). Recurrence relation exists.",
     avoid:"Need all solutions (backtracking). No recurrence. Greedy works (verify with exchange argument).",
+    examples:[
+      {name:"Coin Change", difficulty:"medium", slug:"322"},
+      {name:"Longest Increasing Subsequence", difficulty:"medium", slug:"300"},
+      {name:"Edit Distance", difficulty:"hard", slug:"72"}
+    ],
     faang:"Coin Change, Longest Increasing Subsequence, Edit Distance. DP is THE most tested pattern for SDE2/3 and has the most variety — 1D, 2D, interval, digit, state-machine DP."
   },
   {
@@ -749,6 +855,11 @@ const PATTERNS = [
     smell:"<span class='smell-q'>BFS</span> = shortest path in unweighted graph / level-by-level / minimum steps. <span class='smell-q'>DFS</span> = connectivity / all reachable / cycle detection / topological sort. Both use visited set to avoid revisiting.",
     use:"Nodes + edges. Connectivity. Shortest unweighted path (BFS). Topological order (DFS). Grid = implicit graph.",
     avoid:"Weighted shortest path → Dijkstra. All pairs shortest path → Floyd-Warshall. No graph structure exists.",
+    examples:[
+      {name:"Number of Islands", difficulty:"medium", slug:"200"},
+      {name:"Course Schedule", difficulty:"medium", slug:"207"},
+      {name:"Word Ladder", difficulty:"hard", slug:"127"}
+    ],
     faang:"Number of Islands, Course Schedule, Word Ladder. Graphs are universal — grids, trees, dependency chains are all graphs in disguise."
   },
   {
@@ -766,6 +877,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"For each element, do I need the nearest element that is larger or smaller?\"</span> → Monotonic Stack. Maintain stack in increasing order for 'next greater', decreasing for 'next smaller'. Each element pushed/popped once → O(n).",
     use:"Nearest greater/smaller. Histogram problems. Balanced brackets. Expression evaluation.",
     avoid:"Need global min/max (use heap). Need all pairs (use two pointers on sorted).",
+    examples:[
+      {name:"Daily Temperatures", difficulty:"medium", slug:"739"},
+      {name:"Largest Rectangle in Histogram", difficulty:"hard", slug:"84"},
+      {name:"Trapping Rain Water", difficulty:"hard", slug:"42"}
+    ],
     faang:"Largest Rectangle in Histogram, Trapping Rain Water (stack version), Daily Temperatures. Stack is often the O(n) unlock for problems that look O(n²)."
   },
   {
@@ -781,6 +897,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Do I need to repeatedly search or match strings by their prefix?\"</span> → Trie. Each node = one character. isEnd flag marks complete words. Space is large but operations are O(L).",
     use:"Many prefix-based queries. Autocomplete. Dictionary problems. Multiple string matching.",
     avoid:"Single search (use indexOf). Small fixed word list (use set). No prefix queries needed.",
+    examples:[
+      {name:"Implement Trie", difficulty:"medium", slug:"208"},
+      {name:"Word Search II", difficulty:"hard", slug:"212"},
+      {name:"Maximum XOR of Two Numbers in an Array", difficulty:"medium", slug:"421"}
+    ],
     faang:"Implement Trie, Word Search II, Maximum XOR. Trie appears in ~15% of string-heavy FAANG rounds and always signals a senior-level expectation."
   },
   {
@@ -796,6 +917,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Am I repeatedly merging groups and asking 'are these two in the same group?'\"</span> → Union Find. Faster than BFS/DFS for dynamic connectivity. Use path compression + union by rank.",
     use:"Dynamic connectivity queries. Merging components incrementally. Cycle detection in undirected graphs.",
     avoid:"Need path between nodes (BFS/DFS). Directed graphs (use DFS for cycle). Static graph (BFS/DFS simpler).",
+    examples:[
+      {name:"Redundant Connection", difficulty:"medium", slug:"684"},
+      {name:"Accounts Merge", difficulty:"hard", slug:"721"},
+      {name:"Number of Provinces", difficulty:"medium", slug:"547"}
+    ],
     faang:"Redundant Connection, Accounts Merge, Number of Provinces. DSU is the SDE3 signal — many candidates reach for BFS when DSU is 10x cleaner."
   },
   {
@@ -812,6 +938,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"If I always make the locally optimal choice (sort by X and pick greedily), does the global optimum follow?\"</span> → Greedy. Prove it with exchange argument. If greedy gives wrong answer on a small example → switch to DP.",
     use:"Locally optimal = globally optimal (provable). Interval problems. Scheduling. Activity selection.",
     avoid:"Local optimum doesn't lead to global (classic DP territory). Can't prove exchange argument.",
+    examples:[
+      {name:"Jump Game", difficulty:"medium", slug:"55"},
+      {name:"Non-overlapping Intervals", difficulty:"medium", slug:"435"},
+      {name:"Gas Station", difficulty:"medium", slug:"134"}
+    ],
     faang:"Jump Game, Non-overlapping Intervals, Gas Station. Greedy vs DP is a key SDE3 interview distinction — always explain WHY greedy works."
   },
   {
@@ -828,6 +959,11 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"Can I split this problem into independent halves, solve each, and merge in O(n)?\"</span> → D&C. Master theorem gives complexity. Merge step must be efficient.",
     use:"Problem splits cleanly. Merge step is O(n). Subproblems are independent (unlike DP).",
     avoid:"Subproblems overlap (use DP). Merge step is O(n²) — doesn't save time.",
+    examples:[
+      {name:"Merge Sorted Array", difficulty:"easy", slug:"88"},
+      {name:"Count of Inversions in Merge Sort", difficulty:"hard", slug:"493"},
+      {name:"Maximum Subarray", difficulty:"medium", slug:"53"}
+    ],
     faang:"Count of Inversions, Median of Two Sorted Arrays, Maximum Subarray (D&C version). Interviewers love when you know both D&C and DP approaches for the same problem."
   },
   {
@@ -844,7 +980,168 @@ const PATTERNS = [
     smell:"Ask: <span class='smell-q'>\"What information do I need from left subtree + right subtree to answer for the whole tree?\"</span> → Post-order DFS. For BST: use sorted property (inorder = sorted). For paths: pass prefix down, aggregate up.",
     use:"Tree structure. Path problems. BST property exploitation. Aggregating subtree info.",
     avoid:"Need shortest path between arbitrary nodes (use BFS from that node).",
+    examples:[
+      {name:"Maximum Path Sum", difficulty:"hard", slug:"124"},
+      {name:"Serialize & Deserialize", difficulty:"hard", slug:"297"}
+    ],
     faang:"Maximum Path Sum, LCA, Serialize/Deserialize Binary Tree. Tree problems are in every FAANG loop. Post-order thinking is the unlock for 70% of tree hard problems."
+  },
+  {
+    id:"bm", icon:"⚡", title:"Bit Manipulation", sub:"Shifts, masks, XOR tricks, bit patterns",
+    color:"#ff85c0", timeC:"O(1) – O(log n)", spaceC:"O(1)",
+    badge1:"BIT TRICKS", badge2:"MATH PROPERTY",
+    triggers:[
+      "bit","XOR","AND","OR","shift","mask","power of two","single number",
+      "count set bits","hamming weight","number of 1 bits","missing number",
+      "duplicate number","subset xor","bit flip","bit reversal","gray code",
+      "palindrome number binary","reverse bits"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Can I use bit properties (XOR cancels, AND masks, bit count)?\"</span> → Bit Manipulation. XOR is the killer: a ^ a = 0, a ^ 0 = a. Two's complement for negatives.",
+    use:"O(1) constant operations. XOR/AND/OR patterns. Flags. Subsets. Counting bits.",
+    avoid:"Need complex logic not bit-based. Bit operations obfuscate intent (clarity > clever).",
+    examples:[
+      {name:"Single Number", difficulty:"easy", slug:"136"},
+      {name:"Number of 1 Bits", difficulty:"easy", slug:"191"},
+      {name:"Maximum Product of Word Lengths", difficulty:"medium", slug:"318"}
+    ],
+    faang:"Single Number, Counting 1 Bits, Repeated DNA Sequence. Bit problems are SDE2/3 gatekeepers — show bit-level thinking and you unlock senior rounds."
+  },
+  {
+    id:"ll", icon:"🔗", title:"Linked List", sub:"Reversals, cycles, partition, manipulation",
+    color:"#8be0ff", timeC:"O(n)", spaceC:"O(1) – O(n)",
+    badge1:"O(N)", badge2:"POINTER TRICKS",
+    triggers:[
+      "linked list","reverse","cycle detection","palindrome list","partition",
+      "remove nth","merge sorted lists","reorder list","add two numbers",
+      "intersection","deep copy","rotate list","split linked list",
+      "remove duplicates","LRU cache"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Can I use two pointers (slow/fast) or reverse in place?\"</span> → Linked List. Slow/fast for cycle detection (Floyd's), two pointers for reverse/partition. Always return dummy node.",
+    use:"Reversals. Cycle detection. Partition. In-place manipulation. LRU/LFU caches.",
+    avoid:"Random access needed (use array). Sorted set operations (use BST). Heavy modifications (use array).",
+    examples:[
+      {name:"Reverse Linked List", difficulty:"easy", slug:"206"},
+      {name:"Linked List Cycle II", difficulty:"medium", slug:"142"},
+      {name:"Reorder List", difficulty:"medium", slug:"143"}
+    ],
+    faang:"Reverse Linked List, LRU Cache, Merge K Sorted Lists. Linked list problems are filter questions — appear in 70% of FAANG on-sites."
+  },
+  {
+    id:"sa", icon:"📝", title:"String: Advanced (KMP/Rolling Hash)", sub:"Pattern matching, hashing, advanced search",
+    color:"#faa2a2", timeC:"O(n+m) – O(n)", spaceC:"O(m)",
+    badge1:"O(N+M)", badge2:"STRING SEARCH",
+    triggers:[
+      "pattern match","KMP","rolling hash","rabin karp","z-algorithm",
+      "all occurrences","repeat substring","pattern in string","find the difference",
+      "shortest palindrome","repeated DNA sequence","minimum window substring advance",
+      "word break ii"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Do I search for a pattern in a string efficiently? KMP for exact matches, rolling hash for substrings.\"</span> → KMP is O(n+m), avoids backtracking. Rolling hash hashes substring in O(1) after precompute.",
+    use:"Pattern matching in O(n+m). Finding all occurrences. Repeated substrings. Hash-based comparisons.",
+    avoid:"Simple substring search (use indexOf). No pattern matching needed. Only looking for first match.",
+    examples:[
+      {name:"Shortest Palindrome", difficulty:"hard", slug:"214"},
+      {name:"Repeated DNA Sequence", difficulty:"medium", slug:"187"},
+      {name:"Word Break II", difficulty:"hard", slug:"140"}
+    ],
+    faang:"Shortest Palindrome (KMP), Repeated DNA Sequence (rolling hash), Stream of Characters (Trie+KMP). Advanced string algorithms separate SDE3 candidates."
+  },
+  {
+    id:"mt", icon:"🎬", title:"Matrix", sub:"Rotation, spiral, dynamic paths, search",
+    color:"#c7a3ff", timeC:"O(m×n)", spaceC:"O(1) – O(m×n)",
+    badge1:"2D GRID", badge2:"TRAVERSAL",
+    triggers:[
+      "matrix","rotate matrix","spiral matrix","search in matrix","sorted matrix",
+      "island perimeter","unique paths","dynamic programming matrix",
+      "minimum path sum","number of islands matrix","maze","surrounded regions",
+      "bomb enemy","word search matrix","transform matrix"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Is this 2D traversal (spiral, layer by layer) or path DP (min cost, unique paths)?\"</span> → Matrix traversal = layer by layer. Matrix DP = dp[i][j] represents optimal from top-left.",
+    use:"2D grid traversal. Path DP problems. Search in sorted matrix. In-place rotations.",
+    avoid:"1D solution works fine. Need complex state beyond position.",
+    examples:[
+      {name:"Rotate Image", difficulty:"medium", slug:"48"},
+      {name:"Spiral Matrix", difficulty:"medium", slug:"54"},
+      {name:"Minimum Path Sum", difficulty:"medium", slug:"64"}
+    ],
+    faang:"Rotate Image, Search in 2D Matrix II, Minimum Path Sum. Matrix problems teach 2D thinking — essential for system design rounds too."
+  },
+  {
+    id:"seg", icon:"🏔️", title:"Segment Trees & Fenwick", sub:"Range queries, range updates, efficient aggregation",
+    color:"#ffb88c", timeC:"O(log n) per op", spaceC:"O(n)",
+    badge1:"O(LOG N)", badge2:"ADVANCED STRUCTURE",
+    triggers:[
+      "range query","range update","segment tree","fenwick tree","BIT",
+      "binary indexed tree","sum of subarray","count of range","point update",
+      "reverse pairs","merge sort tree","coordinate compression",
+      "smallest rectangle"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Do I need point updates + range sum queries efficiently? O(log n) per operation?\"</span> → Fenwick tree (simpler, O(log n)). Segment tree for range min/max + range updates.",
+    use:"Range sum queries. Point updates. Range min/max. Multiple queries on dynamic data. Very large ranges.",
+    avoid:"Static data (just precompute prefix). Small n (loop is fine). Only point queries (no range needed).",
+    examples:[
+      {name:"Range Sum Query - Mutable", difficulty:"medium", slug:"307"},
+      {name:"Reverse Pairs", difficulty:"hard", slug:"493"},
+      {name:"Count of Range Sum", difficulty:"hard", slug:"327"}
+    ],
+    faang:"Range Sum Query, Reverse Pairs, Count of Range Sum. Segment trees + Fenwick are SDE3+ only — shows mastery of data structures."
+  },
+  {
+    id:"lca", icon:"🌲", title:"LCA & Binary Lifting", sub:"Tree paths, lowest common ancestor, path queries",
+    color:"#b3e5fc", timeC:"O(log n) binary lift", spaceC:"O(n log n)",
+    badge1:"LOG N PATH", badge2:"TREE PATHS",
+    triggers:[
+      "lowest common ancestor","LCA","binary lifting","tree path","path in tree",
+      "distance in tree","kth ancestor","step in tree","node in tree ancestors",
+      "all paths between"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Do I need to find paths between tree nodes efficiently? Multiple LCA queries?\"</span> → Binary lifting precomputes 2^k ancestors. O(n log n) precompute, O(log n) per query.",
+    use:"Multiple LCA queries. Kth ancestor queries. Path queries in trees. Avoiding LCA recomputation.",
+    avoid:"Single LCA (just traverse up). No path queries needed.",
+    examples:[
+      {name:"Lowest Common Ancestor of a Binary Tree", difficulty:"medium", slug:"236"},
+      {name:"Kth Ancestor of a Tree Node", difficulty:"hard", slug:"1483"},
+      {name:"Jump Game IV", difficulty:"hard", slug:"1345"}
+    ],
+    faang:"LCA, Kth Ancestor. Binary lifting separates SDE2 from SDE3 — shows algorithmic sophistication."
+  },
+  {
+    id:"dijkstra", icon:"⚖️", title:"Dijkstra & Bellman-Ford", sub:"Weighted shortest path, negative cycles",
+    color:"#81c784", timeC:"O(E log V)", spaceC:"O(V)",
+    badge1:"WEIGHTED PATH", badge2:"GREEDY / DP",
+    triggers:[
+      "weighted graph","shortest path weighted","network delay","dijkstra",
+      "cheapest flights","path with maximum probability","minimization cost",
+      "negative weights","bellman ford","negative cycle","cheapest","minimum cost"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Are there negative edge weights? If NO → Dijkstra (greedy + heap). If YES → Bellman-Ford (DP).\"</span> → Dijkstra is greedy (pick minimum unvisited). Bellman-Ford relaxes all edges V-1 times.",
+    use:"Shortest path in weighted graph. No negative weights (Dijkstra). Negative weights allowed (Bellman-Ford).",
+    avoid:"Unweighted (use BFS). All pairs shortest path (Floyd-Warshall). DAG (Topological + DP).",
+    examples:[
+      {name:"Network Delay Time", difficulty:"medium", slug:"743"},
+      {name:"Cheapest Flights Within K Stops", difficulty:"medium", slug:"787"},
+      {name:"Path with Maximum Probability", difficulty:"medium", slug:"1514"}
+    ],
+    faang:"Network Delay Time, Cheapest Flights. Dijkstra is a must-have for any graph-heavy company (Google, Meta, Amazon)."
+  },
+  {
+    id:"topo", icon:"📊", title:"Topological Sort", sub:"DAG scheduling, dependency resolution, course order",
+    color:"#fff59d", timeC:"O(V + E)", spaceC:"O(V)",
+    badge1:"DAG ONLY", badge2:"SCHEDULING",
+    triggers:[
+      "topological sort","course schedule","prerequisites","alien dictionary",
+      "build order","dependency resolution","sequence in DAG","all orderings",
+      "graph sequence","valid order","schedule"
+    ],
+    smell:"Ask: <span class='smell-q'>\"Is this a DAG with dependencies? Can I order nodes such that dependencies come first?\"</span> → Topological sort. Kahn's algorithm (BFS with indegree) or DFS. Cycle = invalid.",
+    use:"DAG dependency ordering. Course prerequisites. Build order. Alien dictionary. Valid orderings.",
+    avoid:"Cyclic graphs (topological impossible). No ordering constraint needed.",
+    examples:[
+      {name:"Course Schedule", difficulty:"medium", slug:"207"},
+      {name:"Course Schedule II", difficulty:"medium", slug:"210"},
+      {name:"Alien Dictionary", difficulty:"hard", slug:"269"}
+    ],
+    faang:"Course Schedule, Alien Dictionary. Topological sort + cycle detection is a classic FAANG combo."
   }
 ];
 
@@ -854,7 +1151,9 @@ const TAB_LABELS = {
   sw:'SLIDING WIN', tp:'TWO PTRS', bs:'BIN SEARCH', hp:'HEAP',
   ht:'HASHMAP', bt:'BACKTRACK', dp:'DP', gr:'GRAPH BFS/DFS',
   st:'STACK', tr:'TRIE', us:'UNION FIND', gd:'GREEDY',
-  ms:'DIVIDE & CONQ', sg:'TREES'
+  ms:'DIVIDE & CONQ', sg:'TREES', bm:'BIT', ll:'LINKED LIST',
+  sa:'STRING ADV', mt:'MATRIX', seg:'SEG TREE', lca:'LCA',
+  dijkstra:'DIJKSTRA', topo:'TOPO SORT'
 };
 PATTERNS.forEach(p => {
   const t = document.createElement('div');
@@ -869,7 +1168,9 @@ const HEX = {
   sw:'#ff6b6b', tp:'#ff9f43', bs:'#54d98c', hp:'#f368e0',
   ht:'#48dbfb', bt:'#a29bfe', dp:'#ffd32a', gr:'#00d2d3',
   st:'#fd7272', tr:'#0be881', us:'#74b9ff', sg:'#fdcb6e',
-  ms:'#e17055', gd:'#55efc4'
+  ms:'#e17055', gd:'#55efc4', bm:'#ff85c0', ll:'#8be0ff',
+  sa:'#faa2a2', mt:'#c7a3ff', seg:'#ffb88c', lca:'#b3e5fc',
+  dijkstra:'#81c784', topo:'#fff59d'
 };
 function ha(id, alpha) {
   const h = HEX[id]||'#ffffff';
@@ -922,6 +1223,15 @@ function renderAll() {
       <div class="block-label">🔑 TRIGGER KEYWORDS</div>
       <div class="trigger-wrap">${tagsHTML}</div>
       <div class="smell" style="border-color:${p.color}">👃 <b>SMELL TEST:</b> ${p.smell}</div>
+      ${p.examples ? `<div class="examples-block">
+        <span class="examples-label">💡 LeetCode Examples</span>
+        ${p.examples.map(ex => `
+          <div class="example-item">
+            <a href="https://leetcode.com/problems/LeetCode${ex.slug}/" target="_blank">${ex.name}</a>
+            <span class="difficulty-tag ${ex.difficulty}">${ex.difficulty.toUpperCase()}</span>
+          </div>
+        `).join('')}
+      </div>` : ''}
       <div class="faang-note">⭐ ${p.faang}</div>
       <div class="ua-row">
         <div class="ua-cell">
