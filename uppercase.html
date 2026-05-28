@@ -356,8 +356,27 @@ body::before {
 }
 
 .trigger-wrap {
-  display: flex; flex-wrap: wrap; gap: 5px;
+  display: flex; flex-direction: column; gap: 8px;
   padding: 0 14px 11px;
+}
+
+.trigger-category {
+  display: flex; flex-direction: column; gap: 5px;
+}
+
+.category-header {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+  opacity: 0.7;
+}
+
+.category-tags {
+  display: flex; flex-wrap: wrap; gap: 5px;
 }
 
 .ttag {
@@ -676,13 +695,12 @@ const PATTERNS = [
     id:"sw", icon:"🪟", title:"Sliding Window", sub:"Optimal over contiguous subarray/substring",
     color:"var(--sw)", timeC:"O(n)", spaceC:"O(1) – O(k)",
     badge1:"LINEAR", badge2:"ARRAY/STRING",
-    triggers:[
-      "subarray","substring","contiguous","window","consecutive",
-      "maximum sum subarray","minimum length","longest substring",
-      "shortest subarray","at most k distinct","exactly k","no more than",
-      "contains all characters","anagram","permutation in string",
-      "fixed size window","sliding","character frequency","replace at most k"
-    ],
+    triggers:{
+      problem:["subarray","substring","window","contiguous"],
+      constraint:["at most k distinct","exactly k","no more than","consecutive","fixed size"],
+      technique:["sliding","shrink when","add right remove left","maintain condition"],
+      example:["longest substring","maximum sum subarray","minimum length subarray","anagram","permutation","character frequency"]
+    },
     smell:"Ask: <span class='smell-q'>\"Can I maintain the answer by adding one element on the right and removing one on the left?\"</span> If YES → Sliding Window. Two flavors: <b>Fixed size</b> (window = k) or <b>Variable size</b> (shrink when constraint breaks).",
     use:"Linear sequence. Optimal value over a contiguous range. Single pass possible.",
     avoid:"Non-contiguous elements needed. All combinations required (use backtracking).",
@@ -697,13 +715,12 @@ const PATTERNS = [
     id:"tp", icon:"⇆", title:"Two Pointers", sub:"Opposite ends / same direction convergence",
     color:"var(--tp)", timeC:"O(n)", spaceC:"O(1)",
     badge1:"LINEAR", badge2:"SORTED ARRAY",
-    triggers:[
-      "sorted array","pair with target","two sum sorted","three sum","four sum",
-      "palindrome check","reverse array","remove duplicates","move zeroes",
-      "container with most water","trapping rain water","partition array",
-      "merge two sorted","closest pair","squaring sorted array","triplets",
-      "dutch national flag","segregate","valid palindrome"
-    ],
+    triggers:{
+      problem:["pair","triplets","merge","partition","palindrome"],
+      constraint:["sorted array","target sum","distinct values"],
+      technique:["opposite ends","convergence","two pointer","same direction","reverse"],
+      example:["3sum","container with water","trapping rain","remove duplicates","move zeroes"]
+    },
     smell:"Ask: <span class='smell-q'>\"Is the array sorted (or can it be)? Am I looking for two values that together satisfy a condition?\"</span> → Two Pointers. Opposite ends for sum/palindrome, same direction for duplicates/partitioning.",
     use:"Array is sorted or sort is allowed. Pairs/triplets. Reversals. Partitioning.",
     avoid:"Unsorted + sort is too expensive. Need all pairs (use hashmap). String matching (use KMP).",
@@ -718,14 +735,12 @@ const PATTERNS = [
     id:"bs", icon:"⚡", title:"Binary Search", sub:"Eliminate half the search space per step",
     color:"var(--bs)", timeC:"O(log n)", spaceC:"O(1)",
     badge1:"O(LOG N)", badge2:"MONOTONIC",
-    triggers:[
-      "sorted","find position","first occurrence","last occurrence",
-      "minimum possible value","maximum possible value","feasible",
-      "can we achieve","at least","search in rotated array","peak element",
-      "kth smallest in matrix","capacity","speed","minimize the maximum",
-      "maximize the minimum","threshold","binary search on answer","check function",
-      "mid","left right boundary","lower bound","upper bound"
-    ],
+    triggers:{
+      problem:["find position","search","find value"],
+      constraint:["sorted","monotonic","feasible check","at least","minimum possible"],
+      technique:["eliminate half","binary search","mid point","boundary","answer space"],
+      example:["median two arrays","rotated array","koko eating","peak element","lower bound"]
+    },
     smell:"Ask: <span class='smell-q'>\"If I try value X and it works, does X+1 DEFINITELY work (or fail)?\"</span> → Binary Search on answer. The classic is binary search on array; the advanced is binary searching on the ANSWER SPACE with a feasibility check.",
     use:"Sorted array. Monotonic condition exists. 'Minimum X such that condition holds'.",
     avoid:"Unsorted data. No clear monotonic condition. Small n where linear is fine.",
@@ -740,14 +755,12 @@ const PATTERNS = [
     id:"hp", icon:"⛰️", title:"Heap / Priority Queue", sub:"Efficient repeated min/max access",
     color:"var(--hp)", timeC:"O(n log k)", spaceC:"O(k)",
     badge1:"O(N LOG K)", badge2:"GREEDY ORDER",
-    triggers:[
-      "kth largest","kth smallest","top k elements","k closest points",
-      "k most frequent","find median","median from stream","running median",
-      "merge k sorted lists","smallest range covering k lists",
-      "task scheduler","meeting rooms ii","reorganize string",
-      "last stone weight","find k pairs smallest sums","stream","dynamic min/max",
-      "greedy with priority","jump game ii","always pick minimum"
-    ],
+    triggers:{
+      problem:["kth largest","kth smallest","top k","find median","merge sorted"],
+      constraint:["k elements","streaming data","dynamic min/max","repeated access"],
+      technique:["heap","priority queue","min heap","max heap","two heaps"],
+      example:["merge k sorted lists","find median stream","task scheduler","k closest points","last stone"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I need to repeatedly access the min or max as the dataset changes?\"</span> → Heap. Min-heap for kth largest (keep k elements). Max-heap for kth smallest. Two heaps for median.",
     use:"Repeated access to min/max. k elements from n. Streaming/dynamic data. Merge.",
     avoid:"Static data: just sort. k = n: just sort. Need all elements in order: just sort.",
@@ -762,14 +775,12 @@ const PATTERNS = [
     id:"ht", icon:"#", title:"HashMap / HashSet", sub:"O(1) lookup, frequency counting, membership",
     color:"var(--ht)", timeC:"O(n)", spaceC:"O(n)",
     badge1:"O(N) TIME", badge2:"AUXILIARY",
-    triggers:[
-      "count frequency","duplicate","find duplicate","seen before","exists",
-      "two sum","complement","group anagrams","prefix sum equals k",
-      "subarray sum equals k","zero sum subarray","most frequent element",
-      "longest consecutive sequence","isomorphic","word pattern",
-      "first non-repeating","valid sudoku","intersection","union",
-      "find all duplicates","ransom note"
-    ],
+    triggers:{
+      problem:["count frequency","duplicate","find pair","group"],
+      constraint:["seen before","exists","complement","target sum"],
+      technique:["hashmap","hashset","prefix sum","two sum trick","fast lookup"],
+      example:["two sum","group anagrams","subarray sum","isomorphic","longest consecutive"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I need to check if something was seen before, count occurrences, or find a complement in O(1)?\"</span> → HashMap. Prefix sum + HashMap is the killer combo for subarray sum problems.",
     use:"O(1) lookup needed. Counting. Seen-before check. Complement finding (a+b=target → b=target-a).",
     avoid:"Need sorted order. Very small fixed range (use array as map, O(1) space). Need ordering.",
@@ -784,14 +795,12 @@ const PATTERNS = [
     id:"bt", icon:"🌳", title:"Backtracking", sub:"Enumerate all valid configurations with pruning",
     color:"var(--bt)", timeC:"O(2ⁿ) or O(n!)", spaceC:"O(n) stack",
     badge1:"EXPONENTIAL", badge2:"EXHAUSTIVE",
-    triggers:[
-      "all combinations","all permutations","all subsets","generate all",
-      "find all solutions","N-queens","sudoku solver","word search grid",
-      "letter combinations","combination sum","restore IP addresses",
-      "palindrome partitioning","expression add operators","path in maze",
-      "constraint satisfaction","arrangement","place queens","choices at each step",
-      "decision tree","explore all"
-    ],
+    triggers:{
+      problem:["all combinations","all permutations","all subsets","generate all"],
+      constraint:["constraint satisfaction","pruning","valid configuration"],
+      technique:["choose explore unchoose","decision tree","prune path","undo"],
+      example:["combinations","permutations","n-queens","sudoku","word search"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I need ALL valid configurations and can I abandon (prune) a path early when it violates constraints?\"</span> → Backtracking. Template: choose → explore → unchoose. Prune = the optimization.",
     use:"Need ALL valid configurations. Constraint satisfaction. Decision at each step with undo.",
     avoid:"Only need ONE answer (BFS/DFS faster). Need count of answers (DP faster). No constraints to prune.",
@@ -806,15 +815,12 @@ const PATTERNS = [
     id:"dp", icon:"📦", title:"Dynamic Programming", sub:"Optimal substructure + overlapping subproblems",
     color:"var(--dp)", timeC:"O(n²) typical", spaceC:"O(n) to O(n²)",
     badge1:"POLY TIME", badge2:"OPTIMAL VALUE",
-    triggers:[
-      "minimum cost","maximum profit","number of ways","count paths",
-      "longest increasing subsequence","longest common subsequence",
-      "edit distance","knapsack","0/1 knapsack","unbounded knapsack",
-      "partition equal subset","can we achieve","optimal","coin change",
-      "decode ways","buy and sell stock","house robber","unique paths",
-      "jump game","word break","palindromic substrings","matrix chain",
-      "minimum path sum","cherry pickup","minimum falling path"
-    ],
+    triggers:{
+      problem:["optimal value","minimum cost","maximum profit","count ways","paths"],
+      constraint:["overlapping subproblems","recurrence relation","substructure"],
+      technique:["tabulation","memoization","bottom-up","state transition"],
+      example:["coin change","lis","edit distance","knapsack","house robber"]
+    },
     smell:"Ask: <span class='smell-q'>\"Does solving smaller versions of this problem help solve the bigger one? Is there repeated work in the recursion tree?\"</span> → DP. Build bottom-up (tabulation) or memoize top-down. State = what changes between subproblems.",
     use:"Overlapping subproblems exist. Need optimal VALUE (not all solutions). Recurrence relation exists.",
     avoid:"Need all solutions (backtracking). No recurrence. Greedy works (verify with exchange argument).",
@@ -829,15 +835,12 @@ const PATTERNS = [
     id:"gr", icon:"🕸️", title:"Graph: BFS / DFS", sub:"Traversal, connectivity, shortest path",
     color:"var(--gr)", timeC:"O(V + E)", spaceC:"O(V)",
     badge1:"O(V+E)", badge2:"CONNECTIVITY",
-    triggers:[
-      "number of islands","connected components","shortest path unweighted",
-      "reachable","level order","minimum distance","flood fill",
-      "surrounded regions","clone graph","course schedule","prerequisites",
-      "topological sort","cycle detection","bipartite","grid traversal",
-      "matrix BFS","neighbors","infected cells","minimum steps to reach",
-      "word ladder","open the lock","rotting oranges","walls and gates",
-      "number of provinces"
-    ],
+    triggers:{
+      problem:["islands","components","reachable","connectivity"],
+      constraint:["shortest unweighted","level by level","minimum distance"],
+      technique:["BFS","DFS","visited set","traversal","flood fill"],
+      example:["number of islands","course schedule","word ladder","rotting oranges","walls gates"]
+    },
     smell:"<span class='smell-q'>BFS</span> = shortest path in unweighted graph / level-by-level / minimum steps. <span class='smell-q'>DFS</span> = connectivity / all reachable / cycle detection / topological sort. Both use visited set to avoid revisiting.",
     use:"Nodes + edges. Connectivity. Shortest unweighted path (BFS). Topological order (DFS). Grid = implicit graph.",
     avoid:"Weighted shortest path → Dijkstra. All pairs shortest path → Floyd-Warshall. No graph structure exists.",
@@ -852,14 +855,12 @@ const PATTERNS = [
     id:"st", icon:"📚", title:"Stack / Monotonic Stack", sub:"Next greater/smaller, spans, histograms",
     color:"var(--st)", timeC:"O(n)", spaceC:"O(n)",
     badge1:"LINEAR", badge2:"NEAREST ELEMENT",
-    triggers:[
-      "next greater element","next smaller element","previous greater",
-      "daily temperatures","stock span","largest rectangle in histogram",
-      "trapping rain water","valid parentheses","balanced brackets",
-      "asteroid collision","remove k digits","132 pattern",
-      "monotonically increasing","monotonically decreasing",
-      "online stock span","sum of subarray minimums","maximum width ramp"
-    ],
+    triggers:{
+      problem:["next greater","next smaller","nearest","previous"],
+      constraint:["monotonic","increasing","decreasing"],
+      technique:["monotonic stack","span","histogram","parentheses"],
+      example:["daily temperatures","stock span","largest rectangle","trapping rain","asteroid"]
+    },
     smell:"Ask: <span class='smell-q'>\"For each element, do I need the nearest element that is larger or smaller?\"</span> → Monotonic Stack. Maintain stack in increasing order for 'next greater', decreasing for 'next smaller'. Each element pushed/popped once → O(n).",
     use:"Nearest greater/smaller. Histogram problems. Balanced brackets. Expression evaluation.",
     avoid:"Need global min/max (use heap). Need all pairs (use two pointers on sorted).",
@@ -874,12 +875,12 @@ const PATTERNS = [
     id:"tr", icon:"🌿", title:"Trie / Prefix Tree", sub:"Prefix matching, autocomplete, word search",
     color:"var(--tr)", timeC:"O(L) per op", spaceC:"O(L × N × Σ)",
     badge1:"O(L) OPS", badge2:"PREFIX",
-    triggers:[
-      "prefix","autocomplete","starts with","word search","dictionary",
-      "search suggestions","longest common prefix","replace words",
-      "add and search words","stream of characters","implement trie",
-      "palindrome pairs","maximum XOR","word square","concatenated words"
-    ],
+    triggers:{
+      problem:["prefix matching","autocomplete","dictionary","word search"],
+      constraint:["prefix based","string matching","starts with"],
+      technique:["trie","prefix tree","character node"],
+      example:["implement trie","word search ii","maximum xor","longest prefix","palindrome pairs"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I need to repeatedly search or match strings by their prefix?\"</span> → Trie. Each node = one character. isEnd flag marks complete words. Space is large but operations are O(L).",
     use:"Many prefix-based queries. Autocomplete. Dictionary problems. Multiple string matching.",
     avoid:"Single search (use indexOf). Small fixed word list (use set). No prefix queries needed.",
@@ -894,12 +895,12 @@ const PATTERNS = [
     id:"us", icon:"🔗", title:"Union Find (DSU)", sub:"Dynamic connectivity, component merging",
     color:"var(--us)", timeC:"O(α(n)) ≈ O(1)", spaceC:"O(n)",
     badge1:"NEAR O(1)", badge2:"CONNECTIVITY",
-    triggers:[
-      "connected components","union","find","disjoint","merge groups",
-      "number of components","redundant connection","accounts merge",
-      "friend circles","similar string groups","satisfiability","graph valid tree",
-      "dynamic connectivity","percolation","Kruskal MST","cycle in undirected"
-    ],
+    triggers:{
+      problem:["connected components","merge groups","dynamic connectivity"],
+      constraint:["disjoint sets","cycle detection","same group"],
+      technique:["union find","dsu","path compression","union by rank"],
+      example:["redundant connection","accounts merge","friend circles","number provinces","kruskal"]
+    },
     smell:"Ask: <span class='smell-q'>\"Am I repeatedly merging groups and asking 'are these two in the same group?'\"</span> → Union Find. Faster than BFS/DFS for dynamic connectivity. Use path compression + union by rank.",
     use:"Dynamic connectivity queries. Merging components incrementally. Cycle detection in undirected graphs.",
     avoid:"Need path between nodes (BFS/DFS). Directed graphs (use DFS for cycle). Static graph (BFS/DFS simpler).",
@@ -914,13 +915,12 @@ const PATTERNS = [
     id:"gd", icon:"🎯", title:"Greedy", sub:"Locally optimal choice → globally optimal result",
     color:"var(--gd)", timeC:"O(n log n) typical", spaceC:"O(1) – O(n)",
     badge1:"POLY TIME", badge2:"LOCAL OPTIMAL",
-    triggers:[
-      "minimum number of","maximum number of","intervals","overlapping intervals",
-      "meeting rooms","activity selection","job scheduling","jump game",
-      "gas station","assign cookies","candy","partition labels",
-      "minimum arrows","non-overlapping intervals","earliest deadline first",
-      "always pick the best","locally optimal"
-    ],
+    triggers:{
+      problem:["minimize","maximize","intervals","scheduling"],
+      constraint:["locally optimal","no constraint conflict","greedy choice"],
+      technique:["sort then pick","exchange argument","priority order"],
+      example:["jump game","non-overlapping intervals","gas station","activity selection","candy"]
+    },
     smell:"Ask: <span class='smell-q'>\"If I always make the locally optimal choice (sort by X and pick greedily), does the global optimum follow?\"</span> → Greedy. Prove it with exchange argument. If greedy gives wrong answer on a small example → switch to DP.",
     use:"Locally optimal = globally optimal (provable). Interval problems. Scheduling. Activity selection.",
     avoid:"Local optimum doesn't lead to global (classic DP territory). Can't prove exchange argument.",
@@ -935,13 +935,12 @@ const PATTERNS = [
     id:"ms", icon:"✂️", title:"Divide & Conquer", sub:"Split → solve subproblems → merge results",
     color:"var(--ms)", timeC:"O(n log n)", spaceC:"O(log n) – O(n)",
     badge1:"O(N LOG N)", badge2:"RECURSIVE SPLIT",
-    triggers:[
-      "merge sort","count inversions","closest pair of points",
-      "maximum subarray","Kadane","majority element","kth element",
-      "median of medians","quick select","expression tree","large numbers",
-      "matrix multiplication","convex hull","binary search variants",
-      "split in half","conquer and combine"
-    ],
+    triggers:{
+      problem:["split halves","merge results","closest pair","sort"],
+      constraint:["independent subproblems","efficient merge","master theorem"],
+      technique:["divide conquer","merge sort","recurrence","combine"],
+      example:["merge sorted","count inversions","maximum subarray","median medians","quick select"]
+    },
     smell:"Ask: <span class='smell-q'>\"Can I split this problem into independent halves, solve each, and merge in O(n)?\"</span> → D&C. Master theorem gives complexity. Merge step must be efficient.",
     use:"Problem splits cleanly. Merge step is O(n). Subproblems are independent (unlike DP).",
     avoid:"Subproblems overlap (use DP). Merge step is O(n²) — doesn't save time.",
@@ -956,13 +955,12 @@ const PATTERNS = [
     id:"sg", icon:"🌲", title:"Trees: DFS Traversal Patterns", sub:"Binary trees, BSTs, N-ary trees",
     color:"var(--sg)", timeC:"O(n)", spaceC:"O(h)",
     badge1:"O(N)", badge2:"TREE PROPERTY",
-    triggers:[
-      "binary tree","binary search tree","BST","lowest common ancestor","LCA",
-      "diameter","height","depth","level order","zigzag","right side view",
-      "path sum","root to leaf","serialize deserialize","flatten","validate BST",
-      "inorder successor","balanced tree","symmetric","same tree",
-      "maximum path sum","count nodes","cousins","good nodes"
-    ],
+    triggers:{
+      problem:["binary tree","bst","paths","ancestors","subtree"],
+      constraint:["tree structure","parent child","root leaf"],
+      technique:["dfs","post-order","inorder","preorder","recursion"],
+      example:["maximum path sum","serialize deserialize","lca","diameter","balanced"]
+    },
     smell:"Ask: <span class='smell-q'>\"What information do I need from left subtree + right subtree to answer for the whole tree?\"</span> → Post-order DFS. For BST: use sorted property (inorder = sorted). For paths: pass prefix down, aggregate up.",
     use:"Tree structure. Path problems. BST property exploitation. Aggregating subtree info.",
     avoid:"Need shortest path between arbitrary nodes (use BFS from that node).",
@@ -976,12 +974,12 @@ const PATTERNS = [
     id:"bm", icon:"⚡", title:"Bit Manipulation", sub:"Shifts, masks, XOR tricks, bit patterns",
     color:"#ff85c0", timeC:"O(1) – O(log n)", spaceC:"O(1)",
     badge1:"BIT TRICKS", badge2:"MATH PROPERTY",
-    triggers:[
-      "bit","XOR","AND","OR","shift","mask","power of two","single number",
-      "count set bits","hamming weight","number of 1 bits","missing number",
-      "duplicate number","subset xor","bit flip","bit reversal","gray code",
-      "palindrome number binary","reverse bits"
-    ],
+    triggers:{
+      problem:["bit pattern","binary operation","single element","unique"],
+      constraint:["xor property","and mask","or operation","bit count"],
+      technique:["xor","and","or","shift","bitmask"],
+      example:["single number","counting 1 bits","hamming weight","missing number","gray code"]
+    },
     smell:"Ask: <span class='smell-q'>\"Can I use bit properties (XOR cancels, AND masks, bit count)?\"</span> → Bit Manipulation. XOR is the killer: a ^ a = 0, a ^ 0 = a. Two's complement for negatives.",
     use:"O(1) constant operations. XOR/AND/OR patterns. Flags. Subsets. Counting bits.",
     avoid:"Need complex logic not bit-based. Bit operations obfuscate intent (clarity > clever).",
@@ -996,12 +994,12 @@ const PATTERNS = [
     id:"ll", icon:"🔗", title:"Linked List", sub:"Reversals, cycles, partition, manipulation",
     color:"#8be0ff", timeC:"O(n)", spaceC:"O(1) – O(n)",
     badge1:"O(N)", badge2:"POINTER TRICKS",
-    triggers:[
-      "linked list","reverse","cycle detection","palindrome list","partition",
-      "remove nth","merge sorted lists","reorder list","add two numbers",
-      "intersection","deep copy","rotate list","split linked list",
-      "remove duplicates","LRU cache"
-    ],
+    triggers:{
+      problem:["linked list","reverse","cycle","partition","reorder"],
+      constraint:["in place","no random access","pointer tricks"],
+      technique:["slow fast","two pointer","dummy node","floyd's algorithm"],
+      example:["reverse list","cycle ii","reorder list","merge sorted","lru cache"]
+    },
     smell:"Ask: <span class='smell-q'>\"Can I use two pointers (slow/fast) or reverse in place?\"</span> → Linked List. Slow/fast for cycle detection (Floyd's), two pointers for reverse/partition. Always return dummy node.",
     use:"Reversals. Cycle detection. Partition. In-place manipulation. LRU/LFU caches.",
     avoid:"Random access needed (use array). Sorted set operations (use BST). Heavy modifications (use array).",
@@ -1016,12 +1014,12 @@ const PATTERNS = [
     id:"sa", icon:"📝", title:"String: Advanced (KMP/Rolling Hash)", sub:"Pattern matching, hashing, advanced search",
     color:"#faa2a2", timeC:"O(n+m) – O(n)", spaceC:"O(m)",
     badge1:"O(N+M)", badge2:"STRING SEARCH",
-    triggers:[
-      "pattern match","KMP","rolling hash","rabin karp","z-algorithm",
-      "all occurrences","repeat substring","pattern in string","find the difference",
-      "shortest palindrome","repeated DNA sequence","minimum window substring advance",
-      "word break ii"
-    ],
+    triggers:{
+      problem:["pattern match","substring search","find all","repeat"],
+      constraint:["exact match","efficient search","no naive"],
+      technique:["kmp","rolling hash","rabin karp","z-algorithm"],
+      example:["shortest palindrome","repeated dna","word break ii","stream characters","all occurrences"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I search for a pattern in a string efficiently? KMP for exact matches, rolling hash for substrings.\"</span> → KMP is O(n+m), avoids backtracking. Rolling hash hashes substring in O(1) after precompute.",
     use:"Pattern matching in O(n+m). Finding all occurrences. Repeated substrings. Hash-based comparisons.",
     avoid:"Simple substring search (use indexOf). No pattern matching needed. Only looking for first match.",
@@ -1036,12 +1034,12 @@ const PATTERNS = [
     id:"mt", icon:"🎬", title:"Matrix", sub:"Rotation, spiral, dynamic paths, search",
     color:"#c7a3ff", timeC:"O(m×n)", spaceC:"O(1) – O(m×n)",
     badge1:"2D GRID", badge2:"TRAVERSAL",
-    triggers:[
-      "matrix","rotate matrix","spiral matrix","search in matrix","sorted matrix",
-      "island perimeter","unique paths","dynamic programming matrix",
-      "minimum path sum","number of islands matrix","maze","surrounded regions",
-      "bomb enemy","word search matrix","transform matrix"
-    ],
+    triggers:{
+      problem:["matrix","grid","2d","rotation","spiral"],
+      constraint:["2d structure","position based","layer"],
+      technique:["layer by layer","spiral","dp 2d","traversal"],
+      example:["rotate image","spiral matrix","minimum path sum","unique paths","island"]
+    },
     smell:"Ask: <span class='smell-q'>\"Is this 2D traversal (spiral, layer by layer) or path DP (min cost, unique paths)?\"</span> → Matrix traversal = layer by layer. Matrix DP = dp[i][j] represents optimal from top-left.",
     use:"2D grid traversal. Path DP problems. Search in sorted matrix. In-place rotations.",
     avoid:"1D solution works fine. Need complex state beyond position.",
@@ -1056,12 +1054,12 @@ const PATTERNS = [
     id:"seg", icon:"🏔️", title:"Segment Trees & Fenwick", sub:"Range queries, range updates, efficient aggregation",
     color:"#ffb88c", timeC:"O(log n) per op", spaceC:"O(n)",
     badge1:"O(LOG N)", badge2:"ADVANCED STRUCTURE",
-    triggers:[
-      "range query","range update","segment tree","fenwick tree","BIT",
-      "binary indexed tree","sum of subarray","count of range","point update",
-      "reverse pairs","merge sort tree","coordinate compression",
-      "smallest rectangle"
-    ],
+    triggers:{
+      problem:["range query","point update","aggregation"],
+      constraint:["multiple queries","dynamic data","range based"],
+      technique:["segment tree","fenwick tree","bit tree","binary indexed"],
+      example:["range sum mutable","reverse pairs","count range sum","coordinate compression","smallest rectangle"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I need point updates + range sum queries efficiently? O(log n) per operation?\"</span> → Fenwick tree (simpler, O(log n)). Segment tree for range min/max + range updates.",
     use:"Range sum queries. Point updates. Range min/max. Multiple queries on dynamic data. Very large ranges.",
     avoid:"Static data (just precompute prefix). Small n (loop is fine). Only point queries (no range needed).",
@@ -1076,11 +1074,12 @@ const PATTERNS = [
     id:"lca", icon:"🌲", title:"LCA & Binary Lifting", sub:"Tree paths, lowest common ancestor, path queries",
     color:"#b3e5fc", timeC:"O(log n) binary lift", spaceC:"O(n log n)",
     badge1:"LOG N PATH", badge2:"TREE PATHS",
-    triggers:[
-      "lowest common ancestor","LCA","binary lifting","tree path","path in tree",
-      "distance in tree","kth ancestor","step in tree","node in tree ancestors",
-      "all paths between"
-    ],
+    triggers:{
+      problem:["lowest ancestor","tree path","kth ancestor","distance"],
+      constraint:["multiple queries","efficient","tree only"],
+      technique:["binary lifting","jump pointers","precompute"],
+      example:["lca binary tree","kth ancestor node","jump game iv","all paths between","tree distance"]
+    },
     smell:"Ask: <span class='smell-q'>\"Do I need to find paths between tree nodes efficiently? Multiple LCA queries?\"</span> → Binary lifting precomputes 2^k ancestors. O(n log n) precompute, O(log n) per query.",
     use:"Multiple LCA queries. Kth ancestor queries. Path queries in trees. Avoiding LCA recomputation.",
     avoid:"Single LCA (just traverse up). No path queries needed.",
@@ -1095,11 +1094,12 @@ const PATTERNS = [
     id:"dijkstra", icon:"⚖️", title:"Dijkstra & Bellman-Ford", sub:"Weighted shortest path, negative cycles",
     color:"#81c784", timeC:"O(E log V)", spaceC:"O(V)",
     badge1:"WEIGHTED PATH", badge2:"GREEDY / DP",
-    triggers:[
-      "weighted graph","shortest path weighted","network delay","dijkstra",
-      "cheapest flights","path with maximum probability","minimization cost",
-      "negative weights","bellman ford","negative cycle","cheapest","minimum cost"
-    ],
+    triggers:{
+      problem:["shortest weighted","minimum cost","path weight"],
+      constraint:["weighted graph","no negatives dijkstra","negatives allowed bellman"],
+      technique:["dijkstra","heap greedy","bellman-ford","relaxation"],
+      example:["network delay","cheapest flights","path probability","minimum cost path","all pairs shortest"]
+    },
     smell:"Ask: <span class='smell-q'>\"Are there negative edge weights? If NO → Dijkstra (greedy + heap). If YES → Bellman-Ford (DP).\"</span> → Dijkstra is greedy (pick minimum unvisited). Bellman-Ford relaxes all edges V-1 times.",
     use:"Shortest path in weighted graph. No negative weights (Dijkstra). Negative weights allowed (Bellman-Ford).",
     avoid:"Unweighted (use BFS). All pairs shortest path (Floyd-Warshall). DAG (Topological + DP).",
@@ -1114,11 +1114,12 @@ const PATTERNS = [
     id:"topo", icon:"📊", title:"Topological Sort", sub:"DAG scheduling, dependency resolution, course order",
     color:"#fff59d", timeC:"O(V + E)", spaceC:"O(V)",
     badge1:"DAG ONLY", badge2:"SCHEDULING",
-    triggers:[
-      "topological sort","course schedule","prerequisites","alien dictionary",
-      "build order","dependency resolution","sequence in DAG","all orderings",
-      "graph sequence","valid order","schedule"
-    ],
+    triggers:{
+      problem:["topological order","prerequisites","scheduling","dependency"],
+      constraint:["dag only","no cycles","ordering"],
+      technique:["topological sort","kahn","dfs","indegree","cycle detect"],
+      example:["course schedule","course schedule ii","alien dictionary","build order","valid order"]
+    },
     smell:"Ask: <span class='smell-q'>\"Is this a DAG with dependencies? Can I order nodes such that dependencies come first?\"</span> → Topological sort. Kahn's algorithm (BFS with indegree) or DFS. Cycle = invalid.",
     use:"DAG dependency ordering. Course prerequisites. Build order. Alien dictionary. Valid orderings.",
     avoid:"Cyclic graphs (topological impossible). No ordering constraint needed.",
@@ -1177,21 +1178,31 @@ function renderAll() {
   PATTERNS.forEach(p => {
     if (activeFilter !== 'all' && p.id !== activeFilter) return;
 
-    const allText = [...p.triggers, p.title, p.sub, p.smell, p.use, p.avoid].join(' ').toLowerCase();
+    // Build searchable text from all trigger categories + other fields
+    const triggerTexts = Object.values(p.triggers).flat().join(' ');
+    const allText = `${triggerTexts} ${p.title} ${p.sub} ${p.smell} ${p.use} ${p.avoid}`.toLowerCase();
     if (q && !allText.includes(q)) return;
 
     count++;
-    const matchesTrigger = q && p.triggers.some(t => t.includes(q));
+    
+    // Check if any trigger matches the query
+    const triggerArray = Object.values(p.triggers).flat();
+    const matchesTrigger = q && triggerArray.some(t => t.includes(q));
     const card = document.createElement('div');
     card.className = 'pcard' + (matchesTrigger ? ' search-match' : '');
     if (matchesTrigger) {
       card.style.cssText += `border-color:${HEX[p.id]};box-shadow:0 0 24px ${ha(p.id,0.18)};`;
     }
 
-    const tagsHTML = p.triggers.map(t => {
-      const isMatch = q && t.includes(q);
-      const label = isMatch ? t.replace(new RegExp(`(${q})`, 'gi'), '<mark>$1</mark>') : t;
-      return `<span class="ttag${isMatch ? ' lit' : ''}" style="color:${HEX[p.id]};border-color:${ha(p.id,0.25)};background:${ha(p.id,0.08)}">${label}</span>`;
+    // Build organized trigger categories HTML
+    const categoryLabels = { problem: '🔍 PROBLEM TYPE', constraint: '🔒 CONSTRAINTS', technique: '⚙️  TECHNIQUE', example: '💡 EXAMPLES' };
+    const tagsHTML = Object.entries(p.triggers).map(([category, tags]) => {
+      const categoryHTML = tags.map(t => {
+        const isMatch = q && t.includes(q);
+        const label = isMatch ? t.replace(new RegExp(`(${q})`, 'gi'), '<mark>$1</mark>') : t;
+        return `<span class="ttag${isMatch ? ' lit' : ''}" style="color:${HEX[p.id]};border-color:${ha(p.id,0.25)};background:${ha(p.id,0.08)}">${label}</span>`;
+      }).join('');
+      return `<div class="trigger-category"><div class="category-header">${categoryLabels[category]}</div><div class="category-tags">${categoryHTML}</div></div>`;
     }).join('');
 
     card.innerHTML = `
