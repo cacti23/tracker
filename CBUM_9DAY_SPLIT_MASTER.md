@@ -183,25 +183,23 @@ CBum's weak points (biceps + calves + forearms + glutes) get special intensity t
 
 ---
 
-### DAY 8: HAMSTRINGS, GLUTES & CALVES ✨ (MAJOR RESTRUCTURE + DEADLIFT UPDATE)
+### DAY 8: HAMSTRINGS, GLUTES & CALVES ✨ (OPTIMIZED)
 
 **Focus:** Posterior Chain (Hamstring Priority First)  
-**Volume:** 9 exercises | **37 sets** (↑ from 21)  
-**Notes:** Restructured: Conventional deadlift moved to TOP (heavy compound when CNS fresh). Hip thrusts and cable kickbacks follow. Glutes still trained fresh, hamstrings prioritized. Heavy, explosive, high-soreness stimulus.
+**Volume:** 7 exercises | **28 sets** (↑ from 21)  
+**Notes:** Tightened for sustainability: Conventional deadlift first (heavy, fresh CNS). Hip thrusts + cable kickbacks for glutes. 3 hamstring angles with optimal variety. Single calf finisher. Removed RDL overlap + extra calf work.
 
-| Exercise                           | Sets        | Tag               | Note                                                                                                   |
-| ---------------------------------- | ----------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
-| ⭐ **Conventional Deadlift** 🆕    | **4×6–8**   | **STRAIGHT SETS** | **PRIMARY COMPOUND — hamstring-dominant. Explosive up, controlled down. Heavy weight. Trained FIRST.** |
-| **Barbell Hip Thrust** 🆕          | **4×8–10**  | **STRAIGHT SETS** | **Drive heels, full lockout, 2s pause. Primary glute builder — trained while still fresh.**            |
-| **Cable Kickback (Unilateral)** 🆕 | **3×12–15** | **STRAIGHT SETS** | **Full hip extension, hard squeeze. Glute isolation (still fresh).**                                   |
-| ⭐ Lying Leg Curl                  | 3×10–12     | TRI-SET A         | —                                                                                                      |
-| ⭐ Romanian Deadlift               | 3×8–10      | TRI-SET A         | Full hip hinge — feel hamstring stretch                                                                |
-| Seated Leg Curl                    | 3×10–12     | STRAIGHT SETS     | Different angle vs lying — hits distal hamstring                                                       |
-| Stiff-Leg Deadlift                 | 3×10–12     | STRAIGHT SETS     | —                                                                                                      |
-| Standing Calf Raise                | 3×12–15     | STRAIGHT SETS     | —                                                                                                      |
-| Seated Calf Raise                  | 3×15–20     | STRAIGHT SETS     | Soleus dominant                                                                                        |
+| Exercise                        | Sets        | Tag               | Note                                                                                                   |
+| ------------------------------- | ----------- | ----------------- | ------------------------------------------------------------------------------------------------------ |
+| ⭐ **Conventional Deadlift** 🆕 | **4×6–8**   | **STRAIGHT SETS** | **PRIMARY COMPOUND — hamstring-dominant. Explosive up, controlled down. Heavy weight. Trained FIRST.** |
+| **Barbell Hip Thrust**          | **4×8–10**  | **STRAIGHT SETS** | **Drive heels, full lockout, 2s pause. Primary glute builder — trained while still fresh.**            |
+| **Cable Kickback (Unilateral)** | **3×12–15** | **STRAIGHT SETS** | **Full hip extension, hard squeeze. Glute isolation (still fresh).**                                   |
+| ⭐ Lying Leg Curl               | 3×10–12     | TRI-SET A         | Glute-ham tie-in — great hamstring stretch                                                             |
+| Seated Leg Curl                 | 3×10–12     | STRAIGHT SETS     | Different angle vs lying — hits distal hamstring                                                       |
+| Stiff-Leg Deadlift              | 3×10–12     | STRAIGHT SETS     | Straight-leg hip hinge — full hamstring engagement                                                     |
+| Standing Calf Raise             | 3×12–15     | STRAIGHT SETS     | —                                                                                                      |
 
-**What Changed:** Conventional deadlift moved to position 1 (priority). Hip thrusts/kickbacks follow. Hamstrings have heavy compound + volume work. Total volume +16 sets. Maximum soreness/engagement on hamstrings.
+**What Changed:** Removed Romanian Deadlift (overlap with Conv Deadlift + SLDL) and Seated Calf Raise (overkill). Now 7 exercises, 28 sets. Cleaner, more sustainable, better recovery. Still hits all hamstring angles + heavy compound + glutes.
 
 ---
 
@@ -216,23 +214,23 @@ CBum's weak points (biceps + calves + forearms + glutes) get special intensity t
 
 ### Changes Made: 4 Strategic Updates
 
-| Day       | Change              | Exercises           | Sets         | Impact                      |
-| --------- | ------------------- | ------------------- | ------------ | --------------------------- |
-| 6         | Forearm finisher    | +2 new              | +6 sets      | Lagging muscle focus        |
-| 7         | Shoulder finisher   | +1 new              | +3 sets      | 2nd delt stimulus           |
-| 8         | Glute + Ham upgrade | +3 new + reposition | +16 sets     | Maximum soreness/engagement |
-| **TOTAL** | **All 4 updates**   | **+6 exercises**    | **+25 sets** | **Justified**               |
+| Day       | Change              | Exercises          | Sets         | Impact                       |
+| --------- | ------------------- | ------------------ | ------------ | ---------------------------- |
+| 6         | Forearm finisher    | +2 new             | +6 sets      | Lagging muscle focus         |
+| 7         | Shoulder finisher   | +1 new             | +3 sets      | 2nd delt stimulus            |
+| 8         | Hamstring optimized | +3 new, -2 removed | +7 sets      | Heavy compound + lean volume |
+| **TOTAL** | **All 4 updates**   | **+4 exercises**   | **+16 sets** | **Sustainable**              |
 
 ### Original → Updated Program
 
 | Metric              | Original | Updated | Change     |
 | ------------------- | -------- | ------- | ---------- |
-| Total Exercises     | 56       | 62      | +6 (+11%)  |
-| Total Sets/Cycle    | 161      | 186     | +25 (+16%) |
+| Total Exercises     | 56       | 60      | +4 (+7%)   |
+| Total Sets/Cycle    | 161      | 177     | +16 (+10%) |
 | Forearms Frequency  | 0×       | 1×      | NEW        |
 | Shoulders Frequency | 1×       | 2×      | DOUBLED    |
 | Glute Sets          | 3        | 7       | +133%      |
-| Hamstring Sets      | 9        | 17      | +89%       |
+| Hamstring Sets      | 9        | 13      | +44%       |
 
 ---
 
@@ -244,38 +242,44 @@ CBum's weak points (biceps + calves + forearms + glutes) get special intensity t
 
 1. **Programming Hierarchy Respected**
    - Compound → Isolation → Finisher sequencing
-   - Heavy compounds when fresh (hip thrusts, conventional deadlifts)
-   - Finishers after primary work (forearms, laterals)
+   - Heavy compounds when fresh (conventional deadlifts, hip thrusts)
+   - Finishers after primary work (forearms, laterals, calf raises)
 
-2. **Maximum Hypertrophy Stimulus on Hamstrings**
-   - Now 17 sets vs 9 sets (+89% volume)
-   - Heavy compound (Conventional Deadlift) + volume work (curls, RDL, SLDL)
-   - Multiple angles: hip hinge (RDL), glute-ham (lying curl), shortened range (seated curl), straight leg (SLDL)
-   - **Result: Maximum soreness, engagement, and hypertrophy**
+2. **Optimal Hamstring Stimulus with Sustainability**
+   - Now 13 sets vs 9 sets (+44% volume, not overkill)
+   - Heavy compound (Conventional Deadlift) + 3 angle variations (lying curl, seated curl, SLDL)
+   - Multiple angles: glute-ham tie-in (lying), distal hamstring (seated), full extension (SLDL)
+   - **Result: Complete hamstring development without overtraining**
 
-3. **Lagging Muscle Strategy**
+3. **Smarter Exercise Selection**
+   - Removed Romanian Deadlift (redundant with Conv Deadlift + SLDL)
+   - Removed Seated Calf Raise (overloaded calf training per cycle)
+   - Kept variety where it matters (3 distinct hamstring angles)
+
+4. **Lagging Muscle Strategy**
    - Forearms: 0× → 1× (direct work with full ROM)
    - Lateral Delts: 1× → 2× (high-value weak point)
    - Glutes: 3 sets → 7 sets (priority elevation)
-   - Hamstrings: 9 sets → 17 sets (major weak point addressed)
+   - Hamstrings: 9 sets → 13 sets (meaningful increase, sustainable)
 
-4. **Recovery Management**
-   - Only +16% volume increase (very manageable over full cycle)
-   - Strategic exercise sequencing (heavy compound first)
-   - Conventional deadlift can be reduced if recovery lags
-   - Finisher placement minimizes fatigue interference
+5. **Recovery Management**
+   - Only +10% total volume increase (very manageable)
+   - Strategic exercise sequencing (heavy compound first, fresh CNS)
+   - Leaner Day 8 = faster recovery between sessions
+   - Can scale up if adaptation is good
 
-5. **Technical Execution**
+6. **Technical Execution**
    - Form cues provided (e.g., "explosive up, controlled eccentric")
    - Troubleshooting included (hip thrust feet position)
    - Extended ROM emphasized throughout
-   - Deadlift: "Heavy weight, full engagement" instruction
+   - Each exercise serves a distinct purpose (no overlap)
 
-6. **Alignment with CBum Principles**
+7. **Alignment with CBum Principles**
    - ✅ Double progression maintained (track deadlift weight progression)
    - ✅ Extended ROM on all exercises (full hamstring stretch at bottom)
    - ✅ Mind-muscle connection emphasized (feel hamstring engagement)
-   - ✅ Strategic sequencing respected (compounds fresh)
+   - ✅ Strategic sequencing respected (compounds fresh, isolations secondary)
+   - ✅ **Efficiency principle** — no wasted exercises
 
 ---
 
@@ -368,18 +372,18 @@ Why Week 3?
 
 ## 📈 Muscle Group Frequency Per Cycle
 
-| Muscle Group | Original     | Updated         | Change         |
-| ------------ | ------------ | --------------- | -------------- |
-| Chest        | 3×           | 3×              | —              |
-| Back         | 3×           | 3×              | —              |
-| Biceps       | 4×           | 4×              | —              |
-| Triceps      | 4×           | 4×              | —              |
-| Shoulders    | 1× (19 sets) | 2× (22 sets)    | +1 stimulus    |
-| Quads        | 1×           | 1×              | —              |
-| Hamstrings   | 1× (9 sets)  | 1× (17 sets)    | +8 sets (+89%) |
-| Glutes       | 1× (3 sets)  | 1× (7 sets)     | +4 sets        |
-| **Forearms** | **0×**       | **1× (6 sets)** | **NEW**        |
-| Calves       | 3×           | 3×              | —              |
+| Muscle Group | Original     | Updated         | Change          |
+| ------------ | ------------ | --------------- | --------------- |
+| Chest        | 3×           | 3×              | —               |
+| Back         | 3×           | 3×              | —               |
+| Biceps       | 4×           | 4×              | —               |
+| Triceps      | 4×           | 4×              | —               |
+| Shoulders    | 1× (19 sets) | 2× (22 sets)    | +1 stimulus     |
+| Quads        | 1×           | 1×              | —               |
+| Hamstrings   | 1× (9 sets)  | 1× (13 sets)    | +4 sets (+44%)  |
+| Glutes       | 1× (3 sets)  | 1× (7 sets)     | +4 sets (+133%) |
+| **Forearms** | **0×**       | **1× (6 sets)** | **NEW**         |
+| Calves       | 3×           | 3×              | —               |
 
 ---
 
