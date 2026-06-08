@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>5-Day Upper/Lower Split · Rambod Protocol</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>💪</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070710;
+      --surface: #0f0f1a;
+      --surface2: #18182a;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-sub: rgba(255, 255, 255, 0.04);
+      --text: #dde0ee;
+      --text-muted: #77778a;
+      --text-faint: #44445a;
+      --text-faintest: #33334a;
+      --tab-row: #0f0f1a;
+      --tab-active: #1a1a2a;
+      --tab-inactive: transparent;
+      --tab-text-active: #dde0ee;
+      --tab-text-inactive: #44445a;
+      --accent: #e05a2b;
+      --stats-row: #0f0f1a;
+      --note-bg: rgba(0, 0, 0, 0.3);
+      --sets-chip: #18182a;
+      --sets-text: #666680;
+      --divider: rgba(255, 255, 255, 0.05);
+      --toggle-bg: #1a1a2a;
+      --toggle-border: rgba(255, 255, 255, 0.1);
+      --heading-color: #ffffff;
+      --sub-heading-color: #333350;
+      --shadow: none;
+      --rest-text: #33334a;
+      --priority-color: #ffffff;
+      --normal-color: #77778a;
+      --note-color: #55556a;
+      --alt-bg: rgba(22, 163, 74, 0.08);
+      --alt-border: rgba(22, 163, 74, 0.25);
+      --alt-text: #4ade80;
+      --checkbox-border: rgba(255,255,255,0.18);
+      --notes-bg: #0f0f1a;
+      --variant-active: #e05a2b;
+      --variant-inactive: #44445a;
+    }
+
+    [data-theme="light"] {
+      --bg: #f2f2f7;
+      --surface: #ffffff;
+      --surface2: #ebebf0;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-sub: rgba(0, 0, 0, 0.05);
+      --text: #1a1a28;
+      --text-muted: #555568;
+      --text-faint: #999aaa;
+      --text-faintest: #bbbbcc;
+      --tab-row: #e4e4ec;
+      --tab-active: #ffffff;
+      --tab-inactive: transparent;
+      --tab-text-active: #1a1a28;
+      --tab-text-inactive: #aaaabc;
+      --accent: #e05a2b;
+      --stats-row: #ffffff;
+      --note-bg: rgba(0, 0, 0, 0.03);
+      --sets-chip: #ebebf0;
+      --sets-text: #888899;
+      --divider: rgba(0, 0, 0, 0.06);
+      --toggle-bg: #ffffff;
+      --toggle-border: rgba(0, 0, 0, 0.1);
+      --heading-color: #111122;
+      --sub-heading-color: #c0c0d0;
+      --shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+      --rest-text: #bbbbcc;
+      --priority-color: #111122;
+      --normal-color: #666678;
+      --note-color: #9999aa;
+      --alt-bg: rgba(22, 163, 74, 0.06);
+      --alt-border: rgba(22, 163, 74, 0.2);
+      --alt-text: #16a34a;
+      --checkbox-border: rgba(0,0,0,0.18);
+      --notes-bg: #ffffff;
+      --variant-active: #e05a2b;
+      --variant-inactive: #888899;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      transition: background 0.3s, color 0.3s;
+      padding-bottom: 2rem;
+    }
+    .glow-layer {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 55% 35% at 15% 8%, rgba(224,90,43,0.08) 0%, transparent 65%),
+                  radial-gradient(ellipse 45% 35% at 85% 85%, rgba(14,165,233,0.06) 0%, transparent 65%);
+      transition: background 0.3s;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 16px 120px; position: relative; z-index: 1; padding-top: max(32px, env(safe-area-inset-top)); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: max(120px, calc(120px + env(safe-area-inset-bottom))); }
+    .header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap; margin-bottom: 36px;
+      border-left: 3px solid var(--accent); padding-left: 20px;
+    }
+    .header-mono { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+    .header-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px,9vw,82px); line-height: 0.88; color: var(--heading-color); }
+    .header-title span { color: var(--accent); }
+    .header-sub { font-family: 'Bebas Neue', sans-serif; font-size: clamp(18px,4vw,32px); color: var(--sub-heading-color); letter-spacing: 0.06em; margin-top: 4px; }
+    .header-desc { margin-top: 10px; font-size: 13px; color: var(--text-muted); font-weight: 300; }
+    .toggle-btn {
+      cursor: pointer; border: 1px solid var(--toggle-border); background: var(--toggle-bg);
+      border-radius: 8px; padding: 10px 14px; color: var(--text-muted);
+      font-size: 12px; font-family: 'DM Mono', monospace; letter-spacing: 0.07em;
+      flex-shrink: 0; margin-top: 8px; transition: all 0.2s; display: flex; align-items: center; gap: 7px;
+      box-shadow: var(--shadow); min-height: 44px; min-width: 44px;
+    }
+    .toggle-btn:hover { opacity: 0.8; }
+    .stats-bar {
+      display: flex; gap: 1px; margin-bottom: 32px; background: rgba(255,255,255,0.03);
+      border-radius: 10px; overflow: hidden; transition: background 0.3s;
+    }
+    .stat-item { flex: 1; background: var(--stats-row); padding: 13px 8px; text-align: center; }
+    .stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); line-height: 1; }
+    .stat-label { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 3px; }
+    .tab-row { display: flex; gap: 2px; margin-bottom: 28px; background: var(--tab-row); border-radius: 8px; padding: 3px; }
+    .tab-btn {
+      flex: 1; padding: 10px 8px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      letter-spacing: 0.03em; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif;
+      transition: all 0.2s; border-bottom: 2px solid transparent; min-height: 42px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .tab-btn.active { background: var(--tab-active); color: var(--tab-text-active); border-bottom-color: var(--accent); }
+    .tab-btn.inactive { background: var(--tab-inactive); color: var(--tab-text-inactive); }
+    .section-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text-faint); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .section-label .line { flex: 1; height: 1px; background: var(--divider); }
+    .day-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 600px) { .day-grid { grid-template-columns: repeat(2, 1fr); } }
+    .day-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; cursor: pointer; box-shadow: var(--shadow);
+      transition: transform 0.15s, box-shadow 0.15s, background 0.3s;
+    }
+    .day-card:hover { transform: translateY(-2px); }
+    .day-card.rest { cursor: default; opacity: 0.6; }
+    .day-card.rest:hover { transform: none; }
+    .day-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border-sub); display: flex; align-items: center; gap: 10px; }
+    .day-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-faintest); }
+    .day-tag { font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 0.04em; flex: 1; }
+    .day-ex-count { font-size: 9px; color: var(--text-faint); background: var(--surface2); padding: 2px 7px; border-radius: 3px; font-family: 'DM Mono', monospace; }
+    .rest-msg { padding: 14px 16px; font-size: 12px; color: var(--rest-text); font-style: italic; }
+    .day-card-body { padding: 10px 16px 14px; }
+    .ex-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border-sub); }
+    .ex-name { font-size: 12px; }
+    .ex-name.priority { color: var(--priority-color); font-weight: 600; }
+    .ex-name.normal { color: var(--normal-color); }
+    .ex-sets { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-faint); white-space: nowrap; }
+    .more-ex { font-size: 11px; color: var(--text-faintest); margin-top: 6px; font-family: 'DM Mono', monospace; }
+    .back-btn {
+      cursor: pointer; background: none; border: none; font-family: 'DM Mono', monospace;
+      font-size: 12px; letter-spacing: 0.12em; display: flex; align-items: center; gap: 6px;
+      padding: 12px 8px; margin: 0 -8px 20px; color: var(--text-faint); transition: opacity 0.15s; min-height: 44px;
+    }
+    .back-btn:hover { opacity: 0.6; }
+    .expanded-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+    .expanded-header { padding: 22px 26px; border-bottom: 1px solid var(--border-sub); }
+    .expanded-day-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-faint); margin-bottom: 6px; }
+    .expanded-day-tag { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.04em; line-height: 1; }
+    .expanded-notes { margin-top: 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.6; background: var(--note-bg); padding: 10px 14px; border-radius: 6px; border-left: 2px solid; }
+    .expanded-ex { padding: 12px 26px; display: flex; align-items: flex-start; gap: 14px; border-bottom: 1px solid var(--border-sub); }
+    .expanded-ex:last-child { border-bottom: none; }
+    .expanded-ex-left { flex: 1; }
+    .ex-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .ex-checkbox {
+      width: 28px; height: 28px; border: 2px solid var(--checkbox-border); border-radius: 4px;
+      background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; margin-right: 4px;
+    }
+    .ex-checkbox.checked { background: var(--accent); border-color: var(--accent); }
+    .ex-checkbox.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: bold; }
+    .expanded-ex-name { font-size: 14px; }
+    .expanded-ex-name.priority { font-weight: 600; color: var(--text); }
+    .expanded-ex-name.normal { font-weight: 400; color: var(--text-muted); }
+    .tag-chip { font-size: 9px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; border: 1px solid; display: inline-block; }
+    .ex-note-inline { font-size: 11px; color: var(--note-color); font-style: italic; }
+    .ex-sets-chip { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--sets-text); background: var(--sets-chip); padding: 8px 12px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; min-height: 40px; display: flex; align-items: center; }
+    .variant-header {
+      font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer;
+      padding: 10px 0; display: flex; align-items: center; gap: 6px; user-select: none; margin-top: 8px;
+    }
+    .variant-header::before { content: '▼'; font-size: 10px; transition: transform 0.2s; }
+    .variant-header.collapsed::before { transform: rotate(-90deg); }
+    .variant-content { max-height: 500px; overflow: hidden; transition: all 0.3s ease; }
+    .variant-content.collapsed { max-height: 0; padding: 0; }
+    .variant-sets {
+      background: var(--surface2); border-left: 2px solid var(--variant-inactive);
+      padding: 8px 12px; border-radius: 4px; margin-top: 6px; margin-bottom: 8px;
+    }
+    .ex-tracking { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .set-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 10px; }
+    @media (max-width: 480px) { .set-row { grid-template-columns: 1fr; gap: 6px; margin-bottom: 12px; } }
+    .set-num { font-size: 11px; color: var(--text-faint); font-family: 'DM Mono', monospace; font-weight: 600; }
+    .track-input { font-size: 14px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Mono', monospace; min-height: 44px; }
+    .track-input::placeholder { color: var(--text-faint); }
+    .track-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+    .set-actions { display: flex; gap: 6px; }
+    .set-btn { font-size: 12px; padding: 8px 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; min-height: 40px; }
+    .set-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+    .ex-notes-field { font-size: 11px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Sans', sans-serif; resize: none; min-height: 35px; }
+    .ex-notes-field:focus { outline: none; border-color: var(--accent); }
+    .pr-indicator { color: #fbbf24; font-size: 13px; margin-left: 4px; font-weight: 600; }
+    .set-best { font-size: 9px; color: var(--text-faint); margin-top: 2px; font-family: 'DM Mono', monospace; }
+    .notes-area { width: 100%; margin-top: 14px; padding: 10px 14px; background: var(--notes-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; resize: vertical; min-height: 60px; }
+    .principles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 10px; margin-bottom: 24px; }
+    .principle-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; border-left: 3px solid var(--accent); box-shadow: var(--shadow); }
+    .principle-icon-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .principle-icon { font-size: 18px; }
+    .principle-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+    .principle-text { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+    @media (max-width: 768px) {
+      .expanded-ex { flex-direction: column; padding: 16px 14px; }
+      .expanded-ex-left { width: 100%; }
+      .ex-tracking { gap: 12px; }
+      .container { padding: 24px 14px 120px; }
+      .expanded-header { padding: 18px 14px; }
+      .expanded-ex-name { font-size: 15px; }
+      .day-card-header { padding: 14px 12px; }
+      .day-card-body { padding: 12px 12px; }
+      .expanded-notes { font-size: 13px; padding: 12px 14px; }
+      .header { margin-bottom: 24px; }
+    }
+    @media (max-width: 480px) {
+      .header { gap: 12px; flex-direction: column; }
+      .header-title { font-size: clamp(36px, 8vw, 52px); }
+      .header-sub { font-size: clamp(14px, 3vw, 20px); }
+      .expanded-day-tag { font-size: 28px; }
+      .stat-value { font-size: 20px; }
+      .stat-label { font-size: 9px; }
+      .stat-item { padding: 12px 6px; }
+      .expanded-header { padding: 16px 12px; }
+      .expanded-ex { padding: 14px 12px; }
+      .container { padding: 20px 12px 120px; }
+      .section-label { font-size: 10px; margin-bottom: 14px; }
+      .notes-area { padding: 10px; font-size: 14px; }
+      .principles-grid { grid-template-columns: 1fr; gap: 12px; }
+      .principle-card { padding: 16px 14px; }
+      .ex-tracking { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="glow-layer"></div>
+<div class="container" id="app">
+  <div class="header">
+    <div>
+      <div class="header-mono">Henry Rambod · 5-Day Elite Hypertrophy</div>
+      <div class="header-title">MAXIMUM <span>ROI</span></div>
+      <div class="header-sub">SUPERSETS · FST-7 FINISHERS · METABOLIC STRESS · MAXIMUM PUMP</div>
+      <div class="header-desc">0-rest supersets (agonist-antagonist) · 7×15–20 FST-7 finishers per day · 3s eccentric = peak hypertrophy</div>
+    </div>
+    <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()">
+      <span id="toggleIcon">☀️</span> <span id="toggleLabel">Light mode</span>
+    </button>
+  </div>
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="tab-row" id="tabRow"></div>
+  <div id="contentArea"></div>
+</div>
+
+<script>
+(function() {
+  const days = [
+    {
+      num: "01",
+      tag: "CHEST (UPPER PRIORITY)",
+      focus: "3D Chest Development for Tall Frame",
+      type: "chest",
+      color: "#0ea5e9",
+      notes: "Incline FIRST (upper chest = fullness). Superset antagonist. FST-7 finisher low-to-high cable for upper chest emphasis. 3s eccentric on all reps.",
+      exercises: [
+        {
+          name: "⭐ PRIORITY: Incline Barbell Press",
+          sets: "4 × 6–8",
+          tag: "COMPOUND-PRIORITY",
+          priority: true,
+          note: "Upper chest first when fresh. Full ROM, 3s eccentric. This builds the 3D look tall guys need.",
+          variants: [
+            { name: "Incline Dumbbell Press", sets: "4 × 6–8", note: "Greater ROM, stabilizer demand" },
+            { name: "Machine Incline Press", sets: "4 × 6–8", note: "Locked path" }
+          ]
+        },
+        {
+          name: "⭐ SUPERSET: Flat Dumbbell Press",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Full ROM, explosive—NO REST, go to pulldown",
+          variants: [
+            { name: "Barbell Bench Press", sets: "3 × 8–10", note: "More stability" },
+            { name: "Machine Chest Press", sets: "3 × 8–10", note: "Locked path" }
+          ]
+        },
+        {
+          name: "⭐ SUPERSET PAIR: Lat Pulldown or Weighted Pullup",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Immediately after press (0 rest). Back contracts = chest stretches recovery.",
+          variants: [
+            { name: "Machine Lat Pulldown", sets: "3 × 8–10", note: "Consistent resistance" },
+            { name: "Assisted Pullups", sets: "3 × 8–10", note: "Full ROM stretch" }
+          ]
+        },
+        {
+          name: "Incline Cable Fly",
+          sets: "3 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Upper chest stretch, constant tension",
+          variants: [
+            { name: "Incline Dumbbell Fly", sets: "3 × 12–15", note: "Greater ROM" },
+            { name: "Machine Incline Fly", sets: "3 × 12–15", note: "Stable" }
+          ]
+        },
+        {
+          name: "Pec Deck or Cable Crossover",
+          sets: "2 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Mid-chest pump (reduced to save energy for FST-7 quality)",
+          variants: [
+            { name: "Cable Crossover", sets: "2 × 12–15", note: "Constant resistance" },
+            { name: "Machine Pec Deck", sets: "2 × 12–15", note: "Stable ROM" }
+          ]
+        },
+        {
+          name: "⭐ FST-7 FINISHER: Cable Fly (Low to High)",
+          sets: "7 × 15–20",
+          tag: "FST7-FINISHER",
+          priority: false,
+          note: "7 sets, 30s rest. Upper chest bias (low cable to high finish). Massive pump + fascia stretch.",
+          variants: [
+            { name: "High to Low Cable Fly", sets: "7 × 15–20", note: "Lower chest bias" }
+          ]
+        },
+        {
+          name: "Cable Face Pull (Shoulder Health)",
+          sets: "2 × 15–20",
+          tag: "SHOULDER-HEALTH",
+          priority: false,
+          note: "Rear delt + external rotators. Injury prevention after pressing. Squeeze rear delts.",
+          variants: [
+            { name: "Resistance Band Face Pull", sets: "2 × 15–20", note: "Progressive resistance" },
+            { name: "Machine Rear Delt", sets: "2 × 15–20", note: "Locked ROM" }
+          ]
+        },
+        {
+          name: "Rope Pushdown (Tricep Finisher)",
+          sets: "3 × 15–20",
+          tag: "TRICEP-FINISHER",
+          priority: false,
+          note: "Tricep flush after pressing. Constant tension, metabolic stress. No failure.",
+          variants: [
+            { name: "V-Bar Pushdown", sets: "3 × 15–20", note: "Locked grip" },
+            { name: "Straight Bar Pushdown", sets: "3 × 15–20", note: "Classic variation" }
+          ]
+        },
+        {
+          name: "Light Leg Activation",
+          sets: "2 × 15–20",
+          tag: "LEG-ACTIVATION",
+          priority: false,
+          note: "Light pump—no fatigue for Saturday",
+          variants: [
+            { name: "Seated Calf Raise", sets: "2 × 15–20", note: "Soleus focus" }
+          ]
+        }
+      ]
+    },
+    {
+      num: "02",
+      tag: "BACK + DEADLIFT (THICKNESS)",
+      focus: "Rear Chain & V-Taper Width",
+      type: "back",
+      color: "#16a34a",
+      notes: "Deadlift FIRST for thickness (Rambod protocol). Superset = no rest. Pullover for serratus stretch. FST-7 lat pulldown for width. 3s eccentric.",
+      exercises: [
+        {
+          name: "⭐ PRIORITY: Conventional or Romanian Deadlift",
+          sets: "4 × 5–8",
+          tag: "COMPOUND-PRIORITY",
+          priority: true,
+          note: "Back thickness is critical. Full lockout, explosive drive. Hypertrophy-balanced rep range (better TUT than 4-6).",
+          variants: [
+            { name: "Romanian Deadlift", sets: "4 × 6–8", note: "Hamstring emphasis, safer on knees" },
+            { name: "Trap Bar Deadlift", sets: "4 × 5–6", note: "More quad, spine neutral" }
+          ]
+        },
+        {
+          name: "⭐ SUPERSET: Barbell Bent-Over Row",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Explosive drive, 3s eccentric—NO REST, go to pullup",
+          variants: [
+            { name: "Seal Row (chest-supported)", sets: "3 × 8–10", note: "Zero momentum, strict" },
+            { name: "T-Bar Row", sets: "3 × 8–10", note: "Mid-back emphasis" }
+          ]
+        },
+        {
+          name: "⭐ SUPERSET PAIR: Weighted Pullup or Lat Pulldown",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Immediately after rows (0 rest). Vertical pull complements horizontal. Full ROM stretch.",
+          variants: [
+            { name: "Machine Lat Pulldown", sets: "3 × 8–10", note: "Consistent resistance" },
+            { name: "Assisted Pullups", sets: "3 × 8–10", note: "Full ROM, peak stretch" }
+          ]
+        },
+        {
+          name: "Dumbbell Pullover",
+          sets: "3 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Serratus + lat insertion stretch. Creates V-taper for tall guys.",
+          variants: [
+            { name: "Barbell Pullover", sets: "3 × 12–15", note: "Locked grip" },
+            { name: "Machine Pullover", sets: "3 × 12–15", note: "Most stable" }
+          ]
+        },
+        {
+          name: "Cable or Machine Row (Close Grip)",
+          sets: "3 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Mid-back detail, constant tension",
+          variants: [
+            { name: "Single-Arm Dumbbell Row", sets: "3 × 12–15", note: "Rotation, core" },
+            { name: "Seal Row", sets: "3 × 12–15", note: "Strict form" }
+          ]
+        },
+        {
+          name: "⭐ FST-7 FINISHER: Machine Lat Pulldown",
+          sets: "7 × 15–20",
+          tag: "FST7-FINISHER",
+          priority: false,
+          note: "7 sets, 30s rest. Lat width, fascia stretch. Last 2 sets to failure.",
+          variants: [
+            { name: "Cable Lat Pulldown FST-7", sets: "7 × 15–20", note: "Constant tension" }
+          ]
+        },
+        {
+          name: "Light Leg Extension",
+          sets: "2 × 12–15",
+          tag: "LEG-ACTIVATION",
+          priority: false,
+          note: "Light pump—no fatigue carryover",
+          variants: [
+            { name: "Light Leg Press", sets: "2 × 12–15", note: "Minimal fatigue" }
+          ]
+        }
+      ]
+    },
+    {
+      num: "03",
+      tag: "SHOULDERS (3D FOCUS)",
+      focus: "Delt Roundness & Rear Chain Priority",
+      type: "shoulders",
+      color: "#9333ea",
+      notes: "Rear delts PRIORITY = 4 dedicated sets early (not afterthought). Creates 3D look from all angles. Press + upright = antagonist pairs. FST-7 laterals for width.",
+      exercises: [
+        {
+          name: "⭐ SUPERSET: Seated Dumbbell Press",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Front + side delt, explosive—NO REST, go to upright row",
+          variants: [
+            { name: "Barbell Military Press", sets: "3 × 8–10", note: "More stability" },
+            { name: "Machine Shoulder Press", sets: "3 × 8–10", note: "Locked path" }
+          ]
+        },
+        {
+          name: "⭐ SUPERSET PAIR: Cable Upright Row",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Immediately after press (0 rest). Trap + side delt activation. Cable safer than barbell (external rotation).",
+          variants: [
+            { name: "Barbell Upright Row", sets: "3 × 8–10", note: "More stability, higher risk" },
+            { name: "Dumbbell Upright Row", sets: "3 × 8–10", note: "Independent arms" }
+          ]
+        },
+        {
+          name: "⭐ PRIORITY: Reverse Pec Deck or Machine Rear Delt Flye",
+          sets: "4 × 12–15",
+          tag: "REAR-DELT-PRIORITY",
+          priority: true,
+          note: "4 DEDICATED SETS (not superset filler). Rear delts = 3D look. High reps, constant tension.",
+          variants: [
+            { name: "Cable Rear Delt Fly", sets: "4 × 12–15", note: "Constant resistance" },
+            { name: "Dumbbell Reverse Fly", sets: "4 × 12–15", note: "Unilateral control" }
+          ]
+        },
+        {
+          name: "Cable Rear Delt Fly (Secondary Angle)",
+          sets: "3 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Different angle, squeeze top for width",
+          variants: [
+            { name: "Machine Rear Delt", sets: "3 × 12–15", note: "Locked ROM" },
+            { name: "Band Rear Delt Fly", sets: "3 × 12–15", note: "Progressive resistance" }
+          ]
+        },
+        {
+          name: "Machine Lateral Raise",
+          sets: "2 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Side delt width (reduced to save energy for FST-7). Pause 1s top.",
+          variants: [
+            { name: "Dumbbell Lateral Raise", sets: "2 × 12–15", note: "Full ROM" },
+            { name: "Cable Lateral Raise", sets: "2 × 12–15", note: "Constant tension" }
+          ]
+        },
+        {
+          name: "⭐ FST-7 FINISHER: Machine Cable Lateral Raise",
+          sets: "7 × 15–20",
+          tag: "FST7-FINISHER",
+          priority: false,
+          note: "7 sets, 30s rest. Maximum delt roundness. Last 2 sets to failure.",
+          variants: [
+            { name: "Dumbbell FST-7 Laterals", sets: "7 × 15–20", note: "Manual version" }
+          ]
+        },
+        {
+          name: "Barbell Shrug",
+          sets: "3 × 12–15",
+          tag: "FINISHER",
+          priority: false,
+          note: "Trap peak, 2s pause at top",
+          variants: [
+            { name: "Dumbbell Shrug", sets: "3 × 12–15", note: "Greater ROM" },
+            { name: "Machine Shrug", sets: "3 × 12–15", note: "Locked path" }
+          ]
+        }
+      ]
+    },
+    {
+      num: "04",
+      tag: "ARMS + FOREARMS (COMPLETE)",
+      focus: "Bicep Peak & Brachialis Push",
+      type: "arms",
+      color: "#f59e0b",
+      notes: "Bicep + Tricep supersets (0 rest). Brachialis work (hammer curls) pushes bicep up. Forearm work (reverse curls + wrist curls) for visible arms. FST-7 bicep peak finisher.",
+      exercises: [
+        {
+          name: "⭐ SUPERSET: EZ-Bar Curl",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Bicep mass, explosive—NO REST, go to skull crushers",
+          variants: [
+            { name: "Barbell Curl", sets: "3 × 8–10", note: "Full ROM, stabilizers" },
+            { name: "Dumbbell Curl", sets: "3 × 8–10", note: "Supination emphasis" }
+          ]
+        },
+        {
+          name: "⭐ SUPERSET PAIR: Skull Crusher or Rope Cable Pushdown",
+          sets: "3 × 8–10",
+          tag: "COMPOUND-SUPERSET",
+          priority: true,
+          note: "Immediately after curls (0 rest). Tricep mass. Biceps stretch while triceps work.",
+          variants: [
+            { name: "Machine Dips", sets: "3 × 8–10", note: "Full ROM, assisted" },
+            { name: "Dumbbell Overhead Extension", sets: "3 × 8–10", note: "Peak stretch" }
+          ]
+        },
+        {
+          name: "⭐ BRACHIALIS FOCUS: Hammer Curl",
+          sets: "3 × 12–15",
+          tag: "BRACHIALIS-PRIORITY",
+          priority: true,
+          note: "Sits under bicep. When developed = bicep looks taller + more peaked. Constant tension.",
+          variants: [
+            { name: "Cross-Body Hammer Curl", sets: "3 × 12–15", note: "Greater ROM" },
+            { name: "Machine Hammer Curl", sets: "3 × 12–15", note: "Locked ROM" }
+          ]
+        },
+        {
+          name: "SUPERSET PAIR: Rope Tricep Pushdown",
+          sets: "3 × 12–15",
+          tag: "PUMP-SUPERSET",
+          priority: false,
+          note: "Immediately after hammer curls (0 rest). Squeeze, constant tension.",
+          variants: [
+            { name: "V-Bar Pushdown", sets: "3 × 12–15", note: "Locked path" },
+            { name: "Straight Bar Pushdown", sets: "3 × 12–15", note: "Classic" }
+          ]
+        },
+        {
+          name: "⭐ TRI-SET: Overhead Cable Extension",
+          sets: "3 × 10–12",
+          tag: "TRICEP-TRI-SET",
+          priority: true,
+          note: "Long head stretch + peak contraction. Trains tricep long head (largest portion).",
+          variants: [
+            { name: "Dumbbell Overhead Extension", sets: "3 × 10–12", note: "Greater ROM" },
+            { name: "Machine Overhead Extension", sets: "3 × 10–12", note: "Locked path" }
+          ]
+        },
+        {
+          name: "TRI-SET PAIR: Machine Dips or V-Bar Dips",
+          sets: "3 × 10–12",
+          tag: "TRICEP-TRI-SET",
+          priority: false,
+          note: "Immediately after overhead ext (0 rest). Lateral head emphasis. Full ROM.",
+          variants: [
+            { name: "Weighted Parallel Bar Dips", sets: "3 × 10–12", note: "Bodyweight dips if too hard" },
+            { name: "Machine Dip Machine", sets: "3 × 10–12", note: "Assisted/controlled" }
+          ]
+        },
+        {
+          name: "⭐ FOREARM FOCUS: Reverse Barbell Curl",
+          sets: "3 × 12–15",
+          tag: "FOREARM-PRIORITY",
+          priority: false,
+          note: "Brachialis + forearm (wrist extensors). Arms visible at 6'0\"—this matters. Control eccentric.",
+          variants: [
+            { name: "Reverse Dumbbell Curl", sets: "3 × 12–15", note: "Unilateral control" },
+            { name: "Machine Reverse Curl", sets: "3 × 12–15", note: "Strict form" }
+          ]
+        },
+        {
+          name: "Wrist Curl (Forearm Thickness)",
+          sets: "2 × 15–20",
+          tag: "FOREARM-FINISHER",
+          priority: false,
+          note: "Forearm thickness. Full ROM, light weight, high reps.",
+          variants: [
+            { name: "Reverse Wrist Curl", sets: "2 × 15–20", note: "Extensor emphasis" },
+            { name: "Machine Wrist Curl", sets: "2 × 15–20", note: "Locked" }
+          ]
+        },
+        {
+          name: "Standing Calf Raise",
+          sets: "2 × 15–20",
+          tag: "FINISHER",
+          priority: false,
+          note: "Full ROM, 2s pause top",
+          variants: [
+            { name: "Seated Calf Raise", sets: "2 × 15–20", note: "Soleus emphasis" }
+          ]
+        },
+        {
+          name: "⭐ FST-7 FINISHER: Cable Bicep Curl",
+          sets: "7 × 15–20",
+          tag: "FST7-FINISHER",
+          priority: false,
+          note: "7 sets, 30s rest. Maximum bicep peak. Last 2 sets to failure.",
+          variants: [
+            { name: "Machine Bicep Curl FST-7", sets: "7 × 15–20", note: "Locked ROM" }
+          ]
+        }
+      ]
+    },
+    {
+      num: "05",
+      tag: "REST",
+      focus: "Active Recovery",
+      type: "rest",
+      color: "#d97706",
+      notes: "Full rest day. Foam roll, stretch, light walk. Prepare for Saturday leg day.",
+      exercises: []
+    },
+    {
+      num: "06",
+      tag: "LEGS (COMPLETE REBUILD)",
+      focus: "Quad/Ham/Glute Completeness + Calf Volume",
+      type: "legs",
+      color: "#ec4899",
+      notes: "SATURDAY: At 6'0\" you have longer femurs—MORE leg volume needed. Squats + RDL + Bulgarian split squat (quad sweep for tall guys). Dual calf work (gastro + soleus).",
+      exercises: [
+        {
+          name: "⭐ Barbell Back Squat",
+          sets: "4 × 4–6",
+          tag: "COMPOUND-PRIORITY",
+          priority: true,
+          note: "Foundation. Full depth, explosive up, 3s down. Quads + glutes.",
+          variants: [
+            { name: "Barbell Front Squat", sets: "4 × 5–6", note: "More quad, less glute" },
+            { name: "Belt Squat", sets: "4 × 5–6", note: "Spine friendly, heavy load" }
+          ]
+        },
+        {
+          name: "⭐ Romanian Deadlift (Hamstring Length)",
+          sets: "4 × 6–8",
+          tag: "COMPOUND-PRIORITY",
+          priority: true,
+          note: "CRITICAL for tall guys. Hamstring length = physique depth. Full ROM, 3s eccentric. This separates good from great.",
+          variants: [
+            { name: "Conventional Deadlift (trap bar)", sets: "4 × 5–6", note: "More quad, spine neutral" },
+            { name: "Stiff-Leg Deadlift", sets: "4 × 6–8", note: "Max hamstring stretch" }
+          ]
+        },
+        {
+          name: "Bulgarian Split Squat (Quad Sweep)",
+          sets: "3 × 8–10",
+          tag: "ACCESSORY",
+          priority: false,
+          note: "TALL GUY SECRET. Single-leg emphasis = quad sweep + glute. Better mechanics for long femurs.",
+          variants: [
+            { name: "Dumbbell Bulgarian Split Squat", sets: "3 × 8–10", note: "Most ROM" },
+            { name: "Machine Bulgarian", sets: "3 × 8–10", note: "Stable" }
+          ]
+        },
+        {
+          name: "Leg Extension (Quad Isolation)",
+          sets: "3 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Quad lockout, constant tension. Full ROM for sweep.",
+          variants: [
+            { name: "Machine Leg Press (feet low)", sets: "3 × 12–15", note: "Quad bias, safer knees" },
+            { name: "Single-Leg Extension", sets: "3 × 12–15", note: "Unilateral focus" }
+          ]
+        },
+        {
+          name: "Lying or Seated Leg Curl (Hamstring)",
+          sets: "3 × 12–15",
+          tag: "PUMP-ACCESSORY",
+          priority: false,
+          note: "Hamstring contraction, slow 3s eccentric. Balance quad work.",
+          variants: [
+            { name: "Standing Single Leg Curl", sets: "3 × 12–15", note: "More core, less back" },
+            { name: "Machine Leg Curl", sets: "3 × 12–15", note: "Stable ROM" }
+          ]
+        },
+        {
+          name: "Barbell Hip Thrust (Glute Peak)",
+          sets: "3 × 10–12",
+          tag: "ACCESSORY",
+          priority: false,
+          note: "Glute lockout, 2s pause. Full ROM for shelf.",
+          variants: [
+            { name: "Machine Hip Thrust", sets: "3 × 10–12", note: "Less core demand" },
+            { name: "Single-Leg Hip Thrust", sets: "3 × 10–12", note: "Unilateral" }
+          ]
+        },
+        {
+          name: "⭐ Standing Calf Raise (Gastrocnemius)",
+          sets: "4 × 15–20",
+          tag: "CALF-EXPANSION",
+          priority: true,
+          note: "TALL GUYS HAVE LAGGING CALVES. 4 sets for height. Full ROM, 2s pause top.",
+          variants: [
+            { name: "Machine Standing Calf", sets: "4 × 15–20", note: "Locked ROM" },
+            { name: "Smith Machine Calf", sets: "4 × 15–20", note: "Safety pins" }
+          ]
+        },
+        {
+          name: "Seated Calf Raise (Soleus Thickness)",
+          sets: "3 × 15–20",
+          tag: "CALF-EXPANSION",
+          priority: false,
+          note: "Soleus = calf thickness. 3 sets. Different angle pushes muscles.",
+          variants: [
+            { name: "Machine Seated Calf", sets: "3 × 15–20", note: "Most stable" },
+            { name: "Dumbbell Seated Calf", sets: "3 × 15–20", note: "Manual" }
+          ]
+        }
+      ]
+    },
+    {
+      num: "07",
+      tag: "REST",
+      focus: "Full Recovery",
+      type: "rest",
+      color: "#d97706",
+      notes: "SUNDAY: Complete rest. Cycle repeats Monday with Chest.",
+      exercises: []
+    }
+  ];
+
+  const principles = [
+    { icon: "⭐", label: "Upper Chest Priority", text: "Incline press FIRST (when CNS fresh). For 6'0\" frame, upper chest = 3D fullness. Flat bench alone = flat chest. Rambod principle." },
+    { icon: "💪", label: "Rear Chain Completeness", text: "Deadlifts + Romanian DL for thickness & hamstring length. Back depth separates good from great physiques." },
+    { icon: "🎯", label: "3D Shoulders (Rear Delts)", text: "Rear delts get 4 dedicated sets early—not afterthought superset. Creates 3D look from all angles." },
+    { icon: "🦵", label: "Tall Athlete Legs", text: "At 6'0\" you need MORE leg volume. Bulgarian split squats for quad sweep. Double calf work (gastro + soleus)." },
+    { icon: "🔱", label: "Brachialis Push", text: "Hammer curls + reverse curls develop brachialis (sits under bicep). When built = bicep looks taller, more peaked." },
+    { icon: "⚡", label: "FST-7 + Supersets", text: "0-rest antagonist pairs. 7×15–20 finishers. 3s eccentric. This IS the Rambod protocol used with 7x Mr. Olympia." }
+  ];
+
+
+  let activeDayIndex = null;
+  let currentTab = "split";
+  let isDark = true;
+
+  const storageKey = "gym5day_data";
+  const navStateKey = "gym5day_nav";
+  let userData = JSON.parse(localStorage.getItem(storageKey)) || {};
+
+  function saveNavState() {
+    localStorage.setItem(navStateKey, JSON.stringify({ activeDayIndex, currentTab }));
+  }
+  function loadNavState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(navStateKey) || '{}');
+      if (saved.activeDayIndex !== null && saved.activeDayIndex !== undefined) activeDayIndex = saved.activeDayIndex;
+      if (saved.currentTab) currentTab = saved.currentTab;
+    } catch (e) {}
+  }
+
+  function saveUserData() {
+    localStorage.setItem(storageKey, JSON.stringify(userData));
+  }
+
+  function getCompleted(dayIdx) {
+    return userData[dayIdx]?.completed || [];
+  }
+  function setCompleted(dayIdx, exIdx, value) {
+    if (!userData[dayIdx]) userData[dayIdx] = {};
+    if (!userData[dayIdx].completed) userData[dayIdx].completed = [];
+    if (value) {
+      if (!userData[dayIdx].completed.includes(exIdx)) userData[dayIdx].completed.push(exIdx);
+    } else {
+      userData[dayIdx].completed = userData[dayIdx].completed.filter(i => i !== exIdx);
+    }
+    saveUserData();
+  }
+
+  function getNotes(dayIdx) {
+    return userData[dayIdx]?.notes || "";
+  }
+  function setNotes(dayIdx, text) {
+    if (!userData[dayIdx]) userData[dayIdx] = {};
+    userData[dayIdx].notes = text;
+    saveUserData();
+  }
+
+  function getExerciseData(dayIdx, exIdx) {
+    const key = `${dayIdx}-${exIdx}`;
+    return userData[key] || { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
+  }
+  function setExerciseSets(dayIdx, exIdx, setsArray) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [], notes: "", variant: 0 };
+    userData[key].sets = setsArray;
+    saveUserData();
+  }
+  function setExerciseSetRep(dayIdx, exIdx, setIdx, field, value) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
+    if (!userData[key].sets[setIdx]) userData[key].sets[setIdx] = { weight: "", reps: "" };
+    userData[key].sets[setIdx][field] = value;
+    saveUserData();
+  }
+  function setExerciseNotes(dayIdx, exIdx, text) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
+    userData[key].notes = text;
+    saveUserData();
+  }
+  function setVariant(dayIdx, exIdx, variantIdx) {
+    const key = `${dayIdx}-${exIdx}`;
+    if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
+    userData[key].variant = variantIdx;
+    saveUserData();
+  }
+  function addSet(dayIdx, exIdx) {
+    const exData = getExerciseData(dayIdx, exIdx);
+    exData.sets.push({ weight: "", reps: "" });
+    setExerciseSets(dayIdx, exIdx, exData.sets);
+    window.renderContent();
+  }
+  function removeSet(dayIdx, exIdx) {
+    const exData = getExerciseData(dayIdx, exIdx);
+    if (exData.sets.length > 1) {
+      exData.sets.pop();
+      setExerciseSets(dayIdx, exIdx, exData.sets);
+      window.renderContent();
+    }
+  }
+
+  const prStorageKey = 'gym5day_pr_v1';
+  function getPRData() {
+    try {
+      return JSON.parse(localStorage.getItem(prStorageKey) || '{}');
+    } catch {
+      return {};
+    }
+  }
+  function savePRData(data) {
+    localStorage.setItem(prStorageKey, JSON.stringify(data));
+  }
+  function getExerciseName(dayIdx, exIdx) {
+    return days[dayIdx]?.exercises[exIdx]?.name || '';
+  }
+  function getBestForExercise(dayIdx, exIdx) {
+    const prData = getPRData();
+    const exName = getExerciseName(dayIdx, exIdx);
+    const key = exName;
+    const best = prData[key];
+    return best ? { weight: parseFloat(best.weight) || 0, reps: parseInt(best.reps) || 0, date: best.date } : null;
+  }
+  function isPR(dayIdx, exIdx, weight, reps) {
+    const w = parseFloat(weight) || 0;
+    const r = parseInt(reps) || 0;
+    if (w === 0 || r === 0) return false;
+    const best = getBestForExercise(dayIdx, exIdx);
+    if (!best) return true;
+    return w > best.weight || (w === best.weight && r > best.reps);
+  }
+  function updatePRIfNeeded(dayIdx, exIdx, weight, reps) {
+    const w = parseFloat(weight) || 0;
+    const r = parseInt(reps) || 0;
+    if (w === 0 || r === 0) return;
+    if (isPR(dayIdx, exIdx, w, r)) {
+      const prData = getPRData();
+      const exName = getExerciseName(dayIdx, exIdx);
+      prData[exName] = { weight: w.toString(), reps: r.toString(), date: new Date().toISOString().split('T')[0] };
+      savePRData(prData);
+    }
+  }
+
+  window.getExerciseData = getExerciseData;
+  window.setExerciseSets = setExerciseSets;
+  window.setExerciseSetRep = setExerciseSetRep;
+  window.setExerciseNotes = setExerciseNotes;
+  window.setVariant = setVariant;
+  window.addSet = addSet;
+  window.removeSet = removeSet;
+  window.renderContent = renderContent;
+  window.getBestForExercise = getBestForExercise;
+  window.isPR = isPR;
+  window.updatePRIfNeeded = updatePRIfNeeded;
+
+  function renderStatsBar() {
+    const stats = [["0 Rest","Supersets"],["7 Sets","FST-7"],["3s Eccentric","TUT"],["5","Focused Days"],["⚡","Maximum Hypertrophy"]];
+    document.getElementById("statsBar").innerHTML = stats.map(([v,l]) => `<div class="stat-item"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
+  }
+
+  function renderTabs() {
+    document.getElementById("tabRow").innerHTML = `
+      <button class="tab-btn ${currentTab==="split"?"active":"inactive"}" onclick="window._selectTab('split')">5-Day Split</button>
+      <button class="tab-btn ${currentTab==="principles"?"active":"inactive"}" onclick="window._selectTab('principles')">Principles</button>
+    `;
+  }
+
+  function renderContent() {
+    const area = document.getElementById("contentArea");
+    if (currentTab === "split" && activeDayIndex === null) {
+      area.innerHTML = renderSplitGrid();
+    } else if (currentTab === "split" && activeDayIndex !== null) {
+      area.innerHTML = renderExpandedDay(activeDayIndex);
+    } else if (currentTab === "principles") {
+      area.innerHTML = renderPrinciples();
+    }
+    bindEvents();
+  }
+
+  function renderSplitGrid() {
+    let html = `<div class="section-label">Mon-Fri (supersets + FST-7) · Sat legs · Sun rest <span class="line"></span></div><div class="day-grid">`;
+    days.forEach((day, i) => {
+      const isRest = day.type === "rest";
+      const headerBg = isRest ? "transparent" : `linear-gradient(90deg, ${day.color}${isDark?"14":"0e"} 0%, transparent 70%)`;
+      html += `<div class="day-card${isRest?" rest":""}" data-day-index="${i}" style="${isRest?"":"cursor:pointer;"}">
+        <div class="day-card-header" style="background:${headerBg};">
+          <span class="day-num">DAY ${day.num}</span>
+          <span class="day-tag" style="color:${day.color};">${day.tag}</span>
+          ${!isRest ? `<span class="day-ex-count">${day.exercises.length} exercises</span>` : ""}
+        </div>
+        ${isRest ? `<div class="rest-msg">💤 Full recovery</div>` : `<div class="day-card-body">
+          ${day.exercises.slice(0,3).map((ex,j) => `<div class="ex-row"><span class="ex-name ${ex.priority?'priority':'normal'}">${ex.name}${ex.priority?'':''}</span><span class="ex-sets">${ex.sets}</span></div>`).join("")}
+          ${day.exercises.length>3?`<div class="more-ex">+ ${day.exercises.length-3} more →</div>`:''}
+        </div>`}
+      </div>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  function renderExpandedDay(index) {
+    const day = days[index];
+    const completed = getCompleted(index);
+    const notesText = getNotes(index);
+    let html = `
+      <button class="back-btn" onclick="window._goBack()">← BACK TO SPLIT</button>
+      <div class="expanded-card">
+        <div class="expanded-header" style="background:linear-gradient(135deg, ${day.color}${isDark?'18':'0c'} 0%, transparent 60%);">
+          <div class="expanded-day-num">DAY ${day.num} of 7</div>
+          <div class="expanded-day-tag" style="color:${day.color};">${day.tag}</div>
+          <div class="expanded-notes" style="border-left-color:${day.color}60;">💡 ${day.notes}</div>
+        </div>
+        <div>
+          ${day.exercises.map((ex, i) => {
+            const isChecked = completed.includes(i);
+            const exData = window.getExerciseData(index, i);
+            const currentVariant = exData.variant || 0;
+            const variantName = ex.variants?.[currentVariant]?.name || ex.name;
+            const variantSets = ex.variants?.[currentVariant]?.sets || ex.sets;
+            return `
+              <div class="expanded-ex" style="border-bottom:${i<day.exercises.length-1?'1px solid var(--border-sub)':'none'};">
+                <div class="expanded-ex-left" style="width: 100%;">
+                  <div class="ex-name-row">
+                    <div class="ex-checkbox${isChecked?' checked':''}" data-day="${index}" data-ex="${i}" onclick="toggleCheckbox(this)"></div>
+                    <span class="expanded-ex-name ${ex.priority?'priority':'normal'}">${ex.name}</span>
+                  </div>
+                  <span class="tag-chip" style="background:${ex.tag==='POWER'?'#0ea5e922':'#9333ea22'};color:${ex.tag==='POWER'?'#0ea5e9':'#9333ea'};border-color:${ex.tag==='POWER'?'#0ea5e944':'#9333ea44'};">${ex.tag}</span>
+                  ${ex.note ? `<span style="font-size:11px;color:var(--note-color);margin-left:8px;">${ex.note}</span>` : ''}
+                  
+                  ${ex.variants && ex.variants.length > 0 ? `
+                    <div class="variant-header collapsed" onclick="toggleVariant(this)" data-day="${index}" data-ex="${i}">
+                      Variation: <strong>${variantName}</strong>
+                    </div>
+                    <div class="variant-content collapsed">
+                      <div style="padding:8px 12px;">
+                        ${ex.variants.map((v, vIdx) => `
+                          <div style="margin-bottom:6px;cursor:pointer;" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();">
+                            <input type="radio" ${vIdx===currentVariant?'checked':''} style="margin-right:6px;"> <strong>${v.name}</strong>
+                            <span style="font-size:11px;color:var(--text-faint);margin-left:8px;">${v.sets}</span>
+                            <div style="font-size:10px;color:var(--text-faint);margin-top:2px;margin-left:20px;">${v.note}</div>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <div class="ex-tracking">
+                    ${exData.sets.map((set, setIdx) => {
+                      const best = window.getBestForExercise(index, i);
+                      const isCurrPR = window.isPR(index, i, set.weight, set.reps);
+                      const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
+                      return `
+                      <div class="set-row">
+                        <span class="set-num">Set ${setIdx + 1}</span>
+                        <input type="text" class="track-input" placeholder="Weight" value="${set.weight}" onchange="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
+                        <input type="text" class="track-input" placeholder="Reps" value="${set.reps}" onchange="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
+                      </div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 4px 40px;">
+                        <span class="set-best">${bestText}</span>
+                        ${isCurrPR && set.weight && set.reps ? '<span class="pr-indicator">⭐ PR</span>' : ''}
+                      </div>
+                    `;
+                    }).join('')}
+                    <div class="set-actions">
+                      <button class="set-btn" onclick="window.addSet(${index},${i})">+ Set</button>
+                      <button class="set-btn" onclick="window.removeSet(${index},${i})">− Set</button>
+                    </div>
+                    <textarea class="ex-notes-field" placeholder="Notes" onchange="window.updateExNote(${index},${i},this.value)">${exData.notes}</textarea>
+                  </div>
+                </div>
+                <div class="ex-sets-chip">${variantSets}</div>
+              </div>`;
+          }).join('')}
+        </div>
+        <div style="padding:0 26px 20px;">
+          <textarea class="notes-area" id="dayNotes" placeholder="Day notes...">${notesText}</textarea>
+        </div>
+      </div>
+    `;
+    return html;
+  }
+
+  function renderPrinciples() {
+    return `
+      <div class="section-label">Henry Rambod Principles <span class="line"></span></div>
+      <div class="principles-grid">
+        ${principles.map(p => `
+          <div class="principle-card">
+            <div class="principle-icon-row"><span class="principle-icon">${p.icon}</span><span class="principle-label">${p.label}</span></div>
+            <div class="principle-text">${p.text}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  window.toggleCheckbox = function(el) {
+    const dayIdx = parseInt(el.dataset.day);
+    const exIdx = parseInt(el.dataset.ex);
+    const currentlyChecked = getCompleted(dayIdx).includes(exIdx);
+    setCompleted(dayIdx, exIdx, !currentlyChecked);
+    el.classList.toggle('checked', !currentlyChecked);
+  };
+
+  window.toggleVariant = function(el) {
+    el.classList.toggle('collapsed');
+    el.nextElementSibling.classList.toggle('collapsed');
+  };
+
+  window.updateSetRep = function(dayIdx, exIdx, setIdx, field, value) {
+    window.setExerciseSetRep(dayIdx, exIdx, setIdx, field, value);
+    const exData = window.getExerciseData(dayIdx, exIdx);
+    if (exData.sets[setIdx]) {
+      window.updatePRIfNeeded(dayIdx, exIdx, exData.sets[setIdx].weight, exData.sets[setIdx].reps);
+    }
+    window.renderContent();
+  };
+
+  window.updateExNote = function(dayIdx, exIdx, value) {
+    window.setExerciseNotes(dayIdx, exIdx, value);
+  };
+
+  function bindEvents() {
+    document.querySelectorAll(".day-card:not(.rest)").forEach(card => {
+      card.addEventListener("click", function() {
+        const idx = parseInt(this.dataset.dayIndex);
+        if (!isNaN(idx) && days[idx].type !== "rest") {
+          activeDayIndex = idx;
+          saveNavState();
+          renderContent();
+          window.scrollTo({top:0, behavior:"smooth"});
+        }
+      });
+    });
+
+    const notesArea = document.getElementById("dayNotes");
+    if (notesArea) {
+      notesArea.addEventListener("input", function() {
+        if (activeDayIndex !== null) setNotes(activeDayIndex, this.value);
+      });
+    }
+  }
+
+  window._selectTab = function(tab) {
+    currentTab = tab;
+    activeDayIndex = null;
+    saveNavState();
+    renderTabs();
+    renderContent();
+  };
+  window._goBack = function() {
+    activeDayIndex = null;
+    saveNavState();
+    renderContent();
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+  window.toggleTheme = function() {
+    isDark = !isDark;
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    document.getElementById("toggleIcon").textContent = isDark ? "☀️" : "🌙";
+    document.getElementById("toggleLabel").textContent = isDark ? "Light mode" : "Dark mode";
+    renderContent();
+    renderTabs();
+  };
+
+  function init() {
+    loadNavState();
+    renderStatsBar();
+    renderTabs();
+    renderContent();
+  }
+  init();
+})();
+</script>
+</body>
+</html>

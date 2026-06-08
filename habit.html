@@ -54,6 +54,14 @@
       background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
       font-size:1rem;cursor:pointer;transition:background .15s,transform .1s;line-height:1}
     .btn-theme:hover{background:var(--surface2)}.btn-theme:active{transform:scale(.92)}
+    .btn-menu{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-size:1.1rem;cursor:pointer;transition:all .2s ease;line-height:1}
+    .btn-menu:hover{background:var(--surface2);border-color:var(--accent)}.btn-menu:active{transform:scale(.92)}
+    
+    .data-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:50;min-width:160px;overflow:hidden}
+    .data-menu.open{display:block}
+    .data-menu-item{display:block;width:100%;padding:10px 16px;background:none;border:none;text-align:left;color:var(--text);cursor:pointer;font-size:.9rem;transition:background .15s}
+    .data-menu-item:hover{background:var(--surface2)}
+    .data-menu-item:active{background:var(--border)}
 
     /* Top Info Bar */
     .top-info-bar{
@@ -291,6 +299,8 @@
       <button id="yearNext" aria-label="Next year">&#8250;</button>
     </div>
     <button class="btn-theme" id="themeToggle" aria-label="Toggle theme" title="Toggle light / dark"></button>
+    <button class="btn-menu" id="menuBtn" aria-label="Menu" title="Export/Import data">⋮</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" />
     <button class="btn-add" id="openAddModal">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
         <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
@@ -298,6 +308,11 @@
       Add Habit
     </button>
   </header>
+
+  <div class="data-menu" id="dataMenu">
+    <button class="data-menu-item" id="exportBtn">📥 Export Data</button>
+    <button class="data-menu-item" id="importBtn">📤 Import Data</button>
+  </div>
 
   <div class="top-info-bar" id="topInfoBar">
     <div>
@@ -1178,10 +1193,74 @@
     save(); render();
   }
 
+  /* Data Export/Import */
+  function exportData(){
+    var exportObj={
+      habits:state,
+      milestones:milestoneState,
+      exported:new Date().toISOString()
+    };
+    var dataStr=JSON.stringify(exportObj,null,2);
+    var dataBlob=new Blob([dataStr],{type:'application/json'});
+    var url=URL.createObjectURL(dataBlob);
+    var link=document.createElement('a');
+    link.href=url;
+    link.download='habitgrid-backup-'+dayjs().format('YYYY-MM-DD')+'.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  
+  function importData(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var imported=JSON.parse(e.target.result);
+        if(!imported.habits||!imported.habits.tasks){
+          alert('Invalid backup file');
+          return;
+        }
+        state=imported.habits;
+        milestoneState=imported.milestones||{};
+        save();
+        saveMilestones(milestoneState);
+        alert('✅ Data imported successfully!');
+        window.location.reload();
+      }catch(err){
+        alert('❌ Error importing data: '+err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
   document.getElementById('yearPrev').addEventListener('click',function(){ viewYear--; render(); });
   document.getElementById('yearNext').addEventListener('click',function(){
     if(viewYear>=dayjs().year()) return;
     viewYear++; render();
+  });
+
+  /* Menu toggle */
+  document.getElementById('menuBtn').addEventListener('click',function(e){
+    e.stopPropagation();
+    document.getElementById('dataMenu').classList.toggle('open');
+  });
+  document.addEventListener('click',function(){ document.getElementById('dataMenu').classList.remove('open'); });
+  document.getElementById('dataMenu').addEventListener('click',function(e){ e.stopPropagation(); });
+
+  /* Export button */
+  document.getElementById('exportBtn').addEventListener('click',function(){
+    exportData();
+    document.getElementById('dataMenu').classList.remove('open');
+  });
+
+  /* Import button */
+  document.getElementById('importBtn').addEventListener('click',function(){
+    document.getElementById('importFile').click();
+    document.getElementById('dataMenu').classList.remove('open');
+  });
+  document.getElementById('importFile').addEventListener('change',function(e){
+    var file=e.target.files[0];
+    if(file) importData(file);
+    e.target.value='';
   });
 
   var backdrop=document.getElementById('modalBackdrop');

@@ -1,0 +1,1840 @@
+<h1 id="-ultimate-graph-dsa-cheatsheet">🎯 ULTIMATE GRAPH DSA CHEATSHEET</h1>
+<h2 id="_sde2-sde3-faang-interview-edition-typescript_"><em>SDE2/SDE3 FAANG Interview Edition | TypeScript</em></h2>
+<h3 id="-optimized-for-lc-medium-hard">⭐ OPTIMIZED FOR LC MEDIUM/HARD</h3>
+<hr>
+<h2 id="-quick-start-focus-areas-for-lc-success">🚀 QUICK START: FOCUS AREAS FOR LC SUCCESS</h2>
+<p><strong>MUST KNOW (80% of questions):</strong></p>
+<ol>
+<li>BFS / DFS — LC 200, 733, 133, 695, 1020, 130</li>
+<li>Dijkstra / Bellman-Ford — LC 743, 787, 778, 1631</li>
+<li>Topological Sort — LC 207, 210, 269</li>
+<li>Union-Find — LC 684, 323, 261, 947, 721</li>
+<li>Backtracking Paths — LC 113, 257, 797</li>
+</ol>
+<p><strong>SHOULD KNOW (15% of questions):</strong> 6. Bipartite — LC 785, 886 7. Cycle Detection — LC 1192, 329 8. State Space BFS — LC 127, 752, 815, 864 9. DAG + DP — LC 1203, 1345</p>
+<p><strong>NICE TO HAVE (5% of questions):</strong></p>
+<ul>
+<li>SCC (Kosaraju) - mostly hard/system design</li>
+<li>Bridges/Articulation points - niche hard problems</li>
+<li>A* search - AI/game problems</li>
+</ul>
+<hr>
+<h1 id="table-of-contents">TABLE OF CONTENTS</h1>
+<ol>
+<li><strong>30-Second Decision Framework</strong> (read this if brain freezes)</li>
+<li><strong>TypeScript Setup &amp; Types</strong></li>
+<li><strong>BFS Templates</strong> (5 variants) ⭐⭐⭐</li>
+<li><strong>DFS Templates</strong> (4 variants) ⭐⭐⭐</li>
+<li><strong>Shortest Path Algorithms</strong> ⭐⭐</li>
+<li><strong>Minimum Spanning Tree</strong> ⭐⭐</li>
+<li><strong>Advanced: Union-Find</strong> (path compression + rank)</li>
+<li><strong>Topological Sort</strong> ⭐⭐⭐</li>
+<li><strong>Cycle Detection</strong> ⭐⭐</li>
+<li><strong>Bipartite &amp; Coloring</strong> ⭐</li>
+<li><strong>A* Search &amp; Heuristics</strong> ⭐ (game pathfinding)</li>
+<li><strong>Graph Validation</strong> ⭐ (LC 261, 1556, 1557)</li>
+<li><strong>DAG + DP Optimization</strong> ⭐ (LC 1203, 1345)</li>
+<li><strong>State Space Search</strong> (implicit graphs) ⭐⭐ (LC 127, 752, 864)</li>
+<li><strong>Cycle Detection &amp; Paths</strong> ⭐ (LC 1192, 329)</li>
+<li><strong>Common Bugs</strong> (what NOT to do)</li>
+<li><strong>Pre-Interview Checklist</strong></li>
+<li><strong>20 Classic Problems</strong> (commented by frequency)</li>
+</ol>
+<hr>
+<h1 id="-section-0-the-30-second-decision-framework">🧠 SECTION 0: THE 30-SECOND DECISION FRAMEWORK</h1>
+<p><strong>When problem lands, ask in this order:</strong></p>
+<pre><code>┌─────────────────────────────────────────┐
+│ <span class="hljs-built_in">STEP</span> <span class="hljs-number">1</span>: WHAT IS THE INPUT?              │
+├─────────────────────────────────────────┤
+│ □ Explicit: adjacency <span class="hljs-built_in">list</span> / matrix     │
+│ □ Implicit: grid / state space          │
+│ □ Directed / Undirected?                │
+│ □ Weighted / Unweighted?                │
+└─────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────┐
+│ <span class="hljs-built_in">STEP</span> <span class="hljs-number">2</span>: WHAT DOES IT ASK <span class="hljs-keyword">FOR</span>?           │
+├─────────────────────────────────────────┤
+│ <span class="hljs-string">"Shortest path?"</span>      → BFS <span class="hljs-built_in">or</span> Dijkstra │
+│ <span class="hljs-string">"All paths?"</span>          → DFS + backtrack │
+│ <span class="hljs-string">"Connected? Order?"</span>   → BFS/DFS <span class="hljs-built_in">or</span> Topo│
+│ <span class="hljs-string">"Components?"</span>         → BFS/DFS <span class="hljs-built_in">or</span> UF   │
+│ <span class="hljs-string">"Cycle exists?"</span>       → DFS <span class="hljs-built_in">or</span> UF       │
+│ <span class="hljs-string">"Min cost connect?"</span>   → MST (K/P)       │
+│ <span class="hljs-string">"Dependencies?"</span>       → Topo <span class="hljs-built_in">Sort</span>       │
+│ <span class="hljs-string">"Strongly connected?"</span> → Kosaraju/Tarjan│
+│ <span class="hljs-string">"Critical edges?"</span>     → Bridges         │
+│ <span class="hljs-string">"Min spanning tree?"</span>  → Kruskal/Prim   │
+└─────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────┐
+│ <span class="hljs-built_in">STEP</span> <span class="hljs-number">3</span>: ANY SPECIAL CONSTRAINTS?        │
+├─────────────────────────────────────────┤
+│ Negative weights?     → Bellman-Ford    │
+│ K-hop limit?          → Modified B-F    │
+│ Limited stops?        → State: (node,k) │
+│ All pairs?            → Floyd-Warshall │
+│ Very large graph?     → Bidirectional  │
+│ DAG guaranteed?       → Topo+DP faster │
+└─────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────┐
+│ <span class="hljs-built_in">STEP</span> <span class="hljs-number">4</span>: WHAT <span class="hljs-keyword">TO</span> <span class="hljs-built_in">SAY</span> OUT LOUD            │
+├─────────────────────────────────────────┤
+│ <span class="hljs-string">"I'll model as [directed/undirected]    │
+│  [weighted/unweighted] graph where      │
+│  nodes = [X], edges = [Y].              │
+│  Since we need [shortest/ordering],     │
+│  I'll use [algo] → O([complexity])"</span>     │
+└─────────────────────────────────────────┘
+</code></pre><p><strong>Brain Freeze? Do This:</strong></p>
+<ol>
+<li>Draw the graph on paper (even 5 nodes helps)</li>
+<li>Trace BFS/DFS by hand on your drawing</li>
+<li>Fill in the BFS template, replace placeholders</li>
+<li>Test on example</li>
+</ol>
+<hr>
+<h1 id="-section-1-typescript-setup">📦 SECTION 1: TYPESCRIPT SETUP</h1>
+<h2 id="type-definitions">Type Definitions</h2>
+<pre><code class="lang-typescript"><span class="hljs-comment">// Adjacency list representations</span>
+<span class="hljs-keyword">type</span> Graph = Map&lt;<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>[]&gt;; <span class="hljs-comment">// unweighted</span>
+<span class="hljs-keyword">type</span> WeightedGraph = Map&lt;<span class="hljs-built_in">number</span>, [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>][]&gt;; <span class="hljs-comment">// [neighbor, weight]</span>
+<span class="hljs-keyword">type</span> GridGraph = <span class="hljs-built_in">number</span>[][] | <span class="hljs-built_in">string</span>[][];
+<span class="hljs-keyword">type</span> StringGraph = Map&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span>[]&gt;; <span class="hljs-comment">// for state space</span>
+
+<span class="hljs-comment">// For grid problems</span>
+<span class="hljs-keyword">const</span> DIRS4 = [
+  [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>],
+  [<span class="hljs-number">0</span>, <span class="hljs-number">-1</span>],
+  [<span class="hljs-number">1</span>, <span class="hljs-number">0</span>],
+  [<span class="hljs-number">-1</span>, <span class="hljs-number">0</span>],
+];
+<span class="hljs-keyword">const</span> DIRS8 = [
+  [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>],
+  [<span class="hljs-number">0</span>, <span class="hljs-number">-1</span>],
+  [<span class="hljs-number">1</span>, <span class="hljs-number">0</span>],
+  [<span class="hljs-number">-1</span>, <span class="hljs-number">0</span>],
+  [<span class="hljs-number">1</span>, <span class="hljs-number">1</span>],
+  [<span class="hljs-number">1</span>, <span class="hljs-number">-1</span>],
+  [<span class="hljs-number">-1</span>, <span class="hljs-number">1</span>],
+  [<span class="hljs-number">-1</span>, <span class="hljs-number">-1</span>],
+];
+
+<span class="hljs-comment">// For multi-dimensional state</span>
+<span class="hljs-keyword">type</span> State = [row: <span class="hljs-built_in">number</span>, col: <span class="hljs-built_in">number</span>, state: <span class="hljs-built_in">number</span>]; <span class="hljs-comment">// [r, c, key collected]</span>
+</code></pre>
+<h2 id="minheap-implementation">MinHeap Implementation</h2>
+<pre><code class="lang-typescript"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MinHeap</span>&lt;<span class="hljs-type">T</span>&gt; </span>{
+  <span class="hljs-keyword">private</span> heap: T[] = [];
+  <span class="hljs-keyword">constructor</span>(<span class="hljs-keyword">private</span> compareFn: (a: T, b: T) =&gt; number) {}
+
+  push(<span class="hljs-keyword">val</span>: T): void {
+    <span class="hljs-keyword">this</span>.heap.push(<span class="hljs-keyword">val</span>);
+    <span class="hljs-keyword">this</span>._bubbleUp(<span class="hljs-keyword">this</span>.heap.length - <span class="hljs-number">1</span>);
+  }
+
+  pop(): T | undefined {
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.heap.length === <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span> undefined;
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.heap.length === <span class="hljs-number">1</span>) <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.heap.pop();
+
+    const min = <span class="hljs-keyword">this</span>.heap[<span class="hljs-number">0</span>];
+    <span class="hljs-keyword">this</span>.heap[<span class="hljs-number">0</span>] = <span class="hljs-keyword">this</span>.heap.pop()!;
+    <span class="hljs-keyword">this</span>._bubbleDown(<span class="hljs-number">0</span>);
+    <span class="hljs-keyword">return</span> min;
+  }
+
+  isEmpty(): boolean {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.heap.length === <span class="hljs-number">0</span>;
+  }
+  size(): number {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.heap.length;
+  }
+
+  <span class="hljs-keyword">private</span> _bubbleUp(idx: number): void {
+    <span class="hljs-keyword">while</span> (idx &gt; <span class="hljs-number">0</span>) {
+      const parentIdx = Math.floor((idx - <span class="hljs-number">1</span>) / <span class="hljs-number">2</span>);
+      <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.compareFn(<span class="hljs-keyword">this</span>.heap[idx], <span class="hljs-keyword">this</span>.heap[parentIdx]) &gt;= <span class="hljs-number">0</span>) <span class="hljs-keyword">break</span>;
+      [<span class="hljs-keyword">this</span>.heap[idx], <span class="hljs-keyword">this</span>.heap[parentIdx]] = [<span class="hljs-keyword">this</span>.heap[parentIdx], <span class="hljs-keyword">this</span>.heap[idx]];
+      idx = parentIdx;
+    }
+  }
+
+  <span class="hljs-keyword">private</span> _bubbleDown(idx: number): void {
+    <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) {
+      let smallest = idx;
+      const left = <span class="hljs-number">2</span> * idx + <span class="hljs-number">1</span>;
+      const right = <span class="hljs-number">2</span> * idx + <span class="hljs-number">2</span>;
+
+      <span class="hljs-keyword">if</span> (left &lt; <span class="hljs-keyword">this</span>.heap.length &amp;&amp; <span class="hljs-keyword">this</span>.compareFn(<span class="hljs-keyword">this</span>.heap[left], <span class="hljs-keyword">this</span>.heap[smallest]) &lt; <span class="hljs-number">0</span>) {
+        smallest = left;
+      }
+      <span class="hljs-keyword">if</span> (right &lt; <span class="hljs-keyword">this</span>.heap.length &amp;&amp; <span class="hljs-keyword">this</span>.compareFn(<span class="hljs-keyword">this</span>.heap[right], <span class="hljs-keyword">this</span>.heap[smallest]) &lt; <span class="hljs-number">0</span>) {
+        smallest = right;
+      }
+
+      <span class="hljs-keyword">if</span> (smallest === idx) <span class="hljs-keyword">break</span>;
+      [<span class="hljs-keyword">this</span>.heap[idx], <span class="hljs-keyword">this</span>.heap[smallest]] = [<span class="hljs-keyword">this</span>.heap[smallest], <span class="hljs-keyword">this</span>.heap[idx]];
+      idx = smallest;
+    }
+  }
+}
+</code></pre>
+<h2 id="union-find-with-path-compression-union-by-rank">Union-Find with Path Compression + Union by Rank</h2>
+<pre><code class="lang-typescript"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UnionFind</span> </span>{
+  parent: number[];
+  rank: number[];
+
+  <span class="hljs-keyword">constructor</span>(n: number) {
+    <span class="hljs-keyword">this</span>.parent = Array.from({ length: n }, (_, i) =&gt; i);
+    <span class="hljs-keyword">this</span>.rank = new Array(n).fill(<span class="hljs-number">0</span>);
+  }
+
+  find(x: number): number {
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.parent[x] !== x) {
+      <span class="hljs-comment">// Path compression: point directly to root</span>
+      <span class="hljs-keyword">this</span>.parent[x] = <span class="hljs-keyword">this</span>.find(<span class="hljs-keyword">this</span>.parent[x]);
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.parent[x];
+  }
+
+  union(x: number, y: number): boolean {
+    const rootX = <span class="hljs-keyword">this</span>.find(x);
+    const rootY = <span class="hljs-keyword">this</span>.find(y);
+
+    <span class="hljs-keyword">if</span> (rootX === rootY) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; <span class="hljs-comment">// already in same set</span>
+
+    <span class="hljs-comment">// Union by rank: attach smaller tree under larger</span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.rank[rootX] &lt; <span class="hljs-keyword">this</span>.rank[rootY]) {
+      <span class="hljs-keyword">this</span>.parent[rootX] = rootY;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.rank[rootX] &gt; <span class="hljs-keyword">this</span>.rank[rootY]) {
+      <span class="hljs-keyword">this</span>.parent[rootY] = rootX;
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">this</span>.parent[rootY] = rootX;
+      <span class="hljs-keyword">this</span>.rank[rootX]++;
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>; <span class="hljs-comment">// successful union</span>
+  }
+
+  isConnected(x: number, y: number): boolean {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.find(x) === <span class="hljs-keyword">this</span>.find(y);
+  }
+}
+
+<span class="hljs-comment">// ⭐ Why path compression + rank matters:</span>
+<span class="hljs-comment">// Without: O(log n) per operation</span>
+<span class="hljs-comment">// With both: O(α(n)) amortized ≈ O(1) for practical purposes</span>
+<span class="hljs-comment">// Proof: Ackermann function inverse grows ABSURDLY slow</span>
+</code></pre>
+<hr>
+<h1 id="-section-2-bfs-templates-5-variants-">🌊 SECTION 2: BFS TEMPLATES (5 Variants)</h1>
+<h2 id="2-1-standard-bfs-unweighted-graph-">2.1 Standard BFS (Unweighted Graph)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">bfs</span>(<span class="hljs-params">graph: Graph, start: <span class="hljs-built_in">number</span>, n: <span class="hljs-built_in">number</span></span>): <span class="hljs-title">void</span> </span>{
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> Set&lt;<span class="hljs-built_in">number</span>&gt;([start]);
+  <span class="hljs-keyword">const</span> queue: <span class="hljs-built_in">number</span>[] = [start];
+  <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>; <span class="hljs-comment">// ⭐ Use index pointer, NOT shift()</span>
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> node = queue[head++];
+
+    <span class="hljs-comment">// ── PROCESS node HERE ──</span>
+    <span class="hljs-built_in">console</span>.log(node);
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) {
+        visited.add(neighbor); <span class="hljs-comment">// ⭐ Mark on ENQUEUE, not dequeue</span>
+        queue.push(neighbor);
+      }
+    }
+  }
+}
+<span class="hljs-comment">// Time: O(V+E)   Space: O(V)</span>
+<span class="hljs-comment">// Why index pointer? shift() is O(n), pointer is O(1)</span>
+</code></pre>
+<h2 id="2-2-bfs-with-distance-level-tracking">2.2 BFS with Distance/Level Tracking</h2>
+<pre><code class="lang-typescript">function bfsWithDist(graph: Graph, start: number, n: number): Map&lt;number, number&gt; {
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">dist</span> = <span class="hljs-keyword">new</span> Map&lt;number, number&gt;([[start, <span class="hljs-number">0</span>]]);
+  <span class="hljs-keyword">const</span> queue: number[] = [start];
+  let head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> node = queue[head++];
+    <span class="hljs-keyword">const</span> currDist = <span class="hljs-built_in">dist</span>.<span class="hljs-built_in">get</span>(node)!;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of graph.<span class="hljs-built_in">get</span>(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">dist</span>.has(neighbor)) {
+        <span class="hljs-built_in">dist</span>.<span class="hljs-built_in">set</span>(neighbor, currDist + <span class="hljs-number">1</span>);
+        queue.push(neighbor);
+      }
+    }
+  }
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">dist</span>;
+}
+<span class="hljs-comment">// Returns Map of shortest distances from start</span>
+<span class="hljs-comment">// Use when: "shortest path" question on unweighted graph</span>
+</code></pre>
+<h2 id="2-3-multi-source-bfs-lc-994-286-417-">2.3 Multi-Source BFS (LC 994, 286, 417)</h2>
+<pre><code class="lang-typescript">function bfsMultiSource(grid: string[<span class="hljs-string"></span>][<span class="hljs-symbol"></span>], sources: [<span class="hljs-string">number, number</span>][<span class="hljs-symbol"></span>]): number[][] {
+  const rows = grid.length,
+<span class="hljs-code">    cols = grid[0].length;</span>
+  const dist: number[][] = Array.from({ length: rows }, () =&gt; new Array(cols).fill(-1));
+  const queue: [<span class="hljs-string">number, number</span>][<span class="hljs-symbol"></span>] = [];
+
+  // Seed all sources with distance 0
+  for (const [r, c] of sources) {
+<span class="hljs-code">    dist[r][c] = 0;</span>
+<span class="hljs-code">    queue.push([r, c]);</span>
+  }
+
+  let head = 0;
+  const dirs = [
+<span class="hljs-code">    [0, 1],</span>
+<span class="hljs-code">    [0, -1],</span>
+<span class="hljs-code">    [1, 0],</span>
+<span class="hljs-code">    [-1, 0],</span>
+  ];
+
+  while (head <span class="xml"><span class="hljs-tag">&lt; <span class="hljs-attr">queue.length</span>) {
+    <span class="hljs-attr">const</span> [<span class="hljs-attr">r</span>, <span class="hljs-attr">c</span>] = <span class="hljs-string">queue[head++];</span>
+
+    <span class="hljs-attr">for</span> (<span class="hljs-attr">const</span> [<span class="hljs-attr">dr</span>, <span class="hljs-attr">dc</span>] <span class="hljs-attr">of</span> <span class="hljs-attr">dirs</span>) {
+      <span class="hljs-attr">const</span> <span class="hljs-attr">nr</span> = <span class="hljs-string">r</span> + <span class="hljs-attr">dr</span>,
+        <span class="hljs-attr">nc</span> = <span class="hljs-string">c</span> + <span class="hljs-attr">dc</span>;
+      <span class="hljs-attr">if</span> (<span class="hljs-attr">nr</span> &gt;</span></span>= 0 &amp;&amp; nr <span class="xml"><span class="hljs-tag">&lt; <span class="hljs-attr">rows</span> &amp;&amp; <span class="hljs-attr">nc</span> &gt;</span></span>= 0 &amp;&amp; nc <span class="xml"><span class="hljs-tag">&lt; <span class="hljs-attr">cols</span> &amp;&amp; <span class="hljs-attr">dist</span>[<span class="hljs-attr">nr</span>][<span class="hljs-attr">nc</span>] === <span class="hljs-string">-1)</span> {
+        <span class="hljs-attr">dist</span>[<span class="hljs-attr">nr</span>][<span class="hljs-attr">nc</span>] = <span class="hljs-string">dist[r][c]</span> + <span class="hljs-attr">1</span>;
+        <span class="hljs-attr">queue.push</span>([<span class="hljs-attr">nr</span>, <span class="hljs-attr">nc</span>]);
+      }
+    }
+  }
+
+  <span class="hljs-attr">return</span> <span class="hljs-attr">dist</span>;
+}
+// <span class="hljs-attr">Use</span> <span class="hljs-attr">when:</span> "<span class="hljs-attr">distance</span> <span class="hljs-attr">to</span> <span class="hljs-attr">nearest</span> <span class="hljs-attr">X</span>" <span class="hljs-attr">or</span> "<span class="hljs-attr">distance</span> <span class="hljs-attr">from</span> <span class="hljs-attr">all</span> <span class="hljs-attr">Xs</span>"
+// <span class="hljs-attr">Examples:</span> <span class="hljs-attr">LC</span> <span class="hljs-attr">994</span> (<span class="hljs-attr">rotting</span> <span class="hljs-attr">oranges</span>), <span class="hljs-attr">LC</span> <span class="hljs-attr">286</span> (<span class="hljs-attr">walls</span> <span class="hljs-attr">and</span> <span class="hljs-attr">gates</span>)</span></span>
+</code></pre>
+<h2 id="2-4-bidirectional-bfs-sde3-pattern-">2.4 Bidirectional BFS (SDE3 Pattern) ⭐</h2>
+<pre><code class="lang-typescript"><span class="hljs-keyword">function</span> bidirectionalBFS(start: <span class="hljs-keyword">string</span>, <span class="hljs-keyword">end</span>: <span class="hljs-keyword">string</span>, getNeighbors: (state: <span class="hljs-keyword">string</span>) =&gt; <span class="hljs-keyword">string</span>[]): number {
+  <span class="hljs-keyword">if</span> (start === <span class="hljs-keyword">end</span>) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">const</span> queueA = [start];
+  <span class="hljs-keyword">const</span> queueB = [<span class="hljs-keyword">end</span>];
+  <span class="hljs-keyword">const</span> visitedA = <span class="hljs-keyword">new</span> Set&lt;<span class="hljs-keyword">string</span>&gt;([start]);
+  <span class="hljs-keyword">const</span> visitedB = <span class="hljs-keyword">new</span> Set&lt;<span class="hljs-keyword">string</span>&gt;([<span class="hljs-keyword">end</span>]);
+  <span class="hljs-keyword">let</span> depth = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (queueA<span class="hljs-variable">.length</span> &gt; <span class="hljs-number">0</span> &amp;&amp; queueB<span class="hljs-variable">.length</span> &gt; <span class="hljs-number">0</span>) {
+    <span class="hljs-comment">// Always expand the smaller frontier (optimization)</span>
+    <span class="hljs-keyword">if</span> (queueA<span class="hljs-variable">.length</span> &gt; queueB<span class="hljs-variable">.length</span>) {
+      [queueA, queueB] = [queueB, queueA];
+      [visitedA, visitedB] = [visitedB, visitedA];
+    }
+
+    <span class="hljs-keyword">const</span> nextQueueA: <span class="hljs-keyword">string</span>[] = [];
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> state of queueA) {
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of getNeighbors(state)) {
+        <span class="hljs-keyword">if</span> (visitedB<span class="hljs-variable">.has</span>(neighbor)) {
+          <span class="hljs-keyword">return</span> depth + <span class="hljs-number">1</span>; <span class="hljs-comment">// met in middle</span>
+        }
+        <span class="hljs-keyword">if</span> (!visitedA<span class="hljs-variable">.has</span>(neighbor)) {
+          visitedA<span class="hljs-variable">.add</span>(neighbor);
+          nextQueueA<span class="hljs-variable">.push</span>(neighbor);
+        }
+      }
+    }
+
+    queueA = nextQueueA;
+    depth++;
+  }
+
+  <span class="hljs-keyword">return</span> -<span class="hljs-number">1</span>; <span class="hljs-comment">// unreachable</span>
+}
+
+<span class="hljs-comment">// ⭐ Why this matters for SDE3:</span>
+<span class="hljs-comment">// Normal BFS: explores O(b^d) nodes where b=branching factor, d=depth</span>
+<span class="hljs-comment">// Bidirectional: explores O(b^(d/2) + b^(d/2)) = 2*b^(d/2)</span>
+<span class="hljs-comment">// This is EXPONENTIALLY faster for large d</span>
+<span class="hljs-comment">// Examples: LC 127 (Word Ladder), LC 815 (Bus Routes)</span>
+</code></pre>
+<h2 id="2-5-0-1-bfs-deque-special-case">2.5 0-1 BFS (Deque) — Special Case</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">bfs01</span>(<span class="hljs-params">
+  graph: Map&lt;<span class="hljs-built_in">number</span>, [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>][]&gt;, <span class="hljs-comment">// [neighbor, weight (0 or 1)]</span>
+  start: <span class="hljs-built_in">number</span>,
+  n: <span class="hljs-built_in">number</span>,
+</span>): <span class="hljs-title">number</span>[] </span>{
+  <span class="hljs-keyword">const</span> dist = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-literal">Infinity</span>);
+  dist[start] = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">const</span> deque: <span class="hljs-built_in">number</span>[] = [start];
+  <span class="hljs-keyword">let</span> front = <span class="hljs-number">0</span>,
+    back = <span class="hljs-number">1</span>; <span class="hljs-comment">// ✅ Use index pointers, NOT shift/unshift!</span>
+
+  <span class="hljs-keyword">while</span> (front &lt; back) {
+    <span class="hljs-keyword">const</span> node = deque[front++]; <span class="hljs-comment">// ✅ O(1) dequeue</span>
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [neighbor, weight] of graph.get(node) ?? []) {
+      <span class="hljs-keyword">const</span> newDist = dist[node] + weight;
+      <span class="hljs-keyword">if</span> (newDist &lt; dist[neighbor]) {
+        dist[neighbor] = newDist;
+
+        <span class="hljs-keyword">if</span> (weight === <span class="hljs-number">0</span>) {
+          deque[--front] = neighbor; <span class="hljs-comment">// ✅ O(1) prepend (high priority)</span>
+        } <span class="hljs-keyword">else</span> {
+          deque[back++] = neighbor; <span class="hljs-comment">// ✅ O(1) append (low priority)</span>
+        }
+      }
+    }
+  }
+  <span class="hljs-keyword">return</span> dist;
+}
+
+<span class="hljs-comment">// Use when: weights are only 0 or 1</span>
+<span class="hljs-comment">// Time: O(V+E) — NEVER use shift/unshift, they are O(n)!</span>
+<span class="hljs-comment">// Classic example: grid where some moves are free, some costly</span>
+</code></pre>
+<hr>
+<h1 id="-section-3-dfs-templates-4-variants-">🌀 SECTION 3: DFS TEMPLATES (4 Variants)</h1>
+<h2 id="3-1-dfs-recursive-cleanest-">3.1 DFS Recursive (Cleanest)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs</span>(<span class="hljs-params">graph: Graph, node: number, visited: Set&lt;number&gt;</span>): <span class="hljs-title">void</span> </span>{
+  visited.add(node);
+
+  <span class="hljs-comment">// ── PRE-ORDER PROCESS (before visiting children) ──</span>
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`entering <span class="hljs-subst">${node}</span>`</span>);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+    <span class="hljs-keyword">if</span> (!visited.has(neighbor)) {
+      dfs(graph, neighbor, visited);
+    }
+  }
+
+  <span class="hljs-comment">// ── POST-ORDER PROCESS (after visiting all children) ──</span>
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`leaving <span class="hljs-subst">${node}</span>`</span>);
+}
+
+<span class="hljs-comment">// For all components (handles disconnected graphs):</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">traverseAll</span>(<span class="hljs-params">graph: Graph, n: number</span>): <span class="hljs-title">void</span> </span>{
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;number&gt;();
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (!visited.has(i)) {
+      dfs(graph, i, visited);
+    }
+  }
+}
+<span class="hljs-comment">// Time: O(V+E)   Space: O(V) call stack depth</span>
+<span class="hljs-comment">// ⚠️ Stack overflow risk on very deep graphs (see iterative version)</span>
+</code></pre>
+<h2 id="3-2-dfs-iterative-stack-overflow-safe-">3.2 DFS Iterative (Stack Overflow Safe)</h2>
+<pre><code class="lang-typescript">function dfsIterative(graph: Graph, <span class="hljs-literal">start</span>: <span class="hljs-keyword">number</span>): void {
+  const visited = new Set<span class="hljs-tag">&lt;number&gt;</span>();
+  const stack: <span class="hljs-keyword">number</span>[] = [<span class="hljs-literal">start</span>];
+
+  while (stack.length &gt; <span class="hljs-number">0</span>) {
+    const <span class="hljs-keyword">node</span> <span class="hljs-title">= stack</span>.pop()!;
+
+    if (visited.has(<span class="hljs-keyword">node</span><span class="hljs-title">)) continue</span>;
+    visited.add(<span class="hljs-keyword">node</span><span class="hljs-title">);
+
+    // ── PROCESS</span> <span class="hljs-keyword">node</span> <span class="hljs-title">HERE</span> ──
+    console.log(<span class="hljs-keyword">node</span><span class="hljs-title">);
+
+    // Push</span> neighbors <span class="hljs-keyword">in</span> REVERSE <span class="hljs-keyword">order</span> <span class="hljs-title">to</span> maintain DFS <span class="hljs-keyword">order</span>
+    <span class="hljs-title">for</span> (let i = (graph.get(<span class="hljs-keyword">node</span><span class="hljs-title">) ?? []).length</span> - <span class="hljs-number">1</span>; i &gt;= <span class="hljs-number">0</span>; i--) {
+      const neighbor = (graph.get(<span class="hljs-keyword">node</span><span class="hljs-title">) ?? [])[i</span>];
+      if (!visited.has(neighbor)) {
+        stack.push(neighbor);
+      }
+    }
+  }
+}
+// Use when: recursive depth could exceed ~<span class="hljs-number">10000</span> nodes
+// Maintains same DFS traversal <span class="hljs-keyword">order</span> <span class="hljs-title">as</span> recursive <span class="hljs-keyword">version</span>
+</code></pre>
+<h2 id="3-3-dfs-on-grid-in-place-marking-">3.3 DFS on Grid (In-Place Marking)</h2>
+<pre><code class="lang-typescript">function dfsGridInPlace(grid: string[][], r: number, c: number): void {
+  const rows = grid.length,
+<span class="hljs-code">    cols = grid[0].length;</span>
+
+  // Boundary + visited check in one condition
+  if (r <span class="xml"><span class="hljs-tag">&lt; <span class="hljs-attr">0</span> || <span class="hljs-attr">r</span> &gt;</span></span>= rows || c <span class="xml"><span class="hljs-tag">&lt; <span class="hljs-attr">0</span> || <span class="hljs-attr">c</span> &gt;</span></span>= cols || grid[<span class="hljs-string">r</span>][<span class="hljs-symbol">c</span>] !== '1') {
+<span class="hljs-code">    return;</span>
+  }
+
+  grid[<span class="hljs-string">r</span>][<span class="hljs-symbol">c</span>] = '#'; // ⭐ Mark visited by modifying grid
+
+  dfsGridInPlace(grid, r + 1, c);
+  dfsGridInPlace(grid, r - 1, c);
+  dfsGridInPlace(grid, r, c + 1);
+  dfsGridInPlace(grid, r, c - 1);
+}
+
+// Use when: memory is tight, you can modify input
+// Classic: LC 200 (Number of Islands)
+</code></pre>
+<h2 id="3-4-dfs-with-backtracking-all-paths-">3.4 DFS with Backtracking (All Paths)</h2>
+<pre><code class="lang-typescript"><span class="hljs-selector-tag">function</span> <span class="hljs-selector-tag">dfsBacktrack</span>(
+  <span class="hljs-attribute">graph</span>: Graph,
+  <span class="hljs-attribute">node</span>: number,
+  <span class="hljs-attribute">target</span>: number,
+  <span class="hljs-attribute">path</span>: number[],
+  <span class="hljs-attribute">visited</span>: Set&lt;number&gt;, <span class="hljs-comment">// ✅ Use Set, NOT path.includes()!</span>
+  <span class="hljs-attribute">allPaths</span>: number[][],
+): <span class="hljs-selector-tag">void</span> {
+  <span class="hljs-selector-tag">if</span> (node === target) {
+    <span class="hljs-selector-tag">allPaths</span><span class="hljs-selector-class">.push</span>([...path]);
+    <span class="hljs-selector-tag">return</span>;
+  }
+
+  <span class="hljs-selector-tag">for</span> (const neighbor of graph.get(node) ?? []) {
+    <span class="hljs-selector-tag">if</span> (!visited.has(neighbor)) {
+      <span class="hljs-comment">// ✅ O(1) lookup</span>
+      <span class="hljs-selector-tag">visited</span><span class="hljs-selector-class">.add</span>(neighbor);
+      <span class="hljs-selector-tag">path</span><span class="hljs-selector-class">.push</span>(neighbor);
+      <span class="hljs-selector-tag">dfsBacktrack</span>(graph, neighbor, target, path, visited, allPaths);
+      <span class="hljs-selector-tag">path</span><span class="hljs-selector-class">.pop</span>(); <span class="hljs-comment">// ✅ BACKTRACK</span>
+      <span class="hljs-selector-tag">visited</span><span class="hljs-selector-class">.delete</span>(neighbor);
+    }
+  }
+}
+
+<span class="hljs-comment">// Use when: "find all paths", not just one path</span>
+<span class="hljs-comment">// Time: O(path length * degree) per recursion, exponential worst case</span>
+<span class="hljs-comment">// ⚠️ CRITICAL: Use Set for O(1) lookup, NOT path.includes() which is O(n)!</span>
+</code></pre>
+<hr>
+<h1 id="-section-4-shortest-path-algorithms">🛣️ SECTION 4: SHORTEST PATH ALGORITHMS</h1>
+<h2 id="4-1-dijkstra-weighted-non-negative-">4.1 Dijkstra (Weighted, Non-Negative)</h2>
+<pre><code class="lang-typescript">function dijkstra(graph: WeightedGraph, start: number, n: number): number[] {
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">dist</span> = <span class="hljs-keyword">new</span> <span class="hljs-keyword">Array</span>(n).<span class="hljs-built_in">fill</span>(Infinity);
+  <span class="hljs-built_in">dist</span>[start] = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">const</span> heap = <span class="hljs-keyword">new</span> MinHeap&lt;[number, number]&gt;((a, b) =&gt; a[<span class="hljs-number">0</span>] - b[<span class="hljs-number">0</span>]);
+  heap.push([<span class="hljs-number">0</span>, start]); <span class="hljs-comment">// [distance, node]</span>
+
+  <span class="hljs-keyword">while</span> (!heap.isEmpty()) {
+    <span class="hljs-keyword">const</span> [d, node] = heap.pop()!;
+
+    <span class="hljs-comment">// ⭐ CRITICAL: stale entry check</span>
+    <span class="hljs-keyword">if</span> (d &gt; <span class="hljs-built_in">dist</span>[node]) <span class="hljs-keyword">continue</span>;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [neighbor, weight] of graph.<span class="hljs-built_in">get</span>(node) ?? []) {
+      <span class="hljs-keyword">const</span> newDist = <span class="hljs-built_in">dist</span>[node] + weight;
+      <span class="hljs-keyword">if</span> (newDist &lt; <span class="hljs-built_in">dist</span>[neighbor]) {
+        <span class="hljs-built_in">dist</span>[neighbor] = newDist;
+        heap.push([newDist, neighbor]);
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">dist</span>;
+}
+
+<span class="hljs-comment">// Time: O((V+E)logV)   Space: O(V)</span>
+<span class="hljs-comment">// Use when: shortest path + all weights ≥ 0</span>
+<span class="hljs-comment">// ❌ DON'T use with negative weights (use Bellman-Ford instead)</span>
+</code></pre>
+<h2 id="4-2-bellman-ford-negative-weights-ok-">4.2 Bellman-Ford (Negative Weights OK)</h2>
+<pre><code class="lang-typescript">function bellmanFord(
+  n: number,
+  edges: number[][], <span class="hljs-comment">// [u, v, weight]</span>
+  start: number,
+): number[] {
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">dist</span> = <span class="hljs-keyword">new</span> <span class="hljs-keyword">Array</span>(n).<span class="hljs-built_in">fill</span>(Infinity);
+  <span class="hljs-built_in">dist</span>[start] = <span class="hljs-number">0</span>;
+
+  <span class="hljs-comment">// Relax edges V-1 times</span>
+  <span class="hljs-keyword">for</span> (let i = <span class="hljs-number">0</span>; i &lt; n - <span class="hljs-number">1</span>; i++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v, w] of edges) {
+      <span class="hljs-keyword">if</span> (<span class="hljs-built_in">dist</span>[u] !== Infinity &amp;&amp; <span class="hljs-built_in">dist</span>[u] + w &lt; <span class="hljs-built_in">dist</span>[v]) {
+        <span class="hljs-built_in">dist</span>[v] = <span class="hljs-built_in">dist</span>[u] + w;
+      }
+    }
+  }
+
+  <span class="hljs-comment">// Check for negative cycles (optional)</span>
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v, w] of edges) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">dist</span>[u] !== Infinity &amp;&amp; <span class="hljs-built_in">dist</span>[u] + w &lt; <span class="hljs-built_in">dist</span>[v]) {
+      <span class="hljs-keyword">return</span> []; <span class="hljs-comment">// or throw error — negative cycle detected</span>
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">dist</span>;
+}
+
+<span class="hljs-comment">// Time: O(V·E)   Space: O(V)</span>
+<span class="hljs-comment">// Use when: negative edge weights exist (but no negative cycles)</span>
+<span class="hljs-comment">// ❌ Much slower than Dijkstra, only use if necessary</span>
+</code></pre>
+<h2 id="4-3-bellman-ford-with-k-stops-limit-lc-787-">4.3 Bellman-Ford with K-Stops Limit (LC 787)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">cheapestFlights</span>(<span class="hljs-params">
+  n: <span class="hljs-built_in">number</span>,
+  flights: <span class="hljs-built_in">number</span>[][], <span class="hljs-comment">// [u, v, price]</span>
+  src: <span class="hljs-built_in">number</span>,
+  dst: <span class="hljs-built_in">number</span>,
+  k: <span class="hljs-built_in">number</span>, <span class="hljs-comment">// AT MOST k stops allowed (problem constraint)</span>
+</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-comment">// k stops = k+1 edges maximum</span>
+  <span class="hljs-comment">// So we do k iterations (each iteration = one more edge)</span>
+  <span class="hljs-keyword">let</span> dist = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-literal">Infinity</span>);
+  dist[src] = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; k; i++) {
+    <span class="hljs-comment">// ✅ k iterations = k stops</span>
+    <span class="hljs-keyword">const</span> nextDist = [...dist]; <span class="hljs-comment">// MUST copy to prevent value bleed</span>
+    <span class="hljs-keyword">let</span> updated = <span class="hljs-literal">false</span>;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v, price] of flights) {
+      <span class="hljs-keyword">if</span> (dist[u] !== <span class="hljs-literal">Infinity</span> &amp;&amp; dist[u] + price &lt; nextDist[v]) {
+        nextDist[v] = dist[u] + price;
+        updated = <span class="hljs-literal">true</span>;
+      }
+    }
+
+    dist = nextDist;
+    <span class="hljs-keyword">if</span> (!updated) <span class="hljs-keyword">break</span>; <span class="hljs-comment">// ✅ Early exit if no improvement</span>
+  }
+
+  <span class="hljs-keyword">return</span> dist[dst] === <span class="hljs-literal">Infinity</span> ? <span class="hljs-number">-1</span> : dist[dst];
+}
+
+<span class="hljs-comment">// ✅ Time: O(k * E)  Space: O(n)</span>
+<span class="hljs-comment">// Key: k stops = exactly k iterations, not k+1</span>
+</code></pre>
+<h2 id="4-4-floyd-warshall-all-pairs-">4.4 Floyd-Warshall (All Pairs)</h2>
+<pre><code class="lang-typescript">function floydWarshall(n: number, edges: number[][]): number[][] {
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">dist</span>: number[][] = <span class="hljs-keyword">Array</span>.from({ length: n }, (_, i) =&gt; <span class="hljs-keyword">new</span> <span class="hljs-keyword">Array</span>(n).<span class="hljs-built_in">fill</span>(Infinity));
+
+  <span class="hljs-comment">// Initialize</span>
+  <span class="hljs-keyword">for</span> (let i = <span class="hljs-number">0</span>; i &lt; n; i++) <span class="hljs-built_in">dist</span>[i][i] = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v, w] of edges) {
+    <span class="hljs-built_in">dist</span>[u][v] = Math.<span class="hljs-built_in">min</span>(<span class="hljs-built_in">dist</span>[u][v], w);
+  }
+
+  <span class="hljs-comment">// For each intermediate node k</span>
+  <span class="hljs-keyword">for</span> (let k = <span class="hljs-number">0</span>; k &lt; n; k++) {
+    <span class="hljs-keyword">for</span> (let i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+      <span class="hljs-keyword">for</span> (let j = <span class="hljs-number">0</span>; j &lt; n; j++) {
+        <span class="hljs-built_in">dist</span>[i][j] = Math.<span class="hljs-built_in">min</span>(<span class="hljs-built_in">dist</span>[i][j], <span class="hljs-built_in">dist</span>[i][k] + <span class="hljs-built_in">dist</span>[k][j]);
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">dist</span>;
+}
+
+<span class="hljs-comment">// Time: O(V³)   Space: O(V²)</span>
+<span class="hljs-comment">// Use when: need shortest paths between ALL pairs</span>
+<span class="hljs-comment">// Only viable for small graphs (V ≤ 500)</span>
+</code></pre>
+<hr>
+<h1 id="-section-5-minimum-spanning-tree">🌳 SECTION 5: MINIMUM SPANNING TREE</h1>
+<h2 id="5-1-kruskal-s-algorithm-sort-edges-">5.1 Kruskal&#39;s Algorithm (Sort Edges)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">kruskal</span>(<span class="hljs-params">n: number, edges: number[][]</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-comment">// edges = [[u, v, weight], ...]</span>
+  edges.sort(<span class="hljs-function">(<span class="hljs-params">a, b</span>) =&gt;</span> a[<span class="hljs-number">2</span>] - b[<span class="hljs-number">2</span>]); <span class="hljs-comment">// Sort by weight</span>
+
+  <span class="hljs-keyword">const</span> uf = <span class="hljs-keyword">new</span> UnionFind(n);
+  <span class="hljs-keyword">let</span> mstCost = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">let</span> edgesAdded = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v, w] <span class="hljs-keyword">of</span> edges) {
+    <span class="hljs-keyword">if</span> (uf.union(u, v)) {
+      <span class="hljs-comment">// No cycle formed</span>
+      mstCost += w;
+      edgesAdded++;
+      <span class="hljs-keyword">if</span> (edgesAdded === n - <span class="hljs-number">1</span>) <span class="hljs-keyword">break</span>; <span class="hljs-comment">// MST complete</span>
+    }
+  }
+
+  <span class="hljs-keyword">return</span> edgesAdded === n - <span class="hljs-number">1</span> ? mstCost : <span class="hljs-number">-1</span>; <span class="hljs-comment">// -1 if disconnected</span>
+}
+
+<span class="hljs-comment">// Time: O(E log E)   Space: O(V)</span>
+<span class="hljs-comment">// Use when: sparse graph, edges easily enumerable</span>
+<span class="hljs-comment">// Why: Sorting dominates, Union-Find is nearly O(1)</span>
+</code></pre>
+<h2 id="5-2-prim-s-algorithm-start-from-vertex-">5.2 Prim&#39;s Algorithm (Start from Vertex)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">prims</span>(<span class="hljs-params">graph: WeightedGraph, n: number</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;number&gt;();
+  <span class="hljs-keyword">const</span> heap = <span class="hljs-keyword">new</span> MinHeap&lt;[number, number]&gt;<span class="hljs-function">(<span class="hljs-params">(a, b</span>) =&gt;</span> a[<span class="hljs-number">0</span>] - b[<span class="hljs-number">0</span>]);
+
+  <span class="hljs-comment">// [weight, node]</span>
+  heap.push([<span class="hljs-number">0</span>, <span class="hljs-number">0</span>]);
+  <span class="hljs-keyword">let</span> mstCost = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (!heap.isEmpty() &amp;&amp; visited.size &lt; n) {
+    <span class="hljs-keyword">const</span> [weight, node] = heap.pop()!;
+
+    <span class="hljs-keyword">if</span> (visited.has(node)) <span class="hljs-keyword">continue</span>;
+    visited.add(node);
+    mstCost += weight;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [neighbor, w] <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) {
+        heap.push([w, neighbor]);
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> visited.size === n ? mstCost : <span class="hljs-number">-1</span>; <span class="hljs-comment">// -1 if disconnected</span>
+}
+
+<span class="hljs-comment">// Time: O((V+E)logV)   Space: O(V)</span>
+<span class="hljs-comment">// Use when: dense graph or starting from specific vertex</span>
+<span class="hljs-comment">// Why: fewer iterations typically than Kruskal on dense graphs</span>
+</code></pre>
+<hr>
+<h1 id="4-a-a-search-heuristic-pathfinding-lc-1293-lc-1129-">4️⃣A: A* SEARCH &amp; HEURISTIC PATHFINDING (LC 1293, LC 1129)</h1>
+<pre><code class="lang-typescript"><span class="hljs-comment">// A* = Dijkstra + Heuristic (f = g + h)</span>
+<span class="hljs-comment">// g(n) = actual cost from start, h(n) = estimated cost to goal</span>
+<span class="hljs-comment">// Use when: Dijkstra is too slow and you have a heuristic</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">aStar</span>(<span class="hljs-params">grid: <span class="hljs-built_in">number</span>[][], start: [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>], goal: [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>]</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">const</span> rows = grid.length,
+    cols = grid[<span class="hljs-number">0</span>].length;
+  <span class="hljs-keyword">const</span> gCost = <span class="hljs-keyword">new</span> Map&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">number</span>&gt;();
+  <span class="hljs-keyword">const</span> openSet = <span class="hljs-keyword">new</span> MinHeap&lt;[<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>]&gt;((a, b) =&gt; a[<span class="hljs-number">0</span>] - b[<span class="hljs-number">0</span>]);
+
+  <span class="hljs-keyword">const</span> manhattan = (a: [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>], b: [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>]) =&gt; <span class="hljs-built_in">Math</span>.abs(a[<span class="hljs-number">0</span>] - b[<span class="hljs-number">0</span>]) + <span class="hljs-built_in">Math</span>.abs(a[<span class="hljs-number">1</span>] - b[<span class="hljs-number">1</span>]);
+  <span class="hljs-keyword">const</span> key = (r: <span class="hljs-built_in">number</span>, c: <span class="hljs-built_in">number</span>) =&gt; <span class="hljs-string">`<span class="hljs-subst">${r}</span>,<span class="hljs-subst">${c}</span>`</span>;
+
+  gCost.set(key(start[<span class="hljs-number">0</span>], start[<span class="hljs-number">1</span>]), <span class="hljs-number">0</span>);
+  <span class="hljs-keyword">const</span> heuristic = manhattan(start, goal);
+  openSet.push([heuristic, start[<span class="hljs-number">0</span>], start[<span class="hljs-number">1</span>]]);
+
+  <span class="hljs-keyword">while</span> (!openSet.isEmpty()) {
+    <span class="hljs-keyword">const</span> [f, r, c] = openSet.pop()!;
+    <span class="hljs-keyword">const</span> g = gCost.get(key(r, c))!;
+
+    <span class="hljs-keyword">if</span> (r === goal[<span class="hljs-number">0</span>] &amp;&amp; c === goal[<span class="hljs-number">1</span>]) <span class="hljs-keyword">return</span> g;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [dr, dc] of [
+      [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>],
+      [<span class="hljs-number">0</span>, <span class="hljs-number">-1</span>],
+      [<span class="hljs-number">1</span>, <span class="hljs-number">0</span>],
+      [<span class="hljs-number">-1</span>, <span class="hljs-number">0</span>],
+    ]) {
+      <span class="hljs-keyword">const</span> nr = r + dr,
+        nc = c + dc;
+      <span class="hljs-keyword">if</span> (nr &lt; <span class="hljs-number">0</span> || nr &gt;= rows || nc &lt; <span class="hljs-number">0</span> || nc &gt;= cols || grid[nr][nc] === <span class="hljs-number">1</span>) <span class="hljs-keyword">continue</span>;
+
+      <span class="hljs-keyword">const</span> newG = g + <span class="hljs-number">1</span>;
+      <span class="hljs-keyword">const</span> neighborKey = key(nr, nc);
+
+      <span class="hljs-keyword">if</span> (!gCost.has(neighborKey) || newG &lt; gCost.get(neighborKey)!) {
+        gCost.set(neighborKey, newG);
+        <span class="hljs-keyword">const</span> newF = newG + manhattan([nr, nc], goal);
+        openSet.push([newF, nr, nc]);
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+}
+
+<span class="hljs-comment">// Time: O(E log V) with good heuristic, faster than Dijkstra</span>
+<span class="hljs-comment">// Use when: grid problems with visible target (2D/3D games)</span>
+</code></pre>
+<hr>
+<h1 id="4-b-implicit-graph-generation-lc-127-word-ladder-optimized-">4️⃣B: IMPLICIT GRAPH GENERATION (LC 127 Word Ladder Optimized)</h1>
+<pre><code class="lang-typescript"><span class="hljs-comment">// Don't materialize neighbors — generate on the fly</span>
+<span class="hljs-comment">// Saves memory for huge state spaces (10^9+ possible states)</span>
+
+interface ImplicitGraph&lt;T&gt; {
+  <span class="hljs-attr">neighbors</span>: <span class="hljs-function">(<span class="hljs-params">state: T</span>) =&gt;</span> T[];
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">bfsImplicit</span>&lt;<span class="hljs-title">T</span>&gt;(<span class="hljs-params">graph: ImplicitGraph&lt;T&gt;, start: T, goal: T</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;string&gt;();
+  <span class="hljs-keyword">const</span> queue: T[] = [start];
+  <span class="hljs-keyword">let</span> steps = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">const</span> toString = <span class="hljs-function">(<span class="hljs-params">state: T</span>) =&gt;</span> <span class="hljs-built_in">JSON</span>.stringify(state);
+  visited.add(toString(start));
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> size = queue.length;
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; size - head; i++) {
+      <span class="hljs-keyword">const</span> state = queue[head++];
+
+      <span class="hljs-keyword">if</span> (toString(state) === toString(goal)) {
+        <span class="hljs-keyword">return</span> steps;
+      }
+
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.neighbors(state)) {
+        <span class="hljs-keyword">const</span> key = toString(neighbor);
+        <span class="hljs-keyword">if</span> (!visited.has(key)) {
+          visited.add(key);
+          queue.push(neighbor);
+        }
+      }
+    }
+    steps++;
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+}
+
+<span class="hljs-comment">// Example: Word Ladder (LC 127)</span>
+<span class="hljs-comment">// Don't enumerate all words, generate neighbors by changing 1 letter</span>
+<span class="hljs-comment">// Memory: O(1) instead of O(word count)</span>
+</code></pre>
+<hr>
+<h1 id="4-c-graph-validation-patterns-lc-261-1556-1557-">4️⃣C: GRAPH VALIDATION PATTERNS (LC 261, 1556, 1557)</h1>
+<pre><code class="lang-typescript"><span class="hljs-comment">// Quick validity checks BEFORE expensive traversals</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isValidTree</span>(<span class="hljs-params">n: number, edges: number[][]</span>): <span class="hljs-title">boolean</span> </span>{
+  <span class="hljs-comment">// Trees: n-1 edges, connected</span>
+  <span class="hljs-keyword">if</span> (edges.length !== n - <span class="hljs-number">1</span>) <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+
+  <span class="hljs-keyword">const</span> graph: Graph = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Map</span>();
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) graph.set(i, []);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v] <span class="hljs-keyword">of</span> edges) {
+    graph.get(u)!.push(v);
+    graph.get(v)!.push(u);
+  }
+
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;number&gt;();
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs</span>(<span class="hljs-params">node: number</span>): <span class="hljs-title">void</span> </span>{
+    visited.add(node);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) dfs(neighbor);
+    }
+  }
+
+  dfs(<span class="hljs-number">0</span>);
+  <span class="hljs-keyword">return</span> visited.size === n; <span class="hljs-comment">// All connected?</span>
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">canReachAllNodes</span>(<span class="hljs-params">n: number, edges: number[][]</span>): <span class="hljs-title">boolean</span> </span>{
+  <span class="hljs-comment">// Check if directed graph is strongly connected</span>
+  <span class="hljs-comment">// or if undirected graph is fully connected</span>
+
+  <span class="hljs-keyword">const</span> graph: Graph = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Map</span>();
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) graph.set(i, []);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v] <span class="hljs-keyword">of</span> edges) {
+    graph.get(u)!.push(v);
+  }
+
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;number&gt;();
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs</span>(<span class="hljs-params">node: number</span>): <span class="hljs-title">void</span> </span>{
+    visited.add(node);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) dfs(neighbor);
+    }
+  }
+
+  dfs(<span class="hljs-number">0</span>);
+  <span class="hljs-keyword">return</span> visited.size === n;
+}
+
+<span class="hljs-comment">// ✅ SDE2 Signal: Always check basic invariants first</span>
+<span class="hljs-comment">// Time: O(V+E) — far cheaper than complex algorithms</span>
+</code></pre>
+<hr>
+<h1 id="4-d-dag-specific-dp-optimizations-lc-1991-1203-">4️⃣D: DAG-SPECIFIC DP OPTIMIZATIONS (LC 1991, 1203)</h1>
+<pre><code class="lang-typescript"><span class="hljs-comment">// On DAGs: topo sort + DP is O(V+E) guaranteed</span>
+<span class="hljs-comment">// Much better than memoized DFS which can degrade</span>
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">longestPathDAG</span>(<span class="hljs-params">n: number, edges: number[][]</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">const</span> graph: Graph = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Map</span>();
+  <span class="hljs-keyword">const</span> indegree = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-number">0</span>);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) graph.set(i, []);
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v] <span class="hljs-keyword">of</span> edges) {
+    graph.get(u)!.push(v);
+    indegree[v]++;
+  }
+
+  <span class="hljs-comment">// Topological sort via Kahn's</span>
+  <span class="hljs-keyword">const</span> queue: number[] = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (indegree[i] === <span class="hljs-number">0</span>) queue.push(i);
+  }
+
+  <span class="hljs-keyword">const</span> topo: number[] = [];
+  <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> node = queue[head++];
+    topo.push(node);
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      indegree[neighbor]--;
+      <span class="hljs-keyword">if</span> (indegree[neighbor] === <span class="hljs-number">0</span>) queue.push(neighbor);
+    }
+  }
+
+  <span class="hljs-comment">// DP in topo order</span>
+  <span class="hljs-keyword">const</span> dp = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-number">1</span>);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> node <span class="hljs-keyword">of</span> topo) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      dp[neighbor] = <span class="hljs-built_in">Math</span>.max(dp[neighbor], dp[node] + <span class="hljs-number">1</span>);
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">Math</span>.max(...dp);
+}
+
+<span class="hljs-comment">// Time: O(V+E) guaranteed (vs memoized DFS which can be O(V²))</span>
+<span class="hljs-comment">// Signal: recognize when DAG structure allows DP optimization</span>
+</code></pre>
+<hr>
+<h1 id="-section-6-union-find-quick-version-">🔗 SECTION 6: UNION-FIND (QUICK VERSION)</h1>
+<pre><code>OPERATION          WITHOUT OPTIMIZATION    WITH PATH COMPRESSION + <span class="hljs-built_in">RANK</span>
+<span class="hljs-built_in">find</span>()             O(<span class="hljs-built_in">log</span> <span class="hljs-built_in">n</span>)                O(α(<span class="hljs-built_in">n</span>)) ≈ O(<span class="hljs-number">1</span>)
+union()            O(<span class="hljs-built_in">log</span> <span class="hljs-built_in">n</span>)                O(α(<span class="hljs-built_in">n</span>)) ≈ O(<span class="hljs-number">1</span>)
+<span class="hljs-built_in">n</span> operations       O(<span class="hljs-built_in">n</span> <span class="hljs-built_in">log</span> <span class="hljs-built_in">n</span>)              O(<span class="hljs-built_in">n</span>·α(<span class="hljs-built_in">n</span>)) ≈ O(<span class="hljs-built_in">n</span>)
+
+Where α(<span class="hljs-built_in">n</span>) = inverse Ackermann function
+α(<span class="hljs-number">10</span>^<span class="hljs-number">600</span>) = <span class="hljs-number">4</span>  ← grows ABSURDLY slow
+
+In practi<span class="hljs-symbol">ce:</span>
+- α(<span class="hljs-built_in">n</span>) ≤ <span class="hljs-number">5</span> for all reasonable <span class="hljs-built_in">n</span>
+- So O(<span class="hljs-built_in">n</span>·α(<span class="hljs-built_in">n</span>)) is effectively linear
+</code></pre><h2 id="visualization-why-union-by-rank-works">Visualization: Why Union by Rank Works</h2>
+<pre><code>WITHOUT <span class="hljs-built_in">rank</span> (attach blindly):
+┌─────────┐         ┌─────────┐
+│    <span class="hljs-number">1</span>    │         │    <span class="hljs-number">5</span>    │
+└────┬────┘         └────┬────┘
+     │                   │
+  ┌──┘                ┌──┘
+  <span class="hljs-number">2</span>                   <span class="hljs-number">6</span>
+
+After union(<span class="hljs-number">1</span>,<span class="hljs-number">5</span>) → attach <span class="hljs-number">5</span> under <span class="hljs-number">1</span>:
+┌─────────────────────┐
+│         <span class="hljs-number">1</span>           │
+├────┬────────────────┤
+<span class="hljs-number">2</span>    <span class="hljs-number">5</span>
+     │
+     <span class="hljs-number">6</span>
+
+<span class="hljs-keyword">To</span> <span class="hljs-built_in">find</span>(<span class="hljs-number">6</span>): <span class="hljs-number">6</span>→<span class="hljs-number">5</span>→<span class="hljs-number">1</span> = <span class="hljs-number">3</span> hops! ❌
+
+<span class="hljs-keyword">WITH</span> <span class="hljs-built_in">rank</span> (attach smaller under larger):
+Before: <span class="hljs-built_in">rank</span>[<span class="hljs-number">1</span>]=<span class="hljs-number">1</span>, <span class="hljs-built_in">rank</span>[<span class="hljs-number">5</span>]=<span class="hljs-number">1</span>
+After union: <span class="hljs-built_in">rank</span>[<span class="hljs-number">1</span>]=<span class="hljs-number">2</span>, attach <span class="hljs-number">5</span>→<span class="hljs-number">1</span>
+Result: <span class="hljs-number">6</span>→<span class="hljs-number">5</span>→<span class="hljs-number">1</span> = <span class="hljs-number">2</span> hops (balanced)
+</code></pre><h2 id="weighted-union-find-advanced-skip-for-lc-focus-">Weighted Union-Find (Advanced - Skip for LC Focus)</h2>
+<h1 id="-section-7-topological-sort">📊 SECTION 7: TOPOLOGICAL SORT</h1>
+<h2 id="7-1-kahn-s-algorithm-bfs-based-safe-for-cycle-detection-">7.1 Kahn&#39;s Algorithm (BFS-based, safe for cycle detection)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">topologicalSortKahn</span>(<span class="hljs-params">graph: Graph, n: <span class="hljs-built_in">number</span></span>): <span class="hljs-title">number</span>[] </span>{
+  <span class="hljs-keyword">const</span> indegree = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-number">0</span>);
+
+  <span class="hljs-comment">// Calculate indegrees</span>
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of graph.get(i) ?? []) {
+      indegree[neighbor]++;
+    }
+  }
+
+  <span class="hljs-comment">// Start with all nodes of indegree 0</span>
+  <span class="hljs-keyword">const</span> queue: <span class="hljs-built_in">number</span>[] = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (indegree[i] === <span class="hljs-number">0</span>) queue.push(i);
+  }
+
+  <span class="hljs-keyword">const</span> result: <span class="hljs-built_in">number</span>[] = [];
+  <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> node = queue[head++];
+    result.push(node);
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of graph.get(node) ?? []) {
+      indegree[neighbor]--;
+      <span class="hljs-keyword">if</span> (indegree[neighbor] === <span class="hljs-number">0</span>) {
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  <span class="hljs-comment">// If not all nodes processed → cycle exists</span>
+  <span class="hljs-keyword">return</span> result.length === n ? result : [];
+}
+
+<span class="hljs-comment">// Time: O(V+E)   Space: O(V)</span>
+<span class="hljs-comment">// Advantage: Can easily detect cycles (if result.length &lt; n)</span>
+</code></pre>
+<h2 id="7-2-dfs-based-topological-sort-3-color-dfs-for-cycle-detection">7.2 DFS-based Topological Sort + 3-Color DFS for Cycle Detection</h2>
+<pre><code class="lang-typescript">function topologicalSortDFS(graph: Graph, n: number): number[] {
+  <span class="hljs-comment">// color: 0=white(unvisited), 1=gray(visiting), 2=black(done)</span>
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">color</span> = <span class="hljs-keyword">new</span> <span class="hljs-keyword">Array</span>(n).<span class="hljs-built_in">fill</span>(<span class="hljs-number">0</span>);
+  <span class="hljs-keyword">const</span> result: number[] = [];
+  let hasCycle = <span class="hljs-keyword">false</span>;
+
+  function dfs(node: number): <span class="hljs-keyword">void</span> {
+    <span class="hljs-keyword">if</span> (hasCycle) <span class="hljs-keyword">return</span>;
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[node] === <span class="hljs-number">1</span>) {
+      hasCycle = <span class="hljs-keyword">true</span>; <span class="hljs-comment">// Back edge found = cycle</span>
+      <span class="hljs-keyword">return</span>;
+    }
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[node] === <span class="hljs-number">2</span>) <span class="hljs-keyword">return</span>;
+
+    <span class="hljs-built_in">color</span>[node] = <span class="hljs-number">1</span>; <span class="hljs-comment">// Mark as visiting</span>
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of graph.<span class="hljs-built_in">get</span>(node) ?? []) {
+      dfs(neighbor);
+    }
+
+    <span class="hljs-built_in">color</span>[node] = <span class="hljs-number">2</span>; <span class="hljs-comment">// Mark as done</span>
+    result.push(node); <span class="hljs-comment">// Add after all children processed (post-order)</span>
+  }
+
+  <span class="hljs-keyword">for</span> (let i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[i] === <span class="hljs-number">0</span>) {
+      dfs(i);
+    }
+  }
+
+  <span class="hljs-keyword">return</span> hasCycle ? [] : result.<span class="hljs-built_in">reverse</span>();
+}
+
+<span class="hljs-comment">// ⭐ Key difference from Kahn's:</span>
+<span class="hljs-comment">// - DFS adds nodes in POST-order, then reverses</span>
+<span class="hljs-comment">// - 3-color DFS detects back edges (cycle indicator)</span>
+<span class="hljs-comment">// - Useful for directed cycle detection</span>
+</code></pre>
+<hr>
+<h1 id="-section-8-cycle-detection">🔄 SECTION 8: CYCLE DETECTION</h1>
+<h2 id="8-1-undirected-graph-dfs-parent-check-">8.1 Undirected Graph (DFS + Parent Check)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">hasCycleUndirected</span>(<span class="hljs-params">graph: Graph, n: number</span>): <span class="hljs-title">boolean</span> </span>{
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;number&gt;();
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs</span>(<span class="hljs-params">node: number, parent: number</span>): <span class="hljs-title">boolean</span> </span>{
+    visited.add(node);
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) {
+        <span class="hljs-keyword">if</span> (dfs(neighbor, node)) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+      } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (neighbor !== <span class="hljs-built_in">parent</span>) {
+        <span class="hljs-comment">// Visited node that is NOT parent = back edge = cycle</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+      }
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+  }
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (!visited.has(i)) {
+      <span class="hljs-keyword">if</span> (dfs(i, <span class="hljs-number">-1</span>)) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-comment">// ⚠️ Edge case: Multiple edges between same nodes</span>
+<span class="hljs-comment">// If graph allows multi-edges, parent check breaks!</span>
+<span class="hljs-comment">// Solution: track edge count or use different approach</span>
+</code></pre>
+<h2 id="8-2-directed-graph-3-color-dfs-">8.2 Directed Graph (3-Color DFS)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">hasCycleDirected</span>(<span class="hljs-params">graph: Graph, n: number</span>): <span class="hljs-title">boolean</span> </span>{
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">color</span> = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-number">0</span>); <span class="hljs-comment">// 0=white, 1=gray, 2=black</span>
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs</span>(<span class="hljs-params">node: number</span>): <span class="hljs-title">boolean</span> </span>{
+    <span class="hljs-built_in">color</span>[node] = <span class="hljs-number">1</span>; <span class="hljs-comment">// Mark as visiting</span>
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[neighbor] === <span class="hljs-number">1</span>) {
+        <span class="hljs-comment">// Back edge to node still in this DFS = cycle</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+      }
+      <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[neighbor] === <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">if</span> (dfs(neighbor)) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+      }
+    }
+
+    <span class="hljs-built_in">color</span>[node] = <span class="hljs-number">2</span>; <span class="hljs-comment">// Mark as done</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+  }
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[i] === <span class="hljs-number">0</span>) {
+      <span class="hljs-keyword">if</span> (dfs(i)) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-comment">// Why 3 colors?</span>
+<span class="hljs-comment">// - White: not visited yet</span>
+<span class="hljs-comment">// - Gray: in current DFS stack</span>
+<span class="hljs-comment">// - Black: finished, safe to reference</span>
+<span class="hljs-comment">// Back edge to GRAY = cycle (to a node in same path)</span>
+</code></pre>
+<h2 id="8-3-union-find-for-undirected-cycle-detection">8.3 Union-Find for Undirected Cycle Detection</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">hasCycleUnionFind</span><span class="hljs-params">(n: number, edges: number[][])</span>: boolean </span>{
+  <span class="hljs-keyword">const</span> uf = <span class="hljs-keyword">new</span> UnionFind(n);
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [u, v] of edges) {
+    <span class="hljs-keyword">if</span> (!uf.union(u, v)) {
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>; <span class="hljs-comment">// Already in same set = cycle</span>
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+}
+
+<span class="hljs-comment">// Simpler than DFS for undirected</span>
+<span class="hljs-comment">// Time: O(E·α(n))   Space: O(V)</span>
+<span class="hljs-comment">// Perfect for: "are there cycles?", "is it a tree?"</span>
+</code></pre>
+<hr>
+<h1 id="-section-9-bipartite-2-coloring">🎨 SECTION 9: BIPARTITE &amp; 2-COLORING</h1>
+<h2 id="9-1-check-if-bipartite-lc-785-">9.1 Check if Bipartite (LC 785)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isBipartite</span>(<span class="hljs-params">graph: number[][]</span>): <span class="hljs-title">boolean</span> </span>{
+  <span class="hljs-keyword">const</span> n = graph.length;
+  <span class="hljs-keyword">const</span> <span class="hljs-built_in">color</span> = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(n).fill(<span class="hljs-number">-1</span>); <span class="hljs-comment">// -1=unvisited, 0/1=colors</span>
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> start = <span class="hljs-number">0</span>; start &lt; n; start++) {
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[start] !== <span class="hljs-number">-1</span>) <span class="hljs-keyword">continue</span>;
+
+    <span class="hljs-comment">// BFS from unvisited component</span>
+    <span class="hljs-keyword">const</span> queue = [start];
+    <span class="hljs-built_in">color</span>[start] = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+      <span class="hljs-keyword">const</span> node = queue[head++];
+
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor <span class="hljs-keyword">of</span> graph[node]) {
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[neighbor] === <span class="hljs-number">-1</span>) {
+          <span class="hljs-built_in">color</span>[neighbor] = <span class="hljs-number">1</span> - <span class="hljs-built_in">color</span>[node]; <span class="hljs-comment">// Flip color</span>
+          queue.push(neighbor);
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-built_in">color</span>[neighbor] === <span class="hljs-built_in">color</span>[node]) {
+          <span class="hljs-comment">// Same color = not bipartite</span>
+          <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+
+<span class="hljs-comment">// ⭐ Bipartite = 2-colorable = NO odd-length cycles</span>
+<span class="hljs-comment">// Time: O(V+E)   Space: O(V)</span>
+</code></pre>
+<hr>
+<h1 id="-section-10-strongly-connected-components-optional-for-lc-">🌊 SECTION 10: STRONGLY CONNECTED COMPONENTS (OPTIONAL FOR LC)</h1>
+<p>⚠️ <strong>Skip if preparing for LC Medium/Hard</strong> — mostly appears in system design or very hard problems.</p>
+<p><strong>Quick concept:</strong> Find groups of nodes that reach each other (directed graphs).</p>
+<p><strong>When you need it:</strong> LC 1192 (Critical Connections), but that&#39;s a bridge problem.</p>
+<pre><code class="lang-typescript"><span class="hljs-comment">// Kosaraju's Algorithm — O(V+E)</span>
+<span class="hljs-comment">// Returns: array of SCCs (groups of mutually reachable nodes)</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">kosaraju</span>(<span class="hljs-params">graph: Graph, n: <span class="hljs-built_in">number</span></span>): <span class="hljs-title">number</span>[][] </span>{
+  <span class="hljs-comment">// Step 1: DFS to get finish times</span>
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> Set&lt;<span class="hljs-built_in">number</span>&gt;();
+  <span class="hljs-keyword">const</span> finishStack: <span class="hljs-built_in">number</span>[] = [];
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs1</span>(<span class="hljs-params">node: <span class="hljs-built_in">number</span></span>): <span class="hljs-title">void</span> </span>{
+    visited.add(node);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of graph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) dfs1(neighbor);
+    }
+    finishStack.push(node); <span class="hljs-comment">// Push AFTER visiting children</span>
+  }
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) {
+    <span class="hljs-keyword">if</span> (!visited.has(i)) dfs1(i);
+  }
+
+  <span class="hljs-comment">// Step 2: Build reversed graph</span>
+  <span class="hljs-keyword">const</span> revGraph: Graph = <span class="hljs-keyword">new</span> Map();
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; n; i++) revGraph.set(i, []);
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [node, neighbors] of graph) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of neighbors) {
+      revGraph.get(neighbor)!.push(node);
+    }
+  }
+
+  <span class="hljs-comment">// Step 3: DFS on reversed graph in reverse finish order</span>
+  visited.clear();
+  <span class="hljs-keyword">const</span> sccs: <span class="hljs-built_in">number</span>[][] = [];
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs2</span>(<span class="hljs-params">node: <span class="hljs-built_in">number</span>, component: <span class="hljs-built_in">number</span>[]</span>): <span class="hljs-title">void</span> </span>{
+    visited.add(node);
+    component.push(node);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> neighbor of revGraph.get(node) ?? []) {
+      <span class="hljs-keyword">if</span> (!visited.has(neighbor)) dfs2(neighbor, component);
+    }
+  }
+
+  <span class="hljs-keyword">while</span> (finishStack.length &gt; <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">const</span> node = finishStack.pop()!;
+    <span class="hljs-keyword">if</span> (!visited.has(node)) {
+      <span class="hljs-keyword">const</span> component: <span class="hljs-built_in">number</span>[] = [];
+      dfs2(node, component);
+      sccs.push(component);
+    }
+  }
+
+  <span class="hljs-keyword">return</span> sccs;
+}
+
+<span class="hljs-comment">// Time: O(V+E)   Space: O(V)</span>
+<span class="hljs-comment">// Returns: array of strongly connected components</span>
+<span class="hljs-comment">// Use: LC 1192 (Critical Connections), directed graph analysis</span>
+</code></pre>
+<hr>
+<h1 id="-section-11-bridges-articulation-points">🌉 SECTION 11: BRIDGES &amp; ARTICULATION POINTS</h1>
+<h2 id="11-1-find-bridges-critical-edges-">11.1 Find Bridges (Critical Edges)</h2>
+<pre><code class="lang-typescript">function findBridges(graph: Graph, n: <span class="hljs-keyword">number</span>): <span class="hljs-keyword">number</span>[][] {
+  const disc = new Array(n).fill(-<span class="hljs-number">1</span>);
+  const low = new Array(n).fill(-<span class="hljs-number">1</span>);
+  const bridges: <span class="hljs-keyword">number</span>[][] = [];
+  let timer = <span class="hljs-number">0</span>;
+
+  function dfs(<span class="hljs-keyword">node</span><span class="hljs-title">: number</span>, parent: <span class="hljs-keyword">number</span>): void {
+    disc[<span class="hljs-keyword">node</span><span class="hljs-title">] = low</span>[<span class="hljs-keyword">node</span><span class="hljs-title">] = timer</span>++;
+
+    for (const neighbor of graph.get(<span class="hljs-keyword">node</span><span class="hljs-title">) ?? []) {
+      if</span> (disc[neighbor] === -<span class="hljs-number">1</span>) {
+        // Tree edge
+        dfs(neighbor, <span class="hljs-keyword">node</span><span class="hljs-title">);
+        low</span>[<span class="hljs-keyword">node</span><span class="hljs-title">] = Math</span>.min(low[<span class="hljs-keyword">node</span><span class="hljs-title">], low</span>[neighbor]);
+
+        // Bridge condition: cannot reach ancestor from subtree
+        if (low[neighbor] &gt; disc[<span class="hljs-keyword">node</span><span class="hljs-title">]) {
+          bridges</span>.push([<span class="hljs-keyword">node</span><span class="hljs-title">, neighbor</span>]);
+        }
+      } else if (neighbor !== parent) {
+        // Back edge
+        low[<span class="hljs-keyword">node</span><span class="hljs-title">] = Math</span>.min(low[<span class="hljs-keyword">node</span><span class="hljs-title">], disc</span>[neighbor]);
+      }
+    }
+  }
+
+  for (let i = <span class="hljs-number">0</span>; i <span class="hljs-tag">&lt; n; i++) {
+    if (disc[i] === -1) dfs(i, -1);
+  }
+
+  return bridges;
+}
+
+// Bridge = edge whose removal disconnects graph
+// Use: LC 1192 (Critical Connections in Network)</span>
+</code></pre>
+<hr>
+<h1 id="-section-12-state-space-search-implicit-graphs-">💡 SECTION 12: STATE SPACE SEARCH (Implicit Graphs)</h1>
+<h2 id="12-1-word-ladder-lc-127-state-string">12.1 Word Ladder (LC 127) — State = String</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ladderLength</span></span>(beginWord: <span class="hljs-type">string</span>, endWord: <span class="hljs-type">string</span>, wordList: <span class="hljs-type">string</span>[]): <span class="hljs-type">number </span>{
+  const wordSet = <span class="hljs-keyword">new</span> <span class="hljs-type">Set</span>(wordList);
+  <span class="hljs-keyword">if</span> (!wordSet.has(endWord)) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+
+  const queue: <span class="hljs-type"></span>[string, number][] = [[beginWord, <span class="hljs-number">1</span>]];
+  const visited = <span class="hljs-keyword">new</span> <span class="hljs-type">Set</span>&lt;string&gt;([beginWord]);
+  let head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    const [word, steps] = queue[head++];
+
+    <span class="hljs-keyword">for</span> (let i = <span class="hljs-number">0</span>; i &lt; word.length; i++) {
+      <span class="hljs-keyword">for</span> (let c = <span class="hljs-number">97</span>; c &lt;= <span class="hljs-number">122</span>; c++) {
+        <span class="hljs-comment">// 'a' to 'z'</span>
+        const <span class="hljs-keyword">new</span><span class="hljs-type">Word</span> = word.slice(<span class="hljs-number">0</span>, i) + <span class="hljs-keyword">String</span>.fromCharCode(c) + word.slice(i + <span class="hljs-number">1</span>);
+
+        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">new</span><span class="hljs-type">Word</span> === endWord) <span class="hljs-keyword">return</span> steps + <span class="hljs-number">1</span>;
+
+        <span class="hljs-keyword">if</span> (wordSet.has(<span class="hljs-keyword">new</span><span class="hljs-type">Word</span>) &amp;&amp; !visited.has(<span class="hljs-keyword">new</span><span class="hljs-type">Word</span>)) {
+          visited.add(<span class="hljs-keyword">new</span><span class="hljs-type">Word</span>);
+          queue.push([<span class="hljs-keyword">new</span><span class="hljs-type">Word</span>, steps + <span class="hljs-number">1</span>]);
+        }
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-comment">// ⭐ KEY INSIGHT: Edge not explicitly given, generated on-the-fly</span>
+<span class="hljs-comment">// BFS finds shortest path between states in implicit graph</span>
+</code></pre>
+<h2 id="12-2-open-the-lock-lc-752-state-string-visited-states">12.2 Open the Lock (LC 752) — State = String + Visited States</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">openLock</span>(<span class="hljs-params">deadends: string[], target: string</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">if</span> (target === <span class="hljs-string">'0000'</span>) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">const</span> dead = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>(deadends);
+  <span class="hljs-keyword">if</span> (dead.has(<span class="hljs-string">'0000'</span>)) <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+
+  <span class="hljs-keyword">const</span> <span class="hljs-attribute">queue</span>: [<span class="hljs-built_in">string</span>, number][] = [[<span class="hljs-string">'0000'</span>, <span class="hljs-number">0</span>]];
+  <span class="hljs-keyword">const</span> visited = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Set</span>&lt;<span class="hljs-built_in">string</span>&gt;([<span class="hljs-string">'0000'</span>]);
+  <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> [code, steps] = queue[head++];
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">4</span>; i++) {
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> delta <span class="hljs-keyword">of</span> [<span class="hljs-number">1</span>, <span class="hljs-number">-1</span>]) {
+        <span class="hljs-keyword">const</span> digit = (<span class="hljs-built_in">parseInt</span>(code[i]) + delta + <span class="hljs-number">10</span>) % <span class="hljs-number">10</span>;
+        <span class="hljs-keyword">const</span> nextCode = code.slice(<span class="hljs-number">0</span>, i) + digit + code.slice(i + <span class="hljs-number">1</span>);
+
+        <span class="hljs-keyword">if</span> (nextCode === target) <span class="hljs-keyword">return</span> steps + <span class="hljs-number">1</span>;
+
+        <span class="hljs-keyword">if</span> (!dead.has(nextCode) &amp;&amp; !visited.has(nextCode)) {
+          visited.add(nextCode);
+          queue.push([nextCode, steps + <span class="hljs-number">1</span>]);
+        }
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+}
+
+<span class="hljs-comment">// Graph structure:</span>
+<span class="hljs-comment">// Nodes = combinations of lock (10^4 possible)</span>
+<span class="hljs-comment">// Edges = ±1 twist on each dial</span>
+<span class="hljs-comment">// BFS finds shortest path to target, avoiding dead ends</span>
+</code></pre>
+<h2 id="12-3-multi-dimensional-state-lc-1293-864-">12.3 Multi-Dimensional State (LC 1293, 864)</h2>
+<pre><code class="lang-typescript">// State = (row, col, keys_collected) — represented as tuple or bitmask
+
+function shortestPathObstacles(grid: number[][], start: [number, number], end: [number, number], k: number): number {
+  const rows = grid.length,
+<span class="hljs-code">    cols = grid[0].length;</span>
+  // dist[<span class="hljs-string">r</span>][<span class="hljs-symbol">c</span>][<span class="hljs-string">eliminations_left</span>] = min steps
+  const dist: number[<span class="hljs-string"></span>][<span class="hljs-symbol"></span>][<span class="hljs-string"></span>] = Array.from({ length: rows }, () =&gt;
+<span class="hljs-code">    Array.from({ length: cols }, () =&gt; new Array(k + 1).fill(Infinity)),</span>
+  );
+
+  dist[<span class="hljs-string">start[0</span>]][<span class="hljs-string">start[1</span>]][k] = 0;
+  const queue: [<span class="hljs-string">number, number, number, number</span>][<span class="hljs-symbol"></span>] = [[start[0], start[1], k, 0]]; // [r, c, elim_left, steps]
+
+  while (queue.length &gt; 0) {
+<span class="hljs-code">    const [r, c, elim, steps] = queue.shift()!;</span>
+
+<span class="hljs-code">    if (r === end[0] &amp;&amp; c === end[1]) return steps;</span>
+
+<span class="hljs-code">    for (const [dr, dc] of [</span>
+<span class="hljs-code">      [0, 1],</span>
+<span class="hljs-code">      [0, -1],</span>
+<span class="hljs-code">      [1, 0],</span>
+<span class="hljs-code">      [-1, 0],</span>
+<span class="hljs-code">    ]) {</span>
+<span class="hljs-code">      const nr = r + dr,</span>
+<span class="hljs-code">        nc = c + dc;</span>
+<span class="hljs-code">      if (nr &lt; 0 || nr &gt;= rows || nc &lt; 0 || nc &gt;= cols) continue;</span>
+
+<span class="hljs-code">      const newElim = grid[nr][nc] === 1 ? elim - 1 : elim;</span>
+<span class="hljs-code">      if (newElim &lt; 0) continue;</span>
+
+<span class="hljs-code">      if (steps + 1 &lt; dist[nr][nc][newElim]) {</span>
+<span class="hljs-code">        dist[nr][nc][newElim] = steps + 1;</span>
+<span class="hljs-code">        queue.push([nr, nc, newElim, steps + 1]);</span>
+<span class="hljs-code">      }</span>
+<span class="hljs-code">    }</span>
+  }
+
+  return Math.min(...dist[<span class="hljs-string">end[0</span>]][<span class="hljs-string">end[1</span>]]) === Infinity ? -1 : Math.min(...dist[<span class="hljs-string">end[0</span>]][end[1]]);
+}
+
+// ⭐ State expansion = adding dimension for constraints
+// This separates SDE2 from SDE3 (recognizing state space needs)
+</code></pre>
+<hr>
+<h1 id="-section-13-graph-dp-sde3-level-">🧩 SECTION 13: GRAPH + DP (SDE3 Level)</h1>
+<h2 id="13-1-longest-increasing-path-in-matrix-lc-329-">13.1 Longest Increasing Path in Matrix (LC 329)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">longestIncreasingPath</span>(<span class="hljs-params">matrix: <span class="hljs-built_in">number</span>[][]</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">if</span> (!matrix.length) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">const</span> rows = matrix.length,
+    cols = matrix[<span class="hljs-number">0</span>].length;
+  <span class="hljs-keyword">const</span> memo: <span class="hljs-built_in">number</span>[][] = <span class="hljs-built_in">Array</span>.from({ length: rows }, () =&gt; <span class="hljs-keyword">new</span> <span class="hljs-built_in">Array</span>(cols).fill(<span class="hljs-number">0</span>));
+
+  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dfs</span>(<span class="hljs-params">r: <span class="hljs-built_in">number</span>, c: <span class="hljs-built_in">number</span></span>): <span class="hljs-title">number</span> </span>{
+    <span class="hljs-keyword">if</span> (memo[r][c] !== <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span> memo[r][c];
+
+    <span class="hljs-keyword">let</span> max = <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [dr, dc] of [
+      [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>],
+      [<span class="hljs-number">0</span>, <span class="hljs-number">-1</span>],
+      [<span class="hljs-number">1</span>, <span class="hljs-number">0</span>],
+      [<span class="hljs-number">-1</span>, <span class="hljs-number">0</span>],
+    ]) {
+      <span class="hljs-keyword">const</span> nr = r + dr,
+        nc = c + dc;
+      <span class="hljs-keyword">if</span> (nr &gt;= <span class="hljs-number">0</span> &amp;&amp; nr &lt; rows &amp;&amp; nc &gt;= <span class="hljs-number">0</span> &amp;&amp; nc &lt; cols &amp;&amp; matrix[nr][nc] &gt; matrix[r][c]) {
+        max = <span class="hljs-built_in">Math</span>.max(max, <span class="hljs-number">1</span> + dfs(nr, nc));
+      }
+    }
+
+    <span class="hljs-keyword">return</span> (memo[r][c] = max);
+  }
+
+  <span class="hljs-keyword">let</span> result = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> r = <span class="hljs-number">0</span>; r &lt; rows; r++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> c = <span class="hljs-number">0</span>; c &lt; cols; c++) {
+      result = <span class="hljs-built_in">Math</span>.max(result, dfs(r, c));
+    }
+  }
+
+  <span class="hljs-keyword">return</span> result;
+}
+
+<span class="hljs-comment">// ⭐ DP on DAG:</span>
+<span class="hljs-comment">// memo[r][c] = longest increasing path starting from (r,c)</span>
+<span class="hljs-comment">// Implicit DAG: edge from (r,c) to neighbor if neighbor &gt; current</span>
+<span class="hljs-comment">// DFS + memoization = topological sort + DP</span>
+</code></pre>
+<h2 id="13-2-bitmask-dp-lc-864-keys-rooms-">13.2 Bitmask DP (LC 864 — Keys &amp; Rooms)</h2>
+<pre><code class="lang-typescript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">shortestPathAllKeys</span>(<span class="hljs-params">rooms: <span class="hljs-built_in">string</span>[][]</span>): <span class="hljs-title">number</span> </span>{
+  <span class="hljs-keyword">let</span> start = [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>];
+  <span class="hljs-keyword">let</span> keyCount = <span class="hljs-number">0</span>;
+
+  <span class="hljs-comment">// Find start position and count keys</span>
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> r = <span class="hljs-number">0</span>; r &lt; rooms.length; r++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> c = <span class="hljs-number">0</span>; c &lt; rooms[r].length; c++) {
+      <span class="hljs-keyword">if</span> (rooms[r][c] === <span class="hljs-string">'@'</span>) start = [r, c];
+      <span class="hljs-keyword">if</span> (rooms[r][c] &gt;= <span class="hljs-string">'a'</span> &amp;&amp; rooms[r][c] &lt;= <span class="hljs-string">'f'</span>) keyCount++;
+    }
+  }
+
+  <span class="hljs-keyword">const</span> rows = rooms.length,
+    cols = rooms[<span class="hljs-number">0</span>].length;
+  <span class="hljs-comment">// dist[r][c][keys_mask] = min steps to reach (r,c) with keys</span>
+  <span class="hljs-keyword">const</span> dist = <span class="hljs-keyword">new</span> Map&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">number</span>&gt;();
+  dist.set(<span class="hljs-string">`<span class="hljs-subst">${start[0]}</span>,<span class="hljs-subst">${start[1]}</span>,0`</span>, <span class="hljs-number">0</span>);
+
+  <span class="hljs-keyword">const</span> queue: [<span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>, <span class="hljs-built_in">number</span>][] = [[start[<span class="hljs-number">0</span>], start[<span class="hljs-number">1</span>], <span class="hljs-number">0</span>, <span class="hljs-number">0</span>]]; <span class="hljs-comment">// [r, c, mask, steps]</span>
+  <span class="hljs-keyword">let</span> head = <span class="hljs-number">0</span>;
+
+  <span class="hljs-keyword">while</span> (head &lt; queue.length) {
+    <span class="hljs-keyword">const</span> [r, c, mask, steps] = queue[head++];
+
+    <span class="hljs-keyword">if</span> (mask === (<span class="hljs-number">1</span> &lt;&lt; keyCount) - <span class="hljs-number">1</span>) <span class="hljs-keyword">return</span> steps; <span class="hljs-comment">// All keys</span>
+
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [dr, dc] of [
+      [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>],
+      [<span class="hljs-number">0</span>, <span class="hljs-number">-1</span>],
+      [<span class="hljs-number">1</span>, <span class="hljs-number">0</span>],
+      [<span class="hljs-number">-1</span>, <span class="hljs-number">0</span>],
+    ]) {
+      <span class="hljs-keyword">const</span> nr = r + dr,
+        nc = c + dc;
+      <span class="hljs-keyword">if</span> (nr &lt; <span class="hljs-number">0</span> || nr &gt;= rows || nc &lt; <span class="hljs-number">0</span> || nc &gt;= cols) <span class="hljs-keyword">continue</span>;
+
+      <span class="hljs-keyword">const</span> cell = rooms[nr][nc];
+      <span class="hljs-keyword">if</span> (cell === <span class="hljs-string">'#'</span>) <span class="hljs-keyword">continue</span>;
+
+      <span class="hljs-keyword">let</span> newMask = mask;
+      <span class="hljs-comment">// If it's a key, add to mask</span>
+      <span class="hljs-keyword">if</span> (cell &gt;= <span class="hljs-string">'a'</span> &amp;&amp; cell &lt;= <span class="hljs-string">'f'</span>) {
+        newMask |= <span class="hljs-number">1</span> &lt;&lt; (cell.charCodeAt(<span class="hljs-number">0</span>) - <span class="hljs-string">'a'</span>.charCodeAt(<span class="hljs-number">0</span>));
+      }
+      <span class="hljs-comment">// If it's a lock, check if we have key</span>
+      <span class="hljs-keyword">if</span> (cell &gt;= <span class="hljs-string">'A'</span> &amp;&amp; cell &lt;= <span class="hljs-string">'F'</span>) {
+        <span class="hljs-keyword">if</span> (!(mask &amp; (<span class="hljs-number">1</span> &lt;&lt; (cell.charCodeAt(<span class="hljs-number">0</span>) - <span class="hljs-string">'A'</span>.charCodeAt(<span class="hljs-number">0</span>))))) {
+          <span class="hljs-keyword">continue</span>; <span class="hljs-comment">// Don't have key</span>
+        }
+      }
+
+      <span class="hljs-keyword">const</span> key = <span class="hljs-string">`<span class="hljs-subst">${nr}</span>,<span class="hljs-subst">${nc}</span>,<span class="hljs-subst">${newMask}</span>`</span>;
+      <span class="hljs-keyword">if</span> (!dist.has(key)) {
+        dist.set(key, steps + <span class="hljs-number">1</span>);
+        queue.push([nr, nc, newMask, steps + <span class="hljs-number">1</span>]);
+      }
+    }
+  }
+
+  <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
+}
+
+<span class="hljs-comment">// ⭐ Bitmask represents which keys collected</span>
+<span class="hljs-comment">// State = (r, c, keys_mask)</span>
+<span class="hljs-comment">// BFS explores this 3D state space</span>
+<span class="hljs-comment">// Exponential but manageable for small key counts</span>
+</code></pre>
+<hr>
+<h1 id="-section-14-classic-20-problems-with-commentary-">🎯 SECTION 14: CLASSIC 20 PROBLEMS (With Commentary)</h1>
+<h3 id="-tier-1-warm-up-do-these-first-"><strong>TIER 1: WARM-UP (Do these first)</strong></h3>
+<h4 id="lc-200-number-of-islands-dfs-bfs-uf-">LC 200 — Number of Islands (DFS/BFS/UF)</h4>
+<pre><code><span class="hljs-symbol">Difficulty:</span> Medium (but fundamental)
+<span class="hljs-symbol">Pattern:</span> Connected components
+<span class="hljs-symbol">Why:</span> Tests basic graph traversal understanding
+<span class="hljs-symbol">Gotcha:</span> Must handle all <span class="hljs-number">4</span> components <span class="hljs-keyword">in</span> grid
+<span class="hljs-symbol">Solution:</span> DFS grid <span class="hljs-keyword">in</span>-place marking
+</code></pre><h4 id="lc-207-course-schedule-topo-sort-">LC 207 — Course Schedule (Topo Sort)</h4>
+<pre><code><span class="hljs-string">Difficulty:</span> Medium
+<span class="hljs-string">Pattern:</span> Cycle detection <span class="hljs-keyword">in</span> DAG
+<span class="hljs-string">Why:</span> Topo sort is essential <span class="hljs-keyword">for</span> SDE2+
+<span class="hljs-string">Gotcha:</span> Must detect cycle (indegree not reaching <span class="hljs-number">0</span>)
+<span class="hljs-string">Solution:</span> Kahn<span class="hljs-string">'s algorithm</span>
+</code></pre><h4 id="lc-733-flood-fill-dfs-bfs-">LC 733 — Flood Fill (DFS/BFS)</h4>
+<pre><code>Difficulty: Easy (warm up <span class="hljs-keyword">for</span> grid problems)
+Pattern: BFS <span class="hljs-keyword">from</span> source cell
+Why: Teaches state-based BFS <span class="hljs-keyword">on</span> grids
+</code></pre><hr>
+<h3 id="-tier-2-essential-sde2-baseline-"><strong>TIER 2: ESSENTIAL (SDE2 baseline)</strong></h3>
+<h4 id="lc-743-network-delay-time-dijkstra-">LC 743 — Network Delay Time (Dijkstra)</h4>
+<pre><code><span class="hljs-string">Difficulty:</span> Medium
+<span class="hljs-string">Pattern:</span> Single-source shortest path <span class="hljs-keyword">in</span> weighted graph
+<span class="hljs-string">Why:</span> Dijkstra is must-know <span class="hljs-keyword">for</span> any FAANG
+<span class="hljs-string">Gotcha:</span> Must handle unreachable nodes
+<span class="hljs-string">Optimization:</span> Early termination when all nodes reached
+</code></pre><h4 id="lc-785-is-graph-bipartite-2-coloring-">LC 785 — Is Graph Bipartite (2-Coloring)</h4>
+<pre><code>Difficulty: Medium
+Pattern: Graph coloring / bipartition<span class="hljs-built_in"> check
+</span>Why: Tests understanding of graph coloring fundamentals
+Gotcha: Must handle disconnected components
+</code></pre><h4 id="lc-133-clone-graph-dfs-">LC 133 — Clone Graph (DFS)</h4>
+<pre><code><span class="hljs-string">Difficulty:</span> Medium
+<span class="hljs-string">Pattern:</span> Graph traversal + data structure copying
+<span class="hljs-string">Why:</span> Tests understanding of circular references
+<span class="hljs-string">Gotcha:</span> MUST store clone before recursing (prevent infinite loops)
+Key <span class="hljs-string">insight:</span> Store <span class="hljs-keyword">in</span> map to handle back edges
+</code></pre><h4 id="lc-684-redundant-connection-union-find-">LC 684 — Redundant Connection (Union-Find)</h4>
+<pre><code><span class="hljs-symbol">Difficulty:</span> Medium
+<span class="hljs-symbol">Pattern:</span> Find redundant edge creating cycle
+<span class="hljs-symbol">Why:</span> Union-Find beats DFS <span class="hljs-keyword">for</span> this pattern
+<span class="hljs-symbol">Gotcha:</span> Must <span class="hljs-keyword">return</span> LAST edge creating cycle
+<span class="hljs-symbol">Trick:</span> Process edges in order, first failed <span class="hljs-class"><span class="hljs-keyword">union</span> <span class="hljs-title">is</span> <span class="hljs-title">answer</span></span>
+</code></pre><hr>
+<h3 id="-tier-3-sde2-stretch-demonstrates-depth-"><strong>TIER 3: SDE2 STRETCH (Demonstrates depth)</strong></h3>
+<h4 id="lc-287-pacific-atlantic-water-flow-multi-source-bfs-reverse-flow-">LC 287 — Pacific Atlantic Water Flow (Multi-source BFS / Reverse Flow)</h4>
+<pre><code><span class="hljs-symbol">Difficulty</span>: Medium <span class="hljs-keyword">but </span>conceptually tricky
+<span class="hljs-symbol">Pattern</span>: <span class="hljs-keyword">Multi-source </span><span class="hljs-keyword">BFS </span>+ <span class="hljs-keyword">reverse </span>direction thinking
+<span class="hljs-symbol">Why</span>: Tests <span class="hljs-meta">if</span> you can think <span class="hljs-keyword">backwards
+</span><span class="hljs-symbol">Gotcha</span>: Most candidates try forward (impossible), need <span class="hljs-keyword">reverse
+</span><span class="hljs-symbol">Key</span> insight: <span class="hljs-keyword">BFS </span>FROM ocean <span class="hljs-keyword">backwards, </span><span class="hljs-keyword">mark </span>reachable cells
+</code></pre><h4 id="lc-269-alien-dictionary-topo-sort-graph-building-">LC 269 — Alien Dictionary (Topo Sort + Graph Building)</h4>
+<pre><code><span class="hljs-keyword">Difficulty: </span>Hard
+<span class="hljs-symbol">Pattern:</span> <span class="hljs-keyword">Build </span>graph from <span class="hljs-keyword">ordering </span>constraints + topo sort
+<span class="hljs-symbol">Why:</span> Tests constraint <span class="hljs-keyword">extraction </span>skill
+<span class="hljs-symbol">Gotcha:</span> Must handle invalid <span class="hljs-keyword">orderings </span>(e.g., longer word <span class="hljs-keyword">before </span><span class="hljs-keyword">prefix)
+</span>Edge case: <span class="hljs-string">"za"</span>, <span class="hljs-string">"zb"</span>, <span class="hljs-string">"ca"</span>, <span class="hljs-string">"cb"</span> - need edge z→c from first <span class="hljs-keyword">diff </span>position
+</code></pre><h4 id="lc-127-word-ladder-bfs-on-implicit-graph-bidirectional-">LC 127 — Word Ladder (BFS on Implicit Graph / Bidirectional)</h4>
+<pre><code>Difficulty: Hard
+Pattern: BFS on state space <span class="hljs-keyword">where</span> edge = one letter change
+Why: Teaches <span class="hljs-keyword">implicit</span> graph thinking
+Optimization: Bidirectional BFS cuts runtime exponentially
+</code></pre><h4 id="lc-815-bus-routes-bfs-on-implicit-graph-">LC 815 — Bus Routes (BFS on Implicit Graph)</h4>
+<pre><code>Difficulty: Hard
+Pattern: State = <span class="hljs-string">"which buses have I taken"</span>
+Why: Hard <span class="hljs-keyword">to</span> see this <span class="hljs-keyword">is</span> BFS problem (<span class="hljs-keyword">not</span> shortest path <span class="hljs-keyword">in</span> traditional sense)
+Gotcha: State = <span class="hljs-keyword">set</span> <span class="hljs-keyword">of</span> buses, <span class="hljs-keyword">not</span> positions
+Novel insight: Treat bus transfers <span class="hljs-keyword">as</span> edges <span class="hljs-keyword">between</span> people
+</code></pre><hr>
+<h3 id="-tier-4-sde3-level-hard-problems-"><strong>TIER 4: SDE3 LEVEL (Hard Problems)</strong></h3>
+<h4 id="lc-864-shortest-path-visiting-all-nodes-bitmask-dp-bfs-">LC 864 — Shortest Path Visiting All Nodes (Bitmask DP + BFS)</h4>
+<pre><code>Difficulty: Hard
+Pattern: State = (node, visited_mask), BFS <span class="hljs-keyword">on</span> this space
+Why: SDE3 must handle <span class="hljs-keyword">bitmask</span> <span class="hljs-keyword">state</span> spaces
+Gotcha: Can't just DFS, need BFS <span class="hljs-keyword">for</span> shortest path <span class="hljs-keyword">in</span> <span class="hljs-keyword">state</span> space
+Time complexity: O(n * <span class="hljs-number">2</span>^n)
+</code></pre><h4 id="lc-1293-shortest-path-with-obstacle-removal-state-expansion-">LC 1293 — Shortest Path with Obstacle Removal (State Expansion)</h4>
+<pre><code>Difficulty: Hard
+Pattern: State = (r, c, obstacles_removed), BFS expanding <span class="hljs-keyword">state</span>
+Why: Teaches adding dimension <span class="hljs-keyword">to</span> <span class="hljs-keyword">state</span> <span class="hljs-keyword">for</span> constraints
+Gotcha: Similar <span class="hljs-keyword">to</span> LC <span class="hljs-number">787</span> but <span class="hljs-keyword">in</span> <span class="hljs-number">2</span>D + limited removals
+</code></pre><h4 id="lc-1192-critical-connections-network-bridges-">LC 1192 — Critical Connections Network (Bridges)</h4>
+<pre><code>Difficulty: Hard
+Pattern: Find <span class="hljs-keyword">all</span> bridges <span class="hljs-keyword">in</span> undirected graph
+Why: Tests Tarjan<span class="hljs-symbol">'s</span> algorithm <span class="hljs-keyword">or</span> similar
+Gotcha: This <span class="hljs-keyword">is</span> network connectivity critical infrastructure problem
+</code></pre><h4 id="lc-1345-jump-game-iv-shortest-path-value-based-edges-">LC 1345 — Jump Game IV (Shortest Path, Value-Based Edges)</h4>
+<pre><code>Difficulty: Hard
+Pattern: Unusual edge definition (can jump <span class="hljs-built_in">to</span> ANY index <span class="hljs-keyword">with</span> same <span class="hljs-built_in">value</span>)
+Why: Teaches non-obvious graph construction
+Optimization: Pre-compute groups <span class="hljs-keyword">of</span> indices <span class="hljs-keyword">with</span> same <span class="hljs-built_in">value</span>
+</code></pre><hr>
+<h1 id="-section-15-what-to-say-interview-signals-for-sde2-sde3-">💬 SECTION 15: WHAT TO SAY (Interview Signals for SDE2/SDE3)</h1>
+<h2 id="opening-before-code-60-seconds">Opening (Before Code) — 60 seconds</h2>
+<pre><code>SDE2 Opening:
+"I'll <span class="hljs-keyword">use</span> BFS <span class="hljs-keyword">to</span> explore the graph <span class="hljs-keyword">level</span> <span class="hljs-keyword">by</span> level.
+ <span class="hljs-keyword">Time</span> complexity: O(V+E), <span class="hljs-keyword">Space</span>: O(V) <span class="hljs-keyword">for</span> the queue.<span class="hljs-string">"
+
+SDE3 Opening:
+"</span>I need <span class="hljs-keyword">to</span> find shortest paths <span class="hljs-keyword">in</span> an unweighted graph.
+ BFS <span class="hljs-keyword">is</span> <span class="hljs-keyword">optimal</span> here, but <span class="hljs-keyword">if</span> there were weights, I<span class="hljs-string">'d reconsider.
+ Before coding: Is the graph directed? Can there be cycles?
+ [Listens to answer]
+ I'</span>ll <span class="hljs-keyword">use</span> BFS <span class="hljs-keyword">with</span> <span class="hljs-keyword">index</span>-pointer-based queue <span class="hljs-keyword">to</span> avoid O(n) shift overhead.
+ <span class="hljs-keyword">Time</span>: O(V+E), <span class="hljs-keyword">Space</span>: O(V).<span class="hljs-string">"</span>
+</code></pre><h2 id="while-coding-running-commentary">While Coding — Running Commentary</h2>
+<pre><code><span class="hljs-type">SDE2</span>:
+<span class="hljs-comment">"I'm marking visited as I add to queue..."</span>
+<span class="hljs-comment">"Now I'll process neighbors..."</span>
+
+<span class="hljs-type">SDE3</span>:
+<span class="hljs-comment">"I'm marking visited on ENQUEUE to avoid duplicates.
+ I'm using an index pointer instead of shift() — this keeps queue operation O(1).
+ For disconnected graphs, I need to loop all nodes as starting points."</span>
+</code></pre><h2 id="after-first-solution-optimizations">After First Solution — Optimizations</h2>
+<pre><code>SDE2:
+"This handles the basic case. Are there any edge cases I missed?"
+
+SDE3:
+"This works in O(V+E) time. Could <span class="hljs-keyword">optimize</span> <span class="hljs-keyword">space</span> <span class="hljs-keyword">by</span> marking grid <span class="hljs-keyword">in</span>-place,
+ trading <span class="hljs-keyword">memory</span> <span class="hljs-keyword">for</span> mutation (I<span class="hljs-string">'d confirm this is acceptable).
+
+ If the graph were huge (say 10^9 nodes), I'</span>d <span class="hljs-keyword">consider</span>:
+ - Bidirectional BFS <span class="hljs-keyword">to</span> reduce <span class="hljs-keyword">search</span> <span class="hljs-keyword">space</span>
+ - A* <span class="hljs-keyword">if</span> I had a heuristic
+ - Iterator pattern <span class="hljs-keyword">to</span> avoid storing entire graph
+<span class="hljs-string">"</span>
+</code></pre><h2 id="failure-case-recovery">Failure Case — Recovery</h2>
+<pre><code>If you get stuck <span class="hljs-keyword">or</span> find a bug:
+
+SDE2:
+"Let me trace through the example <span class="hljs-keyword">by</span> hand...
+ I think the issue <span class="hljs-keyword">is</span> [bug]. I need to [fix]."
+
+SDE3:
+"Interesting — <span class="hljs-keyword">let</span> me think about this differently.
+ The problem <span class="hljs-keyword">is</span> I'm [misunderstanding/<span class="hljs-keyword">not</span> handling].
+ Actually, I realize [insight]. Here's why [explanation]."
+</code></pre><hr>
+<h1 id="-section-16-critical-bugs-to-avoid">⚠️ SECTION 16: CRITICAL BUGS TO AVOID</h1>
+<pre><code>BUG <span class="hljs-comment">#1: Using shift() in BFS</span>
+❌ while (queue.length &gt; <span class="hljs-number">0</span>) <span class="hljs-keyword">node</span> <span class="hljs-title">= queue</span>.shift()    // O(n) per call!
+✅ while (head <span class="hljs-tag">&lt; queue.length) node = queue[head++]  // O(1)
+   Impact: Turns O(V+E) into O(V^2+E) for sparse graphs
+
+
+BUG #2: Marking visited on DEQUEUE
+❌ while (queue.length &gt;</span> <span class="hljs-number">0</span>) {
+     <span class="hljs-keyword">node</span> <span class="hljs-title">= queue</span>.shift()
+     visited.add(<span class="hljs-keyword">node</span><span class="hljs-title">)                // WRONG</span>: marks on dequeue
+     for (neighbor of graph[<span class="hljs-keyword">node</span><span class="hljs-title">]) {
+         queue</span>.push(neighbor)         // Duplicate enqueues possible!
+     }
+   }
+✅ while (queue.length &gt; <span class="hljs-number">0</span>) {
+     <span class="hljs-keyword">node</span> <span class="hljs-title">= queue</span>.shift()
+     if (visited.has(<span class="hljs-keyword">node</span><span class="hljs-title">)) continue</span>  // Skip if already processed
+     visited.add(<span class="hljs-keyword">node</span><span class="hljs-title">)
+   }
+   Impact</span>: Exponential duplicates <span class="hljs-keyword">in</span> queue
+
+
+BUG <span class="hljs-comment">#3: Dijkstra without stale entry check</span>
+❌ while (heap.length) {
+     [dist, <span class="hljs-keyword">node</span><span class="hljs-title">] = heap</span>.pop()
+     for ([neighbor, w] of graph[<span class="hljs-keyword">node</span><span class="hljs-title">]) {
+         if</span> (dist[<span class="hljs-keyword">node</span><span class="hljs-title">] + w</span> <span class="hljs-tag">&lt; dist[neighbor]) {
+             dist[neighbor] = ...
+             heap.push([..., neighbor])
+         }
+     }
+   }
+✅ while (heap.length) {
+     [d, node] = heap.pop()
+     if (d &gt;</span> dist[<span class="hljs-keyword">node</span><span class="hljs-title">]) continue</span>      // Skip stale entry
+     ...
+   }
+   Impact: Can process same <span class="hljs-keyword">node</span> <span class="hljs-title">multiple</span> times wastefully
+
+
+BUG <span class="hljs-comment">#4: Wrong parent check in undirected cycle detection</span>
+❌ if (!visited.has(neighbor)) dfs(neighbor, <span class="hljs-keyword">node</span><span class="hljs-title">)
+   else</span> if (neighbor !== parent) return <span class="hljs-literal">true</span>
+
+   Problem: If multiple edges between same nodes, breaks!
+
+✅ Track edge ID <span class="hljs-keyword">or</span> use Union-Find instead
+
+
+BUG <span class="hljs-comment">#5: String key collision in grid</span>
+❌ const key = `${r}${c}`   // r=<span class="hljs-number">1</span>,c=<span class="hljs-number">23</span> collides with r=<span class="hljs-number">12</span>,c=<span class="hljs-number">3</span>!
+✅ const key = `${r},${c}`  // Always use separator
+
+
+BUG <span class="hljs-comment">#6: No copy in k-stops Bellman-Ford</span>
+❌ for (i = <span class="hljs-number">0</span>; i <span class="hljs-tag">&lt; k; i++) {
+     for ([u,v,w] of edges) {
+         dist[v] = min(dist[v], dist[u] + w)  // Bleed into same iteration!
+     }
+   }
+
+✅ for (i = 0; i &lt; k; i++) {
+     nextDist = [...dist]
+     for ([u,v,w] of edges) {
+         nextDist[v] = min(nextDist[v], dist[u] + w)
+     }
+     dist = nextDist
+   }
+
+
+BUG #7: Union-Find without path compression
+   Impact: O(log n) or even O(n) operations instead of O(α(n))
+
+
+BUG #8: Forgetting disconnected components
+❌ dfs(graph, 0, visited)     // Only traverses from node 0!
+✅ for (i = 0; i &lt; n; i++) {
+     if (!visited.has(i)) dfs(graph, i, visited)
+   }</span>
+</code></pre><hr>
+<h1 id="-section-17-pre-submission-checklist">✅ SECTION 17: PRE-SUBMISSION CHECKLIST</h1>
+<p>Before you say &quot;I&#39;m done&quot;, verify:</p>
+<pre><code>CORRECTNESS CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Does it handle disconnected graph? (loop all nodes)
+□ Does it handle single node (n=1)?
+□ Does it handle empty graph (n=0)?
+□ Are cycles handled correctly?
+□ Visited marked on ENQUEUE (not dequeue)?
+□ Stale entry <span class="hljs-keyword">check</span> <span class="hljs-keyword">in</span> Dijkstra <span class="hljs-keyword">present</span>?
+□ <span class="hljs-keyword">String</span> <span class="hljs-keyword">keys</span> <span class="hljs-keyword">safe</span>? (<span class="hljs-keyword">use</span> ${r},${c} <span class="hljs-keyword">format</span>)
+□ <span class="hljs-built_in">Array</span> bounds checked?
+□ <span class="hljs-literal">Null</span>/undefined handled? (<span class="hljs-keyword">use</span> ?? <span class="hljs-keyword">for</span> Map.get)
+□ <span class="hljs-keyword">Parent</span> <span class="hljs-keyword">check</span> correct <span class="hljs-keyword">for</span> undirected?
+
+COMPLEXITY CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ <span class="hljs-keyword">Time</span> complexity stated?
+□ <span class="hljs-keyword">Space</span> complexity stated?
+□ <span class="hljs-keyword">No</span> O(n) operation <span class="hljs-keyword">in</span> tight <span class="hljs-keyword">loop</span>?
+□ BFS <span class="hljs-keyword">using</span> <span class="hljs-keyword">index</span> pointer (<span class="hljs-keyword">not</span> shift)?
+□ <span class="hljs-keyword">No</span> repeated <span class="hljs-keyword">work</span> (memoization <span class="hljs-keyword">where</span> needed)?
+
+TYPESCRIPT-SPECIFIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Non-<span class="hljs-literal">null</span> assertions (!) justified?
+□ Map.get() <span class="hljs-literal">null</span> checks <span class="hljs-keyword">present</span>?
+□ MinHeap comparator correct? (a[<span class="hljs-number">0</span>]-b[<span class="hljs-number">0</span>] <span class="hljs-keyword">for</span> <span class="hljs-keyword">min</span>)
+□ Tuple destructuring <span class="hljs-keyword">in</span> correct <span class="hljs-keyword">order</span>?
+□ <span class="hljs-keyword">No</span> Math.max(...array) <span class="hljs-keyword">on</span> huge arrays (<span class="hljs-keyword">use</span> reduce)?
+
+COMMUNICATION CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Explained approach <span class="hljs-keyword">before</span> coding?
+□ Mentioned trade-offs <span class="hljs-keyword">or</span> alternatives?
+□ Walked <span class="hljs-keyword">through</span> an example?
+□ Discussed possible optimizations?
+□ Asked clarifying questions?
+</code></pre><hr>
+<h1 id="-section-18-complexity-reference-table">📊 SECTION 18: COMPLEXITY REFERENCE TABLE</h1>
+<pre><code>ALGORITHM              TIME              SPACE         WHEN TO USE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+<span class="hljs-keyword">BFS </span>                   O(V+E)            O(V)          <span class="hljs-keyword">Shortest </span>unweighted
+DFS                    O(V+E)            O(V)          Traversal, stack depth ≤ <span class="hljs-number">10</span>K
+<span class="hljs-keyword">Dijkstra </span>              O((V+E)logV)      O(V)          Weighted, non-negative
+<span class="hljs-keyword">Bellman-Ford </span>          O(V·E)            O(V)          Negative weights allowed
+Floyd-Warshall         O(V³)             O(V²)         All pairs (V ≤ <span class="hljs-number">500</span>)
+Topo Sort (Kahn)       O(V+E)            O(V)          DAG <span class="hljs-keyword">ordering
+</span>DFS-<span class="hljs-keyword">based </span>Topo         O(V+E)            O(V)          DAG + cycle detection
+Prim<span class="hljs-string">'s MST             O((V+E)logV)      O(V)          Dense graphs
+Kruskal'</span>s MST          O(E logE)         O(V)          Sparse graphs
+Union-Find            O(α(n)) per op     O(V)          Connectivity queries
+Kosaraju <span class="hljs-keyword">SCC </span>          O(V+E)            O(V)          Strongly connected components
+Find <span class="hljs-keyword">Bridges </span>          O(V+E)            O(V)          Critical edges
+<span class="hljs-keyword">Bipartite </span>Check        O(V+E)            O(V)          <span class="hljs-number">2</span>-coloring
+<span class="hljs-keyword">Bidirectional </span><span class="hljs-keyword">BFS </span>     O(<span class="hljs-keyword">b^(d/2)) </span>       O(<span class="hljs-keyword">b^d/2) </span>    vs O(<span class="hljs-keyword">b^d) </span><span class="hljs-keyword">normal </span><span class="hljs-keyword">BFS
+</span><span class="hljs-number">0</span>-1 <span class="hljs-keyword">BFS </span>              O(V+E)            O(V)          Weights {<span class="hljs-number">0</span>,<span class="hljs-number">1</span>} only
+</code></pre><hr>
+<h1 id="-section-19-64-problems-by-pattern">🗺️ SECTION 19: 64 PROBLEMS BY PATTERN</h1>
+<h3 id="-bfs-shortest-path-8-problems-"><strong>BFS / SHORTEST PATH (8 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">200</span>   Number of Islands              Easy      DFS/BFS/UF
+LC <span class="hljs-number">208</span>   Implement Trie                 Medium    Trie (graph-like)
+LC <span class="hljs-number">286</span>   Walls and Gates                Medium    Multi-source BFS
+LC <span class="hljs-number">433</span>   M<span class="hljs-keyword">in</span> Genetic Mutation           Medium    BFS <span class="hljs-keyword">state</span> space
+LC <span class="hljs-number">752</span>   Open the Lock                  Medium    BFS <span class="hljs-keyword">state</span> space
+LC <span class="hljs-number">1091</span>  Shortest Path Binary Matrix    Medium    BFS <span class="hljs-number">0</span>-<span class="hljs-number">1</span> grid
+LC <span class="hljs-number">127</span>   Word Ladder                    Hard      BFS + bidirectional
+LC <span class="hljs-number">815</span>   Bus Routes                     Hard      BFS <span class="hljs-keyword">state</span> space (buses)
+</code></pre><h3 id="-dfs-traversal-8-problems-"><strong>DFS / TRAVERSAL (8 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">98</span>    Validate BST                   <span class="hljs-keyword">Medium</span>    DFS validation
+LC <span class="hljs-number">230</span>   Kth Smallest BST               <span class="hljs-keyword">Medium</span>    <span class="hljs-keyword">In</span>-order DFS
+LC <span class="hljs-number">133</span>   Clone <span class="hljs-keyword">Graph</span>                    <span class="hljs-keyword">Medium</span>    DFS + map
+LC <span class="hljs-number">694</span>   <span class="hljs-keyword">Number</span> of Distinct Islands     <span class="hljs-keyword">Medium</span>    DFS grid variant
+LC <span class="hljs-number">733</span>   Flood Fill                     Easy      DFS grid
+LC <span class="hljs-number">695</span>   <span class="hljs-keyword">Max</span> Area of Island             <span class="hljs-keyword">Medium</span>    DFS grid area
+LC <span class="hljs-number">1020</span>  <span class="hljs-keyword">Number</span> of Enclaves             <span class="hljs-keyword">Medium</span>    DFS surrounded regions
+LC <span class="hljs-number">130</span>   Surrounded Regions             <span class="hljs-keyword">Medium</span>    DFS reverse approach
+</code></pre><h3 id="-topological-sort-6-problems-"><strong>TOPOLOGICAL SORT (6 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">207</span>   Course <span class="hljs-keyword">Schedule </span>               Medium    Cycle detection
+LC <span class="hljs-number">210</span>   Course <span class="hljs-keyword">Schedule </span>II             Medium    Get topo <span class="hljs-keyword">order
+</span>LC <span class="hljs-number">269</span>   Alien <span class="hljs-keyword">Dictionary </span>              Hard      Char <span class="hljs-keyword">ordering
+</span>LC <span class="hljs-number">1203</span>  Sort Items <span class="hljs-keyword">by </span>Groups           Hard      <span class="hljs-keyword">Multi-level </span>topo
+LC <span class="hljs-number">444</span>   Sequence Reconstruction        Medium    Validate topo
+LC <span class="hljs-number">1466</span>  Reorder Routes <span class="hljs-number">2</span> <span class="hljs-keyword">Direc </span>        Hard      MST + DFS
+</code></pre><h3 id="-dijkstra-weighted-8-problems-"><strong>DIJKSTRA &amp; WEIGHTED (8 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">743</span>   Network Delay Time             <span class="hljs-keyword">Medium</span>    Basic Dijkstra
+LC <span class="hljs-number">1514</span>  <span class="hljs-keyword">Path</span> with <span class="hljs-keyword">Max</span> Prob             <span class="hljs-keyword">Medium</span>    Dijkstra variant
+LC <span class="hljs-number">787</span>   Cheapest Flights <span class="hljs-keyword">K</span> Stops       <span class="hljs-keyword">Medium</span>    Bellman-Ford
+LC <span class="hljs-number">778</span>   Swim in Rising Water           Hard      <span class="hljs-keyword">Min</span>-max path
+LC <span class="hljs-number">1631</span>  <span class="hljs-keyword">Min</span> Effort <span class="hljs-keyword">Path</span>                <span class="hljs-keyword">Medium</span>    <span class="hljs-keyword">Min</span>-max Dijkstra
+LC <span class="hljs-number">1129</span>  <span class="hljs-keyword">Shortest</span> <span class="hljs-keyword">Path</span> Alternate Colors Hard      Weighted <span class="hljs-number">2</span>-color
+LC <span class="hljs-number">2577</span>  <span class="hljs-keyword">Min</span> Cost <span class="hljs-keyword">Graph</span>                 Hard      Dijkstra
+LC <span class="hljs-number">1928</span>  <span class="hljs-keyword">Min</span> Cost Reaching Destin       Hard      Modified Dijkstra
+</code></pre><h3 id="-mst-union-find-8-problems-"><strong>MST / UNION-FIND (8 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">684</span>   Redundant Connection           <span class="hljs-keyword">Medium</span>    UF cycle
+LC <span class="hljs-number">323</span>   Connected Components           <span class="hljs-keyword">Medium</span>    UF / DFS
+LC <span class="hljs-number">261</span>   <span class="hljs-keyword">Graph</span> Valid Tree               <span class="hljs-keyword">Medium</span>    UF properties
+LC <span class="hljs-number">947</span>   <span class="hljs-keyword">Most</span> Stones <span class="hljs-keyword">Removed</span>            <span class="hljs-keyword">Medium</span>    UF connected stones
+LC <span class="hljs-number">721</span>   Accounts Merge                 <span class="hljs-keyword">Medium</span>    UF + sorting
+LC <span class="hljs-number">1584</span>  <span class="hljs-keyword">Min</span> Cost <span class="hljs-keyword">Connect</span> Points        <span class="hljs-keyword">Medium</span>    MST Kruskal
+LC <span class="hljs-number">1135</span>  Connecting Cities Minimum      Hard      MST Prim/Kruskal
+LC <span class="hljs-number">1168</span>  Optimize Water Distribution    Hard      MST + weighted UF
+</code></pre><h3 id="-bipartite-coloring-4-problems-"><strong>BIPARTITE / COLORING (4 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">785</span>   Is <span class="hljs-keyword">Graph</span> Bipartite             <span class="hljs-keyword">Medium</span>    <span class="hljs-number">2</span>-coloring
+LC <span class="hljs-number">886</span>   Possible Bipartition           <span class="hljs-keyword">Medium</span>    <span class="hljs-keyword">Graph</span> builder + bipartite
+LC <span class="hljs-number">1042</span>  Avoid Flood Fill               <span class="hljs-keyword">Medium</span>    Coloring variant
+LC <span class="hljs-number">2115</span>  Valid Arrangement Pairs        <span class="hljs-keyword">Medium</span>    <span class="hljs-keyword">Graph</span> construction
+</code></pre><h3 id="-cycles-paths-6-problems-"><strong>CYCLES &amp; PATHS (6 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">1192</span>  Critical Connections           Hard      Bridges
+LC <span class="hljs-number">1568</span>  Min Interruptions              Hard      Cycle detection
+LC <span class="hljs-number">329</span>   Longest Increasing Path        Hard      DP on DAG
+LC <span class="hljs-number">1345</span>  Jump Game IV                   Hard      State BFS
+LC <span class="hljs-number">847</span>   Shortest Path All Nodes        Hard      Bitmask DP
+LC <span class="hljs-number">864</span>   Keys &amp; Rooms                   Hard      Bitmask DP
+</code></pre><h3 id="-advanced-state-space-6-problems-"><strong>ADVANCED STATE SPACE (6 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">752</span>   Open the Lock                  Medium    String <span class="hljs-keyword">state</span>
+LC <span class="hljs-number">1293</span>  Shortest Path Obstacles        Hard      <span class="hljs-number">3</span>D <span class="hljs-keyword">state</span> (r,c,k)
+LC <span class="hljs-number">1263</span>  M<span class="hljs-keyword">in</span> Moves <span class="hljs-keyword">to</span> Move Box          Hard      <span class="hljs-number">4</span>D <span class="hljs-keyword">state</span> (<span class="hljs-number">2</span> positions + <span class="hljs-number">1</span> key)
+LC <span class="hljs-number">1255</span>  Max Score Words Letter         Hard      Bitmask words
+LC <span class="hljs-number">1494</span>  Parallel Courses II            Hard      Bitmask courses
+LC <span class="hljs-number">1906</span>  M<span class="hljs-keyword">in</span> Absolute Diff Queries      Hard      Sorted queries
+</code></pre><h3 id="-scc-graph-structure-4-problems-"><strong>SCC / GRAPH STRUCTURE (4 problems)</strong></h3>
+<pre><code>LC <span class="hljs-number">1192</span>  Critical Connections           Hard      Bridges (above)
+LC <span class="hljs-number">2191</span>  <span class="hljs-keyword">Sort</span> Jumbled Numbers           <span class="hljs-keyword">Medium</span>    Permutation graph
+LC <span class="hljs-number">2192</span>  <span class="hljs-keyword">All</span> Ancestors of Node          <span class="hljs-keyword">Medium</span>    DFS all paths
+LC <span class="hljs-number">2459</span>  <span class="hljs-keyword">Sort</span> <span class="hljs-keyword">Array</span> by Moving <span class="hljs-keyword">Count</span>     <span class="hljs-keyword">Medium</span>    <span class="hljs-keyword">Graph</span>-based sorting
+</code></pre><hr>
+<h1 id="-section-20-final-interview-checklist-day-of-">🚀 SECTION 20: FINAL INTERVIEW CHECKLIST (Day Of)</h1>
+<pre><code><span class="hljs-number">6</span> HOURS BEFORE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Review <span class="hljs-keyword">Section</span> <span class="hljs-number">0</span> (<span class="hljs-number">30</span>-second framework)
+□ Review <span class="hljs-keyword">Section</span> <span class="hljs-number">16</span> (bugs to avoid)
+□ <span class="hljs-keyword">Check</span> your MinHeap implementation compiles
+□ Skim problem map <span class="hljs-keyword">for</span> <span class="hljs-built_in">pattern</span> you're weaker <span class="hljs-built_in">in</span>
+
+
+<span class="hljs-number">30</span> MINUTES BEFORE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Review what to SAY (<span class="hljs-keyword">Section</span> <span class="hljs-number">15</span>)
+□ Mental model: <span class="hljs-string">"what separates SDE2 vs SDE3"</span> (<span class="hljs-keyword">Section</span> <span class="hljs-number">0</span>)
+□ One quick example walkthrough <span class="hljs-built_in">by</span> hand
+
+
+DURING INTERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ <span class="hljs-number">30</span> seconds: Draw the graph on paper
+□ <span class="hljs-number">30</span> seconds: Ask clarifying questions
+□ <span class="hljs-number">60</span> seconds: Explain approach out loud <span class="hljs-built_in">before</span> coding
+□ Code <span class="hljs-built_in">using</span> templates (fill <span class="hljs-built_in">in</span> the blanks)
+□ After <span class="hljs-built_in">first</span> solution: Discuss optimizations
+□ Use pre-submission checklist <span class="hljs-built_in">before</span> declaring done
+</code></pre><hr>
+<h2 id="-parting-wisdom-from-20-yrs-at-faang-">🎓 PARTING WISDOM (From 20 yrs at FAANG)</h2>
+<blockquote>
+<p>The candidates who get offers don&#39;t memorize all 64 problems. They understand <strong>5 core patterns</strong> deeply and can adapt them. They ask questions. They communicate. They handle edge cases proactively.</p>
+<p><strong>What separates SDE3 from SDE2 is NOT more algorithms, it&#39;s:</strong></p>
+<ol>
+<li><strong>Asking better questions</strong> (&quot;Can the graph have self-loops?&quot; vs staying silent)</li>
+<li><strong>Thinking about trade-offs</strong> (&quot;Should I use BFS or Dijkstra?&quot; vs just picking one)</li>
+<li><strong>Handling constraints proactively</strong> (disconnected graphs, stale entries, etc.)</li>
+<li><strong>Discussing follow-ups</strong> (&quot;What if negative weights?&quot; vs &quot;I&#39;m done&quot;)</li>
+</ol>
+<p><strong>You&#39;ve got this.</strong> 🚀</p>
+</blockquote>
+<hr>
+<p><em>Last Updated: 2026 | For SDE2/SDE3 interviews at Meta, Google, Amazon, Microsoft, Apple, etc.</em></p>
