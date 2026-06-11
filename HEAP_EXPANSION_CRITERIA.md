@@ -2,11 +2,13 @@
 
 ## ✅ CURRENT STATE ANALYSIS
 
-**Current Status:** 25 problems (Base set), 4 patterns, ~85% FAANG coverage
+**Current Status:** 38 problems, 4 patterns, ~95% FAANG coverage
 
 **Expansion Framework:** ✅ COMPLETE — 3-phase expansion plan designed and documented
 
-**Implementation Status:** ⏳ PENDING — Problems to be generated and integrated later
+**Implementation Status:** ✅ COMPLETE — 12 expansion problems + LC_973 integrated into `data.js` (v66+); module `goal` updated to 38 curated problems
+
+**Integrated additions (13):** LC_407, LC_1066, LC_1834, LC_2571, LC_1882 (P2) · LC_2353, LC_1631, LC_1851 (P3) · LC_2037, LC_1792, LC_2050, LC_2439 (P4) · LC_973 (P1, K Closest Points to Origin — added for raw Amazon/Meta frequency despite size-k overlap with LC_658)
 
 | Pattern                     | Count | Current Problems                                                                  | Coverage             |
 | --------------------------- | ----- | --------------------------------------------------------------------------------- | -------------------- |
@@ -195,20 +197,21 @@ The comprehensive 3-phase expansion framework is fully designed:
 
 ---
 
-## ⏳ IMPLEMENTATION PENDING
+## ✅ IMPLEMENTATION COMPLETE
 
-**Next Phase — Problem Generation & Integration:**
+**Problem Generation & Integration — done:**
 
-1. Generate Phase 1 problem entries (7 problems with full metadata)
-2. Create HEAP_PHASE1_PROBLEMS.js
-3. Generate Phase 2 problem entries (3 problems with full metadata)
-4. Create HEAP_PHASE2_PROBLEMS.js
-5. Generate Phase 3 problem entries (3 problems with full metadata)
-6. Create HEAP_PHASE3_PROBLEMS.js
-7. Integrate all 13 problems into data.js
-8. Update all pattern arrays in data.js with new LC code references
-9. Verify JavaScript syntax and coverage via grep
-10. Confirm backward compatibility with UI rendering
+1. ✅ Phase 1–3 problem entries generated with full metadata
+2. ✅ Entries integrated directly into `data.js` (no separate HEAP_PHASE*.js files needed — entries live inline in the `heap` module's `questions` map)
+3. ✅ All pattern `questionIds` arrays updated with new LC codes (P1–P4)
+4. ✅ JavaScript syntax verified (`node --check data.js` passes)
+5. ✅ UI rendering confirmed — questions group by `questionIds`; new entries follow the current authoring convention (`status: 'Pending'`, pattern-code `templateRefs`)
+6. ✅ Module `goal` count updated 25 → 38
+
+**Authoring-convention notes (for future additions):**
+
+- New entries use `status: 'Pending'` and `templateRefs: ['P<n>']` (pattern IDs), consistent with the DP module's newer entries (LC_2376, LC_1235, LC_329). Neither field is consumed by the renderer — questions are grouped solely by each pattern's `questionIds`.
+- `difficultyRank` is optional on new entries and is not required for rendering.
 
 **Framework Reference Documents:**
 
