@@ -1,0 +1,2010 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Dynamic Programming CheatSheet</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+	margin-bottom: 0.5rem;
+	page-break-after: avoid;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+	margin-bottom: 0.4rem;
+	page-break-after: avoid;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+	margin-bottom: 0.3rem;
+	page-break-after: avoid;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+
+	/* High-density revision print optimization: Target size ≈ 12-15 pages */
+	html, body {
+		font-size: 10px !important;
+		line-height: 1.2 !important;
+		color: #111 !important;
+		margin: 0.3in !important;
+		padding: 0 !important;
+	}
+
+	h1, .page-title {
+		font-size: 14px !important;
+		font-weight: 700 !important;
+		margin-top: 0.4em !important;
+		margin-bottom: 0.15em !important;
+		page-break-after: avoid !important;
+		page-break-inside: avoid !important;
+	}
+
+	h2 {
+		font-size: 12px !important;
+		font-weight: 600 !important;
+		margin-top: 0.35em !important;
+		margin-bottom: 0.1em !important;
+		page-break-after: avoid !important;
+		page-break-inside: avoid !important;
+	}
+
+	h3 {
+		font-size: 11px !important;
+		font-weight: 600 !important;
+		margin-top: 0.25em !important;
+		margin-bottom: 0.08em !important;
+		page-break-after: avoid !important;
+	}
+
+	p, li, div {
+		margin-top: 0.1em !important;
+		margin-bottom: 0.1em !important;
+		page-break-inside: avoid !important;
+	}
+
+	ol, ul {
+		margin-block-start: 0.1em !important;
+		margin-block-end: 0.1em !important;
+		padding-inline-start: 1em !important;
+	}
+
+	.code, pre {
+		font-size: 8.5px !important;
+		padding: 0.3em 0.4em !important;
+		margin: 0.15em 0 !important;
+		line-height: 1.15 !important;
+		background-color: rgba(135, 131, 120, 0.06) !important;
+		border-left: 2px solid #0066cc !important;
+		page-break-inside: avoid !important;
+		overflow: hidden !important;
+	}
+
+	blockquote {
+		font-size: 10px !important;
+		margin: 0.5em 0 !important;
+		padding-left: 0.6em !important;
+		border-left: 2px solid rgb(55, 53, 47) !important;
+		page-break-inside: avoid !important;
+	}
+
+	hr {
+		margin-top: 0.25em !important;
+		margin-bottom: 0.25em !important;
+		border-bottom: 0.5px solid rgba(55, 53, 47, 0.05) !important;
+		page-break-after: avoid !important;
+	}
+
+	table, tr, td, th {
+		page-break-inside: avoid !important;
+		font-size: 9px !important;
+	}
+
+	/* Aggressive condensing for printability */
+	div[style*="display:contents"] {
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	/* Suppress excessive spacing */
+	section, article {
+		page-break-inside: avoid !important;
+		margin: 0 !important;
+	}
+
+	/* Better code block sizing for print */
+	pre {
+		max-width: 100% !important;
+		word-wrap: break-word !important;
+	}
+
+	.page-header-icon {
+		font-size: 1.8rem !important;
+		margin-bottom: 0.3rem !important;
+	}
+
+	.column-list {
+		gap: 15px !important;
+	}
+
+	.column {
+		margin-top: 0 !important;
+	}
+
+	.simple-table th, .simple-table td {
+		height: auto !important;
+		min-width: unset !important;
+		padding: 0.2em 0.4em !important;
+	}
+}
+
+@page {
+	margin: 0.35in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol.numbered-list.numbered-list-digits-2 {
+	padding-inline-start: 2em;
+}
+
+ol.numbered-list.numbered-list-digits-3plus {
+	padding-inline-start: 2.4em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.2em 0.9em;
+	margin: 0.8em 0;
+	page-break-inside: avoid;
+	background: rgba(135, 131, 120, 0.08);
+	border-left: 3px solid #0066cc;
+	font-size: 0.9em;
+	line-height: 1.4;
+}
+
+@media print {
+	.code {
+		padding: 0.8em 0.6em;
+		margin: 0.4em 0;
+		font-size: 0.85em;
+		line-height: 1.35;
+	}
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+/* Navigation Index Styling */
+.nav-index {
+	background: linear-gradient(135deg, rgba(0, 102, 204, 0.06) 0%, rgba(0, 102, 204, 0.02) 100%);
+	border: 2px solid #0066cc;
+	border-radius: 8px;
+	padding: 1.5em;
+	margin: 1.5em 0;
+	page-break-inside: avoid;
+}
+
+.nav-index h2 {
+	color: #0066cc;
+	font-size: 1.3em;
+	margin-top: 0;
+	margin-bottom: 1em;
+	letter-spacing: -0.01em;
+}
+
+.nav-index-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 0.8em;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.nav-index-item {
+	list-style: none;
+	margin: 0;
+	padding: 0.6em 0.8em;
+	background: white;
+	border-left: 3px solid #0066cc;
+	border-radius: 3px;
+	transition: all 0.2s ease;
+}
+
+.nav-index-item:hover {
+	background: rgba(0, 102, 204, 0.05);
+	border-left-color: #0066cc;
+	box-shadow: 0 2px 4px rgba(0, 102, 204, 0.1);
+}
+
+.nav-index-item a {
+	color: #0066cc;
+	text-decoration: none;
+	font-weight: 500;
+	font-size: 0.95em;
+}
+
+.nav-index-item a:hover {
+	text-decoration: underline;
+}
+
+@media print {
+	.nav-index {
+		border: 1px solid #0066cc !important;
+		background: rgba(0, 102, 204, 0.03) !important;
+		padding: 0.8em !important;
+		margin: 0.5em 0 !important;
+		font-size: 9px !important;
+		page-break-inside: avoid !important;
+	}
+	
+	.nav-index-grid {
+		grid-template-columns: repeat(2, 1fr) !important;
+		gap: 0.3em !important;
+	}
+	
+	.nav-index-item {
+		padding: 0.3em 0.4em !important;
+		margin: 0 !important;
+		font-size: 8px !important;
+	}
+}
+
+/* Enhanced Visual Separators */
+hr {
+	background: linear-gradient(90deg, transparent 0%, #0066cc 10%, #0066cc 90%, transparent 100%);
+	border: none;
+	height: 2px;
+	margin: 2em 0;
+	page-break-after: avoid;
+}
+
+@media print {
+	hr {
+		background: linear-gradient(90deg, transparent 0%, #333 10%, #333 90%, transparent 100%) !important;
+		height: 1px !important;
+		margin: 0.6em 0 !important;
+	}
+}
+	
+</style></head><body><article id="dp-cheatsheet-main" class="page sans"><header><div class="page-header-icon undefined"><span class="icon">💎</span></div><h1 class="page-title" dir="auto">Dynamic Programming CheatSheet</h1><p class="page-description" dir="auto"></p></header><div class="page-body"><div style="display:contents" dir="auto"><h1 id="dp-section-0" class="">🎯 ULTIMATE DYNAMIC PROGRAMMING CHEATSHEET</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-0-1" class=""><em>SDE2/SDE3 FAANG Interview Edition | TypeScript</em></h2></div><div style="display:contents" dir="auto"><h3 id="dp-section-0-2" class="">⭐ OPTIMIZED FOR LC MEDIUM/HARD</h3></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-1"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#dp-section-1">1. Decision Framework</a></li><li class="nav-index-item"><a href="#dp-section-2">2. DP Recognition Keyword Map</a></li><li class="nav-index-item"><a href="#dp-section-3">3. Core DP Concepts</a></li><li class="nav-index-item"><a href="#dp-section-4">4. TypeScript Setup</a></li><li class="nav-index-item"><a href="#dp-section-5">5. Memoization vs Tabulation</a></li><li class="nav-index-item"><a href="#dp-section-6">6. Linear/1D DP</a></li><li class="nav-index-item"><a href="#dp-section-7">7. 2D Grid DP</a></li><li class="nav-index-item"><a href="#dp-section-8">8. Knapsack Variants</a></li><li class="nav-index-item"><a href="#dp-section-9">9. LIS & Variants</a></li><li class="nav-index-item"><a href="#dp-section-10">10. Interval DP</a></li><li class="nav-index-item"><a href="#dp-section-11">11. Tree DP</a></li><li class="nav-index-item"><a href="#dp-section-12">12. Bitmask DP</a></li><li class="nav-index-item"><a href="#dp-section-13">13. Backtracking ↔ DP Bridge</a></li><li class="nav-index-item"><a href="#dp-section-14">14. State Transitions Explained</a></li><li class="nav-index-item"><a href="#dp-section-15">15. Interview Tips</a></li><li class="nav-index-item"><a href="#dp-section-16">16. Pre-Submission Checklist</a></li><li class="nav-index-item"><a href="#dp-section-17">17. Complexity Reference</a></li><li class="nav-index-item"><a href="#dp-section-18">18. 30 Classic Problems</a></li><li class="nav-index-item"><a href="#dp-section-19">19. Follow-Up Playbook</a></li><li class="nav-index-item"><a href="#dp-section-20">20. Final Day-Of Checklist</a></li></ul></div></div><div style="display:contents" dir="auto"><h2 id="dp-section-quick-start" class="">🚀 QUICK START: FOCUS AREAS FOR LC SUCCESS</h2></div><div style="display:contents" dir="auto"><p id="dp-section-quick-1" class=""><strong>MUST KNOW (80% of questions):</strong></p></div><div style="display:contents" dir="auto"><ol type="1" id="dp-section-quick-list" class="numbered-list" start="1"><li>Linear 1D DP — LC 70, 198, 322, 509, 746</li><li>2D Grid DP — LC 62, 1143, 72, 64, 1035</li><li>0/1 Knapsack — LC 494, 1049, 416, 377</li><li>Unbounded Knapsack — LC 518, 377</li><li>LIS / Patience Sorting — LC 300, 354</li></ol></div><div style="display:contents" dir="auto"><p id="dp-section-quick-2" class=""><strong>SHOULD KNOW (15% of questions):</strong> Interval DP (LC 312, 546), Tree DP (LC 124, 337), Bitmask DP (LC 847, 864), Backtracking + Memo (LC 494)</p></div><div style="display:contents" dir="auto"><p id="dp-section-quick-3" class=""><strong>NICE TO HAVE (5% of questions):</strong> Advanced (Digit DP, Broken Profile DP)</p></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-2"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-1" class="">🧠 SECTION 1: THE 30-SECOND DECISION FRAMEWORK</h1></div><div style="display:contents" dir="auto"><p id="dp-section-1-1" class=""><strong>When a DP problem lands, ask in this order:</strong></p></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><pre id="dp-section-1-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">┌─────────────────────────────────────────┐
+│ STEP 1: CAN IT BE SOLVED RECURSIVELY?   │
+├─────────────────────────────────────────┤
+│ □ Define a recursive function dfs(...)  │
+│ □ Identify base case(s)                 │
+│ □ Draw recursion tree (small example)   │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│ STEP 2: OVERLAPPING SUBPROBLEMS?        │
+├─────────────────────────────────────────┤
+│ □ Highlight repeated nodes in tree      │
+│ □ If none exist → backtracking (no DP)  │
+│ □ If yes → move to memoization          │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│ STEP 3: OPTIMAL SUBSTRUCTURE?           │
+├─────────────────────────────────────────┤
+│ □ Does optimal solution to larger       │
+│   problem rely on optimal solutions to  │
+│   subproblems?                          │
+│ □ If yes → DP is applicable             │
+│ □ If no → greedy or other approach      │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│ STEP 4: CHOOSE APPROACH                 │
+├─────────────────────────────────────────┤
+│ Memoization (top-down): Recursive,      │
+│   easier to code, memory for stack      │
+│ Tabulation (bottom-up): Iterative,      │
+│   space optimization, 1D→2D rolling     │
+└─────────────────────────────────────────┘</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-3"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-2" class="">⚡ SECTION 2: DP RECOGNITION KEYWORD MAP (Critical SDE2 Signal)</h1></div><div style="display:contents" dir="auto"><p id="dp-section-2-intro" class=""><strong>The fastest way to identify DP pattern: keyword matching. Recognize these 20 phrases instantly.</strong></p></div><div style="display:contents" dir="auto"><pre id="dp-section-2-table" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">KEYWORD/PHRASE                          PATTERN                    STATE                    EXAMPLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"min/max number of steps"               Linear 1D DP               dp[i] = opt(dp[i-k]+cost) LC 70, 322
+"number of ways"                        Counting DP                dp[i] += dp[i-j]        LC 509, 746
+"minimum coins"                         Unbounded Knapsack         dp[w] = min_coins(w)     LC 322
+"can partition"                         0/1 Knapsack               dp[w] = canMake(w)       LC 416, 494
+"equal sum subsets"                     0/1 Knapsack variant       dp[sum/2]                LC 1049
+"longest substring/sequence"            1D DP / Suffix             dp[i] = len at position i LC 5, 300
+"longest increasing path"               Tree DP / Interval         dp[node] = max child + 1  LC 329
+"edit distance / transform"             2D Grid DP                 dp[i][j] = ops(i→j)      LC 72, 97
+"best time to buy/sell"                 State DP                   dp[day][k][0/1]          LC 121, 188
+"house robber"                          Linear DP (pick/skip)      dp[i] = max(pick, skip)  LC 198, 213
+"climbing stairs"                       Linear DP (multi-choice)   dp[i] = sum(dp[i-k])     LC 70
+"burst balloons"                        Interval DP                dp[i][j] = bubble & max  LC 312
+"matrix chain multiplication"           Interval DP                dp[i][j] = split point   LC 1039
+"optimal BST"                           Interval DP                dp[i][j] = min cost      (advanced)
+"in a tree" + "max/min"                 Tree DP                    dfs(node)=[with, without] LC 124, 337
+"longest common subsequence"            2D Grid DP                 dp[i][j] = lcs(i,j)      LC 1143
+"backpack/knapsack capacity W"          0/1 or Unbounded KP        dp[w] or dp[n][w]        LC 416, 494
+"visit all nodes"                       Bitmask DP                 dp[mask] or dp[node][mask] LC 847
+"collect all items"                     Bitmask DP                 dp[state_bitmask]        LC 864
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HOW TO USE THIS TABLE IN AN INTERVIEW:
+1. Read problem fully
+2. Find ONE keyword that jumps out
+3. Match to pattern in column 2
+4. Recognize state formula immediately
+5. Code template in 2 minutes
+
+⭐ TIME SAVE: This table collapses "spend 10 mins thinking about state"
+             down to "30 seconds keyword lookup"</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-4"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-3" class="">📚 SECTION 3: CORE DP CONCEPTS</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-3-1" class="">3.1 The Three Pillars</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-3-1-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PILLAR 1: OPTIMAL SUBSTRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition: Solution to problem P relies on optimal solutions to subproblems P1, P2, ...
+Example (Fibonacci):
+  fib(5) = fib(4) + fib(3)
+  fib(5)'s optimal solution uses fib(4) and fib(3) optimally.
+  If either were suboptimal, fib(5) would be suboptimal.
+
+Test: Can you write: problem(input) = combine(problem(smaller_input))?
+      If YES → likely has optimal substructure.
+
+PILLAR 2: OVERLAPPING SUBPROBLEMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Definition: Same subproblem is solved multiple times in recursive tree.
+Example (Fibonacci):
+  fib(5)
+    ├─ fib(4)
+    │  ├─ fib(3)       ← computed
+    │  └─ fib(2)
+    └─ fib(3)         ← RECOMPUTED (overlapping!)
+
+Without memoization: O(2^n) due to overlaps
+With memoization: O(n) — compute each state once
+
+PILLAR 3: MEMOIZATION = TRADE TIME FOR SPACE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Without DP: Time O(2^n), Space O(n) [recursion stack only]
+With DP:    Time O(n), Space O(n) [cache + stack]
+
+Tradeoff: Pay O(n) space to save O(2^n - n) time.
+          Almost always worth it.</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-3-2" class="">3.2 Backtracking vs DP: Crucial Distinction</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-3-2-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">BACKTRACKING ALONE (Pure Exploration):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use When: Each state visited once (no repeated subproblems)
+Examples:
+  □ LC 46 (Permutations) — explore all n! orderings, no repeats
+  □ LC 51 (N-Queens) — each board config unique
+  □ LC 22 (Generate Parentheses) — each valid combo once
+  □ LC 39 (Combination Sum) — path to target unique
+Pattern: Recursion tree is a TREE (no repeated nodes)
+Result: Can use backtracking alone, no memoization needed
+
+BACKTRACKING + MEMOIZATION = DP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use When: Same subproblem solved multiple times
+Examples:
+  □ LC 494 (Target Sum) — reach(index, current_sum) called repeatedly
+  □ LC 1049 (Last Stone II) — sameState visited via different paths
+  □ LC 377 (Combination Sum IV) — count(remaining) solved many times
+Pattern: Recursion tree has REPEATED nodes
+Signal: If backtracking + memo → memoization (store result, skip recomputation)
+
+HOW TO RECOGNIZE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Try writing recursive brute force. Run on small example. Does it TLE?
+  - If TLE on n=20 but should pass → overlapping subproblems → add memo
+  - If passes on n=20 cleanly → no overlaps → pure backtracking OK
+
+CONCRETE EXAMPLES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LC 494 (Target Sum):
+  dfs(index, sum) is called repeatedly:
+    index=2, sum=0  ← appears via multiple paths in tree
+  → overlapping subproblems
+  → add memo: memo[index][sum] = ways to make sum starting at index
+
+LC 46 (Permutations):
+  dfs(used_mask) is called once per mask (2^n total states)
+    No overlap: each [a,b,c] appears once
+  → no memoization needed, backtracking sufficient</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-5"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-4" class="">📦 SECTION 4: TYPESCRIPT SETUP & GOTCHAS</h1></div><div style="display:contents" dir="auto"><pre id="dp-section-4-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TYPE DEFINITIONS FOR MEMOIZATION STORAGE
+type Memo1D = (number | undefined)[];
+type Memo2D = (number | undefined)[][];
+type MemoMap = Map<string, number>;
+
+// PATTERN 1: 1D Array (fastest, use for fixed state)
+const memo1D: Memo1D = new Array(n).fill(undefined);
+memo1D[i] = value; // O(1) access
+
+// PATTERN 2: 2D Array (for 2-parameter state)
+const memo2D: Memo2D = Array.from({ length: n }, () => new Array(m).fill(undefined));
+memo2D[i][j] = value;
+
+// PATTERN 3: Map (for complex state, string-encoded)
+const memoMap: MemoMap = new Map();
+const key = `${i},${j}`; // ALWAYS use separator!
+memoMap.set(key, value);
+
+// CRITICAL TS-SPECIFIC GOTCHAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GOTCHA 1: undefined vs -1 as "not computed" sentinel
+// ❌ WRONG: Using 0 as sentinel
+const memo = new Array(n).fill(0);
+if (!memo[i]) return dfs(i); // FAILS if result is 0!
+
+// ✅ CORRECT: Use undefined or -1
+const memo = new Array(n).fill(undefined);
+if (memo[i] === undefined) return dfs(i);
+// OR
+const memo = new Array(n).fill(-1);
+if (memo[i] === -1) return dfs(i);
+
+// GOTCHA 2: Map key collisions (no separator)
+// ❌ WRONG:
+const key = `${i}${j}`; // 1,23 collides with 12,3 both → "123"
+memoMap.set(key, value);
+
+// ✅ CORRECT:
+const key = `${i},${j}`; // Always use non-numeric separator
+memoMap.set(key, value);
+
+// GOTCHA 3: Array.fill([]) shares reference
+// ❌ WRONG:
+const grid = new Array(n).fill(new Array(m).fill(0));
+grid[0][0] = 1; // Modifies ALL rows!
+
+// ✅ CORRECT:
+const grid = Array.from({ length: n }, () => new Array(m).fill(0));
+
+// GOTCHA 4: Negative array indexing (Python allows, JS doesn't)
+// ❌ WRONG (Python code copied):
+// dp[-1] doesn't work in JS, returns undefined
+
+// ✅ CORRECT:
+// Shift indices: use (index + n) or handle explicitly
+
+// GOTCHA 5: Stack overflow on deep recursion (n > 10K)
+// ❌ WRONG: Recursive DP on n=100K TLE + stack overflow
+// ✅ CORRECT: Use iterative tabulation instead</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-6"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-5" class="">🎯 SECTION 5: MEMOIZATION vs TABULATION DECISION TREE</h1></div><div style="display:contents" dir="auto"><pre id="dp-section-5-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">MEMOIZATION (TOP-DOWN) — START HERE WHEN UNCERTAIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use When:
+  □ Solution is naturally recursive (problem says "or")
+  □ Many states unreachable (sparse subproblems)
+  □ Want cleaner code that mirrors problem statement
+  □ Recursion depth ≤ 10K (no stack overflow)
+  □ Only need one answer (not all dp[] values)
+
+Pros:
+  ✓ Code mirrors mathematical definition
+  ✓ Only computes reachable states (no waste)
+  ✓ Easy to debug (familiar recursion)
+  ✓ Usually faster constant factors
+
+Cons:
+  ✗ Stack overflow on deep recursion
+  ✗ Hard to optimize space (can't use rolling arrays)
+  ✗ Harder to trace execution (recursive calls hidden)
+
+Example (LC 70 Climbing Stairs):
+  function climb(n: number): number {
+    const memo: number[] = new Array(n + 1).fill(-1);
+    function dfs(remaining: number): number {
+      if (remaining === 0) return 1;
+      if (remaining < 0) return 0;
+      if (memo[remaining] !== -1) return memo[remaining];
+      return memo[remaining] = dfs(remaining - 1) + dfs(remaining - 2);
+    }
+    return dfs(n);
+  }
+
+TABULATION (BOTTOM-UP) — USE WHEN...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use When:
+  □ State dependencies are clear and linear
+  □ Want to optimize space (rolling arrays)
+  □ All states are needed (dense problem)
+  □ Must handle deep recursion (n > 10K)
+  □ Loop order is obvious
+
+Pros:
+  ✓ No stack overflow (iterative, not recursive)
+  ✓ Space optimization is straightforward
+  ✓ Execution flow is obvious (loop by loop)
+  ✓ Usually slightly faster (no function calls)
+
+Cons:
+  ✗ Must initialize all states (even unreachable ones)
+  ✗ Loop order can be tricky
+  ✗ Code is less intuitive
+
+Example (LC 70 Climbing Stairs):
+  function climb(n: number): number {
+    if (n === 0) return 0;
+    const dp: number[] = new Array(n + 1);
+    dp[0] = 1;
+    dp[1] = 1;
+    for (let i = 2; i <= n; i++) {
+      dp[i] = dp[i - 1] + dp[i - 2];
+    }
+    return dp[n];
+  }
+
+DECISION CHART:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Is the problem naturally recursive (has "choose"/"or")?
+  ├─ YES: Does recursion exceed depth ~10K?
+  │  ├─ NO  → Use MEMOIZATION (cleaner)
+  │  └─ YES → Use TABULATION (avoid stack overflow)
+  └─ NO: Are state dependencies clear/linear?
+     ├─ YES → Use TABULATION (easier to optimize)
+     └─ NO  → Use MEMOIZATION (more flexible)</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-7"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-6" class="">📈 SECTION 6: LINEAR/1D DP PATTERN (Most Common)</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-6-1" class="">Recognition Signals</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-6-signals" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">□ Single parameter: dp[i] depends ONLY on dp[i-1], dp[i-2], etc.
+□ Sequential processing: i from 0 to n
+□ Answer is dp[n-1] or dp[n]
+□ Examples: Fibonacci, Climbing Stairs, House Robber, Coin Change
+
+STATE TRANSITION DIAGRAM:
+  dp[0] → dp[1] → dp[2] → ... → dp[n-1] → ANSWER
+  (each state computes from previous states)</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-6-2" class="">Template: Pick or Skip Pattern (House Robber)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-6-template" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 198 — House Robber
+function rob(nums: number[]): number {
+  const n = nums.length;
+  if (n === 0) return 0;
+  if (n === 1) return nums[0];
+
+  const dp: number[] = new Array(n);
+  dp[0] = nums[0]; // Base: rob house 0
+  dp[1] = Math.max(nums[0], nums[1]); // Choose best of first two
+
+  // Transition: at house i, either rob it or skip it
+  for (let i = 2; i < n; i++) {
+    dp[i] = Math.max(
+      dp[i - 1],              // Skip house i
+      dp[i - 2] + nums[i]     // Rob house i (can't rob i-1)
+    );
+  }
+  return dp[n - 1];
+}
+
+// State Transition:
+// dp[i] = max(
+//   skip house i: dp[i-1],
+//   rob house i: dp[i-2] + nums[i]
+// )</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-6-3" class="">Template: Multi-Choice Pattern (Climbing Stairs)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-6-multip" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 70 — Climbing Stairs (can climb 1 or 2 steps)
+function climbStairs(n: number): number {
+  const dp: number[] = new Array(n + 1);
+  dp[0] = 1; // One way to stay at start
+  dp[1] = 1; // One way to reach step 1
+
+  for (let i = 2; i <= n; i++) {
+    dp[i] = dp[i - 1] + dp[i - 2]; // Come from step i-1 or i-2
+  }
+  return dp[n];
+}
+
+// State Transition:
+// dp[i] = ways to reach step i
+//       = sum of ways from all previous steps we can jump from
+//       = dp[i-1] + dp[i-2] (for 1 or 2 step jumps)</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-6-4" class="">Key LC Problems with Commentary</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-6-lc" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">LC 70  — Climbing Stairs        [Easy]    ⭐⭐⭐ Warmup; canonical multi-choice DP
+LC 198 — House Robber           [Medium]  ⭐⭐⭐ Pick/skip pattern; essential
+LC 322 — Coin Change            [Medium]  ⭐⭐⭐ Min coins; unbounded variant
+LC 746 — Min Cost Climbing      [Easy]    ⭐⭐⭐ Cost-based climbing
+LC 509 — Fibonacci Number       [Easy]    ⭐⭐⭐ Baseline DP warmup
+LC 213 — House Robber II        [Medium]  ⭐⭐   Circular variant; watch base case
+LC 55  — Jump Game              [Medium]  ⭐⭐   Reachability DP
+LC 45  — Jump Game II           [Medium]  ⭐⭐   Min jumps (greedy + DP combo)</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-8"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-7" class="">🔲 SECTION 7: 2D GRID DP</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-7-signals" class="">Recognition Signals</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-7-sig" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">□ Two parameters: dp[i][j] for position (i,j) or sequence (i to j)
+□ Either a 2D grid problem OR interval optimization
+□ For grids: comes from top, left, or diagonal
+□ Answer: dp[rows-1][cols-1] or dp[0][n-1]
+□ Examples: Unique Paths, LCS, Edit Distance
+
+STATE TRANSITION DIAGRAM (Grid):
+  (0,0) → (0,1) → (0,2)
+    ↓       ↓       ↓
+  (1,0) → (1,1) → (1,2)
+    ↓       ↓       ↓
+  (2,0) → (2,1) → (2,2)</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-7-template" class="">Template: Unique Paths (Grid Traversal)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-7-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 62 — Unique Paths
+function uniquePaths(m: number, n: number): number {
+  const dp: number[][] = Array.from({ length: m }, () => new Array(n).fill(0));
+
+  // Base: first row and column have 1 path each
+  for (let i = 0; i < m; i++) dp[i][0] = 1;
+  for (let j = 0; j < n; j++) dp[0][j] = 1;
+
+  // Fill grid: can only come from top or left
+  for (let i = 1; i < m; i++) {
+    for (let j = 1; j < n; j++) {
+      dp[i][j] = dp[i - 1][j] + dp[i][j - 1];
+    }
+  }
+  return dp[m - 1][n - 1];
+}
+
+// State Transition:
+// dp[i][j] = number of paths to reach (i,j)
+//          = dp[i-1][j] (from top) + dp[i][j-1] (from left)</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-7-lcs" class="">Template: Edit Distance (Sequence Matching)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-7-lcs-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 72 — Edit Distance
+function minDistance(word1: string, word2: string): number {
+  const m = word1.length, n = word2.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+  // Base: distance from empty string
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (word1[i - 1] === word2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1]; // Characters match, no operation needed
+      } else {
+        dp[i][j] = 1 + Math.min(
+          dp[i - 1][j],       // Delete from word1
+          dp[i][j - 1],       // Insert into word1
+          dp[i - 1][j - 1]    // Replace
+        );
+      }
+    }
+  }
+  return dp[m][n];
+}
+
+// State Transition:
+// dp[i][j] = min edits to transform word1[0:i] to word2[0:j]
+//          = if match: dp[i-1][j-1]
+//          = else: 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-9"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-8" class="">🎒 SECTION 8: KNAPSACK & VARIANTS</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-8-0-1" class="">8.1 — 0/1 Knapsack (Each item once)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-8-01-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 416 — Partition Equal Subset Sum (variant of 0/1 KP)
+// Can we select items that sum to exactly target/2?
+function canPartition(nums: number[]): boolean {
+  const total = nums.reduce((a, b) => a + b, 0);
+  if (total % 2 === 1) return false;
+  const target = total / 2;
+
+  // dp[w] = can we make weight exactly w?
+  const dp: boolean[] = new Array(target + 1).fill(false);
+  dp[0] = true; // Can always make 0
+
+  for (const num of nums) {
+    // CRITICAL: Iterate BACKWARD to avoid using same item twice
+    for (let w = target; w >= num; w--) {
+      dp[w] = dp[w] || dp[w - num];
+    }
+  }
+  return dp[target];
+}
+
+// State Transition:
+// dp[w] = can we achieve weight w?
+//       = dp[w] (don't take item) OR dp[w-item] (take item)
+
+// ⚠️ CRITICAL: Backward loop!
+// Forward loop would reuse same item:
+//   dp[w] = dp[w] || dp[w-num]
+//   But dp[w-num] might have been UPDATED in this iteration
+//   using the same item (violating 0/1 constraint)</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-8-unbounded" class="">8.2 — Unbounded Knapsack (Items unlimited)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-8-unb-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 322 — Coin Change (unbounded)
+// Min coins to make exact amount
+function coinChange(coins: number[], amount: number): number {
+  const dp: number[] = new Array(amount + 1).fill(Infinity);
+  dp[0] = 0; // 0 coins to make 0
+
+  for (let a = 1; a <= amount; a++) {
+    for (const coin of coins) {
+      if (coin <= a) {
+        dp[a] = Math.min(dp[a], dp[a - coin] + 1);
+      }
+    }
+  }
+  return dp[amount] === Infinity ? -1 : dp[amount];
+}
+
+// State Transition:
+// dp[a] = min coins to make amount a
+//       = min(dp[a], 1 + dp[a-coin]) for all coins
+
+// ⚠️ KEY DIFFERENCE FROM 0/1 KP:
+// Forward loop! This ALLOWS coin reuse.
+// dp[a-coin] might use the same coin again, which is valid here.</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-8-target" class="">8.3 — Target Sum with Backtracking + Memo (LC 494)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-8-target-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 494 — Target Sum (Backtracking + DP hybrid)
+// How many ways to assign +/- to reach target?
+function findTargetSumWays(nums: number[], target: number): number {
+  const memo = new Map<string, number>();
+
+  function dfs(index: number, sum: number): number {
+    if (index === nums.length) {
+      return sum === target ? 1 : 0;
+    }
+
+    const key = `${index},${sum}`;
+    if (memo.has(key)) return memo.get(key)!;
+
+    // Choice 1: add nums[index]
+    const add = dfs(index + 1, sum + nums[index]);
+
+    // Choice 2: subtract nums[index]
+    const sub = dfs(index + 1, sum - nums[index]);
+
+    memo.set(key, add + sub);
+    return add + sub;
+  }
+
+  return dfs(0, 0);
+}
+
+// State Transition:
+// dfs(i, s) = ways to reach target starting from index i with current sum s
+//           = dfs(i+1, s + nums[i]) + dfs(i+1, s - nums[i])
+//
+// ✅ Memoization key insight: (index, current_sum) can be reached
+//    multiple ways — that's why we cache!</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-10"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-13" class="">🔄 SECTION 13: BACKTRACKING ↔ DP BRIDGE (SDE3 Signal)</h1></div><div style="display:contents" dir="auto"><p id="dp-section-13-intro" class=""><strong>One of the most confusing transitions. Here's the exact logic.</strong></p></div><div style="display:contents" dir="auto"><pre id="dp-section-13-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">THE SPECTRUM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PURE BACKTRACKING (No DP needed):
+  Pattern: Explore all permutations/combinations, each unique
+  Examples: LC 46 (Permutations), LC 51 (N-Queens), LC 22 (Valid Parentheses)
+  Tree: NO overlapping nodes
+  Performance: O(factorial) or O(2^n) acceptable for small n
+  Code: Just recursion, no memoization
+
+BACKTRACKING TURNS INTO DP:
+  Pattern: Still recursive exploration, BUT same state reached multiple ways
+  Examples: LC 494 (Target Sum), LC 1049 (Last Stone II)
+  Tree: OVERLAPPING nodes! Same (index, state) reached via different paths
+  Signal: If naive backtracking TLEs → add memo
+  Code: Add memoization layer
+
+OBSERVATION (SDE3):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Both use recursion. The ONLY difference is:
+  Pure backtracking: Each state visited once
+  Backtracking + memo: Each state visited once PER UNIQUE PATH
+
+Example breakdown (LC 494):
+  At index 3, sum=5:
+    Path 1: [+1,+2,+3] reaches (3,6)
+    Path 2: [+1,+2,+2] reaches (3,5) ← DIFFERENT
+    Path 3: [-1,+3,+3] reaches (3,5) ← SAME as Path 2!
+
+  Without memo: Recompute (3,5) twice (wasteful)
+  With memo: Compute (3,5) once, reuse (efficient)
+
+DECISION LOGIC:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Write recursive brute force (backtracking)
+2. Does it TLE on expected constraints?
+   - NO → You're done (pure backtracking sufficient)
+   - YES → Same state is reachable multiple ways → add memoization
+
+CONCRETE: LC 494 vs LC 46
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LC 494 (Target Sum):
+  State: (index, current_sum)
+  Can (index, sum) be reached multiple ways? YES
+  → Memo needed
+
+LC 46 (Permutations):
+  State: (index, used_mask)
+  Can (index, mask) be reached multiple ways? NO (each order is unique)
+  → No memo needed</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-11"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-14" class="">📊 SECTION 14: STATE TRANSITIONS VISUALIZED</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-14-climbing" class="">Example 1: Climbing Stairs (Simplest)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-14-climb-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROBLEM: Reach top of n stairs. Can take 1 or 2 steps.
+How many unique ways?
+
+STATE TRANSITION DIAGRAM:
+  dp[0] = 1 (start position, 1 way)
+    ↓
+  dp[1] = 1 (only 1-step jump from 0)
+    ↓ (can come from dp[0] or dp[1])
+  dp[2] = dp[1] + dp[0] = 1 + 1 = 2
+    ↓ (can come from dp[1] or dp[2])
+  dp[3] = dp[2] + dp[1] = 2 + 1 = 3
+    ↓
+  ...
+  dp[n] = dp[n-1] + dp[n-2]
+
+VISUALIZATION (n=4):
+  Step 0    Step 1    Step 2    Step 3    Step 4
+    |    ->  |    ->  |    ->  |    ->  |
+    | ------>| ------>| ------>| ------>|
+            
+  Ways:    1          1          2        3        5
+  (1x4)   (1,1,1,1) or (2,1,1) or (1,2,1) or ...
+
+KEY INSIGHT:
+  State transition = where can we come from to reach this state?
+  For stairs: only from previous 2 states (1-step or 2-step back)
+  dp[i] = sum of ways to reach from all valid previous states</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-14-house" class="">Example 2: House Robber (Pick or Skip)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-14-house-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROBLEM: Rob houses on street. Can't rob adjacent houses.
+Max money?
+
+STATE TRANSITION DIAGRAM:
+  House[0]=1  House[1]=3  House[2]=2  House[3]=4
+    |           |           |           |
+  dp[0]=1    dp[1]=3      dp[2]=?     dp[3]=?
+
+DECISION AT EACH HOUSE:
+  dp[i] = max(
+    skip house i → keep dp[i-1],
+    rob house i → add house[i] to dp[i-2]
+  )
+
+COMPUTATION:
+  dp[0] = 1 (rob house 0)
+  dp[1] = max(skip=1, rob=3) = 3 (rob house 1 instead)
+  dp[2] = max(skip=3, rob=1+2) = 3 (keep skipping house 2)
+  dp[3] = max(skip=3, rob=3+4) = 7 (rob houses 0 and 3)
+
+KEY INSIGHT:
+  State transition = optimization between two exclusive choices
+  This pattern appears in many problems (buy/sell stock, etc.)</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-14-edit" class="">Example 3: Edit Distance (2D Transition)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-14-edit-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROBLEM: Transform "cat" → "car"
+Min edits (insert/delete/replace)?
+
+STATE TRANSITION DIAGRAM (2D):
+        ""   c   a   r
+    ""   0   1   2   3
+    c    1   0   1   2
+    a    2   1   0   1
+    t    3   2   1   1
+
+READ AS:
+  dp[i][j] = min edits to transform first i chars of "cat" 
+             to first j chars of "car"
+
+TRANSITIONS:
+  If cat[i-1] == car[j-1]: dp[i][j] = dp[i-1][j-1]
+  Else: dp[i][j] = 1 + min(
+    dp[i-1][j],     // Delete from cat
+    dp[i][j-1],     // Insert into cat
+    dp[i-1][j-1]    // Replace
+  )
+
+TRACE (cat → car):
+  "" → "":  0 edits
+  "" → "c": 1 (insert c)
+  "" → "ca": 2 (insert c,a)
+  "" → "car": 3 (insert c,a,r)
+  "c" → "": 1 (delete c)
+  "c" → "c": 0 (match!)
+  "c" → "ca": 1 (insert a)
+  ...
+  "cat" → "car": 1 (replace t with r)
+
+KEY INSIGHT:
+  2D DP fills a table, not a line
+  Decisions come from three neighbors (top, left, diagonal)</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-12"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-15" class="">💬 SECTION 15: INTERVIEW SCRIPTS (What to Say)</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-15-intro" class="">SDE2 vs SDE3 Dialogue Patterns</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-15-sde2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">SDE2 OPENING SCRIPT (Safe, thorough, shows understanding)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"Let me break down this problem:
+
+1. I need to [identify subproblem: count ways / maximize value / minimize cost]
+2. The state will be: [what I track: position, current_value, constraints]
+3. Base case: [dp[0] = X] because [explain reason]
+4. Transition: [dp[i] = f(dp[...])] because [explain reason]
+5. Answer: [dp[n] or dp[n-1]]?
+
+I'll use [memoization / tabulation] because [explain trade-off].
+
+Let me trace through the example to verify the logic makes sense."
+
+✅ Shows SDE2 competency:
+  • Structured thinking (5 clear steps)
+  • Understanding of DP structure (state, base, transition)
+  • Awareness of trade-offs (memo vs tab)
+  • Verification mindset (trace example)
+
+WHEN INTERVIEWER ASKS: "Can you optimize?"
+  Response: "Yes, I could use a rolling array to reduce space from O(n) to O(1)."
+  Why: Shows understanding of state dependencies</code></pre></div><div style="display:contents" dir="auto"><pre id="dp-section-15-sde3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">SDE3 OPENING SCRIPT (Proactive, trade-off focused, drives discussion)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"Before I code, let me clarify my approach:
+
+1. State definition: [be very explicit]
+   Example: dp[i][s] = number of ways to reach sum s using first i items
+
+2. Key insight: [name the optimization]
+   Example: Overlapping subproblems exist at (i, s) pairs reached via different item paths
+
+3. Complexity trade-off: 
+   • Recursive memo: O(n×m) time/space, clean code
+   • Iterative bottom-up: O(n×m) time, O(m) space with rolling array
+   For constraints [mention], recursive memo is optimal
+
+4. Edge cases I'm handling:
+   • Empty input / n=0 → return base case
+   • Impossible states → return -1 or Infinity
+   Let me code these in as I go.
+
+Actually, let me ask: are there any edge cases I should be aware of?"
+
+✅ Shows SDE3 signals:
+  • Naming the optimization (not just saying "memoization")
+  • Explicit complexity trade-offs (which tradeoff and WHY this one)
+  • Proactively catching edge cases
+  • Asking clarifying questions</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-15"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-17" class="">📊 SECTION 17: COMPLEXITY REFERENCE</h1></div><div style="display:contents" dir="auto"><pre id="dp-section-17-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">PATTERN                          TIME               SPACE         WHEN TO USE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Linear 1D (climb stairs)         O(n)               O(n) or O(1)  Simple sequence
+2D Grid (edit distance)          O(n×m)             O(n×m)        Transform/path problems
+Knapsack 0/1                     O(n×W)             O(n×W)        Item selection
+Knapsack Unbounded              O(n×W)             O(W)           Items reusable (rolling array)
+LIS (longest increasing)         O(n²) or O(n log n) O(n)          Subsequence optimization
+Interval DP                      O(n³)              O(n²)          Range/substring problems
+Tree DP                          O(n)               O(n)           Tree traversal with states
+Bitmask DP                       O(2^n × n)        O(2^n)         n ≤ 20 (visit all subsets)
+Matrix Chain Multiply            O(n³)              O(n²)          Range products
+Digit DP                         O(log₁₀(n) × 10 × position_states) Depends on setup (usually small)
+Backtracking + Memo (DAG)       O(|nodes|×|edges|) O(|nodes|)    DAG with subproblem overlaps
+
+PRACTICAL SANITY CHECK:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+If n = 1000, W = 1000 (typical LC medium):
+  O(n×W)       = 10^6         → instant ✅
+  O(n²)        = 10^6         → fast ✅  
+  O(n²×m)      = 10^9         → borderline (may TLE)
+  O(2^n)       = way too big  → only for n ≤ 20
+
+If n = 100,000:
+  O(n)         = 10^5         → instant ✅
+  O(n log n)   = ~1.7×10^6    → fast ✅
+  O(n²)        = 10^10        → TLE ❌
+
+MEMORY SANITY CHECK:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+If n = 1000, m = 1000 (2D DP):
+  O(n×m) = 10^6 integers = ~4MB → safe ✅
+  O(n×m) = 10^6 objects = ~40MB → still OK ✅
+
+If n = 10000, m = 10000:
+  O(n×m) = 10^8 integers = ~400MB → likely MLE ❌
+  Use rolling array: O(m) = ~40KB → problem solved ✅</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-16"/></div><div style="display:contents" dir="auto"><h2 id="dp-section-17-upgrade" class="">🚀 OPTIMIZATION UPGRADE LADDER (Stop When You Pass)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-17-ladder" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">LEVEL 1: Basic DP (Baseline)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Time: O(n×m), Space: O(n×m)
+Pattern: Standard recursion + memoization or tabulation
+STOP HERE IF: Solution passes within time/memory limits
+WHEN TO UPGRADE: TLE or MLE with current constraints
+
+LEVEL 2: Space Optimization (Rolling Array)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Time: O(n×m), Space: O(m)  [depends on current state only]
+Pattern: Only keep 1-2 DP rows/columns instead of all
+Cost: Slightly harder to debug (can't backtrack easily)
+Gain: 10x-100x space reduction
+WHEN TO USE: Space TLE, not time TLE
+
+LEVEL 3: Constraint Optimization
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Analyze: Is every state actually reachable?
+Pattern: Some states impossible → skip them
+Example: In knapsack, if weight > capacity, skip
+Gain: Huge constant-factor speedup (2-10x in practice)
+Cost: Must prove which states are impossible
+
+LEVEL 4: Early Termination
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pattern: If you know the answer, stop early
+Example: Longest increasing path — stop if you exceed known max
+Gain: Depends on distribution (average case speedup)
+Cost: May not help worst case
+
+LEVEL 5: Different Algorithm
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pattern: Greedy, BFS, or math might be faster
+Example: LIS has O(n log n) solution via binary search (vs O(n²) DP)
+Cost: Requires different problem structure
+DANGER: Over-complicating; only if levels 1-4 fail
+
+LEVEL 6: System Design / Distribution
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pattern: Data too large for single machine
+Cost: Huge complexity (don't do unless forced)
+ONLY FOR: Billion-scale problems
+
+GOLDEN RULE:
+  Optimize only until the solution passes.
+  Every unnecessary optimization is a negative signal.
+  State clearly: "Current solution is sufficient for constraints."</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-17"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-18" class="">📋 SECTION 18: 30 CLASSIC DP PROBLEMS BY PATTERN</h1></div><div style="display:contents" dir="auto"><pre id="dp-section-18-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">⭐⭐⭐ = MUST KNOW (80% of interviews) | ⭐⭐ = SHOULD KNOW | ⭐ = NICE
+
+LINEAR / 1D DP:
+  LC 70   — Climbing Stairs [⭐⭐⭐] Fundamental, asked constantly
+  LC 746  — Min Cost Climbing Stairs [⭐⭐] Variant with costs
+  LC 198  — House Robber [⭐⭐⭐] Pick or skip pattern
+  LC 213  — House Robber II (Circle) [⭐⭐] Constraint: circular array
+  LC 309  — Best Time to Buy/Sell Stock with Cooldown [⭐⭐] State machine
+  LC 1626 — Best Team With No Conflicts [⭐] Harder LIS variant
+
+2D GRID DP:
+  LC 62   — Unique Paths [⭐⭐⭐] Basic grid traversal
+  LC 63   — Unique Paths II (Obstacles) [⭐⭐⭐] With constraints
+  LC 64   — Minimum Path Sum [⭐⭐] Min cost path
+  LC 120  — Triangle [⭐⭐] Reverse iteration trick
+  LC 931  — Minimum Falling Path Sum [⭐⭐] Variant of triangle
+  LC 1293 — Shortest Path in a Grid with Obstacles [⭐⭐] k obstacles/escapes
+
+KNAPSACK (Most Important DP Type):
+  LC 416  — Partition Equal Subset Sum [⭐⭐⭐] Classic 0/1 knapsack
+  LC 494  — Target Sum [⭐⭐⭐] +/- choices = 0/1 knapsack variant
+  LC 1049 — Last Stone Weight II [⭐⭐] Knapsack with subtraction
+  LC 377  — Combination Sum IV [⭐⭐] Unbounded knapsack (coins)
+  LC 518  — Coin Change 2 (# ways) [⭐⭐⭐] Unbounded, count ways
+  LC 322  — Coin Change (min coins) [⭐⭐⭐] Unbounded, minimize
+
+STRING / EDIT DP:
+  LC 72   — Edit Distance [⭐⭐⭐] Classic 2D DP
+  LC 1143 — Longest Common Subsequence [⭐⭐⭐] 2D variant
+  LC 516  — Longest Palindromic Subsequence [⭐⭐] Reversed string trick
+  LC 1312 — Minimum Insertion Steps to Make Palindrome [⭐⭐] Derived from LCS
+
+SUBSEQUENCE / LIS PATTERNS:
+  LC 300  — Longest Increasing Subsequence [⭐⭐⭐] Classic, O(n log n) exists
+  LC 1626 — Best Team [⭐⭐] LIS + weighted version
+  LC 1027 — Longest Arithmetic Subsequence [⭐⭐] Requires Map for state
+
+INTERVAL / RANGE DP (Harder):
+  LC 1039 — Minimum Score Triangulation [⭐⭐] Interval DP basics
+  LC 546  — Remove Boxes [⭐] Tricky state definition
+  LC 312  — Burst Balloons [⭐] Post-order thinking required
+
+TREE DP:
+  LC 337  — House Robber III [⭐⭐] Tree traversal + DP
+  LC 124  — Binary Tree Maximum Path Sum [⭐⭐] Tree DP pattern
+  LC 1522 — Diameter of N-ary Tree [⭐] Tree state aggregation
+
+BITMASK DP (Only if n ≤ 20):
+  LC 1494 — Parallel Courses II [⭐] Bitmask state
+  LC 1932 — Merge MST II (variant) [⭐] Bitmask representation
+
+DIGIT DP (Rare but elegant):
+  LC 902  — Numbers At Most N Given Digit Set [⭐] Digit DP pattern
+  LC 233  — Number of Digit One [⭐] Digit enumeration
+
+CRITICAL OBSERVATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Most interview DP problems are:
+  • 60% Knapsack variants (0/1, unbounded, pick-skip)
+  • 20% 2D Grid (paths, edit distance, LCS)
+  • 15% Linear 1D (sequences)
+  • 5% Harder patterns (tree, interval, bitmask)
+
+Master Knapsack and 2D grid. You'll solve 80% of LC DP.
+
+PRACTICE STRATEGY:
+  Day 1: Solve LC 70, 198, 416, 62, 72 (5 classics)
+  Day 2: Solve variants (213, 494, 518, 63, 1143)
+  Day 3: Mix types randomly and do timed runs
+  Day 4: Revisit your errors</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-18"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-19" class="">🎯 SECTION 19: FOLLOW-UP RESPONSE PLAYBOOK</h1></div><div style="display:contents" dir="auto"><h2 id="dp-section-19-intro" class="">10 Common Follow-Ups & SDE3 Responses</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-19-fu1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">FOLLOW-UP 1: "Can you optimize the space?"
+
+✅ ANSWER:
+"Yes. Currently I'm storing all O(n×m) states. But I only need the previous row/column to compute the current one. I can use a rolling array: keep only 2 rows (or even 1 with reverse iteration for certain problems).
+
+Space: O(n×m) → O(m)
+
+Trade-off: Slightly harder to debug, can't backtrack the DP table.
+For this problem [state constraints], rolling array is worth it."
+
+FOLLOW-UP 2: "What if we had billions of items / huge constraints?"
+
+✅ ANSWER:
+"This DP has O(n×W) complexity. At scale:
+• If n = billion: Partition items by range, compute local DP on each machine, merge results.
+• If W = huge: Only relevant states are reachable. Use sparse representation (HashMap) instead of dense array.
+
+But honestly, at interview scope, O(n×m) with rolling array suffices."
+
+FOLLOW-UP 3: "Your solution uses O(m) space. Can you reduce it further?"
+
+✅ ANSWER:
+"Not without changing the algorithm. The state space is inherent to the problem.
+However, I can optimize constants:
+• Use typed arrays (Int32Array) vs objects for 3x memory reduction
+• Batch-process and stream results if this were a distributed system
+• For this LC problem, O(m) is the theoretical minimum."
+
+FOLLOW-UP 4: "What if the weights / values are negative?"
+
+✅ ANSWER:
+"0/1 Knapsack assumes non-negative weights. If weights can be negative, the problem becomes NP-hard (unbounded profit).
+
+For this specific problem, let me check the constraints... [look at problem]. If negatives are possible, I'd need to [adjust bounds / add constraints / change algorithm]."
+
+FOLLOW-UP 5: "How would you parallelize this?"
+
+✅ ANSWER:
+"DP has sequential dependencies: dp[i] depends on dp[i-1]. But:
+• If using tabulation: Process independent rows/ranges in parallel (little gain).
+• If using memoization: Different threads compute different states simultaneously (cache-efficient).
+
+For practical purposes: Multi-threading adds overhead. Single-threaded DP is usually faster. Only parallelize if it's truly a bottleneck (rare)."
+
+FOLLOW-UP 6: "What edge cases does your code handle?"
+
+✅ ANSWER:
+"I handle:
+1. Empty input (n=0): Base case returns 0 / 1 / -1 [depending on problem]
+2. Trivial input (n=1): Manually verified [specific answer]
+3. Impossible constraints (e.g., capacity=0): Returns 0
+4. Overflow: Using appropriate data types (integer caps at 2^31)
+
+Let me verify one more [trace through a small example]."
+
+FOLLOW-UP 7: "Is there a greedy solution instead?"
+
+✅ ANSWER:
+"Let me think... [pause]. For unbounded knapsack, greedy (pick highest value/weight ratio) seems appealing but fails:
+  Counter-example: items = [(10, 5), (6, 4)], capacity = 10
+  Greedy picks (10,5) → total 10, can't add more
+  DP picks (6,4) twice → total 12 ✓
+
+Greedy works for some problems (like coin change with specific denominations like US coins), but not generally for DP. The nature of DP problems is that greedy fails."
+
+FOLLOW-UP 8: "Can you solve this bottom-up AND top-down?"
+
+✅ ANSWER:
+"Absolutely. Top-down (memoization) is what I coded. Bottom-up (tabulation) would be:
+[Briefly sketch iterative loop]
+
+Trade-off:
+• Top-down: Cleaner code, only computes reachable states
+• Bottom-up: Easier to optimize space (rolling arrays), slightly faster (no recursion overhead)
+
+For this problem, [choose based on constraints]."
+
+FOLLOW-UP 9: "What if items could be used up to K times?"
+
+✅ ANSWER:
+"Change unbounded knapsack constraint. Instead of iterating items once:
+  for item in items:
+    for w in range(W):
+      for usage in range(K):
+        dp[w] = max(dp[w], dp[w - item_weight] + item_value)
+
+Time becomes O(n×W×K). If K is small, feasible. If K is unbounded, original problem."
+
+FOLLOW-UP 10: "Explain the intuition in simple terms (non-technical person)."
+
+✅ ANSWER:
+"Imagine you're packing a backpack. You have limited capacity (W). You want to maximize value. You can't just pick the most valuable items because they might be too heavy. So you try all combinations mentally, and remember which combinations gave the best value. That memory part is memoization. The trying-all-combinations part is the DP state exploration. Does that make sense?"</code></pre></div><div style="display:contents\" dir=\"auto\"><hr id=\"dp-section-divider-19\"/></div><div style=\"display:contents\" dir=\"auto\"><h1 id=\"dp-section-16\" class=\"\">⚠️ SECTION 16: DP-SPECIFIC PRE-SUBMISSION CHECKLIST</h1></div><div style="display:contents" dir="auto"><pre id="dp-section-16-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">CRITICAL BUGS TO AVOID (Top 10):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BUG #1: Base Case Wrong (Most Common)
+❌ WRONG:
+  dp[0] = 0
+  // But if answer is "ways", dp[0] should be 1!
+
+✅ CORRECT:
+  // Trace manually on smallest example
+  // dp[0] should be? (count=1 way, value=0, etc.)
+
+BUG #2: Using 0 as "Not Computed" Sentinel
+❌ WRONG:
+  const dp = new Array(n).fill(0);
+  if (!dp[i]) return dfs(i); // Fails if answer is 0!
+
+✅ CORRECT:
+  const dp = new Array(n).fill(-1);
+  if (dp[i] === -1) return dfs(i);
+
+BUG #3: Loop Bounds Off-by-One
+❌ WRONG:
+  for (let i = 0; i < n; i++) // Misses dp[n]
+
+✅ CORRECT:
+  for (let i = 0; i <= n; i++) // Check problem carefully
+
+BUG #4: Backward vs Forward Loop (Knapsack)
+❌ WRONG (0/1 KP):
+  for (const item of items) {
+    for (let w = 0; w <= capacity; w++) { // Forward = reuses item!
+      dp[w] = max(dp[w], dp[w - item] + value);
+    }
+  }
+
+✅ CORRECT:
+  for (const item of items) {
+    for (let w = capacity; w >= item; w--) { // Backward = 0/1
+      dp[w] = max(dp[w], dp[w - item] + value);
+    }
+  }
+
+BUG #5: 2D Array Reference Sharing
+❌ WRONG:
+  const grid = new Array(n).fill(new Array(m).fill(0));
+  grid[0][0] = 1; // Modifies ALL rows!
+
+✅ CORRECT:
+  const grid = Array.from({ length: n }, () => new Array(m).fill(0));
+
+BUG #6: Map Key Collision (String Encoding)
+❌ WRONG:
+  const key = `${i}${j}`; // "1,23" and "12,3" both → "123"
+
+✅ CORRECT:
+  const key = `${i},${j}`; // Always use non-numeric separator
+
+BUG #7: Forgot to Return Memoized Result
+❌ WRONG:
+  memo[i] = dfs(i);
+  return dfs(i); // Computes again!
+
+✅ CORRECT:
+  if (memo[i] !== -1) return memo[i];
+  memo[i] = dfs(i);
+  return memo[i];
+
+BUG #8: Stack Overflow on Deep Recursion
+❌ WRONG: Recursive DP with n=100K
+  function dfs(i) { return dfs(i+1) + ...; } // Stack overflow!
+
+✅ CORRECT: Use iterative tabulation for large n
+
+BUG #9: Negative Indices (Python habit)
+❌ WRONG: Copied from Python
+  if (i > 0) dp[i-1] // Fine
+  dp[-1] // Doesn't work in JS, returns undefined
+
+✅ CORRECT: Always use (i-1) or offset indices
+
+BUG #10: Initialization Optimism
+❌ WRONG:
+  const dp = [];
+  // Forgot to initialize dp[0], dp[1], etc.
+
+✅ CORRECT:
+  const dp = new Array(n).fill(-1); // or appropriate default</code></pre></div><div style="display:contents" dir="auto"><h2 id="dp-section-16-checklist" class="">Pre-Submission Checklist (Use This!)</h2></div><div style="display:contents" dir="auto"><pre id="dp-section-16-check" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">BEFORE SUBMITTING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ Base Cases
+  ├─ Tested dp[0] by hand? ✓
+  ├─ Tested dp[1] by hand? ✓
+  └─ Are they correct? (manual trace)
+
+□ State Initialization
+  ├─ Is -1 vs 0 correct for "not computed"? ✓
+  └─ 2D arrays use Array.from(), not Array.fill([])? ✓
+
+□ Loop Bounds
+  ├─ i < n or i <= n? (verified on example) ✓
+  ├─ 0/1 KP: backward loop? ✓
+  └─ Unbounded KP: forward loop? ✓
+
+□ Transitions
+  ├─ Does dp[i] correctly reference previous states? ✓
+  ├─ No array out-of-bounds? ✓
+  └─ Memoization: check BEFORE compute? ✓
+
+□ Return Value
+  ├─ Returning dp[n]? Or dp[n-1]? (check problem) ✓
+  ├─ What if answer is -1 or Infinity? Handled? ✓
+  └─ Test on provided example manually ✓
+
+□ Complexity Reality Check
+  ├─ Time: acceptable for constraints? ✓
+  ├─ Space: will it MLE? ✓
+  └─ (If memoization slow, consider tabulation) ✓</code></pre></div><div style="display:contents" dir="auto"><hr id="dp-section-divider-13"/></div><div style="display:contents" dir="auto"><h1 id="dp-section-20" class="">🚀 SECTION 20: FINAL DAY-OF INTERVIEW CHECKLIST</h1></div><div style="display:contents" dir="auto"><pre id="dp-section-20-code" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">6 HOURS BEFORE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Review Section 2 (Keyword Map) — 30 seconds
+□ Review Section 16 (Critical Bugs) — 5 minutes
+□ Mentally trace LC 70 (Climbing Stairs) once more
+□ Skim patterns you're weakest on
+
+DURING INTERVIEW — TIMING (45 minutes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MINUTES 0-3: PROBLEM UNDERSTANDING
+  □ Read problem fully (don't skim!)
+  □ Identify DP keywords (use Section 2 table)
+  □ State definition: "dp[i] means..." out loud
+  □ Base case: "dp[0] = X because..."
+  □ Transition: "dp[i] = f(dp[...]) because..."
+
+MINUTES 3-8: ALGORITHM DESIGN
+  □ Draw small example (n=3 or n=4)
+  □ Manually compute state values by hand
+  □ Verify: does transition formula match?
+  □ Choose memoization vs tabulation (use Section 5)
+
+MINUTES 8-28: CODING
+  □ Initialize memo/dp array correctly
+  □ Write base cases first
+  □ Write transition/recursion
+  □ Narrate while writing: "At each position i, I choose..."
+
+MINUTES 28-35: TEST & DEBUG
+  □ Trace through provided example step-by-step
+  □ Test edge cases: n=0, n=1, empty input
+  □ Check pre-submission checklist (Section 16)
+
+MINUTES 35-45: OPTIMIZE & DISCUSS
+  □ Ask: "Can we optimize space?" (rolling arrays)
+  □ Mention memoization vs tabulation trade-off
+  □ If interviewer asks follow-up, stay calm
+  □ Bridge to system design if applicable
+
+⚠️ TIME TRAP:
+  If at minute 25 you're less than 50% done → SIMPLIFY
+  A correct O(n²) solution > incomplete O(n) code</code></pre></div>
+<div style="display:contents" dir="auto"><hr id="dp-section-divider-final"/></div><div style="display:contents" dir="auto"><h2 id="dp-section-final" class="">✨ FINAL WISDOM</h2></div><div style="display:contents" dir="auto"><blockquote id="dp-final-quote">DP isn't about memorizing patterns. It's about recognizing: 1. Can this be solved recursively? (If no → not DP) 2. Do subproblems repeat? (If no → backtracking only) 3. Can I cache those subproblems? (If yes → add memo) Master these three questions. Every DP problem is a variation on this theme. You've got this. 🚀</blockquote></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
