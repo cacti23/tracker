@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>5-Day Upper/Lower Split · Rambod Protocol</title>
+  <title>5-Day PPL ×2 + Legs · Hany Rambod Hypertrophy</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>💪</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -174,7 +174,8 @@
     .expanded-ex { padding: 12px 26px; display: flex; align-items: flex-start; gap: 14px; border-bottom: 1px solid var(--border-sub); }
     .expanded-ex:last-child { border-bottom: none; }
     .expanded-ex-left { flex: 1; }
-    .ex-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .ex-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+    .ex-name-row .expanded-ex-name { flex: 1 1 auto; min-width: 140px; }
     .ex-checkbox {
       width: 28px; height: 28px; border: 2px solid var(--checkbox-border); border-radius: 4px;
       background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -200,20 +201,53 @@
       background: var(--surface2); border-left: 2px solid var(--variant-inactive);
       padding: 8px 12px; border-radius: 4px; margin-top: 6px; margin-bottom: 8px;
     }
-    .ex-tracking { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-    .set-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-items: center; margin-bottom: 10px; }
-    @media (max-width: 480px) { .set-row { grid-template-columns: 1fr; gap: 6px; margin-bottom: 12px; } }
-    .set-num { font-size: 11px; color: var(--text-faint); font-family: 'DM Mono', monospace; font-weight: 600; }
-    .track-input { font-size: 14px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Mono', monospace; min-height: 44px; }
+    .ex-tracking { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+    .set-block { border-left: 2px solid transparent; padding-left: 8px; margin-bottom: 8px; transition: all 0.2s; border-radius: 4px; }
+    .set-block.done { border-left-color: var(--alt-text); background: var(--alt-bg); }
+    .set-row { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 8px; align-items: center; }
+    .set-done {
+      width: 44px; height: 44px; border: 2px solid var(--checkbox-border); border-radius: 8px;
+      background: transparent; color: var(--text-faint); font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; padding: 0;
+    }
+    .set-done.done { background: var(--alt-text); border-color: var(--alt-text); color: #fff; }
+    .set-block.done .track-input { opacity: 0.65; }
+    .track-input { font-size: 16px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Mono', monospace; min-height: 44px; width: 100%; }
     .track-input::placeholder { color: var(--text-faint); }
     .track-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
     .set-actions { display: flex; gap: 6px; }
     .set-btn { font-size: 12px; padding: 8px 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; min-height: 40px; }
     .set-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+    .form-btn { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; padding: 4px 9px; background: rgba(224,90,43,0.1); border: 1px solid rgba(224,90,43,0.35); color: var(--accent); border-radius: 4px; cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; }
+    .form-btn:hover { background: var(--accent); color: #fff; }
     .ex-notes-field { font-size: 11px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Sans', sans-serif; resize: none; min-height: 35px; }
     .ex-notes-field:focus { outline: none; border-color: var(--accent); }
     .pr-indicator { color: #fbbf24; font-size: 13px; margin-left: 4px; font-weight: 600; }
-    .set-best { font-size: 9px; color: var(--text-faint); margin-top: 2px; font-family: 'DM Mono', monospace; }
+    .set-best { font-size: 10px; color: var(--text-faint); margin-top: 2px; font-family: 'DM Mono', monospace; }
+    .ex-last { font-size: 11px; color: var(--alt-text); font-family: 'DM Mono', monospace; margin-top: 4px; }
+    .ex-rest { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-top: 4px; }
+    .ex-rest strong { color: var(--text); font-weight: 600; }
+    .ss-chip { font-size: 9px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; display: inline-block; margin-left: 6px; background: rgba(224,90,43,0.12); color: var(--accent); border: 1px solid rgba(224,90,43,0.35); }
+    .expanded-ex.ss-block { border-left: 3px solid var(--accent); }
+    .day-save-btn {
+      width: 100%; margin-top: 18px; padding: 14px; background: var(--accent); border: none; color: #fff;
+      border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 0.05em; font-weight: 600;
+      cursor: pointer; min-height: 48px; transition: opacity 0.15s;
+    }
+    .day-save-btn:hover { opacity: 0.88; }
+    .save-toast {
+      position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50;
+      background: var(--alt-text); color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 13px;
+      font-family: 'DM Sans', sans-serif; box-shadow: 0 6px 24px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.25s;
+      pointer-events: none; max-width: 90vw; text-align: center;
+    }
+    .save-toast.show { opacity: 1; }
+    .history-list { padding: 8px 12px; }
+    .history-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border-sub); font-family: 'DM Mono', monospace; font-size: 11px; }
+    .history-row:last-child { border-bottom: none; }
+    .history-date { color: var(--text-faint); white-space: nowrap; }
+    .history-sets { color: var(--text-muted); text-align: right; }
+    .history-empty { font-size: 11px; color: var(--text-faint); font-style: italic; padding: 6px 0; }
     .notes-area { width: 100%; margin-top: 14px; padding: 10px 14px; background: var(--notes-bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; resize: vertical; min-height: 60px; }
     .principles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 10px; margin-bottom: 24px; }
     .principle-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; border-left: 3px solid var(--accent); box-shadow: var(--shadow); }
@@ -257,10 +291,10 @@
 <div class="container" id="app">
   <div class="header">
     <div>
-      <div class="header-mono">Henry Rambod · 5-Day Elite Hypertrophy</div>
+      <div class="header-mono">Hany Rambod · 5-Day · 2× Frequency</div>
       <div class="header-title">MAXIMUM <span>ROI</span></div>
-      <div class="header-sub">SUPERSETS · FST-7 FINISHERS · METABOLIC STRESS · MAXIMUM PUMP</div>
-      <div class="header-desc">0-rest supersets (agonist-antagonist) · 7×15–20 FST-7 finishers per day · 3s eccentric = peak hypertrophy</div>
+      <div class="header-sub">PUSH · PULL ×2 · LEGS · ≤90 MIN · HEAVY + PUMP · SUPERSETS</div>
+      <div class="header-desc">Every muscle 2×/week · heavy day + pump day · ~6 exercises capped at 90 min · supersets + printed rest times · constant primaries, Week A/B accessories</div>
     </div>
     <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()">
       <span id="toggleIcon">☀️</span> <span id="toggleLabel">Light mode</span>
@@ -273,506 +307,568 @@
 
 <script>
 (function() {
+  // Each exercise: { name, sets, tag, priority, note, rest, ss?, variants[], altB? }
+  // `altB` is the Week B swap (accessories rotate; bold primaries stay constant for overload).
+  // `ss` groups consecutive exercises into a superset (do back-to-back). `rest` is the target rest time.
   const days = [
     {
       num: "01",
-      tag: "CHEST (UPPER PRIORITY)",
-      focus: "3D Chest Development for Tall Frame",
-      type: "chest",
+      tag: "PUSH A · CHEST",
+      focus: "Heavy chest + side delt/triceps superset",
+      type: "push",
       color: "#0ea5e9",
-      notes: "Incline FIRST (upper chest = fullness). Superset antagonist. FST-7 finisher low-to-high cable for upper chest emphasis. 3s eccentric on all reps.",
+      notes: "CHEST heavy day. Incline first with full rest = max tension and progression. One superset (laterals + pushdown), one FST-7. Target ≤ 80 min.",
       exercises: [
         {
-          name: "⭐ PRIORITY: Incline Barbell Press",
+          name: "Incline Barbell Press",
           sets: "4 × 6–8",
-          tag: "COMPOUND-PRIORITY",
+          tag: "PRIMARY · CONSTANT",
           priority: true,
-          note: "Upper chest first when fresh. Full ROM, 3s eccentric. This builds the 3D look tall guys need.",
+          rest: "2–3 min",
+          note: "Heavy. Full ROM, 3s eccentric. Your chest progression lift — add weight/reps weekly.",
           variants: [
             { name: "Incline Dumbbell Press", sets: "4 × 6–8", note: "Greater ROM, stabilizer demand" },
-            { name: "Machine Incline Press", sets: "4 × 6–8", note: "Locked path" }
+            { name: "Smith Incline Press", sets: "4 × 6–8", note: "Fixed path, easy to overload" }
           ]
         },
         {
-          name: "⭐ SUPERSET: Flat Dumbbell Press",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
-          priority: true,
-          note: "Full ROM, explosive—NO REST, go to pulldown",
+          name: "Flat Dumbbell Press",
+          sets: "3 × 6–8",
+          tag: "COMPOUND",
+          priority: false,
+          rest: "2 min",
+          note: "Heavy-ish mid/lower chest. Controlled, full ROM.",
           variants: [
-            { name: "Barbell Bench Press", sets: "3 × 8–10", note: "More stability" },
-            { name: "Machine Chest Press", sets: "3 × 8–10", note: "Locked path" }
-          ]
-        },
-        {
-          name: "⭐ SUPERSET PAIR: Lat Pulldown or Weighted Pullup",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
-          priority: true,
-          note: "Immediately after press (0 rest). Back contracts = chest stretches recovery.",
-          variants: [
-            { name: "Machine Lat Pulldown", sets: "3 × 8–10", note: "Consistent resistance" },
-            { name: "Assisted Pullups", sets: "3 × 8–10", note: "Full ROM stretch" }
-          ]
+            { name: "Barbell Bench Press", sets: "3 × 6–8", note: "More load potential" }
+          ],
+          altB: {
+            name: "Weighted Dip (Chest Lean)",
+            sets: "3 × 6–8",
+            note: "Week B: lean forward = lower-chest stretch under load.",
+            variants: [
+              { name: "Decline Dumbbell Press", sets: "3 × 8–10", note: "No dip station needed" }
+            ]
+          }
         },
         {
           name: "Incline Cable Fly",
+          sets: "3 × 10–12",
+          tag: "ISOLATION",
+          priority: false,
+          rest: "60–75s",
+          note: "Upper-chest stretch, constant tension. Squeeze across midline.",
+          variants: [
+            { name: "Incline Dumbbell Fly", sets: "3 × 10–12", note: "Greater ROM" }
+          ],
+          altB: {
+            name: "Pec Deck",
+            sets: "3 × 10–12",
+            note: "Week B: locked path, hard squeeze.",
+            variants: [
+              { name: "Cable Crossover", sets: "3 × 10–12", note: "Constant tension" }
+            ]
+          }
+        },
+        {
+          name: "Cable Lateral Raise",
           sets: "3 × 12–15",
-          tag: "PUMP-ACCESSORY",
+          tag: "ISOLATION",
           priority: false,
-          note: "Upper chest stretch, constant tension",
+          ss: "ss1",
+          rest: "→ superset, no rest",
+          note: "Side-delt width. Superset with rope pushdown — go straight over.",
           variants: [
-            { name: "Incline Dumbbell Fly", sets: "3 × 12–15", note: "Greater ROM" },
-            { name: "Machine Incline Fly", sets: "3 × 12–15", note: "Stable" }
-          ]
+            { name: "Machine Lateral Raise", sets: "3 × 12–15", note: "Locked ROM" }
+          ],
+          altB: {
+            name: "Dumbbell Lateral Raise",
+            sets: "3 × 12–15",
+            note: "Week B: free-weight, 1s pause at top.",
+            variants: [
+              { name: "Leaning Cable Lateral", sets: "3 × 12–15", note: "Single-arm, bigger ROM" }
+            ]
+          }
         },
         {
-          name: "Pec Deck or Cable Crossover",
-          sets: "2 × 12–15",
-          tag: "PUMP-ACCESSORY",
+          name: "Rope Pushdown",
+          sets: "3 × 12–15",
+          tag: "ISOLATION",
           priority: false,
-          note: "Mid-chest pump (reduced to save energy for FST-7 quality)",
+          ss: "ss1",
+          rest: "75s after pair",
+          note: "Triceps — second half of the superset. Spread the rope, full lockout.",
           variants: [
-            { name: "Cable Crossover", sets: "2 × 12–15", note: "Constant resistance" },
-            { name: "Machine Pec Deck", sets: "2 × 12–15", note: "Stable ROM" }
-          ]
+            { name: "Straight-Bar Pushdown", sets: "3 × 12–15", note: "Classic" }
+          ],
+          altB: {
+            name: "V-Bar Pushdown",
+            sets: "3 × 12–15",
+            note: "Week B: neutral grip, slightly more lateral head.",
+            variants: [
+              { name: "Single-Arm Cable Pushdown", sets: "3 × 12–15", note: "Unilateral" }
+            ]
+          }
         },
         {
-          name: "⭐ FST-7 FINISHER: Cable Fly (Low to High)",
-          sets: "7 × 15–20",
-          tag: "FST7-FINISHER",
+          name: "FST-7 Finisher: Cable Fly",
+          sets: "7 × 10–15",
+          tag: "FST-7",
           priority: false,
-          note: "7 sets, 30s rest. Upper chest bias (low cable to high finish). Massive pump + fascia stretch.",
+          rest: "30–45s",
+          note: "One finisher. Pump + fascia stretch, last 2 sets near failure.",
           variants: [
-            { name: "High to Low Cable Fly", sets: "7 × 15–20", note: "Lower chest bias" }
-          ]
-        },
-        {
-          name: "Cable Face Pull (Shoulder Health)",
-          sets: "2 × 15–20",
-          tag: "SHOULDER-HEALTH",
-          priority: false,
-          note: "Rear delt + external rotators. Injury prevention after pressing. Squeeze rear delts.",
-          variants: [
-            { name: "Resistance Band Face Pull", sets: "2 × 15–20", note: "Progressive resistance" },
-            { name: "Machine Rear Delt", sets: "2 × 15–20", note: "Locked ROM" }
-          ]
-        },
-        {
-          name: "Rope Pushdown (Tricep Finisher)",
-          sets: "3 × 15–20",
-          tag: "TRICEP-FINISHER",
-          priority: false,
-          note: "Tricep flush after pressing. Constant tension, metabolic stress. No failure.",
-          variants: [
-            { name: "V-Bar Pushdown", sets: "3 × 15–20", note: "Locked grip" },
-            { name: "Straight Bar Pushdown", sets: "3 × 15–20", note: "Classic variation" }
-          ]
-        },
-        {
-          name: "Light Leg Activation",
-          sets: "2 × 15–20",
-          tag: "LEG-ACTIVATION",
-          priority: false,
-          note: "Light pump—no fatigue for Saturday",
-          variants: [
-            { name: "Seated Calf Raise", sets: "2 × 15–20", note: "Soleus focus" }
+            { name: "Pec Deck FST-7", sets: "7 × 10–15", note: "Stable, easy to chain" }
           ]
         }
       ]
     },
     {
       num: "02",
-      tag: "BACK + DEADLIFT (THICKNESS)",
-      focus: "Rear Chain & V-Taper Width",
-      type: "back",
+      tag: "PULL A · BACK WIDTH",
+      focus: "Heavy vertical pull + biceps/rear-delt superset",
+      type: "pull",
       color: "#16a34a",
-      notes: "Deadlift FIRST for thickness (Rambod protocol). Superset = no rest. Pullover for serratus stretch. FST-7 lat pulldown for width. 3s eccentric.",
+      notes: "BACK heavy/width day. Weighted pull-up first. RDL = hamstrings' 2nd weekly hit. One superset (curl + rear delt), one FST-7. Target ≤ 82 min.",
       exercises: [
         {
-          name: "⭐ PRIORITY: Conventional or Romanian Deadlift",
-          sets: "4 × 5–8",
-          tag: "COMPOUND-PRIORITY",
+          name: "Weighted Pull-up",
+          sets: "4 × 6–8",
+          tag: "PRIMARY · CONSTANT",
           priority: true,
-          note: "Back thickness is critical. Full lockout, explosive drive. Hypertrophy-balanced rep range (better TUT than 4-6).",
+          rest: "2–3 min",
+          note: "Heavy vertical pull. Dead-hang to chin over bar. Add belt weight; use lat pulldown if too hard.",
           variants: [
-            { name: "Romanian Deadlift", sets: "4 × 6–8", note: "Hamstring emphasis, safer on knees" },
-            { name: "Trap Bar Deadlift", sets: "4 × 5–6", note: "More quad, spine neutral" }
+            { name: "Lat Pulldown (wide)", sets: "4 × 8–10", note: "For consistent load" },
+            { name: "Assisted Pull-up", sets: "4 × 6–8", note: "Band or machine assist" }
           ]
         },
         {
-          name: "⭐ SUPERSET: Barbell Bent-Over Row",
+          name: "Chest-Supported Row",
+          sets: "3 × 6–8",
+          tag: "COMPOUND",
+          priority: false,
+          rest: "2 min",
+          note: "Strict horizontal pull, zero momentum, big mid-back squeeze.",
+          variants: [
+            { name: "Seal Row", sets: "3 × 6–8", note: "Bench-supported, strictest" }
+          ],
+          altB: {
+            name: "T-Bar Row",
+            sets: "3 × 6–8",
+            note: "Week B: more load, thick mid-back.",
+            variants: [
+              { name: "Pendlay Row", sets: "3 × 6–8", note: "From floor, explosive" }
+            ]
+          }
+        },
+        {
+          name: "Romanian Deadlift",
           sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
+          tag: "PRIMARY · CONSTANT",
           priority: true,
-          note: "Explosive drive, 3s eccentric—NO REST, go to pullup",
+          rest: "2 min",
+          note: "Hamstrings' 2nd weekly hit. Hinge, soft knees, 3s eccentric, feel the stretch.",
           variants: [
-            { name: "Seal Row (chest-supported)", sets: "3 × 8–10", note: "Zero momentum, strict" },
-            { name: "T-Bar Row", sets: "3 × 8–10", note: "Mid-back emphasis" }
+            { name: "Dumbbell RDL", sets: "3 × 8–10", note: "Greater ROM" },
+            { name: "Stiff-Leg Deadlift", sets: "3 × 8–10", note: "Max hamstring stretch" }
           ]
         },
         {
-          name: "⭐ SUPERSET PAIR: Weighted Pullup or Lat Pulldown",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
-          priority: true,
-          note: "Immediately after rows (0 rest). Vertical pull complements horizontal. Full ROM stretch.",
+          name: "Incline Dumbbell Curl",
+          sets: "3 × 10–12",
+          tag: "ISOLATION",
+          priority: false,
+          ss: "ss1",
+          rest: "→ superset, no rest",
+          note: "Biceps long-head stretch. Superset with rear delt — go straight over.",
           variants: [
-            { name: "Machine Lat Pulldown", sets: "3 × 8–10", note: "Consistent resistance" },
-            { name: "Assisted Pullups", sets: "3 × 8–10", note: "Full ROM, peak stretch" }
-          ]
+            { name: "Standing Dumbbell Curl", sets: "3 × 10–12", note: "Supination emphasis" }
+          ],
+          altB: {
+            name: "EZ-Bar Curl",
+            sets: "3 × 10–12",
+            note: "Week B: heavier, wrist-friendly bar. No swing.",
+            variants: [
+              { name: "Barbell Curl", sets: "3 × 10–12", note: "Max load" }
+            ]
+          }
         },
         {
-          name: "Dumbbell Pullover",
+          name: "Reverse Pec Deck (Rear Delt)",
           sets: "3 × 12–15",
-          tag: "PUMP-ACCESSORY",
+          tag: "ISOLATION",
           priority: false,
-          note: "Serratus + lat insertion stretch. Creates V-taper for tall guys.",
+          ss: "ss1",
+          rest: "75s after pair",
+          note: "Rear delt — second half of superset. Squeeze, no momentum.",
           variants: [
-            { name: "Barbell Pullover", sets: "3 × 12–15", note: "Locked grip" },
-            { name: "Machine Pullover", sets: "3 × 12–15", note: "Most stable" }
-          ]
+            { name: "Dumbbell Reverse Fly", sets: "3 × 12–15", note: "Bent-over, unilateral" }
+          ],
+          altB: {
+            name: "Cable Rear Delt Fly",
+            sets: "3 × 12–15",
+            note: "Week B: cross-cable, constant tension.",
+            variants: [
+              { name: "Face Pull (high)", sets: "3 × 12–15", note: "Rear delt + rotators" }
+            ]
+          }
         },
         {
-          name: "Cable or Machine Row (Close Grip)",
-          sets: "3 × 12–15",
-          tag: "PUMP-ACCESSORY",
+          name: "FST-7 Finisher: Lat Pulldown",
+          sets: "7 × 10–15",
+          tag: "FST-7",
           priority: false,
-          note: "Mid-back detail, constant tension",
+          rest: "30–45s",
+          note: "Lat width finisher. Full stretch at top, squeeze to chest.",
           variants: [
-            { name: "Single-Arm Dumbbell Row", sets: "3 × 12–15", note: "Rotation, core" },
-            { name: "Seal Row", sets: "3 × 12–15", note: "Strict form" }
-          ]
-        },
-        {
-          name: "⭐ FST-7 FINISHER: Machine Lat Pulldown",
-          sets: "7 × 15–20",
-          tag: "FST7-FINISHER",
-          priority: false,
-          note: "7 sets, 30s rest. Lat width, fascia stretch. Last 2 sets to failure.",
-          variants: [
-            { name: "Cable Lat Pulldown FST-7", sets: "7 × 15–20", note: "Constant tension" }
-          ]
-        },
-        {
-          name: "Light Leg Extension",
-          sets: "2 × 12–15",
-          tag: "LEG-ACTIVATION",
-          priority: false,
-          note: "Light pump—no fatigue carryover",
-          variants: [
-            { name: "Light Leg Press", sets: "2 × 12–15", note: "Minimal fatigue" }
+            { name: "Straight-Arm Pulldown FST-7", sets: "7 × 12–15", note: "Pure lat isolation" }
           ]
         }
       ]
     },
     {
       num: "03",
-      tag: "SHOULDERS (3D FOCUS)",
-      focus: "Delt Roundness & Rear Chain Priority",
-      type: "shoulders",
-      color: "#9333ea",
-      notes: "Rear delts PRIORITY = 4 dedicated sets early (not afterthought). Creates 3D look from all angles. Press + upright = antagonist pairs. FST-7 laterals for width.",
-      exercises: [
-        {
-          name: "⭐ SUPERSET: Seated Dumbbell Press",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
-          priority: true,
-          note: "Front + side delt, explosive—NO REST, go to upright row",
-          variants: [
-            { name: "Barbell Military Press", sets: "3 × 8–10", note: "More stability" },
-            { name: "Machine Shoulder Press", sets: "3 × 8–10", note: "Locked path" }
-          ]
-        },
-        {
-          name: "⭐ SUPERSET PAIR: Cable Upright Row",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
-          priority: true,
-          note: "Immediately after press (0 rest). Trap + side delt activation. Cable safer than barbell (external rotation).",
-          variants: [
-            { name: "Barbell Upright Row", sets: "3 × 8–10", note: "More stability, higher risk" },
-            { name: "Dumbbell Upright Row", sets: "3 × 8–10", note: "Independent arms" }
-          ]
-        },
-        {
-          name: "⭐ PRIORITY: Reverse Pec Deck or Machine Rear Delt Flye",
-          sets: "4 × 12–15",
-          tag: "REAR-DELT-PRIORITY",
-          priority: true,
-          note: "4 DEDICATED SETS (not superset filler). Rear delts = 3D look. High reps, constant tension.",
-          variants: [
-            { name: "Cable Rear Delt Fly", sets: "4 × 12–15", note: "Constant resistance" },
-            { name: "Dumbbell Reverse Fly", sets: "4 × 12–15", note: "Unilateral control" }
-          ]
-        },
-        {
-          name: "Cable Rear Delt Fly (Secondary Angle)",
-          sets: "3 × 12–15",
-          tag: "PUMP-ACCESSORY",
-          priority: false,
-          note: "Different angle, squeeze top for width",
-          variants: [
-            { name: "Machine Rear Delt", sets: "3 × 12–15", note: "Locked ROM" },
-            { name: "Band Rear Delt Fly", sets: "3 × 12–15", note: "Progressive resistance" }
-          ]
-        },
-        {
-          name: "Machine Lateral Raise",
-          sets: "2 × 12–15",
-          tag: "PUMP-ACCESSORY",
-          priority: false,
-          note: "Side delt width (reduced to save energy for FST-7). Pause 1s top.",
-          variants: [
-            { name: "Dumbbell Lateral Raise", sets: "2 × 12–15", note: "Full ROM" },
-            { name: "Cable Lateral Raise", sets: "2 × 12–15", note: "Constant tension" }
-          ]
-        },
-        {
-          name: "⭐ FST-7 FINISHER: Machine Cable Lateral Raise",
-          sets: "7 × 15–20",
-          tag: "FST7-FINISHER",
-          priority: false,
-          note: "7 sets, 30s rest. Maximum delt roundness. Last 2 sets to failure.",
-          variants: [
-            { name: "Dumbbell FST-7 Laterals", sets: "7 × 15–20", note: "Manual version" }
-          ]
-        },
-        {
-          name: "Barbell Shrug",
-          sets: "3 × 12–15",
-          tag: "FINISHER",
-          priority: false,
-          note: "Trap peak, 2s pause at top",
-          variants: [
-            { name: "Dumbbell Shrug", sets: "3 × 12–15", note: "Greater ROM" },
-            { name: "Machine Shrug", sets: "3 × 12–15", note: "Locked path" }
-          ]
-        }
-      ]
+      tag: "REST",
+      focus: "Recovery",
+      type: "rest",
+      color: "#d97706",
+      notes: "WEDNESDAY: Full rest or light walk + mobility. You've done Push + Pull — recover before round 2.",
+      exercises: []
     },
     {
       num: "04",
-      tag: "ARMS + FOREARMS (COMPLETE)",
-      focus: "Bicep Peak & Brachialis Push",
-      type: "arms",
-      color: "#f59e0b",
-      notes: "Bicep + Tricep supersets (0 rest). Brachialis work (hammer curls) pushes bicep up. Forearm work (reverse curls + wrist curls) for visible arms. FST-7 bicep peak finisher.",
+      tag: "PUSH B · DELTS",
+      focus: "Pump day — delts/chest, mostly supersetted (fast)",
+      type: "push",
+      color: "#9333ea",
+      notes: "DELTS pump day — faster, supersetted. Overhead press primary, chest gets its 2nd weekly hit, side-delt focus, one FST-7. Target ≤ 75 min.",
       exercises: [
         {
-          name: "⭐ SUPERSET: EZ-Bar Curl",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
+          name: "Standing Overhead Press",
+          sets: "4 × 6–8",
+          tag: "PRIMARY · CONSTANT",
           priority: true,
-          note: "Bicep mass, explosive—NO REST, go to skull crushers",
+          rest: "2 min",
+          note: "Delt-mass primary. Brace hard, press overhead to lockout.",
           variants: [
-            { name: "Barbell Curl", sets: "3 × 8–10", note: "Full ROM, stabilizers" },
-            { name: "Dumbbell Curl", sets: "3 × 8–10", note: "Supination emphasis" }
+            { name: "Seated Dumbbell Press", sets: "4 × 6–8", note: "Less lower-back stress" },
+            { name: "Smith Machine Press", sets: "4 × 6–8", note: "Fixed path" }
           ]
         },
         {
-          name: "⭐ SUPERSET PAIR: Skull Crusher or Rope Cable Pushdown",
-          sets: "3 × 8–10",
-          tag: "COMPOUND-SUPERSET",
-          priority: true,
-          note: "Immediately after curls (0 rest). Tricep mass. Biceps stretch while triceps work.",
-          variants: [
-            { name: "Machine Dips", sets: "3 × 8–10", note: "Full ROM, assisted" },
-            { name: "Dumbbell Overhead Extension", sets: "3 × 8–10", note: "Peak stretch" }
-          ]
-        },
-        {
-          name: "⭐ BRACHIALIS FOCUS: Hammer Curl",
-          sets: "3 × 12–15",
-          tag: "BRACHIALIS-PRIORITY",
-          priority: true,
-          note: "Sits under bicep. When developed = bicep looks taller + more peaked. Constant tension.",
-          variants: [
-            { name: "Cross-Body Hammer Curl", sets: "3 × 12–15", note: "Greater ROM" },
-            { name: "Machine Hammer Curl", sets: "3 × 12–15", note: "Locked ROM" }
-          ]
-        },
-        {
-          name: "SUPERSET PAIR: Rope Tricep Pushdown",
-          sets: "3 × 12–15",
-          tag: "PUMP-SUPERSET",
-          priority: false,
-          note: "Immediately after hammer curls (0 rest). Squeeze, constant tension.",
-          variants: [
-            { name: "V-Bar Pushdown", sets: "3 × 12–15", note: "Locked path" },
-            { name: "Straight Bar Pushdown", sets: "3 × 12–15", note: "Classic" }
-          ]
-        },
-        {
-          name: "⭐ TRI-SET: Overhead Cable Extension",
+          name: "Incline Dumbbell Press",
           sets: "3 × 10–12",
-          tag: "TRICEP-TRI-SET",
-          priority: true,
-          note: "Long head stretch + peak contraction. Trains tricep long head (largest portion).",
+          tag: "COMPOUND",
+          priority: false,
+          rest: "90s",
+          note: "Chest's 2nd weekly hit, higher reps than Monday.",
           variants: [
-            { name: "Dumbbell Overhead Extension", sets: "3 × 10–12", note: "Greater ROM" },
-            { name: "Machine Overhead Extension", sets: "3 × 10–12", note: "Locked path" }
-          ]
+            { name: "Incline Machine Press", sets: "3 × 10–12", note: "Locked path" }
+          ],
+          altB: {
+            name: "Incline Smith Press",
+            sets: "3 × 10–12",
+            note: "Week B: fixed bar, push closer to failure safely.",
+            variants: [
+              { name: "Incline Barbell Press (lighter)", sets: "3 × 10–12", note: "Strict" }
+            ]
+          }
         },
         {
-          name: "TRI-SET PAIR: Machine Dips or V-Bar Dips",
+          name: "Dumbbell Lateral Raise",
+          sets: "4 × 12–15",
+          tag: "ISOLATION",
+          priority: false,
+          ss: "ss1",
+          rest: "→ superset, no rest",
+          note: "Main side-delt driver, 4 sets. Superset with triceps.",
+          variants: [
+            { name: "Cable Lateral Raise", sets: "4 × 12–15", note: "Constant tension" }
+          ],
+          altB: {
+            name: "Cable Lateral Raise",
+            sets: "4 × 12–15",
+            note: "Week B: tension through the whole range.",
+            variants: [
+              { name: "Machine Lateral Raise", sets: "4 × 12–15", note: "Locked ROM, easy dropsets" }
+            ]
+          }
+        },
+        {
+          name: "Overhead Triceps Extension",
           sets: "3 × 10–12",
-          tag: "TRICEP-TRI-SET",
+          tag: "ISOLATION",
           priority: false,
-          note: "Immediately after overhead ext (0 rest). Lateral head emphasis. Full ROM.",
+          ss: "ss1",
+          rest: "60s after pair",
+          note: "Long-head stretch — second half of superset.",
           variants: [
-            { name: "Weighted Parallel Bar Dips", sets: "3 × 10–12", note: "Bodyweight dips if too hard" },
-            { name: "Machine Dip Machine", sets: "3 × 10–12", note: "Assisted/controlled" }
+            { name: "Dumbbell Overhead Extension", sets: "3 × 10–12", note: "Greater ROM" }
+          ],
+          altB: {
+            name: "EZ-Bar Skull Crusher",
+            sets: "3 × 10–12",
+            note: "Week B: long-head stretch under load.",
+            variants: [
+              { name: "Cable Overhead Extension", sets: "3 × 10–12", note: "Constant tension" }
+            ]
+          }
+        },
+        {
+          name: "Face Pull",
+          sets: "3 × 15–20",
+          tag: "SHOULDER HEALTH · CONSTANT",
+          priority: false,
+          rest: "60s",
+          note: "Rear delt + external rotators = injury-proof shoulders. Keep every week.",
+          variants: [
+            { name: "Band Face Pull", sets: "3 × 15–20", note: "Progressive resistance" }
           ]
         },
         {
-          name: "⭐ FOREARM FOCUS: Reverse Barbell Curl",
-          sets: "3 × 12–15",
-          tag: "FOREARM-PRIORITY",
+          name: "FST-7 Finisher: Lateral Raise",
+          sets: "7 × 12–15",
+          tag: "FST-7",
           priority: false,
-          note: "Brachialis + forearm (wrist extensors). Arms visible at 6'0\"—this matters. Control eccentric.",
+          rest: "30–45s",
+          note: "Cap the delts — max width pump. Last 2 sets near failure.",
           variants: [
-            { name: "Reverse Dumbbell Curl", sets: "3 × 12–15", note: "Unilateral control" },
-            { name: "Machine Reverse Curl", sets: "3 × 12–15", note: "Strict form" }
-          ]
-        },
-        {
-          name: "Wrist Curl (Forearm Thickness)",
-          sets: "2 × 15–20",
-          tag: "FOREARM-FINISHER",
-          priority: false,
-          note: "Forearm thickness. Full ROM, light weight, high reps.",
-          variants: [
-            { name: "Reverse Wrist Curl", sets: "2 × 15–20", note: "Extensor emphasis" },
-            { name: "Machine Wrist Curl", sets: "2 × 15–20", note: "Locked" }
-          ]
-        },
-        {
-          name: "Standing Calf Raise",
-          sets: "2 × 15–20",
-          tag: "FINISHER",
-          priority: false,
-          note: "Full ROM, 2s pause top",
-          variants: [
-            { name: "Seated Calf Raise", sets: "2 × 15–20", note: "Soleus emphasis" }
-          ]
-        },
-        {
-          name: "⭐ FST-7 FINISHER: Cable Bicep Curl",
-          sets: "7 × 15–20",
-          tag: "FST7-FINISHER",
-          priority: false,
-          note: "7 sets, 30s rest. Maximum bicep peak. Last 2 sets to failure.",
-          variants: [
-            { name: "Machine Bicep Curl FST-7", sets: "7 × 15–20", note: "Locked ROM" }
+            { name: "Machine Lateral FST-7", sets: "7 × 12–15", note: "Easy to chain, dropset last set" }
           ]
         }
       ]
     },
     {
       num: "05",
-      tag: "REST",
-      focus: "Active Recovery",
-      type: "rest",
-      color: "#d97706",
-      notes: "Full rest day. Foam roll, stretch, light walk. Prepare for Saturday leg day.",
-      exercises: []
+      tag: "PULL B · BACK + ARMS",
+      focus: "Pump day — back thickness + arm supersets (fast)",
+      type: "pull",
+      color: "#f59e0b",
+      notes: "BACK thickness + ARMS pump day. Row primary, then biceps/triceps and biceps/forearm supersets keep it quick. One FST-7. Target ≤ 80 min.",
+      exercises: [
+        {
+          name: "Barbell Bent-Over Row",
+          sets: "4 × 6–8",
+          tag: "PRIMARY · CONSTANT",
+          priority: true,
+          rest: "2 min",
+          note: "Back-thickness primary. Hinge ~45°, drive elbows back, squeeze.",
+          variants: [
+            { name: "Pendlay Row", sets: "4 × 6–8", note: "From floor, explosive" },
+            { name: "Chest-Supported Row (heavy)", sets: "4 × 6–8", note: "No lower-back fatigue" }
+          ]
+        },
+        {
+          name: "Lat Pulldown (Neutral Grip)",
+          sets: "3 × 10–12",
+          tag: "COMPOUND",
+          priority: false,
+          rest: "90s",
+          note: "Vertical pull, different grip than Tuesday. Elbows down, stretch at top.",
+          variants: [
+            { name: "Close-Grip Pulldown", sets: "3 × 10–12", note: "Lower-lat bias" }
+          ],
+          altB: {
+            name: "Chin-up (supinated)",
+            sets: "3 × 8–10",
+            note: "Week B: underhand = lats + biceps. Add weight if easy.",
+            variants: [
+              { name: "Close-Grip Pulldown", sets: "3 × 10–12", note: "If chin-ups too hard" }
+            ]
+          }
+        },
+        {
+          name: "Hammer Curl",
+          sets: "3 × 10–12",
+          tag: "ISOLATION",
+          priority: false,
+          ss: "ss1",
+          rest: "→ superset, no rest",
+          note: "Biceps + brachialis. Superset with triceps (antagonist) — straight over.",
+          variants: [
+            { name: "Cross-Body Hammer Curl", sets: "3 × 10–12", note: "Greater brachialis ROM" }
+          ],
+          altB: {
+            name: "Cable Rope Hammer Curl",
+            sets: "3 × 10–12",
+            note: "Week B: constant tension, squeeze top.",
+            variants: [
+              { name: "Incline Dumbbell Hammer", sets: "3 × 10–12", note: "Stretched start" }
+            ]
+          }
+        },
+        {
+          name: "Rope Overhead Triceps",
+          sets: "3 × 12–15",
+          tag: "ISOLATION",
+          priority: false,
+          ss: "ss1",
+          rest: "60s after pair",
+          note: "Long-head triceps — antagonist to the curl, second half of superset.",
+          variants: [
+            { name: "Rope Pushdown", sets: "3 × 12–15", note: "Lateral head" }
+          ],
+          altB: {
+            name: "Cable Kickback",
+            sets: "3 × 12–15",
+            note: "Week B: peak contraction.",
+            variants: [
+              { name: "Dumbbell Overhead Extension", sets: "3 × 12–15", note: "Greater ROM" }
+            ]
+          }
+        },
+        {
+          name: "EZ-Bar Curl",
+          sets: "3 × 10–12",
+          tag: "ISOLATION",
+          priority: false,
+          ss: "ss2",
+          rest: "→ superset, no rest",
+          note: "Biceps mass. Superset with forearms — straight over.",
+          variants: [
+            { name: "Barbell Curl", sets: "3 × 10–12", note: "Max load" }
+          ],
+          altB: {
+            name: "Preacher Curl",
+            sets: "3 × 10–12",
+            note: "Week B: stretched-position peak, strict.",
+            variants: [
+              { name: "Machine Preacher Curl", sets: "3 × 10–12", note: "Locked ROM" }
+            ]
+          }
+        },
+        {
+          name: "Reverse Curl + Wrist Curl (Forearms)",
+          sets: "2 × 15 each",
+          tag: "ISOLATION",
+          priority: false,
+          ss: "ss2",
+          rest: "60s after pair",
+          note: "Reverse curl (extensors/brachialis) then wrist curl (flexors). Light, full ROM.",
+          variants: [
+            { name: "Cable Reverse + DB Wrist Curl", sets: "2 × 15 each", note: "Constant tension option" }
+          ]
+        },
+        {
+          name: "FST-7 Finisher: Seated Cable Row",
+          sets: "7 × 10–15",
+          tag: "FST-7",
+          priority: false,
+          rest: "30–45s",
+          note: "Mid-back thickness pump. Squeeze 1s each rep, last 2 near failure.",
+          variants: [
+            { name: "Machine Row FST-7", sets: "7 × 10–15", note: "Stable, easy to chain" }
+          ]
+        }
+      ]
     },
     {
       num: "06",
-      tag: "LEGS (COMPLETE REBUILD)",
-      focus: "Quad/Ham/Glute Completeness + Calf Volume",
+      tag: "LEGS (SATURDAY)",
+      focus: "Squat + hamstrings + quad/ham superset + dual calf",
       type: "legs",
       color: "#ec4899",
-      notes: "SATURDAY: At 6'0\" you have longer femurs—MORE leg volume needed. Squats + RDL + Bulgarian split squat (quad sweep for tall guys). Dual calf work (gastro + soleus).",
+      notes: "SATURDAY big leg day — the one ~90-min session. Squat heavy first, hamstrings' 2nd hit, then a quad+ham superset and a dual-calf superset to save time.",
       exercises: [
         {
-          name: "⭐ Barbell Back Squat",
-          sets: "4 × 4–6",
-          tag: "COMPOUND-PRIORITY",
+          name: "Barbell Back Squat",
+          sets: "4 × 5–7",
+          tag: "PRIMARY · CONSTANT",
           priority: true,
-          note: "Foundation. Full depth, explosive up, 3s down. Quads + glutes.",
+          rest: "2–3 min",
+          note: "Heavy. Full depth, brace, explosive up, ~3s down. Your leg progression lift.",
           variants: [
-            { name: "Barbell Front Squat", sets: "4 × 5–6", note: "More quad, less glute" },
-            { name: "Belt Squat", sets: "4 × 5–6", note: "Spine friendly, heavy load" }
+            { name: "Front Squat", sets: "4 × 5–7", note: "More quad, upright torso" },
+            { name: "Smith Squat", sets: "4 × 6–8", note: "Fixed path, quad bias" }
           ]
         },
         {
-          name: "⭐ Romanian Deadlift (Hamstring Length)",
-          sets: "4 × 6–8",
-          tag: "COMPOUND-PRIORITY",
+          name: "Romanian / Stiff-Leg Deadlift",
+          sets: "4 × 8–10",
+          tag: "PRIMARY · CONSTANT",
           priority: true,
-          note: "CRITICAL for tall guys. Hamstring length = physique depth. Full ROM, 3s eccentric. This separates good from great.",
+          rest: "2 min",
+          note: "Hamstring 2nd hit, heavier than Tuesday. Hinge, deep stretch, 3s eccentric.",
           variants: [
-            { name: "Conventional Deadlift (trap bar)", sets: "4 × 5–6", note: "More quad, spine neutral" },
-            { name: "Stiff-Leg Deadlift", sets: "4 × 6–8", note: "Max hamstring stretch" }
-          ]
+            { name: "Dumbbell RDL", sets: "4 × 8–10", note: "Greater ROM" }
+          ],
+          altB: {
+            name: "Trap-Bar Deadlift",
+            sets: "4 × 6–8",
+            note: "Week B: more quad + glute, spine-neutral, heavy.",
+            variants: [
+              { name: "Conventional Deadlift", sets: "4 × 5–6", note: "Full posterior chain" }
+            ]
+          }
         },
         {
-          name: "Bulgarian Split Squat (Quad Sweep)",
-          sets: "3 × 8–10",
+          name: "Bulgarian Split Squat",
+          sets: "3 × 8–10 /leg",
           tag: "ACCESSORY",
           priority: false,
-          note: "TALL GUY SECRET. Single-leg emphasis = quad sweep + glute. Better mechanics for long femurs.",
+          rest: "90s",
+          note: "Quad sweep + glute, great for long femurs. Upright = quad, lean = glute.",
           variants: [
-            { name: "Dumbbell Bulgarian Split Squat", sets: "3 × 8–10", note: "Most ROM" },
-            { name: "Machine Bulgarian", sets: "3 × 8–10", note: "Stable" }
-          ]
+            { name: "Dumbbell Bulgarian", sets: "3 × 8–10 /leg", note: "Most ROM" }
+          ],
+          altB: {
+            name: "Walking Lunge",
+            sets: "3 × 10–12 /leg",
+            note: "Week B: long stride = glute/ham, short = quad.",
+            variants: [
+              { name: "Reverse Lunge", sets: "3 × 10 /leg", note: "Knee-friendly" }
+            ]
+          }
         },
         {
-          name: "Leg Extension (Quad Isolation)",
+          name: "Leg Extension",
           sets: "3 × 12–15",
-          tag: "PUMP-ACCESSORY",
+          tag: "ISOLATION",
           priority: false,
-          note: "Quad lockout, constant tension. Full ROM for sweep.",
+          ss: "ss1",
+          rest: "→ superset, no rest",
+          note: "Quad isolation. Superset with leg curl — straight over.",
           variants: [
-            { name: "Machine Leg Press (feet low)", sets: "3 × 12–15", note: "Quad bias, safer knees" },
             { name: "Single-Leg Extension", sets: "3 × 12–15", note: "Unilateral focus" }
-          ]
+          ],
+          altB: {
+            name: "Hack Squat",
+            sets: "3 × 10–12",
+            note: "Week B: deep quad stretch under load.",
+            variants: [
+              { name: "Smith Squat (feet forward)", sets: "3 × 12–15", note: "Quad bias" }
+            ]
+          }
         },
         {
-          name: "Lying or Seated Leg Curl (Hamstring)",
+          name: "Lying Leg Curl",
           sets: "3 × 12–15",
-          tag: "PUMP-ACCESSORY",
+          tag: "ISOLATION",
           priority: false,
-          note: "Hamstring contraction, slow 3s eccentric. Balance quad work.",
+          ss: "ss1",
+          rest: "75s after pair",
+          note: "Hamstring isolation — second half of superset. Slow 3s eccentric.",
           variants: [
-            { name: "Standing Single Leg Curl", sets: "3 × 12–15", note: "More core, less back" },
-            { name: "Machine Leg Curl", sets: "3 × 12–15", note: "Stable ROM" }
-          ]
+            { name: "Seated Leg Curl", sets: "3 × 12–15", note: "Stretched-position bias" }
+          ],
+          altB: {
+            name: "Seated Leg Curl",
+            sets: "3 × 12–15",
+            note: "Week B: hamstring at longer length = strong stretch stimulus.",
+            variants: [
+              { name: "Nordic Curl", sets: "3 × 6–10", note: "Bodyweight, brutal eccentric" }
+            ]
+          }
         },
         {
-          name: "Barbell Hip Thrust (Glute Peak)",
-          sets: "3 × 10–12",
-          tag: "ACCESSORY",
+          name: "Standing + Seated Calf Raise",
+          sets: "4 × 15 + 3 × 20",
+          tag: "ISOLATION",
           priority: false,
-          note: "Glute lockout, 2s pause. Full ROM for shelf.",
+          rest: "45–60s",
+          note: "Dual calf (one superset entry): standing (gastrocnemius) then seated (soleus), back-to-back. Full stretch, 2s squeeze.",
           variants: [
-            { name: "Machine Hip Thrust", sets: "3 × 10–12", note: "Less core demand" },
-            { name: "Single-Leg Hip Thrust", sets: "3 × 10–12", note: "Unilateral" }
-          ]
-        },
-        {
-          name: "⭐ Standing Calf Raise (Gastrocnemius)",
-          sets: "4 × 15–20",
-          tag: "CALF-EXPANSION",
-          priority: true,
-          note: "TALL GUYS HAVE LAGGING CALVES. 4 sets for height. Full ROM, 2s pause top.",
-          variants: [
-            { name: "Machine Standing Calf", sets: "4 × 15–20", note: "Locked ROM" },
-            { name: "Smith Machine Calf", sets: "4 × 15–20", note: "Safety pins" }
-          ]
-        },
-        {
-          name: "Seated Calf Raise (Soleus Thickness)",
-          sets: "3 × 15–20",
-          tag: "CALF-EXPANSION",
-          priority: false,
-          note: "Soleus = calf thickness. 3 sets. Different angle pushes muscles.",
-          variants: [
-            { name: "Machine Seated Calf", sets: "3 × 15–20", note: "Most stable" },
-            { name: "Dumbbell Seated Calf", sets: "3 × 15–20", note: "Manual" }
+            { name: "Smith Calf + Dumbbell Seated Calf", sets: "4 × 15 + 3 × 20", note: "If no machines" }
           ]
         }
       ]
@@ -783,37 +879,46 @@
       focus: "Full Recovery",
       type: "rest",
       color: "#d97706",
-      notes: "SUNDAY: Complete rest. Cycle repeats Monday with Chest.",
+      notes: "SUNDAY: Complete rest. Next week, flip the Week A/B toggle so accessories rotate. Cycle repeats Monday.",
       exercises: []
     }
   ];
 
   const principles = [
-    { icon: "⭐", label: "Upper Chest Priority", text: "Incline press FIRST (when CNS fresh). For 6'0\" frame, upper chest = 3D fullness. Flat bench alone = flat chest. Rambod principle." },
-    { icon: "💪", label: "Rear Chain Completeness", text: "Deadlifts + Romanian DL for thickness & hamstring length. Back depth separates good from great physiques." },
-    { icon: "🎯", label: "3D Shoulders (Rear Delts)", text: "Rear delts get 4 dedicated sets early—not afterthought superset. Creates 3D look from all angles." },
-    { icon: "🦵", label: "Tall Athlete Legs", text: "At 6'0\" you need MORE leg volume. Bulgarian split squats for quad sweep. Double calf work (gastro + soleus)." },
-    { icon: "🔱", label: "Brachialis Push", text: "Hammer curls + reverse curls develop brachialis (sits under bicep). When built = bicep looks taller, more peaked." },
-    { icon: "⚡", label: "FST-7 + Supersets", text: "0-rest antagonist pairs. 7×15–20 finishers. 3s eccentric. This IS the Rambod protocol used with 7x Mr. Olympia." }
+    { icon: "🔁", label: "2× Frequency", text: "Every muscle is trained twice a week (Push/Pull repeated, hamstrings via RDL on pull day). Muscle protein synthesis fades after ~36–48h — at matched volume, 2×/week beats 1×/week for growth." },
+    { icon: "🏋️", label: "Heavy + Pump", text: "Each muscle's two weekly sessions differ: a HEAVY day (5–8 reps, full rest = mechanical tension/overload) and a PUMP day (10–20 reps, short rest/supersets = metabolite + volume). Two stimuli beat repeating the same work — and the pump day is faster." },
+    { icon: "🔒", label: "Constant Primaries", text: "Bold primaries (Incline BB, Weighted Pull-up, OHP, BB Row, Squat, RDL, Standing Calf) never change — so you can add weight/reps every week. Only accessories rotate." },
+    { icon: "🔀", label: "Week A / B Rotation", text: "Flip the A↔B toggle each week: accessories swap to a new angle/grip for complete development and joint relief, while your trackable lifts stay fixed." },
+    { icon: "⚡", label: "One FST-7 Per Muscle", text: "Hany Rambod's FST-7: a single finisher of 7 sets × 10–15 reps, 30–45s rest. One per main muscle per session — chasing the pump and fascia stretch, not endless junk volume." },
+    { icon: "⏱️", label: "90-Minute Cap", text: "~6 exercises / ~18–24 working sets per day, redistributed across both weekly sessions so weekly volume stays high while each session fits in 90 min. Non-competing accessories are supersetted; every exercise prints its target rest time so you stay on the clock." }
   ];
 
 
   let activeDayIndex = null;
   let currentTab = "split";
-  let isDark = true;
+  const themeKey = "gym5day_theme";
+  let isDark = localStorage.getItem(themeKey) === "dark"; // default = light
+  let currentWeek = "A";
 
   const storageKey = "gym5day_data";
   const navStateKey = "gym5day_nav";
+  const historyKey = "gym5day_history_v1";
   let userData = JSON.parse(localStorage.getItem(storageKey)) || {};
 
+  // Resolve the exercise shown for the active week (Week B swaps to altB when present).
+  function resolveEx(ex) {
+    return (currentWeek === "B" && ex.altB) ? { ...ex, ...ex.altB } : ex;
+  }
+
   function saveNavState() {
-    localStorage.setItem(navStateKey, JSON.stringify({ activeDayIndex, currentTab }));
+    localStorage.setItem(navStateKey, JSON.stringify({ activeDayIndex, currentTab, currentWeek }));
   }
   function loadNavState() {
     try {
       const saved = JSON.parse(localStorage.getItem(navStateKey) || '{}');
       if (saved.activeDayIndex !== null && saved.activeDayIndex !== undefined) activeDayIndex = saved.activeDayIndex;
       if (saved.currentTab) currentTab = saved.currentTab;
+      if (saved.currentWeek) currentWeek = saved.currentWeek;
     } catch (e) {}
   }
 
@@ -844,38 +949,41 @@
     saveUserData();
   }
 
+  // Per-set logs are namespaced by week so Week A and Week B don't overwrite each other.
+  function exKey(dayIdx, exIdx) { return `${currentWeek}-${dayIdx}-${exIdx}`; }
   function getExerciseData(dayIdx, exIdx) {
-    const key = `${dayIdx}-${exIdx}`;
+    const key = exKey(dayIdx, exIdx);
     return userData[key] || { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
   }
   function setExerciseSets(dayIdx, exIdx, setsArray) {
-    const key = `${dayIdx}-${exIdx}`;
+    const key = exKey(dayIdx, exIdx);
     if (!userData[key]) userData[key] = { sets: [], notes: "", variant: 0 };
     userData[key].sets = setsArray;
     saveUserData();
   }
   function setExerciseSetRep(dayIdx, exIdx, setIdx, field, value) {
-    const key = `${dayIdx}-${exIdx}`;
+    const key = exKey(dayIdx, exIdx);
     if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
     if (!userData[key].sets[setIdx]) userData[key].sets[setIdx] = { weight: "", reps: "" };
     userData[key].sets[setIdx][field] = value;
     saveUserData();
   }
   function setExerciseNotes(dayIdx, exIdx, text) {
-    const key = `${dayIdx}-${exIdx}`;
+    const key = exKey(dayIdx, exIdx);
     if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
     userData[key].notes = text;
     saveUserData();
   }
   function setVariant(dayIdx, exIdx, variantIdx) {
-    const key = `${dayIdx}-${exIdx}`;
+    const key = exKey(dayIdx, exIdx);
     if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
     userData[key].variant = variantIdx;
     saveUserData();
   }
   function addSet(dayIdx, exIdx) {
     const exData = getExerciseData(dayIdx, exIdx);
-    exData.sets.push({ weight: "", reps: "" });
+    const prev = exData.sets[exData.sets.length - 1] || { weight: "", reps: "" };
+    exData.sets.push({ weight: prev.weight || "", reps: prev.reps || "", done: false }); // prefill from previous set
     setExerciseSets(dayIdx, exIdx, exData.sets);
     window.renderContent();
   }
@@ -886,6 +994,14 @@
       setExerciseSets(dayIdx, exIdx, exData.sets);
       window.renderContent();
     }
+  }
+  function _toggleSetDoneData(dayIdx, exIdx, setIdx) {
+    const key = exKey(dayIdx, exIdx);
+    if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
+    if (!userData[key].sets[setIdx]) userData[key].sets[setIdx] = { weight: "", reps: "" };
+    userData[key].sets[setIdx].done = !userData[key].sets[setIdx].done;
+    saveUserData();
+    return userData[key].sets[setIdx].done;
   }
 
   const prStorageKey = 'gym5day_pr_v1';
@@ -900,7 +1016,8 @@
     localStorage.setItem(prStorageKey, JSON.stringify(data));
   }
   function getExerciseName(dayIdx, exIdx) {
-    return days[dayIdx]?.exercises[exIdx]?.name || '';
+    const ex = days[dayIdx]?.exercises[exIdx];
+    return ex ? resolveEx(ex).name : '';
   }
   function getBestForExercise(dayIdx, exIdx) {
     const prData = getPRData();
@@ -929,6 +1046,76 @@
     }
   }
 
+  // ---- History / progression log ----
+  function getHistoryData() {
+    try { return JSON.parse(localStorage.getItem(historyKey) || '{}'); } catch { return {}; }
+  }
+  function saveHistoryData(data) { localStorage.setItem(historyKey, JSON.stringify(data)); }
+  function getExerciseHistory(exName) {
+    const all = getHistoryData();
+    return (all[exName] || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first
+  }
+  function getLastHistory(exName) {
+    const h = getExerciseHistory(exName);
+    return h.length ? h[0] : null;
+  }
+  function topSetOf(sets) {
+    let best = null;
+    (sets || []).forEach(s => {
+      const w = parseFloat(s.weight) || 0, r = parseInt(s.reps) || 0;
+      if (w === 0 && r === 0) return;
+      if (!best || w > best.w || (w === best.w && r > best.r)) best = { w, r };
+    });
+    return best;
+  }
+  function saveDayToHistory(dayIdx) {
+    const day = days[dayIdx];
+    const today = new Date().toISOString().split('T')[0];
+    const all = getHistoryData();
+    let saved = 0;
+    day.exercises.forEach((baseEx, exIdx) => {
+      const exName = getExerciseName(dayIdx, exIdx);
+      const exData = getExerciseData(dayIdx, exIdx);
+      const sets = (exData.sets || [])
+        .filter(s => (s.weight && s.weight !== "") || (s.reps && s.reps !== ""))
+        .map(s => ({ weight: s.weight, reps: s.reps }));
+      if (!sets.length) return;
+      if (!all[exName]) all[exName] = [];
+      const last = all[exName][all[exName].length - 1];
+      if (last && last.date === today) last.sets = sets; // replace same-day entry
+      else all[exName].push({ date: today, sets });
+      saved++;
+      // clear done flags for next session, keep weights/reps as reference
+      exData.sets.forEach(s => { s.done = false; });
+      setExerciseSets(dayIdx, exIdx, exData.sets);
+    });
+    saveHistoryData(all);
+    return saved;
+  }
+
+  function renderExerciseHistory(exName) {
+    const hist = getExerciseHistory(exName);
+    if (!hist.length) return `<div class="history-list"><div class="history-empty">No saved sessions yet. Tap "Finish & Save to History" after a workout.</div></div>`;
+    return `<div class="history-list">${hist.slice(0, 12).map(h => {
+      const sets = (h.sets || []).map(s => `${s.weight||'–'}×${s.reps||'–'}`).join('  ');
+      return `<div class="history-row"><span class="history-date">${h.date}</span><span class="history-sets">${sets}</span></div>`;
+    }).join('')}</div>`;
+  }
+
+  // Update only the per-set status lines for one exercise (no input rebuild → keyboard stays open).
+  function refreshExerciseStatus(dayIdx, exIdx) {
+    const exData = getExerciseData(dayIdx, exIdx);
+    const best = getBestForExercise(dayIdx, exIdx);
+    document.querySelectorAll(`.set-status[data-day="${dayIdx}"][data-ex="${exIdx}"]`).forEach(el => {
+      const setIdx = parseInt(el.dataset.set);
+      const set = exData.sets[setIdx] || { weight: "", reps: "" };
+      const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
+      const prBadge = (isPR(dayIdx, exIdx, set.weight, set.reps) && set.weight && set.reps)
+        ? '<span class="pr-indicator">⭐ PR</span>' : '';
+      el.innerHTML = `<span class="set-best">${bestText}</span>${prBadge}`;
+    });
+  }
+
   window.getExerciseData = getExerciseData;
   window.setExerciseSets = setExerciseSets;
   window.setExerciseSetRep = setExerciseSetRep;
@@ -940,9 +1127,16 @@
   window.getBestForExercise = getBestForExercise;
   window.isPR = isPR;
   window.updatePRIfNeeded = updatePRIfNeeded;
+  window.refreshExerciseStatus = refreshExerciseStatus;
+  window.getExerciseName = getExerciseName;
+  window.getExerciseHistory = getExerciseHistory;
+  window.getLastHistory = getLastHistory;
+  window.topSetOf = topSetOf;
+  window.saveDayToHistory = saveDayToHistory;
+  window.renderExerciseHistory = renderExerciseHistory;
 
   function renderStatsBar() {
-    const stats = [["0 Rest","Supersets"],["7 Sets","FST-7"],["3s Eccentric","TUT"],["5","Focused Days"],["⚡","Maximum Hypertrophy"]];
+    const stats = [["≤90","Min/Session"],["2×","Frequency"],["Heavy+Pump","Undulating"],["6","Exercises"],[`Week ${currentWeek}`,"Rotation"]];
     document.getElementById("statsBar").innerHTML = stats.map(([v,l]) => `<div class="stat-item"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
   }
 
@@ -950,6 +1144,7 @@
     document.getElementById("tabRow").innerHTML = `
       <button class="tab-btn ${currentTab==="split"?"active":"inactive"}" onclick="window._selectTab('split')">5-Day Split</button>
       <button class="tab-btn ${currentTab==="principles"?"active":"inactive"}" onclick="window._selectTab('principles')">Principles</button>
+      <button class="tab-btn inactive" onclick="window._toggleWeek()" title="Swap accessories between Week A and Week B" style="flex:0 0 auto;min-width:96px;border-bottom-color:var(--accent);color:var(--accent);font-family:'DM Mono',monospace;">⇄ Week ${currentWeek}</button>
     `;
   }
 
@@ -966,7 +1161,7 @@
   }
 
   function renderSplitGrid() {
-    let html = `<div class="section-label">Mon-Fri (supersets + FST-7) · Sat legs · Sun rest <span class="line"></span></div><div class="day-grid">`;
+    let html = `<div class="section-label">Mon Push · Tue Pull · Thu Push · Fri Pull · Sat Legs · Week ${currentWeek} <span class="line"></span></div><div class="day-grid">`;
     days.forEach((day, i) => {
       const isRest = day.type === "rest";
       const headerBg = isRest ? "transparent" : `linear-gradient(90deg, ${day.color}${isDark?"14":"0e"} 0%, transparent 70%)`;
@@ -977,7 +1172,7 @@
           ${!isRest ? `<span class="day-ex-count">${day.exercises.length} exercises</span>` : ""}
         </div>
         ${isRest ? `<div class="rest-msg">💤 Full recovery</div>` : `<div class="day-card-body">
-          ${day.exercises.slice(0,3).map((ex,j) => `<div class="ex-row"><span class="ex-name ${ex.priority?'priority':'normal'}">${ex.name}${ex.priority?'':''}</span><span class="ex-sets">${ex.sets}</span></div>`).join("")}
+          ${day.exercises.slice(0,3).map((ex,j) => { const r = resolveEx(ex); return `<div class="ex-row"><span class="ex-name ${ex.priority?'priority':'normal'}">${r.name}</span><span class="ex-sets">${r.sets}</span></div>`; }).join("")}
           ${day.exercises.length>3?`<div class="more-ex">+ ${day.exercises.length-3} more →</div>`:''}
         </div>`}
       </div>`;
@@ -999,22 +1194,40 @@
           <div class="expanded-notes" style="border-left-color:${day.color}60;">💡 ${day.notes}</div>
         </div>
         <div>
-          ${day.exercises.map((ex, i) => {
+          ${day.exercises.map((baseEx, i) => {
+            const ex = resolveEx(baseEx);
             const isChecked = completed.includes(i);
             const exData = window.getExerciseData(index, i);
             const currentVariant = exData.variant || 0;
             const variantName = ex.variants?.[currentVariant]?.name || ex.name;
             const variantSets = ex.variants?.[currentVariant]?.sets || ex.sets;
+            const isFST = (ex.tag||'').indexOf('FST') !== -1;
+            const tagBg = isFST ? '#e05a2b22' : '#9333ea22';
+            const tagFg = isFST ? '#e05a2b' : '#9333ea';
+            const tagBd = isFST ? '#e05a2b44' : '#9333ea44';
+            const lastHist = window.getLastHistory(ex.name);
+            const lastTop = lastHist ? window.topSetOf(lastHist.sets) : null;
+            const safeName = variantName.replace(/'/g,"\\'");
             return `
-              <div class="expanded-ex" style="border-bottom:${i<day.exercises.length-1?'1px solid var(--border-sub)':'none'};">
+              <div class="expanded-ex${ex.ss?' ss-block':''}" style="border-bottom:${i<day.exercises.length-1?'1px solid var(--border-sub)':'none'};">
                 <div class="expanded-ex-left" style="width: 100%;">
                   <div class="ex-name-row">
                     <div class="ex-checkbox${isChecked?' checked':''}" data-day="${index}" data-ex="${i}" onclick="toggleCheckbox(this)"></div>
                     <span class="expanded-ex-name ${ex.priority?'priority':'normal'}">${ex.name}</span>
+                    <button class="form-btn" onclick="window.ytForm('${safeName}')" title="Watch form video">▶ Form</button>
+                    <button class="form-btn" onclick="window.toggleHistory(this)" data-name="${ex.name.replace(/"/g,'&quot;')}" title="Past sessions">📈</button>
                   </div>
-                  <span class="tag-chip" style="background:${ex.tag==='POWER'?'#0ea5e922':'#9333ea22'};color:${ex.tag==='POWER'?'#0ea5e9':'#9333ea'};border-color:${ex.tag==='POWER'?'#0ea5e944':'#9333ea44'};">${ex.tag}</span>
+                  <span class="tag-chip" style="background:${tagBg};color:${tagFg};border-color:${tagBd};">${ex.tag}</span>
+                  ${ex.ss ? `<span class="ss-chip">⥀ Superset</span>` : ''}
+                  ${baseEx.altB ? `<span class="tag-chip" style="background:var(--alt-bg);color:var(--alt-text);border-color:var(--alt-border);margin-left:6px;">WEEK ${currentWeek}</span>` : ''}
                   ${ex.note ? `<span style="font-size:11px;color:var(--note-color);margin-left:8px;">${ex.note}</span>` : ''}
-                  
+                  ${ex.rest ? `<div class="ex-rest">⏱ Rest: <strong>${ex.rest}</strong></div>` : ''}
+                  ${lastTop ? `<div class="ex-last">↺ Last (${lastHist.date}): top set ${lastTop.w}kg × ${lastTop.r}</div>` : ''}
+
+                  <div class="variant-content collapsed" data-history="${ex.name.replace(/"/g,'&quot;')}">
+                    ${window.renderExerciseHistory(ex.name)}
+                  </div>
+
                   ${ex.variants && ex.variants.length > 0 ? `
                     <div class="variant-header collapsed" onclick="toggleVariant(this)" data-day="${index}" data-ex="${i}">
                       Variation: <strong>${variantName}</strong>
@@ -1022,10 +1235,13 @@
                     <div class="variant-content collapsed">
                       <div style="padding:8px 12px;">
                         ${ex.variants.map((v, vIdx) => `
-                          <div style="margin-bottom:6px;cursor:pointer;" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();">
-                            <input type="radio" ${vIdx===currentVariant?'checked':''} style="margin-right:6px;"> <strong>${v.name}</strong>
-                            <span style="font-size:11px;color:var(--text-faint);margin-left:8px;">${v.sets}</span>
-                            <div style="font-size:10px;color:var(--text-faint);margin-top:2px;margin-left:20px;">${v.note}</div>
+                          <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="cursor:pointer;" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();">
+                              <input type="radio" ${vIdx===currentVariant?'checked':''} style="margin-right:6px;"> <strong>${v.name}</strong>
+                              <span style="font-size:11px;color:var(--text-faint);margin-left:8px;">${v.sets}</span>
+                            </span>
+                            <button class="form-btn" onclick="window.ytForm('${v.name.replace(/'/g,"\\'")}')" title="Watch form video">▶</button>
+                            <div style="font-size:10px;color:var(--text-faint);margin-top:2px;margin-left:20px;flex-basis:100%;">${v.note}</div>
                           </div>
                         `).join('')}
                       </div>
@@ -1038,14 +1254,16 @@
                       const isCurrPR = window.isPR(index, i, set.weight, set.reps);
                       const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
                       return `
-                      <div class="set-row">
-                        <span class="set-num">Set ${setIdx + 1}</span>
-                        <input type="text" class="track-input" placeholder="Weight" value="${set.weight}" onchange="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
-                        <input type="text" class="track-input" placeholder="Reps" value="${set.reps}" onchange="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
-                      </div>
-                      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 0 4px 40px;">
-                        <span class="set-best">${bestText}</span>
-                        ${isCurrPR && set.weight && set.reps ? '<span class="pr-indicator">⭐ PR</span>' : ''}
+                      <div class="set-block${set.done?' done':''}" id="setblock-${index}-${i}-${setIdx}">
+                        <div class="set-row">
+                          <button class="set-done${set.done?' done':''}" onclick="window.toggleSetDone(this,${index},${i},${setIdx})" title="Mark set done">${set.done?'✓':(setIdx+1)}</button>
+                          <input type="text" inputmode="decimal" class="track-input" placeholder="kg" value="${set.weight}" oninput="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
+                          <input type="text" inputmode="numeric" class="track-input" placeholder="reps" value="${set.reps}" oninput="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
+                        </div>
+                        <div class="set-status" data-day="${index}" data-ex="${i}" data-set="${setIdx}" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0 4px 52px;">
+                          <span class="set-best">${bestText}</span>
+                          ${isCurrPR && set.weight && set.reps ? '<span class="pr-indicator">⭐ PR</span>' : ''}
+                        </div>
                       </div>
                     `;
                     }).join('')}
@@ -1060,8 +1278,9 @@
               </div>`;
           }).join('')}
         </div>
-        <div style="padding:0 26px 20px;">
+        <div style="padding:0 26px 22px;">
           <textarea class="notes-area" id="dayNotes" placeholder="Day notes...">${notesText}</textarea>
+          <button class="day-save-btn" onclick="window.finishDay(${index})">✓ FINISH &amp; SAVE TO HISTORY</button>
         </div>
       </div>
     `;
@@ -1070,7 +1289,7 @@
 
   function renderPrinciples() {
     return `
-      <div class="section-label">Henry Rambod Principles <span class="line"></span></div>
+      <div class="section-label">Hany Rambod · Hypertrophy Principles <span class="line"></span></div>
       <div class="principles-grid">
         ${principles.map(p => `
           <div class="principle-card">
@@ -1101,12 +1320,43 @@
     if (exData.sets[setIdx]) {
       window.updatePRIfNeeded(dayIdx, exIdx, exData.sets[setIdx].weight, exData.sets[setIdx].reps);
     }
-    window.renderContent();
+    // In-place status update only — keeps the keyboard open & cursor in place on mobile.
+    window.refreshExerciseStatus(dayIdx, exIdx);
   };
 
   window.updateExNote = function(dayIdx, exIdx, value) {
     window.setExerciseNotes(dayIdx, exIdx, value);
   };
+
+  // toggleSetDone data fn is defined above; here is the DOM handler used by the set-number button.
+  window.toggleSetDone = function(el, dayIdx, exIdx, setIdx) {
+    const done = _toggleSetDoneData(dayIdx, exIdx, setIdx);
+    el.classList.toggle('done', done);
+    el.textContent = done ? '✓' : (setIdx + 1);
+    const block = document.getElementById(`setblock-${dayIdx}-${exIdx}-${setIdx}`);
+    if (block) block.classList.toggle('done', done);
+  };
+
+  window.toggleHistory = function(el) {
+    const name = el.dataset.name;
+    const panel = el.closest('.expanded-ex-left').querySelector(`.variant-content[data-history="${CSS.escape(name)}"]`);
+    if (panel) panel.classList.toggle('collapsed');
+  };
+
+  window.finishDay = function(dayIdx) {
+    const n = window.saveDayToHistory(dayIdx);
+    window.renderContent();
+    showToast(n > 0 ? `✓ Saved ${n} exercise${n>1?'s':''} to history` : 'Nothing logged yet — enter some sets first');
+  };
+
+  function showToast(msg) {
+    let t = document.getElementById('saveToast');
+    if (!t) { t = document.createElement('div'); t.id = 'saveToast'; t.className = 'save-toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
 
   function bindEvents() {
     document.querySelectorAll(".day-card:not(.rest)").forEach(card => {
@@ -1129,6 +1379,19 @@
     }
   }
 
+  window.ytForm = function(name) {
+    const q = encodeURIComponent(name + " proper form technique");
+    window.open("https://www.youtube.com/results?search_query=" + q, "_blank", "noopener");
+  };
+
+  window._toggleWeek = function() {
+    currentWeek = currentWeek === "A" ? "B" : "A";
+    saveNavState();
+    renderStatsBar();
+    renderTabs();
+    renderContent();
+  };
+
   window._selectTab = function(tab) {
     currentTab = tab;
     activeDayIndex = null;
@@ -1142,17 +1405,22 @@
     renderContent();
     window.scrollTo({top:0, behavior:"smooth"});
   };
-  window.toggleTheme = function() {
-    isDark = !isDark;
+  function applyTheme() {
     document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
     document.getElementById("toggleIcon").textContent = isDark ? "☀️" : "🌙";
     document.getElementById("toggleLabel").textContent = isDark ? "Light mode" : "Dark mode";
+  }
+  window.toggleTheme = function() {
+    isDark = !isDark;
+    localStorage.setItem(themeKey, isDark ? "dark" : "light");
+    applyTheme();
     renderContent();
     renderTabs();
   };
 
   function init() {
     loadNavState();
+    applyTheme();
     renderStatsBar();
     renderTabs();
     renderContent();

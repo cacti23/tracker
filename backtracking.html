@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Backtracking CheatSheet</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+	margin-bottom: 0.5rem;
+	page-break-after: avoid;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+	margin-bottom: 0.4rem;
+	page-break-after: avoid;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+	margin-bottom: 0.3rem;
+	page-break-after: avoid;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	/* High-density revision print optimization */
+	html, body {
+		font-size: 11px !important;
+		line-height: 1.2 !important;
+		color: #111 !important;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	h1, .page-title {
+		font-size: 15px !important;
+		font-weight: 700 !important;
+		margin-top: 0.4em !important;
+		margin-bottom: 0.15em !important;
+		page-break-after: avoid !important;
+		page-break-inside: avoid !important;
+	}
+
+	h2 {
+		font-size: 13px !important;
+		font-weight: 600 !important;
+		margin-top: 0.35em !important;
+		margin-bottom: 0.1em !important;
+		page-break-after: avoid !important;
+		page-break-inside: avoid !important;
+	}
+
+	h3 {
+		font-size: 12px !important;
+		font-weight: 600 !important;
+		margin-top: 0.25em !important;
+		margin-bottom: 0.08em !important;
+		page-break-after: avoid !important;
+	}
+
+	p, li, div {
+		margin-top: 0.1em !important;
+		margin-bottom: 0.1em !important;
+		page-break-inside: avoid !important;
+	}
+
+	ol, ul {
+		margin-block-start: 0.1em !important;
+		margin-block-end: 0.1em !important;
+		padding-inline-start: 1em !important;
+	}
+
+	.code, pre {
+		font-size: 9.5px !important;
+		padding: 0.3em 0.4em !important;
+		margin: 0.15em 0 !important;
+		line-height: 1.15 !important;
+		background-color: rgba(135, 131, 120, 0.06) !important;
+		border-left: 2px solid #0066cc !important;
+		page-break-inside: avoid !important;
+		overflow: hidden !important;
+	}
+
+	blockquote {
+		font-size: 10px !important;
+		margin: 0.5em 0 !important;
+		padding-left: 0.6em !important;
+		border-left: 2px solid rgb(55, 53, 47) !important;
+		page-break-inside: avoid !important;
+	}
+
+	hr {
+		margin-top: 0.25em !important;
+		margin-bottom: 0.25em !important;
+		border-bottom: 0.5px solid rgba(55, 53, 47, 0.05) !important;
+		page-break-after: avoid !important;
+	}
+
+	table, tr, td, th {
+		page-break-inside: avoid !important;
+		font-size: 9px !important;
+	}
+
+	div[style*="display:contents"] {
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	section, article {
+		page-break-inside: avoid !important;
+		margin: 0 !important;
+	}
+
+	pre {
+		max-width: 100% !important;
+		word-wrap: break-word !important;
+	}
+
+	.page-header-icon {
+		font-size: 1.8rem !important;
+		margin-bottom: 0.3rem !important;
+	}
+
+	.column-list {
+		gap: 15px !important;
+	}
+
+	.column {
+		margin-top: 0 !important;
+	}
+
+	.simple-table th, .simple-table td {
+		height: auto !important;
+		min-width: unset !important;
+		padding: 0.2em 0.4em !important;
+	}
+}
+
+@page {
+	margin: 0.3in;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.2em 0.9em;
+	margin: 0.8em 0;
+	page-break-inside: avoid;
+	background: rgba(135, 131, 120, 0.08);
+	border-left: 3px solid #0066cc;
+	font-size: 0.9em;
+	line-height: 1.4;
+}
+
+@media print {
+	.code {
+		padding: 0.8em 0.6em;
+		margin: 0.4em 0;
+		font-size: 0.85em;
+		line-height: 1.35;
+	}
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.page-body {
+	white-space: normal;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+
+/* Navigation Index Styling */
+.nav-index {
+	background: linear-gradient(135deg, rgba(0, 102, 204, 0.06) 0%, rgba(0, 102, 204, 0.02) 100%);
+	border: 2px solid #0066cc;
+	border-radius: 8px;
+	padding: 1.5em;
+	margin: 1.5em 0;
+	page-break-inside: avoid;
+}
+
+.nav-index h2 {
+	color: #0066cc;
+	font-size: 1.3em;
+	margin-top: 0;
+	margin-bottom: 1em;
+	letter-spacing: -0.01em;
+}
+
+.nav-index-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 0.8em;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.nav-index-item {
+	list-style: none;
+	margin: 0;
+	padding: 0.6em 0.8em;
+	background: white;
+	border-left: 3px solid #0066cc;
+	border-radius: 3px;
+	transition: all 0.2s ease;
+}
+
+.nav-index-item:hover {
+	background: rgba(0, 102, 204, 0.05);
+	box-shadow: 0 2px 4px rgba(0, 102, 204, 0.1);
+}
+
+.nav-index-item a {
+	color: #0066cc;
+	text-decoration: none;
+	font-weight: 500;
+	font-size: 0.95em;
+}
+
+.nav-index-item a:hover {
+	text-decoration: underline;
+}
+
+@media print {
+	.nav-index {
+		border: 1px solid #0066cc !important;
+		background: rgba(0, 102, 204, 0.03) !important;
+		padding: 0.8em !important;
+		margin: 0.5em 0 !important;
+		font-size: 9px !important;
+		page-break-inside: avoid !important;
+	}
+
+	.nav-index-grid {
+		grid-template-columns: repeat(2, 1fr) !important;
+		gap: 0.3em !important;
+	}
+
+	.nav-index-item {
+		padding: 0.3em 0.4em !important;
+		margin: 0 !important;
+		font-size: 8px !important;
+	}
+}
+
+/* Enhanced Visual Separators */
+hr {
+	background: linear-gradient(90deg, transparent 0%, #0066cc 10%, #0066cc 90%, transparent 100%);
+	border: none;
+	height: 2px;
+	margin: 2em 0;
+	page-break-after: avoid;
+}
+
+@media print {
+	hr {
+		background: linear-gradient(90deg, transparent 0%, #333 10%, #333 90%, transparent 100%) !important;
+		height: 1px !important;
+		margin: 0.6em 0 !important;
+	}
+}
+
+</style></head><body><article id="bt-page" class="page sans"><header><div class="page-header-icon undefined"><span class="icon">🔁</span></div><h1 class="page-title" dir="auto">Backtracking CheatSheet</h1><p class="page-description" dir="auto"></p></header><div class="page-body">
+
+<div style="display:contents" dir="auto"><h1 id="bt-title" class="">🔁 ULTIMATE BACKTRACKING CHEATSHEET</h1></div>
+<div style="display:contents" dir="auto"><h2 id="bt-subtitle" class=""><em>SDE2/SDE3 FAANG Interview Edition | TypeScript</em></h2></div>
+<div style="display:contents" dir="auto"><h3 id="bt-sub2" class="">⭐ OPTIMIZED FOR LC MEDIUM/HARD</h3></div>
+<div style="display:contents" dir="auto"><hr id="bt-hr-0"/></div>
+
+<div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid">
+<li class="nav-index-item"><a href="#bt-s1">1. Decision Framework</a></li>
+<li class="nav-index-item"><a href="#bt-s2">2. Universal Template</a></li>
+<li class="nav-index-item"><a href="#bt-s3">3. The 5 Flavors</a></li>
+<li class="nav-index-item"><a href="#bt-s4">4. Keyword → Pattern Map</a></li>
+<li class="nav-index-item"><a href="#bt-s5">5. Template 1: Subsets</a></li>
+<li class="nav-index-item"><a href="#bt-s6">6. Template 2: Permutations</a></li>
+<li class="nav-index-item"><a href="#bt-s7">7. Template 3: Combinations</a></li>
+<li class="nav-index-item"><a href="#bt-s8">8. Template 4: Grid / Path</a></li>
+<li class="nav-index-item"><a href="#bt-s9">9. Template 5: Constraint</a></li>
+<li class="nav-index-item"><a href="#bt-s10">10. Template 6: String Partition</a></li>
+<li class="nav-index-item"><a href="#bt-s11">11. Pruning Strategies</a></li>
+<li class="nav-index-item"><a href="#bt-s12">12. Backtracking + Memo Hybrids</a></li>
+<li class="nav-index-item"><a href="#bt-s13">13. Complexity Analysis</a></li>
+<li class="nav-index-item"><a href="#bt-s14">14. Top 45 LC Problems Map</a></li>
+<li class="nav-index-item"><a href="#bt-s15">15. Interview Script</a></li>
+<li class="nav-index-item"><a href="#bt-s16">16. Pre-Interview Rapid Revision</a></li>
+</ul></div></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-1"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s1" class="">1. DECISION FRAMEWORK</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-1" class=""><strong>Senior Engineer mindset</strong>: Before writing a line of code, classify the problem. Every minute spent here saves 5 minutes of wrong-direction coding.</blockquote></div>
+<div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="bt-code-1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">┌──────────────────────────────────────────────────────┐
+│ STEP 1: SHOULD I BACKTRACK?                          │
+├──────────────────────────────────────────────────────┤
+│ ✅ You need ALL solutions / enumerate possibilities  │
+│ ✅ You are building solutions incrementally           │
+│ ✅ Invalid states can be detected early (pruning)    │
+│ ✅ Problem involves: subsets, perms, combos,         │
+│    placements, partitions, paths with constraints    │
+│                                                      │
+│ ❌ You only need ONE optimal answer → try DP/Greedy  │
+│ ❌ No ability to prune → plain DFS/BFS               │
+│ ❌ Subproblems overlap heavily → Memoized DP         │
+└──────────────────────────────────────────────────────┘
+                         ↓
+┌──────────────────────────────────────────────────────┐
+│ STEP 2: WHAT IS THE CHOICE AT EACH STEP?            │
+├──────────────────────────────────────────────────────┤
+│ Ask: &quot;At this point in building my solution,         │
+│       what options do I have?&quot;                       │
+│                                                      │
+│ • Include element i or skip it          → Subsets   │
+│ • Place element at next open position   → Perms     │
+│ • Pick element starting from index i   → Combos     │
+│ • Move in 4 directions from cell (r,c)  → Grid path │
+│ • Place queen/digit in row/cell         → Constraint │
+│ • Cut string at position j              → Partition  │
+└──────────────────────────────────────────────────────┘
+                         ↓
+┌──────────────────────────────────────────────────────┐
+│ STEP 3: WHAT IS THE TERMINATION CONDITION?          │
+├──────────────────────────────────────────────────────┤
+│ Base case 1 (COLLECT): solution is complete         │
+│   → push a copy of current path to results          │
+│ Base case 2 (PRUNE): current path is invalid        │
+│   → return immediately, undo last choice            │
+│                                                      │
+│ ⚠️  Always push a COPY: results.push([...path])     │
+│     NOT results.push(path)  ← classic bug           │
+└──────────────────────────────────────────────────────┘
+                         ↓
+┌──────────────────────────────────────────────────────┐
+│ STEP 4: WHERE CAN I PRUNE?                          │
+├──────────────────────────────────────────────────────┤
+│ Good pruning = the difference between TLE and AC    │
+│                                                      │
+│ • Remaining elements can&#x27;t satisfy target           │
+│ • Current sum already exceeds limit                 │
+│ • Duplicate element at same recursion level         │
+│ • Cell already visited (grid)                       │
+│ • Constraint violated (N-Queens, Sudoku)            │
+└──────────────────────────────────────────────────────┘
+                         ↓
+┌──────────────────────────────────────────────────────┐
+│ STEP 5: DO I NEED TO MEMOIZE?                       │
+├──────────────────────────────────────────────────────┤
+│ Only if: same (index, state) pair can be reached    │
+│ via DIFFERENT paths with same future potential      │
+│ → then add memo Map&lt;string, result&gt;                 │
+│                                                      │
+│ Pure backtracking: NO memoization needed            │
+│ Hybrid (backtracking-style DP): YES, memoize        │
+└──────────────────────────────────────────────────────┘</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-2"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s2" class="">2. UNIVERSAL BACKTRACKING TEMPLATE</h1></div>
+<div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><pre id="bt-code-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// THE UNIVERSAL TEMPLATE — memorize this skeleton
+function solve(input: any[]): any[][] {
+  const results: any[][] = [];
+  const path: any[] = [];
+
+  function backtrack(/* state: index, remaining capacity, etc. */) {
+    // BASE CASE: solution is complete
+    if (/* termination condition */) {
+      results.push([...path]);   // ⚠️ COPY, not reference
+      return;
+    }
+
+    for (const choice of /* choices at this step */) {
+      // PRUNE: skip invalid choices early
+      if (/* choice is invalid */) continue;
+
+      // CHOOSE
+      path.push(choice);
+      // mutate state if needed (e.g., mark visited)
+
+      // EXPLORE
+      backtrack(/* updated state */);
+
+      // UNCHOOSE (backtrack)
+      path.pop();
+      // reverse state mutation
+    }
+  }
+
+  backtrack(/* initial state */);
+  return results;
+}</code></pre></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-2" class=""><strong>The three words to tattoo on your brain: CHOOSE → EXPLORE → UNCHOOSE</strong>. Every backtracking solution is just these 3 lines in a loop. Your job in the interview is to fill in: what are the choices, when do I terminate, and where do I prune.</blockquote></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-3"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s3" class="">3. THE 5 BACKTRACKING FLAVORS</h1></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-3" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">FLAVOR              KEY QUESTION                    EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Subsets             Include or skip each element?   LC 78, 90
+                    (order doesn&#x27;t matter)
+
+Permutations        Which unused element goes next? LC 46, 47
+                    (order matters, use each once)
+
+Combinations        Pick k from n, starting from i  LC 77, 39, 40, 216
+                    (order doesn&#x27;t matter, avoid re-pick)
+
+Grid / Path         Move in 4 dirs, mark visited    LC 79, 212, 200, 130
+                    (path on 2D grid)
+
+Constraint          Place item satisfying rules      LC 51, 52, 37
+Satisfaction        (N-Queens, Sudoku)
+
+String              Cut at position j if valid       LC 131, 17, 22, 93
+Partitioning        (palindromes, IP addrs, parens)</code></pre></div>
+
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-3" class=""><strong>⭐ THE #1 DECISION — <code>start</code> index vs <code>used[]</code> array</strong> (memorize this — it picks your template in 5 seconds):</blockquote></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-3b" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">ORDER DOESN&#x27;T MATTER (subsets, combinations) → pass a `start` index,
+  loop `for (i = start; ...)`, recurse with i+1 (or i if reuse allowed).
+  This prevents [1,2] and [2,1] from both appearing.
+
+ORDER MATTERS (permutations) → use a `used[]` boolean array,
+  loop `for (i = 0; ...)`, skip if used[i].
+  This lets every element appear at every position.
+
+If you can answer &quot;does order matter?&quot; in 5 seconds, you&#x27;ve already picked the skeleton.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-4"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s4" class="">4. KEYWORD → PATTERN MAP</h1></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-4" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">KEYWORD / PHRASE                               → PATTERN              LC EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+&quot;all subsets&quot; / &quot;power set&quot;                    → Subsets              78, 90
+&quot;all permutations&quot;                             → Permutations          46, 47
+&quot;all combinations of k from n&quot;                 → Combinations          77
+&quot;combination sum / target sum&quot;                 → Combinations + prune  39, 40, 216
+&quot;generate all valid parentheses&quot;               → String partition      22
+&quot;palindrome partitioning&quot;                      → String partition      131, 132
+&quot;restore IP addresses&quot;                         → String partition      93
+&quot;letter combinations of phone number&quot;          → Permutation/Combo     17
+&quot;word search in grid&quot;                          → Grid path             79, 212
+&quot;number of islands / connected region&quot;         → DFS (not backtrack)   200
+&quot;N-Queens&quot;                                     → Constraint satisf.    51, 52
+&quot;Sudoku solver&quot;                                → Constraint satisf.    37
+&quot;expression add operators&quot;                     → String partition      282
+&quot;partition to K equal subsets&quot;                 → Subsets + bitmask     698, 1723
+&quot;path exists from source to dest in grid&quot;      → Grid path             490, 79
+&quot;word break II (all ways)&quot;                     → String partition      140
+&quot;beautiful arrangement&quot;                        → Permutation + prune   526
+&quot;combinations with at most / exactly k&quot;        → Combinations          216, 254
+&quot;reconstruct itinerary&quot;                        → Graph path backtrack  332
+&quot;remove invalid parentheses&quot;                   → String partition + BFS 301
+&quot;split array into fibonacci&quot;                   → String partition      842
+&quot;maximum length of concatenated str&quot;           → Subsets + check      1239
+&quot;find all paths from source to target&quot;         → Graph path backtrack  797
+&quot;concatenated words&quot;                           → Trie + backtrack      472</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-5"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s5" class="">5. TEMPLATE 1: SUBSETS</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-5" class=""><strong>Pattern</strong>: At each index, decide include or skip. Two choices per element → 2^n total.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s5-1" class="">5.1 Basic Subsets — LC 78 (no duplicates)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-5-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function subsets(nums: number[]): number[][] {
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(start: number): void {
+    results.push([...path]);          // collect at EVERY node, not just leaves
+
+    for (let i = start; i &lt; nums.length; i++) {
+      path.push(nums[i]);             // CHOOSE
+      backtrack(i + 1);              // EXPLORE (i+1: each element used once)
+      path.pop();                    // UNCHOOSE
+    }
+  }
+
+  backtrack(0);
+  return results;
+}
+// Time: O(n * 2^n)  Space: O(n) recursion depth</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s5-2" class="">5.2 Subsets with Duplicates — LC 90</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-5-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function subsetsWithDup(nums: number[]): number[][] {
+  nums.sort((a, b) =&gt; a - b);        // MUST sort to group duplicates
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(start: number): void {
+    results.push([...path]);
+
+    for (let i = start; i &lt; nums.length; i++) {
+      // Skip duplicate at same recursion level
+      if (i &gt; start &amp;&amp; nums[i] === nums[i - 1]) continue;
+
+      path.push(nums[i]);
+      backtrack(i + 1);
+      path.pop();
+    }
+  }
+
+  backtrack(0);
+  return results;
+}</code></pre></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-5-2" class=""><strong>Key rule for duplicates</strong>: <code>if (i &gt; start &amp;&amp; nums[i] === nums[i-1]) continue</code> — <code>i &gt; start</code> (not <code>i &gt; 0</code>) means: only skip at THIS level, not globally.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s5-3" class="">5.3 Pick / Skip Formulation (bridges to 0/1-knapsack DP)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-5-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function subsetsPickSkip(nums: number[]): number[][] {
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(i: number): void {
+    if (i === nums.length) {        // leaf: one decision made per element
+      results.push([...path]);
+      return;
+    }
+    backtrack(i + 1);               // SKIP nums[i]
+
+    path.push(nums[i]);             // TAKE nums[i]
+    backtrack(i + 1);
+    path.pop();
+  }
+
+  backtrack(0);
+  return results;
+}
+// Two formulations, same answer. for-loop collects at every node;
+// pick/skip collects only at leaves. Know both — interviewers probe this.</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s5-4" class="">5.4 Subsets via Bitmask Iteration (no recursion, n ≤ 20)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-5-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function subsetsBitmask(nums: number[]): number[][] {
+  const n = nums.length;
+  const results: number[][] = [];
+  for (let mask = 0; mask &lt; (1 &lt;&lt; n); mask++) {  // each mask = one subset
+    const subset: number[] = [];
+    for (let i = 0; i &lt; n; i++) {
+      if (mask &amp; (1 &lt;&lt; i)) subset.push(nums[i]);
+    }
+    results.push(subset);
+  }
+  return results;
+}
+// O(n * 2^n), zero recursion. Clean when n &lt;= 20. Mention as an alternative.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-6"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s6" class="">6. TEMPLATE 2: PERMUTATIONS</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-6" class=""><strong>Pattern</strong>: At each position, pick any UNUSED element. n! total permutations.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s6-1" class="">6.1 Basic Permutations — LC 46 (no duplicates)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-6-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function permute(nums: number[]): number[][] {
+  const results: number[][] = [];
+  const used = new Array(nums.length).fill(false);
+  const path: number[] = [];
+
+  function backtrack(): void {
+    if (path.length === nums.length) {
+      results.push([...path]);
+      return;
+    }
+
+    for (let i = 0; i &lt; nums.length; i++) {
+      if (used[i]) continue;         // PRUNE: already in path
+
+      used[i] = true;                // CHOOSE
+      path.push(nums[i]);
+      backtrack();                   // EXPLORE
+      path.pop();                    // UNCHOOSE
+      used[i] = false;
+    }
+  }
+
+  backtrack();
+  return results;
+}
+// Time: O(n * n!)  Space: O(n)</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s6-2" class="">6.2 Permutations with Duplicates — LC 47</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-6-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function permuteUnique(nums: number[]): number[][] {
+  nums.sort((a, b) =&gt; a - b);        // sort to group duplicates
+  const results: number[][] = [];
+  const used = new Array(nums.length).fill(false);
+  const path: number[] = [];
+
+  function backtrack(): void {
+    if (path.length === nums.length) {
+      results.push([...path]);
+      return;
+    }
+
+    for (let i = 0; i &lt; nums.length; i++) {
+      if (used[i]) continue;
+      // Skip: same value as prev AND prev not used in this level
+      // This ensures we only pick duplicates in a fixed order
+      if (i &gt; 0 &amp;&amp; nums[i] === nums[i - 1] &amp;&amp; !used[i - 1]) continue;
+
+      used[i] = true;
+      path.push(nums[i]);
+      backtrack();
+      path.pop();
+      used[i] = false;
+    }
+  }
+
+  backtrack();
+  return results;
+}</code></pre></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-6-2" class=""><strong>Duplicate permutation trick</strong>: <code>i &gt; 0 &amp;&amp; nums[i] === nums[i-1] &amp;&amp; !used[i-1]</code> — ensures among identical elements they are always picked left-to-right. <code>!used[i-1]</code>: prev identical element was NOT chosen (already backtracked) → skip this one.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s6-3" class="">6.3 Swap-Based Permutation (space-efficient, no used[] array)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-6-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function permuteSwap(nums: number[]): number[][] {
+  const results: number[][] = [];
+
+  function backtrack(start: number): void {
+    if (start === nums.length) {
+      results.push([...nums]);
+      return;
+    }
+
+    for (let i = start; i &lt; nums.length; i++) {
+      [nums[start], nums[i]] = [nums[i], nums[start]];   // CHOOSE (swap)
+      backtrack(start + 1);                               // EXPLORE
+      [nums[start], nums[i]] = [nums[i], nums[start]];   // UNCHOOSE (swap back)
+    }
+  }
+
+  backtrack(0);
+  return results;
+}
+// ⚠️  Does NOT handle duplicates cleanly — use 6.2 for that</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-7"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s7" class="">7. TEMPLATE 3: COMBINATIONS</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-7" class=""><strong>Pattern</strong>: Pick k from n, order doesn&#x27;t matter. Use <code>start</code> index to avoid re-picking.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s7-1" class="">7.1 Basic Combinations — LC 77</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-7-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function combine(n: number, k: number): number[][] {
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(start: number): void {
+    if (path.length === k) {
+      results.push([...path]);
+      return;
+    }
+
+    // PRUNE: not enough elements remaining to fill k slots
+    const remaining = k - path.length;
+    for (let i = start; i &lt;= n - remaining + 1; i++) {  // upper bound prune
+      path.push(i);
+      backtrack(i + 1);
+      path.pop();
+    }
+  }
+
+  backtrack(1);
+  return results;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s7-2" class="">7.2 Combination Sum (reuse allowed) — LC 39</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-7-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function combinationSum(candidates: number[], target: number): number[][] {
+  candidates.sort((a, b) =&gt; a - b);   // sort enables early termination
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(start: number, remaining: number): void {
+    if (remaining === 0) {
+      results.push([...path]);
+      return;
+    }
+
+    for (let i = start; i &lt; candidates.length; i++) {
+      if (candidates[i] &gt; remaining) break;   // PRUNE (sorted → all remaining &gt; target)
+
+      path.push(candidates[i]);
+      backtrack(i, remaining - candidates[i]);  // i (not i+1): same element reusable
+      path.pop();
+    }
+  }
+
+  backtrack(0, target);
+  return results;
+}
+// Time: O(n^(T/M)) where T=target, M=min candidate</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s7-3" class="">7.3 Combination Sum II (no reuse, duplicates in input) — LC 40</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-7-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function combinationSum2(candidates: number[], target: number): number[][] {
+  candidates.sort((a, b) =&gt; a - b);
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(start: number, remaining: number): void {
+    if (remaining === 0) {
+      results.push([...path]);
+      return;
+    }
+
+    for (let i = start; i &lt; candidates.length; i++) {
+      if (candidates[i] &gt; remaining) break;                      // PRUNE: sum exceeded
+      if (i &gt; start &amp;&amp; candidates[i] === candidates[i - 1]) continue; // PRUNE: duplicates
+
+      path.push(candidates[i]);
+      backtrack(i + 1, remaining - candidates[i]);   // i+1: no reuse
+      path.pop();
+    }
+  }
+
+  backtrack(0, target);
+  return results;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s7-4" class="">7.4 Combination Sum III (exactly k numbers, 1-9) — LC 216</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-7-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function combinationSum3(k: number, n: number): number[][] {
+  const results: number[][] = [];
+  const path: number[] = [];
+
+  function backtrack(start: number, remaining: number): void {
+    if (path.length === k &amp;&amp; remaining === 0) {
+      results.push([...path]);
+      return;
+    }
+    if (path.length === k || remaining &lt;= 0) return;  // PRUNE
+
+    for (let i = start; i &lt;= 9; i++) {
+      if (i &gt; remaining) break;   // PRUNE: sorted 1-9
+      path.push(i);
+      backtrack(i + 1, remaining - i);
+      path.pop();
+    }
+  }
+
+  backtrack(1, n);
+  return results;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-8"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s8" class="">8. TEMPLATE 4: GRID / PATH SEARCH</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-8" class=""><strong>Pattern</strong>: Explore cells in 4 directions, mark visited inline, unmark on backtrack.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-1" class="">8.1 Word Search — LC 79</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function exist(board: string[][], word: string): boolean {
+  const rows = board.length, cols = board[0].length;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+
+  function backtrack(r: number, c: number, idx: number): boolean {
+    if (idx === word.length) return true;       // BASE CASE: matched all chars
+    if (r &lt; 0 || r &gt;= rows || c &lt; 0 || c &gt;= cols) return false;
+    if (board[r][c] !== word[idx]) return false;
+    if (board[r][c] === &#x27;#&#x27;) return false;      // already visited
+
+    const temp = board[r][c];
+    board[r][c] = &#x27;#&#x27;;                         // CHOOSE: mark visited IN-PLACE
+
+    for (const [dr, dc] of dirs) {
+      if (backtrack(r + dr, c + dc, idx + 1)) return true;  // short-circuit
+    }
+
+    board[r][c] = temp;                        // UNCHOOSE: restore
+    return false;
+  }
+
+  for (let r = 0; r &lt; rows; r++) {
+    for (let c = 0; c &lt; cols; c++) {
+      if (backtrack(r, c, 0)) return true;
+    }
+  }
+  return false;
+}
+// Time: O(rows*cols * 3^L)  (4 dirs, but ≤3 unexplored after step 1)  Space: O(L)</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-2" class="">8.2 Word Search II (multiple words, Trie) — LC 212</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Build a Trie, then DFS the board
+// Key optimization: delete found words from Trie to avoid re-finding
+interface TrieNode {
+  children: Map&lt;string, TrieNode&gt;;
+  word: string | null;
+}
+
+function findWords(board: string[][], words: string[]): string[] {
+  const root: TrieNode = { children: new Map(), word: null };
+  for (const w of words) {
+    let node = root;
+    for (const ch of w) {
+      if (!node.children.has(ch)) node.children.set(ch, { children: new Map(), word: null });
+      node = node.children.get(ch)!;
+    }
+    node.word = w;
+  }
+
+  const result: string[] = [];
+  const rows = board.length, cols = board[0].length;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+
+  function dfs(r: number, c: number, node: TrieNode): void {
+    if (r &lt; 0 || r &gt;= rows || c &lt; 0 || c &gt;= cols) return;
+    const ch = board[r][c];
+    if (ch === &#x27;#&#x27; || !node.children.has(ch)) return;
+
+    const next = node.children.get(ch)!;
+    if (next.word) {
+      result.push(next.word);
+      next.word = null;             // avoid duplicate results
+    }
+
+    board[r][c] = &#x27;#&#x27;;
+    for (const [dr, dc] of dirs) dfs(r + dr, c + dc, next);
+    board[r][c] = ch;
+
+    // Prune empty Trie nodes (major optimization)
+    if (next.children.size === 0) node.children.delete(ch);
+  }
+
+  for (let r = 0; r &lt; rows; r++)
+    for (let c = 0; c &lt; cols; c++)
+      dfs(r, c, root);
+
+  return result;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-3" class="">8.3 Find All Paths — LC 797</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function allPathsSourceTarget(graph: number[][]): number[][] {
+  const n = graph.length;
+  const results: number[][] = [];
+  const path: number[] = [0];   // start at node 0
+
+  function backtrack(node: number): void {
+    if (node === n - 1) {
+      results.push([...path]);
+      return;
+    }
+    for (const next of graph[node]) {
+      path.push(next);
+      backtrack(next);
+      path.pop();
+    }
+  }
+
+  backtrack(0);
+  return results;
+}
+// In a DAG: no visited set needed (no cycles).
+// In a general graph (cycles possible): add a visited set, mark on enter, UNMARK on exit.
+//   visited.add(node); ... dfs(next); ... visited.delete(node);  ← the unmark is backtracking</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-4" class="">8.4 Robot Room Cleaner — LC 489 (⭐ Google favorite)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Robot API: move(): boolean, turnLeft(), turnRight(), clean()
+// You do NOT get coordinates — track them yourself relative to start.
+function cleanRoom(robot: Robot): void {
+  const visited = new Set&lt;string&gt;();
+  const dirs = [[-1, 0], [0, 1], [1, 0], [0, -1]];  // up, right, down, left (clockwise)
+
+  function goBack(): void {           // turn 180°, move, turn 180° back
+    robot.turnRight(); robot.turnRight();
+    robot.move();
+    robot.turnRight(); robot.turnRight();
+  }
+
+  function backtrack(row: number, col: number, d: number): void {
+    visited.add(`${row},${col}`);
+    robot.clean();
+
+    for (let i = 0; i &lt; 4; i++) {                 // try all 4 directions
+      const nd = (d + i) % 4;
+      const nr = row + dirs[nd][0], nc = col + dirs[nd][1];
+
+      if (!visited.has(`${nr},${nc}`) &amp;&amp; robot.move()) {
+        backtrack(nr, nc, nd);
+        goBack();                                 // UNCHOOSE: physically return
+      }
+      robot.turnRight();                          // rotate to next direction
+    }
+  }
+
+  backtrack(0, 0, 0);
+}
+// Key insight: you can&#x27;t teleport — &quot;backtracking&quot; means physically driving back.</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-5" class="">8.5 Unique Paths III — LC 980 (grid + must visit ALL empty cells)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-5" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function uniquePathsIII(grid: number[][]): number {
+  const rows = grid.length, cols = grid[0].length;
+  let empty = 0, startR = 0, startC = 0;
+  for (let r = 0; r &lt; rows; r++)
+    for (let c = 0; c &lt; cols; c++) {
+      if (grid[r][c] === 0) empty++;
+      else if (grid[r][c] === 1) { startR = r; startC = c; }
+    }
+
+  let paths = 0;
+  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+  function backtrack(r: number, c: number, remaining: number): void {
+    if (r &lt; 0 || r &gt;= rows || c &lt; 0 || c &gt;= cols || grid[r][c] === -1) return;
+    if (grid[r][c] === 2) {
+      if (remaining === 0) paths++;     // reached end AND covered every empty cell
+      return;
+    }
+
+    grid[r][c] = -1;                    // CHOOSE: mark visited
+    for (const [dr, dc] of dirs) backtrack(r + dr, c + dc, remaining - 1);
+    grid[r][c] = 0;                     // UNCHOOSE: restore
+  }
+
+  backtrack(startR, startC, empty + 1); // +1 counts the start cell itself
+  return paths;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-6" class="">8.6 Reconstruct Itinerary — LC 332 (⚠️ NOT actually backtracking)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-6" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LESSON: this LOOKS like backtracking but naive backtracking TLEs.
+// Correct answer = Hierholzer&#x27;s algorithm for an Eulerian path (use each EDGE once).
+function findItinerary(tickets: string[][]): string[] {
+  const graph = new Map&lt;string, string[]&gt;();
+  for (const [from, to] of tickets) {
+    if (!graph.has(from)) graph.set(from, []);
+    graph.get(from)!.push(to);
+  }
+  for (const dests of graph.values()) dests.sort((a, b) =&gt; b.localeCompare(a)); // pop smallest
+
+  const route: string[] = [];
+  function dfs(airport: string): void {
+    const dests = graph.get(airport);
+    while (dests &amp;&amp; dests.length) dfs(dests.pop()!);  // consume edges greedily
+    route.push(airport);                              // post-order push
+  }
+
+  dfs(&#x27;JFK&#x27;);
+  return route.reverse();
+}
+// Interview signal: recognizing &quot;use every edge once&quot; → Eulerian, NOT brute backtracking.</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-7" class="">8.7 Word Squares — LC 425 (Trie prefix-map + backtracking)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-7" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// A word square reads the same across rows and down columns: square[i][j] === square[j][i].
+// Place words row by row; row r must start with the known prefix (column r of placed rows).
+function wordSquares(words: string[]): string[][] {
+  const n = words[0].length;
+
+  const prefixMap = new Map&lt;string, string[]&gt;();   // prefix → words that have it
+  for (const w of words) {
+    for (let i = 0; i &lt;= w.length; i++) {
+      const pre = w.slice(0, i);
+      if (!prefixMap.has(pre)) prefixMap.set(pre, []);
+      prefixMap.get(pre)!.push(w);
+    }
+  }
+
+  const results: string[][] = [];
+  const square: string[] = [];
+
+  function backtrack(row: number): void {
+    if (row === n) {
+      results.push([...square]);
+      return;
+    }
+    let prefix = &#x27;&#x27;;
+    for (let r = 0; r &lt; row; r++) prefix += square[r][row];
+
+    for (const cand of (prefixMap.get(prefix) ?? [])) {  // PRUNE: only valid prefixes
+      square.push(cand);          // CHOOSE
+      backtrack(row + 1);         // EXPLORE
+      square.pop();               // UNCHOOSE
+    }
+  }
+
+  for (const w of words) {        // any word can seed row 0
+    square.push(w);
+    backtrack(1);
+    square.pop();
+  }
+  return results;
+}
+// The prefix-map is what bounds the branching — without it this is hopeless.</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s8-8" class="">8.8 Word Ladder II — LC 126 (BFS layering + backtracking reconstruction)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-8-8" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Two-phase Hard: (1) BFS level-by-level to record every parent on a shortest path,
+// then (2) backtrack over those parents to emit ALL shortest paths.
+function findLadders(beginWord: string, endWord: string, wordList: string[]): string[][] {
+  const dict = new Set(wordList);
+  const results: string[][] = [];
+  if (!dict.has(endWord)) return results;
+
+  const parents = new Map&lt;string, string[]&gt;();      // word → words that reach it one step earlier
+  let current = new Set&lt;string&gt;([beginWord]);
+  const visited = new Set&lt;string&gt;([beginWord]);
+  let found = false;
+
+  while (current.size &gt; 0 &amp;&amp; !found) {
+    const next = new Set&lt;string&gt;();
+    for (const word of current) {
+      for (let i = 0; i &lt; word.length; i++) {
+        for (let c = 97; c &lt;= 122; c++) {            // try &#x27;a&#x27;..&#x27;z&#x27; at each position
+          const cand = word.slice(0, i) + String.fromCharCode(c) + word.slice(i + 1);
+          if (!dict.has(cand) || visited.has(cand)) continue;
+          if (!parents.has(cand)) parents.set(cand, []);
+          parents.get(cand)!.push(word);             // record edge
+          next.add(cand);
+          if (cand === endWord) found = true;
+        }
+      }
+    }
+    for (const w of next) visited.add(w);  // mark AFTER the level → keeps all same-level parents
+    current = next;
+  }
+
+  // Phase 2: backtrack from endWord up the parent links, reverse at the base.
+  const path: string[] = [endWord];
+  function backtrack(word: string): void {
+    if (word === beginWord) {
+      results.push([...path].reverse());
+      return;
+    }
+    for (const parent of (parents.get(word) ?? [])) {
+      path.push(parent);
+      backtrack(parent);
+      path.pop();
+    }
+  }
+
+  if (found) backtrack(endWord);
+  return results;
+}
+// Why mark visited per-level (not per-node): a word can have multiple shortest-path
+// parents in the SAME layer — marking too early drops valid paths.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-9"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s9" class="">9. TEMPLATE 5: CONSTRAINT SATISFACTION</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-9" class=""><strong>Pattern</strong>: Place items one row/cell at a time. Validate constraints before placing.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s9-1" class="">9.1 N-Queens — LC 51</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-9-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function solveNQueens(n: number): string[][] {
+  const results: string[][] = [];
+  const cols = new Set&lt;number&gt;();
+  const diag1 = new Set&lt;number&gt;();  // row - col (top-left to bottom-right)
+  const diag2 = new Set&lt;number&gt;();  // row + col (top-right to bottom-left)
+  const board: number[] = [];       // board[row] = col where queen is placed
+
+  function backtrack(row: number): void {
+    if (row === n) {
+      results.push(board.map(col =&gt;
+        &#x27;.&#x27;.repeat(col) + &#x27;Q&#x27; + &#x27;.&#x27;.repeat(n - col - 1)
+      ));
+      return;
+    }
+
+    for (let col = 0; col &lt; n; col++) {
+      if (cols.has(col) || diag1.has(row - col) || diag2.has(row + col)) continue; // PRUNE
+
+      cols.add(col); diag1.add(row - col); diag2.add(row + col);  // CHOOSE
+      board.push(col);
+      backtrack(row + 1);                                           // EXPLORE
+      board.pop();
+      cols.delete(col); diag1.delete(row - col); diag2.delete(row + col); // UNCHOOSE
+    }
+  }
+
+  backtrack(0);
+  return results;
+}
+// Time: O(n!)  Space: O(n)</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s9-2" class="">9.2 N-Queens II (count only) — LC 52</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-9-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function totalNQueens(n: number): number {
+  let count = 0;
+  const cols = new Set&lt;number&gt;(), diag1 = new Set&lt;number&gt;(), diag2 = new Set&lt;number&gt;();
+
+  function backtrack(row: number): void {
+    if (row === n) { count++; return; }
+    for (let col = 0; col &lt; n; col++) {
+      if (cols.has(col) || diag1.has(row - col) || diag2.has(row + col)) continue;
+      cols.add(col); diag1.add(row - col); diag2.add(row + col);
+      backtrack(row + 1);
+      cols.delete(col); diag1.delete(row - col); diag2.delete(row + col);
+    }
+  }
+
+  backtrack(0);
+  return count;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s9-3" class="">9.3 Sudoku Solver — LC 37</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-9-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function solveSudoku(board: string[][]): void {
+  const rowUsed = Array.from({ length: 9 }, () =&gt; new Set&lt;number&gt;());
+  const colUsed = Array.from({ length: 9 }, () =&gt; new Set&lt;number&gt;());
+  const boxUsed = Array.from({ length: 9 }, () =&gt; new Set&lt;number&gt;());
+
+  for (let r = 0; r &lt; 9; r++) {
+    for (let c = 0; c &lt; 9; c++) {
+      if (board[r][c] !== &#x27;.&#x27;) {
+        const val = parseInt(board[r][c]);
+        const box = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+        rowUsed[r].add(val); colUsed[c].add(val); boxUsed[box].add(val);
+      }
+    }
+  }
+
+  function backtrack(): boolean {
+    for (let r = 0; r &lt; 9; r++) {
+      for (let c = 0; c &lt; 9; c++) {
+        if (board[r][c] !== &#x27;.&#x27;) continue;
+
+        const box = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+        for (let val = 1; val &lt;= 9; val++) {
+          if (rowUsed[r].has(val) || colUsed[c].has(val) || boxUsed[box].has(val)) continue;
+
+          // CHOOSE
+          board[r][c] = String(val);
+          rowUsed[r].add(val); colUsed[c].add(val); boxUsed[box].add(val);
+
+          if (backtrack()) return true;  // EXPLORE
+
+          // UNCHOOSE
+          board[r][c] = &#x27;.&#x27;;
+          rowUsed[r].delete(val); colUsed[c].delete(val); boxUsed[box].delete(val);
+        }
+        return false;  // no valid digit for this cell → backtrack
+      }
+    }
+    return true;  // all cells filled
+  }
+
+  backtrack();
+}
+// Time: O(9^m) where m = number of empty cells</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s9-4" class="">9.4 N-Queens via Bitmask (⭐ SDE3 optimal — O(1) bit-ops)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-9-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function totalNQueensBitmask(n: number): number {
+  let count = 0;
+  const full = (1 &lt;&lt; n) - 1;        // n low bits set = all columns occupied
+
+  function backtrack(cols: number, diag1: number, diag2: number): void {
+    if (cols === full) { count++; return; }   // every column filled → valid board
+
+    let avail = full &amp; ~(cols | diag1 | diag2); // 1-bits = safe columns this row
+    while (avail) {
+      const pos = avail &amp; (-avail);   // isolate lowest set bit (column to try)
+      avail ^= pos;                   // remove it from candidates
+      // diag1 shifts left, diag2 shifts right as we descend one row
+      backtrack(cols | pos, (diag1 | pos) &lt;&lt; 1, (diag2 | pos) &gt;&gt; 1);
+    }
+  }
+
+  backtrack(0, 0, 0);
+  return count;
+}
+// Time: O(n!) worst case but with tiny constants. Space: O(n) stack.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-10"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s10" class="">10. TEMPLATE 6: STRING PARTITIONING</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-10" class=""><strong>Pattern</strong>: At each position, try all valid cuts. Recurse on the remaining suffix.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s10-1" class="">10.1 Palindrome Partitioning — LC 131</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-10-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function partition(s: string): string[][] {
+  const results: string[][] = [];
+  const path: string[] = [];
+  const n = s.length;
+
+  // Precompute palindrome check with DP (O(n^2) preprocessing)
+  const isPalin = Array.from({ length: n }, () =&gt; new Array(n).fill(false));
+  for (let i = n - 1; i &gt;= 0; i--) {
+    for (let j = i; j &lt; n; j++) {
+      if (s[i] === s[j] &amp;&amp; (j - i &lt;= 2 || isPalin[i + 1][j - 1])) {
+        isPalin[i][j] = true;
+      }
+    }
+  }
+
+  function backtrack(start: number): void {
+    if (start === n) {
+      results.push([...path]);
+      return;
+    }
+
+    for (let end = start; end &lt; n; end++) {
+      if (!isPalin[start][end]) continue;  // PRUNE: not a palindrome
+
+      path.push(s.slice(start, end + 1));  // CHOOSE
+      backtrack(end + 1);                  // EXPLORE
+      path.pop();                          // UNCHOOSE
+    }
+  }
+
+  backtrack(0);
+  return results;
+}
+// Time: O(n * 2^n)  Space: O(n^2) for isPalin table</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s10-2" class="">10.2 Generate Parentheses — LC 22</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-10-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function generateParenthesis(n: number): string[] {
+  const results: string[] = [];
+  const path: string[] = [];
+
+  function backtrack(open: number, close: number): void {
+    if (path.length === 2 * n) {
+      results.push(path.join(&#x27;&#x27;));
+      return;
+    }
+
+    if (open &lt; n) {                // can still add open
+      path.push(&#x27;(&#x27;);
+      backtrack(open + 1, close);
+      path.pop();
+    }
+    if (close &lt; open) {            // can close only if more opens exist
+      path.push(&#x27;)&#x27;);
+      backtrack(open, close + 1);
+      path.pop();
+    }
+  }
+
+  backtrack(0, 0);
+  return results;
+}
+// Time: O(4^n / sqrt(n))  Catalan number</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s10-3" class="">10.3 Letter Combinations — LC 17</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-10-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function letterCombinations(digits: string): string[] {
+  if (!digits.length) return [];
+  const map: Record&lt;string, string&gt; = {
+    &#x27;2&#x27;: &#x27;abc&#x27;, &#x27;3&#x27;: &#x27;def&#x27;, &#x27;4&#x27;: &#x27;ghi&#x27;, &#x27;5&#x27;: &#x27;jkl&#x27;,
+    &#x27;6&#x27;: &#x27;mno&#x27;, &#x27;7&#x27;: &#x27;pqrs&#x27;, &#x27;8&#x27;: &#x27;tuv&#x27;, &#x27;9&#x27;: &#x27;wxyz&#x27;
+  };
+  const results: string[] = [];
+  const path: string[] = [];
+
+  function backtrack(idx: number): void {
+    if (idx === digits.length) {
+      results.push(path.join(&#x27;&#x27;));
+      return;
+    }
+    for (const ch of map[digits[idx]]) {
+      path.push(ch);
+      backtrack(idx + 1);
+      path.pop();
+    }
+  }
+
+  backtrack(0);
+  return results;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s10-4" class="">10.4 Restore IP Addresses — LC 93</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-10-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function restoreIpAddresses(s: string): string[] {
+  const results: string[] = [];
+  const path: string[] = [];
+
+  function backtrack(start: number): void {
+    if (path.length === 4 &amp;&amp; start === s.length) {
+      results.push(path.join(&#x27;.&#x27;));
+      return;
+    }
+    if (path.length === 4 || start === s.length) return;
+
+    for (let len = 1; len &lt;= 3; len++) {
+      if (start + len &gt; s.length) break;
+      const seg = s.slice(start, start + len);
+      if (seg.length &gt; 1 &amp;&amp; seg[0] === &#x27;0&#x27;) break;  // PRUNE: leading zero
+      if (parseInt(seg) &gt; 255) break;               // PRUNE: &gt; 255
+
+      path.push(seg);
+      backtrack(start + len);
+      path.pop();
+    }
+  }
+
+  backtrack(0);
+  return results;
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s10-5" class="">10.5 Expression Add Operators — LC 282</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-10-5" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function addOperators(num: string, target: number): string[] {
+  const results: string[] = [];
+
+  function backtrack(idx: number, expr: string, value: number, prev: number): void {
+    if (idx === num.length) {
+      if (value === target) results.push(expr);
+      return;
+    }
+
+    for (let len = 1; len &lt;= num.length - idx; len++) {
+      const seg = num.slice(idx, idx + len);
+      if (seg.length &gt; 1 &amp;&amp; seg[0] === &#x27;0&#x27;) break;   // no leading zeros
+      const cur = parseInt(seg);
+
+      if (idx === 0) {
+        backtrack(len, seg, cur, cur);                // first operand, no operator
+      } else {
+        backtrack(idx + len, expr + &#x27;+&#x27; + seg, value + cur, cur);
+        backtrack(idx + len, expr + &#x27;-&#x27; + seg, value - cur, -cur);
+        // Multiplication: undo the previous term, re-add (prev * cur)
+        backtrack(idx + len, expr + &#x27;*&#x27; + seg, value - prev + prev * cur, prev * cur);
+      }
+    }
+  }
+
+  backtrack(0, &#x27;&#x27;, 0, 0);
+  return results;
+}
+// The &quot;prev&quot; trick for multiplication is a classic interview question</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s10-6" class="">10.6 Remove Invalid Parentheses — LC 301 (Hard ⭐)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-10-6" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Step 1: count MINIMUM removals needed (left/right surplus).
+// Step 2: backtrack trying remove-or-keep for each char, only within that budget.
+function removeInvalidParentheses(s: string): string[] {
+  let lRem = 0, rRem = 0;
+  for (const ch of s) {
+    if (ch === &#x27;(&#x27;) lRem++;
+    else if (ch === &#x27;)&#x27;) { if (lRem &gt; 0) lRem--; else rRem++; }
+  }
+
+  const results = new Set&lt;string&gt;();
+
+  function backtrack(idx: number, l: number, r: number, open: number, path: string): void {
+    if (idx === s.length) {
+      if (l === 0 &amp;&amp; r === 0 &amp;&amp; open === 0) results.add(path);
+      return;
+    }
+    const ch = s[idx];
+
+    // Option 1: REMOVE this char (only a paren, only if budget remains)
+    if (ch === &#x27;(&#x27; &amp;&amp; l &gt; 0) backtrack(idx + 1, l - 1, r, open, path);
+    if (ch === &#x27;)&#x27; &amp;&amp; r &gt; 0) backtrack(idx + 1, l, r - 1, open, path);
+
+    // Option 2: KEEP this char
+    if (ch === &#x27;(&#x27;) backtrack(idx + 1, l, r, open + 1, path + ch);
+    else if (ch === &#x27;)&#x27;) {
+      if (open &gt; 0) backtrack(idx + 1, l, r, open - 1, path + ch);
+    } else {
+      backtrack(idx + 1, l, r, open, path + ch);   // letters always kept
+    }
+  }
+
+  backtrack(0, lRem, rRem, 0, &#x27;&#x27;);
+  return [...results];
+}
+// Computing the removal budget first is what bounds the search → no TLE.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-11"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s11" class="">11. PRUNING STRATEGIES</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-11" class=""><strong>Pruning is what separates a working backtracker from a fast one. This is where Hard LC problems are won or lost.</strong></blockquote></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-11" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PRUNING TECHNIQUE          HOW TO APPLY                          USED IN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Early termination       if (sum &gt; target) break (sorted arr)  LC 39, 40, 216
+   via sorted input        Sort + break is O(1) check per node
+
+2. Feasibility check       Not enough items remaining to fill k   LC 77
+   (upper bound on loop)   i &lt;= n - (k - path.length) + 1
+
+3. Duplicate skip          i &gt; start &amp;&amp; arr[i] === arr[i-1]       LC 40, 90, 47
+   (same level, sorted)    → continue (skip same value at level)
+
+4. Constraint sets         Sets for row/col/diag/box              LC 51, 37
+   (O(1) validity check)   → avoid O(n) scan per placement
+
+5. Visited mask            board[r][c] = &#x27;#&#x27; in-place             LC 79, 212
+   (inline for grids)      → O(1) and restores on backtrack
+
+6. Pruning dead subtrees   If remaining candidates sum &lt; target    LC 39
+   (lower bound)           → break early
+
+7. Trie pruning            Delete exhausted Trie branches         LC 212
+   (for word problems)     → avoids re-exploring dead paths
+
+8. Symmetry breaking       Only consider canonical orderings       LC 47, 698
+                           e.g., skip empty buckets after first
+
+9. Removal budget          Compute min removals first, stay within LC 301
+                           budget → bounds the search tree
+
+10. Memoization (hybrid)   If same (idx, state) reached multiple   LC 698, 140
+                           times → cache results (see §12)</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s11-1" class="">11.1 Pruning Code Patterns</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-11-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PATTERN A: sorted + break (most common)
+candidates.sort((a, b) =&gt; a - b);
+for (let i = start; i &lt; candidates.length; i++) {
+  if (candidates[i] &gt; remaining) break;   // all further are also &gt; remaining
+}
+
+// PATTERN B: feasibility upper bound (combination)
+for (let i = start; i &lt;= n - (k - path.length) + 1; i++) {
+  // Only loop while enough elements remain to reach k
+}
+
+// PATTERN C: duplicate skip (sorted)
+for (let i = start; i &lt; arr.length; i++) {
+  if (i &gt; start &amp;&amp; arr[i] === arr[i - 1]) continue;
+}
+
+// PATTERN D: constraint sets for O(1) validity
+const rowUsed = new Set&lt;number&gt;();
+if (!rowUsed.has(val)) {
+  rowUsed.add(val);
+  backtrack(row + 1);
+  rowUsed.delete(val);
+}
+
+// PATTERN E: symmetry-break for bucket-fill (LC 698/473)
+for (let b = 0; b &lt; k; b++) {
+  if (buckets[b] + nums[idx] &gt; target) continue;
+  buckets[b] += nums[idx];
+  if (backtrack(idx + 1)) return true;
+  buckets[b] -= nums[idx];
+  if (buckets[b] === 0) break;   // ⭐ skip identical empty buckets
+}</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-12"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s12" class="">12. BACKTRACKING + MEMO HYBRIDS</h1></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-12-intro" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PURE BACKTRACKING             vs          MEMOIZED BACKTRACKING (= top-down DP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No repeated subproblems             Subproblems repeat across paths
+Each path is unique                 Different paths → same future state
+Can&#x27;t memoize (path carries state)  Future depends only on (idx, state)
+Examples: LC 46, 78, 51, 37         Examples: LC 139, 140, 698</code></pre></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-12" class=""><strong>When to memoize</strong>: If the SAME subproblem (same arguments) can be reached via MULTIPLE different paths, and the answer is always the same regardless of path taken → cache it.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s12-1" class="">12.1 Word Break II — LC 140 (Backtracking + Memo)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-12-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function wordBreak(s: string, wordDict: string[]): string[] {
+  const wordSet = new Set(wordDict);
+  const memo = new Map&lt;number, string[]&gt;();
+
+  function backtrack(start: number): string[] {
+    if (memo.has(start)) return memo.get(start)!;
+    if (start === s.length) return [&#x27;&#x27;];   // base: empty suffix = one valid split
+
+    const results: string[] = [];
+    for (let end = start + 1; end &lt;= s.length; end++) {
+      const word = s.slice(start, end);
+      if (!wordSet.has(word)) continue;
+
+      const suffixResults = backtrack(end);
+      for (const suffix of suffixResults) {
+        results.push(suffix ? word + &#x27; &#x27; + suffix : word);
+      }
+    }
+
+    memo.set(start, results);   // MEMOIZE: same start → same results
+    return results;
+  }
+
+  return backtrack(0);
+}
+// Without memo: O(2^n). With memo: subproblems O(n^2), each suffix list cached.</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s12-2" class="">12.2 Partition to K Equal Subsets — LC 698 (bucket-fill — the expected answer)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-12-2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PRIMARY APPROACH: fill k buckets one element at a time.
+// The symmetry-break pruning (skip empty buckets) is what turns TLE into AC.
+function canPartitionKSubsets(nums: number[], k: number): boolean {
+  const total = nums.reduce((a, b) =&gt; a + b, 0);
+  if (total % k !== 0) return false;
+  const target = total / k;
+
+  nums.sort((a, b) =&gt; b - a);            // descending: place big items first (prune sooner)
+  if (nums[0] &gt; target) return false;
+
+  const buckets = new Array(k).fill(0);
+
+  function backtrack(idx: number): boolean {
+    if (idx === nums.length) return true;  // every item placed
+
+    for (let b = 0; b &lt; k; b++) {
+      if (buckets[b] + nums[idx] &gt; target) continue;
+
+      buckets[b] += nums[idx];             // CHOOSE
+      if (backtrack(idx + 1)) return true; // EXPLORE
+      buckets[b] -= nums[idx];             // UNCHOOSE
+
+      // ⭐ SYMMETRY-BREAK: if this bucket was empty, all other empty buckets
+      // are identical — trying them gives the same failure. Stop here.
+      if (buckets[b] === 0) break;
+    }
+    return false;
+  }
+
+  return backtrack(0);
+}
+// Same template solves LC 473 (Matchsticks → k=4) and LC 1655.</code></pre></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-12-2" class=""><strong>Bitmask + memo variant</strong>: define <code>dp[mask] = true</code> if chosen subset can be split into complete buckets. The partial fill is <code>sum(mask) % target</code> — fully determined by <code>mask</code> alone. Key the memo on <code>mask</code> ONLY (never <code>mask*1000+sum</code> — that causes collisions). O(n·2^n) states.</blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s12-3" class="">12.3 When Memoization Does NOT Help</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-12-3" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 46 Permutations: path [1,2,_] and path [2,1,_] both need element 3 next,
+// BUT the future valid completions differ per path (no overlap).
+// Memoization on just `index` won&#x27;t work — need full path state.
+// → Pure backtracking is correct here. Don&#x27;t memoize.
+
+// MEMO TRIGGER CHECKLIST:
+// ✅ Same function arguments always produce the same result?   → memoize
+// ✅ Same arguments reachable via different paths?             → memoize
+// ❌ Path itself influences what&#x27;s &quot;available&quot; next?           → don&#x27;t memoize
+// ❌ Each recursive call explores a structurally unique path?  → don&#x27;t memoize</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-13"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s13" class="">13. COMPLEXITY ANALYSIS</h1></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-13" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROBLEM TYPE           TIME COMPLEXITY        SPACE (excl. output)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Subsets (n elements)   O(n × 2^n)             O(n) recursion depth
+Permutations (n)       O(n × n!)              O(n)
+Combinations (n,k)     O(k × C(n,k))          O(k)
+Combo Sum (no dup)     O(n^(T/M))             O(T/M) depth
+Grid Word Search       O(m×n × 3^L)           O(L) where L=word len
+N-Queens (n)           O(n!)                  O(n)
+Sudoku (m empty cells) O(9^m)                 O(m)
+Palindrome Partition   O(n × 2^n)             O(n^2) for DP table</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s13-1" class="">13.1 The Branching Factor Model</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-13-1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">Time = (# leaves) × (work to build each leaf)
+     = (branching factor)^depth × depth
+
+For subsets: branching=2 (include/skip), depth=n → 2^n leaves × O(n) = O(n×2^n)
+For combos:  branching≈n, depth=k → C(n,k) leaves × O(k) = O(k×C(n,k))
+For perms:   branching=n at depth 0, n-1 at depth 1... → n! leaves × O(n)
+
+INTERVIEW TIP: State the tree model first, then derive complexity.
+&quot;The recursion tree has branching factor b and depth d,
+ giving O(b^d) nodes with O(d) work per node → O(d × b^d).&quot;</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-14"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s14" class="">14. TOP 45 LC PROBLEMS MAP</h1></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-14" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">#    PROBLEM                              PATTERN              DIFFICULTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBSETS
+78   Subsets                              Subsets              Medium ⭐
+90   Subsets II                           Subsets + dedup      Medium ⭐
+1239 Max Length of Concatenated Str       Subsets + check      Medium
+
+PERMUTATIONS
+46   Permutations                         Permutations         Medium ⭐
+47   Permutations II                      Perms + dedup        Medium ⭐
+31   Next Permutation                     Math (not backtrack) Medium
+60   Permutation Sequence                 Math / pruning       Hard
+526  Beautiful Arrangement                Perms + prune        Medium
+
+COMBINATIONS
+77   Combinations                         Combinations         Medium ⭐
+39   Combination Sum                      Combo + reuse        Medium ⭐
+40   Combination Sum II                   Combo no reuse+dedup Medium ⭐
+216  Combination Sum III                  Combo bounded        Medium ⭐
+254  Factor Combinations                  Combo (factors)      Medium
+
+STRING PARTITION
+22   Generate Parentheses                 String partition     Medium ⭐
+17   Letter Combinations                  String partition     Medium ⭐
+131  Palindrome Partitioning              Partition + DP       Medium ⭐
+93   Restore IP Addresses                 Partition + prune    Medium ⭐
+282  Expression Add Operators             Partition + math     Hard ⭐
+842  Split Array into Fibonacci           Partition            Medium
+140  Word Break II                        Partition + memo     Hard ⭐
+301  Remove Invalid Parentheses           Partition + budget   Hard ⭐
+
+GRID / PATH
+79   Word Search                          Grid path            Medium ⭐
+212  Word Search II                       Grid path + Trie     Hard ⭐
+489  Robot Room Cleaner                   Grid + relative dir  Hard ⭐⭐
+980  Unique Paths III                     Grid + visit-all     Hard ⭐
+490  The Maze                             Grid path (BFS/DFS)  Medium
+797  All Paths Source to Target           Graph path           Medium ⭐
+332  Reconstruct Itinerary                Eulerian (Hierholzer) Hard ⭐
+425  Word Squares                         Trie prefix + BT     Hard ⭐
+126  Word Ladder II                       BFS layer + BT       Hard ⭐
+
+CONSTRAINT SATISFACTION
+51   N-Queens                             Constraint           Hard ⭐⭐
+52   N-Queens II (count)                  Constraint           Hard ⭐
+37   Sudoku Solver                        Constraint           Hard ⭐⭐
+
+HYBRID: BACKTRACKING + MEMO/BITMASK/BUCKET-FILL
+698  Partition to K Equal Subsets         Bucket-fill / memo   Medium ⭐
+473  Matchsticks to Square                Bucket-fill (k=4)    Medium ⭐
+1655 Distribute Repeating Integers        Bucket-fill + count  Hard ⭐
+1723 Find Minimum Time to Finish Jobs     BT + bitmask         Hard ⭐
+126  Word Ladder II                       BFS + backtrack      Hard ⭐</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-15"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s15" class="">15. INTERVIEW SCRIPT</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-15" class=""><strong>What to say out loud to signal SDE3-level thinking</strong></blockquote></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s15-1" class="">15.1 Problem Recognition (first 2 minutes)</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-15-1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">&quot;This asks for ALL [subsets/permutations/valid arrangements], not just one optimal.
+ That signals backtracking — exhaustive search with pruning.
+
+ My choice at each step is [include element i / pick next unused / cut at position j].
+ I&#x27;ll terminate when [path length = n / sum = target / all cells filled].
+
+ Key pruning opportunities I see:
+  1. [sort + break when sum exceeds target]
+  2. [skip duplicate at same level]
+  3. [constraint sets for O(1) validity check]&quot;</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s15-2" class="">15.2 State Definition</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-15-2" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">&quot;My backtrack function signature will be:
+  backtrack(start: number, remaining: number) for combinations
+  backtrack(row: number) for N-Queens / Sudoku
+  backtrack(idx: number, pathStr: string) for string partition
+
+The key invariant: at each call, path contains the choices made so far,
+and we&#x27;re building from position `start` onward.&quot;</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s15-3" class="">15.3 Complexity</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-15-3" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">&quot;The recursion tree has branching factor [b] and max depth [d].
+ That gives [b^d] leaves, with O(d) work to record each leaf.
+ Time: O(d × b^d). Space: O(d) for the call stack, plus O(output size).&quot;</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s15-4" class="">15.4 Brain Freeze Recovery</h3></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-15-4" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">Step 1: Write the template (choose/explore/unchoose) — always works.
+Step 2: Fill in termination condition first.
+Step 3: Fill in one choice branch, test mentally on a small example.
+Step 4: Add pruning after the basic version is working.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-16"/></div>
+
+<div style="display:contents" dir="auto"><h1 id="bt-s16" class="">16. ⭐ PRE-INTERVIEW RAPID REVISION</h1></div>
+<div style="display:contents" dir="auto"><blockquote id="bt-bq-16" class=""><strong>Scan this 5 minutes before your interview</strong></blockquote></div>
+<div style="display:contents" dir="auto"><pre id="bt-code-16" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PICK YOUR SKELETON IN 5 SECONDS — &quot;does order matter?&quot;:
+  NO  (subsets/combos) → `start` index, loop from start, recurse i+1 (or i if reuse).
+  YES (permutations)   → `used[]` array, loop from 0, skip used[i].
+
+THE 3 THINGS TO ALWAYS DO:
+  1. push([...path])  ← copy, not reference
+  2. sort input first ← enables pruning and dedup
+  3. undo state after recursion ← restore board[r][c], unmark visited
+
+THE 4 PRUNING PATTERNS:
+  A. if (candidates[i] &gt; remaining) break   ← sorted + exceeded
+  B. if (i &gt; start &amp;&amp; arr[i] === arr[i-1]) continue ← same-level dedup
+  C. if (cols.has(col) || diag1.has(...)) continue  ← constraint check
+  D. if (buckets[b] === 0) break             ← skip symmetric empty buckets (698/473)
+
+SUBSETS vs COMBINATIONS vs PERMUTATIONS:
+  Subsets:       collect at every node. start=i+1. 2^n.
+  Combinations:  collect at leaf only (length === k). start=i+1. C(n,k).
+  Combo Sum:     collect at leaf (sum === 0). start=i (reuse) or i+1. n^(T/M).
+  Permutations:  collect at leaf (length === n). iterate all with `used[]`. n!.
+
+N-QUEENS:
+  3 sets: cols, diag1 (row-col), diag2 (row+col). One queen per row.
+  Bitmask version: full &amp; ~(cols|diag1|diag2) gives safe columns as bits.
+
+SUDOKU:
+  Find next empty cell, try 1-9, check row/col/box sets. Return false to backtrack.
+
+WORD SEARCH:
+  board[r][c] = &#x27;#&#x27; to mark visited, restore after recursion. Complexity: 3^L.
+
+PALINDROME PARTITION:
+  Precompute isPalin[i][j] in O(n^2). Then backtrack on suffix.
+
+ROBOT ROOM CLEANER (LC 489):
+  Track (row, col, direction) relative to start. goBack() = turn180 + move + turn180.
+
+WORD LADDER II (LC 126):
+  BFS layer-by-layer first (record parents per level, NOT per node).
+  Then backtrack from endWord up parent links.
+
+MEMO TRIGGER:
+  If same (idx, state) can be reached via different paths → memoize.
+  If path itself is part of state (permutations) → don&#x27;t memoize.
+
+COMPLEXITY MODEL:
+  branches^depth × depth = total time.
+  Subsets: 2^n × n. Perms: n! × n. Combos: C(n,k) × k. Grid: 3^L × m×n.</code></pre></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-end"/></div>
+<div style="display:contents" dir="auto"><p id="bt-footer" class=""><em>Backtracking Cheat Sheet | SDE2/SDE3 FAANG Edition | TypeScript</em></p></div>
+
+</div></article></body></html>
