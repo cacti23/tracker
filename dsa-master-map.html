@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSA Master Map — solve any problem</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🗺️</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --sw:#ff6b6b; --tp:#ff9f43; --bs:#54d98c; --hp:#f368e0; --ht:#48dbfb;
+  --bt:#a29bfe; --dp:#ffd32a; --gr:#00d2d3; --st:#fd7272; --tr:#0be881;
+  --us:#74b9ff; --sg:#fdcb6e; --ms:#e17055; --gd:#55efc4; --bm:#ff85c0;
+  --ll:#8be0ff; --sa:#faa2a2; --mt:#c7a3ff; --seg:#ffb88c; --lca:#b3e5fc;
+  --dijkstra:#81c784; --topo:#fff59d;
+  --accent:#ffd32a;
+
+  --bg:#eef1f6; --bg2:#ffffff; --bg3:#f1f4f9;
+  --border:#e3e8f0; --border2:#d4dce8;
+  --text:#2c3a4b; --muted:#7589a0; --dim:#aab8c9;
+  --accent-text:#9a7400;
+  --text-strong:#0e1d2c; --text-soft:#4a5f74;
+  --topbar-bg:rgba(255,255,255,0.92);
+  --overlay:rgba(15,30,50,0.05); --hover:rgba(15,30,50,0.03);
+  --card-shadow:rgba(30,50,80,0.14);
+  --use:#1f9d57; --avoid:#d63b3b;
+  --scanline:rgba(0,0,0,0.022);
+  --code-bg:#f6f8fc; --code-text:#0e2438; --code-border:#0066cc;
+}
+[data-theme="dark"] {
+  --bg:#080b10; --bg2:#0d1117; --bg3:#111820;
+  --border:#1c2a3a; --border2:#243447;
+  --text:#c9d8e8; --muted:#6a8299; --dim:#2a3f52;
+  --accent-text:#ffd32a;
+  --text-strong:#ffffff; --text-soft:#8faabf;
+  --topbar-bg:rgba(8,11,16,0.95);
+  --overlay:rgba(0,0,0,0.28); --hover:rgba(255,255,255,0.02);
+  --card-shadow:rgba(0,0,0,0.5);
+  --use:#54d98c; --avoid:#ff6b6b;
+  --scanline:rgba(0,0,0,0.03);
+  --code-bg:#0a1119; --code-text:#cfe3f5; --code-border:#3b82f6;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden;
+  transition:background-color .25s,color .25s;
+}
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scanline) 2px,var(--scanline) 4px);
+}
+
+/* TOP BAR */
+.topbar {
+  position:sticky; top:0; z-index:100;
+  background:var(--topbar-bg); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:11px 22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.brand {
+  font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:.12em;
+  color:var(--text-strong); white-space:nowrap;
+}
+.brand span { color:var(--accent-text); }
+.search-box { flex:1; min-width:180px; max-width:340px; position:relative; }
+.search-box input {
+  width:100%; background:var(--bg3); border:1px solid var(--border2); border-radius:6px;
+  padding:8px 14px 8px 34px; color:var(--text);
+  font-family:'Space Mono',monospace; font-size:.72rem; outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.search-box input:focus { border-color:var(--ht); box-shadow:0 0 0 2px rgba(72,219,251,.12); }
+.search-box input::placeholder { color:var(--muted); }
+.search-box::before {
+  content:'⌕'; position:absolute; left:11px; top:50%; transform:translateY(-50%);
+  color:var(--muted); font-size:1rem; pointer-events:none;
+}
+.links { display:flex; gap:6px; flex-wrap:wrap; }
+.links a, .tbtn {
+  font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.06em;
+  padding:6px 10px; border-radius:4px; border:1px solid var(--border2);
+  background:var(--bg3); color:var(--text); cursor:pointer; text-decoration:none;
+  white-space:nowrap; transition:all .15s;
+}
+.links a:hover, .tbtn:hover { border-color:var(--accent); color:var(--text-strong); }
+
+/* LAYOUT */
+.wrap { max-width:1180px; margin:0 auto; padding:22px 22px 60px; }
+.section { margin-bottom:26px; }
+.s-head { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; margin-bottom:11px; }
+.s-num {
+  font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:.1em;
+  color:#000; background:var(--accent); border-radius:4px; padding:1px 9px;
+}
+.s-title { font-family:'Bebas Neue',sans-serif; font-size:1.25rem; letter-spacing:.1em; color:var(--text-strong); }
+.s-note { font-family:'Space Mono',monospace; font-size:.62rem; color:var(--muted); }
+
+/* §1 TRIAGE */
+.triage { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.tcard {
+  background:var(--bg2); border:1px solid var(--border); border-radius:9px;
+  border-top:3px solid var(--accent); padding:13px 15px;
+}
+.tcard:nth-child(1){ border-top-color:var(--ht); }
+.tcard:nth-child(2){ border-top-color:var(--dp); }
+.tcard:nth-child(3){ border-top-color:var(--bs); }
+.tcard h3 { font-family:'Space Mono',monospace; font-size:.66rem; letter-spacing:.1em; color:var(--text-strong); margin-bottom:4px; }
+.tcard .q { font-size:.78rem; color:var(--text-strong); font-weight:600; margin-bottom:7px; }
+.tcard p { font-size:.68rem; line-height:1.6; color:var(--text-soft); }
+.tcard .opts { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+.chip {
+  font-family:'Space Mono',monospace; font-size:.58rem; padding:2px 7px; border-radius:3px;
+  background:var(--overlay); border:1px solid var(--border2); color:var(--text-soft);
+}
+.tcard .arrow { font-family:'Space Mono',monospace; font-size:.6rem; color:var(--accent-text); margin-top:7px; }
+
+/* §2 ORACLE */
+.tbl-wrap { border:1px solid var(--border); border-radius:9px; overflow:hidden; background:var(--bg2); }
+table { width:100%; border-collapse:collapse; font-size:.7rem; }
+th, td { text-align:left; padding:7px 13px; border-bottom:1px solid var(--border); vertical-align:top; }
+th { font-family:'Space Mono',monospace; font-size:.58rem; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; background:var(--bg3); }
+tr:last-child td { border-bottom:none; }
+td.n { font-family:'Space Mono',monospace; color:var(--text-strong); white-space:nowrap; }
+td.o { font-family:'Space Mono',monospace; color:var(--avoid); font-weight:700; white-space:nowrap; }
+td.tech { color:var(--text-soft); line-height:1.5; }
+.rule { margin-top:9px; font-family:'Space Mono',monospace; font-size:.63rem; color:var(--text-soft); line-height:1.6; }
+.rule b { color:var(--accent-text); }
+
+/* §3 FLOWCHART */
+.flow { display:grid; grid-template-columns:1fr; gap:5px; }
+.frow {
+  display:grid; grid-template-columns:minmax(0,1.15fr) auto minmax(0,1fr);
+  align-items:center; gap:10px;
+  background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--muted);
+  border-radius:7px; padding:8px 13px; cursor:pointer; transition:all .14s;
+}
+.frow:hover { border-color:var(--dim); background:var(--hover); }
+.frow.active { border-left-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+.frow .goal { font-size:.72rem; color:var(--text-strong); font-weight:500; }
+.frow .sep { font-family:'Space Mono',monospace; color:var(--muted); font-size:.8rem; }
+.frow .tech { font-family:'Space Mono',monospace; font-size:.64rem; color:var(--text-soft); }
+.frow .tech b { color:var(--accent-text); }
+
+/* §4 PATTERN MAP */
+.pgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
+details.prow {
+  background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--muted);
+  border-radius:7px; overflow:hidden;
+}
+details.prow.hl { box-shadow:0 0 18px var(--card-shadow); border-color:var(--accent); }
+details.prow > summary {
+  list-style:none; cursor:pointer; padding:9px 12px; display:flex; align-items:center; gap:9px;
+}
+details.prow > summary::-webkit-details-marker { display:none; }
+.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.pname { font-family:'Bebas Neue',sans-serif; font-size:.95rem; letter-spacing:.05em; color:var(--text-strong); white-space:nowrap; }
+.ptrig { flex:1; min-width:0; font-size:.66rem; color:var(--text-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pcx { font-family:'Space Mono',monospace; font-size:.55rem; color:var(--muted); white-space:nowrap; }
+.pcx b { color:var(--text); }
+.caret { font-family:'Space Mono',monospace; font-size:.6rem; color:var(--muted); }
+details.prow[open] .caret { color:var(--accent-text); }
+.skel {
+  margin:0 12px 11px; padding:10px 12px; border-radius:6px;
+  background:var(--code-bg); border-left:3px solid var(--code-border);
+  font-family:'Space Mono',monospace; font-size:.63rem; line-height:1.55;
+  color:var(--code-text); white-space:pre; overflow-x:auto;
+}
+.skel-link { display:block; margin-top:8px; font-size:.58rem; color:var(--muted); }
+.skel-link a { color:var(--accent-text); text-decoration:none; }
+.skel-link a:hover { text-decoration:underline; }
+
+/* §5 RITUAL + LEVERS */
+.two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.umpire { display:flex; flex-direction:column; gap:6px; }
+.ustep {
+  display:flex; gap:10px; align-items:flex-start;
+  background:var(--bg2); border:1px solid var(--border); border-radius:7px; padding:8px 12px;
+}
+.uletter { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; line-height:1; width:20px; flex-shrink:0; text-align:center; }
+.utext { font-size:.68rem; line-height:1.5; color:var(--text-soft); }
+.utext b { color:var(--text-strong); }
+.levers { background:var(--bg2); border:1px solid var(--border); border-radius:9px; overflow:hidden; align-self:start; }
+.levers .lh { font-family:'Space Mono',monospace; font-size:.62rem; letter-spacing:.06em; color:var(--text-strong); padding:9px 13px; border-bottom:1px solid var(--border); background:var(--bg3); }
+.levers table td { font-size:.66rem; }
+.levers td.cause { color:var(--text-soft); }
+.levers td.fix { font-family:'Space Mono',monospace; color:var(--use); font-weight:700; white-space:nowrap; }
+
+/* §6 LADDER */
+ol.ladder { counter-reset:l; list-style:none; display:flex; flex-direction:column; gap:5px; }
+ol.ladder li {
+  counter-increment:l; position:relative; padding:8px 12px 8px 40px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:7px;
+  font-size:.7rem; line-height:1.55; color:var(--text-soft);
+}
+ol.ladder li::before {
+  content:counter(l); position:absolute; left:11px; top:7px;
+  font-family:'Bebas Neue',sans-serif; font-size:1rem; color:var(--accent-text);
+  background:var(--overlay); border-radius:4px; width:20px; height:20px;
+  display:flex; align-items:center; justify-content:center;
+}
+ol.ladder li b { color:var(--text-strong); }
+
+/* FOOTER */
+.foot {
+  margin-top:30px; padding-top:16px; border-top:1px solid var(--border);
+  font-family:'Space Mono',monospace; font-size:.64rem; color:var(--muted); line-height:1.8;
+}
+.foot a { color:var(--accent-text); text-decoration:none; }
+.foot a:hover { text-decoration:underline; }
+
+.hidden { display:none !important; }
+
+/* RESPONSIVE */
+@media (max-width:820px) {
+  .triage, .pgrid, .two { grid-template-columns:1fr; }
+  .frow { grid-template-columns:1fr; gap:3px; }
+  .frow .sep { display:none; }
+}
+
+/* ─── PRINT (A4, balanced density — canonical per CHEATSHEET_SPEC §3.4) ─── */
+@page { margin:0.3in; }
+@media only print {
+  html, body {
+    font-size:11px !important; line-height:1.2 !important; color:#111 !important;
+    background:#fff !important; margin:0 !important; padding:0 !important;
+  }
+  body::before { display:none !important; }
+  .topbar, .search-box, .links, .tbtn, .caret { display:none !important; }
+  .wrap { max-width:none !important; padding:0 !important; }
+  .s-title, .s-num { font-size:13px !important; page-break-after:avoid !important; }
+  details.prow { open:true; }
+  details.prow > summary { padding:3px 8px !important; }
+  .skel { font-size:9.5px !important; line-height:1.2 !important; }
+  .section, .tcard, .frow, details.prow, .ustep, ol.ladder li, .tbl-wrap, .levers {
+    page-break-inside:avoid !important;
+  }
+  p, li, div, tr, td, th { page-break-inside:avoid !important; }
+}
+</style>
+<script>
+/* apply saved theme before paint; shares the 'dsa-theme' key with the rest of the suite */
+(function(){ var t='light'; try{ t=localStorage.getItem('dsa-theme')||'light'; }catch(e){}
+  document.documentElement.setAttribute('data-theme',t); })();
+</script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">DSA <span>MASTER MAP</span></div>
+  <div class="search-box">
+    <input id="search" type="text" placeholder="filter: kth, subarray, sorted, n=20..." autocomplete="off" spellcheck="false">
+  </div>
+  <div class="links">
+    <a href="uppercase.html">◧ PATTERN CARDS</a>
+    <a href="graph.html">GRAPH</a>
+    <a href="dp.html">DP</a>
+    <a href="backtracking.html">BACKTRACK</a>
+    <button class="tbtn" id="theme-btn">🌙 DARK</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- §1 TRIAGE -->
+  <section class="section" id="sec-triage">
+    <div class="s-head">
+      <span class="s-num">1</span><span class="s-title">30-SECOND TRIAGE</span>
+      <span class="s-note">// ask these 3 on EVERY problem — they pin ~90% of approaches before you write a line</span>
+    </div>
+    <div class="triage">
+      <div class="tcard">
+        <h3>① INPUT SHAPE</h3>
+        <div class="q">What am I given?</div>
+        <p>The structure suggests the toolset. Sorted? almost always means two-pointers or binary search.</p>
+        <div class="opts">
+          <span class="chip">array</span><span class="chip">sorted arr</span><span class="chip">string</span>
+          <span class="chip">linked list</span><span class="chip">tree / BST</span><span class="chip">graph / grid</span>
+          <span class="chip">intervals</span><span class="chip">numbers · bits</span><span class="chip">matrix</span>
+        </div>
+      </div>
+      <div class="tcard">
+        <h3>② CONSTRAINT n</h3>
+        <div class="q">How big is n?</div>
+        <p>The most reliable tell. n fixes your <i>target</i> complexity, which fixes the technique class.</p>
+        <div class="arrow">→ read it off the Oracle (§2)</div>
+      </div>
+      <div class="tcard">
+        <h3>③ GOAL VERB</h3>
+        <div class="q">What's being asked?</div>
+        <p>The verb routes you to a technique family.</p>
+        <div class="opts">
+          <span class="chip">find</span><span class="chip">count</span><span class="chip">optimize</span>
+          <span class="chip">enumerate all</span><span class="chip">check / validate</span><span class="chip">build</span>
+        </div>
+        <div class="arrow">→ route it through the Flowchart (§3)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §2 ORACLE -->
+  <section class="section" id="sec-oracle">
+    <div class="s-head">
+      <span class="s-num">2</span><span class="s-title">CONSTRAINT → COMPLEXITY ORACLE</span>
+      <span class="s-note">// n tells you the target O() — pick the biggest class that still fits</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>n (input size)</th><th>target time</th><th>that means…</th></tr></thead>
+        <tbody>
+          <tr><td class="n">n ≤ 10–12</td><td class="o">O(n!)</td><td class="tech">permutations · full brute backtracking</td></tr>
+          <tr><td class="n">n ≤ 18–22</td><td class="o">O(2ⁿ)</td><td class="tech">subsets · bitmask DP · meet-in-the-middle</td></tr>
+          <tr><td class="n">n ≤ 100–500</td><td class="o">O(n³)</td><td class="tech">Floyd–Warshall · interval DP · triple loop</td></tr>
+          <tr><td class="n">n ≤ 2,000–5,000</td><td class="o">O(n²)</td><td class="tech">grid / 2-D DP · all-pairs nested loops</td></tr>
+          <tr><td class="n">n ≤ 10⁵</td><td class="o">O(n log n)</td><td class="tech">sort · heap · binary search · divide &amp; conquer · segment tree</td></tr>
+          <tr><td class="n">n ≤ 10⁶</td><td class="o">O(n) / O(n log n)</td><td class="tech">sliding window · two pointers · prefix sum · monotonic stack · hashing</td></tr>
+          <tr><td class="n">n ≥ 10⁷–10⁸</td><td class="o">O(n)</td><td class="tech">single tight linear pass · counting · no per-element log</td></tr>
+          <tr><td class="n">value ≤ 10⁹–10¹⁸ <span style="color:var(--muted)">(not array size)</span></td><td class="o">O(log V)</td><td class="tech">binary search on the answer · math · bit tricks</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rule">
+      <b>Rule of thumb:</b> ≈ 1e8 simple ops/sec in the room → compute n^? and compare to 1e8.
+      &nbsp;·&nbsp; <b>Space:</b> O(n) aux is usually free; watch recursion depth (stack overflow at ~1e5 deep) and any "in-place / O(1) space" follow-up.
+    </div>
+  </section>
+
+  <!-- §3 FLOWCHART -->
+  <section class="section" id="sec-flow">
+    <div class="s-head">
+      <span class="s-num">3</span><span class="s-title">GOAL → TECHNIQUE FLOWCHART</span>
+      <span class="s-note">// click a row to highlight its pattern card below (§4)</span>
+    </div>
+    <div class="flow" id="flow"></div>
+  </section>
+
+  <!-- §4 PATTERN MAP -->
+  <section class="section" id="sec-patterns">
+    <div class="s-head">
+      <span class="s-num">4</span><span class="s-title">PATTERN MAP</span>
+      <span class="s-note">// click a row for the code skeleton · full cards live in PATTERN CARDS (uppercase)</span>
+    </div>
+    <div class="pgrid" id="pgrid"></div>
+  </section>
+
+  <!-- §5 RITUAL + LEVERS -->
+  <section class="section" id="sec-ritual">
+    <div class="s-head">
+      <span class="s-num">5</span><span class="s-title">RITUAL + OPTIMIZATION LEVERS</span>
+      <span class="s-note">// the loop you run out loud, and how to break the brute force</span>
+    </div>
+    <div class="two">
+      <div class="umpire" id="umpire"></div>
+      <div class="levers">
+        <div class="lh">🔧 WHERE'S THE REPEATED WORK? → LEVER</div>
+        <table><tbody id="levers"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- §6 LADDER -->
+  <section class="section" id="sec-ladder">
+    <div class="s-head">
+      <span class="s-num">6</span><span class="s-title">STUCK? ESCALATION LADDER</span>
+      <span class="s-note">// run top to bottom — never sit silent</span>
+    </div>
+    <ol class="ladder" id="ladder"></ol>
+  </section>
+
+  <div class="foot">
+    DEPTH → <a href="uppercase.html">uppercase.html</a> (full pattern cards + UMPIRE) ·
+    <a href="graph.html">graph</a> · <a href="dp.html">dp</a> · <a href="backtracking.html">backtracking</a> sheets ·
+    paste <a href="dsa-strong-hire-prompt.md">dsa-strong-hire-prompt.md</a> into an LLM for a full per-problem walkthrough.
+  </div>
+
+</div>
+
+<script>
+const HEX = {
+  ht:'#48dbfb', tp:'#ff9f43', sw:'#ff6b6b', bs:'#54d98c', hp:'#f368e0',
+  bt:'#a29bfe', dp:'#ffd32a', gr:'#00d2d3', sg:'#fdcb6e', st:'#fd7272',
+  ll:'#8be0ff', gd:'#55efc4', mt:'#c7a3ff', us:'#74b9ff', topo:'#fff59d',
+  dijkstra:'#81c784', tr:'#0be881', ms:'#e17055', bm:'#ff85c0', sa:'#faa2a2',
+  seg:'#ffb88c', lca:'#b3e5fc'
+};
+let currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+function ink(id){ // darken accents on light theme for readable text
+  const h = HEX[id]||'#888'; let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  if (currentTheme!=='dark'){ r=Math.round(r*0.52); g=Math.round(g*0.52); b=Math.round(b*0.52); }
+  return `rgb(${r},${g},${b})`;
+}
+
+// ── PATTERN DATA: id · name · trigger · time/space · sheet · skeleton ──
+const SHEET = { gr:'graph.html', us:'graph.html', topo:'graph.html', dijkstra:'graph.html',
+  lca:'graph.html', dp:'dp.html', bt:'backtracking.html' };
+const sheetFor = id => SHEET[id] || 'uppercase.html';
+
+const PATTERNS = [
+  { id:'ht', name:'HashMap / Set', trig:'seen-before? count? complement? group?', t:'O(n)', s:'O(n)',
+    code:`const seen = new Map<number, number>();
+for (let i = 0; i < a.length; i++) {
+  if (seen.has(target - a[i])) return [seen.get(target - a[i])!, i];
+  seen.set(a[i], i);               // complement: b = target - a
+}` },
+  { id:'tp', name:'Two Pointers', trig:'sorted array · pair/triplet · palindrome · partition', t:'O(n)', s:'O(1)',
+    code:`a.sort((x, y) => x - y);
+let l = 0, r = a.length - 1;
+while (l < r) {
+  const sum = a[l] + a[r];
+  if (sum === target) return [l, r];
+  sum < target ? l++ : r--;        // move the limiting end
+}` },
+  { id:'sw', name:'Sliding Window', trig:'longest/shortest contiguous · at most k · window', t:'O(n)', s:'O(k)',
+    code:`let l = 0, best = 0;
+const cnt = new Map<string, number>();
+for (let r = 0; r < s.length; r++) {
+  cnt.set(s[r], (cnt.get(s[r]) ?? 0) + 1);
+  while (cnt.size > k) {            // shrink until valid
+    const c = s[l++]; cnt.set(c, cnt.get(c)! - 1);
+    if (cnt.get(c) === 0) cnt.delete(c);
+  }
+  best = Math.max(best, r - l + 1);
+}` },
+  { id:'bs', name:'Binary Search', trig:'sorted/rotated · "min X such that …" · monotonic feasibility', t:'O(log n)', s:'O(1)',
+    code:`let lo = 0, hi = n - 1;          // or lo=minAns, hi=maxAns
+while (lo < hi) {
+  const mid = (lo + hi) >> 1;
+  if (feasible(mid)) hi = mid;     // keep smallest that works
+  else lo = mid + 1;
+}
+return lo;` },
+  { id:'hp', name:'Heap / PQ', trig:'kth largest/smallest · top-k · running median · merge k', t:'O(n log k)', s:'O(k)',
+    code:`const h = new MinHeap<number>();   // keep k largest -> top = kth
+for (const x of a) {
+  h.push(x);
+  if (h.size() > k) h.pop();       // evict smallest
+}
+return h.peek();                   // (two heaps for a running median)` },
+  { id:'bt', name:'Backtracking', trig:'ALL subsets / permutations / combinations · constraints', t:'O(2ⁿ·n)', s:'O(n)',
+    code:`const res: number[][] = [];
+function dfs(start: number, path: number[]) {
+  res.push([...path]);             // record (or check goal)
+  for (let i = start; i < a.length; i++) {
+    path.push(a[i]);               // choose
+    dfs(i + 1, path);              // explore (i+1 = no reuse)
+    path.pop();                    // un-choose
+  }
+}
+dfs(0, []);` },
+  { id:'dp', name:'Dynamic Prog', trig:'optimize value · count ways · overlapping subproblems', t:'O(n·states)', s:'O(states)',
+    code:`const dp = new Array(n + 1).fill(Infinity);
+dp[0] = 0;                         // base case
+for (let i = 1; i <= n; i++)
+  for (const c of coins)           // transition
+    if (c <= i) dp[i] = Math.min(dp[i], dp[i - c] + 1);
+return dp[n] === Infinity ? -1 : dp[n];` },
+  { id:'gr', name:'BFS / DFS', trig:'islands · components · reachable · shortest UNWEIGHTED', t:'O(V+E)', s:'O(V)',
+    code:`let q = [start]; const seen = new Set([start]);
+for (let dist = 0; q.length; dist++) {   // BFS = layers
+  const next: number[] = [];
+  for (const u of q) for (const v of adj[u])
+    if (!seen.has(v)) { seen.add(v); next.push(v); }
+  q = next;                        // DFS instead: recurse + visited set
+}` },
+  { id:'sg', name:'Tree DFS', trig:'path · subtree aggregate · BST · ancestor', t:'O(n)', s:'O(h)',
+    code:`let best = -Infinity;
+function dfs(node: TreeNode | null): number {
+  if (!node) return 0;
+  const l = Math.max(dfs(node.left), 0);
+  const r = Math.max(dfs(node.right), 0);
+  best = Math.max(best, node.val + l + r);  // combine at node
+  return node.val + Math.max(l, r);         // return to parent
+}                                  // BST: inorder traversal = sorted` },
+  { id:'st', name:'Monotonic Stack', trig:'next/previous greater or smaller · spans · histogram', t:'O(n)', s:'O(n)',
+    code:`const st: number[] = [];               // indices, decreasing values
+const res = new Array(n).fill(-1);
+for (let i = 0; i < n; i++) {
+  while (st.length && a[st.at(-1)!] < a[i])
+    res[st.pop()!] = i;            // a[i] is next-greater for popped
+  st.push(i);
+}` },
+  { id:'ll', name:'Linked List', trig:'cycle · middle · reverse · reorder · in-place', t:'O(n)', s:'O(1)',
+    code:`let slow = head, fast = head;          // Floyd: cycle / middle
+while (fast && fast.next) {
+  slow = slow!.next; fast = fast.next.next;
+  if (slow === fast) return true;  // cycle detected
+}
+// reverse: prev=null; while(cur){const nx=cur.next; cur.next=prev; prev=cur; cur=nx}` },
+  { id:'gd', name:'Greedy', trig:'minimize/maximize · intervals · scheduling (provable local=global)', t:'O(n log n)', s:'O(1)',
+    code:`intervals.sort((a, b) => a[1] - b[1]);  // by end time
+let end = -Infinity, count = 0;
+for (const [s, e] of intervals)
+  if (s >= end) { count++; end = e; }   // take earliest-finishing
+// prove with an exchange argument; if it fails on a case -> DP` },
+  { id:'mt', name:'Matrix', trig:'2-D grid · rotate · spiral · path DP', t:'O(m·n)', s:'O(1)',
+    code:`// rotate 90° in place: transpose, then reverse each row
+for (let i = 0; i < n; i++)
+  for (let j = i + 1; j < n; j++)
+    [m[i][j], m[j][i]] = [m[j][i], m[i][j]];
+for (const row of m) row.reverse();` },
+  { id:'us', name:'Union-Find', trig:'dynamic connectivity · merge groups · "same set?"', t:'O(α(n))', s:'O(n)',
+    code:`const par = Array.from({ length: n }, (_, i) => i);
+const find = (x: number): number =>
+  par[x] === x ? x : (par[x] = find(par[x]));   // path compression
+const union = (a: number, b: number) => { par[find(a)] = find(b); };` },
+  { id:'topo', name:'Topological Sort', trig:'dependencies · prerequisites · ordering · DAG', t:'O(V+E)', s:'O(V)',
+    code:`const indeg = new Array(n).fill(0);
+for (const [u, v] of edges) indeg[v]++;
+const q = [...Array(n).keys()].filter(i => indeg[i] === 0);
+const order: number[] = [];
+while (q.length) { const u = q.shift()!; order.push(u);
+  for (const v of adj[u]) if (--indeg[v] === 0) q.push(v); }
+return order.length === n ? order : [];   // short -> cycle` },
+  { id:'dijkstra', name:'Dijkstra', trig:'shortest WEIGHTED path · min cost · no negative edges', t:'O(E log V)', s:'O(V)',
+    code:`const dist = new Array(n).fill(Infinity); dist[src] = 0;
+const pq = new MinHeap<[number, number]>(); pq.push([0, src]); // [d, node]
+while (pq.size()) {
+  const [d, u] = pq.pop()!;
+  if (d > dist[u]) continue;
+  for (const [v, w] of adj[u])
+    if (d + w < dist[v]) { dist[v] = d + w; pq.push([dist[v], v]); }
+}                                  // negative edges -> Bellman-Ford` },
+  { id:'tr', name:'Trie', trig:'prefix · autocomplete · many word lookups · starts-with', t:'O(L)', s:'O(L·N·Σ)',
+    code:`class Trie {
+  children: Record<string, Trie> = {}; end = false;
+  insert(w: string) { let n: Trie = this;
+    for (const c of w) n = (n.children[c] ??= new Trie()); n.end = true; }
+  find(w: string) { let n: Trie | undefined = this;
+    for (const c of w) { n = n.children[c]; if (!n) return null; } return n; }
+}` },
+  { id:'ms', name:'Divide & Conquer', trig:'split into halves · merge results · count inversions', t:'O(n log n)', s:'O(n)',
+    code:`function sort(a: number[]): number[] {
+  if (a.length <= 1) return a;
+  const mid = a.length >> 1;
+  return merge(sort(a.slice(0, mid)), sort(a.slice(mid)));
+}                                  // do the real work in merge()` },
+  { id:'bm', name:'Bit Manipulation', trig:'single element · XOR · subset masks · count bits', t:'O(n)', s:'O(1)',
+    code:`let x = 0;
+for (const v of a) x ^= v;         // equal pairs cancel -> the single one
+// x & -x  = lowest set bit
+// x & (x-1) clears lowest set bit
+// (mask >> i) & 1  reads bit i` },
+  { id:'sa', name:'String (KMP/Hash)', trig:'pattern match · find all occurrences · repeated substring', t:'O(n+m)', s:'O(m)',
+    code:`const lps = new Array(m).fill(0);  // KMP failure / longest-prefix-suffix
+for (let i = 1, len = 0; i < m; ) {
+  if (p[i] === p[len]) lps[i++] = ++len;
+  else if (len) len = lps[len - 1];
+  else lps[i++] = 0;
+}                                  // rolling hash = O(1) substring compare` },
+  { id:'seg', name:'Segment / Fenwick', trig:'range query + point/range update · dynamic data', t:'O(log n)', s:'O(n)',
+    code:`const bit = new Array(n + 1).fill(0);    // Fenwick (BIT): prefix sums
+const add = (i: number, v: number) => { for (i++; i <= n; i += i & -i) bit[i] += v; };
+const sum = (i: number) => { let s = 0; for (i++; i > 0; i -= i & -i) s += bit[i]; return s; };
+// range sum [l,r] = sum(r) - sum(l-1); segment tree for range min/max` },
+  { id:'lca', name:'LCA / Binary Lift', trig:'lowest common ancestor · kth ancestor · many tree-path queries', t:'O(log n)', s:'O(n log n)',
+    code:`// up[k][v] = 2^k-th ancestor of v (up[0] = direct parent)
+for (let k = 1; k < LOG; k++)
+  for (let v = 0; v < n; v++)
+    up[k][v] = up[k - 1][up[k - 1][v]];
+// LCA: lift deeper node to equal depth, then jump both until parents meet` }
+];
+
+// ── FLOWCHART: goal -> technique, with pattern ids to highlight ──
+const FLOW = [
+  { goal:'Optimize a value — min / max / longest / cheapest / fewest', tech:'<b>DP</b> · <b>Greedy</b> · <b>binary search on answer</b>', ids:['dp','gd','bs'] },
+  { goal:'Count the number of ways / paths', tech:'<b>DP</b> · combinatorics', ids:['dp'] },
+  { goal:'Enumerate ALL subsets / permutations / combinations', tech:'<b>Backtracking</b> (+ prune)', ids:['bt'] },
+  { goal:'kth largest/smallest · top-k · running median', tech:'<b>Heap</b> · quickselect · two heaps', ids:['hp'] },
+  { goal:'Pair / triplet / subarray summing to a target', tech:'sorted→<b>two pointers</b> · else <b>hashmap</b> · <b>prefix sum</b>', ids:['tp','ht'] },
+  { goal:'Best contiguous subarray / substring (a window)', tech:'<b>Sliding window</b> · prefix sum', ids:['sw','ht'] },
+  { goal:'Next / previous greater or smaller · spans · histogram', tech:'<b>Monotonic stack</b>', ids:['st'] },
+  { goal:'Search in sorted / rotated · find a boundary', tech:'<b>Binary search</b>', ids:['bs'] },
+  { goal:'Connectivity · components · shortest UNWEIGHTED · flood fill', tech:'<b>BFS/DFS</b> · <b>Union-Find</b>', ids:['gr','us'] },
+  { goal:'Shortest WEIGHTED path / minimum cost', tech:'<b>Dijkstra</b> (no neg) · Bellman-Ford', ids:['dijkstra'] },
+  { goal:'Ordering with dependencies / prerequisites', tech:'<b>Topological sort</b>', ids:['topo'] },
+  { goal:'Prefix / autocomplete / many word lookups', tech:'<b>Trie</b>', ids:['tr'] },
+  { goal:'Range query + updates on changing data', tech:'<b>Segment tree / Fenwick</b>', ids:['seg'] },
+  { goal:'Tree: path · subtree aggregate · ancestor', tech:'post-order <b>DFS</b> · BST inorder · <b>LCA</b>', ids:['sg','lca'] },
+  { goal:'Cycle · find duplicate · middle (via pointers)', tech:'fast & slow (<b>Floyd</b>)', ids:['ll'] },
+  { goal:'Single element · XOR tricks · subset masks', tech:'<b>Bit manipulation</b>', ids:['bm'] },
+  { goal:'Pattern match a string (exact / repeated)', tech:'<b>KMP</b> / rolling hash', ids:['sa'] },
+  { goal:'Split into halves & merge · count inversions', tech:'<b>Divide &amp; conquer</b>', ids:['ms'] },
+  { goal:'2-D grid traversal / rotation / spiral', tech:'<b>Matrix</b>', ids:['mt'] }
+];
+
+const UMPIRE = [
+  ['U','Understand','restate it · lock input/output, constraints, n · run one normal + one edge example by hand.'],
+  ['M','Match','keyword + data shape → a pattern (§3/§4). Say it out loud. Nothing fires? brute force first.'],
+  ['P','Plan','state brute force + its O, then ask <b>"where is the repeated work?"</b> → pick a lever →'],
+  ['I','Implement','code clean, narrate <i>every</i> line. Meaningful names. Silence = red flag.'],
+  ['R','Review','re-trace on an example · walk edges: empty, n=1, dups, negatives, overflow, off-by-one.'],
+  ['E','Evaluate','final time + space + the tradeoff · "if n got bigger / streamed, I would switch to …" (the senior signal).']
+];
+
+const LEVERS = [
+  ['Repeated "have I seen this?" lookups', 'HashMap / Set'],
+  ['Repeated range sum / min / max', 'Prefix sum · Segment tree'],
+  ['Sorted data, scanning for pairs', 'Two pointers · Binary search'],
+  ['Repeated min/max as data changes', 'Heap · Monotonic stack'],
+  ['Recomputed overlapping subproblems', 'Memoize / DP'],
+  ['Rebuilding the whole window each step', 'Sliding window'],
+  ['Repeated "merge groups / same set?"', 'Union-Find']
+];
+
+const LADDER = [
+  '<b>Solve a tiny example BY HAND.</b> Watch what your brain actually does — that is the algorithm.',
+  '<b>Write the brute force and state its O.</b> A working slow answer beats stuck silence, and reveals the structure.',
+  '<b>Check the Oracle (§2):</b> what O does n allow? The gap tells you how hard you must push.',
+  '<b>Ask "what am I recomputing?"</b> → apply a Lever (§5).',
+  '<b>Sort it, or change the representation</b> — index↔value, grid→graph, state→node.',
+  '<b>Reduce to a known pattern</b> — "this is just &lt;pattern&gt; in disguise."',
+  '<b>Search the ANSWER space, not the input</b> — binary search on the answer · DP over states.',
+  '<b>Reverse it</b> — think from the end, the result, or the complement.',
+  '<b>Still stuck? Solve a simpler / special case</b> (k=1, no dups), then generalize.'
+];
+
+// ── RENDER ──
+const pgrid = document.getElementById('pgrid');
+function renderPatterns(){
+  pgrid.innerHTML = '';
+  PATTERNS.forEach(p => {
+    const d = document.createElement('details');
+    d.className = 'prow';
+    d.dataset.id = p.id;
+    d.style.borderLeftColor = HEX[p.id];
+    d.dataset.text = (p.name + ' ' + p.trig).toLowerCase();
+
+    const sum = document.createElement('summary');
+    sum.innerHTML = `<span class="dot" style="background:${HEX[p.id]}"></span>`
+      + `<span class="pname" style="color:${ink(p.id)}">${p.name}</span>`
+      + `<span class="ptrig">${p.trig}</span>`
+      + `<span class="pcx"><b>${p.t}</b> · ${p.s}</span>`
+      + `<span class="caret">▾</span>`;
+    d.appendChild(sum);
+
+    const pre = document.createElement('div');
+    pre.className = 'skel';
+    pre.textContent = p.code;          // textContent = no HTML-escaping needed
+    const link = document.createElement('div');
+    link.className = 'skel-link';
+    const sheet = sheetFor(p.id);
+    link.innerHTML = `↳ depth: <a href="${sheet}">${sheet}</a>`;
+    pre.appendChild(link);
+    d.appendChild(pre);
+    pgrid.appendChild(d);
+  });
+}
+
+const flow = document.getElementById('flow');
+function renderFlow(){
+  flow.innerHTML = '';
+  FLOW.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'frow';
+    row.dataset.ids = f.ids.join(',');
+    row.dataset.text = (f.goal + ' ' + f.tech).toLowerCase().replace(/<[^>]+>/g,'');
+    row.innerHTML = `<span class="goal">${f.goal}</span><span class="sep">→</span><span class="tech">${f.tech}</span>`;
+    flow.appendChild(row);
+  });
+}
+
+document.getElementById('umpire').innerHTML = UMPIRE.map(([l,t,d]) =>
+  `<div class="ustep"><div class="uletter" style="color:${ink(({U:'sw',M:'tp',P:'dp',I:'ht',R:'bt',E:'gd'})[l])}">${l}</div>`
+  + `<div class="utext"><b>${t}</b> — ${d}</div></div>`).join('');
+
+document.getElementById('levers').innerHTML = LEVERS.map(([c,f]) =>
+  `<tr><td class="cause">${c}</td><td class="fix">${f}</td></tr>`).join('');
+
+document.getElementById('ladder').innerHTML = LADDER.map(x => `<li>${x}</li>`).join('');
+
+renderPatterns();
+renderFlow();
+
+// ── FLOWCHART CLICK → highlight matching pattern cards ──
+let activeRow = null;
+flow.addEventListener('click', e => {
+  const row = e.target.closest('.frow');
+  if (!row) return;
+  const same = row === activeRow;
+  document.querySelectorAll('.frow.active').forEach(r => r.classList.remove('active'));
+  document.querySelectorAll('details.prow.hl').forEach(d => { d.classList.remove('hl'); d.open = false; });
+  if (same) { activeRow = null; return; }
+  row.classList.add('active');
+  activeRow = row;
+  const ids = row.dataset.ids.split(',');
+  let first = null;
+  ids.forEach(id => {
+    const d = pgrid.querySelector(`details.prow[data-id="${id}"]`);
+    if (d) { d.classList.add('hl'); d.open = true; if (!first) first = d; }
+  });
+  if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+});
+
+// ── SEARCH (filters flow rows + pattern rows) ──
+let timer;
+document.getElementById('search').addEventListener('input', e => {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    const q = e.target.value.toLowerCase().trim();
+    document.querySelectorAll('.frow').forEach(r =>
+      r.classList.toggle('hidden', !!q && !r.dataset.text.includes(q)));
+    document.querySelectorAll('details.prow').forEach(d =>
+      d.classList.toggle('hidden', !!q && !d.dataset.text.includes(q)));
+  }, 100);
+});
+
+// ── THEME TOGGLE (light default, shared 'dsa-theme' key) ──
+const themeBtn = document.getElementById('theme-btn');
+function label(){ themeBtn.textContent = currentTheme === 'dark' ? '☀ LIGHT' : '🌙 DARK'; }
+themeBtn.addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  try { localStorage.setItem('dsa-theme', currentTheme); } catch (e) {}
+  label();
+  renderPatterns();   // re-run so ink() recomputes accent contrast
+  document.getElementById('umpire').innerHTML = UMPIRE.map(([l,t,d]) =>
+    `<div class="ustep"><div class="uletter" style="color:${ink(({U:'sw',M:'tp',P:'dp',I:'ht',R:'bt',E:'gd'})[l])}">${l}</div>`
+    + `<div class="utext"><b>${t}</b> — ${d}</div></div>`).join('');
+});
+label();
+</script>
+</body>
+</html>
