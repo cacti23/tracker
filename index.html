@@ -449,6 +449,20 @@
     .q-filter-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
     .q-filter-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
     .q-filter-count { font-size: var(--fs-xs); color: var(--text-faint); margin-left: auto; }
+    .company-filter-bar { display: flex; gap: 5px; margin: -0.4rem 0 1rem; flex-wrap: wrap; align-items: center; }
+    .company-filter-label { font-size: var(--fs-xs); color: var(--text-faint); margin-right: 2px; }
+    .company-chip {
+      padding: 0.16rem 0.6rem; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); font-size: var(--fs-xs);
+      font-family: var(--font-body); cursor: pointer; line-height: 1.4;
+      transition: background 0.14s, color 0.14s, border-color 0.14s;
+    }
+    .company-chip:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .company-chip.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
+    .company-badge {
+      display: inline-block; font-size: 10px; padding: 1px 7px; margin: 0 3px 3px 0;
+      border-radius: 20px; background: var(--bg-hover); color: var(--text-muted); border: 1px solid var(--border);
+    }
 
 
 
@@ -754,6 +768,8 @@ const TOPIC_TABS = [
 let currentTopicKey = null
 let currentTab = 'questions'
 let currentQFilter = 'all'
+let currentCompanyFilter = null   // null = all companies
+const COMPANY_LABEL = Object.fromEntries(COMPANIES.map(c => [c.key, c.label]))
 
 // ─── PRACTICE SESSION STATE ──────────────────────────────────────────────────
 let _psQCount     = 5     // question count for per-topic practice
@@ -1226,6 +1242,7 @@ function loadTopic(key) {
   currentTopicKey = key
   currentTab = TOPIC_TABS[0].key  // always start on first tab
   currentQFilter = 'all'          // reset filter on topic switch
+  currentCompanyFilter = null     // reset company filter on topic switch
   _stopTimer()                    // stop any running per-topic practice timer
   _qpStopTimer()                  // stop QP timer if it was running on dashboard
 
@@ -1286,6 +1303,16 @@ function setQFilter(filter) {
   if (mod) _renderFilteredQuestions(mod)
 }
 
+// Click a company chip to show only its questions; click the active one (or "All") to clear.
+function setCompanyFilter(key) {
+  currentCompanyFilter = (currentCompanyFilter === key) ? null : key
+  document.querySelectorAll('.company-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-company') === (currentCompanyFilter || ''))
+  })
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) _renderFilteredQuestions(mod)
+}
+
 function renderQuestions(mod) {
   const container = document.getElementById('tab-questions')
   const allQEntries = Object.entries(mod.questions)
@@ -1308,6 +1335,24 @@ function renderQuestions(mod) {
       filterLabels[f] + ' <span style="opacity:0.6">(' + counts[f] + ')</span></button>'
   })
   html += '</div>'
+
+  // Company filter chips — only companies that actually tag a question in THIS topic,
+  // sorted by how many (most relevant first). Counts reflect this topic only.
+  const compCounts = {}
+  allQEntries.forEach(([, q]) => getCompanies(q.leetcode).forEach(c => { compCounts[c] = (compCounts[c] || 0) + 1 }))
+  const presentCompanies = COMPANIES.filter(c => compCounts[c.key]).sort((a, b) => compCounts[b.key] - compCounts[a.key])
+  if (presentCompanies.length) {
+    html += '<div class="company-filter-bar">'
+    html += '<span class="company-filter-label">🏢 Asked at</span>'
+    html += '<button type="button" class="company-chip' + (currentCompanyFilter === null ? ' active' : '') + '" data-company="" onclick="setCompanyFilter(null)">All</button>'
+    presentCompanies.forEach(c => {
+      const active = currentCompanyFilter === c.key
+      html += '<button type="button" class="company-chip' + (active ? ' active' : '') + '" data-company="' + c.key + '" onclick="setCompanyFilter(\'' + c.key + '\')">' +
+        c.label + ' <span style="opacity:0.6">(' + compCounts[c.key] + ')</span></button>'
+    })
+    html += '</div>'
+  }
+
   html += '<div id="q-filtered-list"></div>'
   container.innerHTML = html
   _renderFilteredQuestions(mod)
@@ -1318,12 +1363,15 @@ function _renderFilteredQuestions(mod) {
   if (!listEl) return
 
   const allQEntries = Object.entries(mod.questions)
-  const filtered = currentQFilter === 'all'
-    ? allQEntries
-    : allQEntries.filter(([k]) => getStatus(k) === currentQFilter)
+  const filtered = allQEntries
+    .filter(([k]) => currentQFilter === 'all' || getStatus(k) === currentQFilter)
+    .filter(([, q]) => !currentCompanyFilter || getCompanies(q.leetcode).includes(currentCompanyFilter))
 
   if (filtered.length === 0) {
-    listEl.innerHTML = '<div class="text-center py-5 text-secondary"><p class="small">No ' + currentQFilter + ' questions.</p></div>'
+    const parts = []
+    if (currentQFilter !== 'all') parts.push(currentQFilter)
+    if (currentCompanyFilter) parts.push('@ ' + (COMPANY_LABEL[currentCompanyFilter] || currentCompanyFilter))
+    listEl.innerHTML = '<div class="text-center py-5 text-secondary"><p class="small">No ' + (parts.join(' ') || '') + ' questions.</p></div>'
     return
   }
 
@@ -1381,6 +1429,8 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     + '</span>'
 
   const tags = (q.tags || []).map(t => '<span class="badge badge-tag me-1">' + t + '</span>').join('')
+  const companyChips = getCompanies(q.leetcode).map(c => '<span class="company-badge">' + (COMPANY_LABEL[c] || c) + '</span>').join('')
+  const companyRow = companyChips ? '<div class="mb-2 small d-flex flex-wrap align-items-center"><span class="text-secondary me-1">🏢 Asked at:</span>' + companyChips + '</div>' : ''
   const altApproaches = (q.alternateApproaches || []).map(a =>
     '<span class="badge bg-secondary me-1" title="' + escHtml(a.tradeoff) + '">' + escHtml(a.technique) + '</span>'
   ).join('')
@@ -1443,6 +1493,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<div id="' + id + '" class="accordion-collapse collapse">' +
     '<div class="accordion-body small">' +
     (tags ? '<div class="mb-3 d-flex flex-wrap gap-1">' + tags + '</div>' : '') +
+    companyRow +
     insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow + noteRow +
     '</div></div></div>'
   )
