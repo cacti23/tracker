@@ -13,23 +13,25 @@
 // Each topic module is self-contained. Add new topic modules to TOPIC_MODULES.
 // TOPICS drives the sidebar and dashboard; each entry\'s key maps to a module.
 
+// Order = ideal learning/practice progression (NeetCode-style): array techniques →
+// linear structures → sorting/ordered → recursion cluster → graphs → DP → specialized.
 const TOPICS = [
-  { key: 'sliding-window', icon: '🪟', label: 'Sliding Window' },
   { key: 'two-pointers',   icon: '👉', label: 'Two Pointers'  },
+  { key: 'sliding-window', icon: '🪟', label: 'Sliding Window' },
   { key: 'binary-search',  icon: '🔍', label: 'Binary Search'  },
-  { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
-  { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },
-  { key: 'recursion',      icon: '🔁', label: 'Recursion'      },
-  { key: 'backtracking',        icon: '🔙', label: 'Backtracking',          cheatsheetUrl: 'backtracking.html' },
-  { key: 'dynamic-programming', icon: '🧮', label: 'Dynamic Programming',   cheatsheetUrl: 'dp.html'    },
-  { key: 'graph',               icon: '🕸️', label: 'Graph',                 cheatsheetUrl: 'graph.html' },
-  { key: 'trees',               icon: '🌳', label: 'Trees & BST'            },
   { key: 'stack',               icon: '🥞', label: 'Stack & Monotonic Stack' },
   { key: 'linked-list',         icon: '🔗', label: 'Linked List'           },
-  { key: 'trie',                icon: '🔡', label: 'Trie'                   },
-  { key: 'design',              icon: '🏗️', label: 'Design'                 },
-  { key: 'bit-manipulation',    icon: '🔢', label: 'Bit Manipulation'      },
+  { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
+  { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },
   { key: 'intervals',           icon: '📅', label: 'Intervals'             },
+  { key: 'recursion',      icon: '🔁', label: 'Recursion'      },
+  { key: 'trees',               icon: '🌳', label: 'Trees & BST'            },
+  { key: 'trie',                icon: '🔡', label: 'Trie'                   },
+  { key: 'backtracking',        icon: '🔙', label: 'Backtracking',          cheatsheetUrl: 'backtracking.html' },
+  { key: 'graph',               icon: '🕸️', label: 'Graph',                 cheatsheetUrl: 'graph.html' },
+  { key: 'dynamic-programming', icon: '🧮', label: 'Dynamic Programming',   cheatsheetUrl: 'dp.html'    },
+  { key: 'bit-manipulation',    icon: '🔢', label: 'Bit Manipulation'      },
+  { key: 'design',              icon: '🏗️', label: 'Design'                 },
 ];
 
 // Per-question user progress (persisted in localStorage)
