@@ -544,8 +544,8 @@ figure.diagram figcaption {
 <li class="nav-index-item"><a href="#rec-s16">16. Complexity of Recursion</a></li>
 <li class="nav-index-item"><a href="#rec-s17">17. Common Bugs &amp; Fixes</a></li>
 <li class="nav-index-item"><a href="#rec-s18">18. Keyword → Approach Map</a></li>
-<li class="nav-index-item"><a href="#rec-s19">19. Practice Ladder</a></li>
-<li class="nav-index-item"><a href="#rec-s20">20. Interview Drill &amp; Recap</a></li>
+
+
 <li class="nav-index-item"><a href="#rec-s21">21. Recursion = Engine of DSA</a></li>
 <li class="nav-index-item"><a href="#rec-s22">22. Self-Test (Active Recall)</a></li>
 </ul></div></div>
@@ -1662,78 +1662,6 @@ Computes child twice (slow)      Called f(...) twice instead of saving
 "reverse / build a list or tree"      → return the node; reattach on the way up
 "process in order 1..n" / "n..1"      → work before vs after the call (§7)
 "too deep / n up to 1e6"              → convert to iteration + explicit stack</code></pre></div>
-
-<div style="display:contents" dir="auto"><hr/></div>
-
-<div style="display:contents" dir="auto"><h1 id="rec-s19" class="">19. PRACTICE LADDER</h1></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>Climb in order — each rung locks in one idea before adding the next.</strong> Do every problem twice: once writing the contract + base + combine on paper, once in code. Don't move up a rung until the one below is automatic. This is the whole syllabus, sequenced for recursion.</blockquote></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">RUNG 1 · RETURN A VALUE (bubble up)        teaches: contract + combine
-   344 Reverse String · 206 Reverse Linked List · 50 Pow(x,n)
-RUNG 2 · BRANCH + MEMO                      teaches: 2 calls → memo → DP
-   509 Fibonacci · 70 Climbing Stairs · 198 House Robber
-RUNG 3 · TREE RECURSION (post-order)        teaches: combine your children
-   104 Max Depth · 226 Invert Tree · 100 Same Tree · 543 Diameter
-RUNG 4 · CARRY DOWN + COLLECT               teaches: params + COPY at base
-   257 Binary Tree Paths · 112 Path Sum · 78 Subsets
-RUNG 5 · DIVIDE &amp; CONQUER                   teaches: split · recurse · merge
-   912 Sort an Array (merge sort) · 53 Maximum Subarray
-RUNG 6 · CHOICE TREES (→ backtracking.html) teaches: choice + undo
-   46 Permutations · 39 Combination Sum · 22 Generate Parentheses
-RUNG 7 · RECURSION + MEMO (→ dp.html)       teaches: state design
-   139 Word Break · 322 Coin Change · 62 Unique Paths
-BOSS LEVEL (FAANG hard)                     teaches: return X, report Y
-   236 Lowest Common Ancestor · 124 Binary Tree Max Path Sum</code></pre></div>
-
-<div style="display:contents" dir="auto"><hr/></div>
-
-<div style="display:contents" dir="auto"><h1 id="rec-s20" class="">20. INTERVIEW DRILL &amp; ONE-SCREEN RECAP</h1></div>
-<div style="display:contents" dir="auto"><h3 id="rec-s20-1" class="">20.1 In the room — the recipe (say it out loud)</h3></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">1. CONTRACT      "f takes ___ and returns ___, meaning ___."
-2. SOLVE BY HAND  do n=0,1,2 manually; how is n built from n-1?
-3. PICK A STYLE   answer = combine(elem, f(smaller))? → RETURN.
-                  need the whole path? → CARRY DOWN + collect.
-4. BASE CASE      from your tiniest case → return the identity.
-5. RECURSIVE LINE write the combine, trusting f(smaller). Don't trace.
-6. PROGRESS       is the argument strictly smaller every call?
-7. EDGE CASES     empty · single · null · negative · duplicates.
-8. COMPLEXITY     recurrence → time; max depth → space.
-9. IF SLOW        repeated args? → add a memo.
-
-THE SENTENCE THAT SAVES YOU:
-  "Assume f(smaller) is correct → then f(current) = ______ ."
-  Fill that blank and you have written the recursion.</code></pre></div>
-<div style="display:contents" dir="auto"><h3 id="rec-s20-2" class="">20.2 When you freeze — the un-stick drill</h3></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">😵 "Where do I start?"        → write the CONTRACT sentence. (§2)
-😵 "I can't picture it."       → stop picturing; solve n=0,1,2 by hand. (§2)
-😵 "What do I return?"         → run the 3-step recipe; base = identity. (§5)
-😵 "What's the base case?"     → smallest legal input → its answer. (§6)
-😵 "It runs forever."          → strictly smaller each call? test &lt;=/&gt;=. (§6,§17)
-😵 "Two branches, I'm lost."   → trust BOTH; combine(node, f(L), f(R)). (§10)
-😵 "It's too slow."            → repeated args? wrap in a memo. (§15)
-😵 "I need ALL of them."       → carry-down: path param + COPY at base. (§12,§13)
-
-REMINDER: you only ever verify ONE level + the base case.
-Induction handles the rest. Trust the leap.</code></pre></div>
-<div style="display:contents" dir="auto"><h3 id="rec-s20-3" class="">20.3 The whole document in one screen (read the morning of)</h3></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">MINDSET   Assume f(smaller) works. Handle ONE level. Don't trace.
-4 Qs      Q0 contract · Q1 base · Q2 leap/combine · Q3 progress
-4 SLOTS   base case · shrink · recurse(trust) · combine
-RETURN?   answer = combine(elem, f(smaller))?  → RETURN (bubble up)
-          need the full path at the leaf?       → CARRY DOWN + collect
-BASE = identity of the combine op:
-          +→0 · *→1 · ||→false · &amp;&amp;→true · concat→"" · null/0 for trees
-ORDER     work BEFORE call = on the way down (preorder, params)
-          work AFTER  call = on the way up   (postorder, returns)
-STATE     up→return · down→parameter · shared→closure
-          COLLECT a COPY: res.push([...path]); UNDO after each choice.
-SHAPES    linear(n-1) · tree(L,R) · multi-branch(loop) · D&amp;C(n/2) · tail
-COST      time = #nodes × work/node ; space = max depth (+ output)
-          2T(n/2)+O(n)=n log n · 2T(n-1)=2^n · T(n/2)=log n
-SPEEDUP   same args twice? → memo → top-down DP.
-BUGS      no base · no return · reference-not-copy · forgot undo ·
-          recompute child · leaf-base with one child.
-ONE LINE  "Assume f(smaller) is correct → f(current) = ____ ."  Done.</code></pre></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>Companion sheets</strong> (when you're ready to go deeper on a twist): enumeration &amp; "all solutions" → <a href="backtracking.html">Backtracking</a> · overlapping subproblems → <a href="dp.html">DP</a> · graph traversal → <a href="graph.html">Graph</a> · full per-problem walkthroughs → <a href="dsa-master-map.html">DSA Master Map</a>.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 

@@ -334,6 +334,11 @@
     .q-meta   { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; }
     .q-badge  { font-size: 0.6rem !important; padding: 0.15em 0.45em; }
     .q-badge-sep { width: 1px; height: 12px; background: var(--border); display: inline-block; }
+    /* Frequency = traffic-light dot + tinted box (red/yellow/grey). Difficulty stays a solid pill. */
+    .freq-badge  { font-size: 0.6rem !important; padding: 0.15em 0.5em; border-radius: 0.3rem; white-space: nowrap; font-weight: 600; }
+    .freq-high   { background: rgba(255,99,99,0.15);  color: #ff9a9a; border: 1px solid rgba(255,99,99,0.42); }
+    .freq-medium { background: rgba(240,192,96,0.15); color: #f0c873; border: 1px solid rgba(240,192,96,0.42); }
+    .freq-low    { background: rgba(150,158,168,0.13); color: #aab1bb; border: 1px solid rgba(150,158,168,0.36); }
 
     /* ── 14. STATUS CYCLE BUTTON ────────────────────────────────────────────── */
     .status-cycle-btn {
@@ -448,6 +453,7 @@
     }
     .q-filter-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
     .q-filter-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
+    .q-freq-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--border-glow); }
     .q-filter-count { font-size: var(--fs-xs); color: var(--text-faint); margin-left: auto; }
     .company-filter-bar { display: flex; gap: 5px; margin: -0.4rem 0 1rem; flex-wrap: wrap; align-items: center; }
     .company-filter-label { font-size: var(--fs-xs); color: var(--text-faint); margin-right: 2px; }
@@ -751,6 +757,23 @@ const STATUS_DOT       = { Solved: 'bg-success', 'In Progress': 'bg-warning', Pe
 const STATUS_EMOJI      = { Solved: '✅', 'In Progress': '🚧', Pending: '📋' }
 const STATUS_CYCLE      = { Pending: 'In Progress', 'In Progress': 'Solved', Solved: 'Pending' }
 
+// Interview frequency (how often a question is asked). Source field: q.freq in data.js.
+// High = Blind 75 / FAANG-flagged "must-know"; Medium = NeetCode 150 / commonly asked;
+// Low = pattern-completeness, less commonly asked directly.
+// Frequency badge = traffic-light dot + word in a tinted box (🔴 red / 🟡 yellow / ⚪ grey).
+// Difficulty keeps its solid green/amber/red pill (no dot); the leading dot + tinted box
+// is what separates the two dimensions at a glance.
+const FREQ_DOT   = { High: '🔴', Medium: '🟡', Low: '⚪' }
+const FREQ_LABEL = { High: 'High', Medium: 'Medium', Low: 'Low' }
+const FREQ_DESC  = { High: 'asked very often — drill first', Medium: 'commonly asked', Low: 'less common — pattern completeness' }
+function freqBadge(q, extraCls) {
+  const f = q && q.freq
+  if (!f || !FREQ_LABEL[f]) return ''
+  return '<span class="badge freq-badge freq-' + f.toLowerCase() + (extraCls || '') + '"' +
+    ' title="Interview frequency: ' + FREQ_LABEL[f] + ' — ' + FREQ_DESC[f] + '">' +
+    FREQ_DOT[f] + ' ' + FREQ_LABEL[f] + '</span>'
+}
+
 // ─── QUICK-REF PANEL IDs ──────────────────────────────────────────────────────
 const QR_IDS = {
   practice: 'qr-practice',
@@ -768,6 +791,7 @@ const TOPIC_TABS = [
 let currentTopicKey = null
 let currentTab = 'questions'
 let currentQFilter = 'all'
+let currentFreqFilter = 'all'   // 'all' | 'High' | 'Medium' | 'Low' (interview frequency)
 let currentCompanyFilter = null   // null = all companies
 const COMPANY_LABEL = Object.fromEntries(COMPANIES.map(c => [c.key, c.label]))
 
@@ -1012,7 +1036,7 @@ function renderSearchResults(results) {
         <div class="card-body p-3">
           <div class="d-flex gap-2 mb-1">
             <span>${r.topicIcon} <small class="text-muted">${r.topicLabel}</small></span>
-            <span class="ms-auto"><strong class="badge" style="background:var(--${getDifficultyColor(r.question.difficulty)})">${r.question.difficulty}</strong></span>
+            <span class="ms-auto d-flex gap-1 align-items-center"><strong class="badge" style="background:var(--${getDifficultyColor(r.question.difficulty)})">${r.question.difficulty}</strong>${freqBadge(r.question)}</span>
           </div>
           <h6 class="mb-1">${escHtml(r.question.title)}</h6>
           <div class="d-flex gap-1 mb-1">
@@ -1081,6 +1105,7 @@ function renderDailyQuestionCard(dailyQ) {
       <div class="d-flex gap-2 align-items-center mb-2">
         <span>${dailyQ.topicIcon} <small class="text-muted">${dailyQ.topicLabel}</small></span>
         <span class="badge" style="background:var(--${getDifficultyColor(dailyQ.question.difficulty)})">${dailyQ.question.difficulty}</span>
+        ${freqBadge(dailyQ.question)}
         ${statusBadge}
       </div>
       <p class="small text-muted mb-2">${escHtml(dailyQ.question.keyInsight || '')}</p>
@@ -1243,6 +1268,7 @@ function loadTopic(key) {
   currentTab = TOPIC_TABS[0].key  // always start on first tab
   currentQFilter = 'all'          // reset filter on topic switch
   currentCompanyFilter = null     // reset company filter on topic switch
+  currentFreqFilter = 'all'       // reset frequency filter on topic switch
   _stopTimer()                    // stop any running per-topic practice timer
   _qpStopTimer()                  // stop QP timer if it was running on dashboard
 
@@ -1296,8 +1322,18 @@ const PATTERN_HEADING_CLASS = { P1: 'ph-p1', P2: 'ph-p2', P3: 'ph-p3', P4: 'ph-p
 // ─── QUESTION FILTER ──────────────────────────────────────────────────────────
 function setQFilter(filter) {
   currentQFilter = filter
-  document.querySelectorAll('.q-filter-btn').forEach(btn => {
+  document.querySelectorAll('.q-filter-btn[data-filter]').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-filter') === filter)
+  })
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) _renderFilteredQuestions(mod)
+}
+
+// Frequency filter — independent dimension; composes with status + company filters.
+function setFreqFilter(f) {
+  currentFreqFilter = f
+  document.querySelectorAll('.q-freq-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-freq') === f)
   })
   const mod = TOPIC_MODULES[currentTopicKey]
   if (mod) _renderFilteredQuestions(mod)
@@ -1336,6 +1372,19 @@ function renderQuestions(mod) {
   })
   html += '</div>'
 
+  // Frequency filter (violet) — independent dimension, composes with status + company.
+  const freqCounts = { all: allQEntries.length, High: 0, Medium: 0, Low: 0 }
+  allQEntries.forEach(([, q]) => { if (freqCounts[q.freq] !== undefined) freqCounts[q.freq]++ })
+  const freqOrder = ['all', 'High', 'Medium', 'Low']
+  const freqBtnLabels = { all: 'All', High: '🔴 High', Medium: '🟡 Medium', Low: '⚪ Low' }
+  html += '<div class="q-filter-bar"><span class="company-filter-label">📊 Frequency</span>'
+  freqOrder.forEach(f => {
+    const isActive = f === currentFreqFilter
+    html += '<button type="button" class="q-filter-btn q-freq-btn' + (isActive ? ' active' : '') + '" data-freq="' + f + '" onclick="setFreqFilter(\'' + f + '\')">' +
+      freqBtnLabels[f] + ' <span style="opacity:0.6">(' + freqCounts[f] + ')</span></button>'
+  })
+  html += '</div>'
+
   // Company filter chips — only companies that actually tag a question in THIS topic,
   // sorted by how many (most relevant first). Counts reflect this topic only.
   const compCounts = {}
@@ -1365,11 +1414,13 @@ function _renderFilteredQuestions(mod) {
   const allQEntries = Object.entries(mod.questions)
   const filtered = allQEntries
     .filter(([k]) => currentQFilter === 'all' || getStatus(k) === currentQFilter)
+    .filter(([, q]) => currentFreqFilter === 'all' || q.freq === currentFreqFilter)
     .filter(([, q]) => !currentCompanyFilter || getCompanies(q.leetcode).includes(currentCompanyFilter))
 
   if (filtered.length === 0) {
     const parts = []
     if (currentQFilter !== 'all') parts.push(currentQFilter)
+    if (currentFreqFilter !== 'all') parts.push(FREQ_LABEL[currentFreqFilter])
     if (currentCompanyFilter) parts.push('@ ' + (COMPANY_LABEL[currentCompanyFilter] || currentCompanyFilter))
     listEl.innerHTML = '<div class="text-center py-5 text-secondary"><p class="small">No ' + (parts.join(' ') || '') + ' questions.</p></div>'
     return
@@ -1484,6 +1535,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<span class="q-title">' + escHtml(q.title) + '</span>' +
     '<span class="q-meta">' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge">' + q.difficulty + '</span>' +
+    (q.freq ? '<span class="q-badge-sep"></span>' + freqBadge(q) : '') +
     (existingNote ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>' : '') +
     (isPinned(lcKey) ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge pin-badge" title="Pinned to practice">📌</span>' : '') +
     '</span>' +
@@ -1681,6 +1733,7 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     topicIcon +
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    (q.freq ? freqBadge(q, ' flex-shrink-0') : '') +
     '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0">' + STATUS_EMOJI[status] + '</span>' +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +

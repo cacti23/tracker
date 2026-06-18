@@ -493,7 +493,7 @@ hr {
 <div style="display:contents" dir="auto"><h3 id="bt-sub2" class="">⭐ OPTIMIZED FOR LC MEDIUM/HARD</h3></div>
 <div style="display:contents" dir="auto"><hr id="bt-hr-0"/></div>
 
-<div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid">
+<div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#bt-how-to-think">🧠 How to Think</a></li>
 <li class="nav-index-item"><a href="#bt-s1">1. Decision Framework</a></li>
 <li class="nav-index-item"><a href="#bt-s2">2. Universal Template</a></li>
 <li class="nav-index-item"><a href="#bt-s3">3. The 5 Flavors</a></li>
@@ -507,12 +507,34 @@ hr {
 <li class="nav-index-item"><a href="#bt-s11">11. Pruning Strategies</a></li>
 <li class="nav-index-item"><a href="#bt-s12">12. Backtracking + Memo Hybrids</a></li>
 <li class="nav-index-item"><a href="#bt-s13">13. Complexity Analysis</a></li>
-<li class="nav-index-item"><a href="#bt-s14">14. Top 45 LC Problems Map</a></li>
-<li class="nav-index-item"><a href="#bt-s15">15. Interview Script</a></li>
-<li class="nav-index-item"><a href="#bt-s16">16. Pre-Interview Rapid Revision</a></li>
-</ul></div></div>
 
-<div style="display:contents" dir="auto"><hr id="bt-hr-1"/></div>
+
+
+<li class="nav-index-item"><a href="#bt-self-check">✅ Self-check</a></li></ul></div></div>
+
+<div style="display:contents" dir="auto"><hr id="bt-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="bt-how-to-think" class="">🧠 HOW TO THINK ABOUT BACKTRACKING (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="btm-p1" class="">Backtracking = build a solution <strong>one choice at a time</strong>, and the moment a choice can&#x27;t lead anywhere good (or a solution is complete), <strong>undo it</strong> and try the next. It is just <strong>DFS over a tree of decisions</strong>.</p></div><div style="display:contents" dir="auto"><pre id="btm-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">THE RHYTHM — every backtracking function does exactly this:
+   choose      add a candidate to the current path
+   explore     recurse to make the next choice
+   un-choose   remove it, try the next        ← this IS the &quot;backtrack&quot;
+
+It is DFS over a TREE OF CHOICES   (here: subsets of [1,2,3])
+
+                       [ ]
+              take 1 /       \ skip 1
+                 [1]          [ ]
+           take2 /  \ skip2  /  \
+              [1,2] [1]    [2]   [ ]
+               / \   ...   ...   ...
+             ... ...
+   going DOWN = choose          coming back UP = un-choose
+   every node is a partial answer — collect it at the right depth</code></pre></div><div style="display:contents" dir="auto"><p id="btm-p2" class=""><strong>Recognise it</strong> — backtracking is for <em>exploring every possibility</em>, not finding one optimum:</p></div><div style="display:contents" dir="auto"><pre id="btm-box2" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">USE BACKTRACKING when the problem asks for…
+   &quot;ALL / every / list / generate&quot;      &quot;how many ways / count&quot;
+   subsets · permutations · combinations · partitions · placements
+   (N-Queens, Sudoku, generate parentheses, word search)
+
+DON'T when…
+   &quot;the single best / longest / min&quot; + overlapping subproblems → DP
+   &quot;just one valid answer, fast&quot;                             → greedy / BFS</code></pre></div><div style="display:contents" dir="auto"><p id="btm-p3" class=""><strong>Every backtracking solution answers three questions</strong> — and the universal template below is literally these: (1) what are my <strong>choices</strong> here? (2) is this choice still <strong>valid</strong> — prune if not. (3) am I at a <strong>complete</strong> solution — if so record a <em>copy</em>. Internalise the rhythm on subsets and every other problem is a variation of it.</p></div><div style="display:contents" dir="auto"><hr id="bt-hr-1"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s1" class="">1. DECISION FRAMEWORK</h1></div>
 <div style="display:contents" dir="auto"><blockquote id="bt-bq-1" class=""><strong>Senior Engineer mindset</strong>: Before writing a line of code, classify the problem. Every minute spent here saves 5 minutes of wrong-direction coding.</blockquote></div>
@@ -1743,154 +1765,18 @@ INTERVIEW TIP: State the tree model first, then derive complexity.
 &quot;The recursion tree has branching factor b and depth d,
  giving O(b^d) nodes with O(d) work per node → O(d × b^d).&quot;</code></pre></div>
 
-<div style="display:contents" dir="auto"><hr id="bt-hr-14"/></div>
-
-<div style="display:contents" dir="auto"><h1 id="bt-s14" class="">14. TOP 45 LC PROBLEMS MAP</h1></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-14" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">#    PROBLEM                              PATTERN              DIFFICULTY
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SUBSETS
-78   Subsets                              Subsets              Medium ⭐
-90   Subsets II                           Subsets + dedup      Medium ⭐
-1239 Max Length of Concatenated Str       Subsets + check      Medium
-
-PERMUTATIONS
-46   Permutations                         Permutations         Medium ⭐
-47   Permutations II                      Perms + dedup        Medium ⭐
-31   Next Permutation                     Math (not backtrack) Medium
-60   Permutation Sequence                 Math / pruning       Hard
-526  Beautiful Arrangement                Perms + prune        Medium
-
-COMBINATIONS
-77   Combinations                         Combinations         Medium ⭐
-39   Combination Sum                      Combo + reuse        Medium ⭐
-40   Combination Sum II                   Combo no reuse+dedup Medium ⭐
-216  Combination Sum III                  Combo bounded        Medium ⭐
-254  Factor Combinations                  Combo (factors)      Medium
-
-STRING PARTITION
-22   Generate Parentheses                 String partition     Medium ⭐
-17   Letter Combinations                  String partition     Medium ⭐
-131  Palindrome Partitioning              Partition + DP       Medium ⭐
-93   Restore IP Addresses                 Partition + prune    Medium ⭐
-282  Expression Add Operators             Partition + math     Hard ⭐
-842  Split Array into Fibonacci           Partition            Medium
-140  Word Break II                        Partition + memo     Hard ⭐
-301  Remove Invalid Parentheses           Partition + budget   Hard ⭐
-
-GRID / PATH
-79   Word Search                          Grid path            Medium ⭐
-212  Word Search II                       Grid path + Trie     Hard ⭐
-489  Robot Room Cleaner                   Grid + relative dir  Hard ⭐⭐
-980  Unique Paths III                     Grid + visit-all     Hard ⭐
-490  The Maze                             Grid path (BFS/DFS)  Medium
-797  All Paths Source to Target           Graph path           Medium ⭐
-332  Reconstruct Itinerary                Eulerian (Hierholzer) Hard ⭐
-425  Word Squares                         Trie prefix + BT     Hard ⭐
-126  Word Ladder II                       BFS layer + BT       Hard ⭐
-
-CONSTRAINT SATISFACTION
-51   N-Queens                             Constraint           Hard ⭐⭐
-52   N-Queens II (count)                  Constraint           Hard ⭐
-37   Sudoku Solver                        Constraint           Hard ⭐⭐
-
-HYBRID: BACKTRACKING + MEMO/BITMASK/BUCKET-FILL
-698  Partition to K Equal Subsets         Bucket-fill / memo   Medium ⭐
-473  Matchsticks to Square                Bucket-fill (k=4)    Medium ⭐
-1655 Distribute Repeating Integers        Bucket-fill + count  Hard ⭐
-1723 Find Minimum Time to Finish Jobs     BT + bitmask         Hard ⭐
-126  Word Ladder II                       BFS + backtrack      Hard ⭐</code></pre></div>
-
-<div style="display:contents" dir="auto"><hr id="bt-hr-15"/></div>
-
-<div style="display:contents" dir="auto"><h1 id="bt-s15" class="">15. INTERVIEW SCRIPT</h1></div>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-15" class=""><strong>What to say out loud to signal SDE3-level thinking</strong></blockquote></div>
-
-<div style="display:contents" dir="auto"><h3 id="bt-s15-1" class="">15.1 Problem Recognition (first 2 minutes)</h3></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-15-1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">&quot;This asks for ALL [subsets/permutations/valid arrangements], not just one optimal.
- That signals backtracking — exhaustive search with pruning.
-
- My choice at each step is [include element i / pick next unused / cut at position j].
- I&#x27;ll terminate when [path length = n / sum = target / all cells filled].
-
- Key pruning opportunities I see:
-  1. [sort + break when sum exceeds target]
-  2. [skip duplicate at same level]
-  3. [constraint sets for O(1) validity check]&quot;</code></pre></div>
-
-<div style="display:contents" dir="auto"><h3 id="bt-s15-2" class="">15.2 State Definition</h3></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-15-2" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">&quot;My backtrack function signature will be:
-  backtrack(start: number, remaining: number) for combinations
-  backtrack(row: number) for N-Queens / Sudoku
-  backtrack(idx: number, pathStr: string) for string partition
-
-The key invariant: at each call, path contains the choices made so far,
-and we&#x27;re building from position `start` onward.&quot;</code></pre></div>
-
-<div style="display:contents" dir="auto"><h3 id="bt-s15-3" class="">15.3 Complexity</h3></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-15-3" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">&quot;The recursion tree has branching factor [b] and max depth [d].
- That gives [b^d] leaves, with O(d) work to record each leaf.
- Time: O(d × b^d). Space: O(d) for the call stack, plus O(output size).&quot;</code></pre></div>
-
-<div style="display:contents" dir="auto"><h3 id="bt-s15-4" class="">15.4 Brain Freeze Recovery</h3></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-15-4" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">Step 1: Write the template (choose/explore/unchoose) — always works.
-Step 2: Fill in termination condition first.
-Step 3: Fill in one choice branch, test mentally on a small example.
-Step 4: Add pruning after the basic version is working.</code></pre></div>
-
-<div style="display:contents" dir="auto"><hr id="bt-hr-16"/></div>
-
-<div style="display:contents" dir="auto"><h1 id="bt-s16" class="">16. ⭐ PRE-INTERVIEW RAPID REVISION</h1></div>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-16" class=""><strong>Scan this 5 minutes before your interview</strong></blockquote></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-16" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PICK YOUR SKELETON IN 5 SECONDS — &quot;does order matter?&quot;:
-  NO  (subsets/combos) → `start` index, loop from start, recurse i+1 (or i if reuse).
-  YES (permutations)   → `used[]` array, loop from 0, skip used[i].
-
-THE 3 THINGS TO ALWAYS DO:
-  1. push([...path])  ← copy, not reference
-  2. sort input first ← enables pruning and dedup
-  3. undo state after recursion ← restore board[r][c], unmark visited
-
-THE 4 PRUNING PATTERNS:
-  A. if (candidates[i] &gt; remaining) break   ← sorted + exceeded
-  B. if (i &gt; start &amp;&amp; arr[i] === arr[i-1]) continue ← same-level dedup
-  C. if (cols.has(col) || diag1.has(...)) continue  ← constraint check
-  D. if (buckets[b] === 0) break             ← skip symmetric empty buckets (698/473)
-
-SUBSETS vs COMBINATIONS vs PERMUTATIONS:
-  Subsets:       collect at every node. start=i+1. 2^n.
-  Combinations:  collect at leaf only (length === k). start=i+1. C(n,k).
-  Combo Sum:     collect at leaf (sum === 0). start=i (reuse) or i+1. n^(T/M).
-  Permutations:  collect at leaf (length === n). iterate all with `used[]`. n!.
-
-N-QUEENS:
-  3 sets: cols, diag1 (row-col), diag2 (row+col). One queen per row.
-  Bitmask version: full &amp; ~(cols|diag1|diag2) gives safe columns as bits.
-
-SUDOKU:
-  Find next empty cell, try 1-9, check row/col/box sets. Return false to backtrack.
-
-WORD SEARCH:
-  board[r][c] = &#x27;#&#x27; to mark visited, restore after recursion. Complexity: 3^L.
-
-PALINDROME PARTITION:
-  Precompute isPalin[i][j] in O(n^2). Then backtrack on suffix.
-
-ROBOT ROOM CLEANER (LC 489):
-  Track (row, col, direction) relative to start. goBack() = turn180 + move + turn180.
-
-WORD LADDER II (LC 126):
-  BFS layer-by-layer first (record parents per level, NOT per node).
-  Then backtrack from endWord up parent links.
-
-MEMO TRIGGER:
-  If same (idx, state) can be reached via different paths → memoize.
-  If path itself is part of state (permutations) → don&#x27;t memoize.
-
-COMPLEXITY MODEL:
-  branches^depth × depth = total time.
-  Subsets: 2^n × n. Perms: n! × n. Combos: C(n,k) × k. Grid: 3^L × m×n.</code></pre></div>
-
-<div style="display:contents" dir="auto"><hr id="bt-hr-end"/></div>
+<div style="display:contents" dir="auto"><hr id="bt-hr-selfcheck"/></div><div style="display:contents" dir="auto"><h1 id="bt-self-check" class="">✅ SELF-CHECK — explain each from memory</h1></div><div style="display:contents" dir="auto"><p id="bts-p1" class="">Reading ≠ understanding. <strong>Cover the right column</strong> and answer from memory. Anything that stalls you = the section to re-read. Get these and you can start any backtracking LC medium/hard cold.</p></div><div style="display:contents" dir="auto"><pre id="bts-box" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROMPT (cover the answers →)                    │ ANSWER
+───────────────────────────────────────────────┼───────────────────────────────
+The three-beat rhythm                          │ choose → explore → un-choose
+&quot;find ALL / count the ways&quot;                  │ backtracking
+&quot;the single best&quot; + overlapping subproblems   │ DP, not backtracking
+Subsets: collect at every node or only leaves? │ every node — each path is a subset
+Permutations: how to avoid reusing an element  │ a used[] / visited array
+Combinations: avoid [1,2] AND [2,1]            │ pass a start index, loop i = start…
+Skip duplicates on one level (sorted input)    │ if i &gt; start &amp;&amp; a[i]==a[i-1] continue
+Why push([...path]) and NOT push(path)         │ arrays are by-reference — snapshot it
+What turns a TLE into an AC                     │ pruning — cut dead branches early
+Backtracking time is roughly                    │ (branching factor)^depth × work/leaf</code></pre></div><div style="display:contents" dir="auto"><p id="bts-p2" class=""><strong>Then write these cold</strong> (no peeking): (1) subsets, (2) permutations, (3) combination sum, (4) N-Queens, (5) word search on a grid. All five start-to-finish = you own backtracking.</p></div><div style="display:contents" dir="auto"><hr id="bt-hr-end"/></div>
 <div style="display:contents" dir="auto"><p id="bt-footer" class=""><em>Backtracking Cheat Sheet | SDE2/SDE3 FAANG Edition | TypeScript</em></p></div>
 
 </div></article></body></html>
