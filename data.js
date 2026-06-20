@@ -70,10 +70,39 @@ function setNote(lcKey, text) {
   saveNotes(n);
 }
 
+// Per-topic learning notes — freeform "things to remember" cards, grouped by topic.
+// Distinct from per-question notes above: these are standalone insights for a topic.
+// shape: { [topicKey]: [ { id, title, body, pinned, updatedAt }, ... ] }
+const TOPIC_NOTES_KEY = 'dsa-topic-notes-v1';
+let _topicNotesCache = null;
+function loadTopicNotes() {
+  if (_topicNotesCache) return _topicNotesCache;
+  try { _topicNotesCache = JSON.parse(localStorage.getItem(TOPIC_NOTES_KEY) || '{}'); } catch { _topicNotesCache = {}; }
+  return _topicNotesCache;
+}
+function saveTopicNotes(n) { _topicNotesCache = n; localStorage.setItem(TOPIC_NOTES_KEY, JSON.stringify(n)); }
+// Returns a sorted COPY: pinned first, then most-recently-updated.
+function getTopicNotes(topicKey) {
+  const list = loadTopicNotes()[topicKey] || [];
+  return list.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+function upsertTopicNote(topicKey, note) {
+  const all = loadTopicNotes();
+  const list = all[topicKey] || (all[topicKey] = []);
+  const i = list.findIndex(x => x.id === note.id);
+  if (i >= 0) list[i] = note; else list.push(note);
+  saveTopicNotes(all);
+}
+function deleteTopicNote(topicKey, id) {
+  const all = loadTopicNotes();
+  if (all[topicKey]) { all[topicKey] = all[topicKey].filter(x => x.id !== id); saveTopicNotes(all); }
+}
+
 // Invalidate caches on cross-tab updates
 window.addEventListener('storage', (e) => {
   if (e.key === PROGRESS_KEY) _progressCache = null;
   if (e.key === NOTES_KEY) _notesCache = null;
+  if (e.key === TOPIC_NOTES_KEY) _topicNotesCache = null;
 });
 
 // Per-question pins (persisted in localStorage)
