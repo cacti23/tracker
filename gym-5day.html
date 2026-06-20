@@ -932,7 +932,7 @@
   ];
 
   const principles = [
-    { icon: "🔁", label: "2× Frequency", text: "Every muscle is trained twice a week — including legs now: quads (Tue leg press / Sat squat), hamstrings (Tue RDL / Sat stiff-leg + curl) and calves (Mon standing / Fri seated). The heavy lower work stays on Saturday; small pump-leg moves are sprinkled into the upper days. Muscle protein synthesis fades after ~36–48h, so at matched volume 2×/week beats 1×/week." },
+    { icon: "🔁", label: "2× Frequency", text: "Every muscle is trained twice a week — including legs now: quads (Mon leg press / Sat squat), hamstrings (Tue RDL / Sat stiff-leg + curl) and calves (Thu standing / Sat seated). The heavy lower work stays on Saturday; small pump-leg moves are sprinkled into the upper days. Muscle protein synthesis fades after ~36–48h, so at matched volume 2×/week beats 1×/week." },
     { icon: "🏋️", label: "Heavy + Pump", text: "Each muscle's two weekly sessions differ: a HEAVY day (5–8 reps, full rest = mechanical tension/overload) and a PUMP day (10–20 reps, short rest/supersets = metabolite + volume). Two stimuli beat repeating the same work — and the pump day is faster." },
     { icon: "🔒", label: "Constant Primaries", text: "Bold primaries (Incline BB, Weighted Pull-up, OHP, BB Row, Squat, Stiff-Leg DL, RDL) never change — so you can add weight/reps every week. Only accessories rotate Week A/B (a constant lift should never have a Week-B swap)." },
     { icon: "🔀", label: "Week A / B Rotation", text: "Flip the A↔B toggle each week: accessories swap to a new angle/grip for complete development and joint relief, while your trackable lifts stay fixed." },
@@ -951,7 +951,9 @@
   const storageKey = "gym5day_data";
   const navStateKey = "gym5day_nav";
   const historyKey = "gym5day_history_v1";
-  let userData = JSON.parse(localStorage.getItem(storageKey)) || {};
+  let userData;
+  try { userData = JSON.parse(localStorage.getItem(storageKey)) || {}; }
+  catch (e) { userData = {}; }
 
   // Cloud sync (shared module in sync.js): all gym5day localStorage keys.
   if (window.DataSync) {
@@ -1138,6 +1140,8 @@
         .filter(s => (s.weight && s.weight !== "") || (s.reps && s.reps !== ""))
         .map(s => ({ weight: s.weight, reps: s.reps }));
       if (!sets.length) return;
+      // Commit PRs at save time (not on every keystroke) so the ⭐ badge stays visible while typing.
+      exData.sets.forEach(s => updatePRIfNeeded(dayIdx, exIdx, s.weight, s.reps));
       if (!all[exName]) all[exName] = [];
       const last = all[exName][all[exName].length - 1];
       if (last && last.date === today) last.sets = sets; // replace same-day entry
@@ -1256,9 +1260,14 @@
             const ex = resolveEx(baseEx);
             const isChecked = completed.includes(i);
             const exData = window.getExerciseData(index, i);
+            // Variation options: the prescribed (main) exercise FIRST, then its alternatives.
+            // index 0 = main, so an untouched exercise shows the prescribed name/sets/Form target
+            // (previously index 0 was the first alternative — e.g. Leg Press defaulted to Hack Squat).
+            const variantOptions = [{ name: ex.name, sets: ex.sets, note: 'Default — as prescribed in the plan.' }, ...(ex.variants || [])];
             const currentVariant = exData.variant || 0;
-            const variantName = ex.variants?.[currentVariant]?.name || ex.name;
-            const variantSets = ex.variants?.[currentVariant]?.sets || ex.sets;
+            const selectedOption = variantOptions[currentVariant] || variantOptions[0];
+            const variantName = selectedOption.name;
+            const variantSets = selectedOption.sets;
             const isFST = (ex.tag||'').indexOf('FST') !== -1;
             const tagBg = isFST ? '#e05a2b22' : '#9333ea22';
             const tagFg = isFST ? '#e05a2b' : '#9333ea';
@@ -1292,14 +1301,14 @@
                     </div>
                     <div class="variant-content collapsed">
                       <div style="padding:8px 12px;">
-                        ${ex.variants.map((v, vIdx) => `
+                        ${variantOptions.map((v, vIdx) => `
                           <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                             <span style="cursor:pointer;" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();">
                               <input type="radio" ${vIdx===currentVariant?'checked':''} style="margin-right:6px;"> <strong>${v.name}</strong>
                               <span style="font-size:11px;color:var(--text-faint);margin-left:8px;">${v.sets}</span>
                             </span>
                             <button class="form-btn" onclick="window.ytForm('${v.name.replace(/'/g,"\\'")}')" title="Watch form video">▶</button>
-                            <div style="font-size:10px;color:var(--text-faint);margin-top:2px;margin-left:20px;flex-basis:100%;">${v.note}</div>
+                            <div style="font-size:10px;color:var(--text-faint);margin-top:2px;margin-left:20px;flex-basis:100%;">${v.note || ''}</div>
                           </div>
                         `).join('')}
                       </div>
@@ -1374,11 +1383,9 @@
 
   window.updateSetRep = function(dayIdx, exIdx, setIdx, field, value) {
     window.setExerciseSetRep(dayIdx, exIdx, setIdx, field, value);
-    const exData = window.getExerciseData(dayIdx, exIdx);
-    if (exData.sets[setIdx]) {
-      window.updatePRIfNeeded(dayIdx, exIdx, exData.sets[setIdx].weight, exData.sets[setIdx].reps);
-    }
-    // In-place status update only — keeps the keyboard open & cursor in place on mobile.
+    // PRs are committed on "Finish & Save" (see saveDayToHistory) — NOT on every keystroke —
+    // so the ⭐ PR badge compares the in-progress set against your last saved best and stays
+    // visible while you type. In-place status update only — keeps the keyboard open on mobile.
     window.refreshExerciseStatus(dayIdx, exIdx);
   };
 
