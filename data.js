@@ -134,6 +134,34 @@ function incSolveCount(lcKey) {
   } catch { return 0 }
 }
 
+// Per-question "Seen / revised" marker — INDEPENDENT of status and of the solve count.
+// Tracks the last time you looked at a problem: it is "fresh" for SEEN_FRESH_DAYS days,
+// then turns to "review again" (it never disappears). `count` = number of distinct days seen.
+// shape: { [lcKey]: { last: ISOdate, count: number } }
+const SEEN_KEY = 'dsa-seen-v1'
+const SEEN_FRESH_DAYS = 15
+function getSeen(lcKey) {
+  try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')[lcKey] || null } catch { return null }
+}
+function markSeen(lcKey) {
+  try {
+    const d = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')
+    const cur = d[lcKey] || { count: 0, last: null }
+    const now = new Date()
+    const sameDay = cur.last && cur.last.slice(0, 10) === now.toISOString().slice(0, 10)
+    d[lcKey] = { last: now.toISOString(), count: (cur.count || 0) + (sameDay ? 0 : 1) }
+    localStorage.setItem(SEEN_KEY, JSON.stringify(d))
+    return d[lcKey]
+  } catch { return null }
+}
+// 'none' (never seen) | 'fresh' (within window) | 'stale' (window elapsed → review again)
+function getSeenState(lcKey) {
+  const s = getSeen(lcKey)
+  if (!s || !s.last) return 'none'
+  const ageDays = (Date.now() - new Date(s.last).getTime()) / (24 * 60 * 60 * 1000)
+  return ageDays <= SEEN_FRESH_DAYS ? 'fresh' : 'stale'
+}
+
 // ─── GLOBAL SEARCH ──────────────────────────────────────────────────────────
 // Search across all topics by title, tags, difficulty, status, notes
 function searchGlobalQuestions(query) {

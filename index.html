@@ -564,6 +564,18 @@
     .q-header-actions .status-cycle-btn { margin-right: 0; }
     .accordion-header:has(.accordion-button:not(.collapsed)) .q-header-actions { background: var(--bg-hover); }
 
+    /* ── Calm & grouped action cluster: hairline dividers split it into
+       [status · open] │ [pin · seen] │ [solve-ring]; occasional buttons recede
+       at rest and go full-opacity on card hover / when the card is open. ── */
+    .qa-div { width: 1px; align-self: center; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 0.12rem; }
+    .qa-ghost, .q-header-actions .pin-btn:not(.pinned), .solve-ring-adj { opacity: 0.5; }
+    .accordion-header:hover .qa-ghost,
+    .accordion-header:hover .pin-btn:not(.pinned),
+    .accordion-header:hover .solve-ring-adj,
+    .accordion-header:has(.accordion-button:not(.collapsed)) .qa-ghost,
+    .accordion-header:has(.accordion-button:not(.collapsed)) .pin-btn:not(.pinned),
+    .accordion-header:has(.accordion-button:not(.collapsed)) .solve-ring-adj { opacity: 1; }
+
     /* ── 29. PRACTICE SESSION ───────────────────────────────────────────────── */
     .pin-btn {
       display: inline-flex; align-items: center; justify-content: center;
@@ -573,6 +585,23 @@
     }
     .pin-btn:hover { transform: scale(1.18); border-color: var(--border-glow); background: var(--bg-hover); }
     .pin-btn.pinned { background: var(--accent-dim); border-color: var(--accent-glow); }
+
+    /* 👀 Seen / revised flag — independent of status & solve-ring. Grey = never seen,
+       green = fresh (within 15 days), amber = "review again" (15+ days). */
+    .seen-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+      min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-elevated); cursor: pointer;
+      font-size: 0.72rem; flex-shrink: 0;
+      transition: transform 0.15s, border-color 0.15s, background 0.15s, opacity 0.2s, filter 0.2s;
+    }
+    .seen-btn:hover { transform: scale(1.18); border-color: var(--border-glow); background: var(--bg-hover); opacity: 1; filter: none; }
+    /* never seen — dim grey eye */
+    .seen-none  { filter: grayscale(1); opacity: 0.5; }
+    /* seen ≤15 days — vivid green eye */
+    .seen-fresh { background: var(--green-dim);  border-color: rgba(61,214,140,0.45); }
+    /* seen >15 days — colour shifts to amber AND the whole badge fades ("review again") */
+    .seen-stale { background: var(--yellow-dim); border-color: rgba(240,192,96,0.35); opacity: 0.5; filter: grayscale(0.4); }
     .ps-ctrl-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
     .ps-count-btn {
       display: inline-flex; align-items: center; justify-content: center;
@@ -1825,6 +1854,11 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     + '<button class="solve-ring-adj" onclick="_adjSolveCount(\'' + lcKey + '\',1)">+</button>'
     + '</span>'
 
+  const seenState = getSeenState(lcKey)
+  const seenBtn   = '<span class="seen-btn seen-' + seenState + '" id="seen-btn-' + lcKey + '"' +
+    ' title="' + _seenTitle(seenState) + '"' +
+    ' onclick="toggleSeen(\'' + lcKey + '\', this)">👀</span>'
+
   const tags = (q.tags || []).map(t => '<span class="badge badge-tag me-1">' + t + '</span>').join('')
   const companyChips = getCompanies(q.leetcode).slice()
     .sort((a, b) => (COMPANY_ORDER[a] ?? 99) - (COMPANY_ORDER[b] ?? 99))
@@ -1866,14 +1900,17 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     ' data-lc-key="' + lcKey + '">' +
     STATUS_EMOJI[status] +
     '</span>' +
-    '<span class="status-cycle-btn bg-secondary"' +
+    '<span class="status-cycle-btn bg-secondary qa-ghost"' +
     ' title="Open on LeetCode"' +
     ' aria-label="Open ' + escHtml(q.title) + ' on LeetCode"' +
     ' onclick="window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
+    '<span class="qa-div"></span>' +
     '<span class="pin-btn' + (isPinned(lcKey) ? ' pinned' : '') + '"' +
     ' id="pin-btn-' + lcKey + '"' +
     ' title="' + (isPinned(lcKey) ? 'Unpin from practice set' : 'Pin — always include in practice') + '"' +
     ' onclick="toggleQuestionPin(\'' + lcKey + '\', this)">📌</span>' +
+    seenBtn +
+    '<span class="qa-div"></span>' +
     solveRing +
     '</div>' +
 
@@ -1935,6 +1972,21 @@ function cycleQuestionStatus(lcKey, cycleBtn) {
   const current = getStatus(lcKey)
   const next    = STATUS_CYCLE[current] || 'In Progress'
   setQuestionStatus(lcKey, next, cycleBtn)
+}
+
+// ─── SEEN / REVISED FLAG ──────────────────────────────────────────────────────
+// Independent of status/solve-ring. Click = "seen today" (fresh 15 days, count++/day).
+function _seenTitle(state) {
+  if (state === 'none')  return 'Mark as seen / revised — stays fresh ' + SEEN_FRESH_DAYS + ' days'
+  if (state === 'fresh') return 'Seen · fresh — click to mark seen again'
+  return 'Seen · review again (' + SEEN_FRESH_DAYS + '+ days since last) — click to re-mark'
+}
+function toggleSeen(lcKey, el) {
+  markSeen(lcKey)
+  const state = getSeenState(lcKey)          // 'fresh' right after marking
+  el.className = 'seen-btn seen-' + state
+  el.title = _seenTitle(state)
+  _adjSolveCount(lcKey, 1)                    // every "seen" click also +1 on the solve-ring counter
 }
 
 // ─── SAVE NOTE ────────────────────────────────────────────────────────────────
@@ -2954,6 +3006,7 @@ const BACKUP_KEYS = [
   'dsa-topic-notes-v1',
   'dsa-pins-v1',
   'dsa-solve-counts-v1',
+  'dsa-seen-v1',
   'dsa-last-practiced-v1',
   'dsa-review-interval-v1',
   'dsa-streak-v1',
