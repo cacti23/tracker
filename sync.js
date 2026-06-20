@@ -80,10 +80,16 @@
       });
     });
   }
-  // run fn(gistId); if the gist 404s (deleted), drop the cache and re-resolve once
+  // Run fn(gistId). If we were using a PREVIOUSLY CACHED gist id and the call
+  // fails (gist deleted, different account, otherwise invalid id), the id is
+  // stale — drop it and re-resolve once. This automates the old workaround of
+  // re-entering the token (which only "worked" because it cleared the cache).
+  // We only retry when the id came from cache, so a genuine first-run error
+  // (e.g. a bad token) still surfaces, and we never create duplicate gists.
   function withGist(fn) {
+    var hadCachedId = !!localStorage.getItem(GISTID_KEY);
     return resolveGist().then(fn).catch(function (e) {
-      if (/\b404\b/.test(e.message)) {
+      if (hadCachedId) {
         localStorage.removeItem(GISTID_KEY);
         return resolveGist().then(fn);
       }
@@ -155,6 +161,15 @@
     return pullApp(appId).then(function (remote) {
       var meta = getMeta(appId);
       var lastSynced = meta.lastSyncedAt ? Date.parse(meta.lastSyncedAt) : 0;
+      var localEmpty = Object.keys(collect(keys)).length === 0;
+      var remoteHasData = remote && remote.data && Object.keys(remote.data).length > 0;
+      // Safety net: if local is empty (e.g. localStorage was cleared) but the
+      // cloud still has data, ALWAYS restore from the cloud — never let an empty
+      // app overwrite a good backup, regardless of timestamps.
+      if (localEmpty && remoteHasData) {
+        applyPull(appId, keys, remote);
+        return { action: 'pull' };
+      }
       if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced) {
         applyPull(appId, keys, remote);
         return { action: 'pull' };
