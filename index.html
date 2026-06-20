@@ -700,6 +700,12 @@
         ⬆ Import
       </button>
       <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
+      <button type="button" id="dataSyncBtn" class="sidebar-data-btn" onclick="DataSync.syncNow()" title="Sync progress to/from the cloud (GitHub gist) so it follows you across devices">
+        ☁ Sync
+      </button>
+      <button type="button" class="sidebar-data-btn" onclick="DataSync.setToken()" title="Set or change the GitHub token used for cloud sync (stored only in this browser)">
+        ⚙ Token
+      </button>
     </div>
 
     <div class="sidebar-footer">v29 · DSA Notebook</div>
@@ -770,6 +776,7 @@
 <!-- ═══ SCRIPT ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="data.js"></script>
+<script src="sync.js"></script>
 <script>
 /* <![CDATA[ */
 
@@ -2701,6 +2708,12 @@ const BACKUP_KEYS = [
   'dsa-qp-state-v1',
   'dsa-theme'
 ]
+
+// Cloud sync (shared module in sync.js): reuse the BACKUP_KEYS allowlist.
+if (window.DataSync) {
+  DataSync.init({ appId: 'dsa', keys: BACKUP_KEYS, versionLabel: 'DSA Notebook' })
+  DataSync.autoSync()   // runs at most once / 24h if a token is set
+}
 
 function exportData() {
   const backup = {}
