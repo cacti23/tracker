@@ -29,6 +29,7 @@
   .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
   .box.warn{border-left-color:var(--warn);background:#c2410c10}
   .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
   .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
   .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
   pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
@@ -158,7 +159,7 @@ That rule is always justified by an <b>invariant</b> — a fact that stays true 
 
 <!-- ───────────────────────── 4 ───────────────────────── -->
 <h2 id="patterns">🧩 4 · The four core patterns</h2>
-<p class="hint">Each pattern below = a one-line mental model, a 🔑 invariant (the thing that proves it correct), a template, and a picture.</p>
+<p class="hint">Each pattern below = a one-line mental model, a 🔑 invariant (the proof it's correct), a template, a picture, and a 🎤 interview lens (what's probed + the next escalation).</p>
 
 <!-- 4.1 -->
 <h3 id="p-conv">4.1 · Converging — opposite ends, move inward</h3>
@@ -245,6 +246,8 @@ function kSum(a: number[], target: number, k: number, start: number): number[][]
 }</code></pre>
 <p class="hint">Notice the recursion bottoms out in the converging sweep — two pointers <i>is</i> the engine; the loops just fix the extra indices.</p>
 
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> can you <i>justify</i> why moving a pointer never skips an answer (state the invariant), and "what if it's <i>not</i> sorted?" (sort vs. hash-map trade-off). <b>· Escalation:</b> 2Sum → 3Sum → kSum; "return <i>all unique</i> triples" (dedup); "closest sum" (track best, not exact).</div>
+
 <!-- 4.2 -->
 <h3 id="p-fast">4.2 · Fast &amp; Slow — Floyd's tortoise &amp; hare</h3>
 <p class="tldr">“If there's a loop, the hare laps the tortoise.”</p>
@@ -298,6 +301,8 @@ function detectCycle(head: ListNode | null): ListNode | null {
 <div class="box"><b class="tag">Why the reset trick works</b> Let the entry be <code>μ</code> steps from head and the meet be <code>k</code> steps into the loop. "Fast went twice as far" forces: distance head→entry ≡ distance meet→entry. So two walkers at speed 1 — one from head, one from the meet — collide exactly at the entry.</div>
 <p><b>Same engine, other uses:</b> <b>middle node</b> → return <code>slow</code> when <code>fast</code> hits the end;
 <b>n-th from end</b> → give <code>fast</code> an <code>n</code>-step head start, then move both until <code>fast</code> ends.</p>
+
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> prove it's <code>O(1)</code> space and argue <i>why</i> the two must meet; then derive the cycle-start reset on the spot. <b>· Escalation:</b> detect cycle → return its <i>start</i> → its <i>length</i>; then "Find the Duplicate Number" (treat the array as a linked list and reuse this verbatim).</div>
 
 <!-- 4.3 -->
 <h3 id="p-rw">4.3 · Read/Write — same direction, in place</h3>
@@ -354,6 +359,8 @@ function sortColors(a: number[]): void {
   }
 }</code></pre>
 
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> truly in place, <code>O(1)</code> extra, and you never overwrite an unread slot (the <code>write ≤ read</code> invariant); is order preserved? <b>· Escalation:</b> remove dups → "allow at most <i>2</i> copies" → Dutch-flag 3-way partition in one pass.</div>
+
 <!-- 4.4 -->
 <h3 id="p-seq">4.4 · Two-sequence — one pointer per array</h3>
 <p class="tldr">“Two queues, one output; take the smaller head.”</p>
@@ -383,6 +390,8 @@ function isSubsequence(s: string, t: string): boolean {
   return i === s.length;
 }</code></pre>
 
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> what if one input is far larger or <i>streamed</i>? can you merge in place into a fixed buffer? <b>· Escalation:</b> merge two → "Merge Sorted Array" in place (fill from the <i>back</i>) → merge <i>k</i> lists (→ a heap; see the Heap sheet).</div>
+
 <!-- ───────────────────────── 5 ───────────────────────── -->
 <h2 id="complexity">⏱️ 5 · Complexity</h2>
 <table>
@@ -409,8 +418,8 @@ function isSubsequence(s: string, t: string): boolean {
 </table>
 
 <div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
-<b>Sliding window</b> is a same-direction two-pointer (the read/write cousin) where "write" becomes a window-left that <i>shrinks on a rule</i>.
-<b>Binary search</b> is a converging pointer on the <i>answer space</i>, not the array — same "discard half, safely" logic.
+<b><a href="sliding-window.html">Sliding window</a></b> is a same-direction two-pointer (the read/write cousin) where "write" becomes a window-left that <i>shrinks on a rule</i>.
+<b><a href="binary-search.html">Binary search</a></b> is a converging pointer on the <i>answer space</i>, not the array — same "discard half, safely" logic.
 <b>Floyd's fast/slow</b> generalizes to any functional graph: "Find the Duplicate Number" treats the array as a linked list and reuses <code>detectCycle</code> verbatim.
 <b>Merge (4.4)</b> is the heart of merge sort and of merging k lists with a heap.</div>
 

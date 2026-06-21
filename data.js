@@ -17,9 +17,9 @@
 // linear structures → sorting/ordered → recursion cluster → graphs → DP → specialized.
 const TOPICS = [
   { key: 'two-pointers',   icon: '👉', label: 'Two Pointers',  cheatsheetUrl: 'two-pointers.html' },
-  { key: 'sliding-window', icon: '🪟', label: 'Sliding Window' },
-  { key: 'binary-search',  icon: '🔍', label: 'Binary Search'  },
-  { key: 'stack',               icon: '🥞', label: 'Stack & Monotonic Stack' },
+  { key: 'sliding-window', icon: '🪟', label: 'Sliding Window', cheatsheetUrl: 'sliding-window.html' },
+  { key: 'binary-search',  icon: '🔍', label: 'Binary Search',  cheatsheetUrl: 'binary-search.html' },
+  { key: 'stack',               icon: '🥞', label: 'Stack & Monotonic Stack', cheatsheetUrl: 'stack.html' },
   { key: 'linked-list',         icon: '🔗', label: 'Linked List'           },
   { key: 'sorting',        icon: '🔃', label: 'Sorting'        },
   { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue' },

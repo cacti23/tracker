@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sliding Window — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#0891b2; --accent-soft:#0891b214; --accent-line:#0891b240; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0}
+  ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🪟 Sliding Window</h1>
+<p class="sub">A learning sheet — turn O(n²) subarray scans into one linear pass by reusing the window you already built.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p><b>The one idea:</b> a <b>contiguous</b> sub-array/sub-string answer depends on a window <code>[left, right]</code>.
+Instead of rebuilding every window from scratch (<code>O(n²)</code>), <b>slide</b>: when <code>right</code> moves one step, you only
+<i>add</i> one element; when you must shrink, <code>left</code> only ever moves <b>forward</b>. Each index enters and leaves the window once ⇒ <code>O(n)</code>.</p>
+
+<p>The whole topic is one question: <b>"when is my window valid, and which end do I move to fix it?"</b> Answer that with an invariant and the template writes itself.</p>
+
+<figure>
+<svg viewBox="0 0 640 150" role="img" aria-label="A window sliding across a string">
+  <g font-size="14" text-anchor="middle">
+    <g transform="translate(30,55)">
+      <rect x="0"   width="40" height="38" fill="#fff" stroke="#cbd5d1" rx="5"/><text x="20" y="24">a</text>
+      <rect x="44"  width="40" height="38" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="64" y="24">b</text>
+      <rect x="88"  width="40" height="38" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="108" y="24">c</text>
+      <rect x="132" width="40" height="38" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="152" y="24">a</text>
+      <rect x="176" width="40" height="38" fill="#fff" stroke="#cbd5d1" rx="5"/><text x="196" y="24">b</text>
+      <rect x="220" width="40" height="38" fill="#fff" stroke="#cbd5d1" rx="5"/><text x="240" y="24">c</text>
+      <text x="64"  y="-12" fill="#0891b2" font-weight="700" font-size="12">left</text>
+      <text x="152" y="-12" fill="#0891b2" font-weight="700" font-size="12">right</text>
+      <path d="M44 50 H172" stroke="#0891b2" stroke-width="2"/>
+      <text x="108" y="68" fill="#6b675e" font-size="11">the live window</text>
+    </g>
+    <g transform="translate(420,55)" font-size="13" text-anchor="start">
+      <text x="0" y="-2" fill="#0891b2" font-weight="700">right++</text><text x="55" y="-2" fill="#6b675e">→ add one element</text>
+      <text x="0" y="22" fill="#c2410c" font-weight="700">left++</text><text x="55" y="22" fill="#6b675e">→ only when forced</text>
+      <text x="0" y="48" fill="#6b675e" font-size="11">left never goes backward → O(n)</text>
+    </g>
+  </g>
+</svg>
+<figcaption>The window breathes: <code>right</code> always advances; <code>left</code> only catches up when validity demands it.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">Mental checklist</b> <b>(1)</b> what does the window <b>state</b> track (a sum? a frequency map? a distinct count?) <b>(2)</b> what makes it <b>invalid</b>? <b>(3)</b> when invalid, you shrink from <code>left</code>; when do you <b>record</b> the answer — while valid, or after restoring validity? That last choice is the whole difference between "longest" and "shortest."</div>
+
+<h3>Watch it get invented — Longest Substring Without Repeating Characters</h3>
+<ol>
+<li><b>Start brute.</b> Check every substring for uniqueness → <code>O(n²)</code> or worse.</li>
+<li><b>Spot the waste.</b> If <code>[left, right]</code> has no repeat and you push <code>right</code>, you don't re-scan the whole thing — you only need to know if the <i>new</i> char already sits in the window. And when it does, sliding <code>left</code> <i>backward</i> is pointless: any earlier start contains the duplicate too. <b><code>left</code> only moves forward.</b></li>
+<li><b>The leap.</b> Keep <code>lastSeen[char]</code>. On each <code>right</code>, jump <code>left</code> to <code>max(left, lastSeen[c] + 1)</code> — past the previous copy. Record <code>right − left + 1</code>.</li>
+<li><b>Payoff.</b> Each index is visited by <code>right</code> once and by <code>left</code> once ⇒ <code>O(n)</code>.</li>
+</ol>
+<table>
+<tr><th>right</th><th>char</th><th>lastSeen[c] ≥ left?</th><th>left</th><th>window</th><th>maxLen</th></tr>
+<tr><td>2</td><td>c</td><td>—</td><td>0</td><td><code>abc</code></td><td>3</td></tr>
+<tr><td>3</td><td>a</td><td>yes (0)</td><td>1</td><td><code>bca</code></td><td>3</td></tr>
+<tr><td>6</td><td>b</td><td>yes (4)</td><td>5</td><td><code>cb</code></td><td>3</td></tr>
+</table>
+<p class="hint">Input <code>"abcabcbb"</code> → answer 3. Watch <code>left</code> jump forward on each repeat, never back.</p>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td><b>Contiguous</b> subarray/substring? (not a subsequence)</td><td>sliding window is in play</td><td>—</td></tr>
+<tr><td>Window size is <b>given</b> (k)?</td><td>add new, drop the one that fell off</td><td><b><a href="#p-fixed">Fixed</a></b> (§4.1)</td></tr>
+<tr><td>Find the <b>longest</b> window satisfying a constraint?</td><td>grow; shrink only while <b>invalid</b>; record after</td><td><b><a href="#p-long">Variable · longest</a></b> (§4.2)</td></tr>
+<tr><td>Find the <b>shortest</b> window satisfying a constraint?</td><td>grow until valid; shrink while <b>valid</b>; record during</td><td><b><a href="#p-short">Variable · shortest</a></b> (§4.3)</td></tr>
+<tr><td><b>Count</b> subarrays with an <b>exact</b> property?</td><td><code>exactly(K) = atMost(K) − atMost(K−1)</code></td><td><b><a href="#p-count">Counting</a></b> (§4.4)</td></tr>
+<tr><td>Need the <b>max/min within</b> each window?</td><td>monotonic deque of indices</td><td><b><a href="#p-deque">Monotonic deque</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When sliding window is the WRONG tool</b>
+<b>·</b> The answer is a <b>subsequence</b>, not contiguous — that's usually DP, not a window.<br/>
+<b>·</b> <b>Negative numbers</b> break the monotonicity you're relying on: "shortest subarray with sum ≥ K" with negatives <i>cannot</i> use a naive window (growing doesn't only-increase the sum) → use prefix sums + a monotonic deque.<br/>
+<b>·</b> Validity <b>isn't monotonic</b> — if adding an element can turn an invalid window valid again, the "shrink once" logic is unsafe.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"subarray/substring <b>of size k</b>", "every window of length k", "average of k"</td><td><a href="#p-fixed">Fixed §4.1</a></td></tr>
+<tr><td>"<b>longest</b>/maximum substring with…", "no repeating", "at most k distinct", "≤ k replacements/flips"</td><td><a href="#p-long">Longest §4.2</a></td></tr>
+<tr><td>"<b>shortest</b>/minimum window/subarray that contains… / sums to ≥…"</td><td><a href="#p-short">Shortest §4.3</a></td></tr>
+<tr><td>"<b>number of</b> subarrays with <b>exactly</b> k distinct / sum = goal / k odds"</td><td><a href="#p-count">Counting §4.4</a></td></tr>
+<tr><td>"<b>maximum/minimum in</b> each window", "sliding window maximum"</td><td><a href="#p-deque">Deque §4.5</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">Each = a one-line model, a 🔑 invariant, a template, a picture, and a 🎤 interview lens. The two variable templates differ in <i>one line</i> — where you record the answer.</p>
+
+<!-- 4.1 -->
+<h3 id="p-fixed">4.1 · Fixed window — size k</h3>
+<p class="tldr">“Add the newcomer, drop the one that fell off the back.”</p>
+<p><b>Setup:</b> maintain a running window state for exactly <code>k</code> elements. Each step is <code>O(1)</code>: add <code>a[right]</code>, and once the window is full, subtract <code>a[right−k]</code>.</p>
+
+<figure>
+<svg viewBox="0 0 560 130" role="img" aria-label="Fixed window of size 3 sliding">
+  <g font-size="14" text-anchor="middle">
+    <g transform="translate(30,45)">
+      <rect x="0" width="40" height="38" fill="#fff" stroke="#cbd5d1" rx="5"/><text x="20" y="24">2</text>
+      <rect x="44" width="40" height="38" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="64" y="24">1</text>
+      <rect x="88" width="40" height="38" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="108" y="24">5</text>
+      <rect x="132" width="40" height="38" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="152" y="24">1</text>
+      <rect x="176" width="40" height="38" fill="#fff" stroke="#cbd5d1" rx="5"/><text x="196" y="24">3</text>
+      <rect x="220" width="40" height="38" fill="#fff" stroke="#cbd5d1" rx="5"/><text x="240" y="24">2</text>
+      <text x="20" y="60" fill="#c2410c" font-size="11" font-weight="700">drop</text>
+      <text x="196" y="60" fill="#0891b2" font-size="11" font-weight="700">add</text>
+      <text x="108" y="-10" fill="#6b675e" font-size="11">k = 3 · slide right</text>
+    </g>
+  </g>
+</svg>
+<figcaption>The window never re-sums from scratch — one subtract, one add per step.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> After processing index <code>right</code>, the window state describes exactly <code>a[right−k+1 .. right]</code>. Because you remove precisely the element leaving and add the one entering, the state is always a faithful summary of the current <code>k</code>-window.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Maximum sum of any size-k subarray
+function maxSumK(a: number[], k: number): number {
+  let sum = 0, best = -Infinity;
+  for (let right = 0; right &lt; a.length; right++) {
+    sum += a[right];                 // add newcomer
+    if (right &gt;= k) sum -= a[right - k];  // drop the one that fell off
+    if (right &gt;= k - 1) best = Math.max(best, sum); // window is full
+  }
+  return best;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> each slide must be <code>O(1)</code> — no re-summing the window. <b>· Escalation:</b> sum → average → "permutation/anagram in string" (a fixed window with a 26-length frequency match) → "first negative in every window" (a queue of negatives).</div>
+
+<!-- 4.2 -->
+<h3 id="p-long">4.2 · Variable window — longest valid</h3>
+<p class="tldr">“Grow greedily; shrink only while broken; measure after.”</p>
+<p><b>Setup:</b> expand <code>right</code> every step. If the window became <b>invalid</b>, shrink from <code>left</code> until it's valid again — <i>then</i> record the length.</p>
+
+<figure>
+<svg viewBox="0 0 560 120" role="img" aria-label="Longest variable window grow and shrink">
+  <g font-size="13" text-anchor="start">
+    <text x="20" y="30" fill="#0891b2" font-weight="700">right++</text><text x="95" y="30" fill="#6b675e">always — try to grow the window</text>
+    <text x="20" y="58" fill="#c2410c" font-weight="700">while invalid:</text><text x="150" y="58" fill="#6b675e">left++ (remove a[left] from state)</text>
+    <text x="20" y="86" fill="#7c3aed" font-weight="700">best = max(best, right−left+1)</text><text x="280" y="86" fill="#6b675e">window is valid here</text>
+  </g>
+</svg>
+<figcaption>Record <i>after</i> restoring validity — the window is guaranteed valid at the bottom of the loop.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> At the end of each iteration, <code>[left, right]</code> is the <b>longest valid window ending at <code>right</code></b>. Since <code>left</code> only moves forward, a window that became invalid can't be fixed by an earlier <code>left</code> — so we never miss a longer valid window.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Longest substring with at most K distinct characters
+function longestKDistinct(s: string, k: number): number {
+  const count = new Map&lt;string, number&gt;();
+  let left = 0, best = 0;
+  for (let right = 0; right &lt; s.length; right++) {
+    count.set(s[right], (count.get(s[right]) ?? 0) + 1);  // grow
+    while (count.size &gt; k) {                               // shrink WHILE invalid
+      const c = s[left++];
+      const n = count.get(c)! - 1;
+      if (n === 0) count.delete(c); else count.set(c, n);
+    }
+    best = Math.max(best, right - left + 1);               // record (now valid)
+  }
+  return best;
+}</code></pre>
+<div class="box warn"><b class="tag">The famous trap — Longest Repeating Character Replacement</b> Window is valid when <code>windowLen − maxFreq ≤ k</code>. The <i>intentional</i> bug everyone questions: <code>maxFreq</code> is never decreased on shrink. It can go stale — and that's <b>fine</b>, because a longer answer needs a larger <code>maxFreq</code> anyway, so a stale value never lets the window grow falsely.</div>
+
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why does <code>left</code> never move backward (prove the amortized <code>O(n)</code>)? <b>· Escalation:</b> no-repeat → at-most-K-distinct → "Max Consecutive Ones III" (≤ k zeros) → "Longest Repeating Char Replacement" (the stale-<code>maxFreq</code> argument above).</div>
+
+<!-- 4.3 -->
+<h3 id="p-short">4.3 · Variable window — shortest valid</h3>
+<p class="tldr">“Grow until valid; then squeeze as much as it stays valid.”</p>
+<p><b>Setup:</b> mirror of 4.2. Expand until the window is <b>valid</b>; then shrink from <code>left</code> <i>while still valid</i>, recording the length <b>during</b> the shrink.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Every time the window first becomes valid, the inner loop shrinks it to the <b>shortest valid window ending at (or before) <code>right</code></b> before <code>right</code> moves again. Recording inside that loop catches every minimal window.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Minimum Size Subarray Sum ≥ target  (positives only)
+function minSubArrayLen(target: number, a: number[]): number {
+  let left = 0, sum = 0, best = Infinity;
+  for (let right = 0; right &lt; a.length; right++) {
+    sum += a[right];
+    while (sum &gt;= target) {                       // shrink WHILE valid
+      best = Math.min(best, right - left + 1);    // record DURING
+      sum -= a[left++];
+    }
+  }
+  return best === Infinity ? 0 : best;
+}</code></pre>
+<p class="hint"><b>The one-line difference vs §4.2:</b> longest shrinks <i>while invalid</i> and records <i>after</i>; shortest shrinks <i>while valid</i> and records <i>during</i>. Same skeleton, opposite trigger.</p>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> when exactly do you record, and how do you report "no valid window"? <b>· Escalation:</b> min subarray sum → "Minimum Window Substring" (a <code>need</code> frequency map + a <code>formed</code> counter that tracks how many required chars are fully satisfied).</div>
+
+<!-- 4.4 -->
+<h3 id="p-count">4.4 · Counting — "exactly K" via "at most K"</h3>
+<p class="tldr">“You can't window ‘exactly’; window ‘at most’ twice and subtract.”</p>
+<p><b>Why:</b> "exactly K" isn't monotonic (a valid window can become invalid <i>and</i> valid again as you grow), so a single window can't count it. But "<b>at most</b> K" <i>is</i> monotonic. So:
+<code>exactly(K) = atMost(K) − atMost(K−1)</code>.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — the counting trick</b> In an <code>atMost</code> window <code>[left, right]</code> that's valid, <b>every</b> subarray ending at <code>right</code> and starting in <code>[left, right]</code> is also valid. That's <code>right − left + 1</code> new subarrays — add it each step.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Subarrays with exactly K distinct integers
+function subarraysKDistinct(a: number[], k: number): number {
+  const atMost = (k: number): number =&gt; {
+    if (k &lt; 0) return 0;
+    const count = new Map&lt;number, number&gt;();
+    let left = 0, res = 0;
+    for (let right = 0; right &lt; a.length; right++) {
+      count.set(a[right], (count.get(a[right]) ?? 0) + 1);
+      while (count.size &gt; k) {
+        const n = count.get(a[left])! - 1;
+        if (n === 0) count.delete(a[left]); else count.set(a[left], n);
+        left++;
+      }
+      res += right - left + 1;      // # of valid subarrays ending at right
+    }
+    return res;
+  };
+  return atMost(k) - atMost(k - 1);
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> derive <code>exactly = atMost(K) − atMost(K−1)</code>, and justify <code>res += right−left+1</code>. <b>· Escalation:</b> K distinct → "Binary Subarrays With Sum = goal" → "Count Number of Nice Subarrays" (exactly k odd numbers; same trick on parity).</div>
+
+<!-- 4.5 -->
+<h3 id="p-deque">4.5 · Monotonic deque — max/min in each window</h3>
+<p class="tldr">“Keep a deque of candidates in decreasing order; the front is the answer.”</p>
+<p><b>Setup:</b> store <b>indices</b> in a deque whose values are strictly decreasing. The front is always the window max. Pop the back while it's ≤ the newcomer (it can never be the max again); pop the front when it slides out of the window.</p>
+
+<figure>
+<svg viewBox="0 0 560 130" role="img" aria-label="Monotonic deque holding decreasing values">
+  <g font-size="13" text-anchor="middle">
+    <text x="120" y="20" fill="#6b675e">values entering →</text>
+    <g transform="translate(40,40)">
+      <rect x="0" width="44" height="34" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="22" y="22">8</text>
+      <rect x="48" width="44" height="34" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="70" y="22">5</text>
+      <rect x="96" width="44" height="34" fill="#0891b220" stroke="#0891b2" rx="5"/><text x="118" y="22">3</text>
+      <text x="22" y="50" fill="#7c3aed" font-weight="700" font-size="11">front = max</text>
+      <text x="118" y="50" fill="#c2410c" font-size="11">back: popped when ≤ newcomer</text>
+    </g>
+    <text x="430" y="58" fill="#6b675e" font-size="12">deque: indices, values ↓</text>
+  </g>
+</svg>
+<figcaption>Each index is pushed once and popped once → amortized <code>O(n)</code> for all windows combined.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The deque holds, in order, the indices that <i>could still be</i> the max of some future window — strictly decreasing by value, all inside <code>[right−k+1, right]</code>. A smaller-or-equal value behind a newer larger one is dominated forever, so dropping it loses nothing.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Sliding Window Maximum — max of every size-k window
+function maxSlidingWindow(a: number[], k: number): number[] {
+  const dq: number[] = [];   // indices; a[dq] strictly decreasing
+  const res: number[] = [];
+  for (let i = 0; i &lt; a.length; i++) {
+    while (dq.length &amp;&amp; a[dq[dq.length - 1]] &lt;= a[i]) dq.pop();  // keep decreasing
+    dq.push(i);
+    if (dq[0] &lt;= i - k) dq.shift();        // evict out-of-window front
+    if (i &gt;= k - 1) res.push(a[dq[0]]);    // front = current max
+  }
+  return res;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> prove amortized <code>O(n)</code> (each index pushed/popped once) and call out that JS <code>Array.shift()</code> is <code>O(n)</code> — use a head pointer for true <code>O(n)</code>. <b>· Escalation:</b> max → min (mirror the comparison) → "Longest subarray with abs(max−min) ≤ limit" (run two deques at once).</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>Fixed window</td><td><code>O(n)</code></td><td><code>O(1)</code> / <code>O(σ)</code></td><td>σ = alphabet if a frequency map is needed</td></tr>
+<tr><td>Variable — longest / shortest</td><td><code>O(n)</code></td><td><code>O(σ)</code></td><td><code>left</code> + <code>right</code> each traverse ≤ n</td></tr>
+<tr><td>Counting (at-most ×2)</td><td><code>O(n)</code></td><td><code>O(σ)</code></td><td>two linear passes, still linear</td></tr>
+<tr><td>Monotonic deque</td><td><code>O(n)</code></td><td><code>O(k)</code></td><td>each index pushed/popped once</td></tr>
+</table>
+<div class="box"><b class="tag">The amortized argument</b> <code>right</code> advances n times; <code>left</code> advances at most n times total across the <i>whole</i> run (never resets). So even though there's an inner <code>while</code>, the combined work is <code>O(n)</code> — say this explicitly, don't let the nested loop scare you into <code>O(n²)</code>.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Shrinking with <code>if</code> instead of <code>while</code> (longest) — one removal may not restore validity.</td><td><code>"aaab"</code>, k=1 distinct → an <code>if</code> leaves 2 distinct in the window.</td></tr>
+<tr><td>Recording the answer at the wrong moment (longest = after; shortest = during).</td><td>Min-window on <code>[2,3,1,2,4,3]</code>, target 7 → recording after the shrink loop misses length 2 (<code>[4,3]</code>).</td></tr>
+<tr><td>Off-by-one window length (<code>right − left</code> vs <code>+ 1</code>).</td><td>Any single-element answer, e.g. target = <code>a[i]</code> exactly → should report length 1.</td></tr>
+<tr><td>Fixed window: forgetting to subtract the element that left.</td><td><code>[1,1,1,1]</code>, k=2 → window sum keeps growing past 2 elements.</td></tr>
+<tr><td>Using a naive window with <b>negative numbers</b>.</td><td><code>[2,-1,2]</code>, target 3 → growing doesn't monotonically raise the sum; misses / mis-shrinks.</td></tr>
+<tr><td>Deque stores <b>values</b>, not indices — can't evict by position.</td><td>Any window where the max repeats, e.g. <code>[5,3,5]</code>, k=2.</td></tr>
+<tr><td>Frequency map keeps <b>zero</b> entries → <code>size</code> overcounts distinct.</td><td>at-most-k on <code>"aba"</code>, k=1 → stale <code>a:0</code> inflates <code>size</code>.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>Sliding window <i>is</i> a same-direction two-pointer</b> — it's the Read/Write cousin from <a href="two-pointers.html#p-rw">two-pointers.html</a> with a shrink rule (and the converging vs. window distinction is sorting-vs-contiguity).
+<b>Fixed windows</b> are often replaceable by <b>prefix sums</b>.
+<b>The monotonic deque</b> is the <a href="stack.html#p-mono">monotonic-stack</a> idea applied to a moving range — a stack open at both ends.
+<b>Negative-number variant</b> ("Shortest Subarray with Sum ≥ K") needs <b>prefix sums + a monotonic deque</b> — the bridge from this sheet to that one.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What is the <b>one-line</b> difference between the longest and shortest variable templates?</td><td class="a">Longest shrinks <i>while invalid</i> and records <i>after</i>; shortest shrinks <i>while valid</i> and records <i>during</i>.</td></tr>
+<tr><td>Why is the whole scan <code>O(n)</code> despite a nested <code>while</code>?</td><td class="a"><code>left</code> only moves forward and never resets, so it advances ≤ n times total across the run. Amortized linear.</td></tr>
+<tr><td>How do you count subarrays with <b>exactly</b> K distinct?</td><td class="a"><code>atMost(K) − atMost(K−1)</code>. "Exactly" isn't monotonic; "at most" is.</td></tr>
+<tr><td>In an <code>atMost</code> window, why add <code>right − left + 1</code>?</td><td class="a">Every subarray ending at <code>right</code> and starting anywhere in <code>[left,right]</code> is also valid — that's how many new ones end at <code>right</code>.</td></tr>
+<tr><td>Why does the monotonic deque store indices, not values?</td><td class="a">To evict the front when it slides out of the window (a position check) — values alone can't tell you that.</td></tr>
+<tr><td>When does sliding window <b>fail</b>?</td><td class="a">Negative numbers (sum not monotonic) or non-contiguous (subsequence) problems; the shrink-once invariant breaks.</td></tr>
+<tr><td>Longest Repeating Char Replacement: why is the stale <code>maxFreq</code> not a bug?</td><td class="a">A longer answer needs a larger <code>maxFreq</code>; a stale (too-small) value can only <i>under</i>-grow the window, never falsely grow it.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">fixed</span> <code>maxSumK</code> and anagram-in-string (26-freq match)</li>
+<li><span class="pill">longest</span> <code>longestKDistinct</code> + the replacement-trap variant</li>
+<li><span class="pill">shortest</span> <code>minSubArrayLen</code> and minimum-window-substring</li>
+<li><span class="pill">counting</span> <code>subarraysKDistinct</code> via <code>atMost</code></li>
+<li><span class="pill">deque</span> <code>maxSlidingWindow</code></li>
+</ul>
+<p class="hint">For each: write the validity condition and where you record the answer <i>as a comment first</i>, then the loop.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

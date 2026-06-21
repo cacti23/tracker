@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stack &amp; Monotonic Stack — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#b45309; --accent-soft:#b4530914; --accent-line:#b4530940; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🥞 Stack &amp; Monotonic Stack</h1>
+<p class="sub">A learning sheet — a stack remembers what's <i>unresolved</i> and settles it in reverse. The monotonic variant turns O(n²) "nearest larger/smaller" scans into one pass.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p><b>The plain idea:</b> a stack is "things I've seen but can't finish yet," resolved <b>last-in-first-out</b>. Openers wait for closers; a sub-expression waits until its <code>]</code>; the call stack waits for each return.</p>
+
+<p><b>The powerful idea — the monotonic stack:</b> keep the stack <b>sorted</b> (always increasing, or always decreasing). When a newcomer would break that order, <b>pop</b> the elements it dominates and resolve each one against the newcomer. Because every element is pushed once and popped once, an apparently nested loop is actually <code>O(n)</code>.</p>
+
+<figure>
+<svg viewBox="0 0 620 175" role="img" aria-label="Monotonic decreasing stack popping smaller elements">
+  <g font-size="13" text-anchor="middle">
+    <g transform="translate(60,30)">
+      <text x="40" y="-8" fill="#6b675e" font-size="11">decreasing stack (top = smallest)</text>
+      <rect x="0" y="0"   width="80" height="30" fill="#b4530918" stroke="#b45309" rx="5"/><text x="40" y="20">75</text>
+      <rect x="0" y="34"  width="80" height="30" fill="#b4530918" stroke="#b45309" rx="5"/><text x="40" y="54">71</text>
+      <rect x="0" y="68"  width="80" height="30" fill="#c2410c22" stroke="#c2410c" rx="5"/><text x="40" y="88">69</text>
+      <text x="100" y="20" text-anchor="start" fill="#6b675e" font-size="11">← bottom (kept)</text>
+      <text x="100" y="83" text-anchor="start" fill="#c2410c" font-size="11">← these pop: smaller than 72</text>
+    </g>
+    <g transform="translate(360,55)">
+      <rect x="0" y="0" width="60" height="34" fill="#16a34a22" stroke="#16a34a" rx="6"/><text x="30" y="22" fill="#37352f" font-weight="700">72</text>
+      <text x="30" y="-8" fill="#16a34a" font-size="11">newcomer</text>
+      <path d="M-30 17 H-6" stroke="#16a34a" stroke-width="2" marker-end="url(#a)"/>
+      <text x="120" y="6" text-anchor="start" fill="#6b675e" font-size="11">72 &gt; 69 → pop, resolve 69</text>
+      <text x="120" y="26" text-anchor="start" fill="#6b675e" font-size="11">72 &gt; 71 → pop, resolve 71</text>
+      <text x="120" y="46" text-anchor="start" fill="#6b675e" font-size="11">72 &lt; 75 → stop, push 72</text>
+    </g>
+  </g>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#16a34a"/></marker></defs>
+</svg>
+<figcaption>The newcomer is the answer ("next greater") for everything smaller it pops. Push-once, pop-once ⇒ linear.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">Mental checklist (monotonic)</b> <b>(1)</b> increasing or decreasing stack? <b>(2)</b> pop on <code>&lt;</code> or <code>&lt;=</code> (how to treat ties)? <b>(3)</b> store <b>indices</b> (if you need distance/width) or values? <b>(4)</b> what do you compute <i>at the moment of popping</i> — that pop is when an element's answer becomes known.</div>
+
+<h3>Watch it get invented — Daily Temperatures</h3>
+<p>For each day, how many days until a warmer one? <code>temps = [73,74,75,71,69,72,76,73]</code>.</p>
+<ol>
+<li><b>Start brute.</b> For each <code>i</code>, scan right for the first warmer day → <code>O(n²)</code>, re-scanning the same cold stretch over and over.</li>
+<li><b>Spot the waste.</b> Keep a stack of days <i>still waiting</i> for a warmer one — naturally in <b>decreasing</b> temperature. A warm newcomer resolves <i>all</i> the colder days on top at once, and a day is resolved exactly once.</li>
+<li><b>The leap.</b> Decreasing stack of <b>indices</b>. While <code>temps[top] &lt; temps[i]</code>: pop, set <code>ans[top] = i − top</code>. Then push <code>i</code>.</li>
+<li><b>Payoff.</b> Each index pushed once, popped once ⇒ <code>O(n)</code>.</li>
+</ol>
+<table>
+<tr><th>i</th><th>temp</th><th>pops (resolve)</th><th>stack (indices) after</th></tr>
+<tr><td>2</td><td>75</td><td>pop 1 → ans[1]=1</td><td>[2]</td></tr>
+<tr><td>5</td><td>72</td><td>pop 4 (ans=1), pop 3 (ans=2)</td><td>[2, 5]</td></tr>
+<tr><td>6</td><td>76</td><td>pop 5 (ans=1), pop 2 (ans=4)</td><td>[6]</td></tr>
+</table>
+<p class="hint">Answer: <code>[1,1,4,2,1,1,0,0]</code>. Days never resolved (no warmer ahead) keep their default 0.</p>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td><b>Nesting/matching</b> — brackets, balanced, undo?</td><td>push openers, pop on closers</td><td><b><a href="#p-match">Matching</a></b> (§4.1)</td></tr>
+<tr><td>Need to <b>resume context</b> after a sub-part (multipliers, expressions)?</td><td>stack of partial state</td><td><b><a href="#p-parse">Parse / evaluate</a></b> (§4.2)</td></tr>
+<tr><td>For each element, the <b>nearest larger/smaller</b> on one side?</td><td>monotonic stack</td><td><b><a href="#p-mono">Monotonic · next</a></b> (§4.3)</td></tr>
+<tr><td><b>Span/area</b> bounded by nearest smaller/larger (histogram, rain)?</td><td>monotonic + width math</td><td><b><a href="#p-area">Monotonic · area</a></b> (§4.4)</td></tr>
+<tr><td>Greedily <b>build</b> an optimal sequence, dropping earlier worse picks?</td><td>monotonic greedy</td><td><b><a href="#p-greedy">Monotonic · greedy</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When a stack is the WRONG tool</b>
+<b>·</b> You need <b>random / middle access</b> — a stack only sees the top.<br/>
+<b>·</b> The "resolve order" isn't LIFO and isn't "nearest on one side" — you may want a queue, heap, or two pointers.<br/>
+<b>·</b> You're tempted to pop based on a non-monotonic rule (pop, then a later element should have un-popped it) — the push-once/pop-once guarantee breaks, and so does <code>O(n)</code>.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"valid/balanced parentheses", "matching brackets", "nested", "undo"</td><td><a href="#p-match">Matching §4.1</a></td></tr>
+<tr><td>"decode string", "basic calculator", "evaluate expression / RPN", "simplify path"</td><td><a href="#p-parse">Parse §4.2</a></td></tr>
+<tr><td>"next greater / smaller element", "days until warmer", "stock span"</td><td><a href="#p-mono">Monotonic next §4.3</a></td></tr>
+<tr><td>"largest rectangle", "maximal area", "trapping rain water"</td><td><a href="#p-area">Monotonic area §4.4</a></td></tr>
+<tr><td>"remove k digits", "smallest/largest subsequence", "remove duplicate letters"</td><td><a href="#p-greedy">Monotonic greedy §4.5</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">§4.3–4.5 are the monotonic family — same engine (push-once/pop-once), different "what you compute on pop." Each pattern: a one-liner, a 🔑 invariant, a template, and a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-match">4.1 · Matching &amp; nesting</h3>
+<p class="tldr">“Push what's open; a closer must match the most recent opener.”</p>
+<p><b>Setup:</b> the only thing that can close an opener is the <i>nearest unclosed</i> one — pure LIFO.</p>
+
+<figure>
+<svg viewBox="0 0 520 110" role="img" aria-label="Matching parentheses with a stack">
+  <g font-size="14" text-anchor="middle">
+    <text x="60" y="24" font-family="monospace">( [ { } ] )</text>
+    <g transform="translate(220,18)" font-size="12">
+      <rect x="0" y="0" width="46" height="26" fill="#b4530918" stroke="#b45309" rx="5"/><text x="23" y="18">(</text>
+      <rect x="0" y="30" width="46" height="26" fill="#b4530918" stroke="#b45309" rx="5"/><text x="23" y="48">[</text>
+      <rect x="0" y="60" width="46" height="26" fill="#16a34a22" stroke="#16a34a" rx="5"/><text x="23" y="78">{</text>
+      <text x="70" y="78" text-anchor="start" fill="#16a34a" font-size="11">'}' pops the matching '{'</text>
+    </g>
+  </g>
+</svg>
+<figcaption>Each closer must equal the popped opener; an empty stack at the end means perfectly balanced.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The stack always holds the still-open brackets in the exact order they must close. So the next valid closer is uniquely determined by the top — a single comparison decides validity.</div>
+
+<pre class="language-tsx"><code class="language-tsx">function isValid(s: string): boolean {
+  const stack: string[] = [];
+  const match: Record&lt;string, string&gt; = { ')': '(', ']': '[', '}': '{' };
+  for (const c of s) {
+    if (c in match) { if (stack.pop() !== match[c]) return false; }  // closer: must match top
+    else stack.push(c);                                             // opener: wait
+  }
+  return stack.length === 0;   // nothing left unclosed
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the two empty-stack checks (pop on empty = bad closer; non-empty at end = unclosed). <b>· Escalation:</b> valid parens → "min add/remove to make valid" → "longest valid parentheses" (stack of <i>indices</i>, or DP).</div>
+
+<!-- 4.2 -->
+<h3 id="p-parse">4.2 · Parse / evaluate — a stack of context</h3>
+<p class="tldr">“Hit a sub-part — stash what you were doing; finish it; pop and resume.”</p>
+<p><b>Setup:</b> when you descend into a bracketed/nested piece, push the surrounding state; when it ends, pop and splice the result back.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> At any moment the stack holds, from bottom to top, the unfinished work of each enclosing level. Popping restores exactly the parent's state, so nesting of any depth resolves correctly.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Decode String:  "3[a2[c]]" -> "accaccacc"
+function decodeString(s: string): string {
+  const numStack: number[] = [], strStack: string[] = [];
+  let cur = '', num = 0;
+  for (const c of s) {
+    if (c &gt;= '0' &amp;&amp; c &lt;= '9') num = num * 10 + (+c);           // multi-digit
+    else if (c === '[') { numStack.push(num); strStack.push(cur); num = 0; cur = ''; } // descend
+    else if (c === ']') { const k = numStack.pop()!; cur = strStack.pop()! + cur.repeat(k); } // resume
+    else cur += c;
+  }
+  return cur;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> multi-digit numbers and arbitrary nesting depth. <b>· Escalation:</b> decode string → "Basic Calculator I/II/III" (operators + precedence with a stack) → evaluate RPN.</div>
+
+<!-- 4.3 -->
+<h3 id="p-mono">4.3 · Monotonic stack — nearest greater / smaller</h3>
+<p class="tldr">“A newcomer resolves everyone it dominates, all at once.”</p>
+<p><b>Setup:</b> maintain a stack of <b>indices</b> whose answers aren't known yet, kept monotonic. The newcomer pops (and answers) every waiting element it beats.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The stack holds exactly the elements whose "next greater" is still unknown, in strictly decreasing value order. So the first element a newcomer fails to beat blocks everything beneath it — no need to look deeper. Each index is pushed and popped once ⇒ <code>O(n)</code>.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Next Greater Element — res[i] = next value to the right greater than a[i], else -1
+function nextGreater(a: number[]): number[] {
+  const res = new Array(a.length).fill(-1);
+  const stack: number[] = [];                 // indices; a[stack] strictly decreasing
+  for (let i = 0; i &lt; a.length; i++) {
+    while (stack.length &amp;&amp; a[stack[stack.length - 1]] &lt; a[i]) {
+      res[stack.pop()!] = a[i];                // a[i] is the answer for the popped index
+    }
+    stack.push(i);
+  }
+  return res;                                   // anything left has no greater → stays -1
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> increasing vs decreasing, <code>&lt;</code> vs <code>&lt;=</code> (ties), indices vs values, and the amortized <code>O(n)</code>. <b>· Escalation:</b> next greater → Daily Temperatures → "Next Greater Element II" (circular: iterate <code>2n</code> with <code>i % n</code>) → online Stock Span.</div>
+
+<!-- 4.4 -->
+<h3 id="p-area">4.4 · Monotonic stack — spans &amp; areas</h3>
+<p class="tldr">“When a bar pops, that's the instant its full width is known.”</p>
+<p><b>Setup:</b> an <i>increasing</i> stack of indices. When a shorter bar arrives, each taller bar it pops can't extend further right — so compute its rectangle <i>at the pop</i>: width = <code>(current index) − (index below it on the stack) − 1</code>.</p>
+
+<figure>
+<svg viewBox="0 0 520 150" role="img" aria-label="Largest rectangle in a histogram">
+  <g font-size="12" text-anchor="middle">
+    <g transform="translate(40,10)">
+      <rect x="0"   y="80" width="40" height="40"  fill="#e5e7eb" stroke="#9ca3af"/><text x="20" y="135">2</text>
+      <rect x="44"  y="100" width="40" height="20" fill="#e5e7eb" stroke="#9ca3af"/><text x="64" y="135">1</text>
+      <rect x="88"  y="20" width="40" height="100" fill="#b4530933" stroke="#b45309"/><text x="108" y="135">5</text>
+      <rect x="132" y="0"  width="40" height="120" fill="#b4530933" stroke="#b45309"/><text x="152" y="135">6</text>
+      <rect x="176" y="80" width="40" height="40"  fill="#e5e7eb" stroke="#9ca3af"/><text x="196" y="135">2</text>
+      <rect x="220" y="60" width="40" height="60"  fill="#e5e7eb" stroke="#9ca3af"/><text x="240" y="135">3</text>
+      <rect x="88" y="20" width="84" height="100" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="4 3"/>
+      <text x="300" y="70" text-anchor="start" fill="#16a34a" font-size="11">best = height 5 × width 2 = 10</text>
+    </g>
+  </g>
+</svg>
+<figcaption>Bar 5 pops when bar 2 arrives; its width spans until the previous shorter bar — that's where the area is computed.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The stack holds bars in increasing height; the bar below any bar is its <b>nearest shorter on the left</b>, and the bar that pops it is its <b>nearest shorter on the right</b>. Those two bounds give the exact maximal width for that height — computed precisely once, at the pop.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Largest Rectangle in Histogram
+function largestRectangle(h: number[]): number {
+  const stack: number[] = [];          // indices; heights increasing
+  let best = 0;
+  for (let i = 0; i &lt;= h.length; i++) {
+    const cur = i === h.length ? 0 : h[i];          // sentinel 0 flushes the stack
+    while (stack.length &amp;&amp; h[stack[stack.length - 1]] &gt;= cur) {
+      const height = h[stack.pop()!];
+      const left = stack.length ? stack[stack.length - 1] : -1;  // nearest shorter on left
+      best = Math.max(best, height * (i - left - 1));            // width spans (left, i)
+    }
+    stack.push(i);
+  }
+  return best;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the width formula <code>i − left − 1</code> and the trailing sentinel that flushes. <b>· Escalation:</b> histogram → "Maximal Rectangle" in a 0/1 matrix (run this per row) → "Trapping Rain Water" (bounded by nearest taller on <i>both</i> sides).</div>
+
+<!-- 4.5 -->
+<h3 id="p-greedy">4.5 · Monotonic stack — greedy lexicographic build</h3>
+<p class="tldr">“Build the result greedily; pop a worse predecessor while you still can.”</p>
+<p><b>Setup:</b> construct an output by pushing characters; before pushing, pop earlier characters that are "worse" than the newcomer <i>if your removal budget allows</i>. The stack <i>is</i> the answer-in-progress.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The stack is always the lexicographically best prefix achievable from what's been read, given how many removals you've spent. Popping a larger digit before a smaller newcomer strictly improves the prefix and can never be regretted.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Remove K Digits — smallest number after deleting k digits
+function removeKdigits(num: string, k: number): string {
+  const stack: string[] = [];
+  for (const d of num) {
+    while (k &gt; 0 &amp;&amp; stack.length &amp;&amp; stack[stack.length - 1] &gt; d) { stack.pop(); k--; } // drop bigger predecessors
+    stack.push(d);
+  }
+  while (k-- &gt; 0) stack.pop();                       // leftover budget → trim the tail (digits ascending)
+  return stack.join('').replace(/^0+/, '') || '0';  // strip leading zeros
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the leftover-<code>k</code> tail trim, and leading zeros. <b>· Escalation:</b> remove k digits → "Remove Duplicate Letters / Smallest Subsequence" (pop only if the char reappears later, and isn't already in the stack) → "Create Maximum Number."</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>Matching / Parse</td><td><code>O(n)</code></td><td><code>O(n)</code></td><td>stack depth ≤ nesting depth</td></tr>
+<tr><td>Monotonic (next / area / greedy)</td><td><code>O(n)</code></td><td><code>O(n)</code></td><td>each element pushed once, popped once</td></tr>
+</table>
+<div class="box"><b class="tag">The amortized argument</b> The inner <code>while</code> can pop many elements in one step, which <i>looks</i> like <code>O(n²)</code> — but across the whole run there are exactly <code>n</code> pushes, so at most <code>n</code> pops total. Total work is <code>O(n)</code>. This "push-once, pop-once" line is the proof every monotonic-stack answer must state.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Monotonic <code>&lt;</code> vs <code>&lt;=</code> — wrong tie handling.</td><td>Equal heights <code>[2,2,2]</code> in histogram → off-by-one width if the comparison is wrong.</td></tr>
+<tr><td>Storing <b>values</b> when you need distance/width.</td><td>Any area/span problem → can't compute <code>i − left − 1</code> without the index.</td></tr>
+<tr><td>Forgetting the trailing <b>sentinel/flush</b>.</td><td>Strictly increasing histogram <code>[1,2,3]</code> → nothing ever pops; the answer is never computed.</td></tr>
+<tr><td>Matching: popping an <b>empty</b> stack.</td><td><code>")("</code> or <code>"]"</code> → <code>pop()</code> on empty must count as invalid, not crash.</td></tr>
+<tr><td>Matching: not checking the stack is <b>empty at the end</b>.</td><td><code>"("</code> → unclosed opener should fail.</td></tr>
+<tr><td>removeK: not trimming the <b>leftover budget</b> from the tail.</td><td><code>"12345"</code>, k=2 (already ascending) → must drop the last two → <code>"123"</code>.</td></tr>
+<tr><td>removeK: leaving <b>leading zeros</b>.</td><td><code>"10200"</code>, k=1 → <code>"200"</code>, not <code>"0200"</code>.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>The monotonic stack is the monotonic deque</b> from <a href="sliding-window.html#p-deque">sliding-window.html</a> — a deque is just a stack open at both ends, evicting from the front when the window slides.
+<b>The recursion call stack</b> (<a href="recursion.html">recursion.html</a>) is a stack you make <i>explicit</i> here — every recursion can be rewritten with one.
+<b>Stacks drive iterative DFS</b> and tree traversal (see the Graph / Trees sheets).
+<b>Histogram area → "Maximal Rectangle"</b> turns a 2D matrix into a histogram per row.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What does a monotonic stack actually <i>hold</i> at any moment?</td><td class="a">Exactly the elements whose answer (nearest greater/smaller) is still unknown — kept in sorted order.</td></tr>
+<tr><td>Why is a monotonic stack <code>O(n)</code> despite the inner <code>while</code>?</td><td class="a">Push-once, pop-once: across the run there are n pushes, so ≤ n pops total. Amortized linear.</td></tr>
+<tr><td>In the histogram, what is the width when a bar pops?</td><td class="a"><code>i − left − 1</code>, where <code>left</code> is the index now on top (its nearest shorter on the left) and <code>i</code> is the shorter bar that triggered the pop.</td></tr>
+<tr><td>For "next greater," which direction is the stack sorted, and why store indices?</td><td class="a">Strictly decreasing; store indices to compute distances (e.g. days) and to write into the result array.</td></tr>
+<tr><td>Remove K Digits: what are the two cleanup steps after the loop?</td><td class="a">Trim leftover <code>k</code> from the tail, then strip leading zeros (and return "0" if empty).</td></tr>
+<tr><td>When should you <b>not</b> use a stack?</td><td class="a">When you need random/middle access, or the resolution order isn't LIFO / nearest-on-one-side.</td></tr>
+<tr><td>How does a monotonic stack relate to the sliding-window deque?</td><td class="a">Same idea; the deque also evicts from the front when elements leave the window — a stack open at both ends.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">matching</span> <code>isValid</code> (brackets)</li>
+<li><span class="pill">parse</span> <code>decodeString</code></li>
+<li><span class="pill">monotonic</span> <code>nextGreater</code> + Daily Temperatures</li>
+<li><span class="pill">area</span> <code>largestRectangle</code> (with the sentinel)</li>
+<li><span class="pill">greedy</span> <code>removeKdigits</code></li>
+</ul>
+<p class="hint">For each monotonic one: write "increasing/decreasing, pop on &lt; or ≤, what I compute on pop" as a comment <i>first</i>.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>
