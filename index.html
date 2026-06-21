@@ -1848,7 +1848,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const id = 'acc-' + groupId + '-' + index
   const status   = getStatus(lcKey)
   const solveN   = getSolveCount(lcKey)
-  const solveRing = '<span class="solve-ring-wrap" onclick="event.stopPropagation()" title="' + solveN + ' solve' + (solveN===1?'':'s') + '">'
+  const solveRing = '<span class="solve-ring-wrap" onclick="event.stopPropagation()" title="' + _solveRingTitle(solveN) + '">'
     + '<button class="solve-ring-adj" onclick="_adjSolveCount(\'' + lcKey + '\',-1)">−</button>'
     + '<span class="solve-ring ' + _solveRingCls(solveN) + '" data-solve-key="' + lcKey + '">' + _solveRingEmoji(solveN) + '<span class="solve-ring-num">' + solveN + '</span></span>'
     + '<button class="solve-ring-adj" onclick="_adjSolveCount(\'' + lcKey + '\',1)">+</button>'
@@ -2315,23 +2315,51 @@ function _psShuffle(topicKey) {
 }
 
 // ── Solve-count ring helpers ──────────────────────────────────────────────────
+// 15-rung confidence ladder — one emoji per solve (1→14), GOD MODE locked at 15+.
+// Plain emoji, elemental → cosmic climb.
+const HERO_TIERS = [
+  { name: 'Spark',       emoji: '✨' },
+  { name: 'Flame',       emoji: '🔥' },
+  { name: 'Bolt',        emoji: '⚡' },
+  { name: 'Frost',       emoji: '❄️' },
+  { name: 'Tide',        emoji: '🌊' },
+  { name: 'Gale',        emoji: '🌪️' },
+  { name: 'Stone',       emoji: '🪨' },
+  { name: 'Storm',       emoji: '⛈️' },
+  { name: 'Molten',      emoji: '🌋' },
+  { name: 'Crystal',     emoji: '💎' },
+  { name: 'Plasma',      emoji: '🔮' },
+  { name: 'Solar',       emoji: '☀️' },
+  { name: 'Nova',        emoji: '🌟' },
+  { name: 'Eclipse',     emoji: '🌑' },
+  { name: 'Singularity', emoji: '🌌' },   // GOD MODE — 15+, locked
+]
+// Solve count → tier index (1..15). One emoji per solve up to 14; 15+ stays the god tier.
+function _heroTier(n) { return n <= 0 ? 0 : Math.min(n, HERO_TIERS.length) }
+
 function _solveRingCls(n) {
-  if (n >= 30) return 'solve-ring-diamond'
-  if (n >= 20) return 'solve-ring-gold'
-  if (n >= 10) return 'solve-ring-silver'
-  if (n >= 5)  return 'solve-ring-bronze'
+  if (n >= 15) return 'solve-ring-diamond'   // god mode
+  if (n >= 10) return 'solve-ring-gold'
+  if (n >= 6)  return 'solve-ring-silver'
+  if (n >= 3)  return 'solve-ring-bronze'
   return 'solve-ring-dim'
 }
 
+// The emoji shown in the ring for the current rank.
 function _solveRingEmoji(n) {
-  if (n >= 30) return '💎'
-  if (n >= 25) return '🏆'
-  if (n >= 20) return '🔥'
-  if (n >= 15) return '⭐'
-  if (n >= 10) return '🥈'
-  if (n >= 5)  return '🥉'
-  if (n >  0)  return '✏️'
-  return '○'
+  const t = _heroTier(n)
+  if (t === 0) return '○'
+  return HERO_TIERS[t - 1].emoji
+}
+function _solveRingTier(n) {
+  const t = _heroTier(n)
+  if (t === 0) return 'Not solved yet'
+  const h = HERO_TIERS[t - 1]
+  return (t === HERO_TIERS.length ? '🔒 GOD MODE · ' : 'Rank ' + t + ' · ') + h.name
+}
+// Ring tooltip: confidence rank + the exact solve count.
+function _solveRingTitle(n) {
+  return _solveRingTier(n) + ' · ' + n + ' solve' + (n === 1 ? '' : 's')
 }
 
 function _adjSolveCount(lcKey, delta) {
@@ -2343,7 +2371,7 @@ function _adjSolveCount(lcKey, delta) {
   if (ring) {
     ring.className   = 'solve-ring ' + _solveRingCls(n)
     ring.innerHTML   = _solveRingEmoji(n) + '<span class="solve-ring-num">' + n + '</span>'
-    ring.title       = n + ' solve' + (n === 1 ? '' : 's')
+    ring.title       = _solveRingTitle(n)
   }
 }
 
@@ -2392,7 +2420,7 @@ function _psRowClick(event, lcKey) {
   if (acRing) {
     acRing.className = 'solve-ring ' + _solveRingCls(newCount)
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
-    acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
+    acRing.title     = _solveRingTitle(newCount)
   }
 
   // Persist session state after marking as done
@@ -2490,7 +2518,7 @@ function _qpRowClick(event, lcKey) {
   if (acRing) {
     acRing.className = 'solve-ring ' + _solveRingCls(newCount)
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
-    acRing.title     = newCount + ' solve' + (newCount === 1 ? '' : 's')
+    acRing.title     = _solveRingTitle(newCount)
   }
   _animateRowToBottom(rowEl, 'ps-q-solved', _qpAfterRowSettled)
 }
