@@ -16,7 +16,7 @@
 // Order = ideal learning/practice progression (NeetCode-style): array techniques →
 // linear structures → sorting/ordered → recursion cluster → graphs → DP → specialized.
 const TOPICS = [
-  { key: 'two-pointers',   icon: '👉', label: 'Two Pointers'  },
+  { key: 'two-pointers',   icon: '👉', label: 'Two Pointers',  cheatsheetUrl: 'two-pointers.html' },
   { key: 'sliding-window', icon: '🪟', label: 'Sliding Window' },
   { key: 'binary-search',  icon: '🔍', label: 'Binary Search'  },
   { key: 'stack',               icon: '🥞', label: 'Stack & Monotonic Stack' },
