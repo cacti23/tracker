@@ -2113,6 +2113,17 @@ function _weightedShuffle(entries) {
     .map(x => x.e)
 }
 
+// Order a practice pool. Normally unsolved-first (you practice what you haven't solved);
+// but with "Worked-on only" ON, mix 🚧 In Progress + ✅ Solved together (weighted) so the
+// completed ones aren't sliced off below the count cap — otherwise you'd see only In Progress.
+function _orderPracticePool(entries) {
+  if (_practiceWorkedOnly) return _weightedShuffle(entries)
+  return [
+    ..._weightedShuffle(entries.filter(([k]) => getStatus(k) !== 'Solved')),
+    ..._weightedShuffle(entries.filter(([k]) => getStatus(k) === 'Solved')),
+  ]
+}
+
 // Generate a practice set for a single topic.
 // Priority: Pinned (fills first, capped at count) → Unsolved (weighted) → Solved (weighted).
 function _genPracticeSet(topicKey, count) {
@@ -2123,10 +2134,8 @@ function _genPracticeSet(topicKey, count) {
   const all         = _practiceWorkedOnly ? all0.filter(([k]) => getStatus(k) !== 'Pending') : all0
   const pinned      = _shuffle(all.filter(([k]) => isPinned(k))).slice(0, count)
   const unpinned    = all.filter(([k]) => !isPinned(k))
-  const unsolved    = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) !== 'Solved'))
-  const solved      = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) === 'Solved'))
   const fillCount   = Math.max(0, count - pinned.length)
-  return [...pinned, ...[...unsolved, ...solved].slice(0, fillCount)]
+  return [...pinned, ..._orderPracticePool(unpinned).slice(0, fillCount)]
 }
 
 // Render a single practice row. showTopic=true adds the topic icon (dashboard).
@@ -2259,9 +2268,7 @@ function _psAdjCount(delta, topicKey) {
     // Add questions from the remaining pool (not already shown)
     const currentKeys = new Set(_psCurrentItems.map(([k]) => k))
     const pool = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k) && (!_practiceWorkedOnly || getStatus(k) !== 'Pending'))
-    const unsolved = _weightedShuffle(pool.filter(([k]) => getStatus(k) !== 'Solved'))
-    const solved   = _weightedShuffle(pool.filter(([k]) => getStatus(k) === 'Solved'))
-    const toAdd = [...unsolved, ...solved].slice(0, newCount - currentCount)
+    const toAdd = _orderPracticePool(pool).slice(0, newCount - currentCount)
     _psCurrentItems = [..._psCurrentItems, ...toAdd]
   } else {
     // Remove from end — skip done-in-session items (preserve their solved state)
@@ -2841,12 +2848,11 @@ function _qpAdjCount(delta) {
       if (mod) Object.entries(mod.questions).forEach(([k, q]) => {
         if (currentKeys.has(k)) return
         if (_qpDueOnly && !isDue(k)) return
+        if (_practiceWorkedOnly && getStatus(k) === 'Pending') return
         pool.push([k, q])
       })
     })
-    const unsolved = _weightedShuffle(pool.filter(([k]) => getStatus(k) !== 'Solved'))
-    const solved   = _weightedShuffle(pool.filter(([k]) => getStatus(k) === 'Solved'))
-    const toAdd = [...unsolved, ...solved].slice(0, _qpCount - currentCount)
+    const toAdd = _orderPracticePool(pool).slice(0, _qpCount - currentCount)
     _qpResults = [..._qpResults, ...toAdd]
   } else if (_qpCount < currentCount) {
     // Remove from end, skip done-in-session items first
@@ -2911,10 +2917,8 @@ function _qpGenerate() {
   // Pinned questions get highest priority but the total is still capped at count.
   const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
   const unpinned    = pool.filter(([k]) => !isPinned(k))
-  const unsolved    = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) !== 'Solved'))
-  const solved      = _weightedShuffle(unpinned.filter(([k]) => getStatus(k) === 'Solved'))
   const fillCount   = Math.max(0, count - pinned.length)
-  const generated   = [...pinned, ...[...unsolved, ...solved].slice(0, fillCount)]
+  const generated   = [...pinned, ..._orderPracticePool(unpinned).slice(0, fillCount)]
 
   const fresh = generated.filter(([k]) => !prevDone.has(k))
   const done  = generated.filter(([k]) =>  prevDone.has(k))
