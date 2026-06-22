@@ -1180,7 +1180,7 @@ document.addEventListener('DOMContentLoaded', () => {
   _loadQpState()
   buildNav()
   _renderHeaderRitual()
-  loadDashboard()
+  _restoreView()
 })
 
 // ─── NAV BADGE COLOUR ───────────────────────────────────────────────────────
@@ -1349,6 +1349,19 @@ function renderDailyQuestionCard(dailyQ) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
+// ─── CURRENT-VIEW PERSISTENCE ─────────────────────────────────────────────────
+// Remember whether you're on the dashboard or a specific topic, so a page reload
+// returns you to where you were instead of always dumping you on the dashboard.
+// Per-device UI state (intentionally NOT synced via BACKUP_KEYS).
+const CURRENT_VIEW_KEY = 'dsa-current-view-v1'
+function _saveCurrentView(v) { try { localStorage.setItem(CURRENT_VIEW_KEY, v) } catch {} }
+function _restoreView() {
+  let saved = null
+  try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
+  if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
+  else loadDashboard()
+}
+
 function loadDashboard() {
   showView('view-dashboard')
   _stopTimer()       // stop per-topic timer if navigating here from a topic page
@@ -1358,6 +1371,7 @@ function loadDashboard() {
   const dash = document.getElementById('nav-dashboard')
   if (dash) dash.classList.add('active')
   currentTopicKey = null
+  _saveCurrentView('dashboard')
 
   // One-pass: compute global totals + per-topic stats simultaneously
   let totalQ = 0, totalSolved = 0, totalInProg = 0, totalPending = 0
@@ -1496,6 +1510,7 @@ function loadTopic(key) {
   if (!topic) return
 
   currentTopicKey = key
+  _saveCurrentView(key)
   currentTab = TOPIC_TABS[0].key  // always start on first tab
   _editingNoteId = null           // drop any in-progress note edit from the prior topic
   currentQFilter = 'all'          // reset filter on topic switch
