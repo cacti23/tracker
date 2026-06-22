@@ -2205,7 +2205,7 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
     (q.freq ? freqBadge(q, ' flex-shrink-0') : '') +
-    '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0">' + STATUS_EMOJI[status] + '</span>' +
+    '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>' +
     '<button class="ps-struggle-btn" title="Struggled — review again tomorrow (no clean-solve credit)" onclick="event.stopPropagation();' + struggleFn + '(this,\'' + lcKey + '\')" aria-label="Mark struggled">🔁</button>' +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
@@ -2513,6 +2513,11 @@ function _psRowClick(event, lcKey) {
     acRing.title     = _solveRingTitle(newCount)
   }
 
+  // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
+  if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
+  const stBadge = rowEl.querySelector('.ps-status-badge')
+  if (stBadge) { stBadge.className = 'badge ' + STATUS_DOT.Solved + ' q-badge flex-shrink-0 ps-status-badge'; stBadge.textContent = STATUS_EMOJI.Solved }
+
   // Persist session state after marking as done
   _psSaveSession()
 
@@ -2610,6 +2615,10 @@ function _qpRowClick(event, lcKey) {
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
     acRing.title     = _solveRingTitle(newCount)
   }
+  // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
+  if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
+  const stBadge = rowEl.querySelector('.ps-status-badge')
+  if (stBadge) { stBadge.className = 'badge ' + STATUS_DOT.Solved + ' q-badge flex-shrink-0 ps-status-badge'; stBadge.textContent = STATUS_EMOJI.Solved }
   _animateRowToBottom(rowEl, 'ps-q-solved', _qpAfterRowSettled)
 }
 
