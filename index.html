@@ -550,6 +550,22 @@
     .note-card-body ul.note-bullets li { margin-bottom: 0.15rem; }
     .note-card-body code { background: var(--bg-hover); padding: 0.05em 0.32em; border-radius: 0.25rem; font-family: var(--font-mono); font-size: 0.9em; color: var(--text-primary); }
     .note-card-body strong { color: var(--text-primary); }
+    .note-card-body em { font-style: italic; }
+    .note-card-body del { opacity: 0.55; }
+    .note-card-body a { color: var(--accent, #6ea8fe); text-decoration: underline; }
+    .note-card-body ol.note-bullets { margin: 0 0 0.35rem; padding-left: 1.35rem; }
+    .note-card-body ol.note-bullets li { margin-bottom: 0.15rem; }
+    .note-card-body h1.note-h, .note-card-body h2.note-h, .note-card-body h3.note-h,
+    .note-card-body h4.note-h, .note-card-body h5.note-h, .note-card-body h6.note-h {
+      color: var(--text-primary); font-weight: 600; line-height: 1.25; margin: 0.55rem 0 0.3rem; }
+    .note-card-body h1.note-h { font-size: 1.12rem; }
+    .note-card-body h2.note-h { font-size: 1.04rem; }
+    .note-card-body h3.note-h { font-size: 0.97rem; }
+    .note-card-body h4.note-h, .note-card-body h5.note-h, .note-card-body h6.note-h { font-size: 0.92rem; color: var(--text-muted); }
+    .note-card-body blockquote.note-quote { margin: 0 0 0.4rem; padding: 0.1rem 0.7rem; border-left: 3px solid var(--border-glow); color: var(--text-muted); }
+    .note-card-body hr.note-hr { border: 0; border-top: 1px solid var(--border, rgba(255,255,255,0.12)); margin: 0.55rem 0; }
+    .note-card-body pre.note-code { background: var(--bg-hover); border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 0.4rem; padding: 0.55rem 0.7rem; margin: 0 0 0.45rem; overflow-x: auto; }
+    .note-card-body pre.note-code code { background: none; padding: 0; font-family: var(--font-mono); font-size: 0.85em; color: var(--text-primary); white-space: pre; }
 
     /* ── 26. QUESTION HEADER ACTIONS ─────────────────────────────────────────────────── */
     /* Action buttons sit outside the accordion <button> so clicks on them       */
@@ -1570,27 +1586,50 @@ function renderCurrentTab() {
 let _editingNoteId = null   // null = not editing; '__new__' = adding; else a note id
 
 // Tiny safe markdown: escape first, then apply - bullets, **bold**, `code`.
+// Markdown → HTML for notes. Escapes first (XSS-safe even though notes sync via gist),
+// then handles: # headings, **bold**, *italic*, `code`, ```fenced blocks```, - / 1. lists,
+// > blockquotes, --- rules, ~~strike~~, [text](url). Code spans/blocks are protected so
+// inline markup inside them (and things like snake_case) are never reformatted.
 function renderNoteBody(text) {
-  const esc = escHtml(text || '')
-  const inline = s => s
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-  let html = '', inList = false
-  const closeList = () => { if (inList) { html += '</ul>'; inList = false } }
-  esc.split(/\r?\n/).forEach(raw => {
-    const line = raw.trim()
-    const m = line.match(/^(?:[-*•])\s+(.*)$/)
-    if (m) {
-      if (!inList) { html += '<ul class="note-bullets">'; inList = true }
-      html += '<li>' + inline(m[1]) + '</li>'
-    } else if (!line) {
-      closeList()
-    } else {
-      closeList()
-      html += '<p>' + inline(line) + '</p>'
-    }
+  if (!text || !text.trim()) return '<p class="text-faint">(empty)</p>'
+  const esc = escHtml(text)
+
+  // 1) Pull fenced code blocks out so their contents are never touched.
+  const blocks = []
+  const src = esc.replace(/```[^\n]*\n?([\s\S]*?)```/g, (_, c) =>
+    '@@CB' + (blocks.push('<pre class="note-code"><code>' + c.replace(/\n$/, '') + '</code></pre>') - 1) + '@@')
+
+  // 2) Inline formatting — protect `code` spans first so * / ** inside them are left alone.
+  const inline = s => {
+    const spans = []
+    s = s.replace(/`([^`]+)`/g, (_, c) => '@@CS' + (spans.push('<code>' + c + '</code>') - 1) + '@@')
+    s = s
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>')
+      .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+    return s.replace(/@@CS(\d+)@@/g, (_, i) => spans[+i])
+  }
+
+  // 3) Block-level pass.
+  let html = '', listType = null
+  const closeList = () => { if (listType) { html += listType === 'ol' ? '</ol>' : '</ul>'; listType = null } }
+  let m
+  src.split(/\r?\n/).forEach(raw => {
+    const cb = raw.match(/^@@CB(\d+)@@$/)
+    if (cb) { closeList(); html += blocks[+cb[1]]; return }
+    const t = raw.trim()
+    if (!t) { closeList(); return }
+    if (/^([-*_])(\s*\1){2,}$/.test(t)) { closeList(); html += '<hr class="note-hr">'; return }            // --- *** ___
+    if ((m = t.match(/^(#{1,6})\s+(.*)$/))) { closeList(); const l = m[1].length; html += '<h' + l + ' class="note-h note-h' + l + '">' + inline(m[2]) + '</h' + l + '>'; return }
+    if ((m = t.match(/^&gt;\s?(.*)$/)))    { closeList(); html += '<blockquote class="note-quote">' + inline(m[1]) + '</blockquote>'; return }  // > is &gt; after escHtml
+    if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) { if (listType !== 'ol') { closeList(); html += '<ol class="note-bullets">'; listType = 'ol' } html += '<li>' + inline(m[2]) + '</li>'; return }
+    if ((m = t.match(/^[-*+•]\s+(.*)$/)))  { if (listType !== 'ul') { closeList(); html += '<ul class="note-bullets">'; listType = 'ul' } html += '<li>' + inline(m[1]) + '</li>'; return }
+    closeList(); html += '<p>' + inline(t) + '</p>'
   })
   closeList()
+  // Safety net: restore any fenced-block placeholders that weren't on their own line.
+  html = html.replace(/@@CB(\d+)@@/g, (_, i) => blocks[+i])
   return html || '<p class="text-faint">(empty)</p>'
 }
 
@@ -1644,7 +1683,7 @@ function renderNoteEditor(n) {
   host.innerHTML =
     '<div class="note-editor">' +
     '<input class="note-editor-title" id="note-edit-title" placeholder="Note title (e.g. Topological sort)" value="' + escHtml(n.title || '') + '">' +
-    '<textarea class="note-editor-body" id="note-edit-body" placeholder="Freeform notes…   - bullets    **bold**    `code`">' + escHtml(n.body || '') + '</textarea>' +
+    '<textarea class="note-editor-body" id="note-edit-body" placeholder="Markdown supported — # heading · **bold** · *italic* · `code` · ```block``` · - bullets · 1. list · &gt; quote · [link](url)">' + escHtml(n.body || '') + '</textarea>' +
     '<div class="note-editor-actions">' +
     '<span class="note-editor-hint">- bullets · **bold** · `code`</span>' +
     '<button class="btn-note-cancel" onclick="cancelNoteEditor()">Cancel</button>' +
