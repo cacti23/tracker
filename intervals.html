@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Intervals — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#0284c7; --accent-soft:#0284c714; --accent-line:#0284c740; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">📅 Intervals</h1>
+<p class="sub">A learning sheet — almost every interval problem starts the same way: sort by one endpoint, then sweep once. Picking <i>which</i> endpoint is the whole game.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 4 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p>An interval is <code>[start, end]</code>. The universal first move is to <b>sort</b> — almost always by <b>start</b> (to merge/detect overlaps) or by <b>end</b> (to greedily fit the most). Once sorted, related intervals become <b>adjacent</b>, and one linear sweep does the work.</p>
+
+<p>Memorize the overlap test and you'll never fumble a condition: <code>[a,b]</code> and <code>[c,d]</code> <b>overlap iff <code>a ≤ d</code> and <code>c ≤ b</code></b>. After sorting by start, it simplifies to "the next one starts before the current one ends": <code>next.start ≤ cur.end</code>.</p>
+
+<h3>Watch it get invented — Merge Intervals</h3>
+<ol>
+<li><b>Start brute.</b> Compare every pair, union overlaps → <code>O(n²)</code> and fiddly.</li>
+<li><b>The leap.</b> <b>Sort by start.</b> Now overlapping intervals sit next to each other. Carry a running "current merged" interval; if the next one starts within it, stretch the end; otherwise the current one is <b>closed</b> — push it and open a new one.</li>
+<li><b>Why sorting makes it safe.</b> Once an interval doesn't overlap the running merge, no <i>later</i> interval can either (they all start even later) — so the running merge is final the moment a gap appears.</li>
+<li><b>Payoff.</b> <code>O(n log n)</code> to sort, then <code>O(n)</code> to sweep.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 600 130" role="img" aria-label="Merging overlapping intervals on a number line">
+  <g font-size="11" text-anchor="middle">
+    <line x1="20" y1="100" x2="580" y2="100" stroke="#cbd5d1"/>
+    <g stroke="#0284c7" stroke-width="9" stroke-linecap="round">
+      <line x1="50" y1="40" x2="110" y2="40"/>   <!-- [1,3] -->
+      <line x1="80" y1="58" x2="230" y2="58"/>   <!-- [2,6] -->
+      <line x1="290" y1="40" x2="350" y2="40"/>  <!-- [8,10] -->
+      <line x1="470" y1="40" x2="560" y2="40"/>  <!-- [15,18] -->
+    </g>
+    <g stroke="#16a34a" stroke-width="9" stroke-linecap="round">
+      <line x1="50" y1="86" x2="230" y2="86"/>   <!-- merged [1,6] -->
+      <line x1="290" y1="86" x2="350" y2="86"/>
+      <line x1="470" y1="86" x2="560" y2="86"/>
+    </g>
+    <text x="140" y="30" fill="#0284c7">[1,3] &amp; [2,6] overlap</text>
+    <text x="140" y="105" fill="#16a34a">→ [1,6]</text>
+    <text x="320" y="105" fill="#16a34a">[8,10]</text>
+    <text x="515" y="105" fill="#16a34a">[15,18]</text>
+  </g>
+</svg>
+<figcaption>Sorted by start, overlaps are neighbors; the sweep extends the running interval or starts a fresh one at each gap.</figcaption>
+</figure>
+
+<table>
+<tr><th>next</th><th>vs current</th><th>action</th><th>current after</th></tr>
+<tr><td>[2,6]</td><td>2 ≤ 3</td><td>overlap → extend end</td><td>[1,6]</td></tr>
+<tr><td>[8,10]</td><td>8 &gt; 6</td><td>gap → push [1,6], open new</td><td>[8,10]</td></tr>
+<tr><td>[15,18]</td><td>15 &gt; 10</td><td>gap → push [8,10], open new</td><td>[15,18]</td></tr>
+</table>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<div class="box key"><b class="tag">The one decision that matters</b> <b>Sort by START</b> when you merge, detect overlaps, or insert. <b>Sort by END</b> when you greedily want the <i>most</i> non-overlapping intervals (the earliest-ending one leaves the most room). Get this wrong and an otherwise-correct sweep gives the wrong answer.</div>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>Combine overlapping intervals, or insert one?</td><td>sort by start, sweep &amp; extend</td><td><b><a href="#p-merge">Merge</a></b> (§4.1)</td></tr>
+<tr><td>Max concurrency? fewest rooms? capacity over time?</td><td>+1/−1 events, sort by time</td><td><b><a href="#p-sweep">Sweep line</a></b> (§4.2)</td></tr>
+<tr><td>Intersect <b>two</b> sorted interval lists?</td><td>a pointer in each, advance the one ending first</td><td><b><a href="#p-inter">Intersection</a></b> (§4.3)</td></tr>
+<tr><td>Keep the <b>most</b> non-overlapping (or fewest removals/arrows)?</td><td>sort by <b>end</b>, greedily keep</td><td><b><a href="#p-greedy">Greedy by end</a></b> (§4.4)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">Anti-patterns &amp; clarifications</b>
+<b>·</b> <b>Touching = overlap?</b> Is <code>[1,2]</code> and <code>[2,3]</code> an overlap? It depends on closed/open endpoints — <b>ask</b>; for merging, usually yes (<code>≤</code>), for free-time gaps, usually no.<br/>
+<b>·</b> <b>Weighted</b> interval scheduling (max total weight of non-overlapping) is <b>not greedy</b> — it's <a href="dp.html">DP</a>. Greedy-by-end only maximizes the <i>count</i>.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"merge overlapping", "insert interval", "employee free time"</td><td><a href="#p-merge">Merge §4.1</a></td></tr>
+<tr><td>"minimum meeting rooms", "max concurrent", "car pooling", "my calendar booking"</td><td><a href="#p-sweep">Sweep line §4.2</a></td></tr>
+<tr><td>"intersection of two interval lists"</td><td><a href="#p-inter">Intersection §4.3</a></td></tr>
+<tr><td>"non-overlapping intervals", "erase fewest", "minimum arrows", "max events you can attend"</td><td><a href="#p-greedy">Greedy by end §4.4</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The four core patterns</h2>
+<p class="hint">Each: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens. Notice §4.1 sorts by <b>start</b>; §4.4 sorts by <b>end</b> — that's the crux.</p>
+
+<!-- 4.1 -->
+<h3 id="p-merge">4.1 · Merge overlapping (sort by start)</h3>
+<p class="tldr">“Sort by start; extend the running interval or open a new one at each gap.”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> After sorting by start, the last interval in the output is the only one a new interval could possibly overlap (all earlier outputs end before it and start before the newcomer). So a single comparison against the tail decides extend-vs-push, and closed intervals are never reopened.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Merge Intervals
+function merge(intervals: number[][]): number[][] {
+  intervals.sort((a, b) =&gt; a[0] - b[0]);              // by START
+  const out: number[][] = [];
+  for (const [s, e] of intervals) {
+    const last = out[out.length - 1];
+    if (last &amp;&amp; s &lt;= last[1]) last[1] = Math.max(last[1], e);  // overlap → extend
+    else out.push([s, e]);                                    // gap → new interval
+  }
+  return out;
+}
+
+// Insert Interval into a sorted, non-overlapping list — three phases
+function insert(intervals: number[][], n: number[]): number[][] {
+  const out: number[][] = []; let i = 0, m = intervals.length;
+  while (i &lt; m &amp;&amp; intervals[i][1] &lt; n[0]) out.push(intervals[i++]);     // entirely before
+  while (i &lt; m &amp;&amp; intervals[i][0] &lt;= n[1]) {                            // overlapping → absorb
+    n = [Math.min(n[0], intervals[i][0]), Math.max(n[1], intervals[i][1])]; i++;
+  }
+  out.push(n);
+  while (i &lt; m) out.push(intervals[i++]);                              // entirely after
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> sort-by-start, the <code>s ≤ last.end</code> overlap test, and clarifying touching/closed endpoints. <b>· Escalation:</b> merge → insert interval → "Employee Free Time" (merge everyone's intervals, then report the gaps).</div>
+
+<!-- 4.2 -->
+<h3 id="p-sweep">4.2 · Sweep line — +1 / −1 events</h3>
+<p class="tldr">“Turn each interval into a +1 at start and a −1 at end; sweep the timeline.”</p>
+<p><b>Setup:</b> concurrency questions ("how many overlap at once?") become a running counter over time-ordered events. The peak counter is the answer.</p>
+
+<figure>
+<svg viewBox="0 0 560 130" role="img" aria-label="Sweep line counting concurrent intervals">
+  <g font-size="11">
+    <line x1="20" y1="95" x2="540" y2="95" stroke="#cbd5d1"/>
+    <polyline points="20,95 90,95 90,75 200,75 200,55 320,55 320,75 400,75 400,95 540,95"
+      fill="none" stroke="#0284c7" stroke-width="2.5"/>
+    <text x="255" y="48" fill="#16a34a" font-weight="700" text-anchor="middle">peak = 2 rooms</text>
+    <g fill="#0284c7" text-anchor="middle">
+      <text x="90" y="112">+1</text><text x="200" y="112">+1</text>
+      <text x="320" y="112">−1</text><text x="400" y="112">−1</text>
+    </g>
+  </g>
+</svg>
+<figcaption>The running height is the number of intervals open at that instant; its maximum is the min rooms / peak load.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Sorting events by time and accumulating ±1 means the counter, at any moment, equals the number of intervals currently open. At a shared timestamp, process <b>end (−1) before start (+1)</b> so an interval ending at <code>t</code> frees capacity for one starting at <code>t</code> — otherwise you over-count by one.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Minimum Meeting Rooms — peak concurrency via events
+function minMeetingRooms(intervals: number[][]): number {
+  const events: [number, number][] = [];
+  for (const [s, e] of intervals) { events.push([s, +1]); events.push([e, -1]); }
+  events.sort((a, b) =&gt; a[0] - b[0] || a[1] - b[1]);   // ties: −1 (end) before +1 (start)
+  let cur = 0, best = 0;
+  for (const [, delta] of events) { cur += delta; best = Math.max(best, cur); }
+  return best;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the end-before-start tie-break and why; the running max. <b>· Escalation:</b> meeting rooms → "Car Pooling" (capacity check) → "My Calendar I/II/III" (allow up to k overlaps) → the Skyline problem.</div>
+
+<!-- 4.3 -->
+<h3 id="p-inter">4.3 · Intersection of two sorted lists</h3>
+<p class="tldr">“Overlap = [max(starts), min(ends)]; advance whoever ends first.”</p>
+<p><b>Setup:</b> two interval lists, each sorted and internally non-overlapping. A pointer in each; the one that ends earlier can't intersect anything further, so it moves on. This is the two-sequence <a href="two-pointers.html#p-seq">two-pointer</a> wearing an interval costume.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> At each step, <code>A[i]</code> and <code>B[j]</code> are the earliest-ending unprocessed intervals of each list. Their overlap (if any) is <code>[max(starts), min(ends)]</code>. Advancing the one with the smaller end is safe — it can never overlap a <i>later</i> interval of the other list.</div>
+
+<pre class="language-tsx"><code class="language-tsx">function intervalIntersection(A: number[][], B: number[][]): number[][] {
+  const out: number[][] = []; let i = 0, j = 0;
+  while (i &lt; A.length &amp;&amp; j &lt; B.length) {
+    const lo = Math.max(A[i][0], B[j][0]);
+    const hi = Math.min(A[i][1], B[j][1]);
+    if (lo &lt;= hi) out.push([lo, hi]);             // non-empty overlap
+    if (A[i][1] &lt; B[j][1]) i++; else j++;          // drop the one ending first
+  }
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the <code>[max(start), min(end)]</code> overlap formula and the "advance the smaller end" rule. <b>· Escalation:</b> two lists → combine with merge for messier inputs → range/segment problems.</div>
+
+<!-- 4.4 -->
+<h3 id="p-greedy">4.4 · Greedy by end — fit the most</h3>
+<p class="tldr">“Want the most non-overlapping? Keep the one that ends earliest.”</p>
+<p><b>Setup:</b> to maximize how many intervals you keep (or minimize removals/arrows), sort by <b>end</b> and greedily take each interval that starts after the last kept one ends.</p>
+
+<figure>
+<svg viewBox="0 0 560 110" role="img" aria-label="Greedy interval scheduling by earliest end">
+  <g font-size="11">
+    <g stroke="#cbd5d1" stroke-width="8" stroke-linecap="round">
+      <line x1="40" y1="30" x2="500" y2="30"/>   <!-- [1,100] long -->
+    </g>
+    <g stroke="#16a34a" stroke-width="8" stroke-linecap="round">
+      <line x1="60" y1="55" x2="150" y2="55"/>
+      <line x1="170" y1="55" x2="270" y2="55"/>
+      <line x1="290" y1="55" x2="400" y2="55"/>
+    </g>
+    <text x="270" y="22" fill="#6b675e" text-anchor="middle">one long interval blocks everything</text>
+    <text x="230" y="80" fill="#16a34a" text-anchor="middle">earliest-ending picks fit 3 ✓</text>
+  </g>
+</svg>
+<figcaption>Sorting by end, then taking each compatible interval, leaves the maximum room for the rest.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — the exchange argument</b> Among all compatible choices, the interval that <b>ends earliest</b> leaves the most room for what follows. So greedily picking it is never worse than any other choice — you can always swap an optimal solution's first pick for the earliest-ending one without losing any later picks. (This holds for <i>unweighted</i> count only.)</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Non-overlapping Intervals — fewest removals to make the rest disjoint
+function eraseOverlapIntervals(intervals: number[][]): number {
+  intervals.sort((a, b) =&gt; a[1] - b[1]);          // by END
+  let end = -Infinity, kept = 0;
+  for (const [s, e] of intervals) {
+    if (s &gt;= end) { kept++; end = e; }             // compatible → keep it
+  }
+  return intervals.length - kept;                  // the rest must be removed
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> <i>why</i> sort by end (the exchange argument), and that it maximizes count, not weight. <b>· Escalation:</b> non-overlapping → "Minimum Arrows to Burst Balloons" → "Maximum Number of Events That Can Be Attended"; and "now it's weighted" → DP.</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>Merge / Greedy / Sweep line</td><td><code>O(n log n)</code></td><td><code>O(n)</code></td><td>sort dominates; the sweep itself is <code>O(n)</code></td></tr>
+<tr><td>Insert into a sorted list</td><td><code>O(n)</code></td><td><code>O(n)</code></td><td>already sorted → one pass</td></tr>
+<tr><td>Intersection of two sorted lists</td><td><code>O(m + n)</code></td><td><code>O(1)</code></td><td>two pointers, inputs pre-sorted</td></tr>
+</table>
+<div class="box"><b class="tag">The cost story</b> Sorting is the price of admission (<code>O(n log n)</code>); everything after is a single linear sweep. If the input is <i>already</i> sorted (insert, intersection), you skip straight to <code>O(n)</code>.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Forgetting to sort first.</td><td><code>[[2,6],[1,3]]</code> → merging in input order misses the overlap.</td></tr>
+<tr><td>Sorting by <b>start</b> when greedy needs <b>end</b>.</td><td><code>[[1,100],[2,3],[3,4]]</code> → by-start keeps 1; by-end keeps 2. Wrong key = wrong answer.</td></tr>
+<tr><td>Sweep line: not processing <b>end before start</b> at equal times.</td><td><code>[[0,1],[1,2]]</code> → over-counts to 2 rooms instead of 1.</td></tr>
+<tr><td>Mishandling <b>touching</b> endpoints (closed vs open).</td><td><code>[[1,2],[2,3]]</code> → merge or not? Clarify; <code>&lt;=</code> merges, <code>&lt;</code> doesn't.</td></tr>
+<tr><td>Mutating the <code>last</code> reference vs pushing a copy.</td><td>Aliasing the input array → later sorts/edits corrupt the output.</td></tr>
+<tr><td>Applying greedy to a <b>weighted</b> version.</td><td>Intervals with values → greedy-by-end gives max count, not max weight (needs DP).</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>"Sort, then sweep"</b> is the meta-move from <a href="sorting.html#p-pre">sorting.html</a> in its purest form.
+<b>Min meeting rooms</b> has a twin solution with a <a href="heap.html#p-greedy">heap of end times</a> — sweep-line and heap are two views of the same idea.
+<b>Interval intersection</b> is the two-sequence <a href="two-pointers.html#p-seq">two-pointer</a>.
+<b>Greedy-by-end</b> is classic activity selection; the <b>weighted</b> version becomes <a href="dp.html">DP</a>.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-merge">Merge overlapping</a></td><td>56 Merge Intervals · 57 Insert Interval · 763 Partition Labels</td><td>Med</td></tr>
+<tr><td><a href="#p-sweep">Sweep line</a></td><td>253 Meeting Rooms II · 1854 Max Population · <b>218 The Skyline Problem</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-inter">Intersection</a></td><td>986 Interval List Intersections · 436 Find Right Interval</td><td>Med</td></tr>
+<tr><td><a href="#p-greedy">Greedy selection</a></td><td>435 Non-overlapping Intervals · 452 Min Arrows · 646 Max Length Chain</td><td>Med</td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>State the overlap condition for <code>[a,b]</code> and <code>[c,d]</code>.</td><td class="a"><code>a ≤ d</code> and <code>c ≤ b</code>. Sorted by start, it reduces to <code>next.start ≤ cur.end</code>.</td></tr>
+<tr><td>When do you sort by <b>start</b> vs by <b>end</b>?</td><td class="a">By <b>start</b> to merge / detect overlaps / insert; by <b>end</b> to greedily keep the most non-overlapping.</td></tr>
+<tr><td>In the sweep line, what's the critical tie-break?</td><td class="a">At equal timestamps, process the <b>end (−1) before the start (+1)</b> — else you over-count concurrency by one.</td></tr>
+<tr><td>Why does merge only compare against the last output interval?</td><td class="a">Sorted by start, all earlier outputs end before the tail; only the tail can overlap a newcomer.</td></tr>
+<tr><td>In two-list intersection, which pointer advances?</td><td class="a">The interval that <b>ends first</b> — it can't overlap any later interval of the other list.</td></tr>
+<tr><td>Why does greedy sort by <b>end</b> (the exchange argument)?</td><td class="a">The earliest-ending interval leaves the most room; swapping it into an optimal solution never loses a later pick.</td></tr>
+<tr><td>When does the greedy break?</td><td class="a">When intervals are <b>weighted</b> (maximize total value, not count) — that's DP, not greedy.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">merge</span> <code>merge</code> + <code>insert</code></li>
+<li><span class="pill">sweep</span> <code>minMeetingRooms</code> (events, end-before-start)</li>
+<li><span class="pill">intersect</span> <code>intervalIntersection</code></li>
+<li><span class="pill">greedy</span> <code>eraseOverlapIntervals</code> (sort by end)</li>
+</ul>
+<p class="hint">For each: write "sort by start or end? what's the overlap test?" as a comment <i>before</i> the loop.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

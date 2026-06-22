@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Linked List — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#059669; --accent-soft:#05966914; --accent-line:#05966940; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🔗 Linked List</h1>
+<p class="sub">A learning sheet — there are barely any "algorithms" here. It's pointer hygiene: a sentinel head, and never overwrite a pointer before you've saved what it pointed to.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 4 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p>A node is just <code>{ val, next }</code>. You can't index it; you can only walk forward and <b>rewire <code>.next</code></b>. Almost every bug is one of two things: you <b>lost a reference</b> (overwrote a pointer before saving what came next), or you <b>special-cased the head</b> and got it wrong.</p>
+
+<div class="box key"><b class="tag">Your two superpowers</b> <b>(1) The sentinel / dummy head:</b> a fake node in front of <code>head</code> so "delete/insert at the front" stops being a special case — you always have a <code>prev</code>. <b>(2) Save-before-rewire:</b> before <code>x.next = …</code>, stash <code>const next = x.next</code>, or the tail of the list vanishes. <b>And always: draw the arrows before you type.</b></div>
+
+<h3>Watch it get invented — Reverse a List</h3>
+<p>Reverse <code>1 → 2 → 3</code> in place, <code>O(1)</code> space. The naive <code>cur.next = prev</code> looks right… and instantly orphans the rest of the list.</p>
+<ol>
+<li><b>The trap.</b> If you flip <code>cur.next</code> to point backward <i>before</i> remembering <code>cur.next</code>, you can never reach node 2 or 3 again.</li>
+<li><b>The fix.</b> Carry three pointers: <code>prev</code> (already-reversed part), <code>cur</code> (node being flipped), and a saved <code>next</code> (the untouched rest). Each step: <i>save next → flip → advance both</i>.</li>
+<li><b>Payoff.</b> One pass, no extra memory; <code>prev</code> ends as the new head.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 600 130" role="img" aria-label="Reversal prev cur next dance">
+  <g font-size="13" text-anchor="middle">
+    <g transform="translate(40,40)">
+      <rect x="0" width="50" height="34" fill="#05966918" stroke="#059669" rx="6"/><text x="25" y="22">1</text>
+      <rect x="110" width="50" height="34" fill="#05966918" stroke="#059669" rx="6"/><text x="135" y="22">2</text>
+      <rect x="220" width="50" height="34" fill="#fff" stroke="#cbd5d1" rx="6"/><text x="245" y="22">3</text>
+      <path d="M135 34 q-30 26 -85 5" stroke="#059669" fill="none" stroke-width="2" marker-end="url(#a)"/>
+      <text x="25"  y="58" fill="#059669" font-size="11" font-weight="700">prev</text>
+      <text x="135" y="58" fill="#c2410c" font-size="11" font-weight="700">cur</text>
+      <text x="245" y="58" fill="#6b675e" font-size="11" font-weight="700">next (saved)</text>
+      <text x="135" y="-12" fill="#6b675e" font-size="11">flip 2.next → 1, but only after saving 3</text>
+    </g>
+  </g>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#059669"/></marker></defs>
+</svg>
+<figcaption>The whole topic in one image: save <code>next</code>, flip the arrow backward, slide <code>prev</code> and <code>cur</code> forward.</figcaption>
+</figure>
+
+<table>
+<tr><th>step</th><th>prev</th><th>cur</th><th>saved next</th><th>after flip</th></tr>
+<tr><td>1</td><td>∅</td><td>1</td><td>2</td><td><code>1→∅</code></td></tr>
+<tr><td>2</td><td>1</td><td>2</td><td>3</td><td><code>2→1</code></td></tr>
+<tr><td>3</td><td>2</td><td>3</td><td>∅</td><td><code>3→2</code> · return prev = 3</td></tr>
+</table>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>"<b>Reverse</b>" — whole, a sublist, or in k-groups?</td><td>prev/cur/next dance</td><td><b><a href="#p-rev">Reversal</a></b> (§4.1)</td></tr>
+<tr><td><b>Middle</b>, <b>cycle</b>, <b>n-th from end</b>, <b>palindrome</b>?</td><td>two runners at different speeds</td><td><b><a href="#p-fast">Fast &amp; slow</a></b> (§4.2)</td></tr>
+<tr><td><b>Insert / delete / merge</b> where the head might change?</td><td>a sentinel dummy + splice</td><td><b><a href="#p-dummy">Dummy head</a></b> (§4.3)</td></tr>
+<tr><td><b>Reorder / rotate / swap</b> nodes structurally?</td><td>compose the primitives above</td><td><b><a href="#p-compose">Compose</a></b> (§4.4)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When a linked list is the WRONG shape</b>
+<b>·</b> You need <b>random access</b> / sorting by value / binary search — copy to an array first; indexing a singly-linked list is <code>O(n)</code> each time.<br/>
+<b>·</b> You need to walk <b>backward</b> — a singly list can't; use a doubly-linked list, a stack, or reverse it.<br/>
+<b>·</b> The "trick" you reach for re-traverses from <code>head</code> inside a loop → you've made it <code>O(n²)</code>; keep a running pointer instead.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"reverse", "reverse between m and n", "reverse nodes in k-group"</td><td><a href="#p-rev">Reversal §4.1</a></td></tr>
+<tr><td>"middle node", "has cycle", "cycle start", "n-th from the end", "palindrome list"</td><td><a href="#p-fast">Fast &amp; slow §4.2</a></td></tr>
+<tr><td>"merge two sorted", "remove n-th", "delete duplicates", "partition", "add two numbers"</td><td><a href="#p-dummy">Dummy head §4.3</a></td></tr>
+<tr><td>"reorder list", "rotate by k", "swap pairs / nodes"</td><td><a href="#p-compose">Compose §4.4</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The four core patterns</h2>
+<p class="hint">Node shape throughout: <code>class ListNode { val: number; next: ListNode | null }</code>. Each pattern: a one-liner, a 🔑 invariant, a template, and a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-rev">4.1 · Reversal — the prev / cur / next dance</h3>
+<p class="tldr">“Save next, flip the arrow back, slide both pointers forward.”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> At every step, <code>prev</code> heads the fully-reversed prefix, <code>cur</code> is the next node to flip, and the saved <code>next</code> still anchors the untouched rest. No node is ever unreachable, so nothing is lost.</div>
+
+<pre class="language-tsx"><code class="language-tsx">function reverseList(head: ListNode | null): ListNode | null {
+  let prev: ListNode | null = null, cur = head;
+  while (cur) {
+    const next = cur.next;   // SAVE before rewiring
+    cur.next = prev;         // flip the arrow backward
+    prev = cur; cur = next;  // advance the window
+  }
+  return prev;               // new head
+}</code></pre>
+
+<div class="box"><b class="tag">Builds on itself</b> <b>Reverse between [m, n]:</b> walk to node <code>m−1</code> (use a dummy), reverse exactly <code>n−m+1</code> nodes, reconnect the three boundaries. <b>Reverse in k-groups:</b> check <code>k</code> nodes exist, reverse them, recurse/iterate on the rest, stitch.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> save-next-first, <code>O(1)</code> space, then the recursive version (and its <code>O(n)</code> stack). <b>· Escalation:</b> reverse → reverse sublist [m,n] → reverse in k-groups (the boundary reconnection is the real test).</div>
+
+<!-- 4.2 -->
+<h3 id="p-fast">4.2 · Fast &amp; slow runners</h3>
+<p class="tldr">“Two speeds turn ‘where's the middle / is there a loop?’ into one pass.”</p>
+<p><b>Setup:</b> <code>slow += 1</code>, <code>fast += 2</code>. This is the linked-list face of the <a href="two-pointers.html#p-fast">fast &amp; slow two-pointer</a> — the proofs live there; here are the four staples.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> When <code>fast</code> has taken <code>2t</code> steps, <code>slow</code> has taken <code>t</code> — so <code>slow</code> is always at the halfway mark of where <code>fast</code> reached. That single fact gives you the middle, and (with a cycle) forces a meeting.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Middle node (for even length, returns the second middle)
+function middleNode(head: ListNode | null): ListNode | null {
+  let slow = head, fast = head;
+  while (fast &amp;&amp; fast.next) { slow = slow!.next; fast = fast.next.next; }
+  return slow;
+}
+
+// Palindrome list: find middle → reverse 2nd half → compare
+function isPalindrome(head: ListNode | null): boolean {
+  let slow = head, fast = head;
+  while (fast &amp;&amp; fast.next) { slow = slow!.next; fast = fast.next.next; }
+  let prev: ListNode | null = null;            // reverse from slow
+  while (slow) { const n = slow.next; slow.next = prev; prev = slow; slow = n; }
+  let a = head, b = prev;                       // compare halves
+  while (b) { if (a!.val !== b.val) return false; a = a!.next; b = b.next; }
+  return true;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the <code>while (fast &amp;&amp; fast.next)</code> guard, and why <code>slow</code> lands on the middle. <b>· Escalation:</b> middle → detect cycle → cycle <i>start</i> (the reset trick) → palindrome (restore the list afterward if asked).</div>
+
+<!-- 4.3 -->
+<h3 id="p-dummy">4.3 · Dummy head &amp; splicing</h3>
+<p class="tldr">“Put a fake node in front so the head is never a special case.”</p>
+<p><b>Setup:</b> create <code>dummy</code> with <code>dummy.next = head</code>, keep a moving <code>tail</code>/<code>prev</code>, and return <code>dummy.next</code>. Deletions and merges that would touch the head now Just Work.</p>
+
+<figure>
+<svg viewBox="0 0 560 100" role="img" aria-label="Dummy head with a moving tail">
+  <g font-size="13" text-anchor="middle">
+    <g transform="translate(20,35)">
+      <rect x="0" width="56" height="32" fill="#e5e7eb" stroke="#9ca3af" rx="6"/><text x="28" y="21">dummy</text>
+      <rect x="90" width="50" height="32" fill="#05966918" stroke="#059669" rx="6"/><text x="115" y="21">1</text>
+      <rect x="180" width="50" height="32" fill="#05966918" stroke="#059669" rx="6"/><text x="205" y="21">3</text>
+      <rect x="270" width="50" height="32" fill="#05966918" stroke="#059669" rx="6"/><text x="295" y="21">5</text>
+      <path d="M56 16 H86 M140 16 H176 M230 16 H266" stroke="#059669" marker-end="url(#a2)"/>
+      <text x="205" y="52" fill="#059669" font-size="11" font-weight="700">tail advances as you splice</text>
+    </g>
+  </g>
+  <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#059669"/></marker></defs>
+</svg>
+<figcaption>Return <code>dummy.next</code> at the end — whatever the head turned out to be.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>dummy.next</code> is always the true current head, and <code>tail</code> is the last node of the result built so far. Because <code>dummy</code> never moves, the answer is one dereference away no matter how the front changes.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Merge two sorted lists
+function mergeTwoLists(a: ListNode | null, b: ListNode | null): ListNode | null {
+  const dummy = new ListNode(0); let tail = dummy;
+  while (a &amp;&amp; b) {
+    if (a.val &lt;= b.val) { tail.next = a; a = a.next; }
+    else                { tail.next = b; b = b.next; }
+    tail = tail.next;
+  }
+  tail.next = a ?? b;            // attach the remaining run
+  return dummy.next;
+}
+
+// Remove n-th node from the end — one pass, dummy avoids the head edge-case
+function removeNthFromEnd(head: ListNode | null, n: number): ListNode | null {
+  const dummy = new ListNode(0, head); let fast = dummy, slow = dummy;
+  for (let i = 0; i &lt; n; i++) fast = fast.next!;   // open a gap of n
+  while (fast.next) { fast = fast.next; slow = slow.next!; }
+  slow.next = slow.next!.next;                      // slow sits just before the target
+  return dummy.next;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> exactly why the dummy removes the head special-case; the gap of <code>n</code> in remove-n-th. <b>· Escalation:</b> merge → "Merge k Sorted Lists" (→ a heap; see the Heap sheet) → partition list → add two numbers (carry).</div>
+
+<!-- 4.4 -->
+<h3 id="p-compose">4.4 · Compose the primitives</h3>
+<p class="tldr">“Hard list problems = find-middle + reverse + merge, glued together.”</p>
+<p><b>Setup:</b> the toughest problems decompose into the primitives above. The discipline that makes them work: <b>null-terminate</b> between stages so you don't accidentally weld a cycle.</p>
+
+<figure>
+<svg viewBox="0 0 560 120" role="img" aria-label="Reorder list as three stages">
+  <g font-size="11" text-anchor="middle" fill="#37352f">
+    <text x="90" y="14" font-weight="700" fill="#059669">1 · find middle</text>
+    <text x="280" y="14" font-weight="700" fill="#059669">2 · reverse 2nd half</text>
+    <text x="470" y="14" font-weight="700" fill="#059669">3 · interleave</text>
+    <g transform="translate(30,30)" font-size="12">
+      <text x="60" y="20">1 → 2 → 3 → 4</text>
+      <text x="60" y="40" fill="#6b675e" font-size="10">split at middle</text>
+    </g>
+    <g transform="translate(220,30)" font-size="12">
+      <text x="60" y="20">1 → 2 &nbsp; 4 → 3</text>
+    </g>
+    <g transform="translate(410,30)" font-size="12">
+      <text x="60" y="20">1 → 4 → 2 → 3</text>
+    </g>
+  </g>
+</svg>
+<figcaption>"Reorder List" is just three primitives in sequence — each one you already know.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Each stage leaves a clean, null-terminated list for the next. Cut the first half off (<code>slow.next = null</code>) before reversing the second, so the interleave step can't loop forever on a dangling link.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Reorder List:  1→2→3→4→5  becomes  1→5→2→4→3
+function reorderList(head: ListNode | null): void {
+  if (!head || !head.next) return;
+  let slow = head, fast = head;                            // 1) middle
+  while (fast.next &amp;&amp; fast.next.next) { slow = slow.next!; fast = fast.next.next; }
+  let second: ListNode | null = slow.next; slow.next = null;   // cut!
+  let prev: ListNode | null = null;                        // 2) reverse 2nd half
+  while (second) { const n = second.next; second.next = prev; prev = second; second = n; }
+  let first: ListNode | null = head; second = prev;        // 3) interleave
+  while (second) {
+    const f = first!.next, s = second.next;
+    first!.next = second; second.next = f;
+    first = f; second = s;
+  }
+}
+
+// Swap nodes in pairs — dummy + careful rewire
+function swapPairs(head: ListNode | null): ListNode | null {
+  const dummy = new ListNode(0, head); let prev = dummy;
+  while (prev.next &amp;&amp; prev.next.next) {
+    const a = prev.next, b = a.next!;
+    a.next = b.next; b.next = a; prev.next = b;   // prev → b → a → …
+    prev = a;
+  }
+  return dummy.next;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> decompose into named primitives, and the null-terminate step that prevents an accidental cycle. <b>· Escalation:</b> reorder → "Rotate List by k" (close into a ring, walk to the new tail, break) → swap pairs → swap k-th node from both ends.</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Operation</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>Reverse / traverse / fast-slow / splice</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>iterative; recursion adds <code>O(n)</code> stack</td></tr>
+<tr><td>Access the i-th node</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>no random access — this is the whole trade-off vs an array</td></tr>
+<tr><td>Merge k lists (with a heap)</td><td><code>O(n log k)</code></td><td><code>O(k)</code></td><td>heap of the k current heads</td></tr>
+</table>
+<div class="box"><b class="tag">The one cost to remember</b> Everything is <code>O(1)</code> space and <code>O(n)</code> time <i>as long as you never re-walk from <code>head</code> inside a loop</i>. The instant you do (e.g. "find length, then for each node re-scan"), you've slipped to <code>O(n²)</code>. Keep running pointers.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Overwriting <code>.next</code> before saving it — orphaning the tail.</td><td>Any reverse of length ≥ 2 without a temp → you lose everything after node 1.</td></tr>
+<tr><td>No dummy head → mishandling deletion of the <b>first</b> node.</td><td>Remove the head, or a list that becomes empty → null-pointer or wrong head returned.</td></tr>
+<tr><td>Fast/slow without the <code>fast &amp;&amp; fast.next</code> guard.</td><td>Empty list <code>[]</code> or single node <code>[1]</code> → crash on <code>fast.next.next</code>.</td></tr>
+<tr><td>Forgetting to <b>null-terminate</b> after splitting.</td><td>Reorder / palindrome on even length → the interleave/compare loops forever (a welded cycle).</td></tr>
+<tr><td>Off-by-one in remove-n-th (gap of <code>n</code> vs <code>n+1</code>).</td><td><code>n == length</code> (remove the head) → without the dummy + gap-of-n, you skip the wrong node.</td></tr>
+<tr><td>Comparing node <b>identity</b> when you meant <b>value</b> (or vice-versa).</td><td>Cycle detection vs duplicate values → equal values are not the same node.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>Fast &amp; slow is the two-pointer engine</b> from <a href="two-pointers.html#p-fast">two-pointers.html</a> — and "Find the Duplicate Number" treats an <i>array</i> as a linked list to reuse it.
+<b>Merge two lists</b> is the two-sequence merge (<a href="two-pointers.html#p-seq">two-pointers.html</a>); <b>merge k lists</b> upgrades it with a heap.
+<b>Reverse &amp; merge</b> have clean <b>recursive</b> forms — see <a href="recursion.html">recursion.html</a>.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-rev">Reverse</a></td><td>206 Reverse List · 92 Reverse II · <b>25 Reverse Nodes in k-Group</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td><a href="#p-fast">Fast &amp; slow</a></td><td>141/142 Cycle · 876 Middle · 234 Palindrome Linked List</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-dummy">Dummy head</a></td><td>21 Merge Two · 19 Remove Nth from End · 83/82 Remove Dups · 2 Add Two Numbers</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-compose">Compose</a></td><td>143 Reorder List · 148 Sort List · 138 Copy w/ Random Pointer · <b>23 Merge k Sorted Lists</b></td><td>Med → <b>Hard</b></td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What are the two superpowers that prevent most linked-list bugs?</td><td class="a">A <b>dummy/sentinel head</b> (kills the head special-case) and <b>save-before-rewire</b> (stash <code>next</code> before overwriting a pointer).</td></tr>
+<tr><td>In reversal, name the three pointers and the per-step order.</td><td class="a"><code>prev, cur, next</code>. Each step: save <code>next</code> → <code>cur.next = prev</code> → advance <code>prev</code> and <code>cur</code>.</td></tr>
+<tr><td>Why does the dummy head simplify deletion?</td><td class="a">You always have a real <code>prev</code> node, even for the first element, so "delete the head" is no longer special. Return <code>dummy.next</code>.</td></tr>
+<tr><td>How do you remove the n-th node from the end in one pass?</td><td class="a">Dummy + two pointers; advance <code>fast</code> <code>n</code> steps first, then move both until <code>fast.next</code> is null — <code>slow</code> sits just before the target.</td></tr>
+<tr><td>What three primitives compose "Reorder List," and what's the easy-to-miss step?</td><td class="a">Find middle, reverse second half, interleave — and <code>slow.next = null</code> to cut, so you don't weld a cycle.</td></tr>
+<tr><td>When should you copy a list to an array instead?</td><td class="a">When you need random access, binary search, or backward traversal — a singly list can't do those in <code>O(1)</code>.</td></tr>
+<tr><td>What turns an <code>O(n)</code> list solution into <code>O(n²)</code>?</td><td class="a">Re-walking from <code>head</code> inside a loop. Keep a running pointer instead.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">reverse</span> <code>reverseList</code> (and the recursive form)</li>
+<li><span class="pill">fast/slow</span> <code>middleNode</code> + <code>isPalindrome</code></li>
+<li><span class="pill">dummy</span> <code>mergeTwoLists</code> + <code>removeNthFromEnd</code></li>
+<li><span class="pill">compose</span> <code>reorderList</code> + <code>swapPairs</code></li>
+</ul>
+<p class="hint">For each: draw the before/after arrows and mark where you save a pointer, <i>then</i> write the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

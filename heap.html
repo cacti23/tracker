@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Heap / Priority Queue — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#db2777; --accent-soft:#db277714; --accent-line:#db277740; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🏔️ Heap / Priority Queue</h1>
+<p class="sub">A learning sheet — when you repeatedly need the smallest or largest thing (but not everything sorted), a heap gives it to you in O(log n).</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p>A heap is a <b>complete binary tree</b> kept in a flat array, obeying one rule — the <b>heap property</b>: every parent is ≤ its children (min-heap) or ≥ (max-heap). That's it. It does <i>not</i> keep things fully sorted; it keeps just enough order that the <b>extreme is always at the root</b>. Peek is <code>O(1)</code>; insert and extract are <code>O(log n)</code> (one walk up or down the tree height).</p>
+
+<p>Because the array is implicit, the tree links are pure arithmetic: for index <code>i</code>, <b>parent</b> = <code>(i−1)/2</code>, <b>children</b> = <code>2i+1</code> and <code>2i+2</code>. Two operations maintain the property: <b>sift-up</b> (after a push, bubble the newcomer up) and <b>sift-down</b> (after replacing the root, sink it down).</p>
+
+<figure>
+<svg viewBox="0 0 600 185" role="img" aria-label="Min-heap as tree and array">
+  <g font-size="13" text-anchor="middle">
+    <circle cx="300" cy="25" r="17" fill="#db277718" stroke="#db2777"/><text x="300" y="30">1</text>
+    <circle cx="220" cy="75" r="17" fill="#db277718" stroke="#db2777"/><text x="220" y="80">3</text>
+    <circle cx="380" cy="75" r="17" fill="#db277718" stroke="#db2777"/><text x="380" y="80">2</text>
+    <circle cx="180" cy="125" r="17" fill="#db277718" stroke="#db2777"/><text x="180" y="130">5</text>
+    <circle cx="260" cy="125" r="17" fill="#db277718" stroke="#db2777"/><text x="260" y="130">4</text>
+    <g stroke="#cbd5d1"><path d="M288 38 L232 63 M312 38 L368 63 M210 90 L190 110 M230 90 L250 110"/></g>
+    <g transform="translate(120,160)" font-family="monospace" font-size="12">
+      <rect x="0"   width="40" height="22" fill="#db277710" stroke="#db2777"/><text x="20" y="16">1</text>
+      <rect x="44"  width="40" height="22" fill="#fff" stroke="#cbd5d1"/><text x="64" y="16">3</text>
+      <rect x="88"  width="40" height="22" fill="#fff" stroke="#cbd5d1"/><text x="108" y="16">2</text>
+      <rect x="132" width="40" height="22" fill="#fff" stroke="#cbd5d1"/><text x="152" y="16">5</text>
+      <rect x="176" width="40" height="22" fill="#fff" stroke="#cbd5d1"/><text x="196" y="16">4</text>
+      <text x="20" y="34" fill="#6b675e" font-size="9">0</text><text x="64" y="34" fill="#6b675e" font-size="9">1</text><text x="108" y="34" fill="#6b675e" font-size="9">2</text><text x="152" y="34" fill="#6b675e" font-size="9">3</text><text x="196" y="34" fill="#6b675e" font-size="9">4</text>
+      <text x="300" y="16" text-anchor="start" fill="#6b675e">parent(i) = (i−1)/2</text>
+      <text x="300" y="32" text-anchor="start" fill="#6b675e">kids(i) = 2i+1, 2i+2</text>
+    </g>
+  </g>
+</svg>
+<figcaption>The tree is just the array read level by level. The root (index 0) is always the minimum.</figcaption>
+</figure>
+
+<h3>Watch it get invented — the k largest of a stream</h3>
+<ol>
+<li><b>Start brute.</b> Sort all <code>n</code> → <code>O(n log n)</code>, and impossible if the data streams in and doesn't fit in memory.</li>
+<li><b>Spot the structure.</b> You only ever need the <b>k best so far</b>. A newcomer matters only if it beats the <i>smallest</i> of those k — so you need fast access to that smallest.</li>
+<li><b>The leap (and the twist).</b> Keep a <b>min-heap of size k</b>. Push each number; if the heap exceeds <code>k</code>, pop the minimum. Counter-intuitively, you use a <i>min</i>-heap to track the <i>largest</i> k — its root is the weakest survivor, i.e. the <b>k-th largest</b>.</li>
+<li><b>Payoff.</b> <code>O(n log k)</code> time, <code>O(k)</code> space, works on an infinite stream.</li>
+</ol>
+<table>
+<tr><th>incoming</th><th>action (k = 2)</th><th>heap after</th><th>2nd largest = root</th></tr>
+<tr><td>5</td><td>push, over k → pop min (1)</td><td>{3, 5}</td><td>3</td></tr>
+<tr><td>2</td><td>push, pop min (2)</td><td>{3, 5}</td><td>3</td></tr>
+<tr><td>4</td><td>push, pop min (3)</td><td>{4, 5}</td><td>4</td></tr>
+</table>
+<p class="hint">Stream <code>[3,1,5,2,4]</code>, k = 2 → the heap ends holding the top 2 = {4, 5}; its root 4 is the k-th largest.</p>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>Need to <b>implement</b> the heap / a custom-priority queue?</td><td>array + sift-up / sift-down</td><td><b><a href="#p-mech">Mechanics</a></b> (§4.1)</td></tr>
+<tr><td><b>k largest/smallest</b>, <b>k-th</b>, <b>top-k</b> (especially streaming)?</td><td>a size-k heap (opposite type!)</td><td><b><a href="#p-topk">Top-K</a></b> (§4.2)</td></tr>
+<tr><td>Merge / pull from <b>k sorted</b> sources?</td><td>min-heap of the k current heads</td><td><b><a href="#p-merge">K-way merge</a></b> (§4.3)</td></tr>
+<tr><td>Running <b>median</b> / keep two halves balanced?</td><td>a max-heap + a min-heap</td><td><b><a href="#p-twoheap">Two heaps</a></b> (§4.4)</td></tr>
+<tr><td>Repeatedly pick the <b>best available</b> (schedule, combine)?</td><td>greedy, driven by a heap</td><td><b><a href="#p-greedy">Greedy + heap</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When a heap is the WRONG / overkill tool</b>
+<b>·</b> You need the <b>whole</b> thing sorted → just sort; popping everything off a heap is heapsort, no win.<br/>
+<b>·</b> <b>One-time</b> k-th on static data → <a href="sorting.html#p-select">quickselect</a> is <code>O(n)</code>, beating a heap's <code>O(n log k)</code>. (Heaps win for <i>streaming</i> / repeated queries.)<br/>
+<b>·</b> You need <b>search / membership / delete-arbitrary</b> → a heap only exposes the extreme; use a balanced BST or hash set.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"k-th largest/smallest", "top k frequent", "k closest points"</td><td><a href="#p-topk">Top-K §4.2</a></td></tr>
+<tr><td>"merge k sorted", "smallest range covering k lists", "k-th smallest in a sorted matrix"</td><td><a href="#p-merge">K-way merge §4.3</a></td></tr>
+<tr><td>"median from a data stream", "sliding window median", "balance two halves"</td><td><a href="#p-twoheap">Two heaps §4.4</a></td></tr>
+<tr><td>"meeting rooms II", "task scheduler", "reorganize string", "minimum cost to connect"</td><td><a href="#p-greedy">Greedy + heap §4.5</a></td></tr>
+<tr><td>"implement a priority queue", "design a heap"</td><td><a href="#p-mech">Mechanics §4.1</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">JS has no built-in PQ, so §4.1 gives a tiny correct <code>MinHeap</code> the others reuse. Each pattern: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-mech">4.1 · Mechanics — sift-up &amp; sift-down</h3>
+<p class="tldr">“Push and bubble up; pop the root, move the last up, and sink it down.”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The heap property (parent ≤ both children) holds everywhere except at the one node being fixed. Sift-up/down swaps that node toward its correct level along a single root-to-leaf path — height <code>log n</code> — restoring the property globally.</div>
+
+<pre class="language-tsx"><code class="language-tsx">class MinHeap&lt;T&gt; {
+  private h: T[] = [];
+  constructor(private less: (a: T, b: T) =&gt; boolean) {}   // less(a,b)=a&lt;b → min-heap
+  size() { return this.h.length; }
+  peek(): T { return this.h[0]; }
+  push(x: T) { this.h.push(x); this.up(this.h.length - 1); }
+  pop(): T {
+    const top = this.h[0], last = this.h.pop()!;
+    if (this.h.length) { this.h[0] = last; this.down(0); }
+    return top;
+  }
+  private up(i: number) {
+    while (i &gt; 0) { const p = (i - 1) &gt;&gt; 1; if (!this.less(this.h[i], this.h[p])) break;
+      [this.h[i], this.h[p]] = [this.h[p], this.h[i]]; i = p; }
+  }
+  private down(i: number) {
+    const n = this.h.length;
+    while (true) {
+      let s = i; const l = 2 * i + 1, r = 2 * i + 2;
+      if (l &lt; n &amp;&amp; this.less(this.h[l], this.h[s])) s = l;
+      if (r &lt; n &amp;&amp; this.less(this.h[r], this.h[s])) s = r;
+      if (s === i) break;
+      [this.h[i], this.h[s]] = [this.h[s], this.h[i]]; i = s;
+    }
+  }
+}
+// a MAX-heap is just a MinHeap with the comparison flipped:
+const maxHeap = () =&gt; new MinHeap&lt;number&gt;((a, b) =&gt; a &gt; b);</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the index arithmetic, sift-up vs sift-down, and that <b>build-heap is O(n)</b>, not <code>O(n log n)</code> (sift-down from the bottom up). <b>· Escalation:</b> build-heap → heapsort → a k-ary heap / decrease-key for Dijkstra.</div>
+
+<!-- 4.2 -->
+<h3 id="p-topk">4.2 · Top-K / k-th</h3>
+<p class="tldr">“For the k largest, keep a MIN-heap of size k — its root is the k-th largest.”</p>
+<p><b>Setup:</b> the heap of size <code>k</code> always holds the best <code>k</code> seen, and its root is the <i>weakest</i> of them — exactly the threshold a newcomer must beat.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> After each step the heap contains the <code>k</code> largest elements seen so far, and its root is their minimum. Any newcomer smaller than the root cannot be among the top <code>k</code>, so popping the root when the size exceeds <code>k</code> never discards a true top-<code>k</code> element.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// k-th largest in an array (or stream)
+function kthLargest(nums: number[], k: number): number {
+  const heap = new MinHeap&lt;number&gt;((a, b) =&gt; a &lt; b);   // MIN-heap (note!)
+  for (const x of nums) {
+    heap.push(x);
+    if (heap.size() &gt; k) heap.pop();    // drop the smallest → keep the largest k
+  }
+  return heap.peek();                    // root = k-th largest; heap = the top k
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> <i>why</i> a min-heap finds the max-k, the size cap, and heap <code>O(n log k)</code> vs <a href="sorting.html#p-select">quickselect</a> <code>O(n)</code>. <b>· Escalation:</b> k-th largest → "Top K Frequent" (heap, or bucket sort) → "K Closest Points to Origin."</div>
+
+<!-- 4.3 -->
+<h3 id="p-merge">4.3 · K-way merge</h3>
+<p class="tldr">“Heap the k current heads; pop the smallest, push its successor.”</p>
+<p><b>Setup:</b> to merge <code>k</code> sorted sequences, the global next-smallest is always the min of the <code>k</code> front elements — exactly what a min-heap of size <code>k</code> serves.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The heap always contains exactly one (the current front) element from each not-yet-exhausted sequence. So its root is the smallest unemitted element overall; popping it and pushing that sequence's next keeps the invariant.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Merge k sorted linked lists
+function mergeKLists(lists: (ListNode | null)[]): ListNode | null {
+  const heap = new MinHeap&lt;ListNode&gt;((a, b) =&gt; a.val &lt; b.val);
+  for (const l of lists) if (l) heap.push(l);
+  const dummy = new ListNode(0); let tail = dummy;
+  while (heap.size()) {
+    const node = heap.pop();
+    tail.next = node; tail = node;
+    if (node.next) heap.push(node.next);   // pull the next from that list
+  }
+  return dummy.next;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> heap size stays <code>k</code>, so it's <code>O(n log k)</code> not <code>O(n log n)</code>. <b>· Escalation:</b> merge k lists → "Smallest Range Covering Elements from K Lists" → "K-th Smallest in a Sorted Matrix."</div>
+
+<!-- 4.4 -->
+<h3 id="p-twoheap">4.4 · Two heaps — running median &amp; balance</h3>
+<p class="tldr">“Max-heap holds the lower half, min-heap the upper; the median sits between.”</p>
+<p><b>Setup:</b> split the data into a lower half (a <b>max</b>-heap, so its top is the lower-half max) and an upper half (a <b>min</b>-heap, top = upper-half min). Keep the sizes balanced and the median is at the tops.</p>
+
+<figure>
+<svg viewBox="0 0 540 110" role="img" aria-label="Two heaps around the median">
+  <g font-size="12" text-anchor="middle">
+    <rect x="40" y="30" width="170" height="44" fill="#db277712" stroke="#db2777" rx="8"/>
+    <text x="125" y="22" fill="#db2777" font-size="11">max-heap · lower half</text>
+    <text x="125" y="58" font-weight="700">top = max of lows</text>
+    <rect x="330" y="30" width="170" height="44" fill="#0891b212" stroke="#0891b2" rx="8"/>
+    <text x="415" y="22" fill="#0891b2" font-size="11">min-heap · upper half</text>
+    <text x="415" y="58" font-weight="700">top = min of highs</text>
+    <text x="270" y="50" font-weight="700" fill="#16a34a">median</text>
+    <text x="270" y="68" fill="#6b675e" font-size="10">between the two tops</text>
+  </g>
+</svg>
+<figcaption>Every low ≤ every high, and the sizes differ by ≤ 1 — so the median is one top (odd) or the average of both (even).</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Two facts held after every insert: <b>(1)</b> every element in <code>lo</code> ≤ every element in <code>hi</code>; <b>(2)</b> <code>lo.size</code> equals <code>hi.size</code> or is one larger. Then the median is <code>lo.top</code> (odd count) or the average of the two tops (even).</div>
+
+<pre class="language-tsx"><code class="language-tsx">class MedianFinder {
+  private lo = new MinHeap&lt;number&gt;((a, b) =&gt; a &gt; b);  // MAX-heap (lower half)
+  private hi = new MinHeap&lt;number&gt;((a, b) =&gt; a &lt; b);  // MIN-heap (upper half)
+  addNum(x: number) {
+    this.lo.push(x);
+    this.hi.push(this.lo.pop());                     // pass lo's max into hi (keeps lo ≤ hi)
+    if (this.hi.size() &gt; this.lo.size()) this.lo.push(this.hi.pop()); // rebalance: lo ≥ hi
+  }
+  findMedian(): number {
+    return this.lo.size() &gt; this.hi.size()
+      ? this.lo.peek()
+      : (this.lo.peek() + this.hi.peek()) / 2;
+  }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the two invariants and the funnel-then-rebalance trick (why push to <code>lo</code>, move to <code>hi</code>, maybe move back). <b>· Escalation:</b> stream median → "Sliding Window Median" (lazy deletion of leaving elements) → "IPO" (two heaps keyed by capital and profit).</div>
+
+<!-- 4.5 -->
+<h3 id="p-greedy">4.5 · Greedy driven by a heap</h3>
+<p class="tldr">“Repeatedly pull the best available option; push back what it spawns.”</p>
+<p><b>Setup:</b> many scheduling/simulation problems reduce to "always act on the current most-urgent / cheapest / earliest-ending item" — a heap serves that item in <code>O(log n)</code>.</p>
+
+<div class="box key"><b class="tag">🔑 Why the greedy choice is safe</b> The heap's top is the globally best available option right now (here, the earliest-freeing room). Taking it never forecloses a better future — anything you skip is still on the heap next round. For Meeting Rooms: if even the soonest-ending room isn't free by this meeting's start, none are, so a new room is genuinely required.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Meeting Rooms II — fewest rooms needed
+function minMeetingRooms(intervals: number[][]): number {
+  intervals.sort((a, b) =&gt; a[0] - b[0]);                 // by start
+  const ends = new MinHeap&lt;number&gt;((a, b) =&gt; a &lt; b);     // min-heap of end times
+  let rooms = 0;
+  for (const [start, end] of intervals) {
+    if (ends.size() &amp;&amp; ends.peek() &lt;= start) ends.pop();  // a room freed up
+    ends.push(end);
+    rooms = Math.max(rooms, ends.size());                // peak concurrency
+  }
+  return rooms;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> justify the greedy choice, and use <b>lazy deletion</b> when "remove a specific item" is needed (skip stale tops on pop). <b>· Escalation:</b> meeting rooms → "Task Scheduler" / "Reorganize String" → "Minimum Cost to Connect Sticks" (Huffman) → <a href="graph.html">Dijkstra / Prim</a> (a heap of frontier edges).</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Operation</th><th>Time</th><th>Note</th></tr>
+<tr><td>peek (min/max)</td><td><code>O(1)</code></td><td>it's just the root</td></tr>
+<tr><td>push / pop</td><td><code>O(log n)</code></td><td>one root-to-leaf path</td></tr>
+<tr><td>build-heap (from n items)</td><td><code>O(n)</code></td><td>sift-down bottom-up — <i>not</i> n log n</td></tr>
+<tr><td>Top-k / k-way merge</td><td><code>O(n log k)</code></td><td>heap capped at size k</td></tr>
+<tr><td>search / arbitrary delete</td><td><code>O(n)</code></td><td>heaps are bad at this — use lazy deletion or a different structure</td></tr>
+</table>
+<div class="box"><b class="tag">The size-k insight</b> Capping the heap at <code>k</code> turns "process n items" into <code>O(n log k)</code> — a big win when <code>k ≪ n</code>, and the reason top-k/k-way-merge use a heap rather than sorting everything.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Using a <b>max</b>-heap for "k largest" (keeps everything).</td><td>Huge <code>n</code>, small <code>k</code> → <code>O(n)</code> memory and <code>O(n log n)</code> time instead of <code>O(n log k)</code>.</td></tr>
+<tr><td>Forgetting to <b>cap</b> the heap at size k.</td><td><code>n ≫ k</code> → the heap grows to <code>n</code>; the "k-th" is still right but the cost isn't.</td></tr>
+<tr><td>Sift-down picks the wrong child / off-by-one in <code>2i+1, 2i+2</code>.</td><td>A 3-element heap → the property breaks after the first pop.</td></tr>
+<tr><td>Two heaps: rebalance lets sizes drift by &gt; 1.</td><td>Alternating inserts → median comes from the wrong top.</td></tr>
+<tr><td>Implementing a max-heap as a min-heap without flipping the comparator.</td><td>Any input → you get the min where you wanted the max.</td></tr>
+<tr><td>No <b>lazy deletion</b> when items must be removed (sliding median / Dijkstra).</td><td>Stale entries linger and get popped → wrong answer; skip-on-pop fixes it.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>Heapsort</b> and the top-k vs <a href="sorting.html#p-select">quickselect</a> trade-off live in <a href="sorting.html">sorting.html</a> (heap: streaming/online; quickselect: one-shot static).
+<b>Merge k lists</b> upgrades the two-list <a href="linked-list.html#p-dummy">merge</a> / two-sequence <a href="two-pointers.html#p-seq">pointer</a>.
+<b>Dijkstra &amp; Prim</b> are a min-heap over a frontier — see <a href="graph.html">graph.html</a>.
+<b>"Connect sticks"</b> is Huffman coding; <b>two heaps</b> is the balance trick reused in many median/percentile problems.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-mech">Mechanics</a></td><td>215 Kth Largest · 703 Kth Largest in a Stream</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-topk">Top-K</a></td><td>347 Top K Frequent · 973 K Closest Points · 692 Top K Words</td><td>Med</td></tr>
+<tr><td><a href="#p-merge">K-way merge</a></td><td><b>23 Merge k Sorted Lists</b> · 373 K Pairs · 378 Kth in Sorted Matrix</td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-twoheap">Two-heap median</a></td><td><b>295 Median from Data Stream</b> · <b>480 Sliding Window Median</b></td><td><b>Hard</b></td></tr>
+<tr><td><a href="#p-greedy">Greedy</a></td><td>1046 Last Stone Weight · 253 Meeting Rooms II · 621 Task Scheduler</td><td>Easy → Med</td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What does a heap guarantee, and what does it <i>not</i>?</td><td class="a">The extreme is at the root (peek <code>O(1)</code>, push/pop <code>O(log n)</code>); it is <b>not</b> fully sorted and can't search/delete arbitrary elements cheaply.</td></tr>
+<tr><td>For the <b>k largest</b>, which heap type and size, and why?</td><td class="a">A <b>min</b>-heap of size <b>k</b>. Its root is the weakest of the current top-k — exactly the bar a newcomer must clear; pop it when size &gt; k.</td></tr>
+<tr><td>What are parent/child indices for index <code>i</code>?</td><td class="a">parent = <code>(i−1)/2</code>; children = <code>2i+1</code> and <code>2i+2</code>.</td></tr>
+<tr><td>Why is k-way merge <code>O(n log k)</code> rather than <code>O(n log n)</code>?</td><td class="a">The heap holds only the <code>k</code> current heads, so each push/pop is <code>log k</code>.</td></tr>
+<tr><td>State the two invariants of the median two-heap.</td><td class="a">Every <code>lo</code> ≤ every <code>hi</code>; and <code>lo.size</code> equals <code>hi.size</code> or is one bigger.</td></tr>
+<tr><td>When should you use quickselect instead of a heap?</td><td class="a">A one-shot k-th on static, in-memory data — quickselect is <code>O(n)</code>. Heaps win for streams / repeated queries.</td></tr>
+<tr><td>How do you "remove a specific element" from a heap?</td><td class="a">Lazy deletion: mark it removed, and skip stale entries when they surface at the top.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">mechanics</span> <code>MinHeap</code> (push/pop, sift-up/down)</li>
+<li><span class="pill">top-k</span> <code>kthLargest</code> (min-heap of size k)</li>
+<li><span class="pill">k-way</span> <code>mergeKLists</code></li>
+<li><span class="pill">two heaps</span> <code>MedianFinder</code></li>
+<li><span class="pill">greedy</span> <code>minMeetingRooms</code></li>
+</ul>
+<p class="hint">For each: write "which heap (min/max), what's at the root, what invariant" as a comment <i>before</i> the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

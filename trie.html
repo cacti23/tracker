@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Trie — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#9333ea; --accent-soft:#9333ea14; --accent-line:#9333ea40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🔡 Trie</h1>
+<p class="sub">A learning sheet — a tree whose edges are characters. It answers prefix questions in O(L), no matter how many words you've stored.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p>A trie stores strings by their <b>shared prefixes</b>. Each node owns a map of child characters; walking a word's letters from the root traces (or builds) a path, and a boolean <b>isEnd</b> flags where real words finish. Every operation — insert, search, prefix-check — is one walk down the word: <b>O(L)</b>, completely independent of how many words are stored.</p>
+
+<h3>Watch it get invented — a prefix-searchable dictionary</h3>
+<ol>
+<li><b>Start with a hash set.</b> It answers "is <code>X</code> a word?" in <code>O(L)</code> — but "is <code>X</code> a <i>prefix</i> of some word?" forces a scan of every entry: <code>O(N·L)</code>.</li>
+<li><b>The leap.</b> Words that share a prefix should share <i>storage</i>. Lay them in a tree keyed by character; common prefixes become a single shared path that branches only where the words diverge.</li>
+<li><b>The two queries fall out.</b> <code>search(w)</code> = walk <code>w</code>; it's a word iff the path exists <i>and</i> ends on <code>isEnd</code>. <code>startsWith(p)</code> = walk <code>p</code>; true iff the path exists at all.</li>
+<li><b>Payoff.</b> <code>O(L)</code> per op regardless of <code>N</code>, and prefixes are stored once.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 560 175" role="img" aria-label="Trie storing cat car card with a shared ca prefix">
+  <g font-size="13" text-anchor="middle">
+    <circle cx="80" cy="30" r="15" fill="#fff" stroke="#9ca3af"/><text x="80" y="35" font-size="10" fill="#6b675e">root</text>
+    <circle cx="160" cy="30" r="15" fill="#9333ea18" stroke="#9333ea"/><text x="160" y="35">c</text>
+    <circle cx="240" cy="30" r="15" fill="#9333ea18" stroke="#9333ea"/><text x="240" y="35">a</text>
+    <circle cx="330" cy="80" r="15" fill="#16a34a30" stroke="#16a34a"/><text x="330" y="85">t</text>
+    <circle cx="330" cy="30" r="15" fill="#16a34a30" stroke="#16a34a"/><text x="330" y="35">r</text>
+    <circle cx="410" cy="30" r="15" fill="#16a34a30" stroke="#16a34a"/><text x="410" y="35">d</text>
+    <g stroke="#cbd5d1"><path d="M95 30 H145 M175 30 H225 M254 38 L318 72 M255 30 H315 M345 30 H395"/></g>
+    <text x="200" y="14" fill="#9333ea" font-size="11">shared "ca"</text>
+    <g font-size="10" fill="#16a34a" text-anchor="start">
+      <text x="350" y="84">= "cat" (isEnd)</text>
+      <text x="350" y="22">= "car" (isEnd)</text>
+      <text x="428" y="34">= "card"</text>
+    </g>
+  </g>
+</svg>
+<figcaption>"cat", "car", "card" share one "ca" path; green nodes are word-ends. A prefix is just "does this path exist?"</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">When a trie beats a hash set</b> Use a trie for <b>prefix</b> work (autocomplete, "starts with", longest common prefix) and as a <b>pruner</b> for searches (only explore paths that are valid prefixes). If you only need <b>exact membership</b>, a hash set is simpler, as fast, and lighter.</div>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>Implement insert / search / startsWith?</td><td>node = {children, isEnd}; walk the word</td><td><b><a href="#p-mech">Mechanics</a></b> (§4.1)</td></tr>
+<tr><td>Autocomplete / all words with a prefix / replace words?</td><td>walk to the prefix, DFS to collect</td><td><b><a href="#p-prefix">Prefix queries</a></b> (§4.2)</td></tr>
+<tr><td>Search allowing a <b>wildcard</b> (<code>.</code> matches any)?</td><td>branch the DFS over all children at <code>.</code></td><td><b><a href="#p-wild">Wildcard</a></b> (§4.3)</td></tr>
+<tr><td>Find all dictionary words inside a <b>grid</b> / break a string?</td><td>trie as a pruner over a DFS</td><td><b><a href="#p-grid">Trie + DFS</a></b> (§4.4)</td></tr>
+<tr><td>Maximize/compare <b>XOR</b> of numbers?</td><td>a binary trie of bits, greedy MSB-first</td><td><b><a href="#p-bit">Bit trie</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When a trie is the WRONG / overkill tool</b>
+<b>·</b> <b>Exact membership only</b>, no prefixes → a hash set is simpler and lighter.<br/>
+<b>·</b> <b>Memory:</b> a 26-pointer-array node is fast but heavy; use a <code>Map</code> for sparse alphabets, an array for dense ones — and say which trade-off you chose.<br/>
+<b>·</b> The data isn't character/bit-sequenced and has no prefix structure → a trie buys nothing.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"implement a trie / prefix tree", "insert / search / startsWith"</td><td><a href="#p-mech">Mechanics §4.1</a></td></tr>
+<tr><td>"autocomplete", "search suggestions", "replace words", "longest common prefix", "map sum"</td><td><a href="#p-prefix">Prefix §4.2</a></td></tr>
+<tr><td>"add and search word", "<code>.</code> matches any character", "wildcard"</td><td><a href="#p-wild">Wildcard §4.3</a></td></tr>
+<tr><td>"word search II", "find all words in a board", "concatenated words", "word break II"</td><td><a href="#p-grid">Trie + DFS §4.4</a></td></tr>
+<tr><td>"maximum XOR of two numbers", "binary trie", "XOR pairs"</td><td><a href="#p-bit">Bit trie §4.5</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">Node throughout: <code>{ children: Map&lt;char, Node&gt;, isEnd: boolean }</code>. Each pattern: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-mech">4.1 · Mechanics — insert / search / startsWith</h3>
+<p class="tldr">“Walk the word; create missing children on insert, follow them on lookup.”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> After inserting a word, exactly one root-to-node path spells it and that final node has <code>isEnd = true</code>. So a lookup that follows the same characters lands on that node iff the word was inserted — and <code>isEnd</code> distinguishes a stored <i>word</i> from a mere <i>prefix</i>.</div>
+
+<pre class="language-tsx"><code class="language-tsx">class TrieNode { children = new Map&lt;string, TrieNode&gt;(); isEnd = false; }
+
+class Trie {
+  root = new TrieNode();
+  insert(word: string): void {
+    let node = this.root;
+    for (const c of word) {
+      if (!node.children.has(c)) node.children.set(c, new TrieNode());
+      node = node.children.get(c)!;
+    }
+    node.isEnd = true;
+  }
+  private walk(s: string): TrieNode | null {
+    let node = this.root;
+    for (const c of s) { const next = node.children.get(c); if (!next) return null; node = next; }
+    return node;
+  }
+  search(word: string): boolean { const n = this.walk(word); return !!n &amp;&amp; n.isEnd; }
+  startsWith(prefix: string): boolean { return this.walk(prefix) !== null; }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the node shape (Map vs 26-array trade-off), why ops are <code>O(L)</code> regardless of <code>N</code>, and the <code>isEnd</code> distinction. <b>· Escalation:</b> implement → add <code>delete</code> → store a <i>count</i> of words passing through each node.</div>
+
+<!-- 4.2 -->
+<h3 id="p-prefix">4.2 · Prefix queries — autocomplete</h3>
+<p class="tldr">“Walk to the prefix node, then DFS everything beneath it.”</p>
+<p><b>Setup:</b> the subtree rooted at the prefix node contains <i>exactly</i> the words sharing that prefix — collect them with a DFS.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Reaching the prefix node means the prefix exists. Every <code>isEnd</code> in that subtree is a stored word whose first letters are exactly the prefix (that's how it got placed there) — so the DFS collects all completions and nothing else.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// All stored words that start with `prefix`
+function wordsWithPrefix(trie: Trie, prefix: string): string[] {
+  const start = (trie as any).walk(prefix) as TrieNode | null;
+  if (!start) return [];
+  const out: string[] = [];
+  (function dfs(node: TrieNode, suffix: string) {
+    if (node.isEnd) out.push(prefix + suffix);
+    for (const [c, child] of node.children) dfs(child, suffix + c);
+  })(start, '');
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> walk-then-DFS, and lexicographic order (iterate children sorted). <b>· Escalation:</b> words-with-prefix → top-k autocomplete (store frequencies) → "Replace Words" (shortest root) → "Map Sum Pairs" (prefix value sums).</div>
+
+<!-- 4.3 -->
+<h3 id="p-wild">4.3 · Wildcard search (<code>.</code> matches any)</h3>
+<p class="tldr">“On a literal, follow one child; on a dot, try them all.”</p>
+<p><b>Setup:</b> a normal walk can't handle <code>.</code> because it could match several children — so the walk becomes a branching DFS that recurses into every child whenever it sees a dot.</p>
+
+<figure>
+<svg viewBox="0 0 520 110" role="img" aria-label="Wildcard branches over all children">
+  <g font-size="12" text-anchor="middle">
+    <circle cx="90" cy="55" r="15" fill="#9333ea18" stroke="#9333ea"/><text x="90" y="60">.</text>
+    <circle cx="200" cy="25" r="15" fill="#9333ea18" stroke="#9333ea"/><text x="200" y="30">a</text>
+    <circle cx="200" cy="55" r="15" fill="#9333ea18" stroke="#9333ea"/><text x="200" y="60">b</text>
+    <circle cx="200" cy="85" r="15" fill="#9333ea18" stroke="#9333ea"/><text x="200" y="90">c</text>
+    <g stroke="#cbd5d1"><path d="M105 50 L185 30 M105 55 H185 M105 60 L185 82"/></g>
+    <text x="320" y="50" text-anchor="start" fill="#6b675e">a '.' tries every child;</text>
+    <text x="320" y="68" text-anchor="start" fill="#6b675e">succeed if any branch matches</text>
+  </g>
+</svg>
+<figcaption>A literal character is one step; a dot fans out into a DFS over all children.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>dfs(node, i)</code> returns true iff the word's suffix from index <code>i</code> can be matched starting at <code>node</code>. A literal advances one definite child; a <code>.</code> succeeds iff <i>any</i> child can match the rest — exhaustive over the only possibilities.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Add and Search Word — '.' matches any single character
+search(word: string): boolean {
+  const dfs = (node: TrieNode, i: number): boolean =&gt; {
+    if (i === word.length) return node.isEnd;
+    const c = word[i];
+    if (c === '.') {
+      for (const child of node.children.values()) if (dfs(child, i + 1)) return true;
+      return false;
+    }
+    const next = node.children.get(c);
+    return next ? dfs(next, i + 1) : false;
+  };
+  return dfs(this.root, 0);
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> branching only on <code>.</code>; worst-case cost when dots are early/many. <b>· Escalation:</b> single <code>.</code> → multiple wildcards → regex-style <code>*</code>.</div>
+
+<!-- 4.4 -->
+<h3 id="p-grid">4.4 · Trie as a pruner (grid / word break)</h3>
+<p class="tldr">“Drive one DFS by the trie — abandon any path that isn't a live prefix.”</p>
+<p><b>Setup:</b> instead of searching the grid once per word, build a trie of all words and run a <i>single</i> DFS; at each cell, only continue if the trie has that character as a child. The trie collapses many searches into one and prunes dead ends instantly.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The DFS holds a trie node that always corresponds to the string spelled by the current grid path. If the next cell's letter isn't a child of that node, no dictionary word continues this way — so the whole branch is pruned. A node's <code>word</code> field firing means a complete dictionary word ends here.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Word Search II — all dictionary words found in the board
+function findWords(board: string[][], words: string[]): string[] {
+  const root = new TrieNode() as TrieNode &amp; { word?: string };
+  for (const w of words) {                      // build the trie, tag ends with the full word
+    let n: any = root;
+    for (const c of w) { if (!n.children.has(c)) n.children.set(c, new TrieNode()); n = n.children.get(c); }
+    n.word = w;
+  }
+  const out: string[] = [], R = board.length, C = board[0].length;
+  function dfs(r: number, c: number, node: any) {
+    const ch = board[r][c], child = node.children.get(ch);
+    if (!child) return;                          // PRUNE: not a live prefix
+    if (child.word) { out.push(child.word); child.word = undefined; } // collect + dedup
+    board[r][c] = '#';                           // mark visited
+    for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr &gt;= 0 &amp;&amp; nr &lt; R &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; C &amp;&amp; board[nr][nc] !== '#') dfs(nr, nc, child);
+    }
+    board[r][c] = ch;                            // restore (backtrack)
+  }
+  for (let r = 0; r &lt; R; r++) for (let c = 0; c &lt; C; c++) dfs(r, c, root);
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> building the trie of words, pruning by trie children, plus dedup and board restore (<a href="backtracking.html">backtracking</a>). <b>· Escalation:</b> Word Search II → "Concatenated Words" → "Word Break II" (trie + memo).</div>
+
+<!-- 4.5 -->
+<h3 id="p-bit">4.5 · Bit trie — XOR greedily</h3>
+<p class="tldr">“Store numbers as bit-paths; to maximize XOR, walk choosing the opposite bit.”</p>
+<p><b>Setup:</b> insert each number's bits MSB→LSB into a binary trie. To maximize <code>a XOR b</code>, for each <code>a</code> walk the trie always preferring the <i>opposite</i> bit (which sets that XOR bit to 1) when it exists.</p>
+
+<figure>
+<svg viewBox="0 0 520 110" role="img" aria-label="Bit trie choosing opposite bits to maximize XOR">
+  <g font-size="12" text-anchor="middle">
+    <circle cx="80" cy="55" r="14" fill="#fff" stroke="#9ca3af"/>
+    <circle cx="170" cy="30" r="14" fill="#9333ea18" stroke="#9333ea"/><text x="170" y="35">0</text>
+    <circle cx="170" cy="80" r="14" fill="#9333ea18" stroke="#9333ea"/><text x="170" y="85">1</text>
+    <g stroke="#cbd5d1"><path d="M93 50 L157 34 M93 60 L157 76"/></g>
+    <text x="260" y="36" text-anchor="start" fill="#6b675e">my bit = 1 → prefer the <tspan fill="#16a34a" font-weight="700">0</tspan> branch</text>
+    <text x="260" y="62" text-anchor="start" fill="#6b675e">(opposite bits ⇒ XOR bit = 1)</text>
+    <text x="260" y="86" text-anchor="start" fill="#6b675e">fall back to the same bit if absent</text>
+  </g>
+</svg>
+<figcaption>Greedy from the most significant bit: every "opposite" turn you can take adds a higher-value 1 to the XOR.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why greedy is optimal</b> XOR is maximized bit by bit from the MSB: a 1 in a higher bit outweighs all lower bits combined. So at each level, if the opposite-bit branch exists, taking it is strictly best — no later choice can recover a higher bit you passed up.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Maximum XOR of Two Numbers in an array (30-bit ints)
+function findMaximumXOR(nums: number[]): number {
+  const root: any = {};
+  for (const num of nums) {                    // insert bits MSB → LSB
+    let node = root;
+    for (let b = 30; b &gt;= 0; b--) { const bit = (num &gt;&gt; b) &amp; 1; node = node[bit] ??= {}; }
+  }
+  let best = 0;
+  for (const num of nums) {
+    let node = root, cur = 0;
+    for (let b = 30; b &gt;= 0; b--) {
+      const bit = (num &gt;&gt; b) &amp; 1, want = bit ^ 1;   // greedily seek the opposite bit
+      if (node[want]) { cur |= (1 &lt;&lt; b); node = node[want]; }
+      else node = node[bit];
+    }
+    best = Math.max(best, cur);
+  }
+  return best;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> MSB-first insertion, the greedy opposite-bit walk, and <code>O(n · bits)</code>. <b>· Escalation:</b> max XOR → "Count Pairs With XOR in a Range" → "Maximum XOR With an Element From Array" (offline + sort).</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Operation</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>insert / search / startsWith</td><td><code>O(L)</code></td><td><code>O(total chars)</code></td><td><code>L</code> = word length; independent of word count</td></tr>
+<tr><td>Collect words with a prefix</td><td><code>O(L + S)</code></td><td><code>O(S)</code></td><td><code>S</code> = total length of the matches</td></tr>
+<tr><td>Wildcard search</td><td><code>O(26<sup>k</sup>·L)</code> worst</td><td><code>O(L)</code></td><td><code>k</code> = number of dots (branching)</td></tr>
+<tr><td>Bit trie (max XOR)</td><td><code>O(n · 32)</code></td><td><code>O(n · 32)</code></td><td>one path of 32 bits per number</td></tr>
+</table>
+<div class="box"><b class="tag">The size-independence insight</b> A trie's per-word cost depends on the <i>word's length</i>, never on the dictionary size — that's its superpower over scanning. Its weakness is memory: many sparse nodes; a <code>Map</code> keeps them lean.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Forgetting <code>isEnd</code> — treating any path as a word.</td><td>Insert <code>"cat"</code>, <code>search("ca")</code> → must be <b>false</b>, but a no-flag trie says true.</td></tr>
+<tr><td>Confusing <code>search</code> (needs <code>isEnd</code>) with <code>startsWith</code> (doesn't).</td><td>After <code>"cat"</code>: <code>startsWith("ca")</code> true, <code>search("ca")</code> false.</td></tr>
+<tr><td>Wildcard <code>.</code> not branching over <b>all</b> children.</td><td>Words <code>["ab","cb"]</code>, search <code>".b"</code> → must try both <code>a</code> and <code>c</code>.</td></tr>
+<tr><td>Grid DFS: not restoring the cell / not marking visited.</td><td>A word that would reuse a neighboring cell → false positive or revisits.</td></tr>
+<tr><td>Grid DFS: not deduping found words.</td><td>The same word reachable two ways → appears twice; null-out the <code>word</code> on collect.</td></tr>
+<tr><td>Bit trie: wrong bit order or too few bits.</td><td>Numbers needing the top bit → low-bit-first insertion gives wrong XOR.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>A trie is a tree</b> — every walk/collect is the tree DFS from <a href="trees.html">trees.html</a>.
+<b>Trie-pruned grid search</b> is <a href="backtracking.html">backtracking</a> with a smarter "is this still viable?" test; "Word Break" pairs it with <a href="dp.html">DP</a>.
+<b>The bit trie</b> is the structural side of <a href="bit-manipulation.html">bit manipulation</a>.
+<b>vs a hash set:</b> tries win on prefixes and pruning, lose on memory for exact-membership-only.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-mech">Mechanics</a></td><td>208 Implement Trie · 1804 Implement Trie II</td><td>Med</td></tr>
+<tr><td><a href="#p-prefix">Prefix queries</a></td><td>648 Replace Words · 677 Map Sum Pairs · 720 Longest Word</td><td>Med</td></tr>
+<tr><td><a href="#p-wild">Wildcard</a></td><td>211 Add &amp; Search Word (the <code>.</code> branch)</td><td>Med</td></tr>
+<tr><td><a href="#p-grid">Grid + trie</a></td><td><b>212 Word Search II</b> · <b>425 Word Squares</b></td><td><b>Hard</b></td></tr>
+<tr><td><a href="#p-bit">XOR / bit trie</a></td><td><b>421 Maximum XOR of Two Numbers</b> · <b>1707 Max XOR With an Element</b></td><td>Med → <b>Hard</b></td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What's a trie op's cost, and what is it independent of?</td><td class="a"><code>O(L)</code> in the word's length — independent of how many words are stored.</td></tr>
+<tr><td>What distinguishes a stored word from a mere prefix?</td><td class="a">The <code>isEnd</code> flag. <code>search</code> requires it; <code>startsWith</code> doesn't.</td></tr>
+<tr><td>When does a trie beat a hash set, and when not?</td><td class="a">Beats it for prefix queries and as a search pruner; loses for exact-membership-only (a set is simpler/lighter).</td></tr>
+<tr><td>How does a wildcard <code>.</code> change the walk?</td><td class="a">It branches: the DFS recurses into <i>every</i> child and succeeds if any branch matches the rest.</td></tr>
+<tr><td>How does a trie prune Word Search II?</td><td class="a">The DFS carries the trie node for the current path; if the next letter isn't a child, no word continues — prune the branch.</td></tr>
+<tr><td>Why is the bit-trie XOR walk greedy-optimal?</td><td class="a">A higher bit outweighs all lower bits, so taking the opposite branch at the MSB whenever possible is never beaten later.</td></tr>
+<tr><td>A trie's main weakness?</td><td class="a">Memory — many sparse nodes; a <code>Map</code> per node keeps it lean vs a 26-slot array.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">mechanics</span> <code>Trie</code> (insert / search / startsWith)</li>
+<li><span class="pill">prefix</span> <code>wordsWithPrefix</code> (walk + DFS)</li>
+<li><span class="pill">wildcard</span> <code>.</code>-search DFS</li>
+<li><span class="pill">grid</span> <code>findWords</code> (trie pruning)</li>
+<li><span class="pill">bit</span> <code>findMaximumXOR</code></li>
+</ul>
+<p class="hint">For each: write "what does <code>isEnd</code>/the trie node mean here?" as a comment <i>before</i> the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

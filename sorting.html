@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sorting — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#4338ca; --accent-soft:#4338ca14; --accent-line:#4338ca40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🔃 Sorting</h1>
+<p class="sub">A learning sheet — you'll rarely write a sort, but you must know each one's guarantees, the divide-and-conquer subroutines, and the meta-move: "sort first, and the problem collapses."</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>The sort table</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p>Sorting wears two hats. <b>Hat 1 — the toolbox:</b> the library sorts in <code>O(n log n)</code>, so you usually just call it — but you must know <i>which</i> sort it uses and its guarantees (<b>stable?</b> <b>in-place?</b> <b>worst case?</b>), because those decide correctness. <b>Hat 2 — the weapon:</b> a huge class of problems isn't "sort," but becomes trivial <i>once sorted</i> — enabling two pointers, greedy, sweep lines, or a custom comparator.</p>
+
+<p>Underneath the named algorithms sit three reusable <b>subroutines</b> that show up as building blocks far beyond sorting: the <b>merge</b> (combine two sorted runs), the <b>partition</b> (split around a pivot), and <b>quickselect</b> (find the k-th element without fully sorting).</p>
+
+<h3>Watch it get invented — Merge Sort (divide &amp; conquer)</h3>
+<ol>
+<li><b>Start brute.</b> Insertion/selection sort is <code>O(n²)</code> — every element compared against many others.</li>
+<li><b>The leap.</b> Split the array in half, <i>sort each half</i> (recursively), then notice: two <b>already-sorted</b> halves can be stitched into one sorted whole in a single linear pass — the <b>merge</b> step (a two-sequence two-pointer).</li>
+<li><b>The recurrence.</b> <code>T(n) = 2·T(n/2) + O(n)</code> → <code>O(n log n)</code>. Log levels of halving, each level doing <code>O(n)</code> of merging.</li>
+<li><b>Payoff.</b> Guaranteed <code>O(n log n)</code>, and <b>stable</b> (keep <code>&lt;=</code> in the merge) — the cost is <code>O(n)</code> extra space.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 600 165" role="img" aria-label="Merge sort divide and conquer tree">
+  <g font-size="12" text-anchor="middle" font-family="monospace">
+    <text x="300" y="16" fill="#4338ca">[3, 1, 4, 2]</text>
+    <text x="170" y="56" fill="#4338ca">[3, 1]</text><text x="430" y="56" fill="#4338ca">[4, 2]</text>
+    <text x="110" y="92" fill="#6b675e">[3]</text><text x="230" y="92" fill="#6b675e">[1]</text>
+    <text x="370" y="92" fill="#6b675e">[4]</text><text x="490" y="92" fill="#6b675e">[2]</text>
+    <text x="170" y="128" fill="#16a34a">[1, 3]</text><text x="430" y="128" fill="#16a34a">[2, 4]</text>
+    <text x="300" y="158" fill="#16a34a" font-weight="700">[1, 2, 3, 4]</text>
+    <g stroke="#cbd5d1"><path d="M285 24 L185 46 M315 24 L415 46 M155 64 L115 82 M185 64 L225 82 M415 64 L375 82 M445 64 L485 82"/></g>
+    <text x="60" y="40" text-anchor="start" fill="#6b675e" font-size="10">split down…</text>
+    <text x="60" y="140" text-anchor="start" fill="#16a34a" font-size="10">…merge up</text>
+  </g>
+</svg>
+<figcaption>Split until trivial, then merge sorted runs back up. The merge is the only real work.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">Mental checklist</b> Before reaching for any sort, ask: <b>(1)</b> do I need the <i>whole</i> thing sorted, or just the top-k / k-th? <b>(2)</b> is the data a <b>bounded integer range</b> (→ linear sort)? <b>(3)</b> do I need <b>stability</b>? <b>(4)</b> is the real problem actually "sort first, then sweep/two-pointer"?</div>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>Need <b>stable</b> and/or <b>guaranteed</b> <code>O(n log n)</code> (or sorting a linked list)?</td><td>merge sort</td><td><b><a href="#p-merge">Merge sort</a></b> (§4.1)</td></tr>
+<tr><td>Want <b>in-place</b>, fast average, stability not needed?</td><td>quicksort / the library default</td><td><b><a href="#p-quick">Quicksort</a></b> (§4.2)</td></tr>
+<tr><td>Only need the <b>k-th</b> element or <b>top-k by value</b>?</td><td>don't sort — partition around it</td><td><b><a href="#p-select">Quickselect</a></b> (§4.3)</td></tr>
+<tr><td>Keys are a <b>small bounded range</b> of integers?</td><td>count / bucket / radix → <code>O(n)</code></td><td><b><a href="#p-linear">Linear sorts</a></b> (§4.4)</td></tr>
+<tr><td>Not "sort," but <b>easy once sorted</b>?</td><td>sort, then two-pointer / greedy / sweep / comparator</td><td><b><a href="#p-pre">Sort-as-prep</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When sorting is the WRONG / overkill tool</b>
+<b>·</b> You only need <b>top-k</b> or the <b>k-th</b> → quickselect (<code>O(n)</code> avg) or a heap (<code>O(n log k)</code>) beat a full <code>O(n log n)</code> sort.<br/>
+<b>·</b> Keys are <b>bounded integers</b> → counting/radix is <code>O(n)</code>; the <code>n log n</code> lower bound only binds <i>comparison</i> sorts.<br/>
+<b>·</b> Data is <b>streaming</b> / you must preserve original indices → use a heap, or sort indices / pair with a tie-break.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"stable", "count inversions", "merge sorted", "sort a linked list"</td><td><a href="#p-merge">Merge §4.1</a></td></tr>
+<tr><td>"in-place", "sort the array" (generic), "partition around a pivot"</td><td><a href="#p-quick">Quicksort §4.2</a></td></tr>
+<tr><td>"k-th largest/smallest", "top k closest/frequent", "median of a stream"</td><td><a href="#p-select">Quickselect §4.3</a> (or heap)</td></tr>
+<tr><td>"sort colors / 0-1-2", "values in [0, k]", "bucket", "radix", "maximum gap"</td><td><a href="#p-linear">Linear §4.4</a></td></tr>
+<tr><td>"merge intervals", "meeting rooms", "largest number", "group anagrams", "3Sum"</td><td><a href="#p-pre">Sort-as-prep §4.5</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">§4.1–4.3 are the divide-and-conquer trio (merge, partition, select). §4.4–4.5 are the "beat or avoid the sort" moves. Each: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-merge">4.1 · Merge sort</h3>
+<p class="tldr">“Sort each half, then zip the two sorted runs together.”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Each recursive call returns a fully-sorted sub-array. The <b>merge</b> always emits the smaller of the two current heads, so its output is sorted and contains every element — and using <code>&lt;=</code> on ties preserves left-before-right order (stability).</div>
+
+<pre class="language-tsx"><code class="language-tsx">function mergeSort(a: number[]): number[] {
+  if (a.length &lt;= 1) return a;
+  const mid = a.length &gt;&gt; 1;
+  return merge(mergeSort(a.slice(0, mid)), mergeSort(a.slice(mid)));
+}
+// the merge step IS a two-sequence two-pointer
+function merge(a: number[], b: number[]): number[] {
+  const out: number[] = []; let i = 0, j = 0;
+  while (i &lt; a.length &amp;&amp; j &lt; b.length) out.push(a[i] &lt;= b[j] ? a[i++] : b[j++]); // &lt;= → stable
+  while (i &lt; a.length) out.push(a[i++]);
+  while (j &lt; b.length) out.push(b[j++]);
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> stability, the <code>O(n)</code> space, and the <code>O(n log n)</code> recurrence. <b>· Escalation:</b> sort → "Count Inversions" (count cross-pairs during merge) → "Merge k Sorted Lists" → external merge sort for data that doesn't fit in memory.</div>
+
+<!-- 4.2 -->
+<h3 id="p-quick">4.2 · Quicksort &amp; partition</h3>
+<p class="tldr">“Pick a pivot, shove smaller-left / bigger-right, recurse on each side.”</p>
+<p><b>Setup:</b> the <b>partition</b> is the reusable jewel — it places the pivot at its final sorted index and returns it. Quicksort just recurses on both sides; quickselect (§4.3) recurses on one.</p>
+
+<figure>
+<svg viewBox="0 0 560 110" role="img" aria-label="Lomuto partition around a pivot">
+  <g font-size="13" text-anchor="middle" font-family="monospace">
+    <g transform="translate(30,30)">
+      <rect x="0" width="44" height="32" fill="#16a34a18" stroke="#16a34a" rx="5"/><text x="22" y="21">2</text>
+      <rect x="48" width="44" height="32" fill="#16a34a18" stroke="#16a34a" rx="5"/><text x="70" y="21">1</text>
+      <rect x="96" width="44" height="32" fill="#e5e7eb" stroke="#9ca3af" rx="5"/><text x="118" y="21">7</text>
+      <rect x="144" width="44" height="32" fill="#e5e7eb" stroke="#9ca3af" rx="5"/><text x="166" y="21">6</text>
+      <rect x="192" width="44" height="32" fill="#4338ca22" stroke="#4338ca" rx="5"/><text x="214" y="21">3</text>
+      <text x="70" y="50" fill="#16a34a" font-size="11">&lt; pivot</text>
+      <text x="142" y="50" fill="#6b675e" font-size="11">≥ pivot</text>
+      <text x="214" y="50" fill="#4338ca" font-size="11" font-weight="700">pivot = 3</text>
+      <text x="280" y="20" text-anchor="start" fill="#6b675e" font-size="11">pivot lands at its</text>
+      <text x="280" y="36" text-anchor="start" fill="#6b675e" font-size="11">final sorted index</text>
+    </g>
+  </g>
+</svg>
+<figcaption>One sweep partitions around the pivot; the pivot is now correct forever, and the two sides are independent.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> During the sweep, <code>a[lo..i)</code> are all <code>&lt; pivot</code> and <code>a[i..j)</code> are all <code>≥ pivot</code>. Swapping the pivot into slot <code>i</code> at the end puts it exactly where it belongs, so each side can be sorted independently.</div>
+
+<pre class="language-tsx"><code class="language-tsx">function quickSort(a: number[], lo = 0, hi = a.length - 1): void {
+  if (lo &gt;= hi) return;
+  const p = partition(a, lo, hi);
+  quickSort(a, lo, p - 1);
+  quickSort(a, p + 1, hi);
+}
+// Lomuto partition; randomize the pivot to dodge the O(n²) worst case
+function partition(a: number[], lo: number, hi: number): number {
+  const r = lo + Math.floor(Math.random() * (hi - lo + 1));
+  [a[r], a[hi]] = [a[hi], a[r]];          // random pivot → swap to the end
+  const pivot = a[hi]; let i = lo;
+  for (let j = lo; j &lt; hi; j++) if (a[j] &lt; pivot) { [a[i], a[j]] = [a[j], a[i]]; i++; }
+  [a[i], a[hi]] = [a[hi], a[i]];
+  return i;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the <code>O(n²)</code> worst case (sorted input + last-element pivot) and the random-pivot fix; that it's <b>in-place but not stable</b>. <b>· Escalation:</b> partition → quickselect (§4.3) → <b>3-way</b> partition (Dutch flag) when there are many duplicate keys.</div>
+
+<!-- 4.3 -->
+<h3 id="p-select">4.3 · Quickselect — the k-th without sorting</h3>
+<p class="tldr">“Partition, then recurse into only the side that holds k.”</p>
+<p><b>Setup:</b> a full sort is wasteful if you only need rank <code>k</code>. After a partition, the pivot's final index tells you which side <code>k</code> is on — keep only that side.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's O(n) average</b> Each partition discards (on average) half the remaining elements, so work is <code>n + n/2 + n/4 + … = O(n)</code> (a geometric series, unlike sort's <code>O(n log n)</code>). Because you recurse into <i>one</i> side, the log factor disappears.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// k-th SMALLEST (0-indexed k); for k-th largest use a.length-1-k
+function quickselect(a: number[], k: number): number {
+  let lo = 0, hi = a.length - 1;
+  while (true) {
+    const p = partition(a, lo, hi);   // same partition as §4.2
+    if (p === k) return a[p];
+    if (p &lt; k) lo = p + 1;            // k is to the right
+    else hi = p - 1;                  // k is to the left
+  }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the average <code>O(n)</code> geometric-series argument and the <code>O(n²)</code> worst case (random pivot or median-of-medians for a guaranteed bound). <b>· Escalation:</b> k-th largest → "Top K Frequent Elements" (or bucket sort) → "K Closest Points to Origin."</div>
+
+<!-- 4.4 -->
+<h3 id="p-linear">4.4 · Non-comparison (linear) sorts</h3>
+<p class="tldr">“Bounded integer keys? Count them — no comparisons, O(n).”</p>
+<p><b>Setup:</b> comparison sorts are stuck at <code>Ω(n log n)</code>. If keys are integers in a small range, you can <b>tally</b> instead of compare and beat that bound.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>count[v]</code> is the exact number of times <code>v</code> appears. Emitting values <code>0, 1, 2, …</code> in order, each repeated its count, produces a sorted array — correctness comes from the range being known and small, not from comparisons.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Counting sort — keys in [0, maxVal]; O(n + maxVal)
+function countingSort(a: number[], maxVal: number): number[] {
+  const count = new Array(maxVal + 1).fill(0);
+  for (const x of a) count[x]++;
+  const out: number[] = [];
+  for (let v = 0; v &lt;= maxVal; v++) while (count[v]-- &gt; 0) out.push(v);
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> when <code>O(n)</code> actually beats <code>O(n log n)</code> (range ≪ n log n), and counting sort's stability if you emit by prefix-sum position. <b>· Escalation:</b> counting → "Sort Colors" (3-way Dutch flag, one pass) → bucket sort for "Top K Frequent" → radix sort ("Maximum Gap").</div>
+
+<!-- 4.5 -->
+<h3 id="p-pre">4.5 · Sort-as-preprocessing (the meta-move)</h3>
+<p class="tldr">“The problem isn't sorting — but sorting makes it fall over.”</p>
+<p><b>Setup:</b> sorting imposes <i>order</i>, which unlocks linear follow-ups: two pointers, greedy-by-order, sweep lines, grouping, or a <b>custom comparator</b> that defines the order you actually need.</p>
+
+<pre class="language-tsx"><code class="language-tsx">// Largest Number — order so that concatenation is biggest (custom total order)
+function largestNumber(nums: number[]): string {
+  const s = nums.map(String).sort((x, y) =&gt; (y + x).localeCompare(x + y)); // "x then y" vs "y then x"
+  return s[0] === '0' ? '0' : s.join('');   // all zeros → "0"
+}</code></pre>
+<div class="box"><b class="tag">The "sort unlocks…" menu</b>
+<b>two pointers:</b> 3Sum, pair-sum on sorted (<a href="two-pointers.html#p-conv">two-pointers</a>).
+<b>greedy by order:</b> assign meetings, schedule, activity selection.
+<b>sweep line:</b> merge intervals, meeting rooms (sort by start; see the Intervals sheet).
+<b>grouping:</b> group anagrams (sorted string as the key).
+<b>custom comparator:</b> reconstruct queue, largest number.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> define the comparator's total order and argue it's <b>transitive</b> (a non-transitive comparator silently corrupts the sort). <b>· Escalation:</b> largest number → "Merge Intervals" / "Meeting Rooms II" (sort + sweep) → "Reconstruct the Queue" → "Group Anagrams."</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · The sort table</h2>
+<table>
+<tr><th>Algorithm</th><th>Best</th><th>Avg</th><th>Worst</th><th>Space</th><th>Stable?</th><th>In-place?</th></tr>
+<tr><td>Insertion</td><td><code>O(n)</code></td><td><code>O(n²)</code></td><td><code>O(n²)</code></td><td><code>O(1)</code></td><td>✅</td><td>✅</td></tr>
+<tr><td>Merge</td><td><code>O(n log n)</code></td><td><code>O(n log n)</code></td><td><code>O(n log n)</code></td><td><code>O(n)</code></td><td>✅</td><td>❌</td></tr>
+<tr><td>Quicksort</td><td><code>O(n log n)</code></td><td><code>O(n log n)</code></td><td><code>O(n²)</code></td><td><code>O(log n)</code></td><td>❌</td><td>✅</td></tr>
+<tr><td>Heapsort</td><td><code>O(n log n)</code></td><td><code>O(n log n)</code></td><td><code>O(n log n)</code></td><td><code>O(1)</code></td><td>❌</td><td>✅</td></tr>
+<tr><td>Counting / Radix</td><td><code>O(n+k)</code></td><td><code>O(n+k)</code></td><td><code>O(n+k)</code></td><td><code>O(n+k)</code></td><td>✅</td><td>❌</td></tr>
+<tr><td>Quickselect (k-th)</td><td><code>O(n)</code></td><td><code>O(n)</code></td><td><code>O(n²)</code></td><td><code>O(1)</code></td><td>—</td><td>✅</td></tr>
+</table>
+<div class="box"><b class="tag">What to actually remember</b> The library sort is <code>O(n log n)</code> (Timsort: stable; introsort: not). Reach for <b>merge</b> when you need stability/guarantees, <b>quickselect/heap</b> for top-k, <b>counting/radix</b> for bounded integers. The <code>Ω(n log n)</code> floor is for <i>comparison</i> sorts only.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Quicksort worst case from a fixed (last-element) pivot.</td><td>Already-sorted <code>[1,2,…,n]</code> → <code>O(n²)</code> / stack overflow. Fix: random or median-of-three pivot.</td></tr>
+<tr><td>JS default sort is <b>lexicographic</b>, not numeric.</td><td><code>[10, 2, 1].sort()</code> → <code>[1, 10, 2]</code>. Pass a numeric comparator <code>(a,b)=&gt;a-b</code>.</td></tr>
+<tr><td>Assuming stability from an unstable sort.</td><td>Sort records by one key expecting prior order kept → ties reorder unexpectedly.</td></tr>
+<tr><td>Counting sort with <b>negatives</b> or a huge range.</td><td>Negative keys → index out of bounds; range 10⁹ → out of memory.</td></tr>
+<tr><td>Non-transitive custom comparator.</td><td>A comparator where <code>a&lt;b</code>, <code>b&lt;c</code>, but <code>c&lt;a</code> → engine produces garbage / throws.</td></tr>
+<tr><td>Full sort when only top-k is needed.</td><td>"k-th largest of 10⁷ items" → <code>O(n log n)</code> when quickselect/heap is faster; flagged in review.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>The merge step</b> is the two-sequence pointer from <a href="two-pointers.html#p-seq">two-pointers.html</a>; <b>3-way partition</b> is its read/write cousin (<a href="two-pointers.html#p-rw">Dutch flag</a>).
+<b>Quickselect "recurse one side"</b> is the same discard-half idea as <a href="binary-search.html">binary search</a>.
+<b>Heapsort &amp; top-k</b> lean on a <a href="heap.html">heap</a> (heap: streaming; quickselect: one-shot); <b>merge sort's recursion</b> lives in <a href="recursion.html">recursion.html</a>.
+<b>Sort-then-sweep</b> is the gateway to <a href="intervals.html">intervals</a>.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-merge">Merge sort</a></td><td>912 Sort an Array · 148 Sort List · <b>315 Count of Smaller</b> · <b>493 Reverse Pairs</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-quick">Quick sort</a></td><td>912 Sort an Array · 75 Sort Colors</td><td>Med</td></tr>
+<tr><td><a href="#p-select">Quickselect</a></td><td>215 Kth Largest · 973 K Closest Points · 347 Top K Frequent</td><td>Med</td></tr>
+<tr><td><a href="#p-linear">Linear (counting / radix)</a></td><td>1122 Relative Sort · <b>164 Maximum Gap</b> · 451 Sort by Frequency</td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-pre">Sort as prep</a></td><td>56 Merge Intervals · 252/253 Meeting Rooms · 179 Largest Number</td><td>Med</td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What three properties decide which sort you pick?</td><td class="a">Stable? In-place? Worst-case bound? (Plus: is the data bounded-range or do you only need top-k?)</td></tr>
+<tr><td>Why is merge sort <code>O(n log n)</code> and what does it cost?</td><td class="a"><code>log n</code> levels of halving × <code>O(n)</code> merging per level; it costs <code>O(n)</code> extra space (and is stable).</td></tr>
+<tr><td>What does the partition guarantee after one call?</td><td class="a">The pivot is at its final sorted index; everything left is <code>&lt;</code> it, everything right is <code>≥</code> it. The two sides are independent.</td></tr>
+<tr><td>Why is quickselect <code>O(n)</code> average but sort is <code>O(n log n)</code>?</td><td class="a">Quickselect recurses into <b>one</b> side (n + n/2 + … = O(n)); sort recurses into both, adding the log factor.</td></tr>
+<tr><td>When does an <code>O(n)</code> sort exist?</td><td class="a">Non-comparison sorts (counting/radix) on bounded integer keys — the <code>Ω(n log n)</code> floor is for comparison sorts only.</td></tr>
+<tr><td>What must a custom comparator be, or the sort breaks?</td><td class="a">A consistent <b>total order</b> — in particular transitive; and in JS it must return a <i>number</i>, not a boolean.</td></tr>
+<tr><td>Name three problems that "collapse" once sorted.</td><td class="a">3Sum (sort + two-pointer), Merge Intervals (sort + sweep), Group Anagrams (sorted-string key). Many more.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">merge</span> <code>mergeSort</code> + <code>merge</code> (stable)</li>
+<li><span class="pill">quick</span> <code>partition</code> (random pivot) + <code>quickSort</code></li>
+<li><span class="pill">select</span> <code>quickselect</code> (k-th smallest)</li>
+<li><span class="pill">linear</span> <code>countingSort</code></li>
+<li><span class="pill">prep</span> a custom comparator (e.g. <code>largestNumber</code>)</li>
+</ul>
+<p class="hint">For each: state the guarantee (stable? in-place? worst case?) as a comment <i>before</i> the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

@@ -525,37 +525,82 @@ figure.diagram figcaption {
 }
 
 </style>
+<style>
+/* ===== GOLD-TEMPLATE OVERRIDE (ported from the two-pointers exemplar) =====
+   Layered on top of the original Notion CSS: re-skins accent violet -> orange,
+   defines .box / .tldr / .nav / .qa / .pill, and reframes diagrams. All 13 SVGs
+   and every code block are left untouched. */
+:root{ --accent:#ea580c; --accent-soft:#ea580c12; --accent-line:#ea580c40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+body{ white-space:normal; margin:2.2em auto; max-width:900px; padding:0 18px; color:var(--ink);
+  font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif; }
+h1.title{ font-size:2.5rem; font-weight:800; margin:0 0 .08em; letter-spacing:-.02em; }
+p.sub{ color:var(--muted); font-size:1.05rem; margin:0 0 1.2em; }
+.page-body h1{ font-size:1.5rem; font-weight:700; margin:2.2em 0 .2em; letter-spacing:-.01em;
+  padding-top:.5em; border-top:1px solid var(--rule); }
+.page-body h3{ font-size:1.13rem; font-weight:700; margin:1.4em 0 .15em; }
+a{ color:var(--accent); }
+.nav{ display:grid; grid-template-columns:repeat(auto-fill,minmax(212px,1fr)); gap:8px; margin:1.4em 0 .4em; }
+.nav a{ display:block; padding:9px 12px; border:1px solid var(--rule); border-left:3px solid var(--accent);
+  border-radius:7px; color:var(--ink); font-size:.92rem; background:#fff; text-decoration:none; transition:.12s; }
+.nav a:hover{ background:var(--accent-soft); text-decoration:none; }
+.nav a b{ display:block; font-size:.7rem; color:var(--muted); font-weight:600; letter-spacing:.04em; }
+/* Notion blockquotes -> accent callout boxes; add .key / .warn / .iv for color */
+blockquote{ border:1px solid var(--rule); border-left:4px solid var(--accent); background:var(--accent-soft);
+  border-radius:9px; padding:.7em 1em; margin:1em 0; font-size:1rem; }
+blockquote.key{ border-left-color:#7c3aed; background:#7c3aed10; }
+blockquote.warn{ border-left-color:var(--warn); background:#c2410c10; }
+blockquote.iv{ border-left-color:#2563eb; background:#2563eb0d; }
+.box{ border-radius:9px; padding:.7em 1em; margin:1em 0; border:1px solid var(--rule); border-left:4px solid var(--accent); background:var(--accent-soft); }
+.box.warn{ border-left-color:var(--warn); background:#c2410c10; }
+.box.key{ border-left-color:#7c3aed; background:#7c3aed10; }
+.box.iv{ border-left-color:#2563eb; background:#2563eb0d; }
+.box b.tag, blockquote b.tag{ display:inline-block; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-right:.4em; }
+.tldr{ font-style:italic; color:var(--accent); font-weight:600; font-size:1.04rem; margin:.1em 0 .7em; }
+.code{ border-left:3px solid var(--accent) !important; }
+code{ color:#b1361e; }
+figure.diagram{ background:var(--accent-soft) !important; border:1px solid var(--accent-line) !important; }
+hr{ background:linear-gradient(90deg,transparent,var(--accent) 12%,var(--accent) 88%,transparent) !important; }
+table.qa{ border-collapse:collapse; width:100%; margin:1em 0; font-size:.95rem; }
+table.qa th,table.qa td{ border:1px solid var(--rule); padding:7px 10px; text-align:left; vertical-align:top; }
+table.qa th{ background:var(--code-bg); font-weight:700; }
+table.qa td.a{ filter:blur(4.5px); transition:filter .1s; cursor:pointer; }
+table.qa td.a:hover, table.qa td.a:active{ filter:none; }
+.hint{ color:var(--muted); font-size:.86rem; }
+.pill{ display:inline-block; background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent);
+  border-radius:20px; padding:.05em .6em; font-size:.78rem; font-weight:600; margin:.1em .15em; }
+@media print{ .nav{ display:none; } }
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
-</head><body><article id="rec-page" class="page sans"><header><div class="page-header-icon undefined"><span class="icon">🌀</span></div><h1 class="page-title" dir="auto">Recursion CheatSheet</h1><p class="page-description" dir="auto"></p></header><div class="page-body">
-
-<div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid">
-<li class="nav-index-item"><a href="#rec-s1">1. The Recursion Mindset</a></li>
-<li class="nav-index-item"><a href="#rec-s2">2. The 4-Question Framework</a></li>
-<li class="nav-index-item"><a href="#rec-s3">3. Universal Template</a></li>
-<li class="nav-index-item"><a href="#rec-s4">4. Return-Value vs Void ⭐</a></li>
-<li class="nav-index-item"><a href="#rec-s5">5. How to Find the Return ⭐</a></li>
-<li class="nav-index-item"><a href="#rec-s6">6. Finding the Base Case</a></li>
-<li class="nav-index-item"><a href="#rec-s7">7. Call Stack &amp; Order of Work</a></li>
-<li class="nav-index-item"><a href="#rec-s8">8. The 6 Recursion Shapes</a></li>
-<li class="nav-index-item"><a href="#rec-s9">9. Pattern: Linear Recursion</a></li>
-<li class="nav-index-item"><a href="#rec-s10">10. Pattern: Tree / Binary</a></li>
-<li class="nav-index-item"><a href="#rec-s11">11. Pattern: Divide &amp; Conquer</a></li>
-<li class="nav-index-item"><a href="#rec-s12">12. Pattern: Pick / Skip</a></li>
-<li class="nav-index-item"><a href="#rec-s13">13. Passing State Down</a></li>
-<li class="nav-index-item"><a href="#rec-s14">14. Recursion ↔ Iteration</a></li>
-<li class="nav-index-item"><a href="#rec-s15">15. Memoization (→ DP)</a></li>
-<li class="nav-index-item"><a href="#rec-s16">16. Complexity of Recursion</a></li>
-<li class="nav-index-item"><a href="#rec-s17">17. Common Bugs &amp; Fixes</a></li>
-<li class="nav-index-item"><a href="#rec-s18">18. Keyword → Approach Map</a></li>
-
-
-<li class="nav-index-item"><a href="#rec-s21">21. Recursion = Engine of DSA</a></li>
-<li class="nav-index-item"><a href="#rec-s22">22. Self-Test (Active Recall)</a></li>
-</ul></div></div>
+</head><body><article id="rec-page" class="page sans">
+<h1 class="title">🪆 Recursion</h1>
+<p class="sub">A standalone course — stop tracing, define a contract and trust it. Built to take you from "I freeze on recursion" to writing it cold in an SDE2/SDE3 interview.</p>
+<nav class="nav">
+  <a href="#rec-s1"><b>01 · MINDSET</b>The recursion mindset</a>
+  <a href="#rec-s2"><b>02 · FRAMEWORK</b>The 4-question framework</a>
+  <a href="#rec-s3"><b>03 · TEMPLATE</b>Universal template</a>
+  <a href="#rec-s4"><b>04 · RETURN ⭐</b>Return-value vs void</a>
+  <a href="#rec-s5"><b>05 · RETURN ⭐</b>How to find the return</a>
+  <a href="#rec-s6"><b>06 · BASE</b>Finding the base case</a>
+  <a href="#rec-s7"><b>07 · STACK</b>Call stack &amp; order of work</a>
+  <a href="#rec-s8"><b>08 · SHAPES</b>The 6 recursion shapes</a>
+  <a href="#rec-s9"><b>09 · PATTERN</b>Linear recursion</a>
+  <a href="#rec-s10"><b>10 · PATTERN</b>Tree / binary recursion</a>
+  <a href="#rec-s11"><b>11 · PATTERN</b>Divide &amp; conquer</a>
+  <a href="#rec-s12"><b>12 · PATTERN</b>Pick / skip (subsequences)</a>
+  <a href="#rec-s13"><b>13 · STATE</b>Passing state down</a>
+  <a href="#rec-s14"><b>14 · CONVERT</b>Recursion ↔ iteration</a>
+  <a href="#rec-s15"><b>15 · MEMO</b>Memoization (→ DP)</a>
+  <a href="#rec-s16"><b>16 · COST</b>Complexity of recursion</a>
+  <a href="#rec-s17"><b>17 · BUGS</b>Common bugs &amp; fixes</a>
+  <a href="#rec-s18"><b>18 · MAP</b>Keyword map + LC coverage</a>
+  <a href="#rec-s21"><b>19 · ENGINE</b>Recursion = engine of DSA</a>
+  <a href="#rec-s22"><b>20 · TEST</b>Self-test (active recall)</a>
+</nav>
+<div class="page-body">
 
 <div style="display:contents" dir="auto"><blockquote class=""><strong>This is a standalone course on recursion</strong> — built to take you from "I freeze on recursion" to writing it cold in FAANG / SDE2–SDE3 interviews. It assumes nothing from any other sheet; everything you need is here. <strong>The core belief:</strong> recursion feels hard only because people try to <em>trace</em> it — following every call in their head until they're dizzy. Strong engineers never trace. They <strong>define a contract and trust it</strong> (the Leap of Faith, §1), then verify just one level. Return values are the thing you said trips you up, so they get the most attention: §2's live derivations, the two ⭐ sections §4–§5, and the diagrams in §10 and §13.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">HOW TO USE THIS DOCUMENT — a learning path (don't just skim top→bottom)
@@ -570,11 +615,12 @@ figure.diagram figcaption {
                                   yourself BEFORE reading the code.
 
   PHASE 3 · APPLY TO DSA §15–§16  how recursion BECOMES dp, backtracking,
-                          + §21   divide & conquer, and tree/graph search —
+                          + §19   divide & conquer, and tree/graph search —
                                   the actual interview topics.
 
-  PHASE 4 · DRILL        §17–§20  bug patterns, the recipe + un-freeze drill,
-                          + §22   then a self-test (active recall) to prove it.
+  PHASE 4 · DRILL        §17–§18  bug patterns, the keyword→approach map,
+                          + §20   and the LC coverage table — then the
+                                  self-test (active recall) to prove it.
 
   GOLDEN HABIT: cover the code, predict the base case + the combine line,
   THEN look. Recursion is learned by producing it, not by reading it.</code></pre></div>
@@ -582,7 +628,7 @@ figure.diagram figcaption {
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s1" class="">1. THE RECURSION MINDSET</h1></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>The one idea that unlocks everything — the Leap of Faith:</strong> Assume your function <em>already works</em> for any smaller input. Don't look inside it. Your only job is to handle <strong>one</strong> level: turn the answer for the smaller input into the answer for the current input.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 The one idea that unlocks everything — the Leap of Faith:</strong> Assume your function <em>already works</em> for any smaller input. Don't look inside it. Your only job is to handle <strong>one</strong> level: turn the answer for the smaller input into the answer for the current input.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">WHAT RECURSION ACTUALLY IS
 ──────────────────────────────────────────────────────────
 Solve a problem by solving a SMALLER version of the SAME
@@ -630,7 +676,7 @@ THREE MENTAL MOVES
 </svg>
 <figcaption><strong>The Leap of Faith, visualized.</strong> Calls shrink <code>n</code> on the way DOWN to the base case; the answer is built by combining (×) on the way UP. You only ever write ONE level — <code>n × fact(n-1)</code> — and trust the rest.</figcaption></figure></div>
 
-<div style="display:contents" dir="auto"><blockquote class=""><strong>Stop tracing.</strong> If you ever find yourself drawing the 4th level of a call tree to "see if it works," you've left the recursive mindset. Verify only two things: (a) the base case is correct, and (b) one recursive step is correct <em>assuming the call below it is correct</em>. Induction does the rest — for free.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="warn"><strong>⚠️ Stop tracing.</strong> If you ever find yourself drawing the 4th level of a call tree to "see if it works," you've left the recursive mindset. Verify only two things: (a) the base case is correct, and (b) one recursive step is correct <em>assuming the call below it is correct</em>. Induction does the rest — for free.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -703,7 +749,7 @@ function height(node: TreeNode | null): number {   // Q0: returns # nodes on lon
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Why this order matters.</strong> Q0 fixes the <em>meaning</em> and the <em>return type</em>. Q1 gives you the value to start from. Q2 is the only "creative" step, and it's easy once Q0 is precise. Q3 is your safety check. Beginners jump straight to Q2 and flail; seniors spend 80% of their time on Q0.</blockquote></div>
 
 <div style="display:contents" dir="auto"><h3 id="rec-s2-live" class="">▶ Apply the framework LIVE — derive three from scratch</h3></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>This is the most important part of the document for you.</strong> Watch the 4 questions turn a blank screen into working code. Cover the code block and try it yourself first — predict the base case and the combine line, <em>then</em> look. Notice the rhythm repeats every single time.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 This is the most important part of the document for you.</strong> Watch the 4 questions turn a blank screen into working code. Cover the code block and try it yourself first — predict the base case and the combine line, <em>then</em> look. Notice the rhythm repeats every single time.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">DERIVATION 1 — sum of an array          (shape: LINEAR, 1 call)
   Q0 CONTRACT : sum(a, i) returns the sum of a[i], a[i+1], …, last.
   Q1 BY HAND  : sum of nothing (i past the end) = 0.
@@ -813,7 +859,7 @@ function sumDown(a: number[], i: number, acc: number): number {
 // sumUp(a,0) and sumDown(a,0,0) give the same number.
 // Notice: in A the work happens AFTER the call (on the way up);
 //         in B the work happens BEFORE the call (on the way down).</code></pre></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>The decision in 5 seconds:</strong> Can I write the answer as <code>combine(myElement, f(rest))</code>? → <strong>Style A (return)</strong>. Do I instead need to <em>remember the whole path so far</em> to record it at the end? → <strong>Style B (carry down + collect)</strong>. Backtracking is Style B with an undo step — see the <a href="backtracking.html">Backtracking sheet</a>.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 The decision in 5 seconds:</strong> Can I write the answer as <code>combine(myElement, f(rest))</code>? → <strong>Style A (return)</strong>. Do I instead need to <em>remember the whole path so far</em> to record it at the end? → <strong>Style B (carry down + collect)</strong>. Backtracking is Style B with an undo step — see the <a href="backtracking.html">Backtracking sheet</a>.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -1106,11 +1152,12 @@ function countDownChoices(n: number, choices: number[]): number {
   }
   return ways;                           // bubble up the total count
 }</code></pre></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>⚠️ Tail-recursion reality check (interview gotcha):</strong> in theory a tail call needs O(1) stack, but <strong>JavaScript/TypeScript engines (V8, Node) do NOT optimize tail calls</strong> — only Safari's JSC does. So in practice every recursive call still costs a stack frame, and deep recursion (depth ≳ 10⁴–10⁵) overflows regardless of tail position. If depth can be large, convert to a loop or an explicit stack (§14). Treat "tail recursion is free" as true for the math, false for the runtime you'll code in.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="warn"><strong>⚠️ Tail-recursion reality check (interview gotcha):</strong> in theory a tail call needs O(1) stack, but <strong>JavaScript/TypeScript engines (V8, Node) do NOT optimize tail calls</strong> — only Safari's JSC does. So in practice every recursive call still costs a stack frame, and deep recursion (depth ≳ 10⁴–10⁵) overflows regardless of tail position. If depth can be large, convert to a loop or an explicit stack (§14). Treat "tail recursion is free" as true for the math, false for the runtime you'll code in.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s9" class="">9. PATTERN: LINEAR RECURSION</h1></div>
+<p class="tldr">One call, then combine with my one element.</p>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>One smaller call, combine with the current element.</strong> The workhorse. If you can do these four cold, you understand the core loop of recursion.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// factorial — base 1 (multiplicative identity), combine with *
 function factorial(n: number): number {
@@ -1176,10 +1223,12 @@ function reverseList(head: ListNode | null): ListNode | null {
   <text x="470" y="266" font-size="12" fill="#166534" text-anchor="start">→ null</text>
 </svg>
 <figcaption><strong>Reverse a linked list — why <code>head.next.next = head</code> works.</strong> The recursion runs to the tail (which becomes the new head and rides up unchanged); then each frame, on the way UP, flips the single pointer between itself and its <em>next</em> node. You only ever reason about ONE pair — trust the rest is already reversed.</figcaption></figure></div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> state the contract first, then justify why <code>head.next.next = head</code> reverses without losing nodes (you only rewire <i>one</i> pair and trust the rest). Be ready to offer the <code>O(1)</code>-space iterative version. <b>· Escalation:</b> reverse the whole list → reverse the first <i>k</i> → reverse in <i>k</i>-groups (LC 25) → swap pairs (LC 24). On <code>n ≳ 10⁴</code>, flag the stack-depth risk and give the loop.</div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s10" class="">10. PATTERN: TREE / BINARY RECURSION</h1></div>
+<p class="tldr">Two calls, combine the two results — almost always post-order.</p>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Two calls, combine the two results.</strong> Trees are where recursion feels <em>natural</em> — the structure is literally recursive (a tree is a node plus two smaller trees). Almost always post-order / bubble up.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Each: contract → base → combine. Same skeleton, different combine.
 function maxDepth(node: TreeNode | null): number {           // LC 104
@@ -1238,7 +1287,7 @@ function sameTree(p: TreeNode | null, q: TreeNode | null): boolean {  // LC 100 
   <text x="300" y="268" font-size="11" fill="#166534" text-anchor="middle">Leaves return 1 first; each parent waits for its children, then combines. No value exists until the calls below return.</text>
 </svg>
 <figcaption><strong>Return values flow UP and combine.</strong> A node can't answer until its children have — so the real computation happens as the stack <em>unwinds</em>. This is the mental picture behind every "compute X of a tree" problem.</figcaption></figure></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>The "return one thing but track another" trap (e.g. tree diameter, LC 543).</strong> When the value you must <em>return</em> to your parent differs from the value you must <em>report globally</em>, return the first and update a closure variable for the second. This pattern appears constantly in tree interviews.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 The "return one thing but track another" trap (e.g. tree diameter, LC 543).</strong> When the value you must <em>return</em> to your parent differs from the value you must <em>report globally</em>, return the first and update a closure variable for the second. This pattern appears constantly in tree interviews.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function diameterOfBinaryTree(root: TreeNode | null): number {  // LC 543
   let best = 0;
   function depth(node: TreeNode | null): number {  // RETURNS depth; SIDE-EFFECT updates `best`
@@ -1251,10 +1300,12 @@ function sameTree(p: TreeNode | null, q: TreeNode | null): boolean {  // LC 100 
   depth(root);
   return best;
 }</code></pre></div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> choose post-order and say <i>why</i> (your answer needs the children first), and explain the return-vs-report split — return one thing to the parent, update a closure for the global answer. <b>· Escalation:</b> maxDepth → diameter (LC 543) → "is balanced?" (return <code>-1</code> as a sentinel to prune early, LC 110) → max path sum (clamp a negative child to <code>0</code>, LC 124).</div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s11" class="">11. PATTERN: DIVIDE &amp; CONQUER</h1></div>
+<p class="tldr">Split in half, trust each half, merge.</p>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Split in half, solve each half (trust it), merge.</strong> The recursion does the splitting; your real work is the merge step. Cost follows <code>T(n) = 2·T(n/2) + (merge cost)</code>.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// merge sort — split, sort halves (trust), merge two sorted lists.  O(n log n)
 function mergeSort(a: number[]): number[] {
@@ -1321,10 +1372,12 @@ function bsearch(a: number[], target: number, lo = 0, hi = a.length - 1): number
   <text x="320" y="297" font-size="13.5" font-weight="700" fill="#166534" text-anchor="middle">[3, 27, 38, 43]</text>
 </svg>
 <figcaption><strong>Divide &amp; conquer:</strong> split until size 1 (trivially sorted), then MERGE sorted halves on the way up. The merge is the only real work → <code>T(n) = 2·T(n/2) + O(n) = O(n log n)</code>.</figcaption></figure></div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> write <code>T(n)=2T(n/2)+O(n)</code> and read off <code>O(n log n)</code>; name the merge as the only real work and where the recursion "does nothing." <b>· Escalation:</b> merge sort → count inversions (piggyback the count onto merge) → sort a linked list in <code>O(1)</code> extra (LC 148) → quickselect for the k-th largest (average <code>O(n)</code>).</div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s12" class="">12. PATTERN: PICK / SKIP (subsequences)</h1></div>
+<p class="tldr">Each element: take it or leave it → 2ⁿ leaves.</p>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>"For each element, two choices: take it or leave it."</strong> This single idea generates subsets, subsequences, knapsack, and combination sums — and it's the cleanest on-ramp from plain recursion into backtracking and DP.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// All subsets via PICK/SKIP — Style B (carry down: build `path`, collect at base).
 function subsets(nums: number[]): number[][] {
@@ -1390,6 +1443,7 @@ function countSubsetsSum(nums: number[], i: number, target: number): number {
 <figcaption><strong>Pick/skip tree.</strong> At each index you branch into <em>skip</em> and <em>pick</em>; the <code>2ⁿ</code> leaves are exactly the subsets. This same tree, with constraints + an undo step, is the engine of all backtracking.</figcaption></figure></div>
 
 <div style="display:contents" dir="auto"><blockquote class=""><strong>See the bridge:</strong> add an <code>undo</code> after the pick branch → <strong>backtracking</strong> (full enumeration of valid paths). Add a memo keyed on <code>(i, target)</code> to the count version → <strong>DP</strong>. Same recursion, three destinations. Deep-dive in the <a href="backtracking.html">Backtracking</a> and <a href="dp.html">DP</a> sheets.</blockquote></div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the pick/skip recurrence, why there are <code>2ⁿ</code> leaves, and copy-on-collect vs. storing a live reference. <b>· Escalation:</b> subsets → subsets with duplicates (sort, then skip equal siblings) → combination sum → "count subsets that sum to <i>T</i>," then memoize on <code>(i, target)</code> and you've derived 0/1-knapsack DP live.</div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -1460,7 +1514,7 @@ function binaryTreePaths(root: TreeNode | null): string[] {
   dfs(root, []);
   return res;
 }</code></pre></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>Copy vs reference — the silent killer.</strong> When you collect a mutable array into a results list, push a <strong>copy</strong> (<code>[...path]</code>). Pushing the array itself stores a live reference that later <code>pop()</code>s will mutate, and every entry ends up empty/identical.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="warn"><strong>⚠️ Copy vs reference — the silent killer.</strong> When you collect a mutable array into a results list, push a <strong>copy</strong> (<code>[...path]</code>). Pushing the array itself stores a live reference that later <code>pop()</code>s will mutate, and every entry ends up empty/identical.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -1499,6 +1553,7 @@ WHEN TO BOTHER
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s15" class="">15. MEMOIZATION (the bridge to DP)</h1></div>
+<p class="tldr">Same recursion + a cache = top-down DP.</p>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>If your recursion recomputes the same input, cache it.</strong> Plain recursion + a cache = top-down DP. You don't redesign anything — you wrap the same function.</blockquote></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">fib(5) WITHOUT memo — the same subtrees recomputed (exponential)
                 fib(5)
@@ -1553,6 +1608,7 @@ function fib(n: number, memo = new Map&lt;number, number&gt;()): number {
   return ans;
 }</code></pre></div>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Memoize when:</strong> the answer depends only on the parameters (no hidden mutable state), AND the same parameter tuple recurs. Key the cache on <em>exactly</em> the parameters that change. Full state-design, bottom-up tables, and space optimization live in the <a href="dp.html">DP sheet</a>.</blockquote></div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> spot the overlapping subproblems, key the cache on <i>exactly</i> the changing parameters, and state the time drop (<code>O(2ⁿ) → O(n)</code>). <b>· Escalation:</b> memoized fib → climbing stairs / coin change → "now do it bottom-up, then in <code>O(1)</code> space." Memo first, table second is the senior move.</div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -1650,7 +1706,7 @@ Recurses into null and crashes   Leaf-style base case but a node has
 
 Computes child twice (slow)      Called f(...) twice instead of saving
                                 it. → const half = f(...); use `half`.</code></pre></div>
-<div style="display:contents" dir="auto"><blockquote class=""><strong>The 30-second self-check before you run it:</strong> (1) Is there a base case for every smallest input? (2) Does every recursive call get a strictly smaller argument? (3) Does every code path <code>return</code> the right type? (4) If I mutate shared state, do I undo it and copy on collect? Four yeses → it almost certainly works.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 The 30-second self-check before you run it:</strong> (1) Is there a base case for every smallest input? (2) Does every recursive call get a strictly smaller argument? (3) Does every code path <code>return</code> the right type? (4) If I mutate shared state, do I undo it and copy on collect? Four yeses → it almost certainly works.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -1669,10 +1725,23 @@ Computes child twice (slow)      Called f(...) twice instead of saving
 "reverse / build a list or tree"      → return the node; reattach on the way up
 "process in order 1..n" / "n..1"      → work before vs after the call (§7)
 "too deep / n up to 1e6"              → convert to iteration + explicit stack</code></pre></div>
+<h3 id="rec-coverage">▶ Coverage — what these patterns unlock on LeetCode</h3>
+<p>If you can write each pattern cold, the problems below are in range. <b>Bold</b> = Hard tier — the escalation an interviewer reaches for once you've nailed the medium.</p>
+<table>
+<tr><th>Pattern (§)</th><th>Representative LeetCode (medium → hard)</th><th>Tier</th></tr>
+<tr><td>Linear (§9)</td><td>206 Reverse List · 24 Swap Pairs · 50 Pow(x,n) · <b>25 Reverse Nodes in k-Group</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td>Tree / binary (§10)</td><td>104 Max Depth · 226 Invert · 543 Diameter · 110 Balanced · <b>124 Max Path Sum</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td>Divide &amp; conquer (§11)</td><td>148 Sort List · 215 Kth Largest · <b>23 Merge k Lists</b> · <b>315 Count of Smaller</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td>Pick / skip (§12)</td><td>78 Subsets · 90 Subsets II · 39 Combination Sum · 416 Partition Equal Subset</td><td>Med</td></tr>
+<tr><td>State down + collect (§13)</td><td>112 Path Sum · 257 Binary Tree Paths · 113 Path Sum II · 129 Sum Root→Leaf</td><td>Easy → Med</td></tr>
+<tr><td>Recursion → iteration (§14)</td><td>94 Inorder · 230 Kth Smallest in BST · 114 Flatten · 173 BST Iterator</td><td>Med</td></tr>
+<tr><td>Memo → DP (§15)</td><td>70 Climb Stairs · 198 House Robber · 322 Coin Change · 91 Decode Ways · <b>312 Burst Balloons</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td>Number / grammar D&amp;C</td><td>779 K-th Symbol · 241 Different Ways to Add Parentheses · 395 Longest Substring with ≥ k Repeats</td><td>Med</td></tr>
+</table>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
-<div style="display:contents" dir="auto"><h1 id="rec-s21" class="">21. RECURSION IS THE ENGINE OF DSA</h1></div>
+<div style="display:contents" dir="auto"><h1 id="rec-s21" class="">19. RECURSION IS THE ENGINE OF DSA</h1></div>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Recursion is not a topic you finish — it's the substrate under most of the interview syllabus.</strong> Once the Leap of Faith is automatic, these "separate" topics stop being separate: each is recursion with one extra idea bolted on. This is why mastering recursion pays off everywhere.</blockquote></div>
 <div style="display:contents" dir="auto"><figure class="diagram">
 <svg viewBox="0 0 620 330" width="620" role="img" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
@@ -1727,25 +1796,27 @@ WHAT you do on the way up (combine, count, collect, undo).</code></pre></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
-<div style="display:contents" dir="auto"><h1 id="rec-s22" class="">22. SELF-TEST — ACTIVE RECALL</h1></div>
+<div style="display:contents" dir="auto"><h1 id="rec-s22" class="">20. SELF-TEST — ACTIVE RECALL</h1></div>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Reading recursion ≠ being able to write it.</strong> Cover the right column. If you can produce these from memory, you're interview-ready. If any one stalls you, that's your signal for which section to re-read. Redo this weekly until it's instant.</blockquote></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROMPT (cover the answers →)                  │ ANSWER
-──────────────────────────────────────────────┼──────────────────────────────
-The one mental move recursion needs?           │ assume f(smaller) works; do 1 level
-The 4 questions, in order?                      │ contract · base · leap · progress
-Base case = the ___ of the combine op?          │ identity (+→0, *→1, ||→false, concat→"")
-What makes a recursion run forever?             │ no base / no progress (test <=, not ==)
-Return line for "sum of a[i..]"?                │ a[i] + sum(a, i+1)
-Return line for tree height?                    │ 1 + max(depth(L), depth(R))
-Return line for "tree contains x"?              │ node.val===x || f(L) || f(R)
-"All paths / all subsets" → which style?        │ carry-down params + collect a COPY at base
-"Compute one value of the whole tree" → style?  │ bubble up: return combine(L, R)
-Where does post-order work run?                 │ AFTER the calls (on the way UP)
-Make fib O(n) instead of O(2^n)?                │ memoize on n
-Convert deep recursion to avoid stack overflow? │ explicit stack (DFS) / queue (BFS)
-Time of T(n)=2T(n/2)+O(n)?                       │ O(n log n)  (n work × log n levels)
-Space cost of recursion?                        │ max depth of the call stack (+ output)
-Most common bug when collecting results?        │ pushed a reference, not [...path] copy</code></pre></div>
+<p class="hint">Cover the right column (it's blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:48%">Prompt</th><th>Answer</th></tr>
+<tr><td>The one mental move recursion needs?</td><td class="a">Assume <code>f(smaller)</code> already works; do exactly <b>one</b> level.</td></tr>
+<tr><td>The 4 questions, in order?</td><td class="a">contract · base · leap · progress</td></tr>
+<tr><td>Base case = the ___ of the combine op?</td><td class="a">identity (+→0, *→1, ||→false, concat→"")</td></tr>
+<tr><td>What makes a recursion run forever?</td><td class="a">No base case / no progress — test <code>&lt;=</code>, not <code>==</code>, on indices.</td></tr>
+<tr><td>Return line for "sum of a[i..]"?</td><td class="a"><code>a[i] + sum(a, i+1)</code></td></tr>
+<tr><td>Return line for tree height?</td><td class="a"><code>1 + max(depth(L), depth(R))</code></td></tr>
+<tr><td>Return line for "tree contains x"?</td><td class="a"><code>node.val===x || f(L) || f(R)</code></td></tr>
+<tr><td>"All paths / all subsets" → which style?</td><td class="a">Carry-down params + collect a <b>copy</b> at the base.</td></tr>
+<tr><td>"Compute one value of the whole tree" → style?</td><td class="a">Bubble up: <code>return combine(L, R)</code>.</td></tr>
+<tr><td>Where does post-order work run?</td><td class="a">AFTER the calls (on the way UP).</td></tr>
+<tr><td>Make fib O(n) instead of O(2ⁿ)?</td><td class="a">Memoize on <code>n</code>.</td></tr>
+<tr><td>Convert deep recursion to avoid stack overflow?</td><td class="a">Explicit stack (DFS) / queue (BFS).</td></tr>
+<tr><td>Time of <code>T(n)=2T(n/2)+O(n)</code>?</td><td class="a"><code>O(n log n)</code> — n work × log n levels.</td></tr>
+<tr><td>Space cost of recursion?</td><td class="a">Max depth of the call stack (+ the output).</td></tr>
+<tr><td>Most common bug when collecting results?</td><td class="a">Pushed a live reference, not a <code>[...path]</code> copy.</td></tr>
+</table>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Then write these cold</strong> (no peeking, in TypeScript): (1) reverse a string, (2) max depth of a binary tree, (3) all subsets of <code>[1,2,3]</code>, (4) climb-stairs count with a memo, (5) merge sort. If you can produce all five start-to-finish, you can recurse at interview level — the rest is just recognizing which shape (§8) the new problem is.</blockquote></div>
 
 </div></article></body></html>

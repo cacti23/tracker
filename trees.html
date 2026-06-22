@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Trees &amp; BST — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#15803d; --accent-soft:#15803d14; --accent-line:#15803d40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🌳 Trees &amp; BST</h1>
+<p class="sub">A learning sheet — trees are recursion made visible. Master one question — "what does each call <i>return</i> to its parent?" — and most tree problems fall in three lines.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>The return-value contract</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think — the return-value contract</h2>
+
+<p>A binary tree node is <code>{ val, left, right }</code>. Almost every solution is one recursive function over subtrees. The skill that unlocks all of them is being ruthlessly clear about the <b>contract</b> of your recursion. Before writing a line, answer <b>three questions</b>:</p>
+
+<div class="box key"><b class="tag">The 3-question contract</b>
+<b>(1) RETURN:</b> what single thing does <code>dfs(node)</code> hand back to its parent? (e.g. "the height of this subtree")
+<b>(2) BASE CASE:</b> what does <code>dfs(null)</code> return? (e.g. <code>0</code>)
+<b>(3) COMBINE:</b> how does the parent fold its children's returns into its own answer — and does it also <b>record</b> something in a global along the way?</div>
+
+<p>The single biggest tree confusion is mixing up <b>what you return</b> (one value, for the parent to keep recursing) with <b>what you record</b> (a global "best", which may use <i>both</i> children at once). Diameter is the perfect teacher.</p>
+
+<h3>Watch it get invented — Diameter of a Binary Tree</h3>
+<ol>
+<li><b>Warm-up: height.</b> <code>height(node)</code> RETURNS the node-count of the tallest path down. Base: <code>height(null) = 0</code>. Combine: <code>1 + max(height(left), height(right))</code>.</li>
+<li><b>The twist.</b> The diameter (longest path between any two nodes) <i>bends</i> at some node and uses <b>both</b> sides: <code>leftHeight + rightHeight</code>. But the parent can't use a "bent" length — it needs a straight height. So <code>dfs</code> must <b>RETURN</b> the height while <b>RECORDING</b> <code>left + right</code> into a global.</li>
+<li><b>Payoff.</b> One <code>O(n)</code> pass; the global holds the answer even though the function returns something else.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 600 200" role="img" aria-label="Heights bubble up while diameter is recorded">
+  <g font-size="13" text-anchor="middle">
+    <circle cx="300" cy="30" r="16" fill="#15803d18" stroke="#15803d"/><text x="300" y="35">1</text>
+    <circle cx="210" cy="85" r="16" fill="#15803d18" stroke="#15803d"/><text x="210" y="90">2</text>
+    <circle cx="390" cy="85" r="16" fill="#15803d18" stroke="#15803d"/><text x="390" y="90">3</text>
+    <circle cx="150" cy="140" r="16" fill="#15803d18" stroke="#15803d"/><text x="150" y="145">4</text>
+    <circle cx="270" cy="140" r="16" fill="#15803d18" stroke="#15803d"/><text x="270" y="145">5</text>
+    <g stroke="#cbd5d1"><path d="M289 41 L221 74 M311 41 L379 74 M201 96 L159 129 M219 96 L261 129"/></g>
+    <g font-size="11" fill="#15803d" text-anchor="start">
+      <text x="318" y="26">↑ returns h=3</text>
+      <text x="228" y="82">↑ h=2</text><text x="406" y="82">↑ h=1</text>
+      <text x="100" y="160">h=1</text><text x="285" y="160">h=1</text>
+    </g>
+    <text x="470" y="120" text-anchor="start" fill="#7c3aed" font-size="11">at node 1: record</text>
+    <text x="470" y="136" text-anchor="start" fill="#7c3aed" font-size="11">L(2) + R(1) = 3</text>
+    <text x="470" y="152" text-anchor="start" fill="#7c3aed" font-weight="700" font-size="11">diameter = 3</text>
+  </g>
+</svg>
+<figcaption>Each call <b>returns</b> a height (green, upward); the global diameter is <b>recorded</b> (violet) from both children at the bending node.</figcaption>
+</figure>
+
+<div class="box"><b class="tag">Return vs record — the cheat table</b> Burn this in; it covers most "DFS that computes a value" problems.</div>
+<table>
+<tr><th>Problem</th><th><code>dfs</code> RETURNS (for the parent)</th><th>RECORDS in a global</th></tr>
+<tr><td>Height / Max Depth</td><td><code>1 + max(L, R)</code></td><td>— (the return <i>is</i> the answer)</td></tr>
+<tr><td>Diameter</td><td><code>1 + max(L, R)</code> (height)</td><td><code>max(best, L + R)</code></td></tr>
+<tr><td>Balanced?</td><td>height, or <code>-1</code> if a subtree is unbalanced</td><td>— (propagate <code>-1</code> upward)</td></tr>
+<tr><td>Max Path Sum</td><td><code>val + max(L, R, 0)</code> (straight down)</td><td><code>max(best, val + max(L,0) + max(R,0))</code></td></tr>
+</table>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>Just visit nodes in an order (level-by-level, in/pre/post)?</td><td>DFS recursion or a queue (BFS)</td><td><b><a href="#p-trav">Traversals</a></b> (§4.1)</td></tr>
+<tr><td>Compute a value from subtrees (height, diameter, sum, path)?</td><td>the return-value contract</td><td><b><a href="#p-return">Return-value DFS</a></b> (§4.2)</td></tr>
+<tr><td>It's a <b>BST</b> (left &lt; node &lt; right)?</td><td>exploit the ordering — inorder is sorted</td><td><b><a href="#p-bst">BST = ordered</a></b> (§4.3)</td></tr>
+<tr><td>Lowest common ancestor / a path between nodes?</td><td>postorder "bubble-up"</td><td><b><a href="#p-lca">LCA &amp; paths</a></b> (§4.4)</td></tr>
+<tr><td>Build a tree from traversals, or serialize it?</td><td>preorder gives the root; recurse</td><td><b><a href="#p-build">Construct</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">Anti-patterns</b>
+<b>·</b> <b>Deep/skewed tree</b> → recursion can stack-overflow; switch to an explicit stack, BFS, or Morris traversal (<code>O(1)</code> space).<br/>
+<b>·</b> <b>DFS vs BFS:</b> BFS for "level", "shortest", "nearest"; DFS for "path", "subtree", "does a path exist". Picking the wrong one makes easy problems hard.<br/>
+<b>·</b> <b>Validating a BST with a local check</b> (<code>left.val &lt; node &lt; right.val</code>) is wrong — you must bound by <i>ancestor</i> ranges.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"level order", "zigzag", "right side view", "in/pre/post-order"</td><td><a href="#p-trav">Traversals §4.1</a></td></tr>
+<tr><td>"height/depth", "diameter", "balanced", "max path sum", "count/sum where…"</td><td><a href="#p-return">Return-value DFS §4.2</a></td></tr>
+<tr><td>"BST", "k-th smallest", "validate BST", "search/insert/delete", "range sum BST"</td><td><a href="#p-bst">BST §4.3</a></td></tr>
+<tr><td>"lowest common ancestor", "path sum", "root-to-leaf", "distance between nodes"</td><td><a href="#p-lca">LCA &amp; paths §4.4</a></td></tr>
+<tr><td>"construct from preorder &amp; inorder", "serialize/deserialize", "flatten", "invert"</td><td><a href="#p-build">Construct §4.5</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">Node shape: <code>class TreeNode { val: number; left: TreeNode|null; right: TreeNode|null }</code>. Each: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-trav">4.1 · Traversals (DFS &amp; BFS)</h3>
+<p class="tldr">“Pre = me-first, In = left-me-right (sorted for a BST), Post = children-first; BFS = a queue.”</p>
+
+<figure>
+<svg viewBox="0 0 560 110" role="img" aria-label="Traversal orders on a small tree">
+  <g font-size="12" text-anchor="middle">
+    <circle cx="90" cy="25" r="15" fill="#15803d18" stroke="#15803d"/><text x="90" y="30">1</text>
+    <circle cx="55" cy="70" r="15" fill="#15803d18" stroke="#15803d"/><text x="55" y="75">2</text>
+    <circle cx="125" cy="70" r="15" fill="#15803d18" stroke="#15803d"/><text x="125" y="75">3</text>
+    <g stroke="#cbd5d1"><path d="M80 36 L65 59 M100 36 L115 59"/></g>
+    <g text-anchor="start" font-family="monospace" font-size="12">
+      <text x="200" y="30"><tspan fill="#6b675e">pre  </tspan> 1 2 3 &nbsp;<tspan fill="#6b675e">(node, L, R)</tspan></text>
+      <text x="200" y="58"><tspan fill="#6b675e">in   </tspan> 2 1 3 &nbsp;<tspan fill="#15803d">(L, node, R) — sorted in a BST</tspan></text>
+      <text x="200" y="86"><tspan fill="#6b675e">post </tspan> 2 3 1 &nbsp;<tspan fill="#6b675e">(L, R, node)</tspan></text>
+    </g>
+  </g>
+</svg>
+<figcaption>Where you "visit" the node relative to the recursive calls names the order. Postorder = compute children before yourself (the basis of §4.2).</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> DFS recursion processes an entire subtree before returning, so the call stack always mirrors the current root-to-node path. BFS's queue holds exactly one full level at a time, so draining it level by level visits nodes in non-decreasing depth.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Iterative inorder (no recursion): push the left spine, pop, go right
+function inorder(root: TreeNode | null): number[] {
+  const out: number[] = [], st: TreeNode[] = []; let cur = root;
+  while (cur || st.length) {
+    while (cur) { st.push(cur); cur = cur.left; }   // dive left
+    cur = st.pop()!; out.push(cur.val);             // visit
+    cur = cur.right;                                // then right
+  }
+  return out;
+}
+
+// BFS level order — a queue, one level per outer iteration
+function levelOrder(root: TreeNode | null): number[][] {
+  if (!root) return [];
+  const out: number[][] = [], q: TreeNode[] = [root];
+  while (q.length) {
+    const level: number[] = [], n = q.length;
+    for (let i = 0; i &lt; n; i++) {
+      const x = q.shift()!; level.push(x.val);      // (use a head index for true O(n))
+      if (x.left) q.push(x.left);
+      if (x.right) q.push(x.right);
+    }
+    out.push(level);
+  }
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> recursive vs iterative (explicit stack), BFS-vs-DFS choice, and "inorder of a BST is sorted." <b>· Escalation:</b> level order → zigzag → right-side view → vertical-order traversal.</div>
+
+<!-- 4.2 -->
+<h3 id="p-return">4.2 · Return-value DFS (the heart)</h3>
+<p class="tldr">“Compute children first, fold their returns into yours — and record a global if the answer bends.”</p>
+<p><b>Setup:</b> this is §1 made concrete. State the contract, then write three lines. The hardest version, Max Path Sum, shows the return-vs-record split perfectly.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Each call returns a correct summary of its <i>entire</i> subtree (guaranteed by the base case + the combine step), so a parent can trust its children's returns blindly. Recording into the global at every node means the answer is the best over <i>all</i> nodes, not just the root.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Diameter — RETURN height, RECORD the bending path
+function diameterOfBinaryTree(root: TreeNode | null): number {
+  let best = 0;
+  function height(node: TreeNode | null): number {   // CONTRACT: height of this subtree
+    if (!node) return 0;                              // base case
+    const L = height(node.left), R = height(node.right);
+    best = Math.max(best, L + R);                     // RECORD: path bending at node
+    return 1 + Math.max(L, R);                        // RETURN: straight height for parent
+  }
+  height(root);
+  return best;
+}
+
+// Max Path Sum — clamp negative branches; RETURN a straight path, RECORD a bent one
+function maxPathSum(root: TreeNode | null): number {
+  let best = -Infinity;
+  function gain(node: TreeNode | null): number {      // CONTRACT: best downward path sum from node
+    if (!node) return 0;
+    const L = Math.max(0, gain(node.left));           // ignore a negative branch
+    const R = Math.max(0, gain(node.right));
+    best = Math.max(best, node.val + L + R);          // RECORD: path that bends here
+    return node.val + Math.max(L, R);                 // RETURN: straight path down
+  }
+  gain(root);
+  return best;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> state the contract out loud (return vs record), the base case, and why you clamp child gains at <code>0</code>. <b>· Escalation:</b> height → diameter → balanced (return <code>-1</code> as a "failed" sentinel) → max path sum.</div>
+
+<!-- 4.3 -->
+<h3 id="p-bst">4.3 · BST = ordered</h3>
+<p class="tldr">“Left &lt; node &lt; right — so search is binary, and inorder is sorted.”</p>
+<p><b>Setup:</b> a BST's ordering turns <code>O(n)</code> tree work into <code>O(h)</code>. Two facts do everything: you can <b>navigate by comparison</b>, and an <b>inorder walk emits values in sorted order</b>.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — the range, not a local check</b> A node is valid only if its value lies strictly inside the open range <code>(lo, hi)</code> handed down by its ancestors — left child tightens <code>hi</code> to the parent's value, right child tightens <code>lo</code>. A purely local "left &lt; node &lt; right" check passes invalid trees (a deep-left node can still violate a far ancestor).</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Validate BST — carry the allowed range down
+function isValidBST(node: TreeNode | null, lo = -Infinity, hi = Infinity): boolean {
+  if (!node) return true;
+  if (node.val &lt;= lo || node.val &gt;= hi) return false;
+  return isValidBST(node.left, lo, node.val) &amp;&amp; isValidBST(node.right, node.val, hi);
+}
+
+// k-th smallest — inorder yields sorted order; stop at the k-th
+function kthSmallest(root: TreeNode | null, k: number): number {
+  const st: TreeNode[] = []; let cur = root;
+  while (cur || st.length) {
+    while (cur) { st.push(cur); cur = cur.left; }
+    cur = st.pop()!;
+    if (--k === 0) return cur.val;
+    cur = cur.right;
+  }
+  return -1;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the range invariant (not the local trap), inorder = sorted, and <code>O(h)</code> ops. <b>· Escalation:</b> validate → k-th smallest → LCA in a BST (walk by comparison, <code>O(h)</code>) → delete node.</div>
+
+<!-- 4.4 -->
+<h3 id="p-lca">4.4 · LCA &amp; paths — postorder bubble-up</h3>
+<p class="tldr">“If p and q surface from different children, you're standing on their ancestor.”</p>
+<p><b>Setup:</b> search both subtrees; a node where <i>both</i> sides report a hit is the lowest common ancestor. Everything bubbles up from the leaves (postorder).</p>
+
+<figure>
+<svg viewBox="0 0 540 130" role="img" aria-label="LCA where p and q are on different sides">
+  <g font-size="12" text-anchor="middle">
+    <circle cx="270" cy="25" r="15" fill="#7c3aed18" stroke="#7c3aed"/><text x="270" y="30">A</text>
+    <circle cx="200" cy="75" r="15" fill="#15803d18" stroke="#15803d"/><text x="200" y="80">p</text>
+    <circle cx="340" cy="75" r="15" fill="#15803d18" stroke="#15803d"/><text x="340" y="80">q</text>
+    <g stroke="#cbd5d1"><path d="M260 36 L210 64 M280 36 L330 64"/></g>
+    <text x="270" y="110" fill="#7c3aed" font-weight="700">A: left hit ✓ &amp; right hit ✓ → LCA</text>
+    <text x="180" y="100" fill="#15803d" font-size="10">left returns p</text>
+    <text x="360" y="100" fill="#15803d" font-size="10">right returns q</text>
+  </g>
+</svg>
+<figcaption>Each call returns "the target I found below me" (or null). The first node to receive a hit from <i>both</i> sides is the LCA.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>lca(node)</code> returns a target if it (or its subtree) contains one. A node gets a non-null from <b>both</b> children only when <code>p</code> and <code>q</code> are split across them — which makes it their lowest common ancestor. If both are on one side, that side's answer bubbles straight up.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// LCA in a general binary tree
+function lowestCommonAncestor(root: TreeNode | null, p: TreeNode, q: TreeNode): TreeNode | null {
+  if (!root || root === p || root === q) return root;   // found one (or hit bottom)
+  const L = lowestCommonAncestor(root.left, p, q);
+  const R = lowestCommonAncestor(root.right, p, q);
+  if (L &amp;&amp; R) return root;        // p and q on different sides → this is the LCA
+  return L ?? R;                  // both on one side (or neither) → pass it up
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the <code>L &amp;&amp; R → root</code> bubble-up, and the assumption that both nodes exist. <b>· Escalation:</b> LCA → path sum (root-to-leaf target) → all root-to-leaf paths (backtracking) → distance between two nodes (LCA + depth math).</div>
+
+<!-- 4.5 -->
+<h3 id="p-build">4.5 · Construct &amp; serialize</h3>
+<p class="tldr">“Preorder hands you the root; inorder tells you where left ends and right begins.”</p>
+<p><b>Setup:</b> building a tree is recursion in reverse — identify the root, split the remaining nodes into left/right groups, recurse. Serialization is just a preorder walk with explicit null markers.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> In preorder the <i>first</i> element of any segment is that subtree's root; locating it in inorder splits the rest into exactly the left and right subtrees (everything before it vs after). Each value is placed once, so the reconstruction is unique and <code>O(n)</code>.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Build a tree from preorder + inorder
+function buildTree(preorder: number[], inorder: number[]): TreeNode | null {
+  const pos = new Map(inorder.map((v, i) =&gt; [v, i]));
+  let p = 0;
+  function build(lo: number, hi: number): TreeNode | null {
+    if (lo &gt; hi) return null;
+    const node = new TreeNode(preorder[p++]);   // preorder front = root
+    const mid = pos.get(node.val)!;             // its index in inorder splits L | R
+    node.left = build(lo, mid - 1);
+    node.right = build(mid + 1, hi);
+    return node;
+  }
+  return build(0, inorder.length - 1);
+}
+
+// Serialize / deserialize (preorder with '#' for null)
+function serialize(root: TreeNode | null): string {
+  const out: string[] = [];
+  (function dfs(n: TreeNode | null) {
+    if (!n) { out.push('#'); return; }
+    out.push(String(n.val)); dfs(n.left); dfs(n.right);
+  })(root);
+  return out.join(',');
+}
+function deserialize(data: string): TreeNode | null {
+  const vals = data.split(','); let i = 0;
+  function build(): TreeNode | null {
+    const v = vals[i++];
+    if (v === '#') return null;
+    const node = new TreeNode(+v);
+    node.left = build(); node.right = build();
+    return node;
+  }
+  return build();
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why preorder gives the root and inorder gives the split; null markers for serialization. <b>· Escalation:</b> pre+in → in+post → serialize/deserialize → "Flatten Binary Tree to a Linked List."</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Operation</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>Any traversal / return-value DFS</td><td><code>O(n)</code></td><td><code>O(h)</code></td><td><code>h</code> = height: <code>O(log n)</code> balanced, <code>O(n)</code> skewed</td></tr>
+<tr><td>BFS level order</td><td><code>O(n)</code></td><td><code>O(w)</code></td><td><code>w</code> = max width (up to <code>n/2</code>)</td></tr>
+<tr><td>BST search / insert / LCA-in-BST</td><td><code>O(h)</code></td><td><code>O(h)</code></td><td><code>O(log n)</code> only if balanced</td></tr>
+<tr><td>Construct / serialize</td><td><code>O(n)</code></td><td><code>O(n)</code></td><td>each node placed once (hash map for the inorder split)</td></tr>
+</table>
+<div class="box"><b class="tag">The recursion-space caveat</b> "O(1) space" tree code still uses <code>O(h)</code> on the call stack. On a skewed tree that's <code>O(n)</code> — the reason deep trees want an explicit stack or Morris traversal.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Confusing RETURN with RECORD (return both branches instead of one).</td><td>A tree where the longest path/diameter <b>doesn't pass through the root</b> → answer comes out too small.</td></tr>
+<tr><td>Validating a BST with a <b>local</b> check.</td><td><code>[5,1,4,null,null,3,6]</code> → node 3 sits in the right subtree but is &lt; 5; a local check wrongly passes it.</td></tr>
+<tr><td>Inconsistent height base case (null → 0 vs leaf → 0).</td><td>A single node → off-by-one height/diameter.</td></tr>
+<tr><td>Forgetting to clamp negative child gains in max path sum.</td><td>A tree with negative subtrees → they drag the sum down instead of being skipped.</td></tr>
+<tr><td>BFS with <code>array.shift()</code> — <code>O(n)</code> per dequeue.</td><td>A wide tree → quietly <code>O(n²)</code>; use a head index.</td></tr>
+<tr><td>Recursion on a deep skewed tree.</td><td>A 10⁵-node "linked-list" tree → stack overflow; go iterative.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>Tree recursion IS recursion</b> — the return-value contract is the heart of <a href="recursion.html">recursion.html</a> (your weak spot, hammered here).
+<b>Iterative DFS</b> makes the implicit <a href="stack.html">stack</a> explicit; BFS uses a queue.
+<b>A BST's inorder = sorted</b> ties to <a href="sorting.html">sorting</a>; <b>construct-from-traversals</b> is divide &amp; conquer.
+<b>Trees are acyclic connected graphs</b> — LCA and traversals generalize in <a href="graph.html">graph.html</a>; a <b><a href="trie.html">trie</a></b> is a tree too.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-trav">Traversal</a></td><td>102 Level Order · 199 Right Side View · 103 Zigzag</td><td>Med</td></tr>
+<tr><td><a href="#p-return">Return-value (post-order)</a></td><td>104 Max Depth · 110 Balanced · 543 Diameter · <b>124 Max Path Sum</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td><a href="#p-bst">BST</a></td><td>98 Validate BST · 230 Kth Smallest · 235 LCA of a BST</td><td>Med</td></tr>
+<tr><td><a href="#p-lca">LCA</a></td><td>236 LCA of Binary Tree · 1644 LCA (may not exist)</td><td>Med</td></tr>
+<tr><td><a href="#p-build">Build / serialize</a></td><td>105/106 Build from Traversals · <b>297 Serialize &amp; Deserialize</b></td><td>Med → <b>Hard</b></td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>State the 3-question contract for any tree recursion.</td><td class="a">(1) What does <code>dfs</code> RETURN to the parent? (2) What's the BASE CASE return? (3) How does the parent COMBINE children's returns — and what does it RECORD globally?</td></tr>
+<tr><td>In diameter, what does <code>dfs</code> return vs record?</td><td class="a">Returns the <b>height</b> (<code>1 + max(L,R)</code>) for the parent; records <code>L + R</code> (the bending path) into a global.</td></tr>
+<tr><td>Why is a local "left &lt; node &lt; right" check wrong for BST validation?</td><td class="a">A node must fit the <i>range</i> imposed by all ancestors, not just its parent — a far-ancestor bound can be violated while the local check passes.</td></tr>
+<tr><td>What two facts make a BST powerful?</td><td class="a">Navigate by comparison (<code>O(h)</code>), and an inorder traversal emits values in sorted order.</td></tr>
+<tr><td>In general-tree LCA, when is a node the answer?</td><td class="a">When both its left and right recursions return non-null — i.e. <code>p</code> and <code>q</code> are split across its two sides.</td></tr>
+<tr><td>How do preorder + inorder rebuild a tree?</td><td class="a">Preorder's front is the root; its index in inorder splits the remaining values into the left and right subtrees; recurse.</td></tr>
+<tr><td>What's the true space cost of "O(1)" recursive tree code?</td><td class="a"><code>O(h)</code> call stack — <code>O(n)</code> on a skewed tree. Use an explicit stack / Morris for deep trees.</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">traverse</span> iterative <code>inorder</code> + BFS <code>levelOrder</code></li>
+<li><span class="pill">return-value</span> <code>diameter</code> + <code>maxPathSum</code> (say the contract first)</li>
+<li><span class="pill">BST</span> <code>isValidBST</code> (range) + <code>kthSmallest</code></li>
+<li><span class="pill">LCA</span> <code>lowestCommonAncestor</code></li>
+<li><span class="pill">construct</span> <code>buildTree</code> + serialize/deserialize</li>
+</ul>
+<p class="hint">For each DFS: write the three contract lines — RETURN, BASE, RECORD — as comments <i>before</i> the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

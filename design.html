@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Design — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#a16207; --accent-soft:#a1620714; --accent-line:#a1620740; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🏗️ Design</h1>
+<p class="sub">A learning sheet — "design a data structure" is one move: spot the operation that's slow with your first structure, then bolt on a second one that makes it fast.</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>Combine two structures</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think — combine two structures</h2>
+
+<p>A "design X" prompt lists operations and a target cost (usually <code>O(1)</code> or <code>O(log n)</code> each). No single textbook structure does everything — a hash map is <code>O(1)</code> but unordered; an array has indices but slow middle-delete; a list keeps order but slow lookup. The whole skill is: <b>name the op that's slow, then pair a second structure that's fast at exactly that op</b>, and keep them in sync.</p>
+
+<div class="box key"><b class="tag">The combine table — memorize the pairings</b></div>
+<table>
+<tr><th>Goal</th><th>First structure (its weakness)</th><th>+ Add</th><th>= </th></tr>
+<tr><td><code>O(1)</code> get/put + LRU eviction</td><td>hash map (no recency order)</td><td>doubly linked list</td><td><b>LRU cache</b></td></tr>
+<tr><td><code>O(1)</code> insert/remove/getRandom</td><td>hash map (no random index)</td><td>dynamic array (swap-with-last)</td><td><b>RandomizedSet</b></td></tr>
+<tr><td><code>O(1)</code> min on a stack</td><td>stack (no min query)</td><td>a parallel "min" stack</td><td><b>Min Stack</b></td></tr>
+<tr><td>latest value at-or-before a time</td><td>hash map (no time search)</td><td>sorted list + binary search</td><td><b>Time-based KV</b></td></tr>
+</table>
+
+<h3>Watch it get invented — LRU Cache</h3>
+<ol>
+<li><b>Pick one structure.</b> A hash map gives <code>O(1)</code> <code>get</code>/<code>put</code> — but evicting the <i>least-recently-used</i> key means scanning all of it, <code>O(n)</code>.</li>
+<li><b>Name the slow op.</b> "Track recency + evict the oldest in <code>O(1)</code>." A list ordered by recency does that — but then <i>finding</i> a key is <code>O(n)</code>.</li>
+<li><b>Combine.</b> Hash map <code>key → node</code> (for <code>O(1)</code> find) <i>plus</i> a doubly linked list ordered most-recent-first (for <code>O(1)</code> move-to-front and tail eviction). The map's value <i>is</i> the list node, so every splice is <code>O(1)</code>.</li>
+<li><b>Payoff.</b> Both <code>get</code> and <code>put</code> are <code>O(1)</code> — neither structure could do it alone.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 580 165" role="img" aria-label="LRU cache: hash map pointing into a doubly linked list">
+  <g font-size="12" text-anchor="middle">
+    <text x="70" y="20" fill="#a16207" font-weight="700">hash map</text>
+    <g font-family="monospace" font-size="11">
+      <rect x="20" y="30" width="100" height="22" fill="#a1620710" stroke="#a16207"/><text x="70" y="45">A → ●</text>
+      <rect x="20" y="56" width="100" height="22" fill="#a1620710" stroke="#a16207"/><text x="70" y="71">B → ●</text>
+      <rect x="20" y="82" width="100" height="22" fill="#a1620710" stroke="#a16207"/><text x="70" y="97">C → ●</text>
+    </g>
+    <text x="370" y="20" fill="#a16207" font-weight="700">doubly linked list (recency)</text>
+    <g transform="translate(180,55)">
+      <rect x="0" width="46" height="30" fill="#e5e7eb" stroke="#9ca3af" rx="5"/><text x="23" y="20" font-size="10">head</text>
+      <rect x="70" width="46" height="30" fill="#a1620718" stroke="#a16207" rx="5"/><text x="93" y="20">B</text>
+      <rect x="140" width="46" height="30" fill="#a1620718" stroke="#a16207" rx="5"/><text x="163" y="20">C</text>
+      <rect x="210" width="46" height="30" fill="#a1620718" stroke="#a16207" rx="5"/><text x="233" y="20">A</text>
+      <rect x="280" width="46" height="30" fill="#e5e7eb" stroke="#9ca3af" rx="5"/><text x="303" y="20" font-size="10">tail</text>
+      <g stroke="#cbd5d1"><path d="M46 15 H70 M116 15 H140 M186 15 H210 M256 15 H280"/></g>
+      <text x="93" y="48" fill="#16a34a" font-size="10">most recent</text>
+      <text x="233" y="48" fill="#c2410c" font-size="10">LRU → evict</text>
+    </g>
+    <text x="290" y="130" fill="#6b675e" font-size="11">get(A): O(1) find via map, then O(1) splice A to the front</text>
+  </g>
+</svg>
+<figcaption>Map = O(1) lookup; DLL = O(1) reorder/evict. The map stores the node itself, so the two stay in lockstep.</figcaption>
+</figure>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td><code>O(1)</code> cache with eviction order (LRU / LFU)?</td><td>hash map + doubly linked list</td><td><b><a href="#p-lru">Map + DLL</a></b> (§4.1)</td></tr>
+<tr><td><code>O(1)</code> insert / remove / <b>getRandom</b>?</td><td>hash map + array (swap-with-last)</td><td><b><a href="#p-rand">Map + array</a></b> (§4.2)</td></tr>
+<tr><td>An <b>extra O(1) query</b> on a stack/queue (min, max)?</td><td>a parallel auxiliary structure</td><td><b><a href="#p-aux">Auxiliary</a></b> (§4.3)</td></tr>
+<tr><td>Look up a value <b>by time</b> (latest ≤ t)?</td><td>map of sorted entries + binary search</td><td><b><a href="#p-time">Time-ordered</a></b> (§4.4)</td></tr>
+<tr><td>Expose <code>next()</code>/<code>hasNext()</code> over a structure lazily?</td><td>a controlled traversal with a stack</td><td><b><a href="#p-iter">Iterators</a></b> (§4.5)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">Anti-patterns</b>
+<b>·</b> <b>Don't combine when one structure already meets the bound</b> — clarify the required cost <i>per operation</i> first, then add only what's missing.<br/>
+<b>·</b> <b>Keep the two structures in sync on every op</b> — the classic bug is updating one and forgetting the other (a stale map entry after a delete).<br/>
+<b>·</b> Concurrency / thread-safety is usually out of scope unless explicitly asked.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"LRU / LFU cache", "O(1) get and put with eviction"</td><td><a href="#p-lru">Map + DLL §4.1</a></td></tr>
+<tr><td>"insert, delete, getRandom all O(1)", "randomized set"</td><td><a href="#p-rand">Map + array §4.2</a></td></tr>
+<tr><td>"min stack", "max stack", "queue using stacks", "browser history"</td><td><a href="#p-aux">Auxiliary §4.3</a></td></tr>
+<tr><td>"time-based key-value", "snapshot", "get the value at time t", "hit counter"</td><td><a href="#p-time">Time-ordered §4.4</a></td></tr>
+<tr><td>"BST iterator", "flatten nested list", "peeking / zigzag iterator"</td><td><a href="#p-iter">Iterators §4.5</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<p class="hint">Every one is "structure A + structure B kept in sync." Each: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-lru">4.1 · Map + Doubly Linked List (LRU)</h3>
+<p class="tldr">“Map finds the node in O(1); the list reorders and evicts in O(1).”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The list is always ordered by recency (head = most recent, tail = least), and the map points to the <i>exact</i> node for each key. Every <code>get</code>/<code>put</code> re-splices the touched node to the head, so the tail is always the true LRU — evictable in <code>O(1)</code>, with its key removed from the map in the same step.</div>
+
+<pre class="language-tsx"><code class="language-tsx">class DLLNode { key = 0; val = 0; prev: DLLNode | null = null; next: DLLNode | null = null; }
+
+class LRUCache {
+  private map = new Map&lt;number, DLLNode&gt;();
+  private head = new DLLNode(); private tail = new DLLNode();   // sentinels
+  constructor(private cap: number) { this.head.next = this.tail; this.tail.prev = this.head; }
+  private remove(n: DLLNode) { n.prev!.next = n.next; n.next!.prev = n.prev; }
+  private addFront(n: DLLNode) { n.next = this.head.next; n.prev = this.head; this.head.next!.prev = n; this.head.next = n; }
+
+  get(key: number): number {
+    const n = this.map.get(key);
+    if (!n) return -1;
+    this.remove(n); this.addFront(n);          // touch → most recent
+    return n.val;
+  }
+  put(key: number, val: number): void {
+    const ex = this.map.get(key);
+    if (ex) { ex.val = val; this.remove(ex); this.addFront(ex); return; }
+    if (this.map.size === this.cap) {          // evict LRU = node before tail
+      const lru = this.tail.prev!;
+      this.remove(lru); this.map.delete(lru.key);   // keep BOTH in sync
+    }
+    const n = new DLLNode(); n.key = key; n.val = val;
+    this.addFront(n); this.map.set(key, n);
+  }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why map + DLL (each op <code>O(1)</code>), the sentinel head/tail, and updating recency on <code>get</code> <i>and</i> <code>put</code>. <b>· Escalation:</b> LRU → LFU (a map of frequency → DLL buckets) → LRU with TTL/expiry.</div>
+
+<!-- 4.2 -->
+<h3 id="p-rand">4.2 · Map + Array (getRandom in O(1))</h3>
+<p class="tldr">“Array gives random access; delete by swapping the victim with the last.”</p>
+<p><b>Setup:</b> an array supports <code>O(1)</code> random pick, but <code>O(1)</code> delete only at the end — so to delete any element, swap it with the last, then pop. A map of <code>value → index</code> finds it instantly.</p>
+
+<figure>
+<svg viewBox="0 0 540 110" role="img" aria-label="RandomizedSet delete by swap with last">
+  <g font-size="13" text-anchor="middle" font-family="monospace">
+    <g transform="translate(40,30)">
+      <rect x="0" width="44" height="32" fill="#a1620718" stroke="#a16207"/><text x="22" y="21">a</text>
+      <rect x="48" width="44" height="32" fill="#c2410c22" stroke="#c2410c"/><text x="70" y="21">b</text>
+      <rect x="96" width="44" height="32" fill="#a1620718" stroke="#a16207"/><text x="118" y="21">c</text>
+      <rect x="144" width="44" height="32" fill="#16a34a22" stroke="#16a34a"/><text x="166" y="21">d</text>
+      <text x="70" y="50" font-family="sans-serif" font-size="10" fill="#c2410c">remove b</text>
+      <text x="166" y="50" font-family="sans-serif" font-size="10" fill="#16a34a">last</text>
+      <path d="M166 -4 q-48 -16 -90 6" stroke="#16a34a" fill="none" marker-end="url(#a)"/>
+    </g>
+    <text x="430" y="36" font-family="sans-serif" font-size="11" fill="#6b675e">move d into b's slot,</text>
+    <text x="430" y="52" font-family="sans-serif" font-size="11" fill="#6b675e">fix d's index, pop</text>
+  </g>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#16a34a"/></marker></defs>
+</svg>
+<figcaption>Swap-with-last keeps the array dense (no holes), so <code>getRandom</code> stays a single index pick.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The array holds the current members with no gaps, and the map gives each value's exact index. Deleting by overwriting the victim with the last element (and fixing that element's recorded index) preserves both facts in <code>O(1)</code> — so a uniform random index is always a valid uniform sample.</div>
+
+<pre class="language-tsx"><code class="language-tsx">class RandomizedSet {
+  private arr: number[] = [];
+  private idx = new Map&lt;number, number&gt;();          // value → its index in arr
+  insert(v: number): boolean {
+    if (this.idx.has(v)) return false;
+    this.idx.set(v, this.arr.length); this.arr.push(v); return true;
+  }
+  remove(v: number): boolean {
+    if (!this.idx.has(v)) return false;
+    const i = this.idx.get(v)!, last = this.arr[this.arr.length - 1];
+    this.arr[i] = last; this.idx.set(last, i);       // move last into the hole + fix its index
+    this.arr.pop(); this.idx.delete(v); return true;
+  }
+  getRandom(): number { return this.arr[(Math.random() * this.arr.length) | 0]; }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> swap-with-last delete and remembering to update the moved element's index. <b>· Escalation:</b> getRandom → duplicates allowed (map value → a <i>set</i> of indices) → reservoir sampling for a stream of unknown length.</div>
+
+<!-- 4.3 -->
+<h3 id="p-aux">4.3 · Auxiliary structure (Min Stack, Queue from Stacks)</h3>
+<p class="tldr">“Carry a second, parallel structure that answers the extra query for free.”</p>
+<p><b>Setup:</b> a stack can't report its minimum in <code>O(1)</code> — so keep a <i>parallel</i> stack of running minimums. The same idea (an auxiliary structure) implements a queue from two stacks.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>mins[i]</code> always equals the minimum of <code>stack[0..i]</code>, so it rises and falls in lockstep with the main stack — its top is the current minimum. For the two-stack queue: <code>out</code> reversed is the front of the queue, so it's filled from <code>in</code> only when empty, giving amortized <code>O(1)</code>.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Min Stack — O(1) push/pop/top/getMin
+class MinStack {
+  private st: number[] = [];
+  private mins: number[] = [];                        // mins[i] = min of st[0..i]
+  push(x: number) { this.st.push(x); this.mins.push(this.mins.length ? Math.min(x, this.mins[this.mins.length - 1]) : x); }
+  pop() { this.st.pop(); this.mins.pop(); }
+  top() { return this.st[this.st.length - 1]; }
+  getMin() { return this.mins[this.mins.length - 1]; }
+}
+
+// Queue from two stacks — amortized O(1)
+class MyQueue {
+  private inS: number[] = []; private outS: number[] = [];
+  push(x: number) { this.inS.push(x); }
+  private shift() { if (!this.outS.length) while (this.inS.length) this.outS.push(this.inS.pop()!); }
+  pop(): number { this.shift(); return this.outS.pop()!; }
+  peek(): number { this.shift(); return this.outS[this.outS.length - 1]; }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the parallel-min invariant (handles duplicate minimums cleanly), and the amortized argument for the two-stack queue. <b>· Escalation:</b> min stack → max stack → queue-from-stacks → "Browser History" (back/forward = two stacks).</div>
+
+<!-- 4.4 -->
+<h3 id="p-time">4.4 · Time-ordered (Map + sorted + binary search)</h3>
+<p class="tldr">“Per key, keep entries in time order; binary-search the latest ≤ t.”</p>
+<p><b>Setup:</b> values are written with increasing timestamps, so each key's history is naturally sorted — a binary search finds the most recent value at or before a query time in <code>O(log n)</code>.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Because timestamps only increase, appending keeps each key's list sorted by time. A <a href="binary-search.html#p-bound">floor binary search</a> (largest timestamp ≤ <code>t</code>) is therefore valid and returns the value in effect at time <code>t</code>.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// TimeMap — set(key,val,t) with increasing t; get(key,t) = value at the latest time ≤ t
+class TimeMap {
+  private map = new Map&lt;string, [number, string][]&gt;();    // key → sorted [time, value]
+  set(key: string, val: string, time: number) {
+    if (!this.map.has(key)) this.map.set(key, []);
+    this.map.get(key)!.push([time, val]);                  // appended in time order
+  }
+  get(key: string, time: number): string {
+    const a = this.map.get(key);
+    if (!a) return '';
+    let lo = 0, hi = a.length - 1, res = '';
+    while (lo &lt;= hi) {                                      // floor: latest time ≤ query
+      const mid = (lo + hi) &gt;&gt; 1;
+      if (a[mid][0] &lt;= time) { res = a[mid][1]; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    return res;
+  }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the increasing-timestamp → sorted observation and the floor (not exact) binary search. <b>· Escalation:</b> time map → "Snapshot Array" → "Design Hit Counter" (a queue / circular buffer of timestamps in a window).</div>
+
+<!-- 4.5 -->
+<h3 id="p-iter">4.5 · Iterators — controlled traversal</h3>
+<p class="tldr">“Pause a traversal between calls by holding its frontier on a stack.”</p>
+<p><b>Setup:</b> an iterator must yield one element per <code>next()</code> and resume later — so you store the in-progress traversal explicitly (a stack), instead of recursing all at once.</p>
+
+<figure>
+<svg viewBox="0 0 540 120" role="img" aria-label="BST iterator holding the left spine on a stack">
+  <g font-size="12" text-anchor="middle">
+    <circle cx="120" cy="25" r="14" fill="#a1620718" stroke="#a16207"/><text x="120" y="30">7</text>
+    <circle cx="80" cy="65" r="14" fill="#a1620718" stroke="#a16207"/><text x="80" y="70">3</text>
+    <circle cx="50" cy="100" r="14" fill="#a1620718" stroke="#a16207"/><text x="50" y="105">1</text>
+    <g stroke="#cbd5d1"><path d="M110 34 L90 56 M71 74 L59 90"/></g>
+    <g transform="translate(260,30)" font-family="monospace" font-size="12">
+      <rect x="0" y="0" width="50" height="22" fill="#a1620710" stroke="#a16207"/><text x="25" y="15">1</text>
+      <rect x="0" y="24" width="50" height="22" fill="#a1620710" stroke="#a16207"/><text x="25" y="39">3</text>
+      <rect x="0" y="48" width="50" height="22" fill="#a1620710" stroke="#a16207"/><text x="25" y="63">7</text>
+      <text x="90" y="15" font-family="sans-serif" text-anchor="start" fill="#6b675e">stack holds the</text>
+      <text x="90" y="33" font-family="sans-serif" text-anchor="start" fill="#6b675e">left spine; next() pops</text>
+      <text x="90" y="51" font-family="sans-serif" text-anchor="start" fill="#6b675e">1, then pushes 1.right's spine</text>
+    </g>
+  </g>
+</svg>
+<figcaption>The stack is the paused inorder walk; <code>O(h)</code> space, amortized <code>O(1)</code> per <code>next()</code>.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The stack always holds the un-visited ancestors whose left subtrees are done — i.e. the next node to emit is on top. After popping a node, pushing its right child's left spine re-establishes that the new top is the next-smallest. Each node is pushed and popped once → amortized <code>O(1)</code>.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// BST Iterator — inorder, one step at a time
+class BSTIterator {
+  private st: TreeNode[] = [];
+  constructor(root: TreeNode | null) { this.pushLeft(root); }
+  private pushLeft(n: TreeNode | null) { while (n) { this.st.push(n); n = n.left; } }
+  hasNext(): boolean { return this.st.length &gt; 0; }
+  next(): number {
+    const n = this.st.pop()!;       // smallest remaining
+    this.pushLeft(n.right);         // its successor's spine
+    return n.val;
+  }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why the stack = a paused recursion (<code>O(h)</code> space), and the amortized <code>O(1)</code>. <b>· Escalation:</b> BST iterator → "Flatten Nested List Iterator" → "Peeking Iterator" (buffer one) → "Zigzag Iterator" (round-robin queues).</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Design</th><th>Per op</th><th>Space</th><th>Pairing</th></tr>
+<tr><td>LRU cache</td><td><code>O(1)</code></td><td><code>O(cap)</code></td><td>map + doubly linked list</td></tr>
+<tr><td>RandomizedSet</td><td><code>O(1)</code></td><td><code>O(n)</code></td><td>map + array (swap-with-last)</td></tr>
+<tr><td>Min Stack / Queue-from-stacks</td><td><code>O(1)</code> (amortized)</td><td><code>O(n)</code></td><td>parallel / two stacks</td></tr>
+<tr><td>Time-based KV</td><td><code>O(log n)</code> get</td><td><code>O(n)</code></td><td>map + sorted list + binary search</td></tr>
+<tr><td>BST / nested iterator</td><td><code>O(1)</code> amortized next</td><td><code>O(h)</code></td><td>explicit stack (paused recursion)</td></tr>
+</table>
+<div class="box"><b class="tag">The design heuristic</b> Write down each required op and its target cost; for any op your main structure can't hit, the answer is almost always "add a hash map (for <code>O(1)</code> lookup), an array (for random access), a linked list (for <code>O(1)</code> splicing), a heap (for the extreme), or a sorted list + binary search (for ranges)."</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>LRU: not refreshing recency on <code>get</code> (only on <code>put</code>).</td><td><code>get</code> a key, then overflow → it gets wrongly evicted as "old".</td></tr>
+<tr><td>LRU: evicting from the list but not deleting from the <b>map</b>.</td><td>Capacity exceeded repeatedly → stale map entries, wrong size / memory leak.</td></tr>
+<tr><td>RandomizedSet: not updating the <b>moved</b> element's index on delete.</td><td>Remove a middle value, then remove the last-moved value → "not found" or corruption.</td></tr>
+<tr><td>RandomizedSet: removing the <b>last</b> element (swap-with-self).</td><td>A single-element set, or removing the tail → index map left pointing at a popped slot.</td></tr>
+<tr><td>Time map: exact-match search instead of <b>floor</b> (latest ≤ t).</td><td>Query a time between two writes → must return the earlier value, not "".</td></tr>
+<tr><td>BST iterator: not pushing the right child's left spine after a pop.</td><td>Any tree with right subtrees → inorder sequence comes out wrong.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>The DLL splicing</b> is pure <a href="linked-list.html">linked-list</a> pointer surgery; <b>the BST iterator</b> is a paused inorder from <a href="trees.html">trees</a> made explicit with a <a href="stack.html">stack</a>.
+<b>Min Stack</b> is a cousin of the <a href="stack.html#p-mono">monotonic stack</a> (auxiliary vs. monotonic); <b>two-heap</b> designs (median) live in <a href="heap.html#p-twoheap">heap.html</a>.
+<b>Time-based lookup</b> is a <a href="binary-search.html#p-bound">boundary binary search</a>; <b>LFU / Design Twitter</b> lean on a <a href="heap.html">heap</a>.</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-lru">Map + DLL (LRU)</a></td><td>146 LRU Cache · <b>460 LFU Cache</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-rand">Map + array (random)</a></td><td>380 Insert Delete GetRandom O(1) · <b>381 (dups allowed)</b> · 528 Random Pick Weight</td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-aux">Auxiliary structure</a></td><td>155 Min Stack · 232 Queue via Stacks · 716 Max Stack</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-time">Time-ordered</a></td><td>981 Time Based Key-Value Store · 1146 Snapshot Array</td><td>Med</td></tr>
+<tr><td><a href="#p-iter">Iterators</a></td><td>173 BST Iterator · 284 Peeking Iterator · <b>341 Flatten Nested List Iterator</b></td><td>Med → <b>Hard</b></td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What is the one move behind every "design X" problem?</td><td class="a">Find the operation your first structure is slow at, then add a second structure that's fast at exactly that — and keep them in sync.</td></tr>
+<tr><td>Which two structures make an LRU cache, and why each?</td><td class="a">A hash map (<code>O(1)</code> find the node) + a doubly linked list (<code>O(1)</code> move-to-front &amp; evict the tail).</td></tr>
+<tr><td>How does RandomizedSet delete in <code>O(1)</code>?</td><td class="a">Swap the victim with the last array element, fix that element's index in the map, then pop.</td></tr>
+<tr><td>How does a Min Stack answer <code>getMin</code> in <code>O(1)</code>?</td><td class="a">A parallel stack where entry <code>i</code> stores the min of the prefix; its top is the current min.</td></tr>
+<tr><td>Why can a time-based store binary-search?</td><td class="a">Timestamps only increase, so each key's history is sorted; a floor search finds the latest time ≤ t.</td></tr>
+<tr><td>What does a BST iterator's stack represent?</td><td class="a">A paused inorder traversal — the un-emitted ancestors; <code>O(h)</code> space, amortized <code>O(1)</code> per <code>next()</code>.</td></tr>
+<tr><td>What's the most common design bug?</td><td class="a">Updating one structure and forgetting the other (e.g., evicting from the list but leaving the map entry).</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">lru</span> <code>LRUCache</code> (map + DLL, sentinels)</li>
+<li><span class="pill">random</span> <code>RandomizedSet</code> (swap-with-last)</li>
+<li><span class="pill">aux</span> <code>MinStack</code> + <code>MyQueue</code> (two stacks)</li>
+<li><span class="pill">time</span> <code>TimeMap</code> (floor binary search)</li>
+<li><span class="pill">iterator</span> <code>BSTIterator</code></li>
+</ul>
+<p class="hint">For each: list the required ops + target cost, then name the two structures and what each covers — <i>before</i> the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

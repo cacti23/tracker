@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bit Manipulation — Learning Sheet</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#475569; --accent-soft:#47556914; --accent-line:#47556940; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h4{margin:1.2em 0 .2em;font-size:1.02rem}
+  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
+  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{.nav{display:none}body{margin:0}}
+</style>
+</head>
+<body>
+
+<h1 class="title">🔢 Bit Manipulation</h1>
+<p class="sub">A learning sheet — treat an integer as an array of bits (a tiny set). Then masks select, XOR toggles, and shifts multiply — all in O(1).</p>
+
+<nav class="nav">
+  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
+  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
+  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
+  <a href="#patterns"><b>04 · CORE</b>The 4 patterns</a>
+  <a href="#complexity"><b>05 · COST</b>Complexity</a>
+  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+</nav>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+
+<p>An integer is just bits indexed from the right. Three mental models cover almost everything: an int is a <b>bitset</b> (each bit = a flag / set member); <b>XOR</b> is a toggle that <i>cancels itself</i>; and a <b>mask</b> (<code>AND</code> with a chosen pattern) <b>selects</b> bits. Master a handful of idioms and these problems become one-liners.</p>
+
+<p>The single most useful property: <b><code>a ^ a = 0</code></b> and <b><code>a ^ 0 = a</code></b>, and XOR is order-independent. So XOR-ing a pile of numbers makes every <i>pair</i> vanish — whatever's left is the odd one out.</p>
+
+<h3>Watch it get invented — Single Number</h3>
+<ol>
+<li><b>Start brute.</b> Every value appears twice except one. A hash-map count finds it — but in <code>O(n)</code> extra space.</li>
+<li><b>The leap.</b> XOR everything. Identical values cancel in pairs (<code>a ^ a = 0</code>), and order doesn't matter, so the duplicates annihilate and only the unique value survives.</li>
+<li><b>Payoff.</b> One pass, <code>O(1)</code> space, no map.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 560 150" role="img" aria-label="XOR cancels pairs leaving the unique number">
+  <g font-family="monospace" font-size="14" text-anchor="middle">
+    <text x="60" y="20" fill="#6b675e" font-size="11" text-anchor="start">XOR of [4,1,2,1,2] — pairs cancel column by column</text>
+    <g fill="#37352f">
+      <text x="120" y="45">4 = 1 0 0</text>
+      <text x="120" y="68" fill="#475569">1 = 0 0 1</text>
+      <text x="120" y="91" fill="#475569">2 = 0 1 0</text>
+      <text x="120" y="114" fill="#475569">1 = 0 0 1</text>
+      <text x="120" y="137" fill="#475569">2 = 0 1 0</text>
+    </g>
+    <line x1="300" y1="122" x2="420" y2="122" stroke="#cbd5d1"/>
+    <text x="350" y="142" fill="#16a34a" font-weight="700">⊕ = 1 0 0 = 4</text>
+    <text x="470" y="70" text-anchor="start" fill="#6b675e" font-size="11">the two 1s cancel,</text>
+    <text x="470" y="88" text-anchor="start" fill="#6b675e" font-size="11">the two 2s cancel,</text>
+    <text x="470" y="106" text-anchor="start" fill="#16a34a" font-size="11">only 4 remains</text>
+  </g>
+</svg>
+<figcaption><code>4 ^ 1 ^ 2 ^ 1 ^ 2 = 4 ^ (1^1) ^ (2^2) = 4 ^ 0 ^ 0 = 4</code>.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">The two idioms that print money</b> <b><code>n &amp; (n − 1)</code></b> clears the lowest set bit → test power-of-two (<code>=== 0</code>) and count bits (Kernighan). <b><code>n &amp; (−n)</code></b> isolates the lowest set bit. Recognize these two and a huge fraction of bit problems collapse.</div>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2 id="plan">🎯 2 · Attack plan</h2>
+<table>
+<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
+<tr><td>Get/set/clear/toggle a bit, power-of-two, count set bits, flags?</td><td>the idiom toolkit</td><td><b><a href="#p-idiom">Idioms</a></b> (§4.1)</td></tr>
+<tr><td>Find the element that appears an odd number of times (missing/unique)?</td><td>XOR self-cancellation</td><td><b><a href="#p-xor">XOR tricks</a></b> (§4.2)</td></tr>
+<tr><td>Represent a <b>set/state</b> as an int — subsets, assignment, small-<code>n</code> DP?</td><td>a bitmask</td><td><b><a href="#p-mask">Bitmask</a></b> (§4.3)</td></tr>
+<tr><td>Add / multiply / divide <b>without</b> the operator?</td><td>sum = XOR, carry = AND-shift</td><td><b><a href="#p-arith">Bit arithmetic</a></b> (§4.4)</td></tr>
+</table>
+
+<div class="box warn"><b class="tag">When bit tricks are the WRONG / risky tool</b>
+<b>·</b> <b>Readability:</b> a clear <code>O(n)</code> hash solution often beats a cryptic bit hack — reach for bits when <code>O(1)</code> space or speed actually matters.<br/>
+<b>·</b> <b>JS is 32-bit signed</b> for bitwise ops: numbers ≥ 2³¹ misbehave; <code>&gt;&gt;</code> sign-extends while <code>&gt;&gt;&gt;</code> zero-fills; use <code>&gt;&gt;&gt; 0</code> or <code>BigInt</code> for large/unsigned values.<br/>
+<b>·</b> <b>Bitmask DP</b> needs <code>2ⁿ</code> states — only feasible for <code>n ≲ 20–22</code>.</div>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2 id="recognize">🔎 3 · Recognition map</h2>
+<table>
+<tr><th>Words in the prompt</th><th>Reach for</th></tr>
+<tr><td>"power of two", "count set bits / hamming weight", "i-th bit", "flags / state compression"</td><td><a href="#p-idiom">Idioms §4.1</a></td></tr>
+<tr><td>"appears once / twice / thrice", "single number", "missing number", "find the odd one"</td><td><a href="#p-xor">XOR §4.2</a></td></tr>
+<tr><td>"all subsets", "enumerate combinations", "TSP / assignment", "small n DP", "submask"</td><td><a href="#p-mask">Bitmask §4.3</a></td></tr>
+<tr><td>"sum/add without +", "multiply/divide via shifts", "reverse bits", "divide two integers"</td><td><a href="#p-arith">Arithmetic §4.4</a></td></tr>
+</table>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2 id="patterns">🧩 4 · The four core patterns</h2>
+<p class="hint">§4.1 is a vocabulary you memorize; §4.2–4.4 apply it. Each: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
+
+<!-- 4.1 -->
+<h3 id="p-idiom">4.1 · The idiom toolkit</h3>
+<p class="tldr">“Mask to select, shift to move, AND-with-(n−1) to peel the lowest bit.”</p>
+
+<figure>
+<svg viewBox="0 0 520 110" role="img" aria-label="n AND n minus 1 clears the lowest set bit">
+  <g font-family="monospace" font-size="14">
+    <text x="20" y="30" fill="#37352f">n      = 1 1 0 0   (12)</text>
+    <text x="20" y="55" fill="#475569">n − 1  = 1 0 1 1   (11)</text>
+    <line x1="20" y1="64" x2="240" y2="64" stroke="#cbd5d1"/>
+    <text x="20" y="86" fill="#16a34a">n&amp;(n−1)= 1 0 0 0   (8)</text>
+    <text x="300" y="40" font-family="sans-serif" font-size="12" fill="#6b675e">the lowest set bit (the</text>
+    <text x="300" y="58" font-family="sans-serif" font-size="12" fill="#6b675e">rightmost 1) is cleared</text>
+    <text x="300" y="84" font-family="sans-serif" font-size="12" fill="#16a34a">→ loop this to count bits</text>
+  </g>
+</svg>
+<figcaption>Each <code>n &amp;= n − 1</code> removes one set bit — so it runs once per set bit, not 32 times.</figcaption>
+</figure>
+
+<div class="box key"><b class="tag">🔑 Invariant — why <code>n &amp; (n−1)</code> works</b> Subtracting 1 flips the lowest set bit to 0 and all the zeros below it to 1; ANDing with the original keeps every higher bit and wipes that lowest run — netting exactly "remove the lowest set bit." Repeating it touches each set bit once.</div>
+
+<pre class="language-tsx"><code class="language-tsx">const getBit   = (n: number, i: number) =&gt; (n &gt;&gt; i) &amp; 1;
+const setBit   = (n: number, i: number) =&gt; n | (1 &lt;&lt; i);
+const clearBit = (n: number, i: number) =&gt; n &amp; ~(1 &lt;&lt; i);
+const toggleBit= (n: number, i: number) =&gt; n ^ (1 &lt;&lt; i);
+
+const isPowerOfTwo = (n: number) =&gt; n &gt; 0 &amp;&amp; (n &amp; (n - 1)) === 0;   // one set bit
+const lowestSetBit = (n: number) =&gt; n &amp; (-n);                      // isolate it
+const clearLowest  = (n: number) =&gt; n &amp; (n - 1);                   // remove it
+
+// Count set bits — Brian Kernighan: loops once per 1-bit
+function popcount(n: number): number {
+  let c = 0;
+  while (n) { n &amp;= n - 1; c++; }
+  return c;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> derive <code>n &amp; (n−1)</code> and <code>n &amp; −n</code> on the spot; the JS 32-bit / precedence caveats. <b>· Escalation:</b> idioms → "Counting Bits" (DP: <code>dp[i] = dp[i &amp; (i−1)] + 1</code>) → a Fenwick/BIT tree (whose jumps use <code>n &amp; −n</code>).</div>
+
+<!-- 4.2 -->
+<h3 id="p-xor">4.2 · XOR tricks</h3>
+<p class="tldr">“XOR everything; pairs cancel, the loner survives.”</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> XOR is commutative and associative with <code>a ^ a = 0</code>, <code>a ^ 0 = a</code>. So any value appearing an <i>even</i> number of times contributes nothing to the running XOR; the accumulated result is exactly the XOR of the odd-count values.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Single Number — every value twice except one
+const singleNumber = (nums: number[]) =&gt; nums.reduce((a, b) =&gt; a ^ b, 0);
+
+// Missing Number in [0..n] — XOR the indices and the values together
+function missingNumber(nums: number[]): number {
+  let x = nums.length;
+  for (let i = 0; i &lt; nums.length; i++) x ^= i ^ nums[i];   // every present value cancels
+  return x;
+}
+
+// Single Number III — exactly TWO values appear once, the rest twice
+function singleNumberIII(nums: number[]): number[] {
+  const xorAll = nums.reduce((a, b) =&gt; a ^ b, 0);   // = a ^ b  (the two loners)
+  const diff = xorAll &amp; (-xorAll);                   // a bit where a and b differ
+  let a = 0;
+  for (const x of nums) if (x &amp; diff) a ^= x;        // partition by that bit → isolates a
+  return [a, a ^ xorAll];                            // b = (a^b) ^ a
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the self-cancel properties and <code>O(1)</code> space; for III, <i>why</i> a differing bit cleanly splits the two loners. <b>· Escalation:</b> single → missing → single number III → single number II (every value thrice except one: count bits mod 3).</div>
+
+<!-- 4.3 -->
+<h3 id="p-mask">4.3 · Bitmask — an int as a set</h3>
+<p class="tldr">“Bit i set = item i chosen; loop 0…2ⁿ−1 to walk every subset.”</p>
+<p><b>Setup:</b> for small <code>n</code>, a state (which items are picked / visited) fits in one integer. Enumerate all subsets by counting, test membership with a mask, and compress DP state into the int.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it's complete</b> The integers <code>0 … 2ⁿ−1</code> are in bijection with the subsets of an <code>n</code>-element set (bit <code>i</code> = "item <code>i</code> included"). So iterating that range visits every subset exactly once; the submask trick <code>(sub − 1) &amp; mask</code> walks exactly the subsets of a given mask.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// All subsets of items[0..n-1]
+function subsets&lt;T&gt;(items: T[]): T[][] {
+  const n = items.length, out: T[][] = [];
+  for (let mask = 0; mask &lt; (1 &lt;&lt; n); mask++) {
+    const pick: T[] = [];
+    for (let i = 0; i &lt; n; i++) if (mask &amp; (1 &lt;&lt; i)) pick.push(items[i]);
+    out.push(pick);
+  }
+  return out;
+}
+
+// Enumerate every submask of `mask` (for bitmask DP over subsets)
+function submasks(mask: number): number[] {
+  const out: number[] = [];
+  for (let sub = mask; sub &gt; 0; sub = (sub - 1) &amp; mask) out.push(sub);
+  out.push(0);
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the set↔int mapping, subset/submask enumeration, and the <code>n ≲ 20</code> feasibility limit. <b>· Escalation:</b> subsets → bitmask <a href="dp.html">DP</a> over states ("Partition to K Equal Subsets", assignment, the TSP <code>dp[mask][i]</code>).</div>
+
+<!-- 4.4 -->
+<h3 id="p-arith">4.4 · Bit arithmetic — add without <code>+</code></h3>
+<p class="tldr">“Sum-without-carry is XOR; the carry is AND shifted left; repeat.”</p>
+<p><b>Setup:</b> binary addition splits into two parts — the column sum ignoring carries (<code>a ^ b</code>) and the carries themselves (<code>(a &amp; b) &lt;&lt; 1</code>). Fold the carry back in until it's gone.</p>
+
+<div class="box key"><b class="tag">🔑 Invariant — why it terminates</b> <code>a ^ b</code> is the partial sum and <code>(a &amp; b) &lt;&lt; 1</code> are the bits that must carry one place up. Each iteration moves carries strictly leftward, so after at most <i>word-size</i> rounds the carry becomes 0 and <code>a</code> holds the exact sum.</div>
+
+<pre class="language-tsx"><code class="language-tsx">// Sum of Two Integers without + or -
+function getSum(a: number, b: number): number {
+  while (b !== 0) {
+    const carry = (a &amp; b) &lt;&lt; 1;   // where both bits are 1 → carry up
+    a = a ^ b;                    // add the columns, ignoring carry
+    b = carry;                    // now add the carry in
+  }
+  return a;
+}</code></pre>
+<table>
+<tr><th>step</th><th>a (sum so far)</th><th>b (carry)</th></tr>
+<tr><td>start</td><td>5 = <code>0101</code></td><td>3 = <code>0011</code></td></tr>
+<tr><td>1</td><td>a^b = <code>0110</code> (6)</td><td>(a&amp;b)&lt;&lt;1 = <code>0010</code> (2)</td></tr>
+<tr><td>2</td><td><code>0100</code> (4)</td><td><code>0100</code> (4)</td></tr>
+<tr><td>3</td><td><code>0000</code></td><td><code>1000</code> (8)</td></tr>
+<tr><td>4</td><td><code>1000</code> (8) ✓</td><td><code>0</code> → done</td></tr>
+</table>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the sum/carry split and why it terminates; handling negatives via two's complement. <b>· Escalation:</b> add → multiply / "Divide Two Integers" via shifts &amp; subtraction → "Reverse Bits".</div>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Note</th></tr>
+<tr><td>Idioms / XOR / arithmetic</td><td><code>O(1)</code> or <code>O(n)</code></td><td><code>O(1)</code></td><td>per-int ops are <code>O(word size)</code> = O(1); a scan adds the <code>n</code></td></tr>
+<tr><td>Count set bits (Kernighan)</td><td><code>O(set bits)</code></td><td><code>O(1)</code></td><td>≤ word size, often far fewer</td></tr>
+<tr><td>Subset enumeration</td><td><code>O(2ⁿ · n)</code></td><td><code>O(1)</code></td><td>all submasks of all masks: <code>O(3ⁿ)</code></td></tr>
+<tr><td>Bitmask DP</td><td><code>O(2ⁿ · n)</code>+</td><td><code>O(2ⁿ)</code></td><td>only for small <code>n</code></td></tr>
+</table>
+<div class="box"><b class="tag">The O(1) win</b> A bit trick replaces a loop/array over up-to-word-size flags with a single machine instruction — that's why "power of two", "count bits", and "single number" go from <code>O(n)</code>-space to <code>O(1)</code>-space.</div>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td>Operator <b>precedence</b>: <code>&amp; | ^</code> bind looser than <code>== + </code>.</td><td><code>n &amp; 1 === 0</code> parses as <code>n &amp; (1 === 0)</code> → always falsy. Parenthesize: <code>(n &amp; 1) === 0</code>.</td></tr>
+<tr><td>JS bitwise is <b>32-bit signed</b>.</td><td><code>1 &lt;&lt; 31</code> is negative; values ≥ 2³¹ break. Use <code>&gt;&gt;&gt; 0</code> or <code>BigInt</code>.</td></tr>
+<tr><td><code>&gt;&gt;</code> (sign-extend) vs <code>&gt;&gt;&gt;</code> (zero-fill).</td><td><code>-8 &gt;&gt; 1 = -4</code> but <code>-8 &gt;&gt;&gt; 1</code> is a huge positive — pick deliberately.</td></tr>
+<tr><td>Shift amount ≥ word size is undefined / wraps.</td><td><code>1 &lt;&lt; 32</code> in JS is <code>1</code> (shift is mod 32), not 0.</td></tr>
+<tr><td>Bitmask: indexing with <code>i</code> instead of <code>1 &lt;&lt; i</code>.</td><td>Any subset enumeration → wrong members selected.</td></tr>
+<tr><td>Assuming Kernighan loops 32 times.</td><td>Sparse numbers (one set bit) → it loops once; don't hard-code 32 unless you mean it.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>The bit trie</b> (Maximum XOR, greedy MSB-first) lives in <a href="trie.html#p-bit">trie.html</a>.
+<b>Bitmask DP</b> (TSP / subset states) is a <a href="dp.html">DP</a> over compressed state; <b>subset enumeration</b> is the bit-twin of <a href="backtracking.html">backtracking</a>'s subsets.
+<b><code>n &amp; −n</code></b> is the engine of a Fenwick / Binary Indexed Tree.
+<b>XOR "find the odd one"</b> is a cousin of the array-as-graph cycle trick (<a href="two-pointers.html#p-fast">Floyd</a>).</div>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
+<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<table>
+<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
+<tr><td><a href="#p-idiom">Idioms</a></td><td>191 Number of 1 Bits · 231 Power of Two · 338 Counting Bits</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-xor">XOR tricks</a></td><td>136 Single Number · 137/260 Single Number II/III · 268 Missing Number</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-mask">Bitmask</a></td><td>78 Subsets · 320 Generalized Abbreviation · <b>847 Shortest Path Visiting All Nodes</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-arith">Arithmetic</a></td><td>67 Add Binary · 371 Sum of Two Integers · 29 Divide Two Integers · 190 Reverse Bits</td><td>Easy → Med</td></tr>
+</table>
+<h2 id="selfcheck">✅ 7 · Self-check</h2>
+<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+<table class="qa">
+<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
+<tr><td>What does <code>n &amp; (n − 1)</code> do, and what two problems use it?</td><td class="a">Clears the lowest set bit → power-of-two test (<code>=== 0</code>) and Kernighan's set-bit count.</td></tr>
+<tr><td>What does <code>n &amp; (−n)</code> do?</td><td class="a">Isolates the lowest set bit (the rightmost 1).</td></tr>
+<tr><td>Why does XOR-ing an array find the unique element?</td><td class="a"><code>a ^ a = 0</code> and order doesn't matter, so all even-count values cancel; the odd one remains.</td></tr>
+<tr><td>In Single Number III, how do you split the two loners?</td><td class="a">XOR all → <code>a^b</code>; pick any set bit of it (they differ there); partition the array by that bit and XOR each group.</td></tr>
+<tr><td>How many subsets does an n-set have, and how do you enumerate them?</td><td class="a"><code>2ⁿ</code>; iterate <code>mask = 0 … 2ⁿ−1</code>, bit <code>i</code> meaning "item i included."</td></tr>
+<tr><td>Add without <code>+</code>: what are the sum and carry?</td><td class="a">sum-without-carry = <code>a ^ b</code>; carry = <code>(a &amp; b) &lt;&lt; 1</code>; loop until carry is 0.</td></tr>
+<tr><td>Name the two JS gotchas.</td><td class="a">Bitwise ops are 32-bit signed; and <code>&amp;|^</code> have lower precedence than <code>==/+</code> (parenthesize).</td></tr>
+</table>
+
+<h3>Write these cold (no peeking)</h3>
+<ul>
+<li><span class="pill">idioms</span> <code>isPowerOfTwo</code>, <code>popcount</code> (Kernighan), get/set/clear/toggle</li>
+<li><span class="pill">xor</span> <code>singleNumber</code> + <code>singleNumberIII</code></li>
+<li><span class="pill">bitmask</span> <code>subsets</code> + submask enumeration</li>
+<li><span class="pill">arithmetic</span> <code>getSum</code> (add without +)</li>
+</ul>
+<p class="hint">For each: write what each bit <i>means</i> (flag? set member? digit?) as a comment <i>before</i> the code.</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>
