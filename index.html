@@ -518,7 +518,7 @@
     }
     .note-editor-title { font-weight: 600; }
     .note-editor-title:focus, .note-editor-body:focus { outline: none; border-color: var(--border-glow); }
-    .note-editor-body { min-height: 110px; resize: vertical; line-height: 1.5; }
+    .note-editor-body { min-height: 220px; resize: both; max-width: 100%; line-height: 1.5; }
     .note-editor-actions { display: flex; align-items: center; gap: 0.5rem; }
     .note-editor-hint { font-size: var(--fs-xs); color: var(--text-faint); margin-right: auto; font-family: var(--font-mono); }
     .btn-note-save, .btn-note-cancel {
@@ -1677,13 +1677,23 @@ function renderTopicNotes() {
   }
 }
 
+// Remember the size the user drags the note editor to, so every note opens that big.
+// Per-device UI preference (not synced).
+const NOTE_EDITOR_H_KEY = 'dsa-note-editor-h-v1'
+function _noteEditorHeightStyle() {
+  try { const h = localStorage.getItem(NOTE_EDITOR_H_KEY); return h ? ' style="height:' + h + '"' : '' } catch { return '' }
+}
+function _saveNoteEditorHeight(el) {
+  try { if (el && el.style.height) localStorage.setItem(NOTE_EDITOR_H_KEY, el.style.height) } catch {}
+}
+
 function renderNoteEditor(n) {
   const host = document.getElementById('note-editor-host')
   if (!host) return
   host.innerHTML =
     '<div class="note-editor">' +
     '<input class="note-editor-title" id="note-edit-title" placeholder="Note title (e.g. Topological sort)" value="' + escHtml(n.title || '') + '">' +
-    '<textarea class="note-editor-body" id="note-edit-body" placeholder="Markdown supported — # heading · **bold** · *italic* · `code` · ```block``` · - bullets · 1. list · &gt; quote · [link](url)">' + escHtml(n.body || '') + '</textarea>' +
+    '<textarea class="note-editor-body" id="note-edit-body"' + _noteEditorHeightStyle() + ' onmouseup="_saveNoteEditorHeight(this)" placeholder="Markdown supported — # heading · **bold** · *italic* · `code` · ```block``` - bullets · 1. list · &gt; quote · [link](url). Drag the bottom-right corner to resize.">' + escHtml(n.body || '') + '</textarea>' +
     '<div class="note-editor-actions">' +
     '<span class="note-editor-hint">- bullets · **bold** · `code`</span>' +
     '<button class="btn-note-cancel" onclick="cancelNoteEditor()">Cancel</button>' +
