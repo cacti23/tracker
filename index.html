@@ -664,17 +664,7 @@
     .ps-q-row:hover { border-color: var(--border-glow); background: var(--bg-hover); }
     .ps-q-row.ps-q-solved { background: rgba(40,167,69,0.12); border-color: rgba(40,167,69,0.4); opacity: 0.7; }
     .ps-q-row.ps-q-solved .ps-q-title { text-decoration: line-through; color: var(--text-faint); }
-    .ps-q-row.ps-q-struggled { background: rgba(245,158,11,0.13); border-color: rgba(245,158,11,0.45); opacity: 0.78; }
-    .ps-q-row.ps-q-struggled .ps-q-title { color: var(--text-faint); }
     .ps-q-row.ps-q-moving { transition: opacity 0.3s; opacity: 0; }
-    .ps-struggle-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent;
-      background: transparent; cursor: pointer; font-size: 0.72rem; flex-shrink: 0;
-      opacity: 0.18; transition: opacity 0.15s, border-color 0.15s, background 0.15s;
-      padding: 0; line-height: 1;
-    }
-    .ps-struggle-btn:hover { opacity: 1; border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.12); }
     .ps-due-dot { font-size: 0.52rem; color: var(--yellow); flex-shrink: 0; line-height: 1; }
     /* ── Solve ring (radial solve-count badge on question accordion) ── */
     .solve-ring-wrap { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; padding: 0 2px; }
@@ -2231,13 +2221,11 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
   }
-  const struggled    = showTopic ? _qpStruggledThisSession.has(lcKey) : _psStruggledThisSession.has(lcKey)
-  const solvedCls    = doneInSession ? (struggled ? ' ps-q-struggled' : ' ps-q-solved') : ''
+  const solvedCls    = doneInSession ? ' ps-q-solved' : ''
   const dueDot = due && !doneInSession ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
   const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
   const rowClickFn   = showTopic ? '_qpRowClick' : '_psRowClick'
-  const struggleFn   = showTopic ? '_qpStruggleClick' : '_psStruggleClick'
   return (
     '<div class="ps-q-row' + solvedCls + '" data-lc-key="' + lcKey + '" onclick="' + rowClickFn + '(event,\'' + lcKey + '\')">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
@@ -2247,7 +2235,6 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
     (q.freq ? freqBadge(q, ' flex-shrink-0') : '') +
     '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>' +
-    '<button class="ps-struggle-btn" title="Struggled — review again tomorrow (no clean-solve credit)" onclick="event.stopPropagation();' + struggleFn + '(this,\'' + lcKey + '\')" aria-label="Mark struggled">🔁</button>' +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
@@ -2531,7 +2518,6 @@ function _psRowClick(event, lcKey) {
   // Ignore clicks on the link, pin, or struggle button — they already stopPropagation
   if (event.target.classList.contains('ps-q-link')) return
   if (event.target.classList.contains('ps-pin-btn')) return
-  if (event.target.classList.contains('ps-struggle-btn')) return
 
   const rowEl = event.currentTarget
   if (!rowEl) return
@@ -2570,23 +2556,7 @@ function _psRowClick(event, lcKey) {
   })
 }
 
-// Struggled on a practice row: keep it in heavy rotation (interval back to 1 day) without crediting a clean solve.
-function _psStruggleClick(btnEl, lcKey) {
-  const rowEl = btnEl.closest('.ps-q-row')
-  if (!rowEl || _psDoneThisSession.has(lcKey)) return
-  _psDoneThisSession.add(lcKey)
-  _psStruggledThisSession.add(lcKey)
-
-  markPracticed(lcKey)
-  resetReviewInterval(lcKey)
-  _psSaveSession()
-
-  _animateRowToBottom(rowEl, 'ps-q-struggled', () => {
-    if (_psCurrentItems.length > 0 && _psDoneThisSession.size >= _psCurrentItems.length) {
-      _psShowSessionComplete()
-    }
-  })
-}
+// (Struggle button removed — pin 📌 a question to keep it coming back instead.)
 
 // Toggle pin from inside the practice session row.
 // Updates button visuals immediately without re-rendering the whole list.
@@ -2642,7 +2612,6 @@ function _qpAfterRowSettled(list) {
 function _qpRowClick(event, lcKey) {
   if (event.target.classList.contains('ps-q-link')) return
   if (event.target.classList.contains('ps-pin-btn')) return
-  if (event.target.classList.contains('ps-struggle-btn')) return
   const rowEl = event.currentTarget
   if (!rowEl) return
   if (_qpDoneThisSession.has(lcKey)) return
@@ -2663,16 +2632,7 @@ function _qpRowClick(event, lcKey) {
   _animateRowToBottom(rowEl, 'ps-q-solved', _qpAfterRowSettled)
 }
 
-// Struggled on a dashboard row: interval back to 1 day, no clean-solve credit.
-function _qpStruggleClick(btnEl, lcKey) {
-  const rowEl = btnEl.closest('.ps-q-row')
-  if (!rowEl || _qpDoneThisSession.has(lcKey)) return
-  _qpDoneThisSession.add(lcKey)
-  _qpStruggledThisSession.add(lcKey)
-  markPracticed(lcKey)
-  resetReviewInterval(lcKey)
-  _animateRowToBottom(rowEl, 'ps-q-struggled', _qpAfterRowSettled)
-}
+// (Struggle button removed — pin 📌 a question to keep it coming back instead.)
 
 // ── Timer controls ────────────────────────────────────────────────────────────
 function _psTimerSet(mins, btn) {
