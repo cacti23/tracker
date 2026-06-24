@@ -223,6 +223,7 @@
     .ex-notes-field { font-size: 11px; padding: 6px 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; font-family: 'DM Sans', sans-serif; resize: none; min-height: 35px; }
     .ex-notes-field:focus { outline: none; border-color: var(--accent); }
     .pr-indicator { color: #fbbf24; font-size: 13px; margin-left: 4px; font-weight: 600; }
+    .pr-pending { color: var(--text-faint); font-size: 10px; margin-left: 4px; font-family: 'DM Mono', monospace; }
     .set-best { font-size: 10px; color: var(--text-faint); margin-top: 2px; font-family: 'DM Mono', monospace; }
     .ex-last { font-size: 11px; color: var(--alt-text); font-family: 'DM Mono', monospace; margin-top: 4px; }
     .ex-rest { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-top: 4px; }
@@ -1105,6 +1106,54 @@
       savePRData(prData);
     }
   }
+  // A set "holds the record" when its weight/reps equal the stored PR (i.e. it's what set it).
+  function isRecordSet(dayIdx, exIdx, weight, reps) {
+    const w = parseFloat(weight) || 0;
+    const r = parseInt(reps) || 0;
+    if (w === 0 || r === 0) return false;
+    const best = getBestForExercise(dayIdx, exIdx);
+    return !!best && w === best.weight && r === best.reps;
+  }
+  // Commit a PR from one set — called ONLY when its green tick is turned on, so a mistyped
+  // weight can never become a PR unless you actually confirm the set. Remembers the prior
+  // record + which set set it so un-ticking can undo it. Returns true if a new PR was set.
+  function commitPRFromSet(dayIdx, exIdx, setIdx, weight, reps) {
+    const w = parseFloat(weight) || 0;
+    const r = parseInt(reps) || 0;
+    if (w === 0 || r === 0) return false;
+    if (!isPR(dayIdx, exIdx, w, r)) return false;
+    const prData = getPRData();
+    const exName = getExerciseName(dayIdx, exIdx);
+    const cur = prData[exName];
+    const prev = cur ? { weight: cur.weight, reps: cur.reps, date: cur.date } : null;
+    prData[exName] = {
+      weight: w.toString(), reps: r.toString(), date: new Date().toISOString().split('T')[0],
+      prev, src: { key: exKey(dayIdx, exIdx), setIdx }
+    };
+    savePRData(prData);
+    return true;
+  }
+  // Undo a PR when its source set's tick is turned off (restores the prior record, if any).
+  function revertPRFromSet(dayIdx, exIdx, setIdx) {
+    const prData = getPRData();
+    const exName = getExerciseName(dayIdx, exIdx);
+    const rec = prData[exName];
+    if (!rec || !rec.src) return;
+    if (rec.src.key === exKey(dayIdx, exIdx) && rec.src.setIdx === setIdx) {
+      if (rec.prev) prData[exName] = rec.prev; else delete prData[exName];
+      savePRData(prData);
+    }
+  }
+  // Once a day is saved to history its PRs are permanent — drop the undo markers so a later
+  // tick/un-tick of the same set can't revert a record you've already banked.
+  function lockPR(exName) {
+    const prData = getPRData();
+    if (prData[exName] && (prData[exName].prev !== undefined || prData[exName].src !== undefined)) {
+      delete prData[exName].prev;
+      delete prData[exName].src;
+      savePRData(prData);
+    }
+  }
 
   // ---- History / progression log ----
   function getHistoryData() {
@@ -1140,8 +1189,10 @@
         .filter(s => (s.weight && s.weight !== "") || (s.reps && s.reps !== ""))
         .map(s => ({ weight: s.weight, reps: s.reps }));
       if (!sets.length) return;
-      // Commit PRs at save time (not on every keystroke) so the ⭐ badge stays visible while typing.
-      exData.sets.forEach(s => updatePRIfNeeded(dayIdx, exIdx, s.weight, s.reps));
+      // Only confirmed (green-tick ✓) sets can set a PR — catches a value edited up after ticking.
+      // Un-ticked sets are never counted, so a wrong number left in the box can't become a PR.
+      exData.sets.forEach(s => { if (s.done) updatePRIfNeeded(dayIdx, exIdx, s.weight, s.reps); });
+      lockPR(exName);
       if (!all[exName]) all[exName] = [];
       const last = all[exName][all[exName].length - 1];
       if (last && last.date === today) last.sets = sets; // replace same-day entry
@@ -1172,9 +1223,14 @@
       const setIdx = parseInt(el.dataset.set);
       const set = exData.sets[setIdx] || { weight: "", reps: "" };
       const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
-      const prBadge = (isPR(dayIdx, exIdx, set.weight, set.reps) && set.weight && set.reps)
-        ? '<span class="pr-indicator">⭐ PR</span>' : '';
-      el.innerHTML = `<span class="set-best">${bestText}</span>${prBadge}`;
+      const hasVals = set.weight && set.reps;
+      let badge = '';
+      if (set.done && hasVals && isRecordSet(dayIdx, exIdx, set.weight, set.reps)) {
+        badge = '<span class="pr-indicator">⭐ PR</span>';                  // confirmed — the tick set it
+      } else if (!set.done && hasVals && isPR(dayIdx, exIdx, set.weight, set.reps)) {
+        badge = '<span class="pr-pending">↑ potential PR</span>';          // typed only — not stored yet
+      }
+      el.innerHTML = `<span class="set-best">${bestText}</span>${badge}`;
     });
   }
 
@@ -1188,6 +1244,9 @@
   window.renderContent = renderContent;
   window.getBestForExercise = getBestForExercise;
   window.isPR = isPR;
+  window.isRecordSet = isRecordSet;
+  window.commitPRFromSet = commitPRFromSet;
+  window.revertPRFromSet = revertPRFromSet;
   window.updatePRIfNeeded = updatePRIfNeeded;
   window.refreshExerciseStatus = refreshExerciseStatus;
   window.getExerciseName = getExerciseName;
@@ -1318,18 +1377,25 @@
                   <div class="ex-tracking">
                     ${exData.sets.map((set, setIdx) => {
                       const best = window.getBestForExercise(index, i);
-                      const isCurrPR = window.isPR(index, i, set.weight, set.reps);
                       const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
+                      const hasVals = set.weight && set.reps;
+                      // ⭐ PR only shows once the set is ticked done and it holds the record;
+                      // while typing you get a muted "potential PR" hint — nothing is stored yet.
+                      const badge = (set.done && hasVals && window.isRecordSet(index, i, set.weight, set.reps))
+                        ? '<span class="pr-indicator">⭐ PR</span>'
+                        : (!set.done && hasVals && window.isPR(index, i, set.weight, set.reps))
+                          ? '<span class="pr-pending">↑ potential PR</span>'
+                          : '';
                       return `
                       <div class="set-block${set.done?' done':''}" id="setblock-${index}-${i}-${setIdx}">
                         <div class="set-row">
-                          <button class="set-done${set.done?' done':''}" onclick="window.toggleSetDone(this,${index},${i},${setIdx})" title="Mark set done">${set.done?'✓':(setIdx+1)}</button>
+                          <button class="set-done${set.done?' done':''}" onclick="window.toggleSetDone(this,${index},${i},${setIdx})" title="Mark set done — confirms it & logs any PR">${set.done?'✓':(setIdx+1)}</button>
                           <input type="text" inputmode="decimal" class="track-input" placeholder="kg" value="${set.weight}" oninput="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
                           <input type="text" inputmode="numeric" class="track-input" placeholder="reps" value="${set.reps}" oninput="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
                         </div>
                         <div class="set-status" data-day="${index}" data-ex="${i}" data-set="${setIdx}" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0 4px 52px;">
                           <span class="set-best">${bestText}</span>
-                          ${isCurrPR && set.weight && set.reps ? '<span class="pr-indicator">⭐ PR</span>' : ''}
+                          ${badge}
                         </div>
                       </div>
                     `;
@@ -1383,9 +1449,9 @@
 
   window.updateSetRep = function(dayIdx, exIdx, setIdx, field, value) {
     window.setExerciseSetRep(dayIdx, exIdx, setIdx, field, value);
-    // PRs are committed on "Finish & Save" (see saveDayToHistory) — NOT on every keystroke —
-    // so the ⭐ PR badge compares the in-progress set against your last saved best and stays
-    // visible while you type. In-place status update only — keeps the keyboard open on mobile.
+    // Typing NEVER stores a PR — that only happens when you tick the set done (toggleSetDone).
+    // While typing you just get a muted "potential PR" hint. In-place status update only —
+    // keeps the mobile keyboard open.
     window.refreshExerciseStatus(dayIdx, exIdx);
   };
 
@@ -1400,6 +1466,17 @@
     el.textContent = done ? '✓' : (setIdx + 1);
     const block = document.getElementById(`setblock-${dayIdx}-${exIdx}-${setIdx}`);
     if (block) block.classList.toggle('done', done);
+    // The green tick is the gate: ticking confirms the set and logs a PR if it beats your best;
+    // un-ticking undoes that PR. This is why a mistyped weight can't sneak into your records.
+    const set = window.getExerciseData(dayIdx, exIdx).sets[setIdx] || { weight: "", reps: "" };
+    if (done) {
+      if (window.commitPRFromSet(dayIdx, exIdx, setIdx, set.weight, set.reps)) {
+        showToast(`⭐ New PR: ${parseFloat(set.weight)||0}kg × ${parseInt(set.reps)||0}`);
+      }
+    } else {
+      window.revertPRFromSet(dayIdx, exIdx, setIdx);
+    }
+    window.refreshExerciseStatus(dayIdx, exIdx);
   };
 
   window.toggleHistory = function(el) {
