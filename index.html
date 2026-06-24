@@ -1952,7 +1952,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const companyChips = getCompanies(q.leetcode).slice()
     .sort((a, b) => (COMPANY_ORDER[a] ?? 99) - (COMPANY_ORDER[b] ?? 99))
     .map(c => companyPill(c)).join('')
-  const companyRow = companyChips ? '<div class="mb-2 small d-flex flex-wrap align-items-center"><span class="text-secondary me-1">🏢 Asked at:</span>' + companyChips + '</div>' : ''
+  const companyRow = companyChips ? '<div class="mb-2 small d-flex flex-wrap align-items-center"><span class="text-secondary me-1">🏢 Asked at:</span><span class="q-companies">' + companyChips + '</span></div>' : ''
   const altApproaches = (q.alternateApproaches || []).map(a =>
     '<span class="badge bg-secondary me-1" title="' + escHtml(a.tradeoff) + '">' + escHtml(a.technique) + '</span>'
   ).join('')
@@ -2075,6 +2075,9 @@ function toggleSeen(lcKey, el) {
   el.className = 'seen-btn seen-' + state
   el.title = _seenTitle(state)
   _adjSolveCount(lcKey, 1)                    // every "seen" click also +1 on the solve-ring counter
+  // Looking at a question means you've started engaging with it — auto-promote an untouched
+  // (Pending) question to In Progress. Never downgrade something already In Progress / Solved.
+  if (getStatus(lcKey) === 'Pending') setQuestionStatus(lcKey, 'In Progress')
 }
 
 // ─── SAVE NOTE ────────────────────────────────────────────────────────────────
