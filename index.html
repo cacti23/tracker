@@ -2496,27 +2496,15 @@ function _adjSolveCount(lcKey, delta) {
   }
 }
 
-// Flash a row's outcome style, then slide it to the bottom of its list, renumber, and run onSettled(list).
-function _animateRowToBottom(rowEl, outcomeCls, onSettled) {
+// Mark a practice row as solved IN PLACE — flash the outcome style but keep the row where it is
+// (completed questions stay put; they no longer slide to the bottom). Then run onSettled(list).
+function _markRowSolved(rowEl, outcomeCls, onSettled) {
   rowEl.classList.add(outcomeCls)
-  setTimeout(() => {
-    rowEl.classList.add('ps-q-moving')
-    setTimeout(() => {
-      const list = rowEl.parentElement
-      if (list) {
-        list.appendChild(rowEl)
-        rowEl.classList.remove('ps-q-moving')
-        Array.from(list.querySelectorAll('.ps-q-row')).forEach((r, idx) => {
-          const num = r.querySelector('.ps-q-num')
-          if (num) num.textContent = idx + 1
-        })
-        if (onSettled) onSettled(list)
-      }
-    }, 320)
-  }, 50)
+  const list = rowEl.parentElement
+  if (onSettled && list) onSettled(list)
 }
 
-// Handle click on a practice row: a clean solve — credit a solve, expand the review interval, slide to bottom.
+// Handle click on a practice row: a clean solve — credit a solve, expand the review interval, mark solved in place.
 function _psRowClick(event, lcKey) {
   // Ignore clicks on the link, pin, or struggle button — they already stopPropagation
   if (event.target.classList.contains('ps-q-link')) return
@@ -2551,7 +2539,7 @@ function _psRowClick(event, lcKey) {
   // Persist session state after marking as done
   _psSaveSession()
 
-  _animateRowToBottom(rowEl, 'ps-q-solved', () => {
+  _markRowSolved(rowEl, 'ps-q-solved', () => {
     // Show session-complete banner if every question in this set is done
     if (_psCurrentItems.length > 0 && _psDoneThisSession.size >= _psCurrentItems.length) {
       _psShowSessionComplete()
@@ -2597,7 +2585,7 @@ function _qpShowSessionComplete() {
 // ─── DASHBOARD ROW CLICK HANDLERS ────────────────────────────────────────────
 // Dashboard QP handlers use _qpDoneThisSession so that topic navigation never clears QP state.
 
-// After a dashboard row settles at the bottom, re-sync results order and maybe show the complete banner.
+// After a dashboard row is marked solved, re-sync results order to the DOM and maybe show the complete banner.
 function _qpAfterRowSettled(list) {
   // Sync _qpResults order to match DOM so navigating back restores positions
   if (_qpResults) {
@@ -2632,7 +2620,7 @@ function _qpRowClick(event, lcKey) {
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
   const stBadge = rowEl.querySelector('.ps-status-badge')
   if (stBadge) { stBadge.className = 'badge ' + STATUS_DOT.Solved + ' q-badge flex-shrink-0 ps-status-badge'; stBadge.textContent = STATUS_EMOJI.Solved }
-  _animateRowToBottom(rowEl, 'ps-q-solved', _qpAfterRowSettled)
+  _markRowSolved(rowEl, 'ps-q-solved', _qpAfterRowSettled)
 }
 
 // (Struggle button removed — pin 📌 a question to keep it coming back instead.)
