@@ -2504,6 +2504,19 @@ function _markRowSolved(rowEl, outcomeCls, onSettled) {
   if (onSettled && list) onSettled(list)
 }
 
+// Solving in practice also counts as having looked at the question → refresh the 👀 seen marker
+// (turns it "fresh" for SEEN_FRESH_DAYS days; it fades to "review again" after that). Live-updates
+// the eye badge on the question card if it happens to be on screen.
+function _refreshSeenOnSolve(lcKey) {
+  markSeen(lcKey)
+  const seenBtn = document.getElementById('seen-btn-' + lcKey)
+  if (seenBtn) {
+    const st = getSeenState(lcKey)
+    seenBtn.className = 'seen-btn seen-' + st
+    seenBtn.title = _seenTitle(st)
+  }
+}
+
 // Handle click on a practice row: a clean solve — credit a solve, expand the review interval, mark solved in place.
 function _psRowClick(event, lcKey) {
   // Ignore clicks on the link, pin, or struggle button — they already stopPropagation
@@ -2530,6 +2543,7 @@ function _psRowClick(event, lcKey) {
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
     acRing.title     = _solveRingTitle(newCount)
   }
+  _refreshSeenOnSolve(lcKey)
 
   // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
@@ -2616,6 +2630,7 @@ function _qpRowClick(event, lcKey) {
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
     acRing.title     = _solveRingTitle(newCount)
   }
+  _refreshSeenOnSolve(lcKey)
   // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
   const stBadge = rowEl.querySelector('.ps-status-badge')
