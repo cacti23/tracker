@@ -162,6 +162,74 @@ function getSeenState(lcKey) {
   return ageDays <= SEEN_FRESH_DAYS ? 'fresh' : 'stale'
 }
 
+// ─── REVISE QUEUE (active recall) ─────────────────────────────────────────────
+// The SECOND of two independent spaced-repetition queues.
+//   • CODE queue  = solve-count + review ladder (index.html): "I wrote it cold." Long cooldown.
+//   • REVISE queue (here) = "I re-derived the approach from the problem statement." A faster,
+//     higher-volume active-recall pass on a SHORTER ladder, graded Solid / Shaky / Forgot.
+// A clean cold solve advances BOTH queues; a recall grade advances only this one. They never
+// share a counter (the old 👀 eye used to also credit a solve — that fusion is removed).
+// shape: { [lcKey]: { interval: days, last: ISO, grade: 'solid'|'shaky'|'forgot' } }
+const REVISE_KEY = 'dsa-revise-v1'
+const REVISE_LADDER = [1, 2, 4, 8, 16]   // days — deliberately shorter than the code ladder (1,3,7,14,30)
+function _reviseAll() { try { return JSON.parse(localStorage.getItem(REVISE_KEY) || '{}') } catch { return {} } }
+function getRevise(lcKey) { return _reviseAll()[lcKey] || null }
+function markRevised(lcKey, grade) {
+  const all = _reviseAll()
+  const cur = all[lcKey] || { interval: 0 }
+  let interval
+  if (grade === 'solid')      interval = REVISE_LADDER.find(d => d > (cur.interval || 0)) ?? REVISE_LADDER[REVISE_LADDER.length - 1]
+  else if (grade === 'shaky') interval = REVISE_LADDER[1]   // keep it in a short ~2-day loop
+  else                        interval = REVISE_LADDER[0]   // 'forgot' → back tomorrow
+  all[lcKey] = { interval, last: new Date().toISOString(), grade }
+  try { localStorage.setItem(REVISE_KEY, JSON.stringify(all)) } catch {}
+  return all[lcKey]
+}
+// "Engaged" = something you've actually learned, so it's a revision candidate — NOT a
+// never-touched 📋 Pending problem (those belong to the code/learn backlog, not revision).
+function _isEngaged(lcKey) {
+  return getSolveCount(lcKey) > 0 || getStatus(lcKey) !== 'Pending' || !!getRevise(lcKey)
+}
+function isReviseDue(lcKey) {
+  if (!_isEngaged(lcKey)) return false
+  const r = getRevise(lcKey)
+  if (!r || !r.last) return true                  // engaged but never graded → due for a first recall pass
+  return (Date.now() - new Date(r.last).getTime()) > (r.interval || 1) * 24 * 60 * 60 * 1000
+}
+// 'none' (not a revision candidate yet) | 'due' (needs a recall pass) | 'fresh' (recalled, not yet due)
+function getReviseState(lcKey) {
+  if (!getRevise(lcKey)) return _isEngaged(lcKey) ? 'due' : 'none'
+  return isReviseDue(lcKey) ? 'due' : 'fresh'
+}
+
+// ─── CODE-FORCE FLAG ──────────────────────────────────────────────────────────
+// When a recall pass is graded "forgot", the problem is force-queued back into the CODE
+// queue (re-code it cold) no matter where it sits on the code ladder. Cleared on the next
+// clean cold solve. shape: { [lcKey]: true }
+const CODE_FORCE_KEY = 'dsa-code-force-v1'
+function _codeForceAll() { try { return JSON.parse(localStorage.getItem(CODE_FORCE_KEY) || '{}') } catch { return {} } }
+function isCodeForced(lcKey) { return !!_codeForceAll()[lcKey] }
+function setCodeForced(lcKey, on) {
+  const all = _codeForceAll()
+  if (on) all[lcKey] = true; else delete all[lcKey]
+  try { localStorage.setItem(CODE_FORCE_KEY, JSON.stringify(all)) } catch {}
+}
+
+// One-time migration: seed the revise queue from the old 👀 "seen" flags so prior revision
+// history survives the switch to the two-queue model. Runs once, then sets a sentinel.
+;(function _migrateSeenToRevise() {
+  try {
+    if (localStorage.getItem('dsa-revise-migrated-v1')) return
+    const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')
+    const rev  = _reviseAll()
+    Object.entries(seen).forEach(([k, s]) => {
+      if (!rev[k] && s && s.last) rev[k] = { interval: REVISE_LADDER[2], last: s.last, grade: 'solid' }
+    })
+    localStorage.setItem(REVISE_KEY, JSON.stringify(rev))
+    localStorage.setItem('dsa-revise-migrated-v1', '1')
+  } catch {}
+})()
+
 // ─── GLOBAL SEARCH ──────────────────────────────────────────────────────────
 // Search across all topics by title, tags, difficulty, status, notes
 function searchGlobalQuestions(query) {

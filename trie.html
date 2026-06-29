@@ -147,7 +147,36 @@ class Trie {
   search(word: string): boolean { const n = this.walk(word); return !!n &amp;&amp; n.isEnd; }
   startsWith(prefix: string): boolean { return this.walk(prefix) !== null; }
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the node shape (Map vs 26-array trade-off), why ops are <code>O(L)</code> regardless of <code>N</code>, and the <code>isEnd</code> distinction. <b>· Escalation:</b> implement → add <code>delete</code> → store a <i>count</i> of words passing through each node.</div>
+
+<p>The escalation interviewers reach for: swap the <code>isEnd</code> boolean for two <b>counts</b> per node — and <code>erase</code> plus "how many words/prefixes?" become one-line decrements (LC 1804, Implement Trie II).</p>
+<pre class="language-tsx"><code class="language-tsx">// Trie II — counts make delete + "how many?" trivial
+class CTrieNode { children = new Map&lt;string, CTrieNode&gt;(); ends = 0; passing = 0; }
+
+class CountingTrie {
+  root = new CTrieNode();
+  insert(word: string): void {
+    let node = this.root;
+    for (const c of word) {
+      if (!node.children.has(c)) node.children.set(c, new CTrieNode());
+      node = node.children.get(c)!;
+      node.passing++;                              // +1 word runs through this node
+    }
+    node.ends++;                                   // +1 word ends here
+  }
+  private walk(s: string): CTrieNode | null {
+    let node = this.root;
+    for (const c of s) { const nx = node.children.get(c); if (!nx) return null; node = nx; }
+    return node;
+  }
+  countWordsEqualTo(word: string): number { return this.walk(word)?.ends ?? 0; }
+  countWordsStartingWith(pre: string): number { return this.walk(pre)?.passing ?? 0; }
+  erase(word: string): void {                      // assumes word was inserted
+    let node = this.root;
+    for (const c of word) { node = node.children.get(c)!; node.passing--; }
+    node.ends--;                                   // (a real impl may prune dead nodes)
+  }
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the node shape (Map vs 26-array trade-off), why ops are <code>O(L)</code> regardless of <code>N</code>, and the <code>isEnd</code> distinction. <b>· Escalation:</b> implement → add <code>erase</code> → store a <i>count</i> of words passing through each node (the <code>passing</code>/<code>ends</code> split above).</div>
 
 <!-- 4.2 -->
 <h3 id="p-prefix">4.2 · Prefix queries — autocomplete</h3>
@@ -212,6 +241,29 @@ search(word: string): boolean {
 <p class="tldr">“Drive one DFS by the trie — abandon any path that isn't a live prefix.”</p>
 <p><b>Setup:</b> instead of searching the grid once per word, build a trie of all words and run a <i>single</i> DFS; at each cell, only continue if the trie has that character as a child. The trie collapses many searches into one and prunes dead ends instantly.</p>
 
+<figure>
+<svg viewBox="0 0 540 155" role="img" aria-label="The trie node moves in lockstep with the grid path; a missing child prunes the branch">
+  <g font-size="12" text-anchor="middle">
+    <text x="20" y="42" text-anchor="start" fill="#6b675e" font-size="11">GRID</text>
+    <rect x="70" y="22" width="32" height="32" rx="4" fill="#9333ea18" stroke="#9333ea"/><text x="86" y="43">c</text>
+    <rect x="142" y="22" width="32" height="32" rx="4" fill="#9333ea18" stroke="#9333ea"/><text x="158" y="43">a</text>
+    <rect x="214" y="22" width="32" height="32" rx="4" fill="#9333ea18" stroke="#9333ea"/><text x="230" y="43">r</text>
+    <rect x="286" y="22" width="32" height="32" rx="4" fill="#fde8e8" stroke="#dc2626"/><text x="302" y="43" fill="#dc2626">z</text>
+    <g stroke="#9ca3af"><path d="M102 38 H142 M174 38 H214 M246 38 H286"/></g>
+
+    <text x="20" y="115" text-anchor="start" fill="#6b675e" font-size="11">TRIE</text>
+    <circle cx="86" cy="110" r="14" fill="#9333ea18" stroke="#9333ea"/><text x="86" y="115">c</text>
+    <circle cx="158" cy="110" r="14" fill="#9333ea18" stroke="#9333ea"/><text x="158" y="115">a</text>
+    <circle cx="230" cy="110" r="14" fill="#9333ea18" stroke="#9333ea"/><text x="230" y="115">r</text>
+    <g stroke="#cbd5d1"><path d="M100 110 H144 M172 110 H216"/></g>
+    <text x="270" y="115" text-anchor="start" fill="#dc2626" font-weight="700">✗ no 'z' child → PRUNE</text>
+
+    <g stroke="#cbd5d1" stroke-dasharray="3 3"><path d="M86 54 V96 M158 54 V96 M230 54 V96"/></g>
+  </g>
+</svg>
+<figcaption>The trie node moves cell-for-cell with the grid path. The instant the next letter isn't a child (here <code>z</code>), no dictionary word continues — the whole branch is abandoned.</figcaption>
+</figure>
+
 <div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The DFS holds a trie node that always corresponds to the string spelled by the current grid path. If the next cell's letter isn't a child of that node, no dictionary word continues this way — so the whole branch is pruned. A node's <code>word</code> field firing means a complete dictionary word ends here.</div>
 
 <pre class="language-tsx"><code class="language-tsx">// Word Search II — all dictionary words found in the board
@@ -261,7 +313,7 @@ function findWords(board: string[][], words: string[]): string[] {
 
 <div class="box key"><b class="tag">🔑 Invariant — why greedy is optimal</b> XOR is maximized bit by bit from the MSB: a 1 in a higher bit outweighs all lower bits combined. So at each level, if the opposite-bit branch exists, taking it is strictly best — no later choice can recover a higher bit you passed up.</div>
 
-<pre class="language-tsx"><code class="language-tsx">// Maximum XOR of Two Numbers in an array (30-bit ints)
+<pre class="language-tsx"><code class="language-tsx">// Maximum XOR of Two Numbers in an array (31-bit ints — bits 30…0)
 function findMaximumXOR(nums: number[]): number {
   const root: any = {};
   for (const num of nums) {                    // insert bits MSB → LSB
@@ -289,7 +341,7 @@ function findMaximumXOR(nums: number[]): number {
 <tr><td>insert / search / startsWith</td><td><code>O(L)</code></td><td><code>O(total chars)</code></td><td><code>L</code> = word length; independent of word count</td></tr>
 <tr><td>Collect words with a prefix</td><td><code>O(L + S)</code></td><td><code>O(S)</code></td><td><code>S</code> = total length of the matches</td></tr>
 <tr><td>Wildcard search</td><td><code>O(26<sup>k</sup>·L)</code> worst</td><td><code>O(L)</code></td><td><code>k</code> = number of dots (branching)</td></tr>
-<tr><td>Bit trie (max XOR)</td><td><code>O(n · 32)</code></td><td><code>O(n · 32)</code></td><td>one path of 32 bits per number</td></tr>
+<tr><td>Bit trie (max XOR)</td><td><code>O(n · 31)</code></td><td><code>O(n · 31)</code></td><td>one path of 31 bits (bits 30…0) per number</td></tr>
 </table>
 <div class="box"><b class="tag">The size-independence insight</b> A trie's per-word cost depends on the <i>word's length</i>, never on the dictionary size — that's its superpower over scanning. Its weakness is memory: many sparse nodes; a <code>Map</code> keeps them lean.</div>
 

@@ -158,6 +158,19 @@
 
 <div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> DFS recursion processes an entire subtree before returning, so the call stack always mirrors the current root-to-node path. BFS's queue holds exactly one full level at a time, so draining it level by level visits nodes in non-decreasing depth.</div>
 
+<p>Start with the simplest thing that works — <b>recursion</b>. All three depth-first orders are the <i>same</i> code; only <b>where you place the visit</b> relative to the two calls changes.</p>
+<pre class="language-tsx"><code class="language-tsx">// Recursive DFS — the whole family is one line of reordering
+function traverse(node: TreeNode | null, out: number[] = []): number[] {
+  if (!node) return out;        // BASE: nothing below null
+  // out.push(node.val);        //  ← visit HERE = PREORDER  (node, L, R)
+  traverse(node.left, out);
+  out.push(node.val);           //  ← visit HERE = INORDER   (L, node, R) — sorted in a BST
+  traverse(node.right, out);
+  // out.push(node.val);        //  ← visit HERE = POSTORDER (L, R, node) — the basis of §4.2
+  return out;
+}</code></pre>
+
+<p>Now the same orders <b>without</b> the implicit call stack — inorder via an explicit stack, and BFS via a queue:</p>
 <pre class="language-tsx"><code class="language-tsx">// Iterative inorder (no recursion): push the left spine, pop, go right
 function inorder(root: TreeNode | null): number[] {
   const out: number[] = [], st: TreeNode[] = []; let cur = root;
@@ -184,12 +197,13 @@ function levelOrder(root: TreeNode | null): number[][] {
   }
   return out;
 }</code></pre>
+<div class="box"><b class="tag">🧵 Morris traversal — O(1) space</b> Both the call stack and an explicit stack cost <code>O(h)</code>. Morris walks inorder in <b><code>O(1)</code></b> extra space by temporarily threading each node's <i>inorder predecessor</i> (the rightmost node of its left subtree) back to the node: dive left, wire <code>pred.right = cur</code> as a breadcrumb; when you later return through that thread, unwire it and visit. It mutates pointers mid-walk, so reach for it only when space is explicitly required to be <code>O(1)</code> — but naming it signals depth.</div>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> recursive vs iterative (explicit stack), BFS-vs-DFS choice, and "inorder of a BST is sorted." <b>· Escalation:</b> level order → zigzag → right-side view → vertical-order traversal.</div>
 
 <!-- 4.2 -->
 <h3 id="p-return">4.2 · Return-value DFS (the heart)</h3>
 <p class="tldr">“Compute children first, fold their returns into yours — and record a global if the answer bends.”</p>
-<p><b>Setup:</b> this is §1 made concrete. State the contract, then write three lines. The hardest version, Max Path Sum, shows the return-vs-record split perfectly.</p>
+<p><b>Setup:</b> this is §1 made concrete. State the contract, then write three lines. Below, the escalation ladder: diameter (return-vs-record), <b>balanced</b> (height hijacked by a <code>-1</code> failure sentinel), and the hardest, Max Path Sum.</p>
 
 <div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Each call returns a correct summary of its <i>entire</i> subtree (guaranteed by the base case + the combine step), so a parent can trust its children's returns blindly. Recording into the global at every node means the answer is the best over <i>all</i> nodes, not just the root.</div>
 
@@ -204,6 +218,18 @@ function diameterOfBinaryTree(root: TreeNode | null): number {
   }
   height(root);
   return best;
+}
+
+// Balanced? — RETURN height, but hijack it with -1 as a "subtree already failed" sentinel
+function isBalanced(root: TreeNode | null): boolean {
+  function height(node: TreeNode | null): number {   // CONTRACT: height, or -1 if unbalanced below
+    if (!node) return 0;
+    const L = height(node.left);  if (L === -1) return -1;   // short-circuit the failure upward
+    const R = height(node.right); if (R === -1) return -1;
+    if (Math.abs(L - R) &gt; 1) return -1;                      // imbalance detected here → fail
+    return 1 + Math.max(L, R);
+  }
+  return height(root) !== -1;
 }
 
 // Max Path Sum — clamp negative branches; RETURN a straight path, RECORD a bent one

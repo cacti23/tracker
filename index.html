@@ -623,6 +623,58 @@
     .seen-fresh { background: var(--green-dim);  border-color: rgba(61,214,140,0.45); }
     /* seen >15 days — colour shifts to amber AND the whole badge fades ("review again") */
     .seen-stale { background: var(--yellow-dim); border-color: rgba(240,192,96,0.35); opacity: 0.5; filter: grayscale(0.4); }
+
+    /* 🧠 Revise control — active-recall grader (replaces the old 👀 eye). Three grade buttons
+       drive the REVISE spaced-repetition queue; the box state shows whether a recall is due. */
+    .revise-ctrl {
+      display: inline-flex; align-items: center; gap: 1px;
+      height: 28px; padding: 0 5px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-elevated); flex-shrink: 0;
+      transition: border-color 0.15s, background 0.15s, opacity 0.2s, filter 0.2s;
+    }
+    .revise-dot { font-size: 0.72rem; line-height: 1; margin-right: 2px; }
+    .rev-grade {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 20px; border-radius: 5px; border: 1px solid transparent;
+      background: transparent; cursor: pointer; font-size: 0.74rem; font-weight: 700;
+      font-family: var(--font-mono); color: var(--text-muted); line-height: 1;
+      transition: transform 0.12s, background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .rev-grade:hover { transform: scale(1.18); }
+    .rev-solid:hover  { color: var(--green);  background: var(--green-dim);     border-color: rgba(61,214,140,0.45); }
+    .rev-shaky:hover  { color: var(--yellow); background: var(--yellow-dim);    border-color: rgba(240,192,96,0.4); }
+    .rev-forgot:hover { color: var(--red);    background: rgba(229,83,83,0.12); border-color: rgba(229,83,83,0.4); }
+    /* whole-control state: grey = not a revision candidate, amber = recall due, green = fresh */
+    .revise-none  { filter: grayscale(1); opacity: 0.5; }
+    .revise-due   { border-color: rgba(240,192,96,0.45); background: var(--yellow-dim); }
+    .revise-fresh { border-color: rgba(61,214,140,0.4); }
+    .qp-mock-note { font-size: var(--fs-xs); color: var(--text-muted); padding: 0.4rem 0.6rem; border-radius: 8px; background: var(--accent-dim); border: 1px solid var(--border); }
+    /* Revise-session row: the ✓/~/✗ grade buttons + the chosen-grade highlight + "last grade" tag */
+    .rev-grade-group { display: inline-flex; align-items: center; gap: 2px; }
+    .rev-grade.rev-chosen.rev-solid  { color: var(--green);  background: var(--green-dim);     border-color: rgba(61,214,140,0.55); }
+    .rev-grade.rev-chosen.rev-shaky  { color: var(--yellow); background: var(--yellow-dim);    border-color: rgba(240,192,96,0.55); }
+    .rev-grade.rev-chosen.rev-forgot { color: var(--red);    background: rgba(229,83,83,0.16); border-color: rgba(229,83,83,0.55); }
+    .rev-weak-tag { font-family: var(--font-mono); font-size: 0.64rem; font-weight: 700; padding: 0 4px; border-radius: 4px; flex-shrink: 0; }
+    .rev-weak-forgot { color: var(--red);    background: rgba(229,83,83,0.14); }
+    .rev-weak-shaky  { color: var(--yellow); background: var(--yellow-dim); }
+    /* Revise-row title is a click-to-read link to the problem (still looks like the title) */
+    .ps-q-title-link { color: inherit; text-decoration: none; }
+    .ps-q-title-link:hover { text-decoration: underline; color: var(--accent); }
+    /* Forgot residue row: stays in the Revise list as your "code this" list — highlighted, never struck */
+    .ps-q-row.ps-q-forgot { background: rgba(229,83,83,0.08); border-color: rgba(229,83,83,0.4); }
+    .ps-q-row.ps-q-forgot:hover { background: rgba(229,83,83,0.14); border-color: rgba(229,83,83,0.55); }
+    /* Persisted "last revise grade" badge shown on cards & practice rows (display-only) */
+    .revise-grade-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: 4px; flex-shrink: 0;
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 800; line-height: 1;
+    }
+    .revise-grade-badge.rg-none { display: none; }
+    .rg-solid  { color: var(--green);  background: var(--green-dim); }
+    .rg-shaky  { color: var(--yellow); background: var(--yellow-dim); }
+    .rg-forgot { color: var(--red);    background: rgba(229,83,83,0.16); }
+    /* "Last revised … ago" label on Revised-log rows */
+    .rev-ago { font-size: 0.62rem; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; }
     .ps-ctrl-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
     .ps-count-btn {
       display: inline-flex; align-items: center; justify-content: center;
@@ -719,7 +771,7 @@
     }
     .ps-streak-badge.streak-zero { background: var(--bg-elevated); border-color: var(--border); color: var(--text-faint); }
     /* ── Daily ritual ticks (header, next to search) ── */
-    .header-ritual { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0 0.3rem; flex-shrink: 0; }
+    .header-ritual { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0 0.3rem; flex-wrap: wrap; }
     .ritual-chip {
       display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
       padding: 0.28rem 0.65rem; border-radius: 16px; cursor: pointer;
@@ -736,6 +788,12 @@
       color: #fff; font-size: 0.62rem; font-weight: 800; line-height: 1;
     }
     .ritual-chip.done .ritual-box { background: var(--green); border-color: var(--green); }
+    /* Daily-plan adherence badge beside the checklist (percent of days completed) */
+    .ritual-pct {
+      font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; color: var(--text-muted);
+      padding: 0.22rem 0.55rem; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-elevated);
+    }
+    .ritual-pct.done { color: var(--green); border-color: var(--green); background: rgba(61,214,140,0.12); }
     .qp-chip {
       padding: 0.22rem 0.6rem; border-radius: 20px; border: 1px solid var(--border);
       background: var(--bg-elevated); cursor: pointer; font-size: var(--fs-xs);
@@ -984,12 +1042,15 @@ let _psDoneThisSession      = new Set()  // keys done in current per-topic pract
 let _psStruggledThisSession = new Set()  // subset of done that were marked "struggled"
 let _psCurrentItems         = []         // current ordered list for per-topic session
 let _psCurrentTopic         = null       // currently active topic key for practice session
+let _psMode                 = 'mock'     // per-topic solve-mode default: 'mock' (random, hidden difficulty, timed) | 'worked' | 'graded'
+let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
 // Store/restore the practice session (which topic + which questions) to survive page navigation.
 // Format: { topicKey, items: [[lcKey, question], ...], doneInSession: [lcKeys...] }
 const PS_SESSION_KEY = 'dsa-practice-session-v1'
 function _psSaveSession() {
+  if (_psMode !== 'worked') return   // only the Worked session persists; Graded/Mock recompute live
   if (!_psCurrentTopic || _psCurrentItems.length === 0) return
   try {
     const session = {
@@ -1090,9 +1151,11 @@ function getStreak() {
 // ─── DAILY RITUAL CHECKLIST ───────────────────────────────────────────────────
 // shape: { date: 'YYYY-MM-DD', revise: bool, study: bool }. Auto-resets when the date changes.
 const RITUAL_KEY = 'dsa-daily-ritual-v1'
+// The daily plan as a tiny checklist that resets each day (replaces the old Revise/Study chips).
 const RITUAL_STEPS = [
-  { key: 'revise', short: '🔁 Revise 1h', label: 'Revise due problems', note: 'do this first' },
-  { key: 'study',  short: '✏️ Study',     label: 'Study new problems',  note: '' },
+  { key: 'revise', short: '🧠 Revise 50m', label: 'Active-recall sweep — grade your due problems', note: 'do this first' },
+  { key: 'code',   short: '⌨️ Code 90m',   label: 'Solve your weak/forgot problems cold, on the timer', note: '' },
+  { key: 'log',    short: '📝 Log',         label: 'Log + write a 1-line trigger note per problem',     note: '' },
 ]
 function getRitual() {
   const today = new Date().toISOString().slice(0, 10)
@@ -1100,18 +1163,49 @@ function getRitual() {
     const r = JSON.parse(localStorage.getItem(RITUAL_KEY) || 'null')
     if (r && r.date === today) return r   // same day → keep ticks
   } catch {}
-  return { date: today, revise: false, study: false }   // new day (or first ever) → fresh
+  const fresh = { date: today }           // new day (or first ever) → all unticked
+  RITUAL_STEPS.forEach(s => { fresh[s.key] = false })
+  return fresh
 }
 function toggleRitual(step) {
   const r = getRitual()
   r[step] = !r[step]
   r.date = new Date().toISOString().slice(0, 10)
   try { localStorage.setItem(RITUAL_KEY, JSON.stringify(r)) } catch {}
+  _updateRitualStats()
   _renderHeaderRitual()
+}
+
+// ─── DAILY-PLAN COMPLETION STATS ──────────────────────────────────────────────
+// Records which days you finished the WHOLE checklist, then shows an adherence % + day-count.
+const RITUAL_STATS_KEY = 'dsa-ritual-stats-v1'
+function _ritualStats() {
+  try { return JSON.parse(localStorage.getItem(RITUAL_STATS_KEY) || 'null') || { firstDay: null, doneDays: [] } }
+  catch { return { firstDay: null, doneDays: [] } }
+}
+function _ritualAllDone(r) { return RITUAL_STEPS.every(s => !!r[s.key]) }
+function _updateRitualStats() {
+  const today = new Date().toISOString().slice(0, 10)
+  const s = _ritualStats()
+  if (!s.firstDay) s.firstDay = today
+  if (!Array.isArray(s.doneDays)) s.doneDays = []
+  const full = _ritualAllDone(getRitual())
+  const has  = s.doneDays.includes(today)
+  if (full && !has) s.doneDays.push(today)
+  else if (!full && has) s.doneDays = s.doneDays.filter(d => d !== today)
+  try { localStorage.setItem(RITUAL_STATS_KEY, JSON.stringify(s)) } catch {}
+}
+function _ritualPercent() {
+  const s = _ritualStats()
+  const today = new Date().toISOString().slice(0, 10)
+  const first = s.firstDay || today
+  const elapsed = Math.max(1, Math.round((new Date(today) - new Date(first)) / 86400000) + 1)
+  const done = Array.isArray(s.doneDays) ? s.doneDays.length : 0
+  return { pct: Math.round(done / elapsed * 100), done, elapsed }
 }
 function renderHeaderRitual() {
   const r = getRitual()
-  return RITUAL_STEPS.map(s => {
+  const chips = RITUAL_STEPS.map(s => {
     const on  = !!r[s.key]
     const tip = on
       ? s.label + ' — done today (click to undo)'
@@ -1124,6 +1218,12 @@ function renderHeaderRitual() {
       '</button>'
     )
   }).join('')
+  const { pct, done, elapsed } = _ritualPercent()
+  const allDone = _ritualAllDone(r)
+  const pctBadge = '<span class="ritual-pct' + (allDone ? ' done' : '') + '" ' +
+    'title="Daily plan completed ' + done + ' of ' + elapsed + ' day' + (elapsed === 1 ? '' : 's') + ' (' + pct + '%)">' +
+    (allDone ? '✅ ' : '') + pct + '% · ' + done + 'd</span>'
+  return chips + pctBadge
 }
 function _renderHeaderRitual() {
   const el = document.getElementById('header-ritual')
@@ -1136,6 +1236,29 @@ function isDue(lcKey) {
   if (!last) return true
   return (Date.now() - new Date(last).getTime()) > getReviewInterval(lcKey) * 24 * 60 * 60 * 1000
 }
+
+// CODE queue "due": you've engaged with it and it's overdue on the code ladder, OR a "forgot"
+// recall force-queued it for a fresh cold solve. Never-touched 📋 Pending problems are the
+// learn backlog (shown as the Pending count) — not counted here, to keep the number actionable.
+function isCodeDue(lcKey) {
+  if (isCodeForced(lcKey)) return true
+  if (!_isEngaged(lcKey)) return false
+  return isDue(lcKey)
+}
+
+// Live-update the dashboard's two due-counts (no-op when not on the dashboard).
+function _refreshDueCounts() {
+  const rEl = document.getElementById('due-revise-count')
+  const cEl = document.getElementById('due-code-count')
+  if (!rEl && !cEl) return
+  let codeDue = 0, reviseDue = 0
+  TOPICS.forEach(t => {
+    const mod = TOPIC_MODULES[t.key]
+    if (mod) Object.keys(mod.questions).forEach(k => { if (isCodeDue(k)) codeDue++; if (isReviseDue(k)) reviseDue++ })
+  })
+  if (rEl) rEl.textContent = reviseDue
+  if (cEl) cEl.textContent = codeDue
+}
 // ─── QUICK PRACTICE STATE (dashboard) ────────────────────────────────────────
 let _qpTopics  = new Set()  // selected topic keys
 let _qpCount   = 10         // question count
@@ -1146,6 +1269,10 @@ let _qpTimerRun    = false  // is running?
 let _qpTimerIv     = null   // setInterval handle
 let _qpTimerPreset = 0      // last preset in minutes
 let _qpDueOnly     = false  // when true: generate only "due for review" questions
+let _qpMock        = true   // Mock Mode (DEFAULT): random mixed set across ALL topics, topic & difficulty hidden, timed (interview sim)
+let _qpMockReveal  = false  // after a mock run, reveal the hidden topic/difficulty for post-mortem (not persisted)
+let _qpRevise      = false  // Revise Session: active-recall pass — pulls revise-due problems with ✓/~/✗ grade buttons (no cold-solve). Mutually exclusive with Mock.
+let _qpRevised     = false  // Revised log: read-only list of everything you've already graded, newest-first, with grade + "ago". Re-grade in place. Mutually exclusive with Mock/Revise.
 let _practiceWorkedOnly = false  // when true: practice pool excludes 📋 Pending (only 🚧 In Progress + ✅ Solved). Shared by dashboard Quick Practice + per-topic Practice Session.
 
 // ─── QP STATE PERSISTENCE ─────────────────────────────────────────────────────
@@ -1156,6 +1283,9 @@ function _saveQpState() {
       topics:  Array.from(_qpTopics),
       count:   _qpCount,
       dueOnly: _qpDueOnly,
+      mock:    _qpMock,
+      revise:  _qpRevise,
+      revised: _qpRevised,
       workedOnly: _practiceWorkedOnly,
       results: _qpResults ? _qpResults.map(([k]) => k) : null,
     }
@@ -1169,7 +1299,8 @@ function _loadQpState() {
     const state = JSON.parse(raw)
     if (Array.isArray(state.topics)) state.topics.forEach(k => _qpTopics.add(k))
     if (typeof state.count   === 'number') _qpCount   = state.count
-    if (typeof state.dueOnly === 'boolean') _qpDueOnly = state.dueOnly
+    // Mode is NOT restored — every page load starts in the default mode (🎯 Mock). Only the
+    // topic selection / count / worked-on filter persist.
     if (typeof state.workedOnly === 'boolean') _practiceWorkedOnly = state.workedOnly
     if (Array.isArray(state.results)) {
       // Re-hydrate [lcKey, q] pairs from TOPIC_MODULES
@@ -1408,11 +1539,12 @@ function loadDashboard() {
   const solvedPct  = totalQ ? Math.round(totalSolved / totalQ * 100) : 0
   const inProgPct  = totalQ ? Math.round(totalInProg / totalQ * 100) : 0
 
-  // Count questions due for review across all topics
-  let totalDue = 0
+  // Count both spaced-repetition queues across all topics:
+  //   reviseDue = problems due for an active-recall pass · codeDue = problems due for a cold solve
+  let codeDue = 0, reviseDue = 0
   TOPICS.forEach(t => {
     const mod = TOPIC_MODULES[t.key]
-    if (mod) Object.keys(mod.questions).forEach(k => { if (isDue(k)) totalDue++ })
+    if (mod) Object.keys(mod.questions).forEach(k => { if (isCodeDue(k)) codeDue++; if (isReviseDue(k)) reviseDue++ })
   })
 
   // ── Overall tracker ─────────────────────────────────────────────────────────
@@ -1436,7 +1568,7 @@ function loadDashboard() {
     '<span class="text-success">✅ <strong>' + totalSolved + '</strong> Solved</span>' +
     '<span class="text-warning">🚧 <strong>' + totalInProg + '</strong> In Progress</span>' +
     '<span class="text-secondary">📋 <strong>' + totalPending + '</strong> Pending</span>' +
-    (totalDue ? '<span class="text-warning ms-auto">⏰ <strong>' + totalDue + '</strong> due for review</span>' : '<span class="ms-auto text-secondary">' + solvedPct + '% · ' + totalQ + ' total</span>') +
+    '<span class="text-warning ms-auto" title="Cold-solve queue: questions due to (re)code from scratch">⌨️ <strong id="due-code-count">' + codeDue + '</strong> to code</span>' +
     '</div>' +
     '</div></div>'
 
@@ -1943,10 +2075,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     + '<button class="solve-ring-adj" onclick="_adjSolveCount(\'' + lcKey + '\',1)">+</button>'
     + '</span>'
 
-  const seenState = getSeenState(lcKey)
-  const seenBtn   = '<span class="seen-btn seen-' + seenState + '" id="seen-btn-' + lcKey + '"' +
-    ' title="' + _seenTitle(seenState) + '"' +
-    ' onclick="toggleSeen(\'' + lcKey + '\', this)">👀</span>'
+  const reviseCtrl = _reviseControlHtml(lcKey)
 
   const tags = (q.tags || []).map(t => '<span class="badge badge-tag me-1">' + t + '</span>').join('')
   const companyChips = getCompanies(q.leetcode).slice()
@@ -1998,7 +2127,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     ' id="pin-btn-' + lcKey + '"' +
     ' title="' + (isPinned(lcKey) ? 'Unpin from practice set' : 'Pin — always include in practice') + '"' +
     ' onclick="toggleQuestionPin(\'' + lcKey + '\', this)">📌</span>' +
-    seenBtn +
+    reviseCtrl +
     '<span class="qa-div"></span>' +
     solveRing +
     '</div>' +
@@ -2010,6 +2139,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<span class="q-meta">' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge">' + q.difficulty + '</span>' +
     (q.freq ? '<span class="q-badge-sep"></span>' + freqBadge(q) : '') +
+    _reviseGradeBadge(lcKey) +
     (existingNote ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>' : '') +
     (isPinned(lcKey) ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge pin-badge" title="Pinned to practice">📌</span>' : '') +
     '</span>' +
@@ -2062,22 +2192,64 @@ function cycleQuestionStatus(lcKey, cycleBtn) {
   setQuestionStatus(lcKey, next, cycleBtn)
 }
 
-// ─── SEEN / REVISED FLAG ──────────────────────────────────────────────────────
-// Independent of status/solve-ring. Click = "seen today" (fresh 15 days, count++/day).
-function _seenTitle(state) {
-  if (state === 'none')  return 'Mark as seen / revised — stays fresh ' + SEEN_FRESH_DAYS + ' days'
-  if (state === 'fresh') return 'Seen · fresh — click to mark seen again'
-  return 'Seen · review again (' + SEEN_FRESH_DAYS + '+ days since last) — click to re-mark'
+// ─── REVISE GRADE CONTROL (active-recall queue) ───────────────────────────────
+// Replaces the old single 👀 eye. Three grades drive the REVISE ladder independently of
+// the CODE/solve ladder. Crucially, grading does NOT credit a code solve (the old eye did).
+function _reviseTitle(state) {
+  if (state === 'none')  return 'Active recall — grade how well you re-derived this from the problem statement (not a code solve)'
+  if (state === 'due')   return 'Due for a recall pass — grade ✓ Solid / ~ Shaky / ✗ Forgot'
+  return 'Revised — fresh. Grade again when it next comes due to keep the spacing going'
 }
-function toggleSeen(lcKey, el) {
-  markSeen(lcKey)
-  const state = getSeenState(lcKey)          // 'fresh' right after marking
-  el.className = 'seen-btn seen-' + state
-  el.title = _seenTitle(state)
-  _adjSolveCount(lcKey, 1)                    // every "seen" click also +1 on the solve-ring counter
-  // Looking at a question means you've started engaging with it — auto-promote an untouched
-  // (Pending) question to In Progress. Never downgrade something already In Progress / Solved.
+function _reviseControlHtml(lcKey) {
+  const state = getReviseState(lcKey)
+  return '<span class="revise-ctrl revise-' + state + '" id="revise-ctrl-' + lcKey + '"' +
+    ' title="' + _reviseTitle(state) + '" onclick="event.stopPropagation()">' +
+    '<span class="revise-dot">🧠</span>' +
+    '<button class="rev-grade rev-solid"  title="Recalled it cold — push the next review further out"   onclick="gradeRevise(\'' + lcKey + '\',\'solid\',this)">✓</button>' +
+    '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint, keep it in short rotation"        onclick="gradeRevise(\'' + lcKey + '\',\'shaky\',this)">~</button>' +
+    '<button class="rev-grade rev-forgot" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="gradeRevise(\'' + lcKey + '\',\'forgot\',this)">✗</button>' +
+    '</span>'
+}
+function _refreshReviseCtrl(lcKey) {
+  const c = document.getElementById('revise-ctrl-' + lcKey)
+  if (!c) return
+  const st = getReviseState(lcKey)
+  c.className = 'revise-ctrl revise-' + st
+  c.title = _reviseTitle(st)
+}
+// Always-present badge showing your LAST revise grade (✓/~/✗), so the rating you gave stays
+// visible on cards & practice rows. Hidden (rg-none) until first graded. Display-only — reads
+// the persisted grade, changes nothing.
+function _reviseGradeBadge(lcKey) {
+  const r = getRevise(lcKey)
+  const map = { solid: ['rg-solid', '✓', 'recalled cold'], shaky: ['rg-shaky', '~', 'shaky'], forgot: ['rg-forgot', '✗', 'forgot'] }
+  const m = r && r.grade && map[r.grade]
+  return '<span class="revise-grade-badge ' + (m ? m[0] : 'rg-none') + '" data-rg-key="' + lcKey + '"' +
+    (m ? ' title="Last revise grade: ' + m[2] + '"' : '') + '>' + (m ? m[1] : '') + '</span>'
+}
+// Live-update every on-screen grade badge for a question (card + any practice rows).
+function _refreshReviseGradeBadges(lcKey) {
+  document.querySelectorAll('.revise-grade-badge[data-rg-key="' + lcKey + '"]').forEach(el => { el.outerHTML = _reviseGradeBadge(lcKey) })
+}
+// Grade a recall pass. Solid/Shaky/Forgot move the revise ladder; Forgot also force-queues a
+// cold re-solve. No solve-count change (recall ≠ coding). Counts toward the daily streak.
+function gradeRevise(lcKey, grade, el) {
+  // ✓ "recalled it cold" credits ONE solve on the confidence ring (deduped to once/day) — a clean
+  // recall is a real successful rep. ~ shaky and ✗ forgot never credit. This is the ONLY link from
+  // recall to the solve count, and only on an explicit positive grade (unlike the old eye, which
+  // bumped on every passive click). Status is untouched here beyond the 📋→🚧 nudge below.
+  const prev  = getRevise(lcKey)
+  const today = new Date().toISOString().slice(0, 10)
+  const creditedSolidToday = prev && prev.grade === 'solid' && prev.last && prev.last.slice(0, 10) === today
+  markRevised(lcKey, grade)
+  setCodeForced(lcKey, grade === 'forgot')
+  if (grade === 'solid' && !creditedSolidToday) _adjSolveCount(lcKey, 1)
+  _updateStreak()
+  // Engaging with recall promotes an untouched (📋 Pending) question — never downgrades, never auto-✅.
   if (getStatus(lcKey) === 'Pending') setQuestionStatus(lcKey, 'In Progress')
+  _refreshReviseCtrl(lcKey)
+  _refreshReviseGradeBadges(lcKey)
+  _refreshDueCounts()
 }
 
 // ─── SAVE NOTE ────────────────────────────────────────────────────────────────
@@ -2197,6 +2369,137 @@ function _orderPracticePool(entries) {
   ]
 }
 
+// Grade-aware ordering: serve your weakest problems first. Lower rank = served earlier.
+// 0 = a "forgot" recall force-queued it · 1 = last recall was shaky · 2 = everything else.
+function _weaknessRank(lcKey) {
+  if (isCodeForced(lcKey)) return 0
+  const r = getRevise(lcKey)
+  if (r && r.grade === 'shaky') return 1
+  return 2
+}
+// Stable sort a list of [lcKey, q] pairs by weakness (keeps the prior weighted order within a tier).
+function _orderByWeakness(pairs) {
+  return pairs
+    .map((p, i) => [p, i])
+    .sort((a, b) => (_weaknessRank(a[0][0]) - _weaknessRank(b[0][0])) || (a[1] - b[1]))
+    .map(x => x[0])
+}
+
+// Dispatcher: render the Quick Practice results as either grade-rows (Revise) or solve-rows.
+function _qpRowsHtml() {
+  if (!_qpResults) return ''
+  // All modes are solve-rows now (Worked / Graded / Mock). Grading lives on the question cards.
+  return _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+}
+
+// "today" / "yesterday" / "Nd ago" from an ISO timestamp (calendar-day based).
+function _agoLabel(iso) {
+  if (!iso) return ''
+  const a = new Date(); a.setHours(0, 0, 0, 0)
+  const b = new Date(iso); b.setHours(0, 0, 0, 0)
+  const days = Math.round((a - b) / 86400000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  return days + 'd ago'
+}
+
+// Revised-log row: a question you've already graded. Shows its grade badge + how long ago, and
+// lets you re-grade in place (no vanish — this is a review log, not a sweep).
+function _buildRevisedItem([lcKey, q], i, ctx) {
+  const fn = ctx === 'ps' ? '_psGradedGrade' : '_qpRevisedGrade'   // which list this row lives in
+  const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
+  const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
+  const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
+  const r = getRevise(lcKey)
+  return (
+    '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
+    '<span class="ps-q-num">' + (i + 1) + '</span>' +
+    topicIcon +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    _reviseGradeBadge(lcKey) +
+    '<span class="rev-ago" title="Last revised">' + _agoLabel(r && r.last) + '</span>' +
+    '<span class="rev-grade-group flex-shrink-0">' +
+      '<button class="rev-grade rev-solid"  title="Recalled it cold"          onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
+      '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint"     onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
+      '<button class="rev-grade rev-forgot" title="Forgot — re-queue to code" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
+    '</span>' +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+    '</div>'
+  )
+}
+
+// Re-grade a row in the Revised log: updates the grade (and badge, via gradeRevise) + the "ago"
+// label, in place. The row stays — it's a log, not a sweep.
+function _qpRevisedGrade(ev, lcKey, grade) {
+  ev.stopPropagation()
+  gradeRevise(lcKey, grade)
+  const row = ev.currentTarget.closest('.ps-q-row')
+  if (row) { const a = row.querySelector('.rev-ago'); if (a) a.textContent = 'today' }
+}
+
+// Render one REVISE row: title + difficulty + a "last grade" tag + the ✓/~/✗ recall buttons.
+// No click-to-solve — only the grade buttons act (recall ≠ coding).
+function _buildReviseItem([lcKey, q], i, ctx) {
+  const fn = ctx === 'ps' ? '_psRecallGrade' : '_qpReviseGrade'   // which list this row lives in
+  // ✓/~ rows are removed on grade, so they never render here. A row that stays is the forgot
+  // residue → highlight it as the "code this" list (never struck/faded).
+  const forced = isCodeForced(lcKey)
+  const rowCls = forced ? ' ps-q-forgot' : ''
+  const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
+  const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
+  const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
+  const rv   = getRevise(lcKey)
+  const weak = forced                         ? '<span class="rev-weak-tag rev-weak-forgot" title="Forgot — code this cold">✗</span>'
+             : (rv && rv.grade === 'shaky')   ? '<span class="rev-weak-tag rev-weak-shaky"  title="Last recall: shaky">~</span>' : ''
+  return (
+    '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
+    '<span class="ps-q-num">' + (i + 1) + '</span>' +
+    topicIcon +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    weak +
+    '<span class="rev-grade-group flex-shrink-0">' +
+      '<button class="rev-grade rev-solid"  title="Recalled it cold — push the next review further out"   onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
+      '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
+      '<button class="rev-grade rev-forgot" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
+    '</span>' +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+    '</div>'
+  )
+}
+
+// Grade a row in the Revise Session: drives the revise queue (and force-codes on "forgot"),
+// then marks the row done. Regrading is allowed (click a different button).
+function _qpReviseGrade(ev, lcKey, grade) {
+  ev.stopPropagation()
+  gradeRevise(lcKey, grade)               // data + dashboard counts + (card refresh is a no-op here)
+  _qpDoneThisSession.add(lcKey)
+  // ✓ Solid / ~ Shaky are handled for this sweep → drop the row. ✗ Forgot stays as the
+  // "go code these" residue, so what's left on screen is exactly your code list for today.
+  if (grade === 'solid' || grade === 'shaky') {
+    _qpResults = (_qpResults || []).filter(([k]) => k !== lcKey)
+  }
+  _saveQpState()
+  const listEl = document.getElementById('qp-results')
+  if (!listEl) return
+  listEl.innerHTML = (_qpResults && _qpResults.length) ? _qpRowsHtml() : ''
+  // Once nothing ungraded is left, show the closing banner (residue = code list, or all-clear).
+  const ungraded = (_qpResults || []).filter(([k]) => !_qpDoneThisSession.has(k)).length
+  if (ungraded === 0) {
+    const msg = (_qpResults && _qpResults.length)
+      ? '🧠 Recall done · <span style="color:var(--red)">' + _qpResults.length + ' to code</span> below — go solve these cold'
+      : '🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span>'
+    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
+  }
+}
+
+function _qpReviseShowComplete() {
+  const listEl = document.getElementById('qp-results')
+  if (!listEl || listEl.querySelector('.ps-session-done')) return
+  listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span></div>')
+}
+
 // Generate a practice set for a single topic.
 // Priority: Pinned (fills first, capped at count) → Unsolved (weighted) → Solved (weighted).
 function _genPracticeSet(topicKey, count) {
@@ -2208,7 +2511,8 @@ function _genPracticeSet(topicKey, count) {
   const pinned      = _shuffle(all.filter(([k]) => isPinned(k))).slice(0, count)
   const unpinned    = all.filter(([k]) => !isPinned(k))
   const fillCount   = Math.max(0, count - pinned.length)
-  return [...pinned, ..._orderPracticePool(unpinned).slice(0, fillCount)]
+  // Serve your weakest (forgot → shaky) first within the topic.
+  return [...pinned, ..._orderByWeakness(_orderPracticePool(unpinned)).slice(0, fillCount)]
 }
 
 // Render a single practice row. showTopic=true adds the topic icon (dashboard).
@@ -2218,14 +2522,17 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
   // Dashboard (showTopic=true) uses its own session sets so topic navigation never wipes them
   const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
   const due = isDue(lcKey)
+  // Mock Mode hides topic icon, difficulty, freq, status & due dot so you face the problem cold —
+  // until "Reveal". Dashboard mock = _qpMock; per-topic mock = _psMode 'mock'.
+  const hideMeta = showTopic ? (_qpMock && !_qpMockReveal) : (_psMode === 'mock' && !_psMockReveal)
   let topicIcon = ''
-  if (showTopic) {
+  if (showTopic && !hideMeta) {
     const tKey = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
     const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
   }
   const solvedCls    = doneInSession ? ' ps-q-solved' : ''
-  const dueDot = due && !doneInSession ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
+  const dueDot = ((due || isCodeForced(lcKey)) && !doneInSession && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
   const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
   const rowClickFn   = showTopic ? '_qpRowClick' : '_psRowClick'
@@ -2235,9 +2542,10 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     dueDot +
     topicIcon +
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
-    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
-    (q.freq ? freqBadge(q, ' flex-shrink-0') : '') +
-    '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>' +
+    (hideMeta ? '' : '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>') +
+    (q.freq && !hideMeta ? freqBadge(q, ' flex-shrink-0') : '') +
+    (hideMeta ? '' : '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>') +
+    (hideMeta ? '' : _reviseGradeBadge(lcKey)) +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
@@ -2254,53 +2562,67 @@ function _buildPracticePanel(topicKey, mod) {
   const prevTopic = _psCurrentTopic
   _psCurrentTopic = topicKey
 
-  // Hybrid approach: Empty on first visit, persist if returning mid-session
+  // Worked mode is empty on first visit (persisted if returning mid-session); Graded/Mock
+  // auto-generate for the topic so they're never an empty "click Generate" wall.
   if (_psCurrentItems.length === 0) {
-    // Check if there's a persisted session from this topic
-    const savedSession = _psLoadSession()
+    const savedSession = _psMode === 'worked' ? _psLoadSession() : null
     if (savedSession && savedSession.topicKey === topicKey) {
-      // Restore persisted session
       _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, TOPIC_MODULES[topicKey].questions[lcKey] || q])
       _psQCount = _psCurrentItems.length
-    } else if (prevTopic === topicKey) {
-      // Same topic, generate fresh session
-      _psCurrentItems = _genPracticeSet(topicKey, count)
+    } else if (_psMode !== 'worked' || prevTopic === topicKey) {
+      _psCurrentItems = _psModePool(topicKey, count)
       _psQCount = _psCurrentItems.length
     }
-    // If first visit to this topic: leave empty (no auto-generation)
+    // First visit to a topic in Worked mode: leave empty (user clicks Generate)
   }
 
   let html = ''
+  // ── Mode toggle: Worked / Graded / Mock — all SOLVE modes (grade on the cards) ──
+  html += '<div class="ps-mode-bar d-flex flex-wrap gap-2 mb-2">'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'worked' ? ' active' : '') + '" onclick="_psSetMode(\'worked\',\'' + topicKey + '\')" title="Worked — solve the questions you have started or solved (🚧 / ✅); weakest first">🚧 Worked</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" onclick="_psSetMode(\'graded\',\'' + topicKey + '\')" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'mock'   ? ' active' : '') + '" onclick="_psSetMode(\'mock\',\'' + topicKey + '\')" title="Mock — a random set from this topic with difficulty hidden, on the timer">🎯 Mock</button>'
+  html += '</div>'
   // ── Controls bar ──────────────────────────────────────────────────────────
   html += '<div class="ps-ctrl-bar">'
-  
+
   if (_psCurrentItems.length === 0) {
-    // Empty state: show Generate button instead of controls
-    html += '<button type="button" class="ps-shuffle-btn" onclick="_psShuffle(\'' + topicKey + '\')">▶ Generate for Practice</button>'
-    html += '<button type="button" class="qp-chip ps-workedonly-btn' + (_practiceWorkedOnly ? ' active' : '') + '" onclick="_psToggleWorkedOnly(\'' + topicKey + '\')" title="Practice only questions you have started or solved (🚧 / ✅) — skip 📋 Pending">🚧 Worked-on only</button>'
-    html += '<span class="ms-auto text-xxs text-secondary text-muted">Click to start a practice session</span>'
+    if (_psMode === 'worked') {
+      html += '<button type="button" class="ps-shuffle-btn" onclick="_psShuffle(\'' + topicKey + '\')">▶ Generate for Practice</button>'
+      html += '<span class="ms-auto text-xxs text-secondary text-muted">Click to start a practice session</span>'
+    } else {
+      html += '<span class="text-xxs text-secondary text-muted">' + (_psMode === 'graded' ? '🕒 Graded' : '🎯 Mock') + ' — nothing here right now</span>'
+    }
   } else {
-    // Loaded state: show all controls
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
     html += '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(1,\'' + topicKey + '\')">+</button>'
     html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
     html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
-    html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Reset</button>'
-    html += '<button type="button" class="qp-chip ps-workedonly-btn' + (_practiceWorkedOnly ? ' active' : '') + '" onclick="_psToggleWorkedOnly(\'' + topicKey + '\')" title="Practice only questions you have started or solved (🚧 / ✅) — skip 📋 Pending">🚧 Worked-on only</button>'
-    if (pinCount) html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
+    html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ ' + (_psMode === 'worked' ? 'Reset' : 'Refresh') + '</button>'
+    if (pinCount && _psMode !== 'mock') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
   }
-  
+
   html += '</div>'
+  // ── Mock banner (per-topic): hidden difficulty + reveal ─────────────────────
+  if (_psMode === 'mock') {
+    const showReveal = _psCurrentItems.length && !_psMockReveal
+    html += '<div class="qp-mock-note mt-2">🎯 <strong>Mock:</strong> random from this topic — difficulty hidden. Set the timer, solve cold, then reveal.' +
+      '<button type="button" id="ps-reveal-btn" class="qp-chip ms-2" onclick="_psRevealMock()"' + (showReveal ? '' : ' style="display:none"') + '>🔍 Reveal</button></div>'
+  }
   // ── Question list ──────────────────────────────────────────────────────────
   html += '<div id="ps-list">'
   if (_psCurrentItems.length === 0) {
     html += '<div style="text-align: center; padding: 2rem 1rem;">'
-    html += '<p class="text-secondary text-xs mb-2">No practice session loaded</p>'
-    html += '<p class="text-faint text-xs">Click "Generate for Practice" above to begin</p>'
+    if (_psMode === 'worked') {
+      html += '<p class="text-secondary text-xs mb-2">No practice session loaded</p>'
+      html += '<p class="text-faint text-xs">Click "Generate for Practice" above to begin</p>'
+    } else {
+      html += '<p class="text-secondary text-xs mb-0">' + _psEmptyMsg() + '</p>'
+    }
     html += '</div>'
   } else {
-    html += _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+    html += _psRowsHtml()
   }
   html += '</div>'
   // ── Timer bar ──────────────────────────────────────────────────────────────
@@ -2328,6 +2650,14 @@ function _psAdjCount(delta, topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
   if (_psTimerRun) return  // locked while timer is running — use Reset to restart
+
+  // Graded/Mock pools are mode-defined — just change the cap and regenerate.
+  if (_psMode !== 'worked') {
+    const tot = Object.keys(mod.questions).length
+    _psQCount = Math.max(1, Math.min(tot, _psCurrentItems.length + delta))
+    _psShuffle(topicKey)
+    return
+  }
 
   const total = Object.keys(mod.questions).length
   const currentCount = _psCurrentItems.length
@@ -2362,7 +2692,7 @@ function _psAdjCount(delta, topicKey) {
   const listEl = document.getElementById('ps-list')
   if (listEl) {
     listEl.innerHTML = _psCurrentItems.length
-      ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+      ? _psRowsHtml()
       : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
   }
   _psSaveSession()  // Persist the updated list
@@ -2372,6 +2702,11 @@ function _psSetAll(topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
   if (_psTimerRun) return  // locked while timer is running
+  if (_psMode !== 'worked') {   // Graded/Mock: show the whole topic's mode pool
+    _psQCount = Object.keys(mod.questions).length
+    _psShuffle(topicKey)
+    return
+  }
   const currentKeys = new Set(_psCurrentItems.map(([k]) => k))
   const toAdd = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k))
   _psCurrentItems = [..._psCurrentItems, ...toAdd]
@@ -2379,7 +2714,7 @@ function _psSetAll(topicKey) {
   const valEl = document.getElementById('ps-count-val')
   if (valEl) valEl.textContent = _psQCount
   const listEl = document.getElementById('ps-list')
-  if (listEl) listEl.innerHTML = _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+  if (listEl) listEl.innerHTML = _psRowsHtml()
   _psSaveSession()  // Persist the updated list
 }
 
@@ -2400,9 +2735,66 @@ function _psToggleWorkedOnly(topicKey) {
     const valEl = document.getElementById('ps-count-val'); if (valEl) valEl.textContent = _psQCount
     const listEl = document.getElementById('ps-list')
     if (listEl) listEl.innerHTML = _psCurrentItems.length
-      ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+      ? _psRowsHtml()
       : '<div style="text-align:center;padding:1.5rem 1rem;"><p class="text-secondary text-xs mb-0">No 🚧 In-Progress or ✅ Solved questions in this topic yet — mark some, or turn off “Worked-on only”.</p></div>'
   }
+}
+
+// ── Per-topic mode helpers (Worked / Graded / Mock — ALL solve-modes) ─────────
+// Grading lives only on the question cards (the 🧠 ✓/~/✗ chip). These three modes just decide
+// WHICH of this topic's questions you solve, and in what order. Click a row = solved (sinks).
+function _psModePool(topicKey, count) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return []
+  const all = Object.entries(mod.questions)
+  if (_psMode === 'mock') {
+    // Random mixed set from this topic; difficulty hidden + timed (a mini interview run).
+    return _shuffle(all).slice(0, count)
+  }
+  // worked = questions you've started/solved (🚧/✅) · graded = questions you've graded on the cards
+  const base = _psMode === 'graded'
+    ? all.filter(([k]) => getRevise(k))
+    : all.filter(([k]) => getStatus(k) !== 'Pending')   // 'worked'
+  const pinned    = _shuffle(base.filter(([k]) => isPinned(k))).slice(0, count)
+  const unpinned  = base.filter(([k]) => !isPinned(k))
+  const fillCount = Math.max(0, count - pinned.length)
+  // Weakest first: 📌 pinned → ✗ forgot → ~ shaky → ✓ confident → rest.
+  return [...pinned, ..._orderByWeakness(_orderPracticePool(unpinned)).slice(0, fillCount)]
+}
+// All per-topic modes render solve-rows (click a row = solved).
+function _psRowsHtml() {
+  return _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+}
+function _psEmptyMsg() {
+  if (_psMode === 'graded') return 'You haven’t graded any questions in this topic yet — grade them with the 🧠 ✓/~/✗ chip on the cards.'
+  if (_psMode === 'mock')   return 'No questions in this topic yet.'
+  return 'No 🚧 In-Progress / ✅ Solved questions in this topic yet — start some, or grade on the cards.'
+}
+function _renderPracticePanel() {
+  const mod = TOPIC_MODULES[currentTopicKey]
+  const body = document.getElementById('ps-body')
+  if (mod && body) body.innerHTML = _buildPracticePanel(currentTopicKey, mod)
+}
+// Switch per-topic mode → regenerate for that mode and re-render the whole panel.
+function _psSetMode(mode, topicKey) {
+  if (_psTimerRun) return  // don't switch mid-timed-run
+  if (_psMode === mode) return
+  _psMode = mode
+  _psMockReveal = false
+  _stopTimer()
+  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
+  _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(_psQCount, total)))
+  _psQCount = _psCurrentItems.length || _psQCount
+  _renderPracticePanel()
+}
+// Reveal hidden difficulty on a per-topic Mock for the post-mortem.
+function _psRevealMock() {
+  _psMockReveal = true
+  const listEl = document.getElementById('ps-list')
+  if (listEl) listEl.innerHTML = _psRowsHtml()
+  const btn = document.getElementById('ps-reveal-btn')
+  if (btn) btn.style.display = 'none'
 }
 
 function _psShuffle(topicKey) {
@@ -2416,23 +2808,28 @@ function _psShuffle(topicKey) {
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
 
   const count = Math.max(1, Math.min(_psQCount, Object.keys(mod.questions).length))
-  const generated = _genPracticeSet(topicKey, count)
+  const generated = _psModePool(topicKey, count)
 
-  // Split: questions NOT done this session appear first, done ones at bottom
-  const fresh  = generated.filter(([k]) => !prevDone.has(k))
-  const done   = generated.filter(([k]) =>  prevDone.has(k))
-  _psCurrentItems = [...fresh, ...done]
+  if (_psMode === 'worked') {
+    // Worked: questions NOT done this session appear first, done ones at bottom.
+    const fresh = generated.filter(([k]) => !prevDone.has(k))
+    const done  = generated.filter(([k]) =>  prevDone.has(k))
+    _psCurrentItems = [...fresh, ...done]
+  } else {
+    // Graded = weakest-first · Mock = random — keep _psModePool's order.
+    _psCurrentItems = generated
+  }
 
   _psQCount = _psCurrentItems.length
-  _psSaveSession()  // Persist the new session
-  
+  _psSaveSession()  // Persist the new session (no-op outside code mode)
+
   const valEl = document.getElementById('ps-count-val')
   if (valEl) valEl.textContent = _psQCount
   const listEl = document.getElementById('ps-list')
   if (!listEl) return
   listEl.innerHTML = _psCurrentItems.length
-    ? _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
-    : '<p class="text-secondary text-xs mb-0">No questions in this topic yet.</p>'
+    ? _psRowsHtml()
+    : '<p class="text-secondary text-xs mb-0">' + _psEmptyMsg() + '</p>'
 }
 
 // ── Solve-count ring helpers ──────────────────────────────────────────────────
@@ -2504,17 +2901,16 @@ function _markRowSolved(rowEl, outcomeCls, onSettled) {
   if (onSettled && list) onSettled(list)
 }
 
-// Solving in practice also counts as having looked at the question → refresh the 👀 seen marker
-// (turns it "fresh" for SEEN_FRESH_DAYS days; it fades to "review again" after that). Live-updates
-// the eye badge on the question card if it happens to be on screen.
-function _refreshSeenOnSolve(lcKey) {
-  markSeen(lcKey)
-  const seenBtn = document.getElementById('seen-btn-' + lcKey)
-  if (seenBtn) {
-    const st = getSeenState(lcKey)
-    seenBtn.className = 'seen-btn seen-' + st
-    seenBtn.title = _seenTitle(st)
-  }
+// A clean cold solve is the strongest signal: it implies a successful recall too. So advance the
+// REVISE queue (grade it solid) and clear any "re-code me" force flag. Asymmetric on purpose —
+// coding advances both queues, but a recall grade never credits a code solve. Live-updates the
+// revise control on the question card if it happens to be on screen.
+function _refreshReviseOnSolve(lcKey) {
+  markRevised(lcKey, 'solid')
+  setCodeForced(lcKey, false)
+  _refreshReviseCtrl(lcKey)
+  _refreshReviseGradeBadges(lcKey)
+  _refreshDueCounts()
 }
 
 // Handle click on a practice row: a clean solve — credit a solve, expand the review interval, mark solved in place.
@@ -2543,7 +2939,7 @@ function _psRowClick(event, lcKey) {
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
     acRing.title     = _solveRingTitle(newCount)
   }
-  _refreshSeenOnSolve(lcKey)
+  _refreshReviseOnSolve(lcKey)
 
   // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
@@ -2630,7 +3026,7 @@ function _qpRowClick(event, lcKey) {
     acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
     acRing.title     = _solveRingTitle(newCount)
   }
-  _refreshSeenOnSolve(lcKey)
+  _refreshReviseOnSolve(lcKey)
   // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
   const stBadge = rowEl.querySelector('.ps-status-badge')
@@ -2810,18 +3206,32 @@ function _renderQuickPractice() {
   html += '</div>'
 
   // Count + generate row
-  const disabled = _qpTopics.size === 0
+  const disabled = !_qpMock && !_qpRevised && _qpTopics.size === 0
+  const genLabel = _qpMock ? '🎯 Generate Mock' : _qpRevised ? '🕒 Generate Graded' : '🎲 Generate Set'
   html += '<div class="d-flex align-items-center gap-2 flex-wrap">'
   html += '<button type="button" class="ps-count-btn" id="qp-btn-dec" onclick="_qpAdjCount(-1)">−</button>'
   html += '<span class="ps-count-val" id="qp-count-val">' + count + '</span>'
   html += '<button type="button" class="ps-count-btn" id="qp-btn-inc" onclick="_qpAdjCount(1)">+</button>'
   html += '<span class="text-secondary text-xs">questions</span>'
-  if (maxQ) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
-  html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">🎲 Generate Set</button>'
-  html += '<button type="button" class="qp-chip' + (_qpDueOnly ? ' active' : '') + ' ms-1" onclick="_qpToggleDueOnly()" title="Show only questions due for review (>3 days since last practice)">⏰ Due only</button>'
-  html += '<button type="button" class="qp-chip' + (_practiceWorkedOnly ? ' active' : '') + '" onclick="_qpToggleWorkedOnly()" title="Practice only questions you have started or solved (🚧 In Progress / ✅ Solved) — skip 📋 Pending">🚧 Worked-on only</button>'
-  if (totalPinned) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
+  if (maxQ && !_qpMock && !_qpRevised) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
+  html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">' + genLabel + '</button>'
+  if (!_qpRevised && !_qpMock) {
+    html += '<button type="button" class="qp-chip' + (_practiceWorkedOnly ? ' active' : '') + ' ms-1" onclick="_qpToggleWorkedOnly()" title="Practice only questions you have started or solved (🚧 In Progress / ✅ Solved) — skip 📋 Pending">🚧 Worked-on only</button>'
+  }
+  html += '<button type="button" class="qp-chip' + (_qpRevised ? ' active' : '') + ' ms-1" onclick="_qpToggleRevised()" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
+  html += '<button type="button" class="qp-chip' + (_qpMock ? ' active' : '') + '" onclick="_qpToggleMock()" title="Mock — a random mixed set across ALL topics with topic & difficulty hidden, for a realistic timed interview run">🎯 Mock</button>'
+  if (totalPinned && !_qpMock) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
   html += '</div>'
+
+  // Mode banner — Mock (hidden-topic timed run) · Graded (solve your graded problems)
+  if (_qpMock) {
+    const showReveal = _qpResults && _qpResults.length && !_qpMockReveal
+    html += '<div class="qp-mock-note mt-2">🎯 <strong>Mock:</strong> random across <em>all</em> topics — topic &amp; difficulty hidden. Set the timer, solve cold, then reveal for the post-mortem.' +
+      '<button type="button" id="qp-reveal-btn" class="qp-chip ms-2" onclick="_qpRevealMock()"' + (showReveal ? '' : ' style="display:none"') + '>🔍 Reveal topics</button>' +
+      '</div>'
+  } else if (_qpRevised) {
+    html += '<div class="qp-mock-note mt-2">🕒 <strong>Graded:</strong> the questions you’ve graded on the cards, ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident. Solve them — click a row when done. Leave topics empty to span all.</div>'
+  }
 
   // Timer bar (mirrors per-topic timer)
   const qpTimerDisp = _fmtTimer(_qpTimerRem || _qpTimerTotal)
@@ -2844,9 +3254,9 @@ function _renderQuickPractice() {
   // Restore previous results if available (preserves solved styling via _qpDoneThisSession)
   if (_qpResults && _qpResults.length > 0) {
     document.getElementById('qp-results').innerHTML =
-      _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+      _qpRowsHtml()
     // Restore session-complete banner if the full set was already finished
-    if (_qpDoneThisSession.size >= _qpResults.length) _qpShowSessionComplete()
+    if (_qpDoneThisSession.size >= _qpResults.length) (_qpRevise ? _qpReviseShowComplete : _qpShowSessionComplete)()
   }
   // Re-apply +/- lock if timer was running when we navigated away
   if (_qpTimerRun) {
@@ -2892,6 +3302,9 @@ function _qpAdjCount(delta) {
 
   // If results already exist, do smart add/remove instead of resetting
   if (!_qpResults || _qpResults.length === 0) return
+  // Mock (all-topics, hidden) and Revise (revise-due, weakness-ordered) have special pools the
+  // smart add/remove below doesn't understand — regenerate cleanly at the new count instead.
+  if (_qpMock || _qpRevise || _qpRevised) { _qpGenerate(); return }
 
   const currentCount = _qpResults.length
   if (_qpCount > currentCount) {
@@ -2902,7 +3315,7 @@ function _qpAdjCount(delta) {
       const mod = TOPIC_MODULES[key]
       if (mod) Object.entries(mod.questions).forEach(([k, q]) => {
         if (currentKeys.has(k)) return
-        if (_qpDueOnly && !isDue(k)) return
+        if (_qpDueOnly && !(isDue(k) || isCodeForced(k))) return
         if (_practiceWorkedOnly && getStatus(k) === 'Pending') return
         pool.push([k, q])
       })
@@ -2928,7 +3341,7 @@ function _qpAdjCount(delta) {
   _saveQpState()
   const resultsEl = document.getElementById('qp-results')
   if (resultsEl) {
-    resultsEl.innerHTML = _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+    resultsEl.innerHTML = _qpRowsHtml()
     // Only show session-complete if every question currently in the list is done
     // (not just because count was reduced below the done count)
     const doneInCurrentResults = _qpResults.filter(([k]) => _qpDoneThisSession.has(k)).length
@@ -2937,20 +3350,28 @@ function _qpAdjCount(delta) {
 }
 
 function _qpGenerate() {
-  if (_qpTopics.size === 0) return
+  const allTopics = TOPICS.filter(t => TOPIC_MODULES[t.key]).map(t => t.key)
+  // Worked needs a topic selected; Mock & Graded can sweep all topics on their own.
+  if (!_qpMock && !_qpRevised && _qpTopics.size === 0) return
   if (_qpTimerRun) return  // don't reset session while timer is running
+  _qpMockReveal = false    // a freshly generated set always starts hidden
 
-  // Build candidate pool — respect "Due only" filter when active
+  // Pool topics: Mock = all · Graded = selected (or all if none) · Worked = selected.
+  const poolTopics = _qpMock ? allTopics
+                   : (_qpTopics.size ? Array.from(_qpTopics) : (_qpRevised ? allTopics : []))
   const seen = new Set()
   const pool = []
-  _qpTopics.forEach(key => {
+  poolTopics.forEach(key => {
     const mod = TOPIC_MODULES[key]
     if (!mod) return
     Object.entries(mod.questions).forEach(([k, q]) => {
       if (seen.has(k)) return  // dedup
       seen.add(k)
-      if (_qpDueOnly && !isDue(k)) return  // skip non-due when filter is on
-      if (_practiceWorkedOnly && getStatus(k) === 'Pending') return  // skip untouched when "Worked-on only" is on
+      if (_qpRevised) {
+        if (!getRevise(k)) return                                       // Graded: only problems you've graded
+      } else if (!_qpMock) {
+        if (_practiceWorkedOnly && getStatus(k) === 'Pending') return   // Worked: skip untouched 📋 Pending
+      }
       pool.push([k, q])
     })
   })
@@ -2958,7 +3379,7 @@ function _qpGenerate() {
   const maxQ  = pool.length
   if (maxQ === 0) {
     const el = document.getElementById('qp-results')
-    if (el) el.innerHTML = '<p class="text-secondary text-xs mt-2 mb-0">' + (_qpDueOnly ? 'No questions due for review across the selected topics.' : _practiceWorkedOnly ? 'No 🚧 In-Progress or ✅ Solved questions in the selected topics yet — mark some, or turn off “Worked-on only”.' : 'No questions found.') + '</p>'
+    if (el) el.innerHTML = '<p class="text-secondary text-xs mt-2 mb-0">' + (_qpRevised ? "You haven't graded any problems yet — grade them with the 🧠 ✓/~/✗ chip on the question cards." : _practiceWorkedOnly ? 'No 🚧 In-Progress or ✅ Solved questions in the selected topics yet — mark some, or turn off “Worked-on only”.' : 'No questions found.') + '</p>'
     _qpResults = []
     return
   }
@@ -2969,11 +3390,12 @@ function _qpGenerate() {
   const prevDone = new Set(_qpDoneThisSession)
   _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
 
-  // Pinned questions get highest priority but the total is still capped at count.
+  // Pinned first, then weakest-first (📌 → ✗ forgot → ~ shaky → ✓ confident → rest). Mock stays random.
   const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
   const unpinned    = pool.filter(([k]) => !isPinned(k))
   const fillCount   = Math.max(0, count - pinned.length)
-  const generated   = [...pinned, ..._orderPracticePool(unpinned).slice(0, fillCount)]
+  const orderedUnpinned = _qpMock ? _orderPracticePool(unpinned) : _orderByWeakness(_orderPracticePool(unpinned))
+  const generated = [...pinned, ...orderedUnpinned.slice(0, fillCount)]
 
   const fresh = generated.filter(([k]) => !prevDone.has(k))
   const done  = generated.filter(([k]) =>  prevDone.has(k))
@@ -2989,7 +3411,7 @@ function _qpGenerate() {
   }
 
   const el = document.getElementById('qp-results')
-  if (el) el.innerHTML = _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+  if (el) el.innerHTML = _qpRowsHtml()
   // Sync _qpCount and display to actual result length (pool may be smaller than requested)
   _qpCount = _qpResults.length
   const countEl = document.getElementById('qp-count-val')
@@ -3004,6 +3426,46 @@ function _qpToggleDueOnly() {
   _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
+}
+
+function _qpToggleMock() {
+  if (_qpTimerRun) return  // don't flip modes mid-timed-run
+  _qpMock = !_qpMock
+  if (_qpMock) { _qpRevise = false; _qpRevised = false }   // Mock / Revise / Revised are mutually exclusive
+  _qpMockReveal = false
+  _qpResults = null
+  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _saveQpState()
+  _renderQuickPractice()
+}
+
+function _qpToggleRevise() {
+  if (_qpTimerRun) return
+  _qpRevise = !_qpRevise
+  if (_qpRevise) { _qpMock = false; _qpRevised = false; _qpMockReveal = false }
+  _qpResults = null
+  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _saveQpState()
+  _renderQuickPractice()
+}
+
+function _qpToggleRevised() {
+  if (_qpTimerRun) return
+  _qpRevised = !_qpRevised
+  if (_qpRevised) { _qpMock = false; _qpRevise = false; _qpMockReveal = false }
+  _qpResults = null
+  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _saveQpState()
+  _renderQuickPractice()
+}
+
+// Reveal the hidden topic/difficulty on a finished mock for the post-mortem.
+function _qpRevealMock() {
+  _qpMockReveal = true
+  const el = document.getElementById('qp-results')
+  if (el && _qpResults) el.innerHTML = _qpRowsHtml()
+  const btn = document.getElementById('qp-reveal-btn')
+  if (btn) btn.style.display = 'none'
 }
 
 function _qpToggleWorkedOnly() {
@@ -3149,10 +3611,14 @@ const BACKUP_KEYS = [
   'dsa-pins-v1',
   'dsa-solve-counts-v1',
   'dsa-seen-v1',
+  'dsa-revise-v1',
+  'dsa-code-force-v1',
+  'dsa-revise-migrated-v1',
   'dsa-last-practiced-v1',
   'dsa-review-interval-v1',
   'dsa-streak-v1',
   'dsa-qp-state-v1',
+  'dsa-ritual-stats-v1',
   'dsa-theme'
 ]
 
