@@ -161,25 +161,61 @@
 <div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> at any instant the DFS call stack holds <i>exactly</i> the path from the root down to the node you're on, and the BFS queue holds <i>exactly</i> one full level. <b>Why that gives the order:</b> a recursive call fully finishes a subtree before it returns, so <i>where</i> you place the visit — before, between, or after the two child calls — is the only thing that decides pre / in / post. And because the queue never mixes two levels, draining it front-to-back walks the tree strictly top-to-bottom, left-to-right.</div>
 
 <p>Start with the simplest thing that works — <b>recursion</b>. All three depth-first orders are the <i>same</i> code; only <b>where you place the visit</b> relative to the two calls changes.</p>
-<pre class="language-tsx"><code class="language-tsx">// Recursive DFS — the whole family is one line of reordering
-function traverse(node: TreeNode | null, out: number[] = []): number[] {
-  if (!node) return out;        // BASE: nothing below null
-  // out.push(node.val);        //  ← visit HERE = PREORDER  (node, L, R)
-  traverse(node.left, out);
-  out.push(node.val);           //  ← visit HERE = INORDER   (L, node, R) — sorted in a BST
-  traverse(node.right, out);
-  // out.push(node.val);        //  ← visit HERE = POSTORDER (L, R, node) — the basis of §4.2
+<pre class="language-tsx"><code class="language-tsx">// Recursive DFS — identical shape; only the line that "visits" moves
+function preorder(node: TreeNode | null, out: number[] = []): number[] {
+  if (!node) return out;
+  out.push(node.val);                 // visit FIRST   → PREORDER  (node, L, R)
+  preorder(node.left, out);
+  preorder(node.right, out);
+  return out;
+}
+function inorder(node: TreeNode | null, out: number[] = []): number[] {
+  if (!node) return out;
+  inorder(node.left, out);
+  out.push(node.val);                 // visit BETWEEN → INORDER   (L, node, R) — sorted in a BST
+  inorder(node.right, out);
+  return out;
+}
+function postorder(node: TreeNode | null, out: number[] = []): number[] {
+  if (!node) return out;
+  postorder(node.left, out);
+  postorder(node.right, out);
+  out.push(node.val);                 // visit LAST    → POSTORDER (L, R, node) — the basis of §4.2
   return out;
 }</code></pre>
 
-<p>Now the same orders <b>without</b> the implicit call stack — inorder via an explicit stack, and BFS via a queue:</p>
-<pre class="language-tsx"><code class="language-tsx">// Iterative inorder (no recursion): push the left spine, pop, go right
-function inorder(root: TreeNode | null): number[] {
+<p>Now <b>all three iteratively</b> — an explicit stack replaces the call stack (postorder is just preorder built with children pushed left-first, then reversed) — plus BFS with a queue:</p>
+<pre class="language-tsx"><code class="language-tsx">// Iterative INORDER — push the left spine, pop, go right
+function inorderIter(root: TreeNode | null): number[] {
   const out: number[] = [], st: TreeNode[] = []; let cur = root;
   while (cur || st.length) {
     while (cur) { st.push(cur); cur = cur.left; }   // dive left
     cur = st.pop()!; out.push(cur.val);             // visit
     cur = cur.right;                                // then right
+  }
+  return out;
+}
+
+// Iterative PREORDER — stack; push right BEFORE left so left pops first
+function preorderIter(root: TreeNode | null): number[] {
+  if (!root) return [];
+  const out: number[] = [], st: TreeNode[] = [root];
+  while (st.length) {
+    const n = st.pop()!; out.push(n.val);           // visit on pop
+    if (n.right) st.push(n.right);
+    if (n.left)  st.push(n.left);
+  }
+  return out;
+}
+
+// Iterative POSTORDER — preorder variant (node, right, left), then reversed
+function postorderIter(root: TreeNode | null): number[] {
+  if (!root) return [];
+  const out: number[] = [], st: TreeNode[] = [root];
+  while (st.length) {
+    const n = st.pop()!; out.unshift(n.val);        // push to the FRONT = reverse at the end
+    if (n.left)  st.push(n.left);
+    if (n.right) st.push(n.right);
   }
   return out;
 }
@@ -352,6 +388,61 @@ function deserialize(data: string): TreeNode | null {
 }</code></pre>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain <i>why</i> preorder's front is always the root and inorder's split gives left vs right, and why serialization needs explicit null markers (without them the string is ambiguous). <b>Nail it and they escalate:</b> pre+in → in+post → serialize/deserialize → "Flatten Binary Tree to a Linked List."</div>
 
+<!-- 4.6 -->
+<h3 id="p-easy">4.6 · Easy-tier must-knows — write these cold</h3>
+<p>FAANG "easy" tree questions are pure recall — none needs a new idea, each is the §1 contract with a one-line combine. If the sheet is the last thing you see, these are the ones an interviewer is most likely to fire. Have every one in your fingers.</p>
+
+<pre class="language-tsx"><code class="language-tsx">// Max Depth (104) — the height IS the answer
+function maxDepth(root: TreeNode | null): number {
+  if (!root) return 0;
+  return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
+}
+
+// Invert (226) — swap every node's two children
+function invertTree(root: TreeNode | null): TreeNode | null {
+  if (!root) return null;
+  [root.left, root.right] = [invertTree(root.right), invertTree(root.left)];
+  return root;
+}
+
+// Same Tree (100) — same shape AND same values
+function isSameTree(p: TreeNode | null, q: TreeNode | null): boolean {
+  if (!p || !q) return p === q;                       // both null = equal; one null = differ
+  return p.val === q.val &amp;&amp; isSameTree(p.left, q.left) &amp;&amp; isSameTree(p.right, q.right);
+}
+
+// Symmetric (101) — is the tree its own mirror?
+function isSymmetric(root: TreeNode | null): boolean {
+  const mirror = (a: TreeNode | null, b: TreeNode | null): boolean =&gt; {
+    if (!a || !b) return a === b;
+    return a.val === b.val &amp;&amp; mirror(a.left, b.right) &amp;&amp; mirror(a.right, b.left);
+  };
+  return !root || mirror(root.left, root.right);
+}
+
+// Path Sum (112) — does ANY root-to-leaf path total `target`?
+function hasPathSum(root: TreeNode | null, target: number): boolean {
+  if (!root) return false;
+  if (!root.left &amp;&amp; !root.right) return root.val === target;   // a leaf
+  const rest = target - root.val;
+  return hasPathSum(root.left, rest) || hasPathSum(root.right, rest);
+}
+
+// Search BST (700) — navigate by comparison, O(h)
+function searchBST(root: TreeNode | null, val: number): TreeNode | null {
+  while (root &amp;&amp; root.val !== val) root = val &lt; root.val ? root.left : root.right;
+  return root;
+}
+
+// Insert into BST (701) — walk to the empty slot, hang the new node
+function insertIntoBST(root: TreeNode | null, val: number): TreeNode | null {
+  if (!root) return new TreeNode(val);
+  if (val &lt; root.val) root.left = insertIntoBST(root.left, val);
+  else root.right = insertIntoBST(root.right, val);
+  return root;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> that the fundamentals are <i>automatic</i> — you write these without thinking, so your head is free for the follow-up. Each is the 3-question contract with a trivial combine. <b>Common next step:</b> "invert, now iteratively (BFS)" · "same tree → subtree of another (572)" · "path sum → path sum II (113, collect every path)".</div>
+
 <!-- ───────────────────────── 5 ───────────────────────── -->
 <h2 id="complexity">⏱️ 5 · Complexity</h2>
 <table>
@@ -391,6 +482,7 @@ function deserialize(data: string): TreeNode | null {
 <tr><td><a href="#p-bst">BST</a></td><td>98 Validate BST · 230 Kth Smallest · 235 LCA of a BST</td><td>Med</td></tr>
 <tr><td><a href="#p-lca">LCA</a></td><td>236 LCA of Binary Tree · 1644 LCA (may not exist)</td><td>Med</td></tr>
 <tr><td><a href="#p-build">Build / serialize</a></td><td>105/106 Build from Traversals · <b>297 Serialize &amp; Deserialize</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-easy">Easy bank</a></td><td>104 Max Depth · 226 Invert · 100 Same · 101 Symmetric · 112 Path Sum · 700/701 BST Search/Insert</td><td>Easy</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
 <p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
@@ -407,7 +499,8 @@ function deserialize(data: string): TreeNode | null {
 
 <h3>Write these cold (no peeking)</h3>
 <ul>
-<li><span class="pill">traverse</span> iterative <code>inorder</code> + BFS <code>levelOrder</code></li>
+<li><span class="pill">traverse</span> recursive <code>pre/in/post</code> · iterative <code>pre/in/post</code> · BFS <code>levelOrder</code></li>
+<li><span class="pill">easy</span> <code>maxDepth</code> · <code>invertTree</code> · <code>isSameTree</code> · <code>isSymmetric</code> · <code>hasPathSum</code> · <code>searchBST</code>/<code>insertIntoBST</code></li>
 <li><span class="pill">return-value</span> <code>diameter</code> + <code>maxPathSum</code> (say the contract first)</li>
 <li><span class="pill">BST</span> <code>isValidBST</code> (range) + <code>kthSmallest</code></li>
 <li><span class="pill">LCA</span> <code>lowestCommonAncestor</code></li>
