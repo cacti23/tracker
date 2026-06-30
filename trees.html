@@ -448,26 +448,33 @@ function maxDepth(root: TreeNode | null): number {
   return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
 }
 
-// Invert (226) — swap every node's two children
+// Invert (226) — swap each node's two children, then recurse
 function invertTree(root: TreeNode | null): TreeNode | null {
   if (!root) return null;
-  [root.left, root.right] = [invertTree(root.right), invertTree(root.left)];
+  [root.left, root.right] = [root.right, root.left];   // 1) swap the children
+  invertTree(root.left);                               // 2) invert each subtree
+  invertTree(root.right);
   return root;
 }
 
 // Same Tree (100) — same shape AND same values
 function isSameTree(p: TreeNode | null, q: TreeNode | null): boolean {
-  if (!p || !q) return p === q;                       // both null = equal; one null = differ
-  return p.val === q.val &amp;&amp; isSameTree(p.left, q.left) &amp;&amp; isSameTree(p.right, q.right);
+  if (!p &amp;&amp; !q) return true;          // both empty → identical
+  if (!p || !q) return false;         // exactly one empty → different
+  if (p.val !== q.val) return false;  // values differ here
+  return isSameTree(p.left, q.left) &amp;&amp; isSameTree(p.right, q.right);
 }
 
 // Symmetric (101) — is the tree its own mirror?
 function isSymmetric(root: TreeNode | null): boolean {
-  const mirror = (a: TreeNode | null, b: TreeNode | null): boolean =&gt; {
-    if (!a || !b) return a === b;
-    return a.val === b.val &amp;&amp; mirror(a.left, b.right) &amp;&amp; mirror(a.right, b.left);
-  };
-  return !root || mirror(root.left, root.right);
+  function mirror(a: TreeNode | null, b: TreeNode | null): boolean {
+    if (!a &amp;&amp; !b) return true;          // both empty → mirrored
+    if (!a || !b) return false;         // one empty → not mirrored
+    if (a.val !== b.val) return false;  // values differ
+    return mirror(a.left, b.right) &amp;&amp; mirror(a.right, b.left);   // outer↔outer, inner↔inner
+  }
+  if (!root) return true;
+  return mirror(root.left, root.right);
 }
 
 // Path Sum (112) — does ANY root-to-leaf path total `target`?
@@ -480,8 +487,12 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 
 // Search BST (700) — navigate by comparison, O(h)
 function searchBST(root: TreeNode | null, val: number): TreeNode | null {
-  while (root &amp;&amp; root.val !== val) root = val &lt; root.val ? root.left : root.right;
-  return root;
+  while (root) {
+    if (root.val === val) return root;       // found it
+    if (val &lt; root.val) root = root.left;    // target is smaller → go left
+    else root = root.right;                  // target is bigger → go right
+  }
+  return null;                               // fell off the tree → not present
 }
 
 // Insert into BST (701) — walk to the empty slot, hang the new node
