@@ -36,6 +36,13 @@
   .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:1em 0}
+  .cols .card{margin:0;border:1px solid var(--rule);border-radius:9px;overflow:hidden;background:#fff}
+  .cols .lbl{font-size:.68rem;font-weight:700;letter-spacing:.03em;color:var(--accent);background:var(--accent-soft);padding:5px 9px;border-bottom:1px solid var(--rule)}
+  .cols pre.mini{margin:0;padding:9px 11px;font-size:.78rem;line-height:1.55;font-family:"SF Mono",SFMono-Regular,Consolas,monospace;white-space:pre;overflow-x:auto;border:0;border-radius:0;color:var(--ink)}
+  .cols pre.mini code{background:none;padding:0;border-radius:0;font-size:1em}
+  .cols .hot{background:#15803d24;font-weight:700;border-radius:3px;padding:0 3px}
+  @media screen and (max-width:760px){.cols{grid-template-columns:1fr}}
   @media print{.nav{display:none}body{margin:0}}
 </style>
 </head>
@@ -160,7 +167,27 @@
 
 <div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> at any instant the DFS call stack holds <i>exactly</i> the path from the root down to the node you're on, and the BFS queue holds <i>exactly</i> one full level. <b>Why that gives the order:</b> a recursive call fully finishes a subtree before it returns, so <i>where</i> you place the visit — before, between, or after the two child calls — is the only thing that decides pre / in / post. And because the queue never mixes two levels, draining it front-to-back walks the tree strictly top-to-bottom, left-to-right.</div>
 
-<p>Start with the simplest thing that works — <b>recursion</b>. All three depth-first orders are the <i>same</i> code; only <b>where you place the visit</b> relative to the two calls changes.</p>
+<p>Start with the simplest thing that works — <b>recursion</b>. All three depth-first orders are the <i>same</i> code; only <b>where you place the visit</b> relative to the two calls changes — see it at a glance:</p>
+
+<div class="cols">
+  <div class="card"><div class="lbl">PREORDER · node, L, R</div>
+<pre class="mini"><code>if (!n) return;
+<span class="hot">push(n.val);</span>
+go(n.left);
+go(n.right);</code></pre></div>
+  <div class="card"><div class="lbl">INORDER · L, node, R</div>
+<pre class="mini"><code>if (!n) return;
+go(n.left);
+<span class="hot">push(n.val);</span>
+go(n.right);</code></pre></div>
+  <div class="card"><div class="lbl">POSTORDER · L, R, node</div>
+<pre class="mini"><code>if (!n) return;
+go(n.left);
+go(n.right);
+<span class="hot">push(n.val);</span></code></pre></div>
+</div>
+<p class="hint" style="text-align:center">Same skeleton — only the highlighted <b>visit</b> line moves. Full, paste-ready functions below.</p>
+
 <pre class="language-tsx"><code class="language-tsx">// Recursive DFS — identical shape; only the line that "visits" moves
 function preorder(node: TreeNode | null, out: number[] = []): number[] {
   if (!node) return out;
@@ -235,7 +262,30 @@ function levelOrder(root: TreeNode | null): number[][] {
   }
   return out;
 }</code></pre>
-<div class="box"><b class="tag">🧵 Morris traversal — O(1) space · advanced, skip on first pass</b> Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is all an interview wants — the full code is famously finicky and almost never required.</div>
+<div class="box"><b class="tag">🧵 Morris traversal — O(1) space · advanced, skip on first pass</b> Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is the takeaway; the code below makes it concrete — it's finicky, so know the idea cold and reproduce the code only if asked for strict <code>O(1)</code> space.</div>
+<pre class="language-tsx"><code class="language-tsx">// Morris inorder — O(1) space: thread each node to its inorder predecessor, then unthread
+function morrisInorder(root: TreeNode | null): number[] {
+  const out: number[] = [];
+  let cur = root;
+  while (cur) {
+    if (!cur.left) {                                  // no left subtree → visit, then go right
+      out.push(cur.val);
+      cur = cur.right;
+    } else {
+      let pred = cur.left;                            // predecessor = rightmost node of the left subtree
+      while (pred.right &amp;&amp; pred.right !== cur) pred = pred.right;
+      if (!pred.right) {                              // first visit → thread the breadcrumb back to cur
+        pred.right = cur;
+        cur = cur.left;
+      } else {                                        // thread already set → left subtree done; unwire + visit
+        pred.right = null;
+        out.push(cur.val);
+        cur = cur.right;
+      }
+    }
+  }
+  return out;
+}</code></pre>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you write a traversal both recursively and iteratively (with an explicit stack), pick BFS vs DFS for the task, and recall that an inorder walk of a BST comes out sorted. <b>Nail it and they escalate:</b> level order → zigzag → right-side view → vertical-order traversal.</div>
 
 <!-- 4.2 -->
