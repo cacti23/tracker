@@ -59,6 +59,8 @@
 
 <p>A binary tree node is <code>{ val, left, right }</code>. Almost every solution is one recursive function over subtrees. The skill that unlocks all of them is being ruthlessly clear about the <b>contract</b> of your recursion. Before writing a line, answer <b>three questions</b>:</p>
 
+<div class="box"><b class="tag">🏢 The mental model — an org chart</b> Picture the tree as a company. <code>dfs(node)</code> is a <b>manager</b>: they ask each direct report (child) for <b>one summary number</b>, fold those together, and report <b>one number up</b> to their own boss — without ever redoing a report's work. Trusting that summary blindly <i>is</i> the recursion leap of faith (your weak spot — lean on it). The three questions below are just that manager's job description.</div>
+
 <div class="box key"><b class="tag">The 3-question contract</b>
 <b>(1) RETURN:</b> what single thing does <code>dfs(node)</code> hand back to its parent? (e.g. "the height of this subtree")
 <b>(2) BASE CASE:</b> what does <code>dfs(null)</code> return? (e.g. <code>0</code>)
@@ -156,7 +158,7 @@
 <figcaption>Where you "visit" the node relative to the recursive calls names the order. Postorder = compute children before yourself (the basis of §4.2).</figcaption>
 </figure>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> DFS recursion processes an entire subtree before returning, so the call stack always mirrors the current root-to-node path. BFS's queue holds exactly one full level at a time, so draining it level by level visits nodes in non-decreasing depth.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> at any instant the DFS call stack holds <i>exactly</i> the path from the root down to the node you're on, and the BFS queue holds <i>exactly</i> one full level. <b>Why that gives the order:</b> a recursive call fully finishes a subtree before it returns, so <i>where</i> you place the visit — before, between, or after the two child calls — is the only thing that decides pre / in / post. And because the queue never mixes two levels, draining it front-to-back walks the tree strictly top-to-bottom, left-to-right.</div>
 
 <p>Start with the simplest thing that works — <b>recursion</b>. All three depth-first orders are the <i>same</i> code; only <b>where you place the visit</b> relative to the two calls changes.</p>
 <pre class="language-tsx"><code class="language-tsx">// Recursive DFS — the whole family is one line of reordering
@@ -197,15 +199,15 @@ function levelOrder(root: TreeNode | null): number[][] {
   }
   return out;
 }</code></pre>
-<div class="box"><b class="tag">🧵 Morris traversal — O(1) space</b> Both the call stack and an explicit stack cost <code>O(h)</code>. Morris walks inorder in <b><code>O(1)</code></b> extra space by temporarily threading each node's <i>inorder predecessor</i> (the rightmost node of its left subtree) back to the node: dive left, wire <code>pred.right = cur</code> as a breadcrumb; when you later return through that thread, unwire it and visit. It mutates pointers mid-walk, so reach for it only when space is explicitly required to be <code>O(1)</code> — but naming it signals depth.</div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> recursive vs iterative (explicit stack), BFS-vs-DFS choice, and "inorder of a BST is sorted." <b>· Escalation:</b> level order → zigzag → right-side view → vertical-order traversal.</div>
+<div class="box"><b class="tag">🧵 Morris traversal — O(1) space · advanced, skip on first pass</b> Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is all an interview wants — the full code is famously finicky and almost never required.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you write a traversal both recursively and iteratively (with an explicit stack), pick BFS vs DFS for the task, and recall that an inorder walk of a BST comes out sorted. <b>Nail it and they escalate:</b> level order → zigzag → right-side view → vertical-order traversal.</div>
 
 <!-- 4.2 -->
 <h3 id="p-return">4.2 · Return-value DFS (the heart)</h3>
 <p class="tldr">“Compute children first, fold their returns into yours — and record a global if the answer bends.”</p>
-<p><b>Setup:</b> this is §1 made concrete. State the contract, then write three lines. Below, the escalation ladder: diameter (return-vs-record), <b>balanced</b> (height hijacked by a <code>-1</code> failure sentinel), and the hardest, Max Path Sum.</p>
+<p><b>Setup:</b> this is the org-chart manager made concrete. State the contract, then the body is literally <b>three lines</b>: <b>(1) BASE</b> — what does an empty subtree (<code>null</code>) report? <b>(2) COMBINE</b> — ask both children, fold their returns <code>L</code> and <code>R</code> into your answer. <b>(3) RETURN / RECORD</b> — hand one summary up, and if the answer can <i>bend</i> here, also write it to a global. Below, the same <code>dfs</code> three ways, each one twist harder: diameter (return-vs-record), <b>balanced</b> (height hijacked by a <code>-1</code> "failed" sentinel), and the hardest, Max Path Sum.</p>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Each call returns a correct summary of its <i>entire</i> subtree (guaranteed by the base case + the combine step), so a parent can trust its children's returns blindly. Recording into the global at every node means the answer is the best over <i>all</i> nodes, not just the root.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant (say it before you code):</b> every time <code>dfs(node)</code> returns, two things are already true — (1) it handed its parent a correct summary of its <i>whole</i> subtree, and (2) it has compared the best answer <i>bending at this node</i> against the global. <b>Why that's enough:</b> (1) lets a parent trust a child's number without re-checking it — the org-chart manager trusts each report. (2) means once the root returns, <i>every</i> possible bending point has been weighed, so the global is the true answer even though the function never returns it.</div>
 
 <pre class="language-tsx"><code class="language-tsx">// Diameter — RETURN height, RECORD the bending path
 function diameterOfBinaryTree(root: TreeNode | null): number {
@@ -245,14 +247,14 @@ function maxPathSum(root: TreeNode | null): number {
   gain(root);
   return best;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> state the contract out loud (return vs record), the base case, and why you clamp child gains at <code>0</code>. <b>· Escalation:</b> height → diameter → balanced (return <code>-1</code> as a "failed" sentinel) → max path sum.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you separate <i>what you return</i> from <i>what you record</i>, name your base case, and justify clamping a negative child at <code>0</code> (a branch that only hurts you, you simply don't take). <b>Nail it and they escalate:</b> height → diameter → balanced (<code>-1</code> sentinel) → max path sum — each is the <i>same</i> <code>dfs</code> with one new twist.</div>
 
 <!-- 4.3 -->
 <h3 id="p-bst">4.3 · BST = ordered</h3>
 <p class="tldr">“Left &lt; node &lt; right — so search is binary, and inorder is sorted.”</p>
-<p><b>Setup:</b> a BST's ordering turns <code>O(n)</code> tree work into <code>O(h)</code>. Two facts do everything: you can <b>navigate by comparison</b>, and an <b>inorder walk emits values in sorted order</b>.</p>
+<p><b>Setup:</b> a plain tree can force you to check <i>every</i> node — <code>O(n)</code>. A BST is <b>binary search frozen into a data structure</b>: because <code>left &lt; node &lt; right</code>, one comparison tells you which half to <i>keep</i> and which to <i>throw away</i> — exactly like guessing a number in 1–100 with "higher / lower" hints. So you walk a single root-to-leaf path instead of the whole tree: <code>O(h)</code>, and <code>h ≈ log n</code> when balanced. Two facts do everything: you <b>navigate by comparison</b> (that's the binary search), and an <b>inorder walk emits values in sorted order</b>.</p>
 
-<div class="box key"><b class="tag">🔑 Invariant — the range, not a local check</b> A node is valid only if its value lies strictly inside the open range <code>(lo, hi)</code> handed down by its ancestors — left child tightens <code>hi</code> to the parent's value, right child tightens <code>lo</code>. A purely local "left &lt; node &lt; right" check passes invalid trees (a deep-left node can still violate a far ancestor).</div>
+<div class="box key"><b class="tag">🔑 Invariant — the range, not a local check</b> <b>The invariant:</b> a node is valid only if its value lies strictly inside the open range <code>(lo, hi)</code> handed down by its ancestors — left child tightens <code>hi</code> to the parent's value, right child tightens <code>lo</code>. A purely local "left &lt; node &lt; right" check passes invalid trees (a deep-left node can still violate a far ancestor).</div>
 
 <pre class="language-tsx"><code class="language-tsx">// Validate BST — carry the allowed range down
 function isValidBST(node: TreeNode | null, lo = -Infinity, hi = Infinity): boolean {
@@ -272,12 +274,12 @@ function kthSmallest(root: TreeNode | null, k: number): number {
   }
   return -1;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the range invariant (not the local trap), inorder = sorted, and <code>O(h)</code> ops. <b>· Escalation:</b> validate → k-th smallest → LCA in a BST (walk by comparison, <code>O(h)</code>) → delete node.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> do you bound each node by the <i>range</i> its ancestors allow (not the local "left &lt; node &lt; right" trap), do you know inorder comes out sorted, and can you state why ops are <code>O(h)</code>. <b>Nail it and they escalate:</b> validate → k-th smallest → LCA in a BST (walk by comparison, <code>O(h)</code>) → delete a node.</div>
 
 <!-- 4.4 -->
 <h3 id="p-lca">4.4 · LCA &amp; paths — postorder bubble-up</h3>
 <p class="tldr">“If p and q surface from different children, you're standing on their ancestor.”</p>
-<p><b>Setup:</b> search both subtrees; a node where <i>both</i> sides report a hit is the lowest common ancestor. Everything bubbles up from the leaves (postorder).</p>
+<p><b>Setup:</b> "LCA" is literally <i>lowest common ancestor</i> — picture two people tracing their family trees upward; the first ancestor they <i>share</i> is the answer. The code finds that merge point by asking each subtree "is <code>p</code> or <code>q</code> below you?": the node that hears "yes" from <b>both</b> sides is where their two paths first meet. Everything bubbles up from the leaves (postorder).</p>
 
 <figure>
 <svg viewBox="0 0 540 130" role="img" aria-label="LCA where p and q are on different sides">
@@ -294,7 +296,7 @@ function kthSmallest(root: TreeNode | null, k: number): number {
 <figcaption>Each call returns "the target I found below me" (or null). The first node to receive a hit from <i>both</i> sides is the LCA.</figcaption>
 </figure>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>lca(node)</code> returns a target if it (or its subtree) contains one. A node gets a non-null from <b>both</b> children only when <code>p</code> and <code>q</code> are split across them — which makes it their lowest common ancestor. If both are on one side, that side's answer bubbles straight up.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> <code>lca(node)</code> returns a target node if its subtree contains one, else <code>null</code>. A node gets a non-null from <b>both</b> children only when <code>p</code> and <code>q</code> are split across them — which makes it their lowest common ancestor. If both are on one side, that side's answer bubbles straight up.</div>
 
 <pre class="language-tsx"><code class="language-tsx">// LCA in a general binary tree
 function lowestCommonAncestor(root: TreeNode | null, p: TreeNode, q: TreeNode): TreeNode | null {
@@ -304,14 +306,14 @@ function lowestCommonAncestor(root: TreeNode | null, p: TreeNode, q: TreeNode): 
   if (L &amp;&amp; R) return root;        // p and q on different sides → this is the LCA
   return L ?? R;                  // both on one side (or neither) → pass it up
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the <code>L &amp;&amp; R → root</code> bubble-up, and the assumption that both nodes exist. <b>· Escalation:</b> LCA → path sum (root-to-leaf target) → all root-to-leaf paths (backtracking) → distance between two nodes (LCA + depth math).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain the <code>L &amp;&amp; R → root</code> bubble-up (a hit from both sides ⇒ you're the merge point), and do you notice the hidden assumption that both nodes actually exist in the tree. <b>Nail it and they escalate:</b> LCA → path sum (root-to-leaf target) → all root-to-leaf paths (backtracking) → distance between two nodes (LCA + depth math).</div>
 
 <!-- 4.5 -->
 <h3 id="p-build">4.5 · Construct &amp; serialize</h3>
 <p class="tldr">“Preorder hands you the root; inorder tells you where left ends and right begins.”</p>
 <p><b>Setup:</b> building a tree is recursion in reverse — identify the root, split the remaining nodes into left/right groups, recurse. Serialization is just a preorder walk with explicit null markers.</p>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> In preorder the <i>first</i> element of any segment is that subtree's root; locating it in inorder splits the rest into exactly the left and right subtrees (everything before it vs after). Each value is placed once, so the reconstruction is unique and <code>O(n)</code>.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> in preorder the <i>first</i> element of any segment is that subtree's root; locating it in inorder splits the rest into exactly the left and right subtrees (everything before it vs after). Each value is placed once, so the reconstruction is unique and <code>O(n)</code>.</div>
 
 <pre class="language-tsx"><code class="language-tsx">// Build a tree from preorder + inorder
 function buildTree(preorder: number[], inorder: number[]): TreeNode | null {
@@ -348,7 +350,7 @@ function deserialize(data: string): TreeNode | null {
   }
   return build();
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why preorder gives the root and inorder gives the split; null markers for serialization. <b>· Escalation:</b> pre+in → in+post → serialize/deserialize → "Flatten Binary Tree to a Linked List."</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain <i>why</i> preorder's front is always the root and inorder's split gives left vs right, and why serialization needs explicit null markers (without them the string is ambiguous). <b>Nail it and they escalate:</b> pre+in → in+post → serialize/deserialize → "Flatten Binary Tree to a Linked List."</div>
 
 <!-- ───────────────────────── 5 ───────────────────────── -->
 <h2 id="complexity">⏱️ 5 · Complexity</h2>
