@@ -1098,11 +1098,12 @@ function markPracticed(lcKey) {
   _updateStreak()
 }
 
-// ─── ADAPTIVE REVIEW INTERVALS ────────────────────────────────────────────────
-// shape: { [lcKey]: days }  — default 3
+// ─── CODE COOLDOWN INTERVALS ──────────────────────────────────────────────────
+// shape: { [lcKey]: days }. After you SOLVE a question it "rests" this many days before it can
+// reappear in practice (the cooldown). Default 1 so the first solve bumps to the first rung (2).
 const REVIEW_INTERVAL_KEY = 'dsa-review-interval-v1'
 function getReviewInterval(lcKey) {
-  try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] || 3 } catch { return 3 }
+  try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] || 1 } catch { return 1 }
 }
 function setReviewInterval(lcKey, days) {
   try {
@@ -1111,9 +1112,8 @@ function setReviewInterval(lcKey, days) {
     localStorage.setItem(REVIEW_INTERVAL_KEY, JSON.stringify(d))
   } catch {}
 }
-// Spaced-repetition ladder: a clean solve pushes the next review further out,
-// a struggle drops it back to 1 day so it returns tomorrow.
-const REVIEW_LADDER = [1, 3, 7, 14, 30]
+// Cooldown ladder: each clean solve pushes the next reappearance further out, capped at 14 days.
+const REVIEW_LADDER = [2, 4, 7, 14]
 function bumpReviewInterval(lcKey) {
   const cur  = getReviewInterval(lcKey)
   const next = REVIEW_LADDER.find(d => d > cur) ?? REVIEW_LADDER[REVIEW_LADDER.length - 1]
@@ -1245,6 +1245,12 @@ function isCodeDue(lcKey) {
   if (!_isEngaged(lcKey)) return false
   return isDue(lcKey)
 }
+
+// COOLDOWN: a question you've solved "rests" and is hidden from ALL practice generation (Worked /
+// Graded / Mock, topic + dashboard) until its cooldown ladder (2→4→7→14) comes due again. A
+// ✗-forgot (force-queued) question is never on cooldown — it always resurfaces. Never-solved
+// questions are always "due" (isDue true), so they're never on cooldown either.
+function _onCooldown(lcKey) { return !isDue(lcKey) && !isCodeForced(lcKey) }
 
 // Live-update the dashboard's two due-counts (no-op when not on the dashboard).
 function _refreshDueCounts() {
@@ -2667,7 +2673,7 @@ function _psAdjCount(delta, topicKey) {
   if (newCount > currentCount) {
     // Add questions from the remaining pool (not already shown)
     const currentKeys = new Set(_psCurrentItems.map(([k]) => k))
-    const pool = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k) && (!_practiceWorkedOnly || getStatus(k) !== 'Pending'))
+    const pool = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k) && getStatus(k) !== 'Pending' && !_onCooldown(k))
     const toAdd = _orderPracticePool(pool).slice(0, newCount - currentCount)
     _psCurrentItems = [..._psCurrentItems, ...toAdd]
   } else {
@@ -2746,7 +2752,8 @@ function _psToggleWorkedOnly(topicKey) {
 function _psModePool(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
-  const all = Object.entries(mod.questions)
+  // Drop questions on cooldown (solved & resting) from every mode.
+  const all = Object.entries(mod.questions).filter(([k]) => !_onCooldown(k))
   if (_psMode === 'mock') {
     // Random mixed set from this topic; difficulty hidden + timed (a mini interview run).
     return _shuffle(all).slice(0, count)
@@ -3315,7 +3322,7 @@ function _qpAdjCount(delta) {
       const mod = TOPIC_MODULES[key]
       if (mod) Object.entries(mod.questions).forEach(([k, q]) => {
         if (currentKeys.has(k)) return
-        if (_qpDueOnly && !(isDue(k) || isCodeForced(k))) return
+        if (_onCooldown(k)) return   // solved & resting
         if (_practiceWorkedOnly && getStatus(k) === 'Pending') return
         pool.push([k, q])
       })
@@ -3367,6 +3374,7 @@ function _qpGenerate() {
     Object.entries(mod.questions).forEach(([k, q]) => {
       if (seen.has(k)) return  // dedup
       seen.add(k)
+      if (_onCooldown(k)) return                                        // solved & resting — hidden until due again
       if (_qpRevised) {
         if (!getRevise(k)) return                                       // Graded: only problems you've graded
       } else if (!_qpMock) {
