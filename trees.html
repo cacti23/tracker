@@ -211,7 +211,7 @@ function postorder(node: TreeNode | null, out: number[] = []): number[] {
   return out;
 }</code></pre>
 
-<p>Now <b>all three iteratively</b> — an explicit stack replaces the call stack (postorder is just preorder built with children pushed left-first, then reversed) — plus BFS with a queue:</p>
+<p>Now <b>all three iteratively</b> — an explicit stack replaces the call stack, plus BFS with a queue. Postorder comes in <b>two</b> forms; the note after the code says when to reach for each:</p>
 <pre class="language-tsx"><code class="language-tsx">// Iterative INORDER — push the left spine, pop, go right
 function inorderIter(root: TreeNode | null): number[] {
   const out: number[] = [], st: TreeNode[] = []; let cur = root;
@@ -235,7 +235,7 @@ function preorderIter(root: TreeNode | null): number[] {
   return out;
 }
 
-// Iterative POSTORDER — preorder variant (node, right, left), then reversed
+// Iterative POSTORDER (values only) — a preorder variant (node, right, left), then reversed
 function postorderIter(root: TreeNode | null): number[] {
   if (!root) return [];
   const out: number[] = [], st: TreeNode[] = [root];
@@ -243,6 +243,24 @@ function postorderIter(root: TreeNode | null): number[] {
     const n = st.pop()!; out.unshift(n.val);        // push to the FRONT = reverse at the end
     if (n.left)  st.push(n.left);
     if (n.right) st.push(n.right);
+  }
+  return out;
+}
+
+// Iterative POSTORDER (genuine) — mark a node "visited" on the stack; process it on the 2nd pop
+function postorderIterVisited(root: TreeNode | null): number[] {
+  if (!root) return [];
+  const out: number[] = [];
+  const st: [TreeNode, boolean][] = [[root, false]];   // each entry: [node, seenBefore?]
+  while (st.length) {
+    const [node, visited] = st.pop()!;
+    if (visited) {
+      out.push(node.val);                // 2nd pop → children already done → visit now
+    } else {
+      st.push([node, true]);             // re-push marked, to return AFTER the children
+      if (node.right) st.push([node.right, false]);   // push right then left,
+      if (node.left)  st.push([node.left, false]);    // so left is popped (and finished) first
+    }
   }
   return out;
 }
@@ -262,6 +280,7 @@ function levelOrder(root: TreeNode | null): number[][] {
   }
   return out;
 }</code></pre>
+<div class="box"><b class="tag">Two iterative postorders — which to use</b> <code>postorderIter</code> (reverse a modified preorder) is the quickest to write, but it only gives you the <b>values</b> — it never actually stops <i>on</i> a node with both children done. When a problem needs you to <b>do real work at each node in true postorder</b> (children guaranteed finished first — evaluating an expression tree, freeing/merging subtrees, computing a value bottom-up), use <code>postorderIterVisited</code>: each node is pushed with a <code>visited</code> flag and only processed on its <b>second</b> pop, after its children. It's the most intuitive genuine postorder — and a <b>bonus</b>: the same flag template also does preorder and inorder, just by changing where you push the marked node relative to its two children.</div>
 <div class="box"><b class="tag">🧵 Morris traversal — O(1) space · advanced, skip on first pass</b> Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is the takeaway; the code below makes it concrete — it's finicky, so know the idea cold and reproduce the code only if asked for strict <code>O(1)</code> space.</div>
 <pre class="language-tsx"><code class="language-tsx">// Morris inorder — O(1) space: thread each node to its inorder predecessor, then unthread
 function morrisInorder(root: TreeNode | null): number[] {
