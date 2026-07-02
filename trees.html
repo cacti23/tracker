@@ -43,7 +43,27 @@
   .cols pre.mini code{background:none;padding:0;border-radius:0;font-size:1em}
   .cols .hot{background:#15803d24;font-weight:700;border-radius:3px;padding:0 3px}
   @media screen and (max-width:760px){.cols{grid-template-columns:1fr}}
-  @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
+  /* two-column "book" reading mode (desktop toggle) */
+  #bookBtn{position:fixed;top:14px;right:14px;z-index:20;padding:7px 12px;border:1px solid var(--rule);border-radius:8px;background:#fff;color:var(--ink);font:600 .82rem -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;box-shadow:0 1px 4px #0000001a}
+  #bookBtn:hover{background:var(--accent-soft)}
+  @media (min-width:901px){
+    body.book{max-width:1400px}
+    body.book main.content{column-count:2;column-gap:36px}
+    body.book main.content>*{break-inside:avoid}
+    body.book main.content h2,body.book main.content h3{break-after:avoid}
+    body.book main.content pre[class*=language]{font-size:.72rem;overflow-x:auto}
+  }
+  @media (max-width:900px){#bookBtn{display:none}}
+  @media print{.nav{display:none}body{margin:0}#bookBtn{display:none}body.book{max-width:900px}body.book main.content{column-count:1}}
 </style>
 </head>
 <body>
@@ -61,6 +81,7 @@
   <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
 </nav>
 
+<main class="content">
 <!-- ───────────────────────── 1 ───────────────────────── -->
 <h2 id="think">🧠 1 · How to think — the return-value contract</h2>
 
@@ -186,8 +207,10 @@ go(n.left);
 go(n.right);
 <span class="hot">push(n.val);</span></code></pre></div>
 </div>
-<p class="hint" style="text-align:center">Same skeleton — only the highlighted <b>visit</b> line moves. Full, paste-ready functions below.</p>
+<p class="hint" style="text-align:center">Same skeleton — only the highlighted <b>visit</b> line moves.</p>
 
+<details class="fold">
+<summary>Full paste-ready recursive <code>pre / in / post</code> functions</summary>
 <pre class="language-tsx"><code class="language-tsx">// Recursive DFS — identical shape; only the line that "visits" moves
 function preorder(node: TreeNode | null, out: number[] = []): number[] {
   if (!node) return out;
@@ -210,6 +233,7 @@ function postorder(node: TreeNode | null, out: number[] = []): number[] {
   out.push(node.val);                 // visit LAST    → POSTORDER (L, R, node) — the basis of §4.2
   return out;
 }</code></pre>
+</details>
 
 <p>Now <b>all three iteratively</b> — an explicit stack replaces the call stack, plus BFS with a queue. Postorder comes in <b>two</b> forms; the note after the code says when to reach for each:</p>
 <pre class="language-tsx"><code class="language-tsx">// Iterative INORDER — push the left spine, pop, go right
@@ -281,7 +305,9 @@ function levelOrder(root: TreeNode | null): number[][] {
   return out;
 }</code></pre>
 <div class="box"><b class="tag">Two iterative postorders — which to use</b> <code>postorderIter</code> (reverse a modified preorder) is the quickest to write, but it only gives you the <b>values</b> — it never actually stops <i>on</i> a node with both children done. When a problem needs you to <b>do real work at each node in true postorder</b> (children guaranteed finished first — evaluating an expression tree, freeing/merging subtrees, computing a value bottom-up), use <code>postorderIterVisited</code>: each node is pushed with a <code>visited</code> flag and only processed on its <b>second</b> pop, after its children. It's the most intuitive genuine postorder — and a <b>bonus</b>: the same flag template also does preorder and inorder, just by changing where you push the marked node relative to its two children.</div>
-<div class="box"><b class="tag">🧵 Morris traversal — O(1) space · advanced, skip on first pass</b> Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is the takeaway; the code below makes it concrete — it's finicky, so know the idea cold and reproduce the code only if asked for strict <code>O(1)</code> space.</div>
+<details class="fold">
+<summary>🧵 Morris traversal — O(1) space · advanced (tap to expand)</summary>
+<div class="box">Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is the takeaway; the code below makes it concrete — it's finicky, so know the idea cold and reproduce the code only if asked for strict <code>O(1)</code> space.</div>
 <pre class="language-tsx"><code class="language-tsx">// Morris inorder — O(1) space: thread each node to its inorder predecessor, then unthread
 function morrisInorder(root: TreeNode | null): number[] {
   const out: number[] = [];
@@ -305,6 +331,7 @@ function morrisInorder(root: TreeNode | null): number[] {
   }
   return out;
 }</code></pre>
+</details>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you write a traversal both recursively and iteratively (with an explicit stack), pick BFS vs DFS for the task, and recall that an inorder walk of a BST comes out sorted. <b>Nail it and they escalate:</b> level order → zigzag → right-side view → vertical-order traversal.</div>
 
 <!-- 4.2 -->
@@ -319,7 +346,8 @@ function diameterOfBinaryTree(root: TreeNode | null): number {
   let best = 0;
   function height(node: TreeNode | null): number {   // CONTRACT: height of this subtree
     if (!node) return 0;                              // base case
-    const L = height(node.left), R = height(node.right);
+    const L = height(node.left);
+    const R = height(node.right);
     best = Math.max(best, L + R);                     // RECORD: path bending at node
     return 1 + Math.max(L, R);                        // RETURN: straight height for parent
   }
@@ -331,9 +359,11 @@ function diameterOfBinaryTree(root: TreeNode | null): number {
 function isBalanced(root: TreeNode | null): boolean {
   function height(node: TreeNode | null): number {   // CONTRACT: height, or -1 if unbalanced below
     if (!node) return 0;
-    const L = height(node.left);  if (L === -1) return -1;   // short-circuit the failure upward
-    const R = height(node.right); if (R === -1) return -1;
-    if (Math.abs(L - R) &gt; 1) return -1;                      // imbalance detected here → fail
+    const L = height(node.left);
+    if (L === -1) return -1;              // a subtree already failed → propagate -1 up
+    const R = height(node.right);
+    if (R === -1) return -1;
+    if (Math.abs(L - R) &gt; 1) return -1;   // imbalance detected here → fail
     return 1 + Math.max(L, R);
   }
   return height(root) !== -1;
@@ -361,14 +391,67 @@ function maxPathSum(root: TreeNode | null): number {
 
 <div class="box key"><b class="tag">🔑 Invariant — the range, not a local check</b> <b>The invariant:</b> a node is valid only if its value lies strictly inside the open range <code>(lo, hi)</code> handed down by its ancestors — left child tightens <code>hi</code> to the parent's value, right child tightens <code>lo</code>. A purely local "left &lt; node &lt; right" check passes invalid trees (a deep-left node can still violate a far ancestor).</div>
 
-<pre class="language-tsx"><code class="language-tsx">// Validate BST — carry the allowed range down
+<p><b>Navigate</b> — <code>O(h)</code>, one comparison per step (this is the binary search).</p>
+<pre class="language-tsx"><code class="language-tsx">// Search (700) — walk by comparison
+function searchBST(root: TreeNode | null, val: number): TreeNode | null {
+  while (root) {
+    if (root.val === val) return root;
+    if (val &lt; root.val) root = root.left;    // smaller → go left
+    else root = root.right;                  // bigger → go right
+  }
+  return null;
+}
+
+// LCA in a BST (235) — the split point where the two values diverge
+function lcaBST(root: TreeNode | null, p: TreeNode, q: TreeNode): TreeNode | null {
+  let node = root;
+  while (node) {
+    if (p.val &lt; node.val &amp;&amp; q.val &lt; node.val) node = node.left;        // both smaller → left
+    else if (p.val &gt; node.val &amp;&amp; q.val &gt; node.val) node = node.right;  // both bigger → right
+    else return node;                                                  // they split here → LCA
+  }
+  return null;
+}
+
+// Inorder successor (285) — smallest node greater than p
+function inorderSuccessor(root: TreeNode | null, p: TreeNode): TreeNode | null {
+  let succ: TreeNode | null = null;
+  let cur = root;
+  while (cur) {
+    if (p.val &lt; cur.val) {
+      succ = cur;          // candidate; a smaller one may be further left
+      cur = cur.left;
+    } else {
+      cur = cur.right;     // p.val >= cur.val → successor is further right
+    }
+  }
+  return succ;
+}</code></pre>
+
+<p><b>Validate &amp; k-th</b> — both lean on "an inorder walk of a BST is sorted."</p>
+<pre class="language-tsx"><code class="language-tsx">// Validate (98) — recursive: carry the allowed (lo, hi) range down
 function isValidBST(node: TreeNode | null, lo = -Infinity, hi = Infinity): boolean {
   if (!node) return true;
   if (node.val &lt;= lo || node.val &gt;= hi) return false;
-  return isValidBST(node.left, lo, node.val) &amp;&amp; isValidBST(node.right, node.val, hi);
+  const L = isValidBST(node.left, lo, node.val);
+  const R = isValidBST(node.right, node.val, hi);
+  return L &amp;&amp; R;
 }
 
-// k-th smallest — inorder yields sorted order; stop at the k-th
+// Validate (98) — iterative: an inorder walk must be strictly increasing
+function isValidBSTIter(root: TreeNode | null): boolean {
+  const st: TreeNode[] = []; let cur = root, prev = -Infinity;
+  while (cur || st.length) {
+    while (cur) { st.push(cur); cur = cur.left; }
+    cur = st.pop()!;
+    if (cur.val &lt;= prev) return false;   // not strictly increasing → invalid
+    prev = cur.val;
+    cur = cur.right;
+  }
+  return true;
+}
+
+// k-th smallest (230) — inorder yields sorted order; stop at the k-th
 function kthSmallest(root: TreeNode | null, k: number): number {
   const st: TreeNode[] = []; let cur = root;
   while (cur || st.length) {
@@ -379,7 +462,53 @@ function kthSmallest(root: TreeNode | null, k: number): number {
   }
   return -1;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> do you bound each node by the <i>range</i> its ancestors allow (not the local "left &lt; node &lt; right" trap), do you know inorder comes out sorted, and can you state why ops are <code>O(h)</code>. <b>Nail it and they escalate:</b> validate → k-th smallest → LCA in a BST (walk by comparison, <code>O(h)</code>) → delete a node.</div>
+
+<p><b>Insert</b> — recursive and iterative both just walk to the empty slot and attach.</p>
+<pre class="language-tsx"><code class="language-tsx">// Insert (701) — recursive: hang the new node where the walk falls off
+function insertIntoBST(root: TreeNode | null, val: number): TreeNode | null {
+  if (!root) return new TreeNode(val);
+  if (val &lt; root.val) root.left = insertIntoBST(root.left, val);
+  else root.right = insertIntoBST(root.right, val);
+  return root;
+}
+
+// Insert (701) — iterative: remember the parent, then attach
+function insertIntoBSTIter(root: TreeNode | null, val: number): TreeNode | null {
+  const node = new TreeNode(val);
+  if (!root) return node;
+  let cur: TreeNode | null = root, parent: TreeNode = root;
+  while (cur) {
+    parent = cur;
+    if (val &lt; cur.val) cur = cur.left;
+    else cur = cur.right;
+  }
+  if (val &lt; parent.val) parent.left = node;
+  else parent.right = node;
+  return root;
+}</code></pre>
+
+<details class="fold">
+<summary>🗑️ Delete a node (450) — the 3-case classic · advanced (tap to expand)</summary>
+<div class="box">Deletion is the one tricky BST op. Find the node, then handle three cases: <b>no child</b> → drop it; <b>one child</b> → splice it out; <b>two children</b> → overwrite this node's value with its <i>inorder successor</i> (the smallest value in the right subtree), then delete that successor — which now has at most one child, so it falls into an easy case.</div>
+<pre class="language-tsx"><code class="language-tsx">// Delete (450) — 3 cases; two children → replace with inorder successor
+function deleteNode(root: TreeNode | null, key: number): TreeNode | null {
+  if (!root) return null;
+  if (key &lt; root.val) {
+    root.left = deleteNode(root.left, key);
+  } else if (key &gt; root.val) {
+    root.right = deleteNode(root.right, key);
+  } else {                                 // found the node to delete
+    if (!root.left) return root.right;     // 0 or 1 child → splice past it
+    if (!root.right) return root.left;
+    let succ = root.right;                 // 2 children → inorder successor
+    while (succ.left) succ = succ.left;    // (smallest in the right subtree)
+    root.val = succ.val;                   // copy its value up
+    root.right = deleteNode(root.right, succ.val);   // then delete the successor
+  }
+  return root;
+}</code></pre>
+</details>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> do you bound each node by the <i>range</i> its ancestors allow (not the local "left &lt; node &lt; right" trap), know inorder comes out sorted, and can do the core ops in <code>O(h)</code> — very often followed by "now do it <b>iteratively</b>." <b>Nail it and they escalate:</b> validate → k-th smallest → LCA-in-BST → delete → build a <i>balanced</i> BST from a sorted array (108) → name-drop self-balancing (AVL / red-black).</div>
 
 <!-- 4.4 -->
 <h3 id="p-lca">4.4 · LCA &amp; paths — postorder bubble-up</h3>
@@ -440,7 +569,9 @@ function serialize(root: TreeNode | null): string {
   const out: string[] = [];
   (function dfs(n: TreeNode | null) {
     if (!n) { out.push('#'); return; }
-    out.push(String(n.val)); dfs(n.left); dfs(n.right);
+    out.push(String(n.val));
+    dfs(n.left);
+    dfs(n.right);
   })(root);
   return out.join(',');
 }
@@ -450,7 +581,8 @@ function deserialize(data: string): TreeNode | null {
     const v = vals[i++];
     if (v === '#') return null;
     const node = new TreeNode(+v);
-    node.left = build(); node.right = build();
+    node.left = build();
+    node.right = build();
     return node;
   }
   return build();
@@ -464,7 +596,9 @@ function deserialize(data: string): TreeNode | null {
 <pre class="language-tsx"><code class="language-tsx">// Max Depth (104) — the height IS the answer
 function maxDepth(root: TreeNode | null): number {
   if (!root) return 0;
-  return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
+  const L = maxDepth(root.left);
+  const R = maxDepth(root.right);
+  return 1 + Math.max(L, R);
 }
 
 // Invert (226) — swap each node's two children, then recurse
@@ -481,7 +615,9 @@ function isSameTree(p: TreeNode | null, q: TreeNode | null): boolean {
   if (!p &amp;&amp; !q) return true;          // both empty → identical
   if (!p || !q) return false;         // exactly one empty → different
   if (p.val !== q.val) return false;  // values differ here
-  return isSameTree(p.left, q.left) &amp;&amp; isSameTree(p.right, q.right);
+  const L = isSameTree(p.left, q.left);
+  const R = isSameTree(p.right, q.right);
+  return L &amp;&amp; R;
 }
 
 // Symmetric (101) — is the tree its own mirror?
@@ -490,7 +626,9 @@ function isSymmetric(root: TreeNode | null): boolean {
     if (!a &amp;&amp; !b) return true;          // both empty → mirrored
     if (!a || !b) return false;         // one empty → not mirrored
     if (a.val !== b.val) return false;  // values differ
-    return mirror(a.left, b.right) &amp;&amp; mirror(a.right, b.left);   // outer↔outer, inner↔inner
+    const L = mirror(a.left, b.right);    // outer ↔ outer
+    const R = mirror(a.right, b.left);    // inner ↔ inner
+    return L &amp;&amp; R;
   }
   if (!root) return true;
   return mirror(root.left, root.right);
@@ -501,25 +639,9 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
   if (!root) return false;
   if (!root.left &amp;&amp; !root.right) return root.val === target;   // a leaf
   const rest = target - root.val;
-  return hasPathSum(root.left, rest) || hasPathSum(root.right, rest);
-}
-
-// Search BST (700) — navigate by comparison, O(h)
-function searchBST(root: TreeNode | null, val: number): TreeNode | null {
-  while (root) {
-    if (root.val === val) return root;       // found it
-    if (val &lt; root.val) root = root.left;    // target is smaller → go left
-    else root = root.right;                  // target is bigger → go right
-  }
-  return null;                               // fell off the tree → not present
-}
-
-// Insert into BST (701) — walk to the empty slot, hang the new node
-function insertIntoBST(root: TreeNode | null, val: number): TreeNode | null {
-  if (!root) return new TreeNode(val);
-  if (val &lt; root.val) root.left = insertIntoBST(root.left, val);
-  else root.right = insertIntoBST(root.right, val);
-  return root;
+  const L = hasPathSum(root.left, rest);
+  const R = hasPathSum(root.right, rest);
+  return L || R;
 }</code></pre>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> that the fundamentals are <i>automatic</i> — you write these without thinking, so your head is free for the follow-up. Each is the 3-question contract with a trivial combine. <b>Common next step:</b> "invert, now iteratively (BFS)" · "same tree → subtree of another (572)" · "path sum → path sum II (113, collect every path)".</div>
 
@@ -559,10 +681,10 @@ function insertIntoBST(root: TreeNode | null, val: number): TreeNode | null {
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-trav">Traversal</a></td><td>102 Level Order · 199 Right Side View · 103 Zigzag</td><td>Med</td></tr>
 <tr><td><a href="#p-return">Return-value (post-order)</a></td><td>104 Max Depth · 110 Balanced · 543 Diameter · <b>124 Max Path Sum</b></td><td>Easy → <b>Hard</b></td></tr>
-<tr><td><a href="#p-bst">BST</a></td><td>98 Validate BST · 230 Kth Smallest · 235 LCA of a BST</td><td>Med</td></tr>
+<tr><td><a href="#p-bst">BST</a></td><td>98 Validate · 230 Kth Smallest · 235 LCA · 700 Search · 701 Insert · 285 Successor · <b>450 Delete</b></td><td>Med</td></tr>
 <tr><td><a href="#p-lca">LCA</a></td><td>236 LCA of Binary Tree · 1644 LCA (may not exist)</td><td>Med</td></tr>
 <tr><td><a href="#p-build">Build / serialize</a></td><td>105/106 Build from Traversals · <b>297 Serialize &amp; Deserialize</b></td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-easy">Easy bank</a></td><td>104 Max Depth · 226 Invert · 100 Same · 101 Symmetric · 112 Path Sum · 700/701 BST Search/Insert</td><td>Easy</td></tr>
+<tr><td><a href="#p-easy">Easy bank</a></td><td>104 Max Depth · 226 Invert · 100 Same · 101 Symmetric · 112 Path Sum</td><td>Easy</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
 <p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
@@ -580,14 +702,28 @@ function insertIntoBST(root: TreeNode | null, val: number): TreeNode | null {
 <h3>Write these cold (no peeking)</h3>
 <ul>
 <li><span class="pill">traverse</span> recursive <code>pre/in/post</code> · iterative <code>pre/in/post</code> · BFS <code>levelOrder</code></li>
-<li><span class="pill">easy</span> <code>maxDepth</code> · <code>invertTree</code> · <code>isSameTree</code> · <code>isSymmetric</code> · <code>hasPathSum</code> · <code>searchBST</code>/<code>insertIntoBST</code></li>
+<li><span class="pill">easy</span> <code>maxDepth</code> · <code>invertTree</code> · <code>isSameTree</code> · <code>isSymmetric</code> · <code>hasPathSum</code></li>
 <li><span class="pill">return-value</span> <code>diameter</code> + <code>maxPathSum</code> (say the contract first)</li>
-<li><span class="pill">BST</span> <code>isValidBST</code> (range) + <code>kthSmallest</code></li>
+<li><span class="pill">BST</span> <code>searchBST</code> · <code>insertIntoBST</code> (rec + iter) · <code>lcaBST</code> · <code>isValidBST</code> (range + inorder) · <code>kthSmallest</code> · <code>deleteNode</code></li>
 <li><span class="pill">LCA</span> <code>lowestCommonAncestor</code></li>
 <li><span class="pill">construct</span> <code>buildTree</code> + serialize/deserialize</li>
 </ul>
 <p class="hint">For each DFS: write the three contract lines — RETURN, BASE, RECORD — as comments <i>before</i> the code.</p>
+</main>
 
+<button id="bookBtn">📖 Two-column</button>
+<script>
+  (function(){
+    var b=document.getElementById('bookBtn');
+    b.addEventListener('click',function(){
+      document.body.classList.toggle('book');
+      b.textContent=document.body.classList.contains('book')?'📄 One column':'📖 Two-column';
+    });
+    window.addEventListener('beforeprint',function(){
+      document.querySelectorAll('details.fold').forEach(function(d){d.open=true;});
+    });
+  })();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 </body></html>
