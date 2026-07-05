@@ -125,12 +125,13 @@
 <h3 id="p-mech">4.1 · Mechanics — insert / search / startsWith</h3>
 <p class="tldr">“Walk the word; create missing children on insert, follow them on lookup.”</p>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> After inserting a word, exactly one root-to-node path spells it and that final node has <code>isEnd = true</code>. So a lookup that follows the same characters lands on that node iff the word was inserted — and <code>isEnd</code> distinguishes a stored <i>word</i> from a mere <i>prefix</i>.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> after inserting a word, exactly one root-to-node path spells it, and that final node has <code>isEnd = true</code>. <b>Why that's enough:</b> a lookup follows the same characters, so it lands on that node iff the word was inserted — and <code>isEnd</code> is what separates a stored <i>word</i> from a path that's merely a <i>prefix</i> of one.</div>
 
 <pre class="language-tsx"><code class="language-tsx">class TrieNode { children = new Map&lt;string, TrieNode&gt;(); isEnd = false; }
 
 class Trie {
   root = new TrieNode();
+
   insert(word: string): void {
     let node = this.root;
     for (const c of word) {
@@ -139,13 +140,25 @@ class Trie {
     }
     node.isEnd = true;
   }
-  private walk(s: string): TrieNode | null {
+
+  walk(s: string): TrieNode | null {     // shared helper: follow a string; null if the path breaks
     let node = this.root;
-    for (const c of s) { const next = node.children.get(c); if (!next) return null; node = next; }
+    for (const c of s) {
+      const next = node.children.get(c);
+      if (!next) return null;
+      node = next;
+    }
     return node;
   }
-  search(word: string): boolean { const n = this.walk(word); return !!n &amp;&amp; n.isEnd; }
-  startsWith(prefix: string): boolean { return this.walk(prefix) !== null; }
+
+  search(word: string): boolean {
+    const node = this.walk(word);
+    return node !== null &amp;&amp; node.isEnd;
+  }
+
+  startsWith(prefix: string): boolean {
+    return this.walk(prefix) !== null;
+  }
 }</code></pre>
 
 <p>The escalation interviewers reach for: swap the <code>isEnd</code> boolean for two <b>counts</b> per node — and <code>erase</code> plus "how many words/prefixes?" become one-line decrements (LC 1804, Implement Trie II).</p>
@@ -165,38 +178,77 @@ class CountingTrie {
   }
   private walk(s: string): CTrieNode | null {
     let node = this.root;
-    for (const c of s) { const nx = node.children.get(c); if (!nx) return null; node = nx; }
+    for (const c of s) {
+      const next = node.children.get(c);
+      if (!next) return null;
+      node = next;
+    }
     return node;
   }
+
   countWordsEqualTo(word: string): number { return this.walk(word)?.ends ?? 0; }
   countWordsStartingWith(pre: string): number { return this.walk(pre)?.passing ?? 0; }
-  erase(word: string): void {                      // assumes word was inserted
+
+  erase(word: string): void {                      // assumes the word was inserted
     let node = this.root;
-    for (const c of word) { node = node.children.get(c)!; node.passing--; }
-    node.ends--;                                   // (a real impl may prune dead nodes)
+    for (const c of word) {
+      node = node.children.get(c)!;
+      node.passing--;
+    }
+    node.ends--;                                   // (a real impl may also prune dead nodes)
   }
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the node shape (Map vs 26-array trade-off), why ops are <code>O(L)</code> regardless of <code>N</code>, and the <code>isEnd</code> distinction. <b>· Escalation:</b> implement → add <code>erase</code> → store a <i>count</i> of words passing through each node (the <code>passing</code>/<code>ends</code> split above).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you justify the node shape (a <code>Map</code> for sparse alphabets vs a 26-slot array for dense — and <i>say</i> which you chose), explain why every op is <code>O(L)</code> no matter how many words are stored, and keep <code>search</code> vs <code>startsWith</code> straight (<code>isEnd</code>). <b>Nail it and they escalate:</b> implement → add <code>erase</code> → counts per node (the <code>passing</code>/<code>ends</code> split above, LC 1804).</div>
 
 <!-- 4.2 -->
 <h3 id="p-prefix">4.2 · Prefix queries — autocomplete</h3>
 <p class="tldr">“Walk to the prefix node, then DFS everything beneath it.”</p>
 <p><b>Setup:</b> the subtree rooted at the prefix node contains <i>exactly</i> the words sharing that prefix — collect them with a DFS.</p>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Reaching the prefix node means the prefix exists. Every <code>isEnd</code> in that subtree is a stored word whose first letters are exactly the prefix (that's how it got placed there) — so the DFS collects all completions and nothing else.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> every word in the subtree below the prefix node starts with exactly that prefix — insertion could not have placed it there otherwise. <b>Why that's enough:</b> reach the prefix node and DFS; every <code>isEnd</code> you meet is a completion, and no completion can live outside that subtree.</div>
 
-<pre class="language-tsx"><code class="language-tsx">// All stored words that start with `prefix`
+<pre class="language-tsx"><code class="language-tsx">// All stored words that start with `prefix` (uses Trie.walk from §4.1)
 function wordsWithPrefix(trie: Trie, prefix: string): string[] {
-  const start = (trie as any).walk(prefix) as TrieNode | null;
-  if (!start) return [];
+  const start = trie.walk(prefix);       // the node where the prefix ends
+  if (!start) return [];                 // prefix not present → no completions
   const out: string[] = [];
-  (function dfs(node: TrieNode, suffix: string) {
+  function dfs(node: TrieNode, suffix: string): void {
     if (node.isEnd) out.push(prefix + suffix);
-    for (const [c, child] of node.children) dfs(child, suffix + c);
-  })(start, '');
+    for (const [c, child] of node.children) {
+      dfs(child, suffix + c);
+    }
+  }
+  dfs(start, '');
   return out;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> walk-then-DFS, and lexicographic order (iterate children sorted). <b>· Escalation:</b> words-with-prefix → top-k autocomplete (store frequencies) → "Replace Words" (shortest root) → "Map Sum Pairs" (prefix value sums).</div>
+
+<p>The FAANG version of this pattern (a top Amazon question): as the user types each letter, return the <b>3 lexicographically-smallest completions</b>. Trick: sort once, then have every node remember the first ≤3 words inserted through it — queries become a plain walk.</p>
+<pre class="language-tsx"><code class="language-tsx">// Search Suggestions System (1268) — top-3 completions per typed prefix
+class SNode {
+  children = new Map&lt;string, SNode&gt;();
+  suggestions: string[] = [];            // the ≤3 lexicographically-smallest words through here
+}
+
+function suggestedProducts(products: string[], searchWord: string): string[][] {
+  products.sort();                                 // sort once → insertion order = lexicographic
+  const root = new SNode();
+  for (const word of products) {
+    let node = root;
+    for (const ch of word) {
+      if (!node.children.has(ch)) node.children.set(ch, new SNode());
+      node = node.children.get(ch)!;
+      if (node.suggestions.length &lt; 3) node.suggestions.push(word);   // first 3 = smallest 3
+    }
+  }
+  const out: string[][] = [];
+  let node: SNode | null = root;
+  for (const ch of searchWord) {                   // type the word letter by letter
+    node = node ? (node.children.get(ch) ?? null) : null;   // dead prefix stays dead
+    out.push(node ? node.suggestions : []);
+  }
+  return out;
+}</code></pre>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> the walk-then-DFS split, and whether your suggestions come out in <b>lexicographic order</b> — either iterate children in sorted order, or precompute per node like 1268 above (sort once, store ≤3 per node, O(1) per keystroke). <b>Nail it and they escalate:</b> words-with-prefix → Search Suggestions (1268) → Replace Words (648, shortest root wins) → Map Sum Pairs (677).</div>
 
 <!-- 4.3 -->
 <h3 id="p-wild">4.3 · Wildcard search (<code>.</code> matches any)</h3>
@@ -218,23 +270,39 @@ function wordsWithPrefix(trie: Trie, prefix: string): string[] {
 <figcaption>A literal character is one step; a dot fans out into a DFS over all children.</figcaption>
 </figure>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>dfs(node, i)</code> returns true iff the word's suffix from index <code>i</code> can be matched starting at <code>node</code>. A literal advances one definite child; a <code>.</code> succeeds iff <i>any</i> child can match the rest — exhaustive over the only possibilities.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> <code>dfs(node, i)</code> returns true iff the word's suffix from index <code>i</code> can be matched starting at <code>node</code>. <b>Why that's enough:</b> a literal advances one definite child; a <code>.</code> succeeds iff <i>any</i> child can match the rest — together they exhaust the only possibilities, so no match is ever missed.</div>
 
-<pre class="language-tsx"><code class="language-tsx">// Add and Search Word — '.' matches any single character
-search(word: string): boolean {
-  const dfs = (node: TrieNode, i: number): boolean =&gt; {
-    if (i === word.length) return node.isEnd;
-    const c = word[i];
-    if (c === '.') {
-      for (const child of node.children.values()) if (dfs(child, i + 1)) return true;
-      return false;
+<pre class="language-tsx"><code class="language-tsx">// Add and Search Word (211) — '.' matches any single character
+class WordDictionary {
+  root = new TrieNode();
+
+  addWord(word: string): void {
+    let node = this.root;
+    for (const c of word) {
+      if (!node.children.has(c)) node.children.set(c, new TrieNode());
+      node = node.children.get(c)!;
     }
-    const next = node.children.get(c);
-    return next ? dfs(next, i + 1) : false;
-  };
-  return dfs(this.root, 0);
+    node.isEnd = true;
+  }
+
+  search(word: string): boolean {
+    function dfs(node: TrieNode, i: number): boolean {
+      if (i === word.length) return node.isEnd;
+      const c = word[i];
+      if (c === '.') {                              // wildcard → try every child
+        for (const child of node.children.values()) {
+          if (dfs(child, i + 1)) return true;
+        }
+        return false;
+      }
+      const next = node.children.get(c);            // literal → one definite child
+      if (!next) return false;
+      return dfs(next, i + 1);
+    }
+    return dfs(this.root, 0);
+  }
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> branching only on <code>.</code>; worst-case cost when dots are early/many. <b>· Escalation:</b> single <code>.</code> → multiple wildcards → regex-style <code>*</code>.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> that you branch <i>only</i> on <code>.</code> (a literal follows one child, never a scan), and that you can state the worst case when the dots come early — each one fans out over every child. <b>Nail it and they escalate:</b> a single <code>.</code> → many wildcards → regex-style <code>*</code>.</div>
 
 <!-- 4.4 -->
 <h3 id="p-grid">4.4 · Trie as a pruner (grid / word break)</h3>
@@ -264,32 +332,51 @@ search(word: string): boolean {
 <figcaption>The trie node moves cell-for-cell with the grid path. The instant the next letter isn't a child (here <code>z</code>), no dictionary word continues — the whole branch is abandoned.</figcaption>
 </figure>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The DFS holds a trie node that always corresponds to the string spelled by the current grid path. If the next cell's letter isn't a child of that node, no dictionary word continues this way — so the whole branch is pruned. A node's <code>word</code> field firing means a complete dictionary word ends here.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <b>The invariant:</b> the trie node the DFS carries always spells exactly the current grid path. <b>Why that's enough:</b> if the next cell's letter isn't a child of that node, no dictionary word continues this way — the whole branch is safely pruned. And a node's <code>word</code> field firing means a complete dictionary word ends on this very path.</div>
 
-<pre class="language-tsx"><code class="language-tsx">// Word Search II — all dictionary words found in the board
+<pre class="language-tsx"><code class="language-tsx">// Word Search II (212) — all dictionary words found in the board
+class WNode { children = new Map&lt;string, WNode&gt;(); word: string | null = null; }
+
 function findWords(board: string[][], words: string[]): string[] {
-  const root = new TrieNode() as TrieNode &amp; { word?: string };
-  for (const w of words) {                      // build the trie, tag ends with the full word
-    let n: any = root;
-    for (const c of w) { if (!n.children.has(c)) n.children.set(c, new TrieNode()); n = n.children.get(c); }
-    n.word = w;
+  const root = new WNode();
+  for (const w of words) {                       // build the trie; tag each end with its full word
+    let node = root;
+    for (const c of w) {
+      if (!node.children.has(c)) node.children.set(c, new WNode());
+      node = node.children.get(c)!;
+    }
+    node.word = w;
   }
-  const out: string[] = [], R = board.length, C = board[0].length;
-  function dfs(r: number, c: number, node: any) {
-    const ch = board[r][c], child = node.children.get(ch);
+
+  const out: string[] = [];
+  const R = board.length, C = board[0].length;
+
+  function dfs(r: number, c: number, node: WNode): void {
+    const ch = board[r][c];
+    const child = node.children.get(ch);
     if (!child) return;                          // PRUNE: not a live prefix
-    if (child.word) { out.push(child.word); child.word = undefined; } // collect + dedup
+    if (child.word) {                            // a complete dictionary word ends here
+      out.push(child.word);
+      child.word = null;                         // dedup: collect each word once
+    }
     board[r][c] = '#';                           // mark visited
-    for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
       const nr = r + dr, nc = c + dc;
-      if (nr &gt;= 0 &amp;&amp; nr &lt; R &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; C &amp;&amp; board[nr][nc] !== '#') dfs(nr, nc, child);
+      if (nr &gt;= 0 &amp;&amp; nr &lt; R &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; C &amp;&amp; board[nr][nc] !== '#') {
+        dfs(nr, nc, child);
+      }
     }
     board[r][c] = ch;                            // restore (backtrack)
   }
-  for (let r = 0; r &lt; R; r++) for (let c = 0; c &lt; C; c++) dfs(r, c, root);
+
+  for (let r = 0; r &lt; R; r++) {
+    for (let c = 0; c &lt; C; c++) {
+      dfs(r, c, root);
+    }
+  }
   return out;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> building the trie of words, pruning by trie children, plus dedup and board restore (<a href="backtracking.html">backtracking</a>). <b>· Escalation:</b> Word Search II → "Concatenated Words" → "Word Break II" (trie + memo).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> why <i>one</i> trie-driven DFS beats searching the grid once per word, plus the <a href="backtracking.html">backtracking</a> hygiene — mark the cell, restore it, dedup found words (null the <code>word</code> on collect). <b>Nail it and they escalate:</b> Word Search II → Word Squares (425 — full code in backtracking.html §8.7) → Word Break II (140 — trie + memo, code in backtracking.html §12).</div>
 
 <!-- 4.5 -->
 <h3 id="p-bit">4.5 · Bit trie — XOR greedily</h3>
@@ -311,28 +398,39 @@ function findWords(board: string[][], words: string[]): string[] {
 <figcaption>Greedy from the most significant bit: every "opposite" turn you can take adds a higher-value 1 to the XOR.</figcaption>
 </figure>
 
-<div class="box key"><b class="tag">🔑 Invariant — why greedy is optimal</b> XOR is maximized bit by bit from the MSB: a 1 in a higher bit outweighs all lower bits combined. So at each level, if the opposite-bit branch exists, taking it is strictly best — no later choice can recover a higher bit you passed up.</div>
+<div class="box key"><b class="tag">🔑 Invariant — why greedy is optimal</b> <b>The invariant:</b> XOR is decided bit by bit from the MSB, and a 1 in a higher bit outweighs <i>all</i> lower bits combined. <b>Why that's enough:</b> at each level, taking the opposite-bit branch whenever it exists is strictly best — no later choice can win back a higher bit you passed up.</div>
 
-<pre class="language-tsx"><code class="language-tsx">// Maximum XOR of Two Numbers in an array (31-bit ints — bits 30…0)
+<pre class="language-tsx"><code class="language-tsx">// Maximum XOR of Two Numbers in an array (421) — 31-bit ints, bits 30…0
+type BitNode = { [b in 0 | 1]?: BitNode };
+
 function findMaximumXOR(nums: number[]): number {
-  const root: any = {};
-  for (const num of nums) {                    // insert bits MSB → LSB
+  const root: BitNode = {};
+  for (const num of nums) {                      // insert bits MSB → LSB
     let node = root;
-    for (let b = 30; b &gt;= 0; b--) { const bit = (num &gt;&gt; b) &amp; 1; node = node[bit] ??= {}; }
+    for (let b = 30; b &gt;= 0; b--) {
+      const bit = ((num &gt;&gt; b) &amp; 1) as 0 | 1;
+      node = node[bit] ??= {};
+    }
   }
   let best = 0;
   for (const num of nums) {
-    let node = root, cur = 0;
+    let node = root;
+    let cur = 0;
     for (let b = 30; b &gt;= 0; b--) {
-      const bit = (num &gt;&gt; b) &amp; 1, want = bit ^ 1;   // greedily seek the opposite bit
-      if (node[want]) { cur |= (1 &lt;&lt; b); node = node[want]; }
-      else node = node[bit];
+      const bit = ((num &gt;&gt; b) &amp; 1) as 0 | 1;
+      const want = (bit ^ 1) as 0 | 1;           // greedily seek the OPPOSITE bit
+      if (node[want]) {
+        cur |= (1 &lt;&lt; b);                         // opposite exists → this XOR bit is 1
+        node = node[want]!;
+      } else {
+        node = node[bit]!;                       // same-bit branch must exist (paths are full depth)
+      }
     }
     best = Math.max(best, cur);
   }
   return best;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> MSB-first insertion, the greedy opposite-bit walk, and <code>O(n · bits)</code>. <b>· Escalation:</b> max XOR → "Count Pairs With XOR in a Range" → "Maximum XOR With an Element From Array" (offline + sort).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> MSB-first insertion (low-bit-first breaks the greedy argument), the opposite-bit walk, and stating <code>O(n · 31)</code>. <b>Nail it and they escalate:</b> max XOR → Count Pairs With XOR in a Range → Maximum XOR With an Element From Array (1707, offline + sort).</div>
 
 <!-- ───────────────────────── 5 ───────────────────────── -->
 <h2 id="complexity">⏱️ 5 · Complexity</h2>
@@ -369,7 +467,7 @@ function findMaximumXOR(nums: number[]): number {
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-mech">Mechanics</a></td><td>208 Implement Trie · 1804 Implement Trie II</td><td>Med</td></tr>
-<tr><td><a href="#p-prefix">Prefix queries</a></td><td>648 Replace Words · 677 Map Sum Pairs · 720 Longest Word</td><td>Med</td></tr>
+<tr><td><a href="#p-prefix">Prefix queries</a></td><td>1268 Search Suggestions · 648 Replace Words · 677 Map Sum Pairs · 720 Longest Word</td><td>Med</td></tr>
 <tr><td><a href="#p-wild">Wildcard</a></td><td>211 Add &amp; Search Word (the <code>.</code> branch)</td><td>Med</td></tr>
 <tr><td><a href="#p-grid">Grid + trie</a></td><td><b>212 Word Search II</b> · <b>425 Word Squares</b></td><td><b>Hard</b></td></tr>
 <tr><td><a href="#p-bit">XOR / bit trie</a></td><td><b>421 Maximum XOR of Two Numbers</b> · <b>1707 Max XOR With an Element</b></td><td>Med → <b>Hard</b></td></tr>
@@ -385,13 +483,14 @@ function findMaximumXOR(nums: number[]): number {
 <tr><td>How does a trie prune Word Search II?</td><td class="a">The DFS carries the trie node for the current path; if the next letter isn't a child, no word continues — prune the branch.</td></tr>
 <tr><td>Why is the bit-trie XOR walk greedy-optimal?</td><td class="a">A higher bit outweighs all lower bits, so taking the opposite branch at the MSB whenever possible is never beaten later.</td></tr>
 <tr><td>A trie's main weakness?</td><td class="a">Memory — many sparse nodes; a <code>Map</code> per node keeps it lean vs a 26-slot array.</td></tr>
+<tr><td>Search Suggestions (1268): how do you serve top-3 per keystroke in O(1)?</td><td class="a">Sort the products once, then during insertion each node keeps the <b>first ≤3 words</b> that pass through it (sorted insertion = lexicographically smallest). A query is just a walk — each node already holds its answer.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>
 <ul>
 <li><span class="pill">mechanics</span> <code>Trie</code> (insert / search / startsWith)</li>
-<li><span class="pill">prefix</span> <code>wordsWithPrefix</code> (walk + DFS)</li>
-<li><span class="pill">wildcard</span> <code>.</code>-search DFS</li>
+<li><span class="pill">prefix</span> <code>wordsWithPrefix</code> (walk + DFS) · <code>suggestedProducts</code> (1268)</li>
+<li><span class="pill">wildcard</span> <code>WordDictionary</code> (addWord + <code>.</code>-search DFS)</li>
 <li><span class="pill">grid</span> <code>findWords</code> (trie pruning)</li>
 <li><span class="pill">bit</span> <code>findMaximumXOR</code></li>
 </ul>

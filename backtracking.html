@@ -536,7 +536,13 @@ table.qa td.a:hover, table.qa td.a:active{ filter:none; }
 .hint{ color:var(--muted); font-size:.86rem; }
 .pill{ display:inline-block; background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent);
   border-radius:20px; padding:.05em .6em; font-size:.78rem; font-weight:600; margin:.1em .15em; }
-@media print{ .nav{ display:none; } }
+table{ width:100%; }
+@media print{
+  .nav{ display:none; }
+  table.qa td.a{ filter:none; }
+  .code, pre, blockquote, table, details{ page-break-inside:auto !important; }
+  figure, tr{ page-break-inside:avoid !important; }
+}
 </style></head><body><article id="bt-page" class="page sans">
 <h1 class="title">🔙 Backtracking</h1>
 <p class="sub">A standalone, LC-medium/hard-focused sheet. The whole topic is three beats — <b>choose → explore → un-choose</b>. Recognize the flavor, pick the skeleton, prune to make it fast.</p>
@@ -660,68 +666,28 @@ table.qa td.a:hover, table.qa td.a:active{ filter:none; }
 
 <div style="display:contents" dir="auto"><h1 id="bt-s1" class="">1. DECISION FRAMEWORK</h1></div>
 <div style="display:contents" dir="auto"><blockquote id="bt-bq-1" class=""><strong>Senior Engineer mindset</strong>: Before writing a line of code, classify the problem. Every minute spent here saves 5 minutes of wrong-direction coding.</blockquote></div>
-<div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="bt-code-1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">┌──────────────────────────────────────────────────────┐
-│ STEP 1: SHOULD I BACKTRACK?                          │
-├──────────────────────────────────────────────────────┤
-│ ✅ You need ALL solutions / enumerate possibilities  │
-│ ✅ You are building solutions incrementally           │
-│ ✅ Invalid states can be detected early (pruning)    │
-│ ✅ Problem involves: subsets, perms, combos,         │
-│    placements, partitions, paths with constraints    │
-│                                                      │
-│ ❌ You only need ONE optimal answer → try DP/Greedy  │
-│ ❌ No ability to prune → plain DFS/BFS               │
-│ ❌ Subproblems overlap heavily → Memoized DP         │
-└──────────────────────────────────────────────────────┘
-                         ↓
-┌──────────────────────────────────────────────────────┐
-│ STEP 2: WHAT IS THE CHOICE AT EACH STEP?            │
-├──────────────────────────────────────────────────────┤
-│ Ask: &quot;At this point in building my solution,         │
-│       what options do I have?&quot;                       │
-│                                                      │
-│ • Include element i or skip it          → Subsets   │
-│ • Place element at next open position   → Perms     │
-│ • Pick element starting from index i   → Combos     │
-│ • Move in 4 directions from cell (r,c)  → Grid path │
-│ • Place queen/digit in row/cell         → Constraint │
-│ • Cut string at position j              → Partition  │
-└──────────────────────────────────────────────────────┘
-                         ↓
-┌──────────────────────────────────────────────────────┐
-│ STEP 3: WHAT IS THE TERMINATION CONDITION?          │
-├──────────────────────────────────────────────────────┤
-│ Base case 1 (COLLECT): solution is complete         │
-│   → push a copy of current path to results          │
-│ Base case 2 (PRUNE): current path is invalid        │
-│   → return immediately, undo last choice            │
-│                                                      │
-│ ⚠️  Always push a COPY: results.push([...path])     │
-│     NOT results.push(path)  ← classic bug           │
-└──────────────────────────────────────────────────────┘
-                         ↓
-┌──────────────────────────────────────────────────────┐
-│ STEP 4: WHERE CAN I PRUNE?                          │
-├──────────────────────────────────────────────────────┤
-│ Good pruning = the difference between TLE and AC    │
-│                                                      │
-│ • Remaining elements can&#x27;t satisfy target           │
-│ • Current sum already exceeds limit                 │
-│ • Duplicate element at same recursion level         │
-│ • Cell already visited (grid)                       │
-│ • Constraint violated (N-Queens, Sudoku)            │
-└──────────────────────────────────────────────────────┘
-                         ↓
-┌──────────────────────────────────────────────────────┐
-│ STEP 5: DO I NEED TO MEMOIZE?                       │
-├──────────────────────────────────────────────────────┤
-│ Only if: same (index, state) pair can be reached    │
-│ via DIFFERENT paths with same future potential      │
-│ → then add memo Map&lt;string, result&gt;                 │
-│                                                      │
-│ Pure backtracking: NO memoization needed            │
-│ Hybrid (backtracking-style DP): YES, memoize        │
-└──────────────────────────────────────────────────────┘</code></pre></div>
+<div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><div class="box"><b class="tag">Step 1 · Should I backtrack?</b>
+<b>✅ Reach for it when</b> — you need <b>all</b> solutions / to enumerate possibilities · you build the solution incrementally · invalid states can be pruned early · the shape is subsets, perms, combos, placements, partitions, or paths with constraints.<br/>
+<b>❌ Skip it when</b> — you need <b>one</b> optimal answer → DP / greedy · there's nothing to prune → plain DFS / BFS · subproblems overlap heavily → memoized DP.</div>
+
+<div class="box"><b class="tag">Step 2 · What's the choice at each step?</b> Ask: "at this point in building my solution, what options do I have?"
+<table>
+<tr><td>Include element <code>i</code> or skip it</td><td>→ Subsets</td></tr>
+<tr><td>Place an element at the next open position</td><td>→ Permutations</td></tr>
+<tr><td>Pick an element starting from index <code>i</code></td><td>→ Combinations</td></tr>
+<tr><td>Move in 4 directions from cell <code>(r, c)</code></td><td>→ Grid path</td></tr>
+<tr><td>Place a queen / digit in a row / cell</td><td>→ Constraint</td></tr>
+<tr><td>Cut the string at position <code>j</code></td><td>→ Partition</td></tr>
+</table></div>
+
+<div class="box"><b class="tag">Step 3 · What's the termination condition?</b>
+<b>Base case 1 — COLLECT:</b> the solution is complete → push a <i>copy</i> of the current path to results.<br/>
+<b>Base case 2 — PRUNE:</b> the current path is already invalid → return immediately, undo the last choice.<br/>
+<b>⚠️ Always push a copy</b> — <code>results.push([...path])</code>, never <code>results.push(path)</code> (the classic bug).</div>
+
+<div class="box"><b class="tag">Step 4 · Where can I prune?</b> Good pruning is the difference between TLE and AC: the remaining elements can't reach the target · the current sum already exceeds the limit · a duplicate element at the same recursion level · a cell already visited (grid) · a constraint is violated (N-Queens, Sudoku).</div>
+
+<div class="box"><b class="tag">Step 5 · Do I need to memoize?</b> Only if the same <code>(index, state)</code> pair can be reached via <i>different</i> paths with the same future potential → add a <code>memo: Map&lt;string, result&gt;</code>. Pure backtracking needs none; a hybrid (backtracking-style DP) does — see §12.</div></div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-2"/></div>
 
