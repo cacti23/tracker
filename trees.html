@@ -52,18 +52,7 @@
   details.fold[open]>summary::before{content:"▾  "}
   details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
   details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
-  /* two-column "book" reading mode (desktop toggle) */
-  #bookBtn{position:fixed;top:14px;right:14px;z-index:20;padding:7px 12px;border:1px solid var(--rule);border-radius:8px;background:#fff;color:var(--ink);font:600 .82rem -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;box-shadow:0 1px 4px #0000001a}
-  #bookBtn:hover{background:var(--accent-soft)}
-  @media (min-width:901px){
-    body.book{max-width:1400px}
-    body.book main.content{column-count:2;column-gap:36px}
-    body.book main.content>*{break-inside:avoid}
-    body.book main.content h2,body.book main.content h3{break-after:avoid}
-    body.book main.content pre[class*=language]{font-size:.72rem;overflow-x:auto}
-  }
-  @media (max-width:900px){#bookBtn{display:none}}
-  @media print{.nav{display:none}body{margin:0}#bookBtn{display:none}body.book{max-width:900px}body.book main.content{column-count:1}}
+  @media print{.nav{display:none}body{margin:0}}
 </style>
 </head>
 <body>
@@ -75,13 +64,12 @@
   <a href="#think"><b>01 · MINDSET</b>The return-value contract</a>
   <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
   <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
-  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
+  <a href="#patterns"><b>04 · CORE</b>The 6 patterns</a>
   <a href="#complexity"><b>05 · COST</b>Complexity</a>
   <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
   <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
 </nav>
 
-<main class="content">
 <!-- ───────────────────────── 1 ───────────────────────── -->
 <h2 id="think">🧠 1 · How to think — the return-value contract</h2>
 
@@ -157,12 +145,12 @@
 <tr><td>"level order", "zigzag", "right side view", "in/pre/post-order"</td><td><a href="#p-trav">Traversals §4.1</a></td></tr>
 <tr><td>"height/depth", "diameter", "balanced", "max path sum", "count/sum where…"</td><td><a href="#p-return">Return-value DFS §4.2</a></td></tr>
 <tr><td>"BST", "k-th smallest", "validate BST", "search/insert/delete", "range sum BST"</td><td><a href="#p-bst">BST §4.3</a></td></tr>
-<tr><td>"lowest common ancestor", "path sum", "root-to-leaf", "distance between nodes"</td><td><a href="#p-lca">LCA &amp; paths §4.4</a></td></tr>
+<tr><td>"lowest common ancestor", "path sum", "root-to-leaf", "count paths summing to k", "distance between nodes"</td><td><a href="#p-lca">LCA &amp; paths §4.4</a></td></tr>
 <tr><td>"construct from preorder &amp; inorder", "serialize/deserialize", "flatten", "invert"</td><td><a href="#p-build">Construct §4.5</a></td></tr>
 </table>
 
 <!-- ───────────────────────── 4 ───────────────────────── -->
-<h2 id="patterns">🧩 4 · The five core patterns</h2>
+<h2 id="patterns">🧩 4 · The six core patterns</h2>
 <p class="hint">Node shape: <code>class TreeNode { val: number; left: TreeNode|null; right: TreeNode|null }</code>. Each: a one-liner, a 🔑 invariant, a template, a 🎤 interview lens.</p>
 
 <!-- 4.1 -->
@@ -305,6 +293,72 @@ function levelOrder(root: TreeNode | null): number[][] {
   return out;
 }</code></pre>
 <div class="box"><b class="tag">Two iterative postorders — which to use</b> <code>postorderIter</code> (reverse a modified preorder) is the quickest to write, but it only gives you the <b>values</b> — it never actually stops <i>on</i> a node with both children done. When a problem needs you to <b>do real work at each node in true postorder</b> (children guaranteed finished first — evaluating an expression tree, freeing/merging subtrees, computing a value bottom-up), use <code>postorderIterVisited</code>: each node is pushed with a <code>visited</code> flag and only processed on its <b>second</b> pop, after its children. It's the most intuitive genuine postorder — and a <b>bonus</b>: the same flag template also does preorder and inorder, just by changing where you push the marked node relative to its two children.</div>
+
+<details class="fold">
+<summary>🔭 Level-order variants — Right Side View (199) · Zigzag (103) · Vertical Order (314)</summary>
+<div class="box">All three are <code>levelOrder</code> with <b>one tweak</b>: right-side view keeps only the <i>last</i> value per level; zigzag flips a direction flag and reverses alternate levels; vertical order carries a <i>column index</i> with each node and groups by it (BFS makes ties come out top-down, left-to-right for free — 314 is a Meta favorite).</div>
+<pre class="language-tsx"><code class="language-tsx">// Right Side View (199) — level order, keep only the LAST value of each level
+function rightSideView(root: TreeNode | null): number[] {
+  if (!root) return [];
+  const out: number[] = [];
+  const q: TreeNode[] = [root];
+  let front = 0;
+  while (front &lt; q.length) {
+    const levelEnd = q.length;           // this level's boundary
+    while (front &lt; levelEnd) {
+      const node = q[front++];
+      if (front === levelEnd) out.push(node.val);   // last node of the level
+      if (node.left) q.push(node.left);
+      if (node.right) q.push(node.right);
+    }
+  }
+  return out;
+}
+
+// Zigzag (103) — level order + a direction flag; reverse alternate levels
+function zigzagLevelOrder(root: TreeNode | null): number[][] {
+  if (!root) return [];
+  const out: number[][] = [];
+  const q: TreeNode[] = [root];
+  let front = 0;
+  let leftToRight = true;
+  while (front &lt; q.length) {
+    const level: number[] = [];
+    const levelEnd = q.length;
+    while (front &lt; levelEnd) {
+      const node = q[front++];
+      level.push(node.val);
+      if (node.left) q.push(node.left);
+      if (node.right) q.push(node.right);
+    }
+    if (!leftToRight) level.reverse();
+    out.push(level);
+    leftToRight = !leftToRight;
+  }
+  return out;
+}
+
+// Vertical Order (314) — BFS carrying a column index; group values by column
+function verticalOrder(root: TreeNode | null): number[][] {
+  if (!root) return [];
+  const cols = new Map&lt;number, number[]&gt;();   // column → values (BFS order = top-down, ties L→R)
+  const q: [TreeNode, number][] = [[root, 0]];
+  let front = 0;
+  let minCol = 0, maxCol = 0;
+  while (front &lt; q.length) {
+    const [node, col] = q[front++];
+    if (!cols.has(col)) cols.set(col, []);
+    cols.get(col)!.push(node.val);
+    minCol = Math.min(minCol, col);
+    maxCol = Math.max(maxCol, col);
+    if (node.left) q.push([node.left, col - 1]);
+    if (node.right) q.push([node.right, col + 1]);
+  }
+  const out: number[][] = [];
+  for (let c = minCol; c &lt;= maxCol; c++) out.push(cols.get(c)!);
+  return out;
+}</code></pre>
+</details>
 <details class="fold">
 <summary>🧵 Morris traversal — O(1) space · advanced (tap to expand)</summary>
 <div class="box">Both the call stack and an explicit stack cost <code>O(h)</code> memory. Morris does inorder in <b><code>O(1)</code></b> extra space with one trick: before descending into a left subtree, it <b>ties a string back to itself</b> — it points the <i>rightmost</i> node of that left subtree (the node you'll visit just before this one, your <i>inorder predecessor</i>) back at the current node. Later, when the left subtree is done, that string is how you climb back up without a stack; you untie it and visit. The only thing to remember: <b>"thread each node to its inorder predecessor so you can return without a stack."</b> That one sentence is the takeaway; the code below makes it concrete — it's finicky, so know the idea cold and reproduce the code only if asked for strict <code>O(1)</code> space.</div>
@@ -382,6 +436,24 @@ function maxPathSum(root: TreeNode | null): number {
   gain(root);
   return best;
 }</code></pre>
+<details class="fold">
+<summary>🔢 Count Complete Tree Nodes (222) — the O(log² n) trick · a Google classic</summary>
+<div class="box">Counting nodes is trivially <code>O(n)</code> — but for a <b>complete</b> tree you can do <code>O(log² n)</code>. The insight: walk the <i>left edge</i> and the <i>right edge</i> of a subtree; if the two depths are <b>equal, that subtree is perfect</b> and has exactly <code>2^h − 1</code> nodes — no recursion needed. If they differ, recurse into both children — but in a complete tree <b>one of them is always perfect</b>, so only one branch keeps going: <code>log n</code> levels × <code>log n</code> edge-walk each.</div>
+<pre class="language-tsx"><code class="language-tsx">// Count Complete Tree Nodes (222) — spot perfect subtrees by their edge heights
+function countNodes(root: TreeNode | null): number {
+  if (!root) return 0;
+  let lh = 1;
+  let l = root.left;
+  while (l) { lh++; l = l.left; }        // depth hugging the LEFT edge
+  let rh = 1;
+  let r = root.right;
+  while (r) { rh++; r = r.right; }       // depth hugging the RIGHT edge
+  if (lh === rh) return (1 &lt;&lt; lh) - 1;   // equal → perfect tree → 2^h − 1, done in O(1)
+  const L = countNodes(root.left);       // not perfect → recurse; one side always IS perfect,
+  const R = countNodes(root.right);      // so only one real branch survives per level
+  return 1 + L + R;
+}</code></pre>
+</details>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you separate <i>what you return</i> from <i>what you record</i>, name your base case, and justify clamping a negative child at <code>0</code> (a branch that only hurts you, you simply don't take). <b>Nail it and they escalate:</b> height → diameter → balanced (<code>-1</code> sentinel) → max path sum — each is the <i>same</i> <code>dfs</code> with one new twist.</div>
 
 <!-- 4.3 -->
@@ -463,6 +535,29 @@ function kthSmallest(root: TreeNode | null, k: number): number {
   return -1;
 }</code></pre>
 
+<p><b>Iterate on demand</b> — <code>kthSmallest</code> generalized into an API. Same stack machinery, paused between calls; the classic "what if it's called repeatedly?" follow-up.</p>
+<pre class="language-tsx"><code class="language-tsx">// BST Iterator (173) — controlled inorder walk; next() is amortized O(1), space O(h)
+class BSTIterator {
+  private st: TreeNode[] = [];
+  constructor(root: TreeNode | null) {
+    this.pushLeft(root);                 // stage the smallest: the left spine
+  }
+  private pushLeft(node: TreeNode | null): void {
+    while (node) {
+      this.st.push(node);
+      node = node.left;
+    }
+  }
+  next(): number {
+    const node = this.st.pop()!;         // smallest unseen value
+    this.pushLeft(node.right);           // stage its right subtree's left spine
+    return node.val;
+  }
+  hasNext(): boolean {
+    return this.st.length &gt; 0;
+  }
+}</code></pre>
+
 <p><b>Insert</b> — recursive and iterative both just walk to the empty slot and attach.</p>
 <pre class="language-tsx"><code class="language-tsx">// Insert (701) — recursive: hang the new node where the walk falls off
 function insertIntoBST(root: TreeNode | null, val: number): TreeNode | null {
@@ -508,7 +603,7 @@ function deleteNode(root: TreeNode | null, key: number): TreeNode | null {
   return root;
 }</code></pre>
 </details>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> do you bound each node by the <i>range</i> its ancestors allow (not the local "left &lt; node &lt; right" trap), know inorder comes out sorted, and can do the core ops in <code>O(h)</code> — very often followed by "now do it <b>iteratively</b>." <b>Nail it and they escalate:</b> validate → k-th smallest → LCA-in-BST → delete → build a <i>balanced</i> BST from a sorted array (108) → name-drop self-balancing (AVL / red-black).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> do you bound each node by the <i>range</i> its ancestors allow (not the local "left &lt; node &lt; right" trap), know inorder comes out sorted, and can do the core ops in <code>O(h)</code> — very often followed by "now do it <b>iteratively</b>." <b>Nail it and they escalate:</b> validate → k-th smallest → BST iterator (173) → LCA-in-BST → delete → build a <i>balanced</i> BST from a sorted array (108) → name-drop self-balancing (AVL / red-black).</div>
 
 <!-- 4.4 -->
 <h3 id="p-lca">4.4 · LCA &amp; paths — postorder bubble-up</h3>
@@ -540,6 +635,28 @@ function lowestCommonAncestor(root: TreeNode | null, p: TreeNode, q: TreeNode): 
   if (L &amp;&amp; R) return root;        // p and q on different sides → this is the LCA
   return L ?? R;                  // both on one side (or neither) → pass it up
 }</code></pre>
+
+<details class="fold">
+<summary>➕ Path Sum III (437) — prefix sums on a path · the one pattern the other five don't cover</summary>
+<div class="box">"Count paths summing to <code>k</code>, starting <i>anywhere</i>, going only downward." Brute force re-walks from every node — <code>O(n²)</code>. The leap is the array trick "two prefix sums that differ by <code>k</code> bracket a subarray summing to <code>k</code>" — applied to the <b>current root-to-node path</b>: keep a map of the running sums of all ancestors; at each node, every ancestor whose running sum equals <code>running − k</code> is a valid start point. One rule keeps it correct: <b>backtrack the map</b> when you leave a node, so cousins never see sums from a path they're not on.</div>
+<pre class="language-tsx"><code class="language-tsx">// Path Sum III (437) — count downward paths (any start node) summing to target
+function pathSumIII(root: TreeNode | null, targetSum: number): number {
+  const prefix = new Map&lt;number, number&gt;();    // running-sum → how many ancestors have it
+  prefix.set(0, 1);                            // empty prefix = "path starts at the root"
+  let count = 0;
+  function dfs(node: TreeNode | null, running: number): void {
+    if (!node) return;
+    running += node.val;
+    count += prefix.get(running - targetSum) ?? 0;         // each match = a valid start point
+    prefix.set(running, (prefix.get(running) ?? 0) + 1);   // add myself for my descendants
+    dfs(node.left, running);
+    dfs(node.right, running);
+    prefix.set(running, prefix.get(running)! - 1);         // BACKTRACK — leave the path clean
+  }
+  dfs(root, 0);
+  return count;
+}</code></pre>
+</details>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain the <code>L &amp;&amp; R → root</code> bubble-up (a hit from both sides ⇒ you're the merge point), and do you notice the hidden assumption that both nodes actually exist in the tree. <b>Nail it and they escalate:</b> LCA → path sum (root-to-leaf target) → all root-to-leaf paths (backtracking) → distance between two nodes (LCA + depth math).</div>
 
 <!-- 4.5 -->
@@ -587,7 +704,52 @@ function deserialize(data: string): TreeNode | null {
   }
   return build();
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain <i>why</i> preorder's front is always the root and inorder's split gives left vs right, and why serialization needs explicit null markers (without them the string is ambiguous). <b>Nail it and they escalate:</b> pre+in → in+post → serialize/deserialize → "Flatten Binary Tree to a Linked List."</div>
+<details class="fold">
+<summary>🔁 Same thing with BFS (level order) — iterative, and the string mirrors LeetCode's array · (tap to expand)</summary>
+<div class="box">The preorder version above is the shortest, and it mirrors <code>buildTree</code>. But two things make a <b>BFS</b> version worth knowing. <b>(1)</b> The output string <i>is</i> LeetCode's own tree format: <code>1,2,3,#,#,#,#</code> is exactly <code>[1,2,3,null,null,null,null]</code> — a free mnemonic every time you read a tree problem. <b>(2)</b> It's <b>iterative</b>, so it can't stack-overflow on a deep skewed tree (§6). The trick both directions share: <b>enqueue both children — nulls included — so the queue order lines up token-for-token with the string.</b></div>
+<pre class="language-tsx"><code class="language-tsx">// Serialize — BFS: drain a queue, emit '#' for null, enqueue BOTH children (nulls too)
+function serializeBFS(root: TreeNode | null): string {
+  if (!root) return '';
+  const q: (TreeNode | null)[] = [root];
+  const out: string[] = [];
+  let front = 0;
+  while (front &lt; q.length) {
+    const node = q[front++];          // plain queue drain — no per-level bookkeeping needed
+    if (!node) { out.push('#'); continue; }
+    out.push(String(node.val));
+    q.push(node.left);                // enqueue both children, null or not,
+    q.push(node.right);               // so their tokens map 1:1 to the queue order
+  }
+  return out.join(',');
+}
+
+// Deserialize — BFS: each dequeued node claims the next two tokens as its children
+function deserializeBFS(data: string): TreeNode | null {
+  if (!data) return null;
+  const vals = data.split(',');
+  const root = new TreeNode(parseInt(vals[0]));
+  const q: TreeNode[] = [root];
+  let front = 0, i = 1;
+  while (front &lt; q.length &amp;&amp; i &lt; vals.length) {
+    const curr = q[front++];          // parent waiting to be wired to its two children
+    if (vals[i] !== '#') {            // left child
+      const left = new TreeNode(parseInt(vals[i]));
+      curr.left = left;
+      q.push(left);
+    }
+    i++;
+    if (vals[i] !== '#') {            // right child
+      const right = new TreeNode(parseInt(vals[i]));
+      curr.right = right;
+      q.push(right);
+    }
+    i++;
+  }
+  return root;
+}</code></pre>
+<div class="box"><b class="tag">Note</b> Emitting <code>out.join(',')</code> (rather than appending <code>val + ','</code>) avoids a trailing comma, so <code>i &lt; vals.length</code> is the clean bound. If you <i>do</i> build the string with a trailing comma, <code>split</code> leaves a stray <code>''</code> token at the end — then you need <code>i &lt; vals.length - 1</code>, or that empty string becomes <code>TreeNode(NaN)</code>.</div>
+</details>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain <i>why</i> preorder's front is always the root and inorder's split gives left vs right, and why serialization needs explicit null markers (without them the string is ambiguous). <b>Nail it and they escalate:</b> pre+in → in+post → serialize/deserialize (DFS <i>or</i> BFS) → "Flatten Binary Tree to a Linked List."</div>
 
 <!-- 4.6 -->
 <h3 id="p-easy">4.6 · Easy-tier must-knows — write these cold</h3>
@@ -651,7 +813,7 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 <tr><th>Operation</th><th>Time</th><th>Space</th><th>Note</th></tr>
 <tr><td>Any traversal / return-value DFS</td><td><code>O(n)</code></td><td><code>O(h)</code></td><td><code>h</code> = height: <code>O(log n)</code> balanced, <code>O(n)</code> skewed</td></tr>
 <tr><td>BFS level order</td><td><code>O(n)</code></td><td><code>O(w)</code></td><td><code>w</code> = max width (up to <code>n/2</code>)</td></tr>
-<tr><td>BST search / insert / LCA-in-BST</td><td><code>O(h)</code></td><td><code>O(h)</code></td><td><code>O(log n)</code> only if balanced</td></tr>
+<tr><td>BST search / insert / delete / LCA-in-BST</td><td><code>O(h)</code></td><td><code>O(h)</code></td><td><code>O(log n)</code> only if balanced</td></tr>
 <tr><td>Construct / serialize</td><td><code>O(n)</code></td><td><code>O(n)</code></td><td>each node placed once (hash map for the inorder split)</td></tr>
 </table>
 <div class="box"><b class="tag">The recursion-space caveat</b> "O(1) space" tree code still uses <code>O(h)</code> on the call stack. On a skewed tree that's <code>O(n)</code> — the reason deep trees want an explicit stack or Morris traversal.</div>
@@ -679,10 +841,10 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-trav">Traversal</a></td><td>102 Level Order · 199 Right Side View · 103 Zigzag</td><td>Med</td></tr>
-<tr><td><a href="#p-return">Return-value (post-order)</a></td><td>104 Max Depth · 110 Balanced · 543 Diameter · <b>124 Max Path Sum</b></td><td>Easy → <b>Hard</b></td></tr>
-<tr><td><a href="#p-bst">BST</a></td><td>98 Validate · 230 Kth Smallest · 235 LCA · 700 Search · 701 Insert · 285 Successor · <b>450 Delete</b></td><td>Med</td></tr>
-<tr><td><a href="#p-lca">LCA</a></td><td>236 LCA of Binary Tree · 1644 LCA (may not exist)</td><td>Med</td></tr>
+<tr><td><a href="#p-trav">Traversal</a></td><td>102 Level Order · 199 Right Side View · 103 Zigzag · 314 Vertical Order</td><td>Med</td></tr>
+<tr><td><a href="#p-return">Return-value (post-order)</a></td><td>104 Max Depth · 110 Balanced · 543 Diameter · 222 Count Complete · <b>124 Max Path Sum</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td><a href="#p-bst">BST</a></td><td>98 Validate · 230 Kth Smallest · 173 Iterator · 235 LCA · 700 Search · 701 Insert · 285 Successor · <b>450 Delete</b></td><td>Med</td></tr>
+<tr><td><a href="#p-lca">LCA</a></td><td>236 LCA of Binary Tree · 1644 LCA (may not exist) · 437 Path Sum III</td><td>Med</td></tr>
 <tr><td><a href="#p-build">Build / serialize</a></td><td>105/106 Build from Traversals · <b>297 Serialize &amp; Deserialize</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-easy">Easy bank</a></td><td>104 Max Depth · 226 Invert · 100 Same · 101 Symmetric · 112 Path Sum</td><td>Easy</td></tr>
 </table>
@@ -697,6 +859,10 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 <tr><td>In general-tree LCA, when is a node the answer?</td><td class="a">When both its left and right recursions return non-null — i.e. <code>p</code> and <code>q</code> are split across its two sides.</td></tr>
 <tr><td>How do preorder + inorder rebuild a tree?</td><td class="a">Preorder's front is the root; its index in inorder splits the remaining values into the left and right subtrees; recurse.</td></tr>
 <tr><td>What's the true space cost of "O(1)" recursive tree code?</td><td class="a"><code>O(h)</code> call stack — <code>O(n)</code> on a skewed tree. Use an explicit stack / Morris for deep trees.</td></tr>
+<tr><td>Deleting a BST node with two children — what's the move?</td><td class="a">Overwrite its value with its <b>inorder successor</b> (smallest in the right subtree), then delete that successor — which has ≤1 child, an easy case.</td></tr>
+<tr><td>Why does iterative BST validation track <code>prev</code>?</td><td class="a">A BST's inorder walk must be <b>strictly increasing</b> — each popped value must exceed the previous one; <code>prev</code> is that previous value.</td></tr>
+<tr><td>In <code>inorderSuccessor</code>, when do you go left vs right?</td><td class="a">If <code>p.val &lt; cur.val</code>, <code>cur</code> is a <i>candidate</i> — record it and go <b>left</b> hunting a smaller one; otherwise go <b>right</b> (the successor must be bigger than <code>p</code>).</td></tr>
+<tr><td>Why is <code>BSTIterator.next()</code> amortized O(1)?</td><td class="a">Each node is pushed and popped exactly <b>once</b> across the whole iteration — one call may push a long spine, but n calls do O(n) total work.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>
@@ -704,25 +870,16 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 <li><span class="pill">traverse</span> recursive <code>pre/in/post</code> · iterative <code>pre/in/post</code> · BFS <code>levelOrder</code></li>
 <li><span class="pill">easy</span> <code>maxDepth</code> · <code>invertTree</code> · <code>isSameTree</code> · <code>isSymmetric</code> · <code>hasPathSum</code></li>
 <li><span class="pill">return-value</span> <code>diameter</code> + <code>maxPathSum</code> (say the contract first)</li>
-<li><span class="pill">BST</span> <code>searchBST</code> · <code>insertIntoBST</code> (rec + iter) · <code>lcaBST</code> · <code>isValidBST</code> (range + inorder) · <code>kthSmallest</code> · <code>deleteNode</code></li>
+<li><span class="pill">BST</span> <code>searchBST</code> · <code>insertIntoBST</code> (rec + iter) · <code>lcaBST</code> · <code>isValidBST</code> (range + inorder) · <code>kthSmallest</code> · <code>BSTIterator</code> · <code>deleteNode</code></li>
 <li><span class="pill">LCA</span> <code>lowestCommonAncestor</code></li>
 <li><span class="pill">construct</span> <code>buildTree</code> + serialize/deserialize</li>
 </ul>
 <p class="hint">For each DFS: write the three contract lines — RETURN, BASE, RECORD — as comments <i>before</i> the code.</p>
-</main>
 
-<button id="bookBtn">📖 Two-column</button>
 <script>
-  (function(){
-    var b=document.getElementById('bookBtn');
-    b.addEventListener('click',function(){
-      document.body.classList.toggle('book');
-      b.textContent=document.body.classList.contains('book')?'📄 One column':'📖 Two-column';
-    });
-    window.addEventListener('beforeprint',function(){
-      document.querySelectorAll('details.fold').forEach(function(d){d.open=true;});
-    });
-  })();
+  window.addEventListener('beforeprint',function(){
+    document.querySelectorAll('details.fold').forEach(function(d){d.open=true;});
+  });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>

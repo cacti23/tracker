@@ -555,33 +555,108 @@ table.qa td.a:hover, table.qa td.a:active{ filter:none; }
   <a href="#bt-s11"><b>11 · PRUNE</b>Pruning strategies</a>
   <a href="#bt-s12"><b>12 · HYBRID</b>Backtracking + memo</a>
   <a href="#bt-s13"><b>13 · COST</b>Complexity analysis</a>
-  <a href="#bt-self-check"><b>14 · TEST</b>Self-check</a>
+  <a href="#bt-pitfalls"><b>14 · BUGS</b>Pitfalls + the test that catches each</a>
+  <a href="#bt-self-check"><b>15 · TEST</b>Self-check</a>
 </nav>
 <div class="page-body">
 
-<div style="display:contents" dir="auto"><hr id="bt-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="bt-how-to-think" class="">🧠 HOW TO THINK ABOUT BACKTRACKING (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="btm-p1" class="">Backtracking = build a solution <strong>one choice at a time</strong>, and the moment a choice can&#x27;t lead anywhere good (or a solution is complete), <strong>undo it</strong> and try the next. It is just <strong>DFS over a tree of decisions</strong>.</p></div><div style="display:contents" dir="auto"><pre id="btm-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">THE RHYTHM — every backtracking function does exactly this:
-   choose      add a candidate to the current path
-   explore     recurse to make the next choice
-   un-choose   remove it, try the next        ← this IS the &quot;backtrack&quot;
+<div style="display:contents" dir="auto"><hr id="bt-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="bt-how-to-think" class="">🧠 HOW TO THINK ABOUT BACKTRACKING (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p>Backtracking = build a solution <strong>one choice at a time</strong>, and the moment a choice can't lead anywhere good (or a solution is complete), <strong>undo it</strong> and try the next. It is just <strong>DFS over a tree of decisions</strong> — and the whole skill is being disciplined about one thing: <b>every choice you make, you must be able to un-make.</b></p></div>
 
-It is DFS over a TREE OF CHOICES   (here: subsets of [1,2,3])
+<div class="box"><b class="tag">🧵 The mental model — Ariadne's thread</b> You're walking a maze, paying out a ball of string behind you. At each junction you pick a corridor (<b>choose</b>) and walk on (<b>explore</b>). Hit a dead end — or find an exit and jot it down — then you <b>follow the string back</b>, winding it up as you go (<b>un-choose</b>), until you reach a junction with an untried corridor. That wound-up string is the whole trick: the recursion returns <i>nothing useful</i>; the real work is a single shared <code>path</code> that every call writes to and <b>must erase its own marks from</b> before it returns. Miss one un-choose and the next corridor inherits your footprints.</div>
 
-                       [ ]
-              take 1 /       \ skip 1
-                 [1]          [ ]
-           take2 /  \ skip2  /  \
-              [1,2] [1]    [2]   [ ]
-               / \   ...   ...   ...
-             ... ...
-   going DOWN = choose          coming back UP = un-choose
-   every node is a partial answer — collect it at the right depth</code></pre></div><div style="display:contents" dir="auto"><p id="btm-p2" class=""><strong>Recognise it</strong> — backtracking is for <em>exploring every possibility</em>, not finding one optimum:</p></div><div style="display:contents" dir="auto"><pre id="btm-box2" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">USE BACKTRACKING when the problem asks for…
-   &quot;ALL / every / list / generate&quot;      &quot;how many ways / count&quot;
-   subsets · permutations · combinations · partitions · placements
-   (N-Queens, Sudoku, generate parentheses, word search)
+<figure class="diagram" style="padding:14px;border-radius:10px">
+<svg viewBox="0 0 640 300" role="img" aria-label="Recursion tree for subsets of [1,2,3]" style="max-width:100%;height:auto">
+  <g font-size="12" font-family="monospace" text-anchor="middle">
+    <g stroke="#15803d" stroke-width="1.5" fill="none">
+      <path d="M300 46 L168 98"/>
+      <path d="M328 47 L352 96"/>
+      <path d="M345 46 L528 98"/>
+      <path d="M138 123 L104 176"/>
+      <path d="M162 123 L200 176"/>
+      <path d="M355 124 L355 176"/>
+      <path d="M90 203 L94 248"/>
+    </g>
+    <g font-size="11" fill="#15803d" font-weight="700">
+      <text x="222" y="70">+1</text>
+      <text x="348" y="78">+2</text>
+      <text x="450" y="70">+3</text>
+      <text x="106" y="152">+2</text>
+      <text x="196" y="152">+3</text>
+      <text x="367" y="152">+3</text>
+      <text x="70" y="228">+3</text>
+    </g>
+    <g>
+      <rect x="292" y="20" width="56" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="320" y="37">[ ]</text>
+      <rect x="122" y="97" width="56" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="150" y="114">[1]</text>
+      <rect x="327" y="97" width="56" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="355" y="114">[2]</text>
+      <rect x="517" y="97" width="56" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="545" y="114">[3]</text>
+      <rect x="63" y="177" width="64" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="95" y="194">[1,2]</text>
+      <rect x="178" y="177" width="64" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="210" y="194">[1,3]</text>
+      <rect x="323" y="177" width="64" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="355" y="194">[2,3]</text>
+      <rect x="57" y="249" width="76" height="26" rx="6" fill="#c026d312" stroke="#c026d3"/><text x="95" y="266">[1,2,3]</text>
+    </g>
+    <g font-family="-apple-system,BlinkMacSystemFont,sans-serif" text-anchor="start" font-size="11">
+      <line x1="410" y1="232" x2="440" y2="232" stroke="#15803d" stroke-width="1.5"/>
+      <text x="446" y="236" fill="#6b675e">descend = <tspan fill="#15803d" font-weight="700">choose</tspan> (push)</text>
+      <text x="410" y="258" fill="#6b675e">ascend&#160;&#160;= <tspan fill="#7c3aed" font-weight="700">un-choose</tspan> (pop)</text>
+      <text x="410" y="282" fill="#6b675e">every node is a subset → 2³ = 8</text>
+    </g>
+  </g>
+</svg>
+<figcaption>Subsets of <code>[1,2,3]</code> (LC 78). Each node is a partial <code>path</code> and is itself a subset, so you collect at <b>every</b> node. Going down a green edge pushes an element (<b>choose</b>); returning pops it (<b>un-choose</b>). The <code>start</code> index — each child only adds a <i>larger</i> element — is exactly why <code>[2,1]</code> never appears.</figcaption>
+</figure>
 
-DON'T when…
-   &quot;the single best / longest / min&quot; + overlapping subproblems → DP
-   &quot;just one valid answer, fast&quot;                             → greedy / BFS</code></pre></div><div style="display:contents" dir="auto"><p id="btm-p3" class=""><strong>Every backtracking solution answers three questions</strong> — and the universal template below is literally these: (1) what are my <strong>choices</strong> here? (2) is this choice still <strong>valid</strong> — prune if not. (3) am I at a <strong>complete</strong> solution — if so record a <em>copy</em>. Internalise the rhythm on subsets and every other problem is a variation of it.</p></div><div style="display:contents" dir="auto"><hr id="bt-hr-1"/></div>
+<p><b>Watch subsets get built — by hand.</b> Take <code>[1,2,3]</code>, an empty <code>path=[]</code>, and record it (the empty set is a subset). Now the loop offers 1, then 2, then 3:</p>
+<ol>
+<li><b>Choose 1</b> → <code>path=[1]</code>, record. Recurse (choices now start at 2).</li>
+<li><b>Choose 2</b> → <code>[1,2]</code>, record. Recurse (start at 3). <b>Choose 3</b> → <code>[1,2,3]</code>, record. No choices left → return.</li>
+<li><b>Un-choose 3, un-choose 2</b> → back to <code>[1]</code>. The loop tries <b>3</b> next → <code>[1,3]</code>, record. Return; <b>un-choose 3 and 1</b> → back to <code>[]</code>.</li>
+<li>The loop tries <b>2</b> → <code>[2]</code> → <code>[2,3]</code>; then <b>3</b> → <code>[3]</code>. Eight subsets — one per node of the tree above.</li>
+</ol>
+
+<figure class="diagram" style="padding:14px;border-radius:10px">
+<svg viewBox="0 0 640 200" role="img" aria-label="The shared path array grows on the way down and shrinks on the way back" style="max-width:100%;height:auto">
+  <defs>
+    <marker id="bt-ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#15803d"/></marker>
+    <marker id="bt-ahv" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#7c3aed"/></marker>
+  </defs>
+  <g font-family="monospace" font-size="13" text-anchor="middle">
+    <rect x="20" y="30" width="70" height="30" rx="6" fill="#fff" stroke="#c026d3"/><text x="55" y="50">[ ]</text>
+    <rect x="185" y="30" width="70" height="30" rx="6" fill="#fff" stroke="#c026d3"/><text x="220" y="50">[1]</text>
+    <rect x="350" y="30" width="80" height="30" rx="6" fill="#fff" stroke="#c026d3"/><text x="390" y="50">[1,2]</text>
+    <rect x="518" y="30" width="98" height="30" rx="6" fill="#c026d322" stroke="#c026d3" stroke-width="2"/><text x="567" y="50">[1,2,3]</text>
+    <g stroke="#15803d" stroke-width="1.6" fill="none">
+      <path d="M92 45 L181 45" marker-end="url(#bt-ah)"/>
+      <path d="M257 45 L346 45" marker-end="url(#bt-ah)"/>
+      <path d="M432 45 L514 45" marker-end="url(#bt-ah)"/>
+    </g>
+    <g fill="#15803d" font-size="11" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="700">
+      <text x="136" y="26">push 1</text>
+      <text x="301" y="26">push 2</text>
+      <text x="473" y="26">push 3</text>
+    </g>
+    <text x="567" y="80" fill="#c026d3" font-size="11" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="700">⭐ results.push([...path])</text>
+    <text x="567" y="95" fill="#6b675e" font-size="10" font-family="-apple-system,BlinkMacSystemFont,sans-serif">snapshot — copy, don't alias</text>
+    <path d="M560 118 C560 168, 55 168, 55 66" stroke="#7c3aed" stroke-width="1.6" fill="none" stroke-dasharray="5 4" marker-end="url(#bt-ahv)"/>
+    <text x="312" y="190" fill="#7c3aed" font-size="12" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="700">un-choose: pop 3 · pop 2 · pop 1 → path restored to [ ]</text>
+  </g>
+</svg>
+<figcaption>One branch of the tree, tracing the <b>single shared</b> <code>path</code> array. It grows as you descend (green pushes) and — crucially — shrinks back on the way up (violet pops). Two rules fall out: record a <b>copy</b> <code>[...path]</code> (the array itself keeps changing), and always <b>pop</b> so the next branch starts clean.</figcaption>
+</figure>
+
+<div class="box iv"><b class="tag">🧠 Contrast with tree DFS</b> In <a href="trees.html">trees.html</a> the whole game was <i>what each call <b>returns</b> to its parent</i>. Backtracking is the mirror image: a call usually <b>returns nothing</b> — it mutates shared state (<code>path</code>, <code>used[]</code>, the board) on the way down and <b>restores</b> it on the way up. If return-value DFS is an org chart reporting numbers upward, backtracking is one person exploring a maze and tidying up behind themselves. (Your weak spot is return values — here the relief is that there usually isn't one; the discipline moves to <i>undo</i> instead.)</div>
+
+<p><strong>When to reach for it</strong> — backtracking is for <em>enumerating every possibility</em>, not finding one optimum:</p>
+<table>
+<tr><th>Reach for backtracking when…</th><th>…otherwise use</th></tr>
+<tr><td>"<b>all</b> / every / list / <b>generate</b> ___"</td><td>"the single <b>best</b> / longest / min" <i>with</i> overlapping subproblems → <b>DP</b></td></tr>
+<tr><td>"<b>how many ways</b> / count" (small n)</td><td>"just <b>one</b> valid answer, fast" → <b>greedy</b></td></tr>
+<tr><td>subsets · permutations · combinations · partitions · placements</td><td>"<b>shortest</b> / min steps" → <b>BFS</b></td></tr>
+<tr><td>N-Queens · Sudoku · generate parentheses · word search</td><td>counting at <b>huge n</b> (can't enumerate) → <b>math / DP</b></td></tr>
+</table>
+
+<div class="box key"><b class="tag">The 3-question contract</b> Every backtracking solution is the universal template below with three blanks filled in: <b>(1) CHOICES</b> — what are my options at this step? <b>(2) VALID?</b> — is this choice still worth exploring, or do I prune it? <b>(3) COMPLETE?</b> — am I at a full solution, and if so do I record a <em>copy</em>? Get the rhythm on subsets and every other problem is a variation of it.</div>
+<div style="display:contents" dir="auto"><hr id="bt-hr-1"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s1" class="">1. DECISION FRAMEWORK</h1></div>
 <div style="display:contents" dir="auto"><blockquote id="bt-bq-1" class=""><strong>Senior Engineer mindset</strong>: Before writing a line of code, classify the problem. Every minute spent here saves 5 minutes of wrong-direction coding.</blockquote></div>
@@ -688,25 +763,15 @@ function solve(input: any[]): any[][] {
 <div style="display:contents" dir="auto"><hr id="bt-hr-3"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s3" class="">3. THE 5 BACKTRACKING FLAVORS</h1></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-3" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">FLAVOR              KEY QUESTION                    EXAMPLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Subsets             Include or skip each element?   LC 78, 90
-                    (order doesn&#x27;t matter)
-
-Permutations        Which unused element goes next? LC 46, 47
-                    (order matters, use each once)
-
-Combinations        Pick k from n, starting from i  LC 77, 39, 40, 216
-                    (order doesn&#x27;t matter, avoid re-pick)
-
-Grid / Path         Move in 4 dirs, mark visited    LC 79, 212, 200, 130
-                    (path on 2D grid)
-
-Constraint          Place item satisfying rules      LC 51, 52, 37
-Satisfaction        (N-Queens, Sudoku)
-
-String              Cut at position j if valid       LC 131, 17, 22, 93
-Partitioning        (palindromes, IP addrs, parens)</code></pre></div>
+<table>
+<tr><th>Flavor</th><th>Key question at each step</th><th>LeetCode</th></tr>
+<tr><td><b>Subsets</b><br><span class="hint">order doesn't matter</span></td><td>Include or skip this element?</td><td>78, 90</td></tr>
+<tr><td><b>Permutations</b><br><span class="hint">order matters, each once</span></td><td>Which unused element goes next?</td><td>46, 47</td></tr>
+<tr><td><b>Combinations</b><br><span class="hint">order-free, no re-pick</span></td><td>Pick k from n, starting at index i</td><td>77, 39, 40, 216</td></tr>
+<tr><td><b>Grid / path</b><br><span class="hint">path on a 2D grid</span></td><td>Move in 4 directions, mark visited</td><td>79, 212, 200, 130</td></tr>
+<tr><td><b>Constraint satisfaction</b><br><span class="hint">N-Queens, Sudoku</span></td><td>Place an item that satisfies the rules</td><td>51, 52, 37</td></tr>
+<tr><td><b>String partitioning</b><br><span class="hint">palindromes, IPs, parens</span></td><td>Cut at position j if the piece is valid</td><td>131, 17, 22, 93</td></tr>
+</table>
 
 <div style="display:contents" dir="auto"><blockquote id="bt-bq-3" class="key"><strong>⭐ THE #1 DECISION — <code>start</code> index vs <code>used[]</code> array</strong> (memorize this — it picks your template in 5 seconds):</blockquote></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-3b" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">ORDER DOESN&#x27;T MATTER (subsets, combinations) → pass a `start` index,
@@ -722,38 +787,39 @@ If you can answer &quot;does order matter?&quot; in 5 seconds, you&#x27;ve alrea
 <div style="display:contents" dir="auto"><hr id="bt-hr-4"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s4" class="">4. KEYWORD → PATTERN MAP</h1></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-4" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">KEYWORD / PHRASE                               → PATTERN              LC EXAMPLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-&quot;all subsets&quot; / &quot;power set&quot;                    → Subsets              78, 90
-&quot;all permutations&quot;                             → Permutations          46, 47
-&quot;all combinations of k from n&quot;                 → Combinations          77
-&quot;combination sum / target sum&quot;                 → Combinations + prune  39, 40, 216
-&quot;generate all valid parentheses&quot;               → String partition      22
-&quot;palindrome partitioning&quot;                      → String partition      131, 132
-&quot;restore IP addresses&quot;                         → String partition      93
-&quot;letter combinations of phone number&quot;          → Permutation/Combo     17
-&quot;word search in grid&quot;                          → Grid path             79, 212
-&quot;number of islands / connected region&quot;         → DFS (not backtrack)   200
-&quot;N-Queens&quot;                                     → Constraint satisf.    51, 52
-&quot;Sudoku solver&quot;                                → Constraint satisf.    37
-&quot;expression add operators&quot;                     → String partition      282
-&quot;partition to K equal subsets&quot;                 → Subsets + bitmask     698, 1723
-&quot;path exists from source to dest in grid&quot;      → Grid path             490, 79
-&quot;word break II (all ways)&quot;                     → String partition      140
-&quot;beautiful arrangement&quot;                        → Permutation + prune   526
-&quot;combinations with at most / exactly k&quot;        → Combinations          216, 254
-&quot;reconstruct itinerary&quot;                        → Graph path backtrack  332
-&quot;remove invalid parentheses&quot;                   → String partition + BFS 301
-&quot;split array into fibonacci&quot;                   → String partition      842
-&quot;maximum length of concatenated str&quot;           → Subsets + check      1239
-&quot;find all paths from source to target&quot;         → Graph path backtrack  797
-&quot;concatenated words&quot;                           → Trie + backtrack      472</code></pre></div>
+<table>
+<tr><th>Keyword / phrase in the prompt</th><th>Pattern</th><th>LeetCode</th></tr>
+<tr><td>"all subsets" / "power set"</td><td>Subsets</td><td>78, 90</td></tr>
+<tr><td>"all permutations"</td><td>Permutations</td><td>46, 47</td></tr>
+<tr><td>"all combinations of k from n"</td><td>Combinations</td><td>77</td></tr>
+<tr><td>"combination sum / target sum"</td><td>Combinations + prune</td><td>39, 40, 216</td></tr>
+<tr><td>"generate all valid parentheses"</td><td>String partition</td><td>22</td></tr>
+<tr><td>"palindrome partitioning"</td><td>String partition</td><td>131, 132</td></tr>
+<tr><td>"restore IP addresses"</td><td>String partition</td><td>93</td></tr>
+<tr><td>"letter combinations of a phone number"</td><td>Permutation / combo</td><td>17</td></tr>
+<tr><td>"word search in a grid"</td><td>Grid path</td><td>79, 212</td></tr>
+<tr><td>"number of islands / connected region"</td><td>DFS (<i>not</i> backtracking)</td><td>200</td></tr>
+<tr><td>"N-Queens"</td><td>Constraint satisfaction</td><td>51, 52</td></tr>
+<tr><td>"Sudoku solver"</td><td>Constraint satisfaction</td><td>37</td></tr>
+<tr><td>"expression add operators"</td><td>String partition</td><td>282</td></tr>
+<tr><td>"partition to K equal subsets"</td><td>Subsets + bitmask</td><td>698, 1723</td></tr>
+<tr><td>"path exists from source to dest in grid"</td><td>Grid path</td><td>490, 79</td></tr>
+<tr><td>"word break II (all ways)"</td><td>String partition + memo</td><td>140</td></tr>
+<tr><td>"beautiful arrangement"</td><td>Permutation + prune</td><td>526</td></tr>
+<tr><td>"combinations with at most / exactly k"</td><td>Combinations</td><td>216, 254</td></tr>
+<tr><td>"reconstruct itinerary"</td><td>Graph path (Eulerian)</td><td>332</td></tr>
+<tr><td>"remove invalid parentheses"</td><td>String partition + BFS</td><td>301</td></tr>
+<tr><td>"split array into fibonacci"</td><td>String partition</td><td>842</td></tr>
+<tr><td>"max length of concatenated string"</td><td>Subsets + check</td><td>1239</td></tr>
+<tr><td>"find all paths from source to target"</td><td>Graph path backtrack</td><td>797</td></tr>
+<tr><td>"concatenated words"</td><td>Trie + backtrack</td><td>472</td></tr>
+</table>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-5"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s5" class="">5. TEMPLATE 1: SUBSETS</h1></div>
 <p class="tldr">Each element: include or skip → 2ⁿ subsets.</p>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-5" class=""><strong>Pattern</strong>: At each index, decide include or skip. Two choices per element → 2^n total.</blockquote></div>
+<div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> every partial <code>path</code> on the way down is itself a valid subset, and after <code>backtrack(i)</code> returns, <code>path</code> is byte-for-byte what it was before the call. <b>Why that's safe:</b> collecting at every node emits each subset once, and because each recursion starts at <code>i+1</code>, an index is never revisited on the same path — so nothing repeats and nothing is missed.</div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s5-1" class="">5.1 Basic Subsets — LC 78 (no duplicates)</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-5-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function subsets(nums: number[]): number[][] {
@@ -836,13 +902,13 @@ If you can answer &quot;does order matter?&quot; in 5 seconds, you&#x27;ve alrea
   return results;
 }
 // O(n * 2^n), zero recursion. Clean when n &lt;= 20. Mention as an alternative.</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> collect-at-every-node vs pick/skip-at-leaves (know both), and the level-only duplicate skip <code>i &gt; start &amp;&amp; nums[i]===nums[i-1]</code>. <b>· Escalation:</b> subsets → subsets II (dups) → "count subsets summing to T" → memoize on <code>(i,target)</code> = 0/1-knapsack DP. For <code>n ≤ 20</code>, offer the <code>O(n·2ⁿ)</code> bitmask as a no-recursion alternative.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> whether you can generate the power set two ways — collect at <i>every</i> node (for-loop + <code>start</code>) vs decide take/skip per element and collect at the <i>leaves</i> — and whether your duplicate skip is level-only (<code>i &gt; start</code>), not global. <b>Nail it and they escalate:</b> subsets → subsets II (dups) → "count subsets summing to T" → memoize on <code>(i, target)</code> and you've turned it into 0/1-knapsack DP. For <code>n ≤ 20</code> they may want the recursion gone entirely — offer the <code>O(n·2ⁿ)</code> bitmask.</div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-6"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s6" class="">6. TEMPLATE 2: PERMUTATIONS</h1></div>
 <p class="tldr">Each slot: pick any unused element → n! orderings.</p>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-6" class=""><strong>Pattern</strong>: At each position, pick any UNUSED element. n! total permutations.</blockquote></div>
+<div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> <code>used[i]</code> is true for exactly the elements currently sitting in <code>path</code>, and it flips back to false the instant the call unwinds. <b>Why that's safe:</b> each position considers every not-yet-used element, so all <code>n!</code> orderings are reachable; the symmetric set-then-reset keeps <code>used[]</code> pristine for every sibling branch.</div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s6-1" class="">6.1 Basic Permutations — LC 46 (no duplicates)</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-6-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function permute(nums: number[]): number[][] {
@@ -925,13 +991,13 @@ If you can answer &quot;does order matter?&quot; in 5 seconds, you&#x27;ve alrea
   return results;
 }
 // ⚠️  Does NOT handle duplicates cleanly — use 6.2 for that</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> <code>used[]</code> vs the swap formulation, and why the duplicate skip needs <code>!used[i-1]</code> (forces a fixed left-to-right order among equal values). <b>· Escalation:</b> permute → permute II (dups) → next permutation (LC 31) → "k-th permutation sequence" (factorial number system — skip building the tree entirely).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> that you know the two formulations — a <code>used[]</code> flag array vs in-place <b>swapping</b> — and can explain why the duplicate skip needs <code>!used[i-1]</code> (it forces equal values to be consumed strictly left-to-right, so a multiset is permuted exactly once). <b>Nail it and they escalate:</b> permute → permute II (dups) → next permutation (LC 31) → k-th permutation sequence, where you skip building the tree at all and index straight in with the factorial number system.</div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-7"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s7" class="">7. TEMPLATE 3: COMBINATIONS</h1></div>
 <p class="tldr">Pick k from n with a <code>start</code> index — order-free, no re-pick.</p>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-7" class=""><strong>Pattern</strong>: Pick k from n, order doesn&#x27;t matter. Use <code>start</code> index to avoid re-picking.</blockquote></div>
+<div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> picks are strictly increasing in index — each recursion starts at <code>i+1</code> (or <code>i</code> when reuse is allowed) — so any given combination is built in exactly one order. <b>Why that's safe:</b> <code>[1,2]</code> and <code>[2,1]</code> can't both occur, because 2 is never chosen before 1 on the same path; that's what makes the enumeration duplicate-free.</div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s7-1" class="">7.1 Basic Combinations — LC 77</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-7-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function combine(n: number, k: number): number[][] {
@@ -1032,13 +1098,13 @@ If you can answer &quot;does order matter?&quot; in 5 seconds, you&#x27;ve alrea
   backtrack(1, n);
   return results;
 }</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why a <code>start</code> index kills the [1,2]/[2,1] duplicate, and the feasibility prune <code>i &lt;= n-(k-len)+1</code>. <b>· Escalation:</b> combine → combination sum (reuse → recurse on <code>i</code>) → combo sum II (no reuse + dedup → <code>i+1</code>) → combo sum III (exactly k). Sorting is what unlocks the <code>break</code> prune.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> why a <code>start</code> index (not a <code>used[]</code> array) is right when order doesn't matter — it forces increasing picks so <code>[1,2]</code> and <code>[2,1]</code> can't both appear — plus the feasibility prune <code>i ≤ n−(k−len)+1</code> that skips branches too short to reach <code>k</code>. <b>Nail it and they escalate:</b> combine → combination sum (reuse → recurse on <code>i</code>) → combo sum II (no reuse + dedup → <code>i+1</code>) → combo sum III (exactly k). Sorting is what unlocks the <code>break</code> prune in all of them.</div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-8"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s8" class="">8. TEMPLATE 4: GRID / PATH SEARCH</h1></div>
 <p class="tldr">DFS 4 directions, mark visited, unmark on the way back.</p>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-8" class=""><strong>Pattern</strong>: Explore cells in 4 directions, mark visited inline, unmark on backtrack.</blockquote></div>
+<div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> the set of cells marked <code>#</code> (or in <code>visited</code>) is exactly the cells on the current path; restoring on the way back leaves the board pristine for the next branch. <b>Why that's safe:</b> no cell is reused within one path, and because sibling explorations each start from the same clean board, a cell blocked on one path is free on another.</div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s8-1" class="">8.1 Word Search — LC 79</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-8-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function exist(board: string[][], word: string): boolean {
@@ -1148,6 +1214,8 @@ function findWords(board: string[][], words: string[]): string[] {
 <div style="display:contents" dir="auto"><h3 id="bt-s8-4" class="">8.4 Robot Room Cleaner — LC 489 (⭐ Google favorite)</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-8-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Robot API: move(): boolean, turnLeft(), turnRight(), clean()
 // You do NOT get coordinates — track them yourself relative to start.
+interface Robot { move(): boolean; turnLeft(): void; turnRight(): void; clean(): void; }
+
 function cleanRoom(robot: Robot): void {
   const visited = new Set&lt;string&gt;();
   const dirs = [[-1, 0], [0, 1], [1, 0], [0, -1]];  // up, right, down, left (clockwise)
@@ -1322,13 +1390,13 @@ function findLadders(beginWord: string, endWord: string, wordList: string[]): st
 }
 // Why mark visited per-level (not per-node): a word can have multiple shortest-path
 // parents in the SAME layer — marking too early drops valid paths.</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> in-place visited mark + restore (why it's <code>O(1)</code> and still correct), and recognizing when it's <i>plain DFS, not backtracking</i> (LC 200 islands — no un-mark). <b>· Escalation:</b> word search → word search II (Trie + delete-found pruning) → robot cleaner (no coordinates, physically drive back) → word ladder II (BFS layers, then backtrack the parent DAG).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> the in-place visited trick — overwrite the cell, recurse, restore — and <i>why</i> it's <code>O(1)</code> extra yet still correct (only cells on the <i>current</i> path are marked). The sharp follow-up is spotting when a grid problem is <b>plain DFS, not backtracking</b> (LC 200 islands never un-marks — a filled cell stays filled). <b>Nail it and they escalate:</b> word search → word search II (a trie over the grid + delete found words to prune) → robot cleaner (no coordinates, you physically drive back) → word ladder II (BFS to build the parent DAG, then backtrack it for all shortest paths).</div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-9"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s9" class="">9. TEMPLATE 5: CONSTRAINT SATISFACTION</h1></div>
 <p class="tldr">Place one per row; check validity with O(1) sets.</p>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-9" class=""><strong>Pattern</strong>: Place items one row/cell at a time. Validate constraints before placing.</blockquote></div>
+<div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> the constraint sets hold exactly the queens/digits placed so far — <code>cols</code>, <code>diag1 = r−c</code>, <code>diag2 = r+c</code> — and a placement is legal iff none of the three already contains its key. <b>Why that's safe:</b> the symmetric add-then-delete means row <code>r</code>'s choices see precisely the queens above it and nothing stale, so every completed board is valid by construction.</div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s9-1" class="">9.1 N-Queens — LC 51</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-9-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function solveNQueens(n: number): string[][] {
@@ -1447,13 +1515,13 @@ function findLadders(beginWord: string, endWord: string, wordList: string[]): st
   return count;
 }
 // Time: O(n!) worst case but with tiny constants. Space: O(n) stack.</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> <code>O(1)</code> constraint sets — cols, <code>diag1 = r−c</code>, <code>diag2 = r+c</code> — instead of an <code>O(n)</code> scan, and Sudoku's find-first-empty + return-true short-circuit. <b>· Escalation:</b> N-Queens → count-only → bitmask form (<code>diag1&lt;&lt;1</code>, <code>diag2&gt;&gt;1</code>) for the SDE3 "make the validity check pure bit-ops" ask.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> replacing an <code>O(n)</code> "is this square attacked?" scan with three <code>O(1)</code> sets — a column set plus the two diagonal keys <code>r−c</code> and <code>r+c</code> — and, for Sudoku, the find-first-empty-cell + <code>return true</code> short-circuit that stops the moment one solution appears. <b>Nail it and they escalate:</b> N-Queens → count-only (LC 52) → the bitmask form where the whole validity check becomes bit-ops (<code>diag1 &lt;&lt; 1</code>, <code>diag2 &gt;&gt; 1</code> as you descend a row) — the SDE3 "make it allocation-free" ask.</div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-10"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s10" class="">10. TEMPLATE 6: STRING PARTITIONING</h1></div>
 <p class="tldr">Try every valid cut, recurse on the remaining suffix.</p>
-<div style="display:contents" dir="auto"><blockquote id="bt-bq-10" class=""><strong>Pattern</strong>: At each position, try all valid cuts. Recurse on the remaining suffix.</blockquote></div>
+<div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> <code>path</code> holds a sequence of valid pieces whose concatenation is exactly the prefix <code>s[0..start)</code>; each recursion advances <code>start</code> past the piece it just chose. <b>Why that's safe:</b> every character is consumed exactly once, so the pieces always tile the string with no gaps and no overlaps — when <code>start === n</code> you have a complete, legal partition.</div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s10-1" class="">10.1 Palindrome Partitioning — LC 131</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-10-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function partition(s: string): string[][] {
@@ -1640,43 +1708,25 @@ function removeInvalidParentheses(s: string): string[] {
   return [...results];
 }
 // Computing the removal budget first is what bounds the search → no TLE.</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> precomputing the palindrome table so each cut-check is <code>O(1)</code>, and the leading-zero / range prunes (IP, add-operators). <b>· Escalation:</b> palindrome partition → restore IP → generate parentheses (track open/close counts) → expression add operators (carry <code>prev</code> to undo for <code>*</code>) → remove invalid parens (compute the removal budget first to bound the tree).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> that you precompute the palindrome table so each cut-test is <code>O(1)</code> (not <code>O(n)</code> per check), and that your prunes kill dead branches at the source — leading-zero and <code>&gt; 255</code> for IP, valid open/close counts for parentheses. <b>Nail it and they escalate:</b> palindrome partition → restore IP → generate parentheses (carry open/close counts) → expression add operators (carry <code>prev</code> to undo the last term for <code>*</code>) → remove invalid parentheses, where you compute the exact removal budget <i>first</i> to bound the whole tree.</div>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-11"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s11" class="">11. PRUNING STRATEGIES</h1></div>
 <div style="display:contents" dir="auto"><blockquote id="bt-bq-11" class="key"><strong>Pruning is what separates a working backtracker from a fast one. This is where Hard LC problems are won or lost.</strong></blockquote></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-11" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PRUNING TECHNIQUE          HOW TO APPLY                          USED IN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Early termination       if (sum &gt; target) break (sorted arr)  LC 39, 40, 216
-   via sorted input        Sort + break is O(1) check per node
-
-2. Feasibility check       Not enough items remaining to fill k   LC 77
-   (upper bound on loop)   i &lt;= n - (k - path.length) + 1
-
-3. Duplicate skip          i &gt; start &amp;&amp; arr[i] === arr[i-1]       LC 40, 90, 47
-   (same level, sorted)    → continue (skip same value at level)
-
-4. Constraint sets         Sets for row/col/diag/box              LC 51, 37
-   (O(1) validity check)   → avoid O(n) scan per placement
-
-5. Visited mask            board[r][c] = &#x27;#&#x27; in-place             LC 79, 212
-   (inline for grids)      → O(1) and restores on backtrack
-
-6. Pruning dead subtrees   If remaining candidates sum &lt; target    LC 39
-   (lower bound)           → break early
-
-7. Trie pruning            Delete exhausted Trie branches         LC 212
-   (for word problems)     → avoids re-exploring dead paths
-
-8. Symmetry breaking       Only consider canonical orderings       LC 47, 698
-                           e.g., skip empty buckets after first
-
-9. Removal budget          Compute min removals first, stay within LC 301
-                           budget → bounds the search tree
-
-10. Memoization (hybrid)   If same (idx, state) reached multiple   LC 698, 140
-                           times → cache results (see §12)</code></pre></div>
+<table>
+<tr><th>Pruning technique</th><th>How to apply</th><th>Used in</th></tr>
+<tr><td>1. Early termination via sorted input</td><td><code>if (sum &gt; target) break</code> — sorted, so all later are worse too (<code>O(1)</code> per node)</td><td>39, 40, 216</td></tr>
+<tr><td>2. Feasibility check (loop upper bound)</td><td>Not enough items left to fill k: <code>i ≤ n − (k − path.length) + 1</code></td><td>77</td></tr>
+<tr><td>3. Duplicate skip (same level, sorted)</td><td><code>i &gt; start &amp;&amp; arr[i] === arr[i−1]</code> → <code>continue</code></td><td>40, 90, 47</td></tr>
+<tr><td>4. Constraint sets (<code>O(1)</code> validity)</td><td>Sets for row / col / diag / box → no <code>O(n)</code> scan per placement</td><td>51, 37</td></tr>
+<tr><td>5. Visited mask (inline for grids)</td><td><code>board[r][c] = '#'</code> in place → <code>O(1)</code>, restore on backtrack</td><td>79, 212</td></tr>
+<tr><td>6. Dead-subtree bound (lower bound)</td><td>If remaining candidates can't reach the target → <code>break</code></td><td>39</td></tr>
+<tr><td>7. Trie pruning (word problems)</td><td>Delete exhausted trie branches → stop re-exploring dead paths</td><td>212</td></tr>
+<tr><td>8. Symmetry breaking</td><td>Only canonical orderings — e.g. skip identical empty buckets</td><td>47, 698</td></tr>
+<tr><td>9. Removal budget</td><td>Compute the min removals first, stay within it → bounds the tree</td><td>301</td></tr>
+<tr><td>10. Memoization (hybrid)</td><td>Same <code>(idx, state)</code> reached many times → cache (see §12)</td><td>698, 140</td></tr>
+</table>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s11-1" class="">11.1 Pruning Code Patterns</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-11-1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PATTERN A: sorted + break (most common)
@@ -1715,12 +1765,13 @@ for (let b = 0; b &lt; k; b++) {
 <div style="display:contents" dir="auto"><hr id="bt-hr-12"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s12" class="">12. BACKTRACKING + MEMO HYBRIDS</h1></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-12-intro" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PURE BACKTRACKING             vs          MEMOIZED BACKTRACKING (= top-down DP)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-No repeated subproblems             Subproblems repeat across paths
-Each path is unique                 Different paths → same future state
-Can&#x27;t memoize (path carries state)  Future depends only on (idx, state)
-Examples: LC 46, 78, 51, 37         Examples: LC 139, 140, 698</code></pre></div>
+<table>
+<tr><th>Pure backtracking</th><th>Memoized backtracking (= top-down DP)</th></tr>
+<tr><td>No repeated subproblems</td><td>Subproblems repeat across paths</td></tr>
+<tr><td>Each path is unique</td><td>Different paths → same future state</td></tr>
+<tr><td>Can't memoize (the path carries state)</td><td>Future depends only on <code>(idx, state)</code></td></tr>
+<tr><td>e.g. LC 46, 78, 51, 37</td><td>e.g. LC 139, 140, 698</td></tr>
+</table>
 <div style="display:contents" dir="auto"><blockquote id="bt-bq-12" class="key"><strong>When to memoize</strong>: If the SAME subproblem (same arguments) can be reached via MULTIPLE different paths, and the answer is always the same regardless of path taken → cache it.</blockquote></div>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s12-1" class="">12.1 Word Break II — LC 140 (Backtracking + Memo)</h3></div>
@@ -1798,19 +1849,21 @@ function canPartitionKSubsets(nums: number[], k: number): boolean {
 // ❌ Path itself influences what&#x27;s &quot;available&quot; next?           → don&#x27;t memoize
 // ❌ Each recursive call explores a structurally unique path?  → don&#x27;t memoize</code></pre></div>
 
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> the single decision that separates pure backtracking from top-down DP — can the <i>same</i> <code>(index, state)</code> be reached by different paths with the <i>same</i> future? If yes, memoize and it's DP; if the path itself changes what's available next (permutations), a memo on the index is wrong. <b>Nail it and they escalate:</b> word break → word break II (cache the suffix lists) → partition to k equal subsets (bucket-fill + the empty-bucket symmetry break) → its bitmask-memo form keyed on <code>mask</code> alone. Naming <i>why</i> a memo is or isn't valid is the whole point.</div>
 <div style="display:contents" dir="auto"><hr id="bt-hr-13"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s13" class="">13. COMPLEXITY ANALYSIS</h1></div>
-<div style="display:contents" dir="auto"><pre id="bt-code-13" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PROBLEM TYPE           TIME COMPLEXITY        SPACE (excl. output)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Subsets (n elements)   O(n × 2^n)             O(n) recursion depth
-Permutations (n)       O(n × n!)              O(n)
-Combinations (n,k)     O(k × C(n,k))          O(k)
-Combo Sum (no dup)     O(n^(T/M))             O(T/M) depth
-Grid Word Search       O(m×n × 3^L)           O(L) where L=word len
-N-Queens (n)           O(n!)                  O(n)
-Sudoku (m empty cells) O(9^m)                 O(m)
-Palindrome Partition   O(n × 2^n)             O(n^2) for DP table</code></pre></div>
+<table>
+<tr><th>Problem type</th><th>Time</th><th>Space (excl. output)</th></tr>
+<tr><td>Subsets (n elements)</td><td><code>O(n · 2ⁿ)</code></td><td><code>O(n)</code> recursion depth</td></tr>
+<tr><td>Permutations (n)</td><td><code>O(n · n!)</code></td><td><code>O(n)</code></td></tr>
+<tr><td>Combinations (n, k)</td><td><code>O(k · C(n,k))</code></td><td><code>O(k)</code></td></tr>
+<tr><td>Combination sum (no dup)</td><td><code>O(n^(T/M))</code></td><td><code>O(T/M)</code> depth</td></tr>
+<tr><td>Grid word search</td><td><code>O(m·n · 3^L)</code></td><td><code>O(L)</code>, L = word length</td></tr>
+<tr><td>N-Queens (n)</td><td><code>O(n!)</code></td><td><code>O(n)</code></td></tr>
+<tr><td>Sudoku (m empty cells)</td><td><code>O(9^m)</code></td><td><code>O(m)</code></td></tr>
+<tr><td>Palindrome partition</td><td><code>O(n · 2ⁿ)</code></td><td><code>O(n²)</code> for the DP table</td></tr>
+</table>
 
 <div style="display:contents" dir="auto"><h3 id="bt-s13-1" class="">13.1 The Branching Factor Model</h3></div>
 <div style="display:contents" dir="auto"><pre id="bt-code-13-1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">Time = (# leaves) × (work to build each leaf)
@@ -1823,6 +1876,25 @@ For perms:   branching=n at depth 0, n-1 at depth 1... → n! leaves × O(n)
 INTERVIEW TIP: State the tree model first, then derive complexity.
 &quot;The recursion tree has branching factor b and depth d,
  giving O(b^d) nodes with O(d) work per node → O(d × b^d).&quot;</code></pre></div>
+<div style="display:contents" dir="auto"><hr id="bt-hr-pitfalls"/></div>
+<h1 id="bt-pitfalls">⚠️ PITFALLS — AND THE TEST THAT CATCHES EACH</h1>
+<p>Each of these is a real bug people ship under interview pressure. The right column is the smallest input that <i>exposes</i> it — run it in your head before you trust your code.</p>
+<table>
+<tr><th>Bug</th><th>The input that exposes it</th></tr>
+<tr><td><code>results.push(path)</code> instead of <code>results.push([...path])</code>.</td><td><b>Any</b> input with ≥1 result → every stored answer is the <i>same</i> array, which ends up <code>[]</code> after all the pops. Output looks like <code>[[],[],…]</code>.</td></tr>
+<tr><td>Forgetting the <b>un-choose</b> (no <code>path.pop()</code> / state not restored).</td><td><code>subsets([1,2])</code> → <code>path</code> never shrinks, so a sibling branch inherits <code>[1,2]</code> and you emit duplicates and wrong-length answers.</td></tr>
+<tr><td>Duplicate skip written <code>i &gt; 0</code> instead of <code>i &gt; start</code>.</td><td><code>subsetsWithDup([1,2,2])</code> → <code>i&gt;0</code> also skips the <i>legit</i> second 2 when it's the first pick of a level, so you lose <code>[2,2]</code>.</td></tr>
+<tr><td>Mixing up <code>i+1</code> (no reuse) with <code>i</code> (reuse) in the recurse.</td><td><code>combinationSum([2,3], 6)</code> → with <code>i+1</code> you miss <code>[2,2,2]</code>; using <code>i</code> in a no-reuse problem yields illegal repeats.</td></tr>
+<tr><td>Grid: marking visited but never restoring (or restoring the wrong value).</td><td>Word Search where the answer needs a cell on a <i>different</i> path → the permanently-<code>#</code> cell blocks it, giving a false "not found".</td></tr>
+<tr><td>Permutation dedup missing the <code>!used[i-1]</code> clause.</td><td><code>permuteUnique([1,1])</code> → emits <code>[1,1]</code> twice instead of once.</td></tr>
+<tr><td>Sorting is required for the dup-skip / <code>break</code> prune, but you forgot to sort.</td><td><code>combinationSum2([2,1,2], 3)</code> unsorted → duplicates slip through and the <code>break</code> fires wrongly.</td></tr>
+</table>
+
+<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
+<b>Backtracking IS DFS</b> — the same recursion drilled in <a href="recursion.html">recursion.html</a>; choose/un-choose is just work placed before/after the recursive call.
+<b>Grid &amp; graph search</b> (LC 79, 200, 797, 332) lives next door in <a href="graph.html">graph.html</a> — the only difference is whether you <i>un-mark</i> on the way back (backtracking) or not (plain DFS / flood fill).
+<b>Add a memo</b> and backtracking becomes top-down <a href="dp.html">DP</a> (§12) — the test is whether the same <code>(index, state)</code> recurs across paths.
+<b>Word Search II</b> bolts a <a href="trie.html">trie</a> onto the grid walk to prune dead prefixes.</div>
 <h3 id="bt-coverage">▶ Coverage — what these 6 templates unlock on LeetCode</h3>
 <p>Own the six skeletons plus pruning (§11) and these are all in range. <b>Bold</b> = Hard tier — the escalation once the medium is in hand.</p>
 <table>
