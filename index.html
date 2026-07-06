@@ -2569,6 +2569,17 @@ function _buildPracticePanel(topicKey, mod) {
       _psMode       = savedSession.mode || 'worked'
       _psMockReveal = !!savedSession.mockReveal
       _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
+      // Graded promise: ✗/~ (and 📌) questions ALWAYS appear. Merge in any weak graded
+      // questions missing from the restored set — graded since it was saved (or saved back
+      // when the old cooldown filter still hid them). They go on top, weakest first.
+      if (_psMode === 'graded') {
+        const have = new Set(_psCurrentItems.map(([k]) => k))
+        const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
+        const missing = Object.entries(mod.questions)
+          .filter(([k]) => getRevise(k) && !have.has(k) && (rank(k) < 2 || isPinned(k)))
+          .sort((a, b) => rank(a[0]) - rank(b[0]))
+        if (missing.length) { _psCurrentItems = [...missing, ..._psCurrentItems]; _psSaveSession() }
+      }
       _psQCount = _psCurrentItems.length || _psQCount
     } else if (_psMode !== 'worked' || prevTopic === topicKey) {
       _psCurrentItems = _psModePool(topicKey, count)
