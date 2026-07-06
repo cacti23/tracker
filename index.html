@@ -1032,35 +1032,41 @@ let _psMode                 = 'mock'     // per-topic solve-mode default: 'mock'
 let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
-// Store/restore the practice session (which topic + which questions) to survive page navigation.
-// Format: { topicKey, items: [[lcKey, question], ...], doneInSession: [lcKeys...] }
+// Store/restore practice sessions (ALL modes — Worked/Graded/Mock) so a refresh or topic
+// navigation never reshuffles your set: only ↺ Reset/Refresh or a mode switch regenerates.
+// Format: { [topicKey]: { mode, items: [[lcKey, {title, difficulty}]], doneInSession: [lcKeys...],
+//           struggledInSession: [lcKeys...], mockReveal } } — one saved session per topic.
 const PS_SESSION_KEY = 'dsa-practice-session-v1'
-function _psSaveSession() {
-  if (_psMode !== 'worked') return   // only the Worked session persists; Graded/Mock recompute live
-  if (!_psCurrentTopic || _psCurrentItems.length === 0) return
+function _psAllSessions() {
   try {
-    const session = {
-      topicKey: _psCurrentTopic,
+    const raw = JSON.parse(localStorage.getItem(PS_SESSION_KEY) || 'null')
+    if (!raw) return {}
+    // Legacy single-session format ({ topicKey, items, ... } — Worked-only) → per-topic map
+    if (raw.topicKey) return { [raw.topicKey]: Object.assign({ mode: 'worked' }, raw) }
+    return raw
+  } catch { return {} }
+}
+function _psSaveSession() {
+  if (!_psCurrentTopic) return
+  try {
+    const all = _psAllSessions()
+    all[_psCurrentTopic] = {
+      mode: _psMode,
       items: _psCurrentItems.map(([lcKey, q]) => [lcKey, { title: q.title, difficulty: q.difficulty }]),
       doneInSession: Array.from(_psDoneThisSession),
-      struggledInSession: Array.from(_psStruggledThisSession)
+      struggledInSession: Array.from(_psStruggledThisSession),
+      mockReveal: _psMockReveal,
     }
-    localStorage.setItem(PS_SESSION_KEY, JSON.stringify(session))
+    localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
   } catch {}
 }
-function _psLoadSession() {
-  try {
-    const session = JSON.parse(localStorage.getItem(PS_SESSION_KEY) || null)
-    if (!session || !session.topicKey) return null
-    // Restore done state from persisted session
-    if (session.doneInSession) _psDoneThisSession = new Set(session.doneInSession)
-    if (session.struggledInSession) _psStruggledThisSession = new Set(session.struggledInSession)
-    return session
-  } catch { return null }
-}
-function _psClearSession() {
-  localStorage.removeItem(PS_SESSION_KEY)
-  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+function _psLoadSession(topicKey) {
+  const session = _psAllSessions()[topicKey]
+  if (!session || !Array.isArray(session.items)) return null
+  // Restore done state from persisted session
+  _psDoneThisSession      = new Set(session.doneInSession || [])
+  _psStruggledThisSession = new Set(session.struggledInSession || [])
+  return session
 }
 
 // ─── DASHBOARD QUICK PRACTICE SESSION STATE ──────────────────────────────────
@@ -1654,7 +1660,7 @@ function loadTopic(key) {
   _stopTimer()                    // stop any running per-topic practice timer
   _qpStopTimer()                  // stop QP timer if it was running on dashboard
 
-  // Reset per-topic session completely so a fresh session starts for every topic
+  // Clear in-memory session state — the practice panel build restores this topic's saved session
   _psCurrentItems = []
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psQCount = 5
@@ -2554,16 +2560,20 @@ function _buildPracticePanel(topicKey, mod) {
   const prevTopic = _psCurrentTopic
   _psCurrentTopic = topicKey
 
-  // Worked mode is empty on first visit (persisted if returning mid-session); Graded/Mock
-  // auto-generate for the topic so they're never an empty "click Generate" wall.
+  // A saved session (any mode) is restored exactly as you left it — refresh/navigation never
+  // reshuffles a set. Without one, Graded/Mock auto-generate for the topic so they're never an
+  // empty "click Generate" wall (and the result is saved so it survives a refresh too).
   if (_psCurrentItems.length === 0) {
-    const savedSession = _psMode === 'worked' ? _psLoadSession() : null
-    if (savedSession && savedSession.topicKey === topicKey) {
-      _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, TOPIC_MODULES[topicKey].questions[lcKey] || q])
-      _psQCount = _psCurrentItems.length
+    const savedSession = _psLoadSession(topicKey)
+    if (savedSession) {
+      _psMode       = savedSession.mode || 'worked'
+      _psMockReveal = !!savedSession.mockReveal
+      _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
+      _psQCount = _psCurrentItems.length || _psQCount
     } else if (_psMode !== 'worked' || prevTopic === topicKey) {
       _psCurrentItems = _psModePool(topicKey, count)
       _psQCount = _psCurrentItems.length
+      _psSaveSession()
     }
     // First visit to a topic in Worked mode: leave empty (user clicks Generate)
   }
@@ -2779,11 +2789,15 @@ function _psSetMode(mode, topicKey) {
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
   _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(_psQCount, total)))
   _psQCount = _psCurrentItems.length || _psQCount
+  // Save BEFORE rendering — with an empty pool, the panel build restores from storage,
+  // which must already hold the new mode (not the old session).
+  _psSaveSession()
   _renderPracticePanel()
 }
 // Reveal hidden difficulty on a per-topic Mock for the post-mortem.
 function _psRevealMock() {
   _psMockReveal = true
+  _psSaveSession()
   const listEl = document.getElementById('ps-list')
   if (listEl) listEl.innerHTML = _psRowsHtml()
   const btn = document.getElementById('ps-reveal-btn')
@@ -2814,7 +2828,7 @@ function _psShuffle(topicKey) {
   }
 
   _psQCount = _psCurrentItems.length
-  _psSaveSession()  // Persist the new session (no-op outside code mode)
+  _psSaveSession()  // Persist the new session
 
   const valEl = document.getElementById('ps-count-val')
   if (valEl) valEl.textContent = _psQCount
