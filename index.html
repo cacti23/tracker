@@ -196,16 +196,6 @@
       transition: background 0.14s, color 0.14s, border-color 0.14s;
     }
     .sidebar-data-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
-    .sidebar-habit-link {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.5rem 0.75rem; margin: 0.4rem 0.6rem;
-      border-radius: var(--radius); border: 1px solid var(--border);
-      background: transparent; text-decoration: none;
-      font-size: 0.82rem; font-weight: 500; font-family: var(--font-body);
-      color: var(--text-muted); white-space: nowrap;
-      transition: background 0.14s, color 0.14s, border-color 0.14s;
-    }
-    .sidebar-habit-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
     .sidebar-gym-link {
       display: flex; align-items: center; gap: 0.6rem;
       padding: 0.5rem 0.75rem; margin: 0.4rem 0.6rem;
@@ -770,8 +760,12 @@
       font-size: var(--fs-xs); color: var(--yellow); font-weight: 600; white-space: nowrap;
     }
     .ps-streak-badge.streak-zero { background: var(--bg-elevated); border-color: var(--border); color: var(--text-faint); }
-    /* ── Daily ritual ticks (header, next to search) ── */
-    .header-ritual { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0 0.3rem; flex-wrap: wrap; }
+    /* ── Daily ritual ticks (sidebar, top section under the brand) ── */
+    .sidebar-ritual {
+      display: flex; flex-direction: column; gap: 0.35rem;
+      padding: 0 0.7rem 0.6rem; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-ritual .ritual-pct { text-align: center; }
     .ritual-chip {
       display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
       padding: 0.28rem 0.65rem; border-radius: 16px; cursor: pointer;
@@ -822,6 +816,10 @@
       <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar" aria-label="Close sidebar">✕</button>
     </div>
 
+    <!-- Daily ritual ticks (resets at midnight) — rendered by _renderSidebarRitual() -->
+    <p class="sidebar-section-label">Daily Plan</p>
+    <div id="sidebar-ritual" class="sidebar-ritual"></div>
+
     <nav class="flex-grow-1 p-2 overflow-auto">
       <button type="button" id="nav-dashboard" onclick="loadDashboard()"
         class="nav-link">
@@ -831,16 +829,6 @@
       <p class="sidebar-section-label">Topics</p>
       <div id="nav-topics"></div>
     </nav>
-
-    <a href="habit.html" target="_blank" class="sidebar-habit-link">
-      <span class="nav-topic-icon">📅</span>
-      <span class="nav-topic-label">Habit Tracker</span>
-    </a>
-
-    <a href="gym.html" target="_blank" class="sidebar-gym-link">
-      <span class="nav-topic-icon">💪</span>
-      <span class="nav-topic-label">CBum's Gym</span>
-    </a>
 
     <a href="gym-5day.html" target="_blank" class="sidebar-gym-link">
       <span class="nav-topic-icon">🔥</span>
@@ -888,8 +876,6 @@
       </button>
       <div id="header-tabs" class="ms-2"></div>
       <input type="text" id="global-search-input" class="form-control form-control-sm" placeholder="🔍 Search by title, tags..." style="width: 200px; margin: 0 1rem;" onkeyup="handleGlobalSearch()">
-      <!-- Daily ritual ticks (resets at midnight) — rendered by _renderHeaderRitual() -->
-      <div id="header-ritual" class="header-ritual"></div>
       <button type="button" onclick="toggleTheme()" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
     </header>
 
@@ -1153,9 +1139,9 @@ function getStreak() {
 const RITUAL_KEY = 'dsa-daily-ritual-v1'
 // The daily plan as a tiny checklist that resets each day (replaces the old Revise/Study chips).
 const RITUAL_STEPS = [
-  { key: 'revise', short: '🧠 Revise 50m', label: 'Active-recall sweep — grade your due problems', note: 'do this first' },
-  { key: 'code',   short: '⌨️ Code 90m',   label: 'Solve your weak/forgot problems cold, on the timer', note: '' },
-  { key: 'log',    short: '📝 Log',         label: 'Log + write a 1-line trigger note per problem',     note: '' },
+  { key: 'revise', short: '🧠 Revise', label: 'Active-recall sweep — grade your due problems', note: 'do this first' },
+  { key: 'code',   short: '⌨️ Code',   label: 'Solve your weak/forgot problems cold, on the timer', note: '' },
+  { key: 'log',    short: '📝 Log',    label: 'Log + write a 1-line trigger note per problem',     note: '' },
 ]
 function getRitual() {
   const today = new Date().toISOString().slice(0, 10)
@@ -1173,7 +1159,7 @@ function toggleRitual(step) {
   r.date = new Date().toISOString().slice(0, 10)
   try { localStorage.setItem(RITUAL_KEY, JSON.stringify(r)) } catch {}
   _updateRitualStats()
-  _renderHeaderRitual()
+  _renderSidebarRitual()
 }
 
 // ─── DAILY-PLAN COMPLETION STATS ──────────────────────────────────────────────
@@ -1203,7 +1189,7 @@ function _ritualPercent() {
   const done = Array.isArray(s.doneDays) ? s.doneDays.length : 0
   return { pct: Math.round(done / elapsed * 100), done, elapsed }
 }
-function renderHeaderRitual() {
+function renderSidebarRitual() {
   const r = getRitual()
   const chips = RITUAL_STEPS.map(s => {
     const on  = !!r[s.key]
@@ -1225,9 +1211,9 @@ function renderHeaderRitual() {
     (allDone ? '✅ ' : '') + pct + '% · ' + done + 'd</span>'
   return chips + pctBadge
 }
-function _renderHeaderRitual() {
-  const el = document.getElementById('header-ritual')
-  if (el) el.innerHTML = renderHeaderRitual()
+function _renderSidebarRitual() {
+  const el = document.getElementById('sidebar-ritual')
+  if (el) el.innerHTML = renderSidebarRitual()
 }
 
 // A question is "due" if never practiced OR last practiced > N days ago (N = per-key review interval)
@@ -1327,7 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
   syncThemeIcon()
   _loadQpState()
   buildNav()
-  _renderHeaderRitual()
+  _renderSidebarRitual()
   _restoreView()
 })
 
