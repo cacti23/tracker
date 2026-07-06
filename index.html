@@ -1028,7 +1028,7 @@ let _psDoneThisSession      = new Set()  // keys done in current per-topic pract
 let _psStruggledThisSession = new Set()  // subset of done that were marked "struggled"
 let _psCurrentItems         = []         // current ordered list for per-topic session
 let _psCurrentTopic         = null       // currently active topic key for practice session
-let _psMode                 = 'mock'     // per-topic solve-mode default: 'mock' (random, hidden difficulty, timed) | 'worked' | 'graded'
+let _psMode                 = 'graded'   // per-topic solve-mode default: 'graded' (your graded questions, weakest first) | 'worked' | 'mock'
 let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
@@ -2748,16 +2748,27 @@ function _psToggleWorkedOnly(topicKey) {
 function _psModePool(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
-  // Drop questions on cooldown (solved & resting) from every mode.
+  if (_psMode === 'graded') {
+    // Graded ignores the cooldown — your grade is the single source of truth (a clean solve
+    // re-grades the question ✓ solid, and THAT is what sinks it). 📌 pinned and ✗ forgot /
+    // ~ shaky ALWAYS appear; `count` only caps how many ✓ solid rows pad the list after them.
+    const graded    = Object.entries(mod.questions).filter(([k]) => getRevise(k))
+    const rank      = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
+    const pinned    = _shuffle(graded.filter(([k]) => isPinned(k)))
+    const unpinned  = graded.filter(([k]) => !isPinned(k))
+    const weak      = _weightedShuffle(unpinned.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
+    const solid     = _weightedShuffle(unpinned.filter(([k]) => rank(k) === 2))
+    const solidFill = Math.max(0, count - pinned.length - weak.length)
+    return [...pinned, ...weak, ...solid.slice(0, solidFill)]
+  }
+  // Worked/Mock still drop questions on cooldown (solved & resting).
   const all = Object.entries(mod.questions).filter(([k]) => !_onCooldown(k))
   if (_psMode === 'mock') {
     // Random mixed set from this topic; difficulty hidden + timed (a mini interview run).
     return _shuffle(all).slice(0, count)
   }
-  // worked = questions you've started/solved (🚧/✅) · graded = questions you've graded on the cards
-  const base = _psMode === 'graded'
-    ? all.filter(([k]) => getRevise(k))
-    : all.filter(([k]) => getStatus(k) !== 'Pending')   // 'worked'
+  // worked = questions you've started/solved (🚧/✅)
+  const base      = all.filter(([k]) => getStatus(k) !== 'Pending')
   const pinned    = _shuffle(base.filter(([k]) => isPinned(k))).slice(0, count)
   const unpinned  = base.filter(([k]) => !isPinned(k))
   const fillCount = Math.max(0, count - pinned.length)
