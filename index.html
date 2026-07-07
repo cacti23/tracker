@@ -817,7 +817,7 @@
     </div>
 
     <!-- Daily ritual ticks (resets at midnight) — rendered by _renderSidebarRitual() -->
-    <p class="sidebar-section-label">Daily Plan</p>
+    <p class="sidebar-section-label" title="Revise next topic 1h → code current topic 1.5h → re-revise tonight's fails 1h">Daily Plan · 3.5h</p>
     <div id="sidebar-ritual" class="sidebar-ritual"></div>
 
     <nav class="flex-grow-1 p-2 overflow-auto">
@@ -1141,13 +1141,17 @@ function getStreak() {
 }
 
 // ─── DAILY RITUAL CHECKLIST ───────────────────────────────────────────────────
-// shape: { date: 'YYYY-MM-DD', revise: bool, study: bool }. Auto-resets when the date changes.
+// shape: { date: 'YYYY-MM-DD', revise: bool, code: bool, rerev: bool }. Auto-resets when the date changes.
 const RITUAL_KEY = 'dsa-daily-ritual-v1'
-// The daily plan as a tiny checklist that resets each day (replaces the old Revise/Study chips).
+// The nightly plan (~3.5h) as a checklist that resets each day. Two topics run as a pipeline:
+// the NEXT topic is revised while the CURRENT topic is coded; when the current topic finishes
+// its coding run, the next topic (already warm) slides into the code slot and a new topic
+// enters the revise slot. Revise is capped (warm-up, not deep study); Code is the only block
+// allowed to run over; tonight's failures get the last slot before sleep.
 const RITUAL_STEPS = [
-  { key: 'revise', short: '🧠 Revise', label: 'Active-recall sweep — grade your due problems', note: 'do this first' },
-  { key: 'code',   short: '⌨️ Code',   label: 'Solve your weak/forgot problems cold, on the timer', note: '' },
-  { key: 'log',    short: '📝 Log',    label: 'Log + write a 1-line trigger note per problem',     note: '' },
+  { key: 'revise', short: '🧠 Revise next · 1h',  label: 'Revise the NEXT topic (queued for coding) — graded recall, cover-then-check, no coding. Hard cap 1h', note: 'warm-up · do this first' },
+  { key: 'code',   short: '⌨️ Code current · 1.5h', label: 'Code the CURRENT topic cold on the timer, grade each solve', note: 'only block allowed to run over' },
+  { key: 'rerev',  short: '🔁 Re-revise fails · 1h', label: "Re-revise tonight's failed/struggled solves + log a 1-line trigger note per problem", note: 'last thing before sleep' },
 ]
 function getRitual() {
   const today = new Date().toISOString().slice(0, 10)
