@@ -521,23 +521,44 @@
     .btn-note-expand { background: transparent; color: var(--text-muted); margin-right: 0.25rem; }
     .btn-note-expand:hover { background: var(--bg-hover); color: var(--text-primary); }
 
-    .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 0.75rem; align-items: start; }
-    .note-card {
-      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 0.7rem 0.8rem; display: flex; flex-direction: column; gap: 0.4rem;
+    /* Toolbar: live search + expand/collapse all */
+    .notes-toolbar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .note-search {
+      flex: 1; min-width: 0; background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--text-primary); font-family: var(--font-body);
+      font-size: var(--fs-sm); padding: 0.35rem 0.9rem;
     }
-    .note-card.pinned { border-color: var(--border-glow); }
-    .note-card.w2 { grid-column: span 2; }
-    .note-card.wfull { grid-column: 1 / -1; }
-    .note-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
-    .note-card-title { font-weight: 600; font-size: 0.84rem; color: var(--text-primary); line-height: 1.3; }
+    .note-search:focus { outline: none; border-color: var(--border-glow); }
+    .note-search::placeholder { color: var(--text-faint); }
+    .btn-notes-toggle-all {
+      background: transparent; color: var(--text-muted); border: 1px solid var(--border);
+      border-radius: 20px; padding: 0.3rem 0.9rem; font-size: var(--fs-xs); cursor: pointer; white-space: nowrap;
+    }
+    .btn-notes-toggle-all:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    /* Accordion: one collapsed row per note, click the header to expand */
+    .notes-acc { display: flex; flex-direction: column; gap: 0.5rem; }
+    .note-acc { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); }
+    .note-acc.pinned { border-color: var(--border-glow); }
+    .note-acc-head { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.8rem; cursor: pointer; user-select: none; }
+    .note-acc-chev { font-size: 0.62rem; color: var(--text-faint); flex-shrink: 0; transition: transform 0.15s; }
+    .note-acc.open .note-acc-chev { transform: rotate(90deg); }
+    .note-acc-title {
+      flex: 1; min-width: 0; font-weight: 600; font-size: 0.84rem; color: var(--text-primary);
+      line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .note-acc.open .note-acc-title { white-space: normal; }
+    .note-acc-title mark { background: var(--accent-dim); color: var(--accent); padding: 0 0.12em; border-radius: 0.2em; }
+    .note-acc-meta { font-size: var(--fs-xs); color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
+    .note-acc-body { display: none; padding: 0.55rem 0.8rem 0.7rem; border-top: 1px solid var(--border); }
+    .note-acc.open .note-acc-body { display: block; }
     .note-card-actions { display: flex; gap: 0.1rem; flex-shrink: 0; }
     .note-card-actions button {
       background: none; border: none; cursor: pointer; font-size: 0.72rem; opacity: 0.45;
       padding: 0.1rem 0.22rem; border-radius: 0.25rem; transition: opacity 0.12s, background 0.12s;
     }
     .note-card-actions button:hover { opacity: 1; background: var(--bg-hover); }
-    .note-card.pinned .note-card-actions button[title="Unpin"] { opacity: 0.9; }
+    .note-acc.pinned .note-card-actions button[title="Unpin"] { opacity: 0.9; }
     .note-card-body { font-size: var(--fs-sm); color: var(--text-muted); line-height: 1.5; }
     .note-card-body p { margin: 0 0 0.4rem; }
     .note-card-body p:last-child { margin-bottom: 0; }
@@ -1658,6 +1679,7 @@ function loadTopic(key) {
   _saveCurrentView(key)
   currentTab = TOPIC_TABS[0].key  // always start on first tab
   _editingNoteId = null           // drop any in-progress note edit from the prior topic
+  _noteQuery = ''                 // clear notes search on topic switch
   currentQFilter = 'all'          // reset filter on topic switch
   currentCompanyFilter = null     // reset company filter on topic switch
   currentFreqFilter = 'all'       // reset frequency filter on topic switch
@@ -1762,20 +1784,102 @@ function renderNoteBody(text) {
   return html || '<p class="text-faint">(empty)</p>'
 }
 
-function noteCard(n) {
-  const wState = n.w === 2 ? 'wide' : n.w === 'full' ? 'full' : 'normal'
-  const wCls   = n.w === 2 ? ' w2'  : n.w === 'full' ? ' wfull' : ''
-  return '<div class="note-card' + (n.pinned ? ' pinned' : '') + wCls + '" id="note-card-' + n.id + '">' +
-    '<div class="note-card-head">' +
-    '<span class="note-card-title">' + (n.pinned ? '📌 ' : '') + escHtml(n.title || 'Untitled') + '</span>' +
-    '<span class="note-card-actions">' +
-    '<button title="Width: ' + wState + ' — click to widen (normal → wide → full)" onclick="cycleNoteWidth(\'' + n.id + '\')">↔</button>' +
+// Accordion open/closed state — per-device UI preference (not synced), keyed by topic.
+// No stored entry for a topic = first visit → pinned notes default open.
+const NOTES_OPEN_KEY = 'dsa-notes-open-v1'
+let _noteQuery = ''   // live search filter; reset on topic switch
+
+function _openNoteSet(notes) {
+  try {
+    const all = JSON.parse(localStorage.getItem(NOTES_OPEN_KEY) || '{}')
+    if (Object.prototype.hasOwnProperty.call(all, currentTopicKey)) return new Set(all[currentTopicKey])
+  } catch {}
+  return new Set(notes.filter(n => n.pinned).map(n => n.id))
+}
+function _saveOpenNoteSet(set) {
+  try {
+    const all = JSON.parse(localStorage.getItem(NOTES_OPEN_KEY) || '{}')
+    all[currentTopicKey] = [...set]
+    localStorage.setItem(NOTES_OPEN_KEY, JSON.stringify(all))
+  } catch {}
+}
+
+function toggleNoteOpen(id) {
+  const open = _openNoteSet(getTopicNotes(currentTopicKey))
+  open.has(id) ? open.delete(id) : open.add(id)
+  _saveOpenNoteSet(open)
+  _renderNotesList()
+}
+
+function toggleAllNotes() {
+  const notes = getTopicNotes(currentTopicKey)
+  const open = _openNoteSet(notes)
+  const allOpen = notes.length > 0 && notes.every(n => open.has(n.id))
+  _saveOpenNoteSet(allOpen ? new Set() : new Set(notes.map(n => n.id)))
+  _renderNotesList()
+}
+
+function _onNoteSearch(v) { _noteQuery = v; _renderNotesList() }
+
+// Escape-safe title highlighting: match on the raw string, escape the pieces.
+function _hlNoteTitle(title, q) {
+  if (!q) return escHtml(title)
+  const lower = title.toLowerCase()
+  let out = '', i = 0, j
+  while ((j = lower.indexOf(q, i)) !== -1) {
+    out += escHtml(title.slice(i, j)) + '<mark>' + escHtml(title.slice(j, j + q.length)) + '</mark>'
+    i = j + q.length
+  }
+  return out + escHtml(title.slice(i))
+}
+
+function noteAccItem(n, isOpen, q) {
+  const date = n.updatedAt ? new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+  return '<div class="note-acc' + (isOpen ? ' open' : '') + (n.pinned ? ' pinned' : '') + '" id="note-card-' + n.id + '">' +
+    '<div class="note-acc-head" onclick="toggleNoteOpen(\'' + n.id + '\')">' +
+    '<span class="note-acc-chev">▶</span>' +
+    '<span class="note-acc-title">' + (n.pinned ? '📌 ' : '') + _hlNoteTitle(n.title || 'Untitled', q) + '</span>' +
+    '<span class="note-acc-meta">' + date + '</span>' +
+    '<span class="note-card-actions" onclick="event.stopPropagation()">' +
     '<button title="' + (n.pinned ? 'Unpin' : 'Pin to top') + '" onclick="toggleTopicNotePin(\'' + n.id + '\')">📌</button>' +
     '<button title="Edit" onclick="editTopicNote(\'' + n.id + '\')">✏️</button>' +
     '<button title="Delete" onclick="removeTopicNote(\'' + n.id + '\')">🗑️</button>' +
     '</span></div>' +
-    '<div class="note-card-body">' + renderNoteBody(n.body) + '</div>' +
+    '<div class="note-acc-body"><div class="note-card-body">' + renderNoteBody(n.body) + '</div></div>' +
     '</div>'
+}
+
+// Renders only the accordion list + toggle-all label. Called on every search
+// keystroke, so the search input itself must live outside this host (focus).
+function _renderNotesList() {
+  const host = document.getElementById('notes-acc-host')
+  if (!host) return
+  const notes = getTopicNotes(currentTopicKey)
+  const q = _noteQuery.trim().toLowerCase()
+  const open = _openNoteSet(notes)
+
+  const btn = document.getElementById('btn-notes-toggle-all')
+  if (btn) btn.textContent = notes.length > 0 && notes.every(n => open.has(n.id)) ? '⊟ Collapse all' : '⊞ Expand all'
+
+  if (!notes.length) {
+    host.innerHTML = '<div class="notes-empty text-center py-5 text-secondary">' +
+      '<div style="font-size:2rem">🗒️</div>' +
+      '<p class="small mt-2 mb-0">No notes yet. Capture key insights, gotchas, and patterns as you learn.</p></div>'
+    return
+  }
+
+  const shown = q
+    ? notes.filter(n => (n.title || '').toLowerCase().includes(q) || (n.body || '').toLowerCase().includes(q))
+    : notes
+  if (!shown.length) {
+    host.innerHTML = '<p class="text-faint text-center py-4 mb-0">No notes match “' + escHtml(_noteQuery.trim()) + '”</p>'
+    return
+  }
+  // While searching, body matches open automatically so you can see the hit.
+  host.innerHTML = '<div class="notes-acc">' + shown.map(n => {
+    const isOpen = open.has(n.id) || (q !== '' && (n.body || '').toLowerCase().includes(q))
+    return noteAccItem(n, isOpen, q)
+  }).join('') + '</div>'
 }
 
 function renderTopicNotes() {
@@ -1785,21 +1889,25 @@ function renderTopicNotes() {
   const notes = getTopicNotes(currentTopicKey)
 
   let html = '<div class="notes-head d-flex align-items-center justify-content-between mb-3">' +
-    '<div><h6 class="mb-0">📝 Notes' + (topic ? ' — ' + escHtml(topic.label) : '') + '</h6>' +
+    '<div><h6 class="mb-0">📝 Notes' + (topic ? ' — ' + escHtml(topic.label) : '') +
+    (notes.length ? ' <span class="text-faint" style="font-weight:400">(' + notes.length + ')</span>' : '') + '</h6>' +
     '<span class="text-faint" style="font-size:var(--fs-xs)">Concise things to remember for this topic</span></div>' +
     '<button class="btn-add-note" onclick="startNewTopicNote()">＋ New note</button>' +
     '</div>'
 
   html += '<div id="note-editor-host"></div>'
 
-  if (!notes.length) {
-    html += '<div class="notes-empty text-center py-5 text-secondary">' +
-      '<div style="font-size:2rem">🗒️</div>' +
-      '<p class="small mt-2 mb-0">No notes yet. Capture key insights, gotchas, and patterns as you learn.</p></div>'
-  } else {
-    html += '<div class="notes-grid">' + notes.map(noteCard).join('') + '</div>'
+  if (notes.length) {
+    html += '<div class="notes-toolbar">' +
+      '<input class="note-search" id="note-search" type="search" placeholder="🔍 Search notes — title or body…" value="' + escHtml(_noteQuery) + '"' +
+      ' oninput="_onNoteSearch(this.value)" onkeydown="if(event.key===\'Escape\'){this.value=\'\';_onNoteSearch(\'\')}">' +
+      '<button class="btn-notes-toggle-all" id="btn-notes-toggle-all" onclick="toggleAllNotes()"></button>' +
+      '</div>'
   }
+
+  html += '<div id="notes-acc-host"></div>'
   host.innerHTML = html
+  _renderNotesList()
 
   // Re-open the editor if we were mid-edit when a re-render happened.
   if (_editingNoteId === '__new__') renderNoteEditor({ id: null, title: '', body: '' })
@@ -1887,14 +1995,10 @@ function saveTopicNoteFromEditor() {
   }
   upsertTopicNote(currentTopicKey, note)
   _editingNoteId = null
-  renderTopicNotes()
-}
-
-function cycleNoteWidth(id) {
-  const n = getTopicNotes(currentTopicKey).find(x => x.id === id)
-  if (!n) return
-  const next = n.w === 2 ? 'full' : n.w === 'full' ? 1 : 2   // normal → wide → full → normal
-  upsertTopicNote(currentTopicKey, { ...n, w: next, updatedAt: n.updatedAt || Date.now() })
+  // Open the note you just saved so the result is visible.
+  const open = _openNoteSet(getTopicNotes(currentTopicKey))
+  open.add(note.id)
+  _saveOpenNoteSet(open)
   renderTopicNotes()
 }
 
