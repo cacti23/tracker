@@ -583,6 +583,31 @@
     .note-card-body pre.note-code { background: var(--bg-hover); border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 0.4rem; padding: 0.55rem 0.7rem; margin: 0 0 0.45rem; overflow-x: auto; }
     .note-card-body pre.note-code code { background: none; padding: 0; font-family: var(--font-mono); font-size: 0.85em; color: var(--text-primary); white-space: pre; }
 
+    /* Per-question LeetCode submission links (max 3, shown above My notes) */
+    .subs-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+    .sub-pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 20px;
+      padding: 0.18rem 0.65rem; font-size: var(--fs-xs); color: var(--text-primary);
+      text-decoration: none; font-family: var(--font-mono);
+    }
+    .sub-pill:hover { border-color: var(--border-glow); color: var(--accent); }
+    .sub-pill-x { cursor: pointer; opacity: 0.45; padding: 0 0.1rem; }
+    .sub-pill-x:hover { opacity: 1; }
+    .btn-add-sub {
+      background: transparent; color: var(--text-muted); border: 1px dashed var(--border);
+      border-radius: 20px; padding: 0.18rem 0.7rem; font-size: var(--fs-xs); cursor: pointer; white-space: nowrap;
+    }
+    .btn-add-sub:hover { background: var(--bg-hover); color: var(--text-primary); border-style: solid; }
+    .sub-input {
+      flex: 1; min-width: 0; background: var(--bg-base); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-primary); font-family: var(--font-mono);
+      font-size: var(--fs-xs); padding: 0.35rem 0.6rem;
+    }
+    .sub-input:focus { outline: none; border-color: var(--border-glow); }
+    .sub-input::placeholder { color: var(--text-faint); }
+    .sub-err { color: var(--red, #e5484d); font-size: var(--fs-xs); margin-top: 0.25rem; }
+
     /* ── 26. QUESTION HEADER ACTIONS ─────────────────────────────────────────────────── */
     /* Action buttons sit outside the accordion <button> so clicks on them       */
     /* never activate Bootstrap’s toggle, regardless of where in the span they land. */
@@ -2205,6 +2230,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const gotchaRow  = q.gotcha    ? '<div class="gotcha-box mb-2 small"><strong class="text-danger">⚠ Gotcha:</strong> '  + escHtml(q.gotcha)    + '</div>' : ''
   const faangRow   = q.faangNote ? '<div class="faang-box mb-2 small"><strong class="text-success">★ FAANG:</strong> '  + escHtml(q.faangNote) + '</div>' : ''
   const altRow     = altApproaches ? '<div class="mb-2 small"><span class="text-secondary">Alt approaches:</span> ' + altApproaches + '</div>' : ''
+  const subsRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)" id="subs-' + lcKey + '">' + _subsRowHtml(lcKey) + '</div>'
   const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="text-secondary text-xs mb-1">📝 My notes</p>' +
     '<textarea class="note-area" placeholder="Add your attempt notes, observations, or reminders here…" id="note-' + lcKey + '"' +
     ' onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
@@ -2247,6 +2273,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     (q.freq ? '<span class="q-badge-sep"></span>' + freqBadge(q) : '') +
     _reviseGradeBadge(lcKey) +
     (existingNote ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>' : '') +
+    (getSubmissions(lcKey).length ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has submission links">🔗' + getSubmissions(lcKey).length + '</span>' : '') +
     (isPinned(lcKey) ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge pin-badge" title="Pinned to practice">📌</span>' : '') +
     '</span>' +
     companyPillsRow(q.leetcode) +
@@ -2257,7 +2284,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<div class="accordion-body small">' +
     (tags ? '<div class="mb-3 d-flex flex-wrap gap-1">' + tags + '</div>' : '') +
     companyRow +
-    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow + noteRow +
+    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow + subsRow + noteRow +
     '</div></div></div>'
   )
 }
@@ -2384,6 +2411,92 @@ function saveNoteFromTextarea(lcKey) {
     flash.classList.add('show')
     setTimeout(() => flash.classList.remove('show'), 1500)
   }
+}
+
+// ─── PER-QUESTION SUBMISSION LINKS ────────────────────────────────────────────
+// Up to MAX_SUBMISSIONS LeetCode submission URLs per question, shown as pills
+// above "My notes". Storage lives in data.js (SUBMISSIONS_KEY / getSubmissions …).
+function _isLcSubmissionUrl(u) {
+  try {
+    const p = new URL(u)
+    return p.protocol === 'https:' && /(^|\.)leetcode\.(com|cn)$/.test(p.hostname) && p.pathname.includes('/submissions')
+  } catch { return false }
+}
+
+function _subsRowHtml(lcKey) {
+  const subs = getSubmissions(lcKey)
+  const fmt = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  let html = '<p class="text-secondary text-xs mb-1">🔗 My submissions <span class="text-faint">(' + subs.length + '/' + MAX_SUBMISSIONS + ')</span></p>' +
+    '<div class="subs-row">' +
+    subs.map((s, i) =>
+      '<a class="sub-pill" href="' + escHtml(s.url) + '" target="_blank" rel="noopener" title="' + escHtml(s.url) + '">' +
+      '↗ #' + (i + 1) + ' · ' + fmt(s.addedAt) +
+      '<span class="sub-pill-x" title="Remove link" onclick="event.preventDefault();event.stopPropagation();removeSubmission(\'' + lcKey + '\',' + i + ')">✕</span>' +
+      '</a>'
+    ).join('')
+  if (subs.length < MAX_SUBMISSIONS) {
+    html += '<button class="btn-add-sub" onclick="showAddSubmission(\'' + lcKey + '\')">＋ Add link</button>'
+  }
+  html += '</div><div id="sub-add-' + lcKey + '"></div>'
+  return html
+}
+
+function _refreshSubsRow(lcKey) {
+  const host = document.getElementById('subs-' + lcKey)
+  if (!host) return
+  host.innerHTML = _subsRowHtml(lcKey)
+  // Keep the 🔗 badge in the accordion header in step without a full re-render
+  const meta = host.closest('.accordion-item')?.querySelector('.q-meta')
+  if (meta) {
+    const count = getSubmissions(lcKey).length
+    const existing = meta.querySelector('[title="Has submission links"]')
+    if (count && existing) existing.textContent = '🔗' + count
+    else if (count && !existing) {
+      meta.insertAdjacentHTML('beforeend',
+        '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has submission links">🔗' + count + '</span>')
+    } else if (!count && existing) {
+      const sep = existing.previousElementSibling
+      if (sep && sep.classList.contains('q-badge-sep')) sep.remove()
+      existing.remove()
+    }
+  }
+}
+
+function showAddSubmission(lcKey) {
+  const host = document.getElementById('sub-add-' + lcKey)
+  if (!host) return
+  host.innerHTML = '<div class="d-flex gap-2 align-items-center mt-2">' +
+    '<input class="sub-input" id="sub-input-' + lcKey + '" placeholder="Paste a LeetCode submission URL (…/submissions/…)"' +
+    ' onkeydown="if(event.key===\'Enter\')saveSubmissionFromInput(\'' + lcKey + '\');else if(event.key===\'Escape\')cancelAddSubmission(\'' + lcKey + '\')">' +
+    '<button class="btn-note-save" onclick="saveSubmissionFromInput(\'' + lcKey + '\')">Save</button>' +
+    '<button class="btn-note-cancel" onclick="cancelAddSubmission(\'' + lcKey + '\')">Cancel</button>' +
+    '</div><div class="sub-err" id="sub-err-' + lcKey + '"></div>'
+  document.getElementById('sub-input-' + lcKey)?.focus()
+}
+
+function cancelAddSubmission(lcKey) {
+  const host = document.getElementById('sub-add-' + lcKey)
+  if (host) host.innerHTML = ''
+}
+
+function saveSubmissionFromInput(lcKey) {
+  const url = (document.getElementById('sub-input-' + lcKey)?.value || '').trim()
+  const err = document.getElementById('sub-err-' + lcKey)
+  if (!_isLcSubmissionUrl(url)) {
+    if (err) err.textContent = "That doesn't look like a LeetCode submission link (expected https://leetcode.com/…/submissions/…)"
+    return
+  }
+  if (!addSubmission(lcKey, url)) {
+    if (err) err.textContent = 'Max ' + MAX_SUBMISSIONS + ' links per question — remove one first.'
+    return
+  }
+  _refreshSubsRow(lcKey)
+}
+
+function removeSubmission(lcKey, i) {
+  if (!confirm('Remove this submission link?')) return
+  removeSubmissionAt(lcKey, i)
+  _refreshSubsRow(lcKey)
 }
 
 // ─── TOPIC TRACKER (always visible) ─────────────────────────────────────────
@@ -3746,6 +3859,7 @@ const BACKUP_KEYS = [
   'dsa-progress-v1',
   'dsa-notes-v1',
   'dsa-topic-notes-v1',
+  'dsa-submissions-v1',
   'dsa-pins-v1',
   'dsa-solve-counts-v1',
   'dsa-seen-v1',

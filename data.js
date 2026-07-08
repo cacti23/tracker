@@ -98,11 +98,40 @@ function deleteTopicNote(topicKey, id) {
   if (all[topicKey]) { all[topicKey] = all[topicKey].filter(x => x.id !== id); saveTopicNotes(all); }
 }
 
+// Per-question LeetCode submission links (persisted in localStorage, synced)
+// shape: { [lcKey]: [{ url, addedAt }] } — capped at MAX_SUBMISSIONS per question
+const SUBMISSIONS_KEY = 'dsa-submissions-v1';
+const MAX_SUBMISSIONS = 3;
+let _submissionsCache = null;
+function loadSubmissions() {
+  if (_submissionsCache) return _submissionsCache;
+  try { _submissionsCache = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '{}'); } catch { _submissionsCache = {}; }
+  return _submissionsCache;
+}
+function saveSubmissions(s) { _submissionsCache = s; localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(s)); }
+function getSubmissions(lcKey) { return loadSubmissions()[lcKey] || []; }
+function addSubmission(lcKey, url) {
+  const all = loadSubmissions();
+  const list = all[lcKey] || (all[lcKey] = []);
+  if (list.length >= MAX_SUBMISSIONS) return false;
+  list.push({ url, addedAt: Date.now() });
+  saveSubmissions(all);
+  return true;
+}
+function removeSubmissionAt(lcKey, i) {
+  const all = loadSubmissions();
+  if (!all[lcKey]) return;
+  all[lcKey].splice(i, 1);
+  if (!all[lcKey].length) delete all[lcKey];
+  saveSubmissions(all);
+}
+
 // Invalidate caches on cross-tab updates
 window.addEventListener('storage', (e) => {
   if (e.key === PROGRESS_KEY) _progressCache = null;
   if (e.key === NOTES_KEY) _notesCache = null;
   if (e.key === TOPIC_NOTES_KEY) _topicNotesCache = null;
+  if (e.key === SUBMISSIONS_KEY) _submissionsCache = null;
 });
 
 // Per-question pins (persisted in localStorage)
