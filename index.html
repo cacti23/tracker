@@ -583,6 +583,16 @@
     .note-card-body pre.note-code { background: var(--bg-hover); border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 0.4rem; padding: 0.55rem 0.7rem; margin: 0 0 0.45rem; overflow-x: auto; }
     .note-card-body pre.note-code code { background: none; padding: 0; font-family: var(--font-mono); font-size: 0.85em; color: var(--text-primary); white-space: pre; }
 
+    /* Section labels inside the question body ("Asked at" / "My submissions" /
+       "My notes") — badge pills so they stand out from surrounding text */
+    .q-section-label {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: var(--accent-dim); color: var(--accent);
+      border: 1px solid var(--border-glow); border-radius: 20px;
+      padding: 0.24rem 0.7rem; font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase; line-height: 1; white-space: nowrap;
+    }
+
     /* Per-question LeetCode submission links (max 3, shown above My notes) */
     .subs-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
     .sub-pill {
@@ -2212,13 +2222,17 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const companyChips = getCompanies(q.leetcode).slice()
     .sort((a, b) => (COMPANY_ORDER[a] ?? 99) - (COMPANY_ORDER[b] ?? 99))
     .map(c => companyPill(c)).join('')
-  const companyRow = companyChips ? '<div class="mb-2 small d-flex flex-wrap align-items-center"><span class="text-secondary me-1">🏢 Asked at:</span><span class="q-companies">' + companyChips + '</span></div>' : ''
+  const companyRow = companyChips ? '<div class="mb-2 small d-flex flex-wrap align-items-center gap-1"><span class="q-section-label me-1">🏢 Asked at</span><span class="q-companies">' + companyChips + '</span></div>' : ''
   const altApproaches = (q.alternateApproaches || []).map(a =>
     '<span class="badge bg-secondary me-1" title="' + escHtml(a.tradeoff) + '">' + escHtml(a.technique) + '</span>'
   ).join('')
 
   const conditionLabel = { 'two-pointers': 'Pointer condition', 'binary-search': 'Feasibility check', 'sorting': 'Key condition', 'heap': 'Key condition', 'recursion': 'Base case', 'trees': 'Recurrence / base case', 'stack': 'Push / pop rule', 'linked-list': 'Pointer move', 'trie': 'Node step', 'design': 'Core operation', 'bit-manipulation': 'Bit trick', 'intervals': 'Sort / merge rule' }[currentTopicKey] || 'Shrink trigger'
   const existingNote = getNote(lcKey)
+
+  // Hidden by choice (Jul 2026): shrink/complexity/gotcha/FAANG rows were never
+  // read. The fields still exist in data.js — flip to true to show them again.
+  const SHOW_QUESTION_EXTRAS = false
 
   const insightRow    = q.keyInsight    ? '<div class="insight-box mb-2 small"><strong class="text-info">💡 Insight:</strong> '  + escHtml(q.keyInsight)   + '</div>' : ''
   const shrinkRow     = q.shrinkTrigger ? '<p class="mb-2 small"><span class="text-secondary">' + conditionLabel + ':</span> <code>' + escHtml(q.shrinkTrigger) + '</code></p>' : ''
@@ -2229,9 +2243,9 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '</div>' : ''
   const gotchaRow  = q.gotcha    ? '<div class="gotcha-box mb-2 small"><strong class="text-danger">⚠ Gotcha:</strong> '  + escHtml(q.gotcha)    + '</div>' : ''
   const faangRow   = q.faangNote ? '<div class="faang-box mb-2 small"><strong class="text-success">★ FAANG:</strong> '  + escHtml(q.faangNote) + '</div>' : ''
-  const altRow     = altApproaches ? '<div class="mb-2 small"><span class="text-secondary">Alt approaches:</span> ' + altApproaches + '</div>' : ''
+  const altRow     = altApproaches ? '<div class="mb-2 small d-flex flex-wrap align-items-center gap-1"><span class="q-section-label me-1">🔀 Alt approaches</span><span>' + altApproaches + '</span></div>' : ''
   const subsRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)" id="subs-' + lcKey + '">' + _subsRowHtml(lcKey) + '</div>'
-  const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="text-secondary text-xs mb-1">📝 My notes</p>' +
+  const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="mb-2"><span class="q-section-label">📝 My notes</span></p>' +
     '<textarea class="note-area" placeholder="Add your attempt notes, observations, or reminders here…" id="note-' + lcKey + '"' +
     ' onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
     '<span class="note-saved-flash" id="note-flash-' + lcKey + '">Saved</span>' +
@@ -2284,7 +2298,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '<div class="accordion-body small">' +
     (tags ? '<div class="mb-3 d-flex flex-wrap gap-1">' + tags + '</div>' : '') +
     companyRow +
-    insightRow + shrinkRow + complexityRow + gotchaRow + faangRow + altRow + subsRow + noteRow +
+    insightRow + (SHOW_QUESTION_EXTRAS ? shrinkRow + complexityRow + gotchaRow + faangRow : '') + altRow + subsRow + noteRow +
     '</div></div></div>'
   )
 }
@@ -2426,7 +2440,7 @@ function _isLcSubmissionUrl(u) {
 function _subsRowHtml(lcKey) {
   const subs = getSubmissions(lcKey)
   const fmt = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  let html = '<p class="text-secondary text-xs mb-1">🔗 My submissions <span class="text-faint">(' + subs.length + '/' + MAX_SUBMISSIONS + ')</span></p>' +
+  let html = '<p class="mb-2"><span class="q-section-label">🔗 My submissions</span> <span class="text-faint" style="font-size:var(--fs-xs)">(' + subs.length + '/' + MAX_SUBMISSIONS + ')</span></p>' +
     '<div class="subs-row">' +
     subs.map((s, i) =>
       '<a class="sub-pill" href="' + escHtml(s.url) + '" target="_blank" rel="noopener" title="' + escHtml(s.url) + '">' +
