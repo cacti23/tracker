@@ -602,6 +602,7 @@
       text-decoration: none; font-family: var(--font-mono);
     }
     .sub-pill:hover { border-color: var(--border-glow); color: var(--accent); }
+    .sub-pill-blocked { opacity: 0.6; cursor: default; text-decoration: line-through; }
     .sub-pill-x { cursor: pointer; opacity: 0.45; padding: 0 0.1rem; }
     .sub-pill-x:hover { opacity: 1; }
     .btn-add-sub {
@@ -2430,10 +2431,17 @@ function saveNoteFromTextarea(lcKey) {
 // ─── PER-QUESTION SUBMISSION LINKS ────────────────────────────────────────────
 // Up to MAX_SUBMISSIONS LeetCode submission URLs per question, shown as pills
 // above "My notes". Storage lives in data.js (SUBMISSIONS_KEY / getSubmissions …).
-function _isLcSubmissionUrl(u) {
+// Safety allowlist: https-only, known judge hosts only. Checked on save AND again
+// at render time, so a tampered/synced payload can never put javascript:/data: or
+// an unknown host into a pill's href. URL() lowercases and punycodes the hostname,
+// so lookalike unicode domains fail the regex too.
+function _isSafeSubmissionUrl(u) {
   try {
     const p = new URL(u)
-    return p.protocol === 'https:' && /(^|\.)leetcode\.(com|cn)$/.test(p.hostname) && p.pathname.includes('/submissions')
+    if (p.protocol !== 'https:') return false
+    if (/(^|\.)leetcode\.(com|cn)$/.test(p.hostname)) return p.pathname.includes('/submissions')
+    if (/(^|\.)lintcode\.com$/.test(p.hostname)) return true
+    return false
   } catch { return false }
 }
 
@@ -2442,12 +2450,16 @@ function _subsRowHtml(lcKey) {
   const fmt = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   let html = '<p class="mb-2"><span class="q-section-label">🔗 My submissions</span> <span class="text-faint" style="font-size:var(--fs-xs)">(' + subs.length + '/' + MAX_SUBMISSIONS + ')</span></p>' +
     '<div class="subs-row">' +
-    subs.map((s, i) =>
-      '<a class="sub-pill" href="' + escHtml(s.url) + '" target="_blank" rel="noopener" title="' + escHtml(s.url) + '">' +
-      '↗ #' + (i + 1) + ' · ' + fmt(s.addedAt) +
-      '<span class="sub-pill-x" title="Remove link" onclick="event.preventDefault();event.stopPropagation();removeSubmission(\'' + lcKey + '\',' + i + ')">✕</span>' +
-      '</a>'
-    ).join('')
+    subs.map((s, i) => {
+      const x = '<span class="sub-pill-x" title="Remove link" onclick="event.preventDefault();event.stopPropagation();removeSubmission(\'' + lcKey + '\',' + i + ')">✕</span>'
+      // Render-time guard: anything that fails the allowlist gets an inert pill
+      // (no href) so it can still be seen and deleted, but never followed.
+      if (!_isSafeSubmissionUrl(s.url)) {
+        return '<span class="sub-pill sub-pill-blocked" title="Blocked — not a recognized LeetCode/LintCode link">🚫 #' + (i + 1) + ' · ' + fmt(s.addedAt) + x + '</span>'
+      }
+      return '<a class="sub-pill" href="' + escHtml(s.url) + '" target="_blank" rel="noopener noreferrer" title="' + escHtml(s.url) + '">' +
+        '↗ #' + (i + 1) + ' · ' + fmt(s.addedAt) + x + '</a>'
+    }).join('')
   if (subs.length < MAX_SUBMISSIONS) {
     html += '<button class="btn-add-sub" onclick="showAddSubmission(\'' + lcKey + '\')">＋ Add link</button>'
   }
@@ -2480,7 +2492,7 @@ function showAddSubmission(lcKey) {
   const host = document.getElementById('sub-add-' + lcKey)
   if (!host) return
   host.innerHTML = '<div class="d-flex gap-2 align-items-center mt-2">' +
-    '<input class="sub-input" id="sub-input-' + lcKey + '" placeholder="Paste a LeetCode submission URL (…/submissions/…)"' +
+    '<input class="sub-input" id="sub-input-' + lcKey + '" placeholder="Paste a LeetCode submission URL (…/submissions/…) or a LintCode link"' +
     ' onkeydown="if(event.key===\'Enter\')saveSubmissionFromInput(\'' + lcKey + '\');else if(event.key===\'Escape\')cancelAddSubmission(\'' + lcKey + '\')">' +
     '<button class="btn-note-save" onclick="saveSubmissionFromInput(\'' + lcKey + '\')">Save</button>' +
     '<button class="btn-note-cancel" onclick="cancelAddSubmission(\'' + lcKey + '\')">Cancel</button>' +
@@ -2496,8 +2508,8 @@ function cancelAddSubmission(lcKey) {
 function saveSubmissionFromInput(lcKey) {
   const url = (document.getElementById('sub-input-' + lcKey)?.value || '').trim()
   const err = document.getElementById('sub-err-' + lcKey)
-  if (!_isLcSubmissionUrl(url)) {
-    if (err) err.textContent = "That doesn't look like a LeetCode submission link (expected https://leetcode.com/…/submissions/…)"
+  if (!_isSafeSubmissionUrl(url)) {
+    if (err) err.textContent = "That doesn't look like a valid link — expected https://leetcode.com/…/submissions/… or a https://lintcode.com/… link"
     return
   }
   if (!addSubmission(lcKey, url)) {
