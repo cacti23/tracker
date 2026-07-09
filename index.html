@@ -3177,12 +3177,12 @@ function _markRowSolved(rowEl, outcomeCls, onSettled) {
   if (onSettled && list) onSettled(list)
 }
 
-// A clean cold solve is the strongest signal: it implies a successful recall too. So advance the
-// REVISE queue (grade it solid) and clear any "re-code me" force flag. Asymmetric on purpose —
-// coding advances both queues, but a recall grade never credits a code solve. Live-updates the
+// A solve deliberately does NOT touch the REVISE grade — you may have peeked at the answer
+// while coding, so recall grades are only ever set by hand via the ✓/~/✗ buttons (gradeRevise
+// is the sole writer). The solve still clears the "re-code me" force flag: that flag queued
+// the question for a cold solve, and the solve is what discharges it. Live-updates the
 // revise control on the question card if it happens to be on screen.
 function _refreshReviseOnSolve(lcKey) {
-  markRevised(lcKey, 'solid')
   setCodeForced(lcKey, false)
   _refreshReviseCtrl(lcKey)
   _refreshReviseGradeBadges(lcKey)
