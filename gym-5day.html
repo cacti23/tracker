@@ -189,12 +189,14 @@
     .tag-chip { font-size: 9px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; border: 1px solid; display: inline-block; }
     .ex-note-inline { font-size: 11px; color: var(--note-color); font-style: italic; }
     .ex-sets-chip { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--sets-text); background: var(--sets-chip); padding: 8px 12px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; min-height: 40px; display: flex; align-items: center; }
-    .variant-header {
-      font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer;
-      padding: 10px 0; display: flex; align-items: center; gap: 6px; user-select: none; margin-top: 8px;
+    .variant-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .variant-pill {
+      font-size: 11px; font-family: 'DM Mono', monospace; padding: 7px 12px; border-radius: 14px;
+      border: 1px solid var(--variant-inactive); background: transparent; color: var(--text-muted);
+      cursor: pointer; transition: all 0.15s; white-space: nowrap; min-height: 32px;
     }
-    .variant-header::before { content: '▼'; font-size: 10px; transition: transform 0.2s; }
-    .variant-header.collapsed::before { transform: rotate(-90deg); }
+    .variant-pill:hover { border-color: var(--variant-active); color: var(--variant-active); }
+    .variant-pill.active { background: var(--variant-active); border-color: var(--variant-active); color: #fff; font-weight: 600; }
     .variant-content { max-height: 500px; overflow: hidden; transition: all 0.3s ease; }
     .variant-content.collapsed { max-height: 0; padding: 0; }
     .variant-sets {
@@ -295,7 +297,7 @@
       <div class="header-mono">Hany Rambod · 5-Day · 2× Frequency</div>
       <div class="header-title">MAXIMUM <span>ROI</span></div>
       <div class="header-sub">PUSH · PULL ×2 · LEGS · ≤90 MIN · HEAVY + PUMP · SUPERSETS</div>
-      <div class="header-desc">Every muscle 2×/week · heavy day + pump day · ~6 exercises capped at 90 min · supersets + printed rest times · constant primaries, Week A/B accessories</div>
+      <div class="header-desc">Every muscle 2×/week · heavy day + pump day · 4–7 exercises, sized to what each day covers · supersets + printed rest times · constant primaries, Week A/B accessories</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button type="button" id="dataSyncBtn" class="toggle-btn" onclick="DataSync.syncNow()" title="Sync your workout data, PRs and history to/from the cloud across devices">☁ Sync</button>
@@ -320,10 +322,10 @@
     {
       num: "01",
       tag: "PUSH A · CHEST",
-      focus: "Heavy chest + side delt/triceps superset",
+      focus: "Heavy chest overload — lean and focused",
       type: "push",
       color: "#0ea5e9",
-      notes: "CHEST heavy day. Incline (upper) + flat DB (mid/lower), one fly finisher (FST-7). One superset (laterals + pushdown). One leg move at the very end — Leg Press for quads' 2nd weekly hit. Target ≤ 82 min.",
+      notes: "CHEST heavy day. Incline (upper) + flat DB (mid/lower), one fly finisher (FST-7) — keep adding weight on the fly too, not just reps. One leg move at the end — Leg Press for quads' 2nd weekly hit. No isolation filler here; delts and triceps already get a full session on Push B. Target ≤ 60 min.",
       exercises: [
         {
           name: "Incline Barbell Press",
@@ -357,54 +359,16 @@
           }
         },
         {
-          name: "Cable Lateral Raise",
-          sets: "3 × 12–15",
-          tag: "ISOLATION",
-          priority: false,
-          ss: "ss1",
-          rest: "→ superset, no rest",
-          note: "Side-delt width. Superset with rope pushdown — go straight over.",
-          variants: [
-            { name: "Machine Lateral Raise", sets: "3 × 12–15", note: "Locked ROM" }
-          ],
-          altB: {
-            name: "Dumbbell Lateral Raise",
-            sets: "3 × 12–15",
-            note: "Week B: free-weight, 1s pause at top.",
-            variants: [
-              { name: "Leaning Cable Lateral", sets: "3 × 12–15", note: "Single-arm, bigger ROM" }
-            ]
-          }
-        },
-        {
-          name: "Rope Pushdown",
-          sets: "3 × 12–15",
-          tag: "ISOLATION",
-          priority: false,
-          ss: "ss1",
-          rest: "75s after pair",
-          note: "Triceps — second half of the superset. Spread the rope, full lockout.",
-          variants: [
-            { name: "Straight-Bar Pushdown", sets: "3 × 12–15", note: "Classic" }
-          ],
-          altB: {
-            name: "V-Bar Pushdown",
-            sets: "3 × 12–15",
-            note: "Week B: neutral grip, slightly more lateral head.",
-            variants: [
-              { name: "Single-Arm Cable Pushdown", sets: "3 × 12–15", note: "Unilateral" }
-            ]
-          }
-        },
-        {
           name: "FST-7 Finisher: Cable Fly",
           sets: "7 × 10–15",
           tag: "FST-7",
           priority: false,
           rest: "30–45s",
-          note: "One finisher. Pump + fascia stretch, last 2 sets near failure.",
+          note: "One finisher. Pump + fascia stretch, last 2 sets near failure. Once you can hit 7×15 clean across every set, add weight next session — don't grind the weight up mid-set at the cost of form.",
           variants: [
-            { name: "Pec Deck FST-7", sets: "7 × 10–15", note: "Stable, easy to chain" }
+            { name: "Pec Deck FST-7", sets: "7 × 10–15", note: "Stable, easy to chain" },
+            { name: "Low-to-High Cable Fly", sets: "7 × 10–15", note: "Cables set low, pull up and across — upper-chest angle" },
+            { name: "High-to-Low Cable Fly", sets: "7 × 10–15", note: "Cables set high, pull down and across — lower-chest angle" }
           ]
         },
         {
@@ -424,10 +388,10 @@
     {
       num: "02",
       tag: "PULL A · WIDTH + HAMS",
-      focus: "Heavy vertical pull + hamstrings, with a biceps/rear-delt superset",
+      focus: "Heavy vertical pull + one heavy deadlift + a light biceps touch",
       type: "pull",
       color: "#16a34a",
-      notes: "WIDTH-led pull day (the one row adds thickness for balance — your back needs both patterns). Weighted pull-up first. RDL = hamstrings' lighter hit (it's a pull/hinge, so it lives here, not on a push day). One superset (curl + rear delt), one FST-7, plus an ab finisher. Target ≤ 85 min.",
+      notes: "WIDTH-led pull day (the one row adds thickness for balance — your back needs both patterns). Weighted pull-up first, then a heavy conventional deadlift — your one dedicated deadlift session of the week. Biceps get a single touch here (curl); rear delts don't need one, they're already covered by Face Pull plus every row/pulldown in the week. One FST-7, plus an ab finisher. Target ≤ 70 min.",
       exercises: [
         {
           name: "Weighted Pull-up",
@@ -438,7 +402,8 @@
           note: "Heavy vertical pull. Dead-hang to chin over bar. Add belt weight; use lat pulldown if too hard.",
           variants: [
             { name: "Lat Pulldown (wide)", sets: "4 × 8–10", note: "For consistent load" },
-            { name: "Assisted Pull-up", sets: "4 × 6–8", note: "Band or machine assist" }
+            { name: "Assisted Pull-up", sets: "4 × 6–8", note: "Band or machine assist" },
+            { name: "Close-Grip Pull-up", sets: "4 × 6–8", note: "Narrow neutral grip — more lower-lat and biceps" }
           ]
         },
         {
@@ -449,7 +414,9 @@
           rest: "2 min",
           note: "Strict horizontal pull, zero momentum, big mid-back squeeze.",
           variants: [
-            { name: "Seal Row", sets: "3 × 6–8", note: "Bench-supported, strictest" }
+            { name: "Seal Row", sets: "3 × 6–8", note: "Bench-supported, strictest" },
+            { name: "Chest-Supported Row (wide grip)", sets: "3 × 6–8", note: "Elbows flared — more upper-back/rear-delt width" },
+            { name: "Chest-Supported Row (close/underhand)", sets: "3 × 6–8", note: "Elbows tucked — more lower-lat and biceps" }
           ],
           altB: {
             name: "T-Bar Row",
@@ -461,15 +428,15 @@
           }
         },
         {
-          name: "Romanian Deadlift",
-          sets: "3 × 8–10",
+          name: "Conventional Deadlift",
+          sets: "4 × 5",
           tag: "PRIMARY · CONSTANT",
           priority: true,
-          rest: "2 min",
-          note: "Hamstrings' first (lighter) weekly hit — Saturday's stiff-leg is the heavy one. Hinge, soft knees, 3s eccentric, feel the stretch.",
+          rest: "3 min",
+          note: "Your one heavy deadlift session of the week. Full posterior-chain pull from the floor — brace, flat back, drive through the heels. Lower reps than the rest of the day on purpose; this is the heaviest bar you'll touch all week.",
           variants: [
-            { name: "Dumbbell RDL", sets: "3 × 8–10", note: "Greater ROM" },
-            { name: "Seated Leg Curl", sets: "3 × 10–12", note: "No spinal load if back is tired" }
+            { name: "Trap Bar Deadlift", sets: "4 × 5", note: "More upright torso, easier on the lower back" },
+            { name: "Sumo Deadlift", sets: "4 × 5", note: "Wider stance, more quad/hip involvement" }
           ]
         },
         {
@@ -477,9 +444,8 @@
           sets: "3 × 10–12",
           tag: "ISOLATION",
           priority: false,
-          ss: "ss1",
-          rest: "→ superset, no rest",
-          note: "Biceps long-head stretch. Superset with rear delt — go straight over.",
+          rest: "60s",
+          note: "Biceps long-head stretch. Your one direct biceps touch on this side of the week — full stretch at the bottom, squeeze at the top.",
           variants: [
             { name: "Standing Dumbbell Curl", sets: "3 × 10–12", note: "Supination emphasis" }
           ],
@@ -493,32 +459,12 @@
           }
         },
         {
-          name: "Reverse Pec Deck (Rear Delt)",
-          sets: "3 × 12–15",
-          tag: "ISOLATION",
-          priority: false,
-          ss: "ss1",
-          rest: "75s after pair",
-          note: "Rear delt — second half of superset. Squeeze, no momentum.",
-          variants: [
-            { name: "Dumbbell Reverse Fly", sets: "3 × 12–15", note: "Bent-over, unilateral" }
-          ],
-          altB: {
-            name: "Cable Rear Delt Fly",
-            sets: "3 × 12–15",
-            note: "Week B: cross-cable, constant tension.",
-            variants: [
-              { name: "Face Pull (high)", sets: "3 × 12–15", note: "Rear delt + rotators" }
-            ]
-          }
-        },
-        {
           name: "FST-7 Finisher: Straight-Arm Pulldown",
           sets: "7 × 12–15",
           tag: "FST-7",
           priority: false,
           rest: "30–45s",
-          note: "Pure lat isolation — deliberately NOT a pulldown, so it doesn't repeat Friday's lat pulldown. Big stretch overhead, squeeze the lats to your hips.",
+          note: "Pure lat isolation — deliberately NOT a pulldown, so it doesn't repeat Friday's lat pulldown. Big stretch overhead, squeeze the lats to your hips. Add weight once you're clean across all 7 sets at 15 reps — not before.",
           variants: [
             { name: "Lat Pulldown FST-7 (wide)", sets: "7 × 10–15", note: "If no straight-arm station" }
           ]
@@ -549,10 +495,10 @@
     {
       num: "04",
       tag: "PUSH B · DELTS",
-      focus: "Pump day — delts/chest, mostly supersetted (fast)",
+      focus: "Pump day — delts-led, real chest 2nd hit, no redundant volume",
       type: "push",
       color: "#9333ea",
-      notes: "DELTS pump day — supersetted. OHP primary; chest gets a REAL 2nd hit (incline DB + pec deck); side-delt focus; one FST-7 (machine lateral, distinct from the DB working set). One leg move at the very end — Standing Calf for calves' 2nd weekly hit. Target ≤ 82 min.",
+      notes: "DELTS pump day. OHP primary; chest gets its real 2nd hit (incline DB press — no duplicate second chest move); side-delt focus with a working set plus FST-7 (machine lateral, distinct from the DB working set); Face Pull stays in every week for shoulder health. One leg move at the end — Standing Calf for calves' 2nd weekly hit. Target ≤ 75 min.",
       exercises: [
         {
           name: "Standing Overhead Press",
@@ -572,7 +518,7 @@
           tag: "COMPOUND",
           priority: false,
           rest: "90s",
-          note: "Chest's 2nd weekly hit (the press half), higher reps than Monday.",
+          note: "Chest's 2nd weekly hit — higher reps than Monday, still push it hard.",
           variants: [
             { name: "Incline Machine Press", sets: "3 × 10–12", note: "Locked path" }
           ],
@@ -582,25 +528,6 @@
             note: "Week B: fixed bar, push closer to failure safely.",
             variants: [
               { name: "Incline Barbell Press (lighter)", sets: "3 × 10–12", note: "Strict" }
-            ]
-          }
-        },
-        {
-          name: "Pec Deck",
-          sets: "3 × 10–12",
-          tag: "ISOLATION",
-          priority: false,
-          rest: "75s",
-          note: "The other half of chest's real 2nd hit — turns 3 token sets into 6. Hard squeeze across the midline, slow stretch back.",
-          variants: [
-            { name: "Cable Crossover", sets: "3 × 10–12", note: "Constant tension, bigger ROM" }
-          ],
-          altB: {
-            name: "Cable Crossover",
-            sets: "3 × 12–15",
-            note: "Week B: constant tension through the whole squeeze.",
-            variants: [
-              { name: "Pec Deck", sets: "3 × 10–12", note: "Locked path, easy to overload" }
             ]
           }
         },
@@ -661,7 +588,7 @@
           tag: "FST-7",
           priority: false,
           rest: "30–45s",
-          note: "Cap the delts — max width pump. Machine (not dumbbells) so it's a different movement from your working lateral. Last 2 sets near failure, dropset the last.",
+          note: "Cap the delts — max width pump. Machine (not dumbbells) so it's a different movement from your working lateral. Last 2 sets near failure, dropset the last. Add weight only once every set hits the full rep count clean.",
           variants: [
             { name: "Cable Lateral FST-7", sets: "7 × 12–15", note: "Constant tension if no machine" }
           ]
@@ -683,10 +610,10 @@
     {
       num: "05",
       tag: "PULL B · BACK + ARMS",
-      focus: "Pump day — back (thickness-led, one pulldown for width) + arm supersets",
+      focus: "Pump day — back thickness + arms, one clean superset",
       type: "pull",
       color: "#f59e0b",
-      notes: "BACK thickness + ARMS pump day. Row primary, then TWO SEPARATE antagonist supersets — Superset 1 (biceps/triceps) and Superset 2 (biceps/forearm), each done as a pair, NOT one giant 4-exercise set. Triceps is light here on purpose (already trained Mon + Thu); biceps gets the spotlight. One FST-7 + an ab finisher. Target ≤ 85 min.",
+      notes: "BACK thickness + ARMS pump day. Row primary, then an antagonist superset (biceps/triceps) — triceps is light here on purpose (already trained Mon + Thu); biceps gets the spotlight with two movements. Forearms dropped as a dedicated slot — they get plenty of incidental work from everything else this week. One FST-7 + an ab finisher. Target ≤ 75 min.",
       exercises: [
         {
           name: "Barbell Bent-Over Row",
@@ -697,7 +624,9 @@
           note: "Back-thickness primary. Hinge ~45°, drive elbows back, squeeze.",
           variants: [
             { name: "Pendlay Row", sets: "4 × 6–8", note: "From floor, explosive" },
-            { name: "Chest-Supported Row (heavy)", sets: "4 × 6–8", note: "No lower-back fatigue" }
+            { name: "Chest-Supported Row (heavy)", sets: "4 × 6–8", note: "No lower-back fatigue" },
+            { name: "Wide-Grip Barbell Row", sets: "4 × 6–8", note: "Elbows flared — more rear-delt/upper-back width" },
+            { name: "Underhand Barbell Row", sets: "4 × 6–8", note: "Supinated grip — more lower-lat and biceps" }
           ]
         },
         {
@@ -708,7 +637,8 @@
           rest: "90s",
           note: "Vertical pull, different grip than Tuesday. Elbows down, stretch at top.",
           variants: [
-            { name: "Close-Grip Pulldown", sets: "3 × 10–12", note: "Lower-lat bias" }
+            { name: "Close-Grip Pulldown", sets: "3 × 10–12", note: "Lower-lat bias" },
+            { name: "Wide-Grip Pulldown", sets: "3 × 10–12", note: "Maximum lat width" }
           ],
           altB: {
             name: "Chin-up (supinated)",
@@ -764,9 +694,8 @@
           sets: "3 × 10–12",
           tag: "ISOLATION",
           priority: false,
-          ss: "ss2",
-          rest: "→ superset, no rest",
-          note: "Biceps mass. Superset with forearms — straight over.",
+          rest: "75s",
+          note: "Biceps mass — second biceps movement of the day. Strict, no swing, full squeeze at the top.",
           variants: [
             { name: "Barbell Curl", sets: "3 × 10–12", note: "Max load" }
           ],
@@ -780,24 +709,12 @@
           }
         },
         {
-          name: "Reverse Curl + Wrist Curl (Forearms)",
-          sets: "2 × 15 each",
-          tag: "ISOLATION",
-          priority: false,
-          ss: "ss2",
-          rest: "60s after pair",
-          note: "Reverse curl (extensors/brachialis) then wrist curl (flexors). Light, full ROM.",
-          variants: [
-            { name: "Cable Reverse + DB Wrist Curl", sets: "2 × 15 each", note: "Constant tension option" }
-          ]
-        },
-        {
           name: "FST-7 Finisher: Seated Cable Row",
           sets: "7 × 10–15",
           tag: "FST-7",
           priority: false,
           rest: "30–45s",
-          note: "Mid-back thickness pump. Squeeze 1s each rep, last 2 near failure.",
+          note: "Mid-back thickness pump. Squeeze 1s each rep, last 2 near failure. Add weight next session only once you hit every set clean at the top of the rep range.",
           variants: [
             { name: "Machine Row FST-7", sets: "7 × 10–15", note: "Stable, easy to chain" }
           ]
@@ -842,7 +759,7 @@
           tag: "PRIMARY · CONSTANT",
           priority: true,
           rest: "2 min",
-          note: "Hamstrings' HEAVY hit (Tuesday's RDL is the lighter one). Constant both weeks — no Week-B swap to trap-bar, which used to steal the hamstring stimulus. Near-straight knees, deep stretch, 3s eccentric. Load it like a primary.",
+          note: "Hamstrings' HEAVY hit (Tuesday's conventional deadlift is more of a whole-posterior-chain pull; this is the dedicated hamstring stretch/overload). Constant both weeks — no Week-B swap, which used to steal the hamstring stimulus. Near-straight knees, deep stretch, 3s eccentric. Load it like a primary.",
           variants: [
             { name: "Romanian Deadlift (heavy)", sets: "4 × 8–10", note: "Slight knee bend, more glute" },
             { name: "Good Morning", sets: "4 × 8–10", note: "Bar on back, hamstring/erector emphasis" }
@@ -934,10 +851,10 @@
 
   const principles = [
     { icon: "🔁", label: "2× Frequency", text: "Every muscle is trained twice a week — including legs now: quads (Mon leg press / Sat squat), hamstrings (Tue RDL / Sat stiff-leg + curl) and calves (Thu standing / Sat seated). The heavy lower work stays on Saturday; small pump-leg moves are sprinkled into the upper days. Muscle protein synthesis fades after ~36–48h, so at matched volume 2×/week beats 1×/week." },
-    { icon: "🏋️", label: "Heavy + Pump", text: "Each muscle's two weekly sessions differ: a HEAVY day (5–8 reps, full rest = mechanical tension/overload) and a PUMP day (10–20 reps, short rest/supersets = metabolite + volume). Two stimuli beat repeating the same work — and the pump day is faster." },
+    { icon: "🏋️", label: "Heavy + Pump", text: "Each muscle's two weekly sessions differ: a HEAVY day (5–8 reps, full rest, lean exercise count — just the compounds + FST-7, no filler isolation) and a PUMP day (10–20 reps, short rest/supersets, the full isolation workload for that muscle). Isolation work lives on one day per muscle, not both — so no session ends up carrying more than its share." },
     { icon: "🔒", label: "Constant Primaries", text: "Bold primaries (Incline BB, Weighted Pull-up, OHP, BB Row, Squat, Stiff-Leg DL, RDL) never change — so you can add weight/reps every week. Only accessories rotate Week A/B (a constant lift should never have a Week-B swap)." },
     { icon: "🔀", label: "Week A / B Rotation", text: "Flip the A↔B toggle each week: accessories swap to a new angle/grip for complete development and joint relief, while your trackable lifts stay fixed." },
-    { icon: "⚡", label: "One FST-7 Per Muscle", text: "Hany Rambod's FST-7: a single finisher of 7 sets × 10–15 reps, 30–45s rest. One per main muscle per session — chasing the pump and fascia stretch, not endless junk volume." },
+    { icon: "⚡", label: "One FST-7 Per Muscle", text: "Hany Rambod's FST-7: a single finisher of 7 sets × 10–15 reps, 30–45s rest. One per main muscle per session — chasing the pump and fascia stretch, not endless junk volume. Progress it like everything else, but gated: only add weight once you hit clean reps across all 7 sets — never grind the weight up mid-set at the cost of form." },
     { icon: "⏱️", label: "90-Minute Cap", text: "~6–8 exercises / ~18–24 working sets per day, redistributed across both weekly sessions so weekly volume stays high while each session fits in 90 min. Non-competing accessories are supersetted; every exercise prints its target rest time so you stay on the clock." },
     { icon: "🛟", label: "Deload Every 6–8 Weeks", text: "Progress primaries by double-progression: hit the top of the rep range on every set, then add weight. When bar speed drops and PRs stall (usually 6–8 weeks), deload — halve the working sets or drop load ~40% for one week — then resume. The A/B rotation is variety, not recovery; as a natural, a real deload is what lets you keep adding load instead of grinding into a stall." }
   ];
@@ -1010,8 +927,15 @@
     saveUserData();
   }
 
-  // Per-set logs are namespaced by week so Week A and Week B don't overwrite each other.
-  function exKey(dayIdx, exIdx) { return `${currentWeek}-${dayIdx}-${exIdx}`; }
+  // Per-set logs are namespaced by week ONLY for exercises that actually swap (altB) —
+  // those are genuinely different lifts in Week A vs B, so their logs must stay separate.
+  // Exercises with no altB are the same lift either week, so they share one log/variant choice
+  // instead of artificially splitting your data in two every time you flip the toggle.
+  function exKey(dayIdx, exIdx) {
+    const ex = days[dayIdx]?.exercises[exIdx];
+    const weekPart = (ex && ex.altB) ? currentWeek : 'X';
+    return `${weekPart}-${dayIdx}-${exIdx}`;
+  }
   function getExerciseData(dayIdx, exIdx) {
     const key = exKey(dayIdx, exIdx);
     return userData[key] || { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
@@ -1035,10 +959,17 @@
     userData[key].notes = text;
     saveUserData();
   }
+  // Switching variants swaps in that variant's own last-logged sets (or blanks if it's never
+  // been done before) — each variant tracks its own weights/reps/PRs, not the slot's generic scratch data.
   function setVariant(dayIdx, exIdx, variantIdx) {
     const key = exKey(dayIdx, exIdx);
     if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
     userData[key].variant = variantIdx;
+    const exName = getExerciseName(dayIdx, exIdx);
+    const lastHist = getLastHistory(exName);
+    userData[key].sets = (lastHist && lastHist.sets && lastHist.sets.length)
+      ? lastHist.sets.map(s => ({ weight: s.weight, reps: s.reps, done: false }))
+      : [{ weight: "", reps: "" }];
     saveUserData();
   }
   function addSet(dayIdx, exIdx) {
@@ -1076,9 +1007,15 @@
   function savePRData(data) {
     localStorage.setItem(prStorageKey, JSON.stringify(data));
   }
+  // The exercise "identity" for PRs/history is the selected variant, not the base slot —
+  // so switching variants tracks a separate PR/history line per variant.
   function getExerciseName(dayIdx, exIdx) {
     const ex = days[dayIdx]?.exercises[exIdx];
-    return ex ? resolveEx(ex).name : '';
+    if (!ex) return '';
+    const resolved = resolveEx(ex);
+    const variantOptions = [{ name: resolved.name }, ...(resolved.variants || [])];
+    const variantIdx = getExerciseData(dayIdx, exIdx).variant || 0;
+    return (variantOptions[variantIdx] || variantOptions[0]).name;
   }
   function getBestForExercise(dayIdx, exIdx) {
     const prData = getPRData();
@@ -1257,7 +1194,7 @@
   window.renderExerciseHistory = renderExerciseHistory;
 
   function renderStatsBar() {
-    const stats = [["≤90","Min/Session"],["2×","Frequency"],["Heavy+Pump","Undulating"],["6–8","Exercises"],[`Week ${currentWeek}`,"Rotation"]];
+    const stats = [["≤90","Min/Session"],["2×","Frequency"],["Heavy+Pump","Undulating"],["4–7","Exercises"],[`Week ${currentWeek}`,"Rotation"]];
     document.getElementById("statsBar").innerHTML = stats.map(([v,l]) => `<div class="stat-item"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
   }
 
@@ -1331,7 +1268,7 @@
             const tagBg = isFST ? '#e05a2b22' : '#9333ea22';
             const tagFg = isFST ? '#e05a2b' : '#9333ea';
             const tagBd = isFST ? '#e05a2b44' : '#9333ea44';
-            const lastHist = window.getLastHistory(ex.name);
+            const lastHist = window.getLastHistory(variantName);
             const lastTop = lastHist ? window.topSetOf(lastHist.sets) : null;
             const safeName = variantName.replace(/'/g,"\\'");
             return `
@@ -1339,9 +1276,9 @@
                 <div class="expanded-ex-left" style="width: 100%;">
                   <div class="ex-name-row">
                     <div class="ex-checkbox${isChecked?' checked':''}" data-day="${index}" data-ex="${i}" onclick="toggleCheckbox(this)"></div>
-                    <span class="expanded-ex-name ${ex.priority?'priority':'normal'}">${ex.name}</span>
+                    <span class="expanded-ex-name ${ex.priority?'priority':'normal'}">${variantName}</span>
                     <button class="form-btn" onclick="window.ytForm('${safeName}')" title="Watch form video">▶ Form</button>
-                    <button class="form-btn" onclick="window.toggleHistory(this)" data-name="${ex.name.replace(/"/g,'&quot;')}" title="Past sessions">📈</button>
+                    <button class="form-btn" onclick="window.toggleHistory(this)" data-name="${variantName.replace(/"/g,'&quot;')}" title="Past sessions">📈</button>
                   </div>
                   <span class="tag-chip" style="background:${tagBg};color:${tagFg};border-color:${tagBd};">${ex.tag}</span>
                   ${ex.ss ? `<span class="ss-chip">⥀ Superset ${String(ex.ss).replace('ss','')}</span>` : ''}
@@ -1350,27 +1287,15 @@
                   ${ex.rest ? `<div class="ex-rest">⏱ Rest: <strong>${ex.rest}</strong></div>` : ''}
                   ${lastTop ? `<div class="ex-last">↺ Last (${lastHist.date}): top set ${lastTop.w}kg × ${lastTop.r}</div>` : ''}
 
-                  <div class="variant-content collapsed" data-history="${ex.name.replace(/"/g,'&quot;')}">
-                    ${window.renderExerciseHistory(ex.name)}
+                  <div class="variant-content collapsed" data-history="${variantName.replace(/"/g,'&quot;')}">
+                    ${window.renderExerciseHistory(variantName)}
                   </div>
 
                   ${ex.variants && ex.variants.length > 0 ? `
-                    <div class="variant-header collapsed" onclick="toggleVariant(this)" data-day="${index}" data-ex="${i}">
-                      Variation: <strong>${variantName}</strong>
-                    </div>
-                    <div class="variant-content collapsed">
-                      <div style="padding:8px 12px;">
-                        ${variantOptions.map((v, vIdx) => `
-                          <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                            <span style="cursor:pointer;" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();">
-                              <input type="radio" ${vIdx===currentVariant?'checked':''} style="margin-right:6px;"> <strong>${v.name}</strong>
-                              <span style="font-size:11px;color:var(--text-faint);margin-left:8px;">${v.sets}</span>
-                            </span>
-                            <button class="form-btn" onclick="window.ytForm('${v.name.replace(/'/g,"\\'")}')" title="Watch form video">▶</button>
-                            <div style="font-size:10px;color:var(--text-faint);margin-top:2px;margin-left:20px;flex-basis:100%;">${v.note || ''}</div>
-                          </div>
-                        `).join('')}
-                      </div>
+                    <div class="variant-pills">
+                      ${variantOptions.map((v, vIdx) => `
+                        <button type="button" class="variant-pill${vIdx===currentVariant?' active':''}" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();" title="${(v.note||'').replace(/"/g,'&quot;')} · ${v.sets}">${v.name}</button>
+                      `).join('')}
                     </div>
                   ` : ''}
 
@@ -1440,11 +1365,6 @@
     const currentlyChecked = getCompleted(dayIdx).includes(exIdx);
     setCompleted(dayIdx, exIdx, !currentlyChecked);
     el.classList.toggle('checked', !currentlyChecked);
-  };
-
-  window.toggleVariant = function(el) {
-    el.classList.toggle('collapsed');
-    el.nextElementSibling.classList.toggle('collapsed');
   };
 
   window.updateSetRep = function(dayIdx, exIdx, setIdx, field, value) {
