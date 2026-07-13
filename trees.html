@@ -290,15 +290,17 @@ function postorderIterVisited(root: TreeNode | null): number[] {
 // BFS level order — a queue, one level per outer iteration
 function levelOrder(root: TreeNode | null): number[][] {
   if (!root) return [];
-  const out: number[][] = [], q: TreeNode[] = [root];
+  const out: number[][] = [];
+  let q: TreeNode[] = [root];
   while (q.length) {
-    const level: number[] = [], n = q.length;
-    for (let i = 0; i &lt; n; i++) {
-      const x = q.shift()!; level.push(x.val);      // (use a head index for true O(n))
-      if (x.left) q.push(x.left);
-      if (x.right) q.push(x.right);
+    const level: number[] = [], next: TreeNode[] = [];
+    for (const x of q) {
+      level.push(x.val);
+      if (x.left) next.push(x.left);
+      if (x.right) next.push(x.right);
     }
     out.push(level);
+    q = next;
   }
   return out;
 }</code></pre>
