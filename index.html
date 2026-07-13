@@ -582,6 +582,9 @@
     .note-card-body hr.note-hr { border: 0; border-top: 1px solid var(--border, rgba(255,255,255,0.12)); margin: 0.55rem 0; }
     .note-card-body pre.note-code { background: var(--bg-hover); border: 1px solid var(--border, rgba(255,255,255,0.12)); border-radius: 0.4rem; padding: 0.55rem 0.7rem; margin: 0 0 0.45rem; overflow-x: auto; }
     .note-card-body pre.note-code code { background: none; padding: 0; font-family: var(--font-mono); font-size: 0.85em; color: var(--text-primary); white-space: pre; }
+    .note-card-body table.note-table { border-collapse: collapse; width: 100%; margin: 0 0 0.45rem; font-size: 0.92em; }
+    .note-card-body table.note-table th, .note-card-body table.note-table td { border: 1px solid var(--border, rgba(255,255,255,0.12)); padding: 0.3rem 0.55rem; text-align: left; }
+    .note-card-body table.note-table th { background: var(--bg-hover); color: var(--text-primary); font-weight: 600; }
 
     /* Section labels inside the question body ("Asked at" / "My submissions" /
        "My notes") — badge pills so they stand out from surrounding text */
@@ -1775,8 +1778,8 @@ let _editingNoteId = null   // null = not editing; '__new__' = adding; else a no
 // Tiny safe markdown: escape first, then apply - bullets, **bold**, `code`.
 // Markdown → HTML for notes. Escapes first (XSS-safe even though notes sync via gist),
 // then handles: # headings, **bold**, *italic*, `code`, ```fenced blocks```, - / 1. lists,
-// > blockquotes, --- rules, ~~strike~~, [text](url). Code spans/blocks are protected so
-// inline markup inside them (and things like snake_case) are never reformatted.
+// > blockquotes, --- rules, ~~strike~~, [text](url), GFM | pipe | tables |. Code spans/blocks
+// are protected so inline markup inside them (and things like snake_case) are never reformatted.
 function renderNoteBody(text) {
   if (!text || !text.trim()) return '<p class="text-faint">(empty)</p>'
   const esc = escHtml(text)
@@ -1801,19 +1804,38 @@ function renderNoteBody(text) {
   // 3) Block-level pass.
   let html = '', listType = null
   const closeList = () => { if (listType) { html += listType === 'ol' ? '</ol>' : '</ul>'; listType = null } }
+  // GFM pipe-table row → cells (strip optional outer pipes, split, trim). No escaped-pipe support.
+  const splitRow = line => { let s = line.trim(); if (s.startsWith('|')) s = s.slice(1); if (s.endsWith('|')) s = s.slice(0, -1); return s.split('|').map(c => c.trim()) }
+  const tableSep = /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/
   let m
-  src.split(/\r?\n/).forEach(raw => {
+  const lines = src.split(/\r?\n/)
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i]
     const cb = raw.match(/^@@CB(\d+)@@$/)
-    if (cb) { closeList(); html += blocks[+cb[1]]; return }
+    if (cb) { closeList(); html += blocks[+cb[1]]; continue }
     const t = raw.trim()
-    if (!t) { closeList(); return }
-    if (/^([-*_])(\s*\1){2,}$/.test(t)) { closeList(); html += '<hr class="note-hr">'; return }            // --- *** ___
-    if ((m = t.match(/^(#{1,6})\s+(.*)$/))) { closeList(); const l = m[1].length; html += '<h' + l + ' class="note-h note-h' + l + '">' + inline(m[2]) + '</h' + l + '>'; return }
-    if ((m = t.match(/^&gt;\s?(.*)$/)))    { closeList(); html += '<blockquote class="note-quote">' + inline(m[1]) + '</blockquote>'; return }  // > is &gt; after escHtml
-    if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) { if (listType !== 'ol') { closeList(); html += '<ol class="note-bullets">'; listType = 'ol' } html += '<li>' + inline(m[2]) + '</li>'; return }
-    if ((m = t.match(/^[-*+•]\s+(.*)$/)))  { if (listType !== 'ul') { closeList(); html += '<ul class="note-bullets">'; listType = 'ul' } html += '<li>' + inline(m[1]) + '</li>'; return }
+    if (!t) { closeList(); continue }
+    if (t.includes('|') && lines[i + 1] && tableSep.test(lines[i + 1].trim())) {                            // pipe-table: header + separator row
+      closeList()
+      const header = splitRow(t)
+      const aligns = splitRow(lines[i + 1].trim()).map(c => c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : c.startsWith(':') ? 'left' : '')
+      const rows = []
+      let j = i + 2
+      while (j < lines.length && lines[j].trim().includes('|')) { rows.push(splitRow(lines[j])); j++ }
+      const cell = (tag, c, k) => '<' + tag + (aligns[k] ? ' style="text-align:' + aligns[k] + '"' : '') + '>' + inline(c || '') + '</' + tag + '>'
+      html += '<table class="note-table"><thead><tr>' + header.map((c, k) => cell('th', c, k)).join('') + '</tr></thead>'
+      if (rows.length) html += '<tbody>' + rows.map(r => '<tr>' + header.map((_, k) => cell('td', r[k], k)).join('') + '</tr>').join('') + '</tbody>'
+      html += '</table>'
+      i = j - 1
+      continue
+    }
+    if (/^([-*_])(\s*\1){2,}$/.test(t)) { closeList(); html += '<hr class="note-hr">'; continue }            // --- *** ___
+    if ((m = t.match(/^(#{1,6})\s+(.*)$/))) { closeList(); const l = m[1].length; html += '<h' + l + ' class="note-h note-h' + l + '">' + inline(m[2]) + '</h' + l + '>'; continue }
+    if ((m = t.match(/^&gt;\s?(.*)$/)))    { closeList(); html += '<blockquote class="note-quote">' + inline(m[1]) + '</blockquote>'; continue }  // > is &gt; after escHtml
+    if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) { if (listType !== 'ol') { closeList(); html += '<ol class="note-bullets">'; listType = 'ol' } html += '<li>' + inline(m[2]) + '</li>'; continue }
+    if ((m = t.match(/^[-*+•]\s+(.*)$/)))  { if (listType !== 'ul') { closeList(); html += '<ul class="note-bullets">'; listType = 'ul' } html += '<li>' + inline(m[1]) + '</li>'; continue }
     closeList(); html += '<p>' + inline(t) + '</p>'
-  })
+  }
   closeList()
   // Safety net: restore any fenced-block placeholders that weren't on their own line.
   html = html.replace(/@@CB(\d+)@@/g, (_, i) => blocks[+i])
@@ -3009,13 +3031,14 @@ function _psModePool(topicKey, count) {
   if (_psMode === 'graded') {
     // Graded ignores the cooldown — your grade is the single source of truth (a clean solve
     // re-grades the question ✓ solid, and THAT is what sinks it). 📌 pinned and ✗ forgot /
-    // ~ shaky ALWAYS appear; `count` only caps how many ✓ solid rows pad the list after them.
+    // ~ shaky ALWAYS appear; ✓ solid only rejoins once its REVISE_LADDER interval is up
+    // (isReviseDue), and `count` caps how many of those due-solid rows pad the list after them.
     const graded    = Object.entries(mod.questions).filter(([k]) => getRevise(k))
     const rank      = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
     const pinned    = _shuffle(graded.filter(([k]) => isPinned(k)))
     const unpinned  = graded.filter(([k]) => !isPinned(k))
     const weak      = _weightedShuffle(unpinned.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
-    const solid     = _weightedShuffle(unpinned.filter(([k]) => rank(k) === 2))
+    const solid     = _weightedShuffle(unpinned.filter(([k]) => rank(k) === 2 && isReviseDue(k)))
     const solidFill = Math.max(0, count - pinned.length - weak.length)
     return [...pinned, ...weak, ...solid.slice(0, solidFill)]
   }
@@ -3646,6 +3669,7 @@ function _qpGenerate() {
       if (_onCooldown(k)) return                                        // solved & resting — hidden until due again
       if (_qpRevised) {
         if (!getRevise(k)) return                                       // Graded: only problems you've graded
+        if (_weaknessRank(k) === 2 && !isReviseDue(k)) return            // ✓ solid: wait for the ladder before resurfacing
       } else if (!_qpMock) {
         if (_practiceWorkedOnly && getStatus(k) === 'Pending') return   // Worked: skip untouched 📋 Pending
       }
