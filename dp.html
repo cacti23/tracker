@@ -1017,11 +1017,11 @@ table.qa td.a:hover, table.qa td.a:active{ filter:none; }
 .hint{ color:var(--muted); font-size:.86rem; }
 .pill{ display:inline-block; background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent);
   border-radius:20px; padding:.05em .6em; font-size:.78rem; font-weight:600; margin:.1em .15em; }
-@media print{ .nav-index{ display:none; } }
+@media print{ table.qa td.a{ filter:none !important; } }
 </style></head><body><article id="37cae4f8-635e-8077-a9cb-ee93108bd1c1" class="page sans">
 <h1 class="title">🧮 Dynamic Programming</h1>
 <p class="sub">A standalone, LC-medium/hard-focused sheet. DP = problems that break into smaller versions of themselves that <b>repeat</b> — solve each once, store it, reuse it. Define the state, write the transition, pick the order.</p>
-<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-818d-8119-e342096394f4"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#dp-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8190-a833-cd163cbd58f1">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81cc-9959-dce224dca24b">2. The 5 DP Flavors</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81ac-b284-cac205d7b54f">3. Keyword → Pattern Map</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8160-82b7-da5404195ba9">4. 1D DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f2-be61-cec11063109b">4.2b Count of LIS (LC 673)</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81e6-b345-dac19ae9e14e">4.3b DP + Binary Search</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8168-b5dc-cdcc4b15d484">4.4b Max Product Subarray</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81eb-93c9-e98a88a547f0">4.7 DP Reconstruction</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-817d-8f99-f186ca7e77b2">4.8 Partition DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8169-952d-c4b8647f8a9e">4.9 Matrix Exponentiation DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-810b-9ce9-c125b495d37a">5. 2D DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81d2-ba1a-de441b8ad822">5.6 DP + Monotonic Stack</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8169-b62d-d941e2019d8c">6. Interval DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8145-bb82-eee23d7bb2a4">6.5 Two-Agent 3D Grid DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-818b-9d7c-dd9c4a4edea8">7. String DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8116-b74c-edb95ace732f">8. Knapsack Family</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81de-af0b-e13024955d96">8.7 Bounded Knapsack</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-b379-dfca6ee65f7d">9. State Machine DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f0-a5ea-ef57d419755f">9.6 Game Theory / Minimax DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-812a-b5f9-f00962cf8472">10. Bitmask DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8193-8951-e63f7aa839c0">10.4 Bitmask: K Equal Subsets</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81b5-b97d-c7949ca4247f">11. Tree DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8157-b541-e13ca5c6dbcc">11.4 Tree Rerooting DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8124-8f20-e6fd6917cfc9">12. DP on DAG / Digit DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8137-b98e-dc7b9e1a7be6">12.3 Probability / Expected-Value DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-815b-a0a5-c09605068285">13. TypeScript Gotchas</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8150-bc3a-cf8b3ef19c36">14. Complexity Cheat Card</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-a36d-c7cf1b988a18">16. DP Optimization Techniques</a></li><li class="nav-index-item"><a href="#dp-pitfalls">⚠️ Pitfalls</a></li><li class="nav-index-item"><a href="#dp-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><hr id="dp-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="dp-how-to-think" class="">🧠 HOW TO THINK ABOUT DP (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="dpm-p1" class="">Dynamic programming is for problems that <strong>break into smaller versions of themselves that REPEAT</strong>. Solve each small version once, store the answer, reuse it. That is the whole idea.</p></div>
+<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-818d-8119-e342096394f4"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#dp-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8190-a833-cd163cbd58f1">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81cc-9959-dce224dca24b">2. The 5 DP Flavors</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81ac-b284-cac205d7b54f">3. Keyword → Pattern Map</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8160-82b7-da5404195ba9">4. 1D DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f2-be61-cec11063109b">4.2b Count of LIS (LC 673)</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81e6-b345-dac19ae9e14e">4.3b DP + Binary Search</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8168-b5dc-cdcc4b15d484">4.4b Max Product Subarray</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81eb-93c9-e98a88a547f0">4.7 DP Reconstruction</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-817d-8f99-f186ca7e77b2">4.8 Partition DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8169-952d-c4b8647f8a9e">4.9 Matrix Exponentiation DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-810b-9ce9-c125b495d37a">5. 2D DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81d2-ba1a-de441b8ad822">5.6 DP + Monotonic Stack</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8169-b62d-d941e2019d8c">6. Interval DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8145-bb82-eee23d7bb2a4">6.5 Two-Agent 3D Grid DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-818b-9d7c-dd9c4a4edea8">7. String DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8116-b74c-edb95ace732f">8. Knapsack Family</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81de-af0b-e13024955d96">8.7 Bounded Knapsack</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-b379-dfca6ee65f7d">9. State Machine DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f0-a5ea-ef57d419755f">9.6 Game Theory / Minimax DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-812a-b5f9-f00962cf8472">10. Bitmask DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8193-8951-e63f7aa839c0">10.4 Bitmask: K Equal Subsets</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81b5-b97d-c7949ca4247f">11. Tree DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8157-b541-e13ca5c6dbcc">11.4 Tree Rerooting DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8124-8f20-e6fd6917cfc9">12. DP on DAG / Digit DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8137-b98e-dc7b9e1a7be6">12.3 Probability / Expected-Value DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-815b-a0a5-c09605068285">13. TypeScript Gotchas</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8150-bc3a-cf8b3ef19c36">14. Complexity Cheat Card</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-a36d-c7cf1b988a18">15. DP Optimization Techniques</a></li><li class="nav-index-item"><a href="#dp-pitfalls">⚠️ Pitfalls</a></li><li class="nav-index-item"><a href="#dp-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><hr id="dp-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="dp-how-to-think" class="">🧠 HOW TO THINK ABOUT DP (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="dpm-p1" class="">Dynamic programming is for problems that <strong>break into smaller versions of themselves that REPEAT</strong>. Solve each small version once, store the answer, reuse it. That is the whole idea.</p></div>
 
 <div class="box"><b class="tag">🧵 The mental model — a receipt drawer, not a crystal ball</b> Every DP is the <i>same</i> recursive question backtracking would ask — "what are my choices from here?" — except before you answer it, you check a drawer labeled with today's exact question. If a receipt is already in there, you read it and stop; nothing new to compute. If not, you compute the answer the honest way (by asking the smaller versions of the same question) and <b>file a receipt before you leave</b> so nobody ever re-does this exact question again. The drawer's label — <code>dp[state]</code> — is the whole skill: too few facts on the label and two different questions collide in the same drawer (wrong answers); too many facts and nothing ever matches an existing receipt (no speedup at all).</div>
 
@@ -1085,122 +1085,87 @@ asks for ALL solutions          → backtracking, not DP</code></pre></div><div 
 <b>SDE3 signal:</b> offer both, then implement bottom-up with space optimization where possible.</div>
 
 <div class="box"><b class="tag">Step 6 · What to say out loud</b> "Let me define <code>dp[i]</code> as [exact English sentence]. The recurrence is <code>dp[i] = [formula]</code>. Base case: <code>dp[0] = [value]</code> because [reason]. I'll fill bottom-up from [start] to [end]. Time: <code>O([time])</code>, Space: <code>O([space])</code>."<br/>
-<b>Brain freeze? Do this:</b> (1) brute-force the recursion first, (2) add a <code>memo</code> Map — that's top-down DP, (3) convert the memo to a table — that's bottom-up DP.</div></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-8133-addb-fadb41a49e5f"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81cc-9959-dce224dca24b" class="">2. THE 5 DP FLAVORS</h1></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-810e-bb2f-f365c7a07718" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">FLAVOR            STATE DIMS    KEY INTUITION                    EXAMPLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1D Linear         dp[i]         &quot;best ending AT i&quot; or            LC 300, 198, 152
-                                &quot;best using first i items&quot;       LC 53, 45, 139
+<b>Brain freeze? Do this:</b> (1) brute-force the recursion first, (2) add a <code>memo</code> Map — that's top-down DP, (3) convert the memo to a table — that's bottom-up DP.</div></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-8133-addb-fadb41a49e5f"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81cc-9959-dce224dca24b" class="">2. THE 5 DP FLAVORS</h1></div>
+<table>
+<tr><th>Flavor</th><th>State dims</th><th>Key intuition</th><th>Examples</th></tr>
+<tr><td>1D Linear</td><td><code>dp[i]</code></td><td>"best ending AT i" or "best using first i items"</td><td>LC 300, 198, 152, 53, 45, 139</td></tr>
+<tr><td>2D Grid / String</td><td><code>dp[i][j]</code></td><td>Usually two sequences, or a 2D grid with constraints</td><td>LC 1143, 72, 62, 64, 221, 115</td></tr>
+<tr><td>Interval</td><td><code>dp[i][j]</code></td><td>Sub-array from i to j — fill diagonally</td><td>LC 516, 312, 1039, 1547, 1000</td></tr>
+<tr><td>Knapsack — 0/1</td><td><code>dp[i][w]</code> or <code>dp[w]</code></td><td>i items, capacity w — take or skip each item</td><td>LC 416, 494, 474, 1049, 1155</td></tr>
+<tr><td>Knapsack — unbounded</td><td><code>dp[w]</code></td><td>Item can be reused</td><td>LC 322, 518, 279</td></tr>
+<tr><td>Knapsack — multi-dim</td><td><code>dp[i][j][k]</code></td><td>Multiple constraints at once</td><td>LC 474, 879</td></tr>
+<tr><td>State Machine</td><td><code>dp[i][state]</code></td><td>Finite states + transitions — "holding stock", "resting"</td><td>LC 121-123, 309, 188, 714</td></tr>
+<tr><td>Bitmask</td><td><code>dp[mask]</code> or <code>dp[i][mask]</code></td><td>Subset of n items (n≤20) — "visited which nodes/chars"</td><td>LC 847, 864, 943, 1125, 526, 698</td></tr>
+<tr><td>Tree</td><td><code>dp[node][..]</code></td><td>Post-order; combine children. Reroot = two-pass, for "every node"</td><td>LC 124, 337, 543, 834, 310</td></tr>
+<tr><td>Probability / EV</td><td><code>dp = float</code></td><td>Σ P(transition)·dp[next] — expected value or chance</td><td>LC 688, 837, 808</td></tr>
+<tr><td>Matrix Exponentiation</td><td>k×k matrix</td><td>Linear recurrence, HUGE n — companion matrix → fast power, N^k in O(log N)</td><td>LC 70 (big N), 1137, 790</td></tr>
+</table>
+<div style="display:contents" dir="auto"><blockquote id="37cae4f8-635e-8156-944b-d95c240a3206" class=""><strong>Key insight from 20 years at FAANG</strong>: Most DP problems are one of the above flavors wearing a costume. Once you strip the costume, you have a template. Your job in an interview is to <strong>recognize the flavor in ≤2 minutes</strong>.</blockquote></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81c1-b442-e5df3411bf50"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81ac-b284-cac205d7b54f" class="">3. KEYWORD → PATTERN MAP</h1></div>
+<table>
+<tr><th>Keyword / phrase</th><th>→ Pattern</th><th>LC examples</th></tr>
+<tr><td>"longest increasing subsequence"</td><td>1D DP / Binary Search</td><td>300, 354</td></tr>
+<tr><td>"longest common subsequence"</td><td>2D DP (two strings)</td><td>1143, 1092</td></tr>
+<tr><td>"edit distance" / "min operations to match"</td><td>2D DP</td><td>72, 97</td></tr>
+<tr><td>"number of ways to climb / reach"</td><td>1D DP (Fibonacci-like)</td><td>70, 746</td></tr>
+<tr><td>"coin change / min coins"</td><td>Unbounded Knapsack</td><td>322, 983</td></tr>
+<tr><td>"coin change II / number of ways"</td><td>Unbounded Knapsack</td><td>518</td></tr>
+<tr><td>"partition into 2 equal subsets"</td><td>0/1 Knapsack (bool)</td><td>416</td></tr>
+<tr><td>"partition into K equal subsets (k&gt;2)"</td><td>Bitmask DP (§10.4)</td><td>698, 1723</td></tr>
+<tr><td>"target sum / count subsets with diff"</td><td>0/1 Knapsack (count)</td><td>494, 1049</td></tr>
+<tr><td>"max profit from stock"</td><td>State Machine DP</td><td>121-123, 309, 188</td></tr>
+<tr><td>"with transaction fee"</td><td>State Machine DP</td><td>714</td></tr>
+<tr><td>"with cooldown"</td><td>State Machine DP</td><td>309</td></tr>
+<tr><td>"burst balloons / remove boxes"</td><td>Interval DP</td><td>312, 546</td></tr>
+<tr><td>"palindrome partition (min cuts)"</td><td>Interval DP</td><td>132, 1278</td></tr>
+<tr><td>"longest palindromic subsequence"</td><td>Interval DP</td><td>516, 1312</td></tr>
+<tr><td>"decode ways / number of decodings"</td><td>1D DP (conditional)</td><td>91, 639</td></tr>
+<tr><td>"word break / can split string"</td><td>1D DP</td><td>139, 140</td></tr>
+<tr><td>"regex / wildcard matching"</td><td>2D DP</td><td>10, 44</td></tr>
+<tr><td>"distinct subsequences"</td><td>2D DP</td><td>115</td></tr>
+<tr><td>"max rectangle in histogram"</td><td>Stack trick / DP</td><td>84, 85</td></tr>
+<tr><td>"triangle / grid max/min path"</td><td>2D DP (grid walk)</td><td>64, 120, 931</td></tr>
+<tr><td>"jump game (can reach)"</td><td>Greedy or 1D DP</td><td>55, 45</td></tr>
+<tr><td>"minimum path sum"</td><td>2D DP (grid walk)</td><td>64, 174, 741</td></tr>
+<tr><td>"dungeon game (reverse DP)"</td><td>2D DP (fill backward)</td><td>174</td></tr>
+<tr><td>"palindrome tiling"</td><td>Interval DP</td><td>1547</td></tr>
+<tr><td>"optimal BST / matrix chain multiply"</td><td>Interval DP (classic)</td><td>312, 1039</td></tr>
+<tr><td>"TSP / visiting all cities minimum cost"</td><td>Bitmask DP</td><td>847</td></tr>
+<tr><td>"collect all keys"</td><td>Bitmask DP</td><td>864</td></tr>
+<tr><td>"assign tasks to workers optimally"</td><td>Bitmask DP</td><td>1125</td></tr>
+<tr><td>"max weight closure / project selection"</td><td>Min-cut (advanced DP)</td><td>—</td></tr>
+<tr><td>"sequence of operations on string"</td><td>2D DP</td><td>1035, 583</td></tr>
+<tr><td>"interleaving strings"</td><td>2D DP (two strings)</td><td>97</td></tr>
+<tr><td>"minimum insertion / deletion to match"</td><td>LCS variant</td><td>583, 1092</td></tr>
+<tr><td>"max product subarray"</td><td>1D DP (min+max track)</td><td>152</td></tr>
+<tr><td>"nth term, N up to 10^18"</td><td>Matrix Exponentiation</td><td>70, 1137, 790</td></tr>
+<tr><td>"probability / expected value"</td><td>Probability DP (float)</td><td>688, 837, 808</td></tr>
+<tr><td>"item with limited count (bounded)"</td><td>Bounded Knapsack (§8.7)</td><td>—</td></tr>
+<tr><td>"answer for every node as root"</td><td>Tree Rerooting DP</td><td>834, 310</td></tr>
+<tr><td>"stones / piles, two players optimal"</td><td>Game Theory DP (§9.6)</td><td>877, 486, 1140</td></tr>
+</table>
 
-2D Grid/String    dp[i][j]      Usually two sequences or         LC 1143, 72, 62
-                                2D grid with constraints         LC 64, 221, 115
+<h3>🔴 DP anti-patterns — mistakes that kill candidates</h3>
+<table>
+<tr><th>Anti-pattern</th><th>❌ Wrong</th><th>✅ Right</th></tr>
+<tr><td>Vague state definition</td><td><code>dp[i] = the answer at i</code> — meaningless, leads to a wrong recurrence</td><td><code>dp[i] = max sum of subarray ENDING at index i</code> — precise, unambiguous</td></tr>
+<tr><td>min/max vs. count recurrence direction</td><td>Using <code>max()</code> on a count problem → gives 1 instead of the total number of ways</td><td>min/max propagates forward: <code>dp[i]=f(dp[i-1],dp[i-2])</code>. Count accumulates: <code>dp[i] += dp[j]</code> for every valid predecessor j.</td></tr>
+<tr><td>Top-down recursion at depth &gt; ~10K</td><td>Top-down on a string of length 100K → call stack overflow</td><td>Use bottom-up tabulation, or raise the stack size explicitly. Rule: n &gt; 10,000 with O(n) states → prefer bottom-up.</td></tr>
+<tr><td>Forgetting MOD in count problems</td><td><code>dp[i] = dp[i-1] + dp[i-2]</code> overflows <code>Number.MAX_SAFE_INTEGER</code> (LC 62, 91, 518, 1155 all require <code>mod 1e9+7</code>)</td><td><code>dp[i] = (dp[i-1] + dp[i-2]) % MOD</code> — apply MOD on every addition, BEFORE storing back into <code>dp[]</code></td></tr>
+<tr><td>Off-by-one in interval DP base cases</td><td><code>for (let len = 1; ...)</code> may skip the len=2 base case for palindromes</td><td>Explicitly set <code>dp[i][i]</code> (length-1) and <code>dp[i][i+1]</code> (length-2) before the main loop</td></tr>
+<tr><td>Space optimization when reconstruction is needed</td><td>Rolling 1D array → can't backtrack to find which items were chosen</td><td>If asked "what items / what path", keep the full 2D table</td></tr>
+<tr><td>Rebuilding substrings in the inner loop</td><td><code>dp[j] &amp;&amp; wordSet.has(s.slice(j, i))</code> — <code>.slice</code> is O(i-j) per call</td><td>Precompute max word length; only try <code>j &gt;= i - maxWordLen</code></td></tr>
+<tr><td>Wrong loop direction in space-optimized knapsack</td><td>0/1 knapsack with a LEFT-TO-RIGHT inner loop → item gets used multiple times</td><td>0/1 = RIGHT-TO-LEFT (prevents reuse). Unbounded = LEFT-TO-RIGHT (allows reuse).</td></tr>
+</table>
 
-Interval          dp[i][j]      Sub-array from i to j.          LC 516, 312, 1039
-                                Fill diagonally.                 LC 1547, 1000
-
-Knapsack          dp[i][w]      i items, capacity w.            LC 416, 494, 474
-  0/1 Knapsack    or dp[w]      Take or skip each item.         LC 1049, 1155
-  Unbounded       dp[w]         Item can be reused.             LC 322, 518, 279
-  Multi-dim       dp[i][j][k]   Multiple constraints.           LC 474, 879
-
-State Machine     dp[i][state]  Finite states, transitions.     LC 121-123, 309
-                                &quot;holding stock&quot;, &quot;resting&quot;      LC 188, 714
-
-Bitmask           dp[mask]      Subset of n items (n≤20).       LC 847, 864, 943
-                  dp[i][mask]   &quot;visited which nodes/chars&quot;     LC 1125, 526, 698
-
-Tree              dp[node][..]  Post-order; combine children.   LC 124, 337, 543
-                  (reroot)      Two-pass for &quot;every node&quot;       LC 834, 310
-
-Probability/EV    dp = float    Σ P(transition)·dp[next].       LC 688, 837, 808
-                                Expected value or chance.
-
-Matrix Expo       k×k matrix    Linear recurrence, HUGE N.      LC 70(bigN), 1137
-                  ^N in O(logN) Companion matrix → fast power.  LC 790</code></pre></div><div style="display:contents" dir="auto"><blockquote id="37cae4f8-635e-8156-944b-d95c240a3206" class=""><strong>Key insight from 20 years at FAANG</strong>: Most DP problems are one of the above flavors wearing a costume. Once you strip the costume, you have a template. Your job in an interview is to <strong>recognize the flavor in ≤2 minutes</strong>.</blockquote></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81c1-b442-e5df3411bf50"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81ac-b284-cac205d7b54f" class="">3. KEYWORD → PATTERN MAP</h1></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8117-9471-fd3348c6c239" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">KEYWORD / PHRASE                              → PATTERN              LC EXAMPLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-&quot;longest increasing subsequence&quot;             → 1D DP / Binary Search  LC 300, 354
-&quot;longest common subsequence&quot;                 → 2D DP (two strings)    LC 1143, 1092
-&quot;edit distance&quot; / &quot;min operations to match&quot; → 2D DP                  LC 72, 97
-&quot;number of ways to climb / reach&quot;           → 1D DP (Fibonacci-like) LC 70, 746
-&quot;coin change / min coins&quot;                   → Unbounded Knapsack      LC 322, 983
-&quot;coin change II / number of ways&quot;           → Unbounded Knapsack      LC 518
-&quot;partition into 2 equal subsets&quot;            → 0/1 Knapsack (bool)    LC 416
-&quot;partition into K equal subsets (k&gt;2)&quot;      → Bitmask DP (§10.4)     LC 698, 1723
-&quot;target sum / count subsets with diff&quot;      → 0/1 Knapsack (count)   LC 494, 1049
-&quot;max profit from stock&quot;                     → State Machine DP        LC 121-123, 309, 188
-&quot;with transaction fee&quot;                      → State Machine DP        LC 714
-&quot;with cooldown&quot;                             → State Machine DP        LC 309
-&quot;burst balloons / remove boxes&quot;             → Interval DP             LC 312, 546
-&quot;palindrome partition (min cuts)&quot;           → Interval DP             LC 132, 1278
-&quot;longest palindromic subsequence&quot;           → Interval DP             LC 516, 1312
-&quot;decode ways / number of decodings&quot;         → 1D DP (conditional)    LC 91, 639
-&quot;word break / can split string&quot;             → 1D DP                  LC 139, 140
-&quot;regex / wildcard matching&quot;                 → 2D DP                  LC 10, 44
-&quot;distinct subsequences&quot;                     → 2D DP                  LC 115
-&quot;max rectangle in histogram&quot;                → Stack trick / DP        LC 84, 85
-&quot;triangle / grid max/min path&quot;              → 2D DP (grid walk)      LC 64, 120, 931
-&quot;jump game (can reach)&quot;                     → Greedy or 1D DP         LC 55, 45
-&quot;minimum path sum&quot;                          → 2D DP (grid walk)      LC 64, 174, 741
-&quot;dungeon game (reverse DP)&quot;                 → 2D DP (fill backward)  LC 174
-&quot;palindrome tiling&quot;                         → Interval DP             LC 1547
-&quot;optimal BST / matrix chain multiply&quot;       → Interval DP (classic)  LC 312, 1039
-&quot;TSP / visiting all cities minimum cost&quot;    → Bitmask DP              LC 847
-&quot;collect all keys&quot;                          → Bitmask DP              LC 864
-&quot;assign tasks to workers optimally&quot;         → Bitmask DP              LC 1125
-&quot;max weight closure / project selection&quot;    → Min-cut (advanced DP)  LC -
-&quot;sequence of operations on string&quot;         → 2D DP                  LC 1035, 583
-&quot;interleaving strings&quot;                      → 2D DP (two strings)    LC 97
-&quot;minimum insertion / deletion to match&quot;    → LCS variant             LC 583, 1092
-&quot;max product subarray&quot;                      → 1D DP (min+max track)   LC 152
-&quot;nth term, N up to 10^18&quot;                   → Matrix Exponentiation   LC 70, 1137, 790
-&quot;probability / expected value&quot;              → Probability DP (float)  LC 688, 837, 808
-&quot;item with limited count (bounded)&quot;         → Bounded Knapsack (§8.7) LC -
-&quot;answer for every node as root&quot;             → Tree Rerooting DP       LC 834, 310
-&quot;stones / piles, two players optimal&quot;       → Game Theory DP (§9.6)   LC 877, 486, 1140
-
-🔴 DP ANTI-PATTERNS (Mistakes That Kill Candidates — From 20 Years of Interviewing):
-
-ANTI-PATTERN 1: Vague state definition
-  ❌ &quot;dp[i] = the answer at i&quot;          ← meaningless, leads to wrong recurrence
-  ✅ &quot;dp[i] = max sum of subarray ENDING at index i&quot;   ← precise, unambiguous
-
-ANTI-PATTERN 2: Confusing &quot;min/max&quot; vs &quot;count&quot; recurrence direction
-  min/max: dp[i] = f(dp[i-1], dp[i-2])    ← forward propagation, take optimal
-  count:   dp[i] += dp[j] for all valid j  ← accumulate ALL valid predecessors
-  ❌ Using max() on a count problem → gives 1 instead of total ways
-
-ANTI-PATTERN 3: Using top-down recursion when depth &gt; ~10K
-  ❌ Top-down on a string of length 100K → call stack overflow
-  ✅ Use bottom-up tabulation OR increase stack size explicitly
-  Rule: if n &gt; 10,000 and states are O(n), prefer bottom-up
-
-ANTI-PATTERN 4: Forgetting MOD in count problems
-  LC 62, 91, 518, 1155 all say &quot;return answer mod 10^9 + 7&quot;
-  ❌ dp[i] = dp[i-1] + dp[i-2]          ← overflows Number.MAX_SAFE_INTEGER
-  ✅ dp[i] = (dp[i-1] + dp[i-2]) % MOD
-  Apply MOD on every addition, BEFORE storing back into dp[].
-
-ANTI-PATTERN 5: Off-by-one in interval DP base cases
-  ❌ for (let len = 1; ...)  → may miss len=2 base case for palindromes
-  ✅ Always explicitly set dp[i][i] = base (length-1 case)
-     Then handle dp[i][i+1] = base (length-2 case) before the main loop
-
-ANTI-PATTERN 6: Space optimization when reconstruction is needed
-  ❌ Rolling 1D array → cannot backtrack to find which items were chosen
-  ✅ If asked &quot;what items / what path&quot;, keep full 2D table
-
-ANTI-PATTERN 7: Rebuilding substrings in the inner loop
-  ❌ dp[j] &amp;&amp; wordSet.has(s.slice(j, i))  ← s.slice is O(i-j) per call
-  ✅ Precompute max word length; only try j &gt;= i - maxWordLen
-
-ANTI-PATTERN 8: Wrong loop direction in space-optimized knapsack
-  ❌ 0/1 knapsack with LEFT-TO-RIGHT inner loop → item used multiple times
-  ✅ 0/1 = RIGHT-TO-LEFT (prevents re-use)
-     Unbounded = LEFT-TO-RIGHT (allows re-use)
-
-🔴 TRAP ALERTS (Things That Look Like DP But Aren&#x27;t):
-&quot;minimum # of intervals to cover&quot;           → Greedy (sort by end)    LC 45, 1024
-&quot;activity selection / meeting rooms&quot;        → Greedy                  LC 252, 253
-&quot;assign tasks to minimize max&quot;              → Binary Search           LC 1011, 410
-&quot;sliding window max/min&quot;                    → Monotonic Deque         LC 239, 862</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81ec-b10d-da1dbddef284"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8160-82b7-da5404195ba9" class="">4. 1D DP TEMPLATES</h1></div>
+<h3>🔴 Trap alerts — things that look like DP but aren't</h3>
+<table>
+<tr><th>Keyword / phrase</th><th>→ Actually</th><th>LC examples</th></tr>
+<tr><td>"minimum # of intervals to cover"</td><td>Greedy (sort by end)</td><td>45, 1024</td></tr>
+<tr><td>"activity selection / meeting rooms"</td><td>Greedy</td><td>252, 253</td></tr>
+<tr><td>"assign tasks to minimize max"</td><td>Binary Search</td><td>1011, 410</td></tr>
+<tr><td>"sliding window max/min"</td><td>Monotonic Deque</td><td>239, 862</td></tr>
+</table>
+<div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81ec-b10d-da1dbddef284"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8160-82b7-da5404195ba9" class="">4. 1D DP TEMPLATES</h1></div>
 <p class="tldr">One evolving index — dp[i] built from a few earlier dp values.</p>
 <div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> dp[i] depends only on a bounded window of earlier, already-finalized dp values (dp[i-1], dp[i-2], … dp[i-k]), and once written it never changes again. <b>Why that's safe:</b> filling i in strictly increasing order guarantees every dp value the recurrence reaches backward for already exists and is final — so there is exactly one correct order to compute in, and no dp[i] is ever read before it's written.</div>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> define <code>dp[i]</code> in one sentence, the LIS <code>O(n²)→O(n log n)</code> patience-sort upgrade, and Kadane's "extend or restart." <b>· Escalation:</b> climbing stairs → house robber → LIS (then n log n) → max product (carry the min) → word break / decode ways (the '0' trap) → reconstruct the actual sequence via <code>parent[]</code>.</div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81d5-b251-d82bd6f2b555" class="">4.1 Classic 1D Template (Fibonacci-style)</h2></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><pre id="37cae4f8-635e-81ae-944d-d16404c0fbd6" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PATTERN: dp[i] depends on dp[i-1], dp[i-2], ...
@@ -2193,6 +2158,33 @@ function isMatch_regex(s: string, p: string): boolean {
 
   return dp[m][n];
 }
+// Time: O(m*n), Space: O(m*n)
+
+// LC 44 (wildcard: ? and *) — same table shape, DIFFERENT semantics for &#x27;*&#x27;:
+// regex &#x27;*&#x27; means &quot;zero or more of the PRECEDING char&quot; (always paired: a*, .*).
+// wildcard &#x27;*&#x27; is its OWN token meaning &quot;zero or more of ANY chars&quot; — no pairing.
+function isMatch_wildcard(s: string, p: string): boolean {
+  const m = s.length,
+    n = p.length;
+  const dp: boolean[][] = Array.from({ length: m + 1 }, () =&gt;
+    new Array(n + 1).fill(false),
+  );
+  dp[0][0] = true;
+  for (let j = 1; j &lt;= n; j++) {
+    if (p[j - 1] === &quot;*&quot;) dp[0][j] = dp[0][j - 1]; // &#x27;*&#x27; alone can match empty
+  }
+  for (let i = 1; i &lt;= m; i++) {
+    for (let j = 1; j &lt;= n; j++) {
+      if (p[j - 1] === &quot;*&quot;) {
+        // &#x27;*&#x27; matches EMPTY here: dp[i][j-1]   OR   consumes s[i-1]: dp[i-1][j]
+        dp[i][j] = dp[i][j - 1] || dp[i - 1][j];
+      } else if (p[j - 1] === &quot;?&quot; || p[j - 1] === s[i - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      }
+    }
+  }
+  return dp[m][n];
+}
 // Time: O(m*n), Space: O(m*n)</code></pre></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8195-ba4b-d397c0886548" class="">7.2 Interleaving String</h2></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-816b-ba95-c3baea0ca0cf" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i][j] = can s3[0..i+j-1] be formed by interleaving s1[0..i-1] and s2[0..j-1]?
 // LC 97
 
@@ -2907,6 +2899,10 @@ function countNumbersWithUniqueDigits(n: number): number {
 }
 
 // General Digit DP Template (memoized top-down):
+// tight = true  → every digit chosen so far exactly matches n&#x27;s prefix, so THIS digit
+//                  is capped at digits[pos] (going higher would exceed n).
+// tight = false → we already placed a digit strictly below n&#x27;s prefix, so we&#x27;re
+//                  free to use any digit 0-9 from here on (can&#x27;t exceed n anymore).
 function digitDP_template(n: number): number {
   const digits = String(n).split(&quot;&quot;).map(Number);
   const len = digits.length;
@@ -3040,7 +3036,7 @@ SPACE OPTIMIZATION RULE OF THUMB:
 • dp[i][j] only needs dp[i-1][...] → reduce to 1 row (array of size n)
 • dp[i][j] needs dp[i-1][j-1] → use a single variable &quot;prev_diag&quot;
 • Right-to-left traversal = 0/1 knapsack (no reuse)
-• Left-to-right traversal = unbounded knapsack (allow reuse)</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-815a-9d8c-d252a13d6c6d"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8131-a36d-c7cf1b988a18" class="">16. DP OPTIMIZATION TECHNIQUES (SDE3 Tier — Name-Drop These)</h1></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8153-8689-f70543b10ba8" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">These optimize the CONSTANT inside a DP loop from O(n) to O(1) amortized.
+• Left-to-right traversal = unbounded knapsack (allow reuse)</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-815a-9d8c-d252a13d6c6d"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8131-a36d-c7cf1b988a18" class="">15. DP OPTIMIZATION TECHNIQUES (SDE3 Tier — Name-Drop These)</h1></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8153-8689-f70543b10ba8" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">These optimize the CONSTANT inside a DP loop from O(n) to O(1) amortized.
 You won&#x27;t implement them cold in an interview, but NAMING and EXPLAINING them
 when asked &quot;can you do better?&quot; is what separates SDE3 from SDE2.</code></pre></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8128-8b30-ead997aa50cb" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">TECHNIQUE               REDUCES          CONDITION                   EXAMPLE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3105,7 +3101,7 @@ with a brief explanation scores higher than silently grinding O(n²).</code></pr
 <tr><td>State machine (§9)</td><td>121 · 122 · 309 · 714 · <b>188 Stock IV</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td>Bitmask (§10)</td><td><b>847 Visit All Nodes</b> · 1125 · 698 · 526 Beautiful Arrangement</td><td>Med → <b>Hard</b></td></tr>
 <tr><td>Tree DP (§11)</td><td><b>124 Max Path Sum</b> · 337 House Robber III · 543 · 834 Rerooting</td><td>Med → <b>Hard</b></td></tr>
-<tr><td>DAG / digit / prob (§12)</td><td>329 Longest Increasing Path · <b>233 Digit DP</b> · 688 Knight Probability</td><td>Med → <b>Hard</b></td></tr>
+<tr><td>DAG / digit / prob (§12)</td><td>329 Longest Increasing Path · <b>357 Count Numbers w/ Unique Digits</b> · 688 Knight Probability</td><td>Med → <b>Hard</b></td></tr>
 </table><div style="display:contents" dir="auto"><hr id="dp-hr-selfcheck"/></div><div style="display:contents" dir="auto"><h1 id="dp-self-check" class="">✅ SELF-CHECK — explain each from memory</h1></div><div style="display:contents" dir="auto"><p id="dps-p1" class="">Reading ≠ understanding. <strong>Cover the right column</strong> and answer from memory. Anything that stalls you = the section to re-read. Get these and you can set up any DP on an unseen LC medium/hard.</p></div><p class="hint">Cover the right column (it's blurred — hover/tap to reveal). Answer from memory; any stall = the section to re-read.</p>
 <table class="qa">
 <tr><th style="width:48%">Prompt</th><th>Answer</th></tr>

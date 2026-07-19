@@ -249,13 +249,20 @@ ol.ladder li b { color:var(--text-strong); }
   .topbar, .search-box, .links, .tbtn, .caret, .sheets-bar { display:none !important; }
   .wrap { max-width:none !important; padding:0 !important; }
   .s-title, .s-num { font-size:13px !important; page-break-after:avoid !important; }
-  details.prow { open:true; }
   details.prow > summary { padding:3px 8px !important; }
   .skel { font-size:9.5px !important; line-height:1.2 !important; }
   .section, .tcard, .frow, details.prow, .ustep, ol.ladder li, .tbl-wrap, .levers {
     page-break-inside:avoid !important;
   }
   p, li, div, tr, td, th { page-break-inside:avoid !important; }
+  .sec-flow, #sec-flow { page-break-after:avoid !important; }
+  #sec-patterns { page-break-before:always !important; }
+
+  /* browsers strip background colors by default when printing — force the
+     dots/complexity-tags to survive so patterns stay visually distinguishable on paper */
+  .dot, td.o, .s-num, .frow.active, details.prow.hl {
+    -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
+  }
 }
 </style>
 <script>
@@ -275,6 +282,7 @@ ol.ladder li b { color:var(--text-strong); }
     <a href="uppercase.html">◧ PATTERN CARDS</a>
     <a href="index.html">🗂 TRACKER</a>
     <button class="tbtn" id="theme-btn">🌙 DARK</button>
+    <button class="tbtn" id="print-btn">🖨 PRINT</button>
   </div>
 </div>
 
@@ -765,6 +773,18 @@ themeBtn.addEventListener('click', () => {
     + `<div class="utext"><b>${t}</b> — ${d}</div></div>`).join('');
 });
 label();
+
+// ── PRINT: force every pattern card open so the code skeletons show on paper,
+// then restore whatever was open/closed before (CSS alone can't set the `open` attribute) ──
+let openBeforePrint = [];
+window.addEventListener('beforeprint', () => {
+  openBeforePrint = Array.from(pgrid.querySelectorAll('details.prow')).map(d => d.open);
+  pgrid.querySelectorAll('details.prow').forEach(d => { d.open = true; });
+});
+window.addEventListener('afterprint', () => {
+  pgrid.querySelectorAll('details.prow').forEach((d, i) => { d.open = openBeforePrint[i]; });
+});
+document.getElementById('print-btn').addEventListener('click', () => window.print());
 </script>
 </body>
 </html>
