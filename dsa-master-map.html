@@ -250,13 +250,29 @@ ol.ladder li b { color:var(--text-strong); }
   .wrap { max-width:none !important; padding:0 !important; }
   .s-title, .s-num { font-size:13px !important; page-break-after:avoid !important; }
   details.prow > summary { padding:3px 8px !important; }
-  .skel { font-size:9.5px !important; line-height:1.2 !important; }
-  .section, .tcard, .frow, details.prow, .ustep, ol.ladder li, .tbl-wrap, .levers {
+  /* .skel is pre + overflow-x:auto on screen (scrollable); print can't scroll, so an
+     unwrapped long line (usually a trailing comment) just gets clipped at the card
+     edge — wrap instead so nothing is silently cut off the page */
+  .skel {
+    font-size:9.5px !important; line-height:1.2 !important;
+    white-space:pre-wrap !important; word-break:break-word !important; overflow-x:visible !important;
+  }
+  /* only atomic rows/cards avoid a mid-element split — the SECTION as a whole must
+     stay free to flow (page-break-inside:auto is the default) or a section that
+     doesn't fully fit the remaining page gets shoved whole onto a fresh page,
+     leaving a large blank gap behind it */
+  .tcard, .frow, details.prow, .ustep, ol.ladder li, .tbl-wrap, .levers, tr, td, th {
     page-break-inside:avoid !important;
   }
-  p, li, div, tr, td, th { page-break-inside:avoid !important; }
-  .sec-flow, #sec-flow { page-break-after:avoid !important; }
-  #sec-patterns { page-break-before:always !important; }
+  /* the mobile (max-width:820px) breakpoint below accidentally matches an A4 page's
+     printable width (~758px) and collapses these grids to 1 column, wasting pages —
+     force the intended multi-column layout back on for print */
+  .triage { grid-template-columns:repeat(3,1fr) !important; }
+  .pgrid, .two { grid-template-columns:repeat(2,1fr) !important; }
+  .frow {
+    grid-template-columns:minmax(0,1.15fr) auto minmax(0,1fr) !important; gap:10px !important;
+  }
+  .frow .sep { display:inline !important; }
 
   /* browsers strip background colors by default when printing — force the
      dots/complexity-tags to survive so patterns stay visually distinguishable on paper */
