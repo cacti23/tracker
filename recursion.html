@@ -777,7 +777,7 @@ Otherwise:
    → archetype 1, BUBBLE-UP (return-value). This is the default —
      most problems are this one. Reach for the others only when
      bubble-up alone can't say what you need.</code></pre></div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> not whether you can write ANY of these five — you will, eventually, by trial and error — but whether you can <em>say the archetype out loud in the first 30 seconds</em>, before writing a line of code. That's the difference between "let me think out loud: this is asking for every combination, so I'm going to explore-all with an undo" and 4 minutes of silent typing and backspacing. <b>· Escalation:</b> interviewers love mutating one archetype into another mid-interview — turn a bubble-up sum into a memoized count (add overlapping subproblems), or a global-answer diameter into a return-value tuple (remove the closure). If you can convert between archetypes on request, you've shown you understand them, not just memorized them.</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> not whether you can write any of these five — eventually, by trial and error, you would. It's whether you can <em>say the archetype out loud in the first 30 seconds</em>, before writing a line of code. Compare "let me think out loud: this wants every combination, so I'll explore-all with an undo" against 4 minutes of silent typing and backspacing — same destination, very different signal. <b>· Escalation:</b> interviewers love mutating one archetype into another mid-interview. Turn a bubble-up sum into a memoized count by adding overlapping subproblems. Turn a global-answer diameter into a return-value tuple by removing the closure. Converting between archetypes on request proves you understand them — not just memorized them.</div>
 
 <div style="display:contents" dir="auto"><hr/></div>
 
@@ -923,27 +923,62 @@ function f(input: Input): Output {
 
 <div style="display:contents" dir="auto"><h1 id="rec-s5" class="">5. ⭐ RETURN-VALUE vs VOID — THE BIG FORK</h1></div>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>This is the thing you said trips you up, so read it twice.</strong> There are exactly two ways a recursion can produce an answer. Almost all confusion about "what do I return" comes from mixing them. Pick ONE style per function.</blockquote></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">          STYLE A: BUBBLE UP            STYLE B: CARRY DOWN
-          (compute via RETURN)          (compute via PARAMS + side effect)
-─────────────────────────────────────────────────────────────────────────
-Answer    flows UP the stack:           flows DOWN the stack:
-flow      child returns → parent        parent passes partial answer
-          combines → returns up.        down as an argument.
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 The load-bearing analogy — a report vs. a relay baton.</strong> <strong>Style A (bubble-up)</strong> is you reporting to your manager: you ask your one direct report a single question, wait for their one-number answer, add your own bit, and hand ONE number to <em>your</em> manager. Nobody above you ever sees anyone else's raw numbers — just yours, already combined. <strong>Style B (carry-down)</strong> is a relay race: the baton (your running total, your path-so-far) gets handed FORWARD, runner to runner. Nothing meaningful happens on the way back — the race is already decided the moment the last runner crosses the line holding the baton. If you can say which of these two your function is doing, you already know what to return.</blockquote></div>
+<table>
+<tr><th></th><th>Style A — Bubble Up (report to manager)</th><th>Style B — Carry Down (relay baton)</th></tr>
+<tr><td><b>Answer flow</b></td><td>UP the stack: child returns → parent combines → parent returns up.</td><td>DOWN the stack: parent hands the partial answer to the child as an argument.</td></tr>
+<tr><td><b>Returns</b></td><td>A meaningful value (number, list, bool, node).</td><td>Often <code>void</code> — pushes the finished answer into an external array once it reaches the base case.</td></tr>
+<tr><td><b>Use when</b></td><td>You can write <code>f(x)</code> as a formula over <code>f(smaller)</code>.</td><td>You're enumerating / building every path or combo, or you need the FULL path at the leaf.</td></tr>
+<tr><td><b>Examples</b></td><td>sum, height, count, fib, "does a path exist?" (bool), reverse-a-list, mergesort.</td><td>print all paths, subsets, permutations, tree root→leaf paths, DFS that records routes.</td></tr>
+<tr><td><b>Mantra</b></td><td>"Return child-work, combine, return up."</td><td>"Push state down, collect at the base case."</td></tr>
+</table>
+<div style="display:contents" dir="auto"><figure class="diagram">
+<svg viewBox="0 0 640 340" width="640" role="img" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="rec-d5-down" markerWidth="12" markerHeight="12" refX="5" refY="9" orient="auto"><path d="M1,1 L5,9 L9,1" fill="none" stroke="#7c3aed" stroke-width="2.2"/></marker>
+    <marker id="rec-d5-up" markerWidth="12" markerHeight="12" refX="5" refY="3" orient="auto"><path d="M1,11 L5,3 L9,11" fill="none" stroke="#16a34a" stroke-width="2.2"/></marker>
+    <marker id="rec-d5-down2" markerWidth="12" markerHeight="12" refX="5" refY="9" orient="auto"><path d="M1,1 L5,9 L9,1" fill="none" stroke="#d97706" stroke-width="2.2"/></marker>
+  </defs>
+  <text x="150" y="20" fill="#7c3aed" font-size="13" font-weight="700" text-anchor="middle">STYLE A · BUBBLE UP</text>
+  <text x="490" y="20" fill="#d97706" font-size="13" font-weight="700" text-anchor="middle">STYLE B · CARRY DOWN</text>
+  <line x1="320" y1="10" x2="320" y2="330" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="4 3"/>
 
-Returns   a meaningful value            often void; pushes the finished
-          (number, list, bool, node).   answer into an external array
-                                        when it reaches the base case.
+  <!-- STYLE A stack: sumUp(a,i) -->
+  <rect x="70" y="34" width="160" height="34" rx="7" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="150" y="56" font-size="12.5" font-weight="600" fill="#4c1d95" text-anchor="middle">sumUp(a, 0)</text>
+  <rect x="70" y="98" width="160" height="34" rx="7" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="150" y="120" font-size="12.5" font-weight="600" fill="#4c1d95" text-anchor="middle">sumUp(a, 1)</text>
+  <rect x="70" y="162" width="160" height="34" rx="7" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="150" y="184" font-size="12.5" font-weight="600" fill="#4c1d95" text-anchor="middle">sumUp(a, 2)</text>
+  <rect x="70" y="226" width="160" height="34" rx="7" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.7"/>
+  <text x="150" y="248" font-size="12.5" font-weight="700" fill="#92400e" text-anchor="middle">sumUp(a, 3) = 0</text>
+  <line x1="60" y1="72" x2="60" y2="222" stroke="#7c3aed" stroke-width="2.2" marker-end="url(#rec-d5-down)"/>
+  <text x="45" y="150" fill="#7c3aed" font-size="10.5" text-anchor="middle" transform="rotate(-90 45 150)">shrink i</text>
+  <line x1="245" y1="222" x2="245" y2="72" stroke="#16a34a" stroke-width="2.2" marker-end="url(#rec-d5-up)"/>
+  <text x="272" y="250" font-size="11.5" font-weight="600" fill="#16a34a" text-anchor="start">↑ returns 0</text>
+  <text x="272" y="186" font-size="11.5" font-weight="600" fill="#16a34a" text-anchor="start">↑ 2 + 0 = 2</text>
+  <text x="272" y="122" font-size="11.5" font-weight="600" fill="#16a34a" text-anchor="start">↑ 5 + 2 = 7</text>
+  <text x="272" y="58" font-size="11.5" font-weight="600" fill="#16a34a" text-anchor="start">↑ 3 + 7 = 10</text>
+  <text x="150" y="300" font-size="11" fill="#4c1d95" text-anchor="middle">the SUM is computed on the way UP —</text>
+  <text x="150" y="316" font-size="11" fill="#4c1d95" text-anchor="middle">each frame does real work in the return line</text>
 
-Use when  you can express f(x) as a     you're enumerating / building
-          formula over f(smaller).      every path/combo, or you need
-                                        the FULL path at the leaf.
-
-Examples  sum, height, count, fib,      print all paths, subsets,
-          "does a path exist?" (bool),  permutations, tree root→leaf
-          reverse-a-list, mergesort.    paths, DFS that records routes.
-
-Mantra    "return child-work,           "push state down, collect
-           combine, return up."          at the base case."</code></pre></div>
+  <!-- STYLE B stack: sumDown(a,i,acc) -->
+  <rect x="410" y="34" width="180" height="34" rx="7" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="500" y="56" font-size="12.5" font-weight="600" fill="#78350f" text-anchor="middle">sumDown(a, 0, acc=0)</text>
+  <rect x="410" y="98" width="180" height="34" rx="7" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="500" y="120" font-size="12.5" font-weight="600" fill="#78350f" text-anchor="middle">sumDown(a, 1, acc=3)</text>
+  <rect x="410" y="162" width="180" height="34" rx="7" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="500" y="184" font-size="12.5" font-weight="600" fill="#78350f" text-anchor="middle">sumDown(a, 2, acc=8)</text>
+  <rect x="410" y="226" width="180" height="34" rx="7" fill="#dcfce7" stroke="#16a34a" stroke-width="1.7"/>
+  <text x="500" y="248" font-size="12.5" font-weight="700" fill="#166534" text-anchor="middle">sumDown(a, 3, acc=10) = 10</text>
+  <line x1="400" y1="72" x2="400" y2="222" stroke="#d97706" stroke-width="2.2" marker-end="url(#rec-d5-down2)"/>
+  <text x="385" y="150" fill="#d97706" font-size="10.5" text-anchor="middle" transform="rotate(-90 385 150)">acc grows on the way down</text>
+  <line x1="608" y1="222" x2="608" y2="72" stroke="#94a3b8" stroke-width="2" stroke-dasharray="3 3"/>
+  <text x="625" y="150" font-size="10.5" fill="#64748b" text-anchor="middle" transform="rotate(90 625 150)">just plumbing — no work</text>
+  <text x="500" y="300" font-size="11" fill="#78350f" text-anchor="middle">the SUM is already final at the base case —</text>
+  <text x="500" y="316" font-size="11" fill="#78350f" text-anchor="middle">the way back up carries it, unchanged</text>
+</svg>
+<figcaption><strong>Same problem, both styles, same numbers.</strong> Left: each frame does its real work AFTER the recursive call returns (on the way up) — that's the report-to-your-manager shape. Right: each frame does its real work BEFORE recursing (on the way down); the base case already holds the answer, and the return trip back to the top is just handing it back unchanged — that's the relay-baton shape.</figcaption></figure></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// SAME PROBLEM, BOTH STYLES — sum of an array from index i onward.
 
 // STYLE A — BUBBLE UP: the value comes back through `return`.
@@ -966,6 +1001,39 @@ function sumDown(a: number[], i: number, acc: number): number {
 
 <div style="display:contents" dir="auto"><h1 id="rec-s6" class="">6. ⭐ HOW TO FIGURE OUT THE RETURN VALUE</h1></div>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>A repeatable 3-step recipe for "I don't know what to return."</strong> Run this every time and you'll never be stuck on a return value again.</blockquote></div>
+<div style="display:contents" dir="auto"><blockquote class="key"><strong>🔑 The analogy — you're signing a contract before you do any work.</strong> A recruiter won't let you start a job without agreeing what you're being paid to deliver. Step 1 is you writing that one-sentence job description for yourself ("this function's job is to return ___"). Once it's written down, Steps 2 and 3 are just <em>honoring</em> that contract for the easiest case and then the general case — you're not inventing anything new, you're fulfilling a promise you already made in Step 1.</blockquote></div>
+<div style="display:contents" dir="auto"><figure class="diagram">
+<svg viewBox="0 0 620 350" width="620" role="img" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="rec-d6-down" markerWidth="12" markerHeight="12" refX="5" refY="9" orient="auto"><path d="M1,1 L5,9 L9,1" fill="none" stroke="#7c3aed" stroke-width="2.2"/></marker>
+  </defs>
+  <line x1="270" y1="66" x2="270" y2="84" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#rec-d6-down)"/>
+  <line x1="270" y1="140" x2="270" y2="158" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#rec-d6-down)"/>
+  <g>
+    <rect x="60" y="18" width="420" height="48" rx="9" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6"/>
+    <text x="80" y="38" font-size="13" font-weight="700" fill="#4c1d95" text-anchor="start">STEP 1 · NAME THE CONTRACT</text>
+    <text x="80" y="56" font-size="11" fill="#5b21b6" text-anchor="start">"count(node) returns the number of nodes in this subtree."</text>
+  </g>
+  <g>
+    <rect x="60" y="92" width="420" height="48" rx="9" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.6"/>
+    <text x="80" y="112" font-size="13" font-weight="700" fill="#4c1d95" text-anchor="start">STEP 2 · SMALLEST INPUT</text>
+    <text x="80" y="130" font-size="11" fill="#5b21b6" text-anchor="start">"count(null) = 0" — an empty subtree has 0 nodes.</text>
+  </g>
+  <g>
+    <rect x="60" y="166" width="420" height="48" rx="9" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.7"/>
+    <text x="80" y="186" font-size="13" font-weight="700" fill="#92400e" text-anchor="start">STEP 3 · THE LEAP</text>
+    <text x="80" y="204" font-size="11" fill="#92400e" text-anchor="start">"trust count(left) and count(right) → 1 + count(left) + count(right)"</text>
+  </g>
+  <rect x="40" y="228" width="540" height="98" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.6"/>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="12" fill="#166534" text-anchor="start">
+    <text x="60" y="250">function count(node) {</text>
+    <text x="60" y="270">  if (!node) return 0;                              <tspan fill="#16a34a">// Step 2</tspan></text>
+    <text x="60" y="290">  return 1 + count(node.left) + count(node.right); <tspan fill="#16a34a">// Step 3</tspan></text>
+    <text x="60" y="310">}</text>
+  </g>
+  <text x="310" y="342" font-size="11" fill="#6d28d9" text-anchor="middle" font-style="italic">Each step above becomes exactly one line of the code below it.</text>
+</svg>
+<figcaption><strong>The 3-step recipe, worked end to end.</strong> Name the contract first — everything else is just honoring it. Step 2 becomes your <code>if</code> line; Step 3 becomes your <code>return</code> line. That's the whole function.</figcaption></figure></div>
 <div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">STEP 1 — NAME THE RETURN (write the contract sentence).
    "f(x) returns ______."  Be specific about type AND meaning.
    The type you name here MUST be the same in every branch.
@@ -991,26 +1059,22 @@ STEP 3 — RETURN FOR THE GENERAL INPUT (the leap).
 GOLDEN RULE: base case and recursive case must return the
 SAME TYPE. If base returns a number, recursion returns a number.
 Type-mismatch between branches = your bug.</code></pre></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">FILL-IN-THE-BLANKS TABLE — copy this for any new problem
-┌──────────────────┬───────────┬─────────────────────────────────┐
-│ PROBLEM          │ BASE RET  │ RECURSIVE RETURN (combine)      │
-├──────────────────┼───────────┼─────────────────────────────────┤
-│ length of list   │ 0         │ 1 + f(rest)                     │
-│ sum of list      │ 0         │ head + f(rest)                  │
-│ max of list      │ a[i]      │ max(a[i], f(i+1))               │
-│ n!               │ 1         │ n * f(n-1)                      │
-│ a^n              │ 1         │ a * f(n-1)                      │
-│ contains x?      │ false     │ a[i]===x || f(i+1)              │
-│ all positive?    │ true      │ a[i]>0 && f(i+1)                │
-│ reverse string   │ ""        │ f(rest) + s[0]                  │
-│ tree node count  │ 0 (null)  │ 1 + f(left) + f(right)          │
-│ tree height      │ 0 (null)  │ 1 + max(f(left), f(right))      │
-│ tree contains x  │ false     │ node.val===x || f(L) || f(R)    │
-└──────────────────┴───────────┴─────────────────────────────────┘
-Pattern you should now SEE: BASE = identity element of the
-combine operation. (+→0, *→1, ||→false, &&→true, concat→"")
-No identity exists for some ops (e.g. max/min) → instead bottom
-out one step earlier, on the LAST single element (base = a[i]).</code></pre></div>
+<p class="tldr">Fill-in-the-blanks table — copy this shape for any new problem.</p>
+<table>
+<tr><th>Problem</th><th>Base return</th><th>Recursive return (combine)</th></tr>
+<tr><td>length of list</td><td><code>0</code></td><td><code>1 + f(rest)</code></td></tr>
+<tr><td>sum of list</td><td><code>0</code></td><td><code>head + f(rest)</code></td></tr>
+<tr><td>max of list</td><td><code>a[i]</code></td><td><code>max(a[i], f(i+1))</code></td></tr>
+<tr><td>n!</td><td><code>1</code></td><td><code>n * f(n-1)</code></td></tr>
+<tr><td>a^n</td><td><code>1</code></td><td><code>a * f(n-1)</code></td></tr>
+<tr><td>contains x?</td><td><code>false</code></td><td><code>a[i]===x || f(i+1)</code></td></tr>
+<tr><td>all positive?</td><td><code>true</code></td><td><code>a[i]>0 && f(i+1)</code></td></tr>
+<tr><td>reverse string</td><td><code>""</code></td><td><code>f(rest) + s[0]</code></td></tr>
+<tr><td>tree node count</td><td><code>0</code> (null)</td><td><code>1 + f(left) + f(right)</code></td></tr>
+<tr><td>tree height</td><td><code>0</code> (null)</td><td><code>1 + max(f(left), f(right))</code></td></tr>
+<tr><td>tree contains x</td><td><code>false</code></td><td><code>node.val===x || f(L) || f(R)</code></td></tr>
+</table>
+<div style="display:contents" dir="auto"><blockquote class=""><strong>The pattern you should now SEE:</strong> the base return is always the <em>identity element</em> of whatever operation combines the answers — the value that changes nothing when combined. <code>+</code>'s identity is 0, <code>*</code>'s is 1, <code>||</code>'s is <code>false</code>, <code>&amp;&amp;</code>'s is <code>true</code>, string concat's is <code>""</code>. Some operations (like <code>max</code>/<code>min</code>) have no identity element at all — for those, stop one step earlier and let the base case be the LAST single element instead of an empty input.</blockquote></div>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Trick for boolean returns:</strong> use <code>||</code> ("does ANY branch succeed?") or <code>&amp;&amp;</code> ("do ALL branches succeed?"). Short-circuiting also prunes for free. <strong>Trick for "return the node/path itself":</strong> the return type is the node/list, base returns <code>null</code> / <code>[]</code>, and you reattach the child's returned node — see reverse-linked-list and tree-build problems.</blockquote></div>
 
 <div style="display:contents" dir="auto"><hr/></div>
@@ -1179,27 +1243,16 @@ THE THREE TRAVERSAL ORDERS ARE JUST "WHEN DO I VISIT ME?"
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s9" class="">9. THE 6 RECURSION SHAPES</h1></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">SHAPE              # CALLS   SIGNATURE FEELING            TYPICAL COST
-──────────────────────────────────────────────────────────────────────
-1 Linear           1 call    f(n-1) once                  O(n) time, O(n) stack
-                             factorial, sum, list walk
-2 Tail             1 call    f(...) is the LAST thing;    O(n) time, O(1)* stack
-                             answer fully in the param    (*if engine optimizes)
-3 Binary / Tree    2 calls   f(left) and f(right)         often O(2^n) or O(n)
-                             fib, tree traversals
-4 Multi-branch     k calls   a loop of recursive calls    O(k^depth) — subsets,
-                             (one per choice)             permutations, n-ary trees
-5 Divide&Conquer   2 of n/2  split, solve halves, merge   T(n)=2T(n/2)+f(n)
-                             mergesort, quicksort, bsearch
-6 Mutual / Nested  via other  f calls g, g calls f; or     varies
-                             f(f(x)) (Ackermann, parsers)
-
-HOW TO RECOGNIZE WHICH ONE
-  one smaller input        → Linear / Tail
-  two children             → Tree
-  "for each choice: recurse"→ Multi-branch (this is backtracking)
-  "split in half"          → Divide &amp; Conquer
-  grammar / state machine  → Mutual recursion</code></pre></div>
+<table>
+<tr><th>Shape</th><th># calls</th><th>Signature feeling</th><th>Typical cost</th></tr>
+<tr><td>1 Linear</td><td>1 call</td><td><code>f(n-1)</code> once — factorial, sum, list walk</td><td>O(n) time, O(n) stack</td></tr>
+<tr><td>2 Tail</td><td>1 call</td><td><code>f(...)</code> is the LAST thing; answer fully in the param</td><td>O(n) time, O(1)* stack (*if engine optimizes)</td></tr>
+<tr><td>3 Binary / Tree</td><td>2 calls</td><td><code>f(left)</code> and <code>f(right)</code> — fib, tree traversals</td><td>often O(2ⁿ) or O(n)</td></tr>
+<tr><td>4 Multi-branch</td><td>k calls</td><td>a loop of recursive calls (one per choice)</td><td>O(k^depth) — subsets, permutations, n-ary trees</td></tr>
+<tr><td>5 Divide &amp; Conquer</td><td>2 of n/2</td><td>split, solve halves, merge — mergesort, quicksort, bsearch</td><td>T(n) = 2T(n/2) + f(n)</td></tr>
+<tr><td>6 Mutual / Nested</td><td>via other</td><td><code>f</code> calls <code>g</code>, <code>g</code> calls <code>f</code>; or <code>f(f(x))</code> (Ackermann, parsers)</td><td>varies</td></tr>
+</table>
+<div style="display:contents" dir="auto"><blockquote class=""><strong>How to recognize which one:</strong> one smaller input → Linear/Tail. Two children → Tree. "For each choice, recurse" → Multi-branch (this is backtracking). "Split in half" → Divide &amp; Conquer. Grammar or a state machine → Mutual recursion.</blockquote></div>
 <div style="display:contents" dir="auto"><figure class="diagram">
 <svg viewBox="0 0 620 280" width="620" role="img" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
   <g stroke="#7c3aed" stroke-width="1.5"><g fill="#7c3aed">
@@ -1812,20 +1865,21 @@ Computes child twice (slow)      Called f(...) twice instead of saving
 <div style="display:contents" dir="auto"><hr/></div>
 
 <div style="display:contents" dir="auto"><h1 id="rec-s19" class="">19. KEYWORD → APPROACH MAP</h1></div>
-<div style="display:contents" dir="auto"><pre class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PHRASE IN THE PROBLEM                 → RECURSION SHAPE / STYLE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"compute X of the whole structure"    → bubble up (return + combine)
-"height / depth / count / sum of tree"→ post-order, Style A
-"does a path/element exist?"          → boolean return with || / &amp;&amp;
-"all ... / every ... / list them"     → carry down + collect (Style B)
-"all paths root to leaf"              → params for path + closure result
-"generate all subsets/combos/perms"   → pick/skip or for-each-choice + undo
-"split / halve / sorted"              → divide &amp; conquer
-"nth term / ways to ..."              → linear/branching; likely + memo
-"same subproblem repeats"             → add memo → DP
-"reverse / build a list or tree"      → return the node; reattach on the way up
-"process in order 1..n" / "n..1"      → work before vs after the call (§8)
-"too deep / n up to 1e6"              → convert to iteration + explicit stack</code></pre></div>
+<table>
+<tr><th>Phrase in the problem</th><th>Recursion shape / style</th></tr>
+<tr><td>"compute X of the whole structure"</td><td>bubble up (return + combine)</td></tr>
+<tr><td>"height / depth / count / sum of tree"</td><td>post-order, Style A</td></tr>
+<tr><td>"does a path/element exist?"</td><td>boolean return with <code>||</code> / <code>&amp;&amp;</code></td></tr>
+<tr><td>"all ... / every ... / list them"</td><td>carry down + collect (Style B)</td></tr>
+<tr><td>"all paths root to leaf"</td><td>params for path + closure result</td></tr>
+<tr><td>"generate all subsets/combos/perms"</td><td>pick/skip or for-each-choice + undo</td></tr>
+<tr><td>"split / halve / sorted"</td><td>divide &amp; conquer</td></tr>
+<tr><td>"nth term / ways to ..."</td><td>linear/branching; likely + memo</td></tr>
+<tr><td>"same subproblem repeats"</td><td>add memo → DP</td></tr>
+<tr><td>"reverse / build a list or tree"</td><td>return the node; reattach on the way up</td></tr>
+<tr><td>"process in order 1..n" / "n..1"</td><td>work before vs after the call (§8)</td></tr>
+<tr><td>"too deep / n up to 1e6"</td><td>convert to iteration + explicit stack</td></tr>
+</table>
 <h3 id="rec-coverage">▶ Coverage — what these patterns unlock on LeetCode</h3>
 <p>If you can write each pattern cold, the problems below are in range. <b>Bold</b> = Hard tier — the escalation an interviewer reaches for once you've nailed the medium.</p>
 <table>
