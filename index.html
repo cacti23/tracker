@@ -1033,6 +1033,7 @@ const QR_IDS = {
 // the tab pane. You must also add a render function and call it in renderCurrentTab().
 const TOPIC_TABS = [
   { key: 'questions',  label: 'Questions'  },
+  { key: 'practiced',  label: '🕓 Practiced' },
   { key: 'notes',      label: '📝 Notes'   },
 ]
 
@@ -1768,6 +1769,56 @@ function renderCurrentTab() {
   }
 
   if (currentTab === 'questions') renderQuestions(mod)
+  if (currentTab === 'practiced') renderPracticedTab(mod)
+}
+
+// ─── PRACTICED TAB ────────────────────────────────────────────────────────────
+// Every question in this topic you've clicked "done" on in a Practice Session (Worked/Graded/
+// Mock), most-recently-practiced first — a fast recency-ordered revise log. Grade right here
+// (✓/~/✗) so a five-question night session can be re-graded the next morning without hunting
+// each question down in the main list.
+function renderPracticedTab(mod) {
+  const el = document.getElementById('tab-practiced')
+  if (!el) return
+  const entries = Object.entries(mod.questions)
+    .filter(([k]) => getLastPracticed(k))
+    .sort((a, b) => new Date(getLastPracticed(b[0])) - new Date(getLastPracticed(a[0])))
+  if (!entries.length) {
+    el.innerHTML = '<p class="text-secondary text-xs">No questions practiced yet — solve something in the Practice Session above and it\'ll show up here, most recent first.</p>'
+    return
+  }
+  el.innerHTML = '<p class="text-secondary text-xs mb-2">' + entries.length + ' practiced · most recent first — grade your recall right here</p>' +
+    '<div id="practiced-list">' + entries.map(([k, q], i) => _buildPracticedItem(k, q, i)).join('') + '</div>'
+}
+
+function _buildPracticedItem(lcKey, q, i) {
+  const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
+  const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
+  const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
+  return (
+    '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
+    '<span class="ps-q-num">' + (i + 1) + '</span>' +
+    topicIcon +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    _reviseGradeBadge(lcKey) +
+    '<span class="rev-ago" title="Last practiced">' + _agoLabel(getLastPracticed(lcKey)) + '</span>' +
+    '<span class="rev-grade-group flex-shrink-0">' +
+      '<button class="rev-grade rev-solid"  title="Recalled it cold"          onclick="_practicedGrade(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
+      '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint"     onclick="_practicedGrade(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
+      '<button class="rev-grade rev-forgot" title="Forgot — re-queue to code" onclick="_practicedGrade(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
+    '</span>' +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+    '</div>'
+  )
+}
+
+// Grade in place from the Practiced tab — a review log, not a sweep, so the row never vanishes.
+function _practicedGrade(ev, lcKey, grade) {
+  ev.stopPropagation()
+  gradeRevise(lcKey, grade)
+  const row = ev.currentTarget.closest('.ps-q-row')
+  if (row) _refreshReviseGradeBadges(lcKey)
 }
 
 // ─── NOTES TAB ────────────────────────────────────────────────────────────────
