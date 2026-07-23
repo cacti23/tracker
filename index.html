@@ -807,6 +807,11 @@
     }
     .ps-pin-btn:hover { opacity: 0.75; border-color: var(--border); background: var(--bg-elevated); }
     .ps-pin-btn.pinned { opacity: 1; border-color: rgba(255,200,0,0.4); background: rgba(255,200,0,0.1); }
+    .ps-graded-divider {
+      font-size: var(--fs-xs); color: var(--text-faint); text-transform: uppercase;
+      letter-spacing: 0.03em; margin: 0.7rem 0 0.4rem; padding-top: 0.5rem;
+      border-top: 1px dashed var(--border);
+    }
     .ps-session-done {
       display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
       padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;
@@ -1777,26 +1782,52 @@ function renderCurrentTab() {
 // Mock), most-recently-practiced first — a fast recency-ordered revise log. Grade right here
 // (✓/~/✗) so a five-question night session can be re-graded the next morning without hunting
 // each question down in the main list.
+// A question you graded (solid/shaky/forgot) on today's calendar day — grading it once today
+// is "done" for this revise pass, so it sinks out of the way instead of nagging you again.
+function _gradedToday(lcKey) {
+  const r = getRevise(lcKey)
+  if (!r || !r.last) return false
+  const a = new Date(); a.setHours(0, 0, 0, 0)
+  const b = new Date(r.last); b.setHours(0, 0, 0, 0)
+  return a.getTime() === b.getTime()
+}
+
 function renderPracticedTab(mod) {
   const el = document.getElementById('tab-practiced')
   if (!el) return
-  const entries = Object.entries(mod.questions)
-    .filter(([k]) => getLastPracticed(k))
-    .sort((a, b) => new Date(getLastPracticed(b[0])) - new Date(getLastPracticed(a[0])))
+  const entries = Object.entries(mod.questions).filter(([k]) => getLastPracticed(k))
   if (!entries.length) {
     el.innerHTML = '<p class="text-secondary text-xs">No questions practiced yet — solve something in the Practice Session above and it\'ll show up here, most recent first.</p>'
     return
   }
-  el.innerHTML = '<p class="text-secondary text-xs mb-2">' + entries.length + ' practiced · most recent first — grade your recall right here</p>' +
-    '<div id="practiced-list">' + entries.map(([k, q], i) => _buildPracticedItem(k, q, i)).join('') + '</div>'
+  const byRecency = (a, b) => new Date(getLastPracticed(b[0])) - new Date(getLastPracticed(a[0]))
+  // Three tiers, top to bottom: ✗ forgot (still needs a cold re-solve — never buried) → due for
+  // a recall pass today (never graded, or graded on an earlier day) → already graded today (sunk
+  // out of the way, but still visible so the log doesn't lose today's work).
+  const forced      = entries.filter(([k]) => isCodeForced(k)).sort(byRecency)
+  const due         = entries.filter(([k]) => !isCodeForced(k) && !_gradedToday(k)).sort(byRecency)
+  const gradedToday = entries.filter(([k]) => !isCodeForced(k) &&  _gradedToday(k)).sort(byRecency)
+
+  let html = '<p class="text-secondary text-xs mb-2">' + entries.length + ' practiced · due for revise first — grade your recall right here</p>' +
+    '<div id="practiced-list">'
+  let i = 0
+  forced.forEach(([k, q]) => { html += _buildPracticedItem(k, q, i++, true) })
+  due.forEach(([k, q]) => { html += _buildPracticedItem(k, q, i++, false) })
+  if (gradedToday.length) {
+    html += '<div class="ps-graded-divider">✓ Graded today</div>'
+    gradedToday.forEach(([k, q]) => { html += _buildPracticedItem(k, q, i++, false) })
+  }
+  html += '</div>'
+  el.innerHTML = html
 }
 
-function _buildPracticedItem(lcKey, q, i) {
+function _buildPracticedItem(lcKey, q, i, forced) {
   const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
   const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
   const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
+  const rowCls = forced ? ' ps-q-forgot' : ''
   return (
-    '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
+    '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     topicIcon +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
@@ -1813,12 +1844,14 @@ function _buildPracticedItem(lcKey, q, i) {
   )
 }
 
-// Grade in place from the Practiced tab — a review log, not a sweep, so the row never vanishes.
+// Grade from the Practiced tab, then re-sort the whole tab — grading today sinks the row into
+// the "Graded today" cluster (still visible, just out of the way); a fresh Forgot pins it back
+// near the top instead, since that one still needs a cold re-solve.
 function _practicedGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)
-  const row = ev.currentTarget.closest('.ps-q-row')
-  if (row) _refreshReviseGradeBadges(lcKey)
+  const mod = TOPIC_MODULES[currentTopicKey]
+  if (mod) renderPracticedTab(mod)
 }
 
 // ─── NOTES TAB ────────────────────────────────────────────────────────────────
