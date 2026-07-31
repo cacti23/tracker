@@ -713,6 +713,11 @@
     /* Forgot residue row: stays in the Revise list as your "code this" list — highlighted, never struck */
     .ps-q-row.ps-q-forgot { background: rgba(229,83,83,0.08); border-color: rgba(229,83,83,0.4); }
     .ps-q-row.ps-q-forgot:hover { background: rgba(229,83,83,0.14); border-color: rgba(229,83,83,0.55); }
+    /* Graded-but-kept rows: solid/shaky stay in place (never swept), tinted to show they're done */
+    .ps-q-row.ps-q-solid { background: var(--green-dim); border-color: rgba(61,214,140,0.4); }
+    .ps-q-row.ps-q-solid:hover { border-color: rgba(61,214,140,0.55); }
+    .ps-q-row.ps-q-shaky { background: var(--yellow-dim); border-color: rgba(240,192,96,0.4); }
+    .ps-q-row.ps-q-shaky:hover { border-color: rgba(240,192,96,0.55); }
     /* Persisted "last revise grade" badge shown on cards & practice rows (display-only) */
     .revise-grade-badge {
       display: inline-flex; align-items: center; justify-content: center;
@@ -2715,27 +2720,26 @@ function _qpRevisedGrade(ev, lcKey, grade) {
 // No click-to-solve — only the grade buttons act (recall ≠ coding).
 function _buildReviseItem([lcKey, q], i, ctx) {
   const fn = ctx === 'ps' ? '_psRecallGrade' : '_qpReviseGrade'   // which list this row lives in
-  // ✓/~ rows are removed on grade, so they never render here. A row that stays is the forgot
-  // residue → highlight it as the "code this" list (never struck/faded).
+  // Every graded row stays in place (never swept off the list) — grading just tints the row and
+  // marks the chosen button, so the row itself is your record of what you graded today.
   const forced = isCodeForced(lcKey)
-  const rowCls = forced ? ' ps-q-forgot' : ''
+  const rv     = getRevise(lcKey)
+  const rowCls = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
   const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
   const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
   const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
-  const rv   = getRevise(lcKey)
-  const weak = forced                         ? '<span class="rev-weak-tag rev-weak-forgot" title="Forgot — code this cold">✗</span>'
-             : (rv && rv.grade === 'shaky')   ? '<span class="rev-weak-tag rev-weak-shaky"  title="Last recall: shaky">~</span>' : ''
+  const chosen = g => (rv && rv.grade === g) ? ' rev-chosen' : ''
   return (
     '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     topicIcon +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
-    weak +
+    _reviseGradeBadge(lcKey) +
     '<span class="rev-grade-group flex-shrink-0">' +
-      '<button class="rev-grade rev-solid"  title="Recalled it cold — push the next review further out"   onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
-      '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
-      '<button class="rev-grade rev-forgot" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
+      '<button class="rev-grade rev-solid' + chosen('solid') + '"  title="Recalled it cold — push the next review further out"   onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
+      '<button class="rev-grade rev-shaky' + chosen('shaky') + '"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
+      '<button class="rev-grade rev-forgot' + chosen('forgot') + '" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
     '</span>' +
     '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
@@ -2744,27 +2748,22 @@ function _buildReviseItem([lcKey, q], i, ctx) {
 }
 
 // Grade a row in the Revise Session: drives the revise queue (and force-codes on "forgot"),
-// then marks the row done. Regrading is allowed (click a different button).
+// then marks the row graded. Rows stay put — regrading is allowed (click a different button).
 function _qpReviseGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)               // data + dashboard counts + (card refresh is a no-op here)
   _qpDoneThisSession.add(lcKey)
-  // ✓ Solid / ~ Shaky are handled for this sweep → drop the row. ✗ Forgot stays as the
-  // "go code these" residue, so what's left on screen is exactly your code list for today.
-  if (grade === 'solid' || grade === 'shaky') {
-    _qpResults = (_qpResults || []).filter(([k]) => k !== lcKey)
-  }
   _saveQpState()
   const listEl = document.getElementById('qp-results')
   if (!listEl) return
-  listEl.innerHTML = (_qpResults && _qpResults.length) ? _qpRowsHtml() : ''
-  // Once nothing ungraded is left, show the closing banner (residue = code list, or all-clear).
+  // Re-render just this row in place so its tint + chosen grade button update immediately.
+  const idx = (_qpResults || []).findIndex(([k]) => k === lcKey)
+  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
+  if (row && idx !== -1) row.outerHTML = _buildReviseItem(_qpResults[idx], idx, 'qp')
+  // Once everything's graded, show the closing banner (it's a summary, not a sweep — rows stay).
   const ungraded = (_qpResults || []).filter(([k]) => !_qpDoneThisSession.has(k)).length
-  if (ungraded === 0) {
-    const msg = (_qpResults && _qpResults.length)
-      ? '🧠 Recall done · <span style="color:var(--red)">' + _qpResults.length + ' to code</span> below — go solve these cold'
-      : '🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span>'
-    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
+  if (ungraded === 0 && !listEl.querySelector('.ps-session-done')) {
+    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span></div>')
   }
 }
 
@@ -3148,28 +3147,21 @@ function _psRevealMock() {
 }
 
 // Grade a row in the per-topic Revise mode: same active-recall grading as the dashboard Revise
-// Session, scoped to this topic. ✓/~ rows are cleared on grade; ✗ forgot stays as the residue —
-// exactly the set to go code cold.
+// Session, scoped to this topic. Rows stay in place on grade — tinted + the chosen button
+// highlighted — so the list is a record of today's session, not a sweep.
 function _psRecallGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)
   _psDoneThisSession.add(lcKey)
-  if (grade === 'solid' || grade === 'shaky') {
-    _psCurrentItems = _psCurrentItems.filter(([k]) => k !== lcKey)
-  }
   _psSaveSession()
-  _psQCount = _psCurrentItems.length
-  const valEl = document.getElementById('ps-count-val')
-  if (valEl) valEl.textContent = _psQCount
   const listEl = document.getElementById('ps-list')
   if (!listEl) return
-  listEl.innerHTML = _psCurrentItems.length ? _psRowsHtml() : ''
+  const idx = _psCurrentItems.findIndex(([k]) => k === lcKey)
+  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
+  if (row && idx !== -1) row.outerHTML = _buildReviseItem(_psCurrentItems[idx], idx, 'ps')
   const ungraded = _psCurrentItems.filter(([k]) => !_psDoneThisSession.has(k)).length
-  if (ungraded === 0) {
-    const msg = _psCurrentItems.length
-      ? '🧠 Recall done · <span style="color:var(--red)">' + _psCurrentItems.length + ' to code</span> below — go solve these cold'
-      : '🧠 Recall sweep complete · <span style="color:var(--green)">' + _psDoneThisSession.size + ' graded</span>'
-    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
+  if (ungraded === 0 && !listEl.querySelector('.ps-session-done')) {
+    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">🧠 Recall sweep complete · <span style="color:var(--green)">' + _psDoneThisSession.size + ' graded</span></div>')
   }
 }
 
