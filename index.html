@@ -798,6 +798,12 @@
       font-size: 0.7rem; flex-shrink: 0; transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
     .ps-q-link:hover { border-color: var(--border-glow); color: var(--accent); background: var(--accent-dim); }
+    .ps-jump-btn { cursor: pointer; font-size: 0.75rem; }
+    @keyframes ps-jump-flash {
+      0%, 100% { background: transparent; box-shadow: none; }
+      20% { background: var(--accent-dim); box-shadow: 0 0 0 2px var(--border-glow); }
+    }
+    .accordion-item.ps-jump-highlight { animation: ps-jump-flash 1.4s ease-out; border-radius: 8px; }
     .ps-pin-btn {
       display: inline-flex; align-items: center; justify-content: center;
       width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent;
@@ -2275,7 +2281,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     '</div>'
 
   return (
-    '<div class="accordion-item">' +
+    '<div class="accordion-item" data-lc-key="' + lcKey + '">' +
     '<h2 class="accordion-header">' +
 
     // ── Status dot + LC button — outside the accordion toggle button
@@ -2731,6 +2737,7 @@ function _buildReviseItem([lcKey, q], i, ctx) {
       '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
       '<button class="rev-grade rev-forgot" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
     '</span>' +
+    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>' +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
   )
@@ -2783,6 +2790,32 @@ function _genPracticeSet(topicKey, count) {
 }
 
 // Render a single practice row. showTopic=true adds the topic icon (dashboard).
+// Jump from a practice/graded/revise row straight to the full question card below (Questions
+// tab) — switches tab, clears any filter that could be hiding it, expands its accordion, and
+// scrolls it into view with a brief flash. Not offered in Mock (the point there is to stay cold).
+function _jumpToQuestion(ev, lcKey) {
+  if (ev) ev.stopPropagation()
+  if (currentQFilter !== 'all' || currentFreqFilter !== 'all' || currentCompanyFilter !== null) {
+    currentQFilter = 'all'; currentFreqFilter = 'all'; currentCompanyFilter = null
+  }
+  if (currentTab !== 'questions') {
+    showTopicTab('questions')  // re-renders tab-questions with the (now-cleared) filters
+  } else {
+    const mod = TOPIC_MODULES[currentTopicKey]
+    if (mod) renderQuestions(mod)
+  }
+  requestAnimationFrame(() => {
+    const item = document.querySelector('#tab-questions .accordion-item[data-lc-key="' + lcKey + '"]')
+    if (!item) return
+    const collapseEl = item.querySelector('.accordion-collapse')
+    if (collapseEl && window.bootstrap) bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show()
+    item.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    item.classList.remove('ps-jump-highlight')
+    void item.offsetWidth  // restart the flash animation if clicked again
+    item.classList.add('ps-jump-highlight')
+  })
+}
+
 function _buildPracticeItem([lcKey, q], i, showTopic) {
   const pinned = isPinned(lcKey)
   const status = getStatus(lcKey)
@@ -2803,6 +2836,9 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
   const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
   const rowClickFn   = showTopic ? '_qpRowClick' : '_psRowClick'
+  const isMock       = showTopic ? _qpMock : (_psMode === 'mock')
+  const jumpBtn = isMock ? '' :
+    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>'
   return (
     '<div class="ps-q-row' + solvedCls + '" data-lc-key="' + lcKey + '" onclick="' + rowClickFn + '(event,\'' + lcKey + '\')">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
@@ -2814,6 +2850,7 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     (hideMeta ? '' : '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>') +
     (hideMeta ? '' : _reviseGradeBadge(lcKey)) +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
+    jumpBtn +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
   )
