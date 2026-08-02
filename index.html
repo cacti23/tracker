@@ -3157,10 +3157,14 @@ function _psModePool(topicKey, count) {
     return [...pinned, ...weak, ...solid.slice(0, solidFill)]
   }
   if (_psMode === 'revise') {
-    // Revise = active recall, not solving. Random due set from THIS topic — anything engaged
+    // Revise = active recall, not solving. Due set from THIS topic — anything engaged
     // (solved, started, or already graded) whose REVISE_LADDER interval is up.
-    const due = Object.entries(mod.questions).filter(([k]) => isReviseDue(k))
-    return _shuffle(due).slice(0, count)
+    // ✗ forgot / ~ shaky sink to the top — those are the ones actually worth re-testing first.
+    const due  = Object.entries(mod.questions).filter(([k]) => isReviseDue(k))
+    const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k)?.grade] ?? 2)
+    const weak = _weightedShuffle(due.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
+    const rest = _shuffle(due.filter(([k]) => rank(k) === 2))
+    return [...weak, ...rest].slice(0, count)
   }
   // Worked/Mock still drop questions on cooldown (solved & resting).
   const all = Object.entries(mod.questions).filter(([k]) => !_onCooldown(k))
