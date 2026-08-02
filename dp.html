@@ -1169,7 +1169,7 @@ asks for ALL solutions          → backtracking, not DP</code></pre></div><div 
 <tr><td>"probability / expected value"</td><td>Probability DP (float)</td><td>688, 837, 808</td></tr>
 <tr><td>"item with limited count (bounded)"</td><td>Bounded Knapsack (§8.7)</td><td>—</td></tr>
 <tr><td>"answer for every node as root"</td><td>Tree Rerooting DP</td><td>834, 310</td></tr>
-<tr><td>"stones / piles, two players optimal"</td><td>Game Theory DP (§9.6)</td><td>877, 486, 1140</td></tr>
+<tr><td>"stones / piles, two players optimal"</td><td>Game Theory DP (§9.6)</td><td>877, 486, 1140, 1406, 1690, 1872</td></tr>
 </table>
 
 <h3>🔴 DP anti-patterns — mistakes that kill candidates</h3>
@@ -2610,6 +2610,73 @@ function stoneGameII(piles: number[]): number {
   return dp[0][1];
 }
 // Time: O(n³), Space: O(n²)
+
+// Stone Game III (LC 1406) — Take 1, 2, or 3 stones from the FRONT (not either end)
+function stoneGameIII(stoneValue: number[]): string {
+  const n = stoneValue.length;
+  // dp[i] = best score advantage current player can get from stoneValue[i..]
+  const dp = new Array(n + 1).fill(0);
+
+  for (let i = n - 1; i &gt;= 0; i--) {
+    dp[i] = -Infinity;
+    let running = 0;
+    for (let x = 1; x &lt;= 3 &amp;&amp; i + x &lt;= n; x++) {
+      running += stoneValue[i + x - 1];
+      // Take x stones: gain running, opponent plays optimally on the rest
+      dp[i] = Math.max(dp[i], running - dp[i + x]);
+    }
+  }
+  return dp[0] &gt; 0 ? &#x27;Alice&#x27; : dp[0] &lt; 0 ? &#x27;Bob&#x27; : &#x27;Tie&#x27;;
+}
+// Time: O(n), Space: O(n) → reducible to O(1) with a 3-wide rolling window
+
+// Stone Game VII (LC 1690) — Remove EITHER end; score = SUM of what remains (not what you took)
+function stoneGameVII(stones: number[]): number {
+  const n = stones.length;
+  const prefix = new Array(n + 1).fill(0);
+  for (let k = 0; k &lt; n; k++) prefix[k + 1] = prefix[k] + stones[k];
+  const sum = (i: number, j: number) =&gt; prefix[j + 1] - prefix[i]; // sum stones[i..j]
+
+  // dp[i][j] = max score advantage current player can get from stones[i..j]
+  const dp: number[][] = Array.from({ length: n }, () =&gt; new Array(n).fill(0));
+  // Base case dp[i][i] = 0 — one stone left, no more moves, no more score
+
+  for (let len = 2; len &lt;= n; len++) {
+    for (let i = 0; i &lt;= n - len; i++) {
+      const j = i + len - 1;
+      dp[i][j] = Math.max(
+        sum(i + 1, j) - dp[i + 1][j],   // remove left, score = sum of the rest
+        sum(i, j - 1) - dp[i][j - 1]    // remove right, score = sum of the rest
+      );
+    }
+  }
+  return dp[0][n - 1];
+}
+// Time: O(n²), Space: O(n²)
+// GOTCHA: the payoff is the sum of stones LEFT after removal, not the stone removed.
+
+// Stone Game VIII (LC 1872) — Merge first x&gt;1 stones into prefixSum[x-1], score += that value
+function stoneGameVIII(stones: number[]): number {
+  const n = stones.length;
+  const P = new Array(n).fill(0);
+  P[0] = stones[0];
+  for (let k = 1; k &lt; n; k++) P[k] = P[k - 1] + stones[k];
+
+  // Every move (choose x&gt;1 stones) maps 1:1 to a cut index i in P.
+  // dp[i] = best score advantage if the game state starts at cut i.
+  const dp = new Array(n).fill(0);
+  dp[n - 1] = P[n - 1]; // only one legal move left: take everything
+
+  for (let i = n - 2; i &gt;= 1; i--) {
+    // Either skip this cut (defer to opponent) or take it now for P[i]
+    // and hand the opponent dp[i+1] of remaining advantage.
+    dp[i] = Math.max(dp[i + 1], P[i] - dp[i + 1]);
+  }
+  return dp[1];
+}
+// Time: O(n), Space: O(n) → reducible to O(1), only dp[i+1] is ever read
+// INSIGHT: reframing &quot;choose x stones&quot; as &quot;choose a cut index&quot; collapses an
+// apparently-exponential move space into a single suffix-max scan.
 
 // Stone Game IV (LC 1510) — Remove any perfect square; player who can&#x27;t move loses
 function winnerSquareGame(n: number): boolean {
