@@ -596,6 +596,28 @@
     .note-card-body table.note-table th, .note-card-body table.note-table td { border: 1px solid var(--border, rgba(255,255,255,0.12)); padding: 0.35rem 0.6rem; text-align: left; }
     .note-card-body table.note-table th { background: var(--bg-hover); color: var(--text-primary); font-weight: 600; }
 
+    /* Per-note print (🖨️ button on each note card) — printTopicNote() fills this with the
+       rendered note, adds .print-note-mode to <body>, then calls window.print(). Reuses the
+       .note-card-body/.note-h/.note-quote/etc classes so the printed note keeps the same
+       formatting as on screen; only colors flip to ink-on-paper here. */
+    #print-note-host { display: none; }
+    @media print {
+      body.print-note-mode > .d-flex { display: none !important; }
+      body.print-note-mode #print-note-host {
+        display: block; background: #fff; color: #111;
+        max-width: 100%; padding: 0.3in 0.2in; font-size: 12pt;
+      }
+      #print-note-host .note-card-body { color: #222; }
+      #print-note-host h1.note-h, #print-note-host h2.note-h, #print-note-host h3.note-h,
+      #print-note-host h4.note-h, #print-note-host h5.note-h, #print-note-host h6.note-h { color: #000; }
+      #print-note-host blockquote.note-quote { background: #eef2fb !important; border-left-color: #3a5fcd !important; color: #111 !important; }
+      #print-note-host .note-code-lang { background: #eee !important; color: #555 !important; border-color: #ccc !important; }
+      #print-note-host .note-code-wrap { border-color: #ccc !important; }
+      #print-note-host pre.note-code { page-break-inside: avoid; border-color: #ccc !important; }
+      #print-note-host table.note-table th, #print-note-host table.note-table td { border-color: #ccc !important; }
+      #print-note-host code { color: #111; }
+    }
+
     /* Section labels inside the question body ("Asked at" / "My submissions" /
        "My notes") — badge pills so they stand out from surrounding text */
     .q-section-label {
@@ -1008,6 +1030,10 @@
     </main>
   </div>
 </div>
+
+<!-- Populated by printTopicNote() right before window.print() — hidden on screen (display:none),
+     shown only in @media print while the rest of the app is hidden via body.print-note-mode. -->
+<div id="print-note-host"></div>
 
 <!-- ═══ SCRIPT ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1934,12 +1960,30 @@ function noteAccItem(n, isOpen, q) {
     '<span class="note-acc-meta">' + date + '</span>' +
     '<span class="note-card-actions" onclick="event.stopPropagation()">' +
     '<button title="' + (n.pinned ? 'Unpin' : 'Pin to top') + '" onclick="toggleTopicNotePin(\'' + n.id + '\')">📌</button>' +
+    '<button title="Print" onclick="printTopicNote(\'' + n.id + '\')">🖨️</button>' +
     '<button title="Edit" onclick="editTopicNote(\'' + n.id + '\')">✏️</button>' +
     '<button title="Delete" onclick="removeTopicNote(\'' + n.id + '\')">🗑️</button>' +
     '</span></div>' +
     '<div class="note-acc-body"><div class="note-card-body">' + renderNoteBody(n.body) + '</div></div>' +
     '</div>'
 }
+
+// Print a single note: fill #print-note-host with just this note's title + rendered body,
+// hide the rest of the app via body.print-note-mode (see @media print CSS), then trigger the
+// browser's native print dialog. afterprint cleans the mode back off (also on cancel).
+function printTopicNote(id) {
+  const n = getTopicNotes(currentTopicKey).find(x => x.id === id)
+  const host = document.getElementById('print-note-host')
+  if (!n || !host) return
+  host.innerHTML = '<div class="note-card-body">' +
+    '<h1 class="note-h note-h1">' + escHtml(n.title || 'Untitled') + '</h1>' +
+    renderNoteBody(n.body) +
+    '</div>'
+  if (window.Prism) Prism.highlightAllUnder(host)
+  document.body.classList.add('print-note-mode')
+  window.print()
+}
+window.addEventListener('afterprint', () => document.body.classList.remove('print-note-mode'))
 
 // Renders only the accordion list + toggle-all label. Called on every search
 // keystroke, so the search input itself must live outside this host (focus).
