@@ -941,27 +941,10 @@ blockquote.quote-large {
 	text-decoration: underline;
 }
 
-@media print {
-	.nav-index {
-		border: 1px solid #0066cc !important;
-		background: rgba(0, 102, 204, 0.03) !important;
-		padding: 0.8em !important;
-		margin: 0.5em 0 !important;
-		font-size: 9px !important;
-		page-break-inside: avoid !important;
-	}
-	
-	.nav-index-grid {
-		grid-template-columns: repeat(2, 1fr) !important;
-		gap: 0.3em !important;
-	}
-	
-	.nav-index-item {
-		padding: 0.3em 0.4em !important;
-		margin: 0 !important;
-		font-size: 8px !important;
-	}
-}
+/* Note: .nav-index print compaction rules removed here — the gold-template's
+   final @media print block hides .nav-index entirely (display:none), so any
+   compaction styling for it is unreachable dead code. See that block if the
+   nav should ever be made visible in print instead. */
 
 /* Enhanced Visual Separators */
 hr {
@@ -976,7 +959,7 @@ hr {
 	hr {
 		background: linear-gradient(90deg, transparent 0%, #333 10%, #333 90%, transparent 100%) !important;
 		height: 1px !important;
-		margin: 0.6em 0 !important;
+		margin: 0.25em 0 !important;
 	}
 }
 	
@@ -1014,10 +997,16 @@ blockquote.iv{ border-left-color:#2563eb; background:#2563eb0d; }
 .box.iv{ border-left-color:#2563eb; background:#2563eb0d; }
 .box b.tag, blockquote b.tag{ display:inline-block; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-right:.4em; }
 .tldr{ font-style:italic; color:var(--accent); font-weight:600; font-size:1.04rem; margin:.1em 0 .7em; }
-.code{ border-left:3px solid var(--accent) !important; }
+/* .code / hr accent colors are screen-only — print has its own tuned colors
+   (blue #0066cc code border, gray hr gradient) set in earlier @media print
+   blocks; an unguarded rule here would win the cascade in print too and
+   silently override them. */
+@media screen{
+  .code{ border-left:3px solid var(--accent) !important; }
+  hr{ background:linear-gradient(90deg,transparent,var(--accent) 12%,var(--accent) 88%,transparent) !important; }
+}
 code{ color:#334155; }
 figure.diagram{ background:var(--accent-soft) !important; border:1px solid var(--accent-line) !important; }
-hr{ background:linear-gradient(90deg,transparent,var(--accent) 12%,var(--accent) 88%,transparent) !important; }
 table.qa{ border-collapse:collapse; width:100%; margin:1em 0; font-size:.95rem; }
 table.qa th,table.qa td{ border:1px solid var(--rule); padding:7px 10px; text-align:left; vertical-align:top; }
 table.qa th{ background:var(--code-bg); font-weight:700; }
@@ -1026,11 +1015,16 @@ table.qa td.a:hover, table.qa td.a:active{ filter:none; }
 .hint{ color:var(--muted); font-size:.86rem; }
 .pill{ display:inline-block; background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent);
   border-radius:20px; padding:.05em .6em; font-size:.78rem; font-weight:600; margin:.1em .15em; }
-@media print{ .nav-index{ display:none; } }
+@media print{
+  .nav-index{ display:none; }
+  table.qa td.a{ filter:none; }
+  .code, pre, blockquote, table, details{ page-break-inside:auto !important; }
+  figure, tr{ page-break-inside:avoid !important; }
+}
 </style></head><body><article id="37aae4f8-635e-8060-9a26-faae9ba9dc38" class="page sans">
 <h1 class="title">🕸️ Graph</h1>
 <p class="sub">A standalone, LC-medium/hard-focused sheet. Every graph problem is three moves: <b>name the nodes &amp; edges → choose the walk (BFS/DFS/Dijkstra) → keep a visited set</b>. Below is the reusable template for each case.</p>
-<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8148-b44b-f3d666b5bb86"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#graph-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8184-a57c-f33687a96d24">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bb-812e-c86c7844294d">2. TypeScript Setup</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bf-9799-f1c77e6063b6">2.5 TypeScript Gotchas</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81db-8c5f-ef8c94a35431">3. BFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-811b-ba98-dd3e7a77fea8">4. DFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8163-b321-cfc925211888">5. Shortest Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8148-abb8-d8a0911a3914">6. MST</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-815f-b5a7-ce920b9a70c5">7. Union-Find</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818a-9301-eb14c1c15b95">8. Topo Sort</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-812b-9676-e251c4c59feb">9. Cycle Detection</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81cc-9e80-ea1a5ec277f4">10. Bipartite</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8118-81f9-f9624abeaff9">11. Eulerian Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8191-b8a0-f5a70e55f65f">12. SCC</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8183-81f0-d6dea7ceb664">13. Bridges</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8112-866d-f4d9e0cec1d2">14. State Space</a></li><li class="nav-index-item"><a href="#graph-dp-optimization-section-heading">15. Graph + DP</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818d-975a-d8c61c819b97">18. Pre-Submission & Bugs</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7">19. Complexity & Optimization</a></li><li class="nav-index-item"><a href="#clone-graph-bfs-section">4.5 Clone Graph</a></li><li class="nav-index-item"><a href="#dijkstra-state-expansion-section">5.6 Dijkstra+State</a></li><li class="nav-index-item"><a href="#path-reconstruction-section">5.7 Path Reconstruct</a></li><li class="nav-index-item"><a href="#binary-search-bfs-section">14.3 BinSearch+BFS</a></li><li class="nav-index-item"><a href="#graph-construction-section">2.3 Graph Build</a></li><li class="nav-index-item"><a href="#alien-dictionary-section">8.3 Alien Dict</a></li><li class="nav-index-item"><a href="#graph-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><h1 id="graph-how-to-think" class="">🧠 HOW TO THINK ABOUT GRAPHS (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="gtt-p1" class=""><strong>A graph is just &quot;things&quot; (nodes) and the &quot;connections between them&quot; (edges).</strong> The real skill is learning to <em>see</em> a problem as a graph — if you can phrase it as &quot;X connects to Y&quot;, it is a graph problem, even when the word &quot;graph&quot; never appears.</p></div><div style="display:contents" dir="auto"><pre id="gtt-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">IS THIS SECRETLY A GRAPH?   →  name the NODES + the EDGES
+<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8148-b44b-f3d666b5bb86"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#graph-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8184-a57c-f33687a96d24">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bb-812e-c86c7844294d">2. TypeScript Setup</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bf-9799-f1c77e6063b6">2.5 TypeScript Gotchas</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81db-8c5f-ef8c94a35431">3. BFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-811b-ba98-dd3e7a77fea8">4. DFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8163-b321-cfc925211888">5. Shortest Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8148-abb8-d8a0911a3914">6. MST</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-815f-b5a7-ce920b9a70c5">7. Union-Find</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818a-9301-eb14c1c15b95">8. Topo Sort</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-812b-9676-e251c4c59feb">9. Cycle Detection</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81cc-9e80-ea1a5ec277f4">10. Bipartite</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8118-81f9-f9624abeaff9">11. Eulerian Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8191-b8a0-f5a70e55f65f">12. SCC</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8183-81f0-d6dea7ceb664">13. Bridges</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8112-866d-f4d9e0cec1d2">14. State Space</a></li><li class="nav-index-item"><a href="#graph-dp-optimization-section-heading">15. Graph + DP</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818d-975a-d8c61c819b97">16. Pre-Submission & Bugs</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7">17. Complexity & Optimization</a></li><li class="nav-index-item"><a href="#clone-graph-bfs-section">4.5 Clone Graph</a></li><li class="nav-index-item"><a href="#dijkstra-state-expansion-section">5.6 Dijkstra+State</a></li><li class="nav-index-item"><a href="#path-reconstruction-section">5.7 Path Reconstruct</a></li><li class="nav-index-item"><a href="#binary-search-bfs-section">14.3 BinSearch+BFS</a></li><li class="nav-index-item"><a href="#graph-construction-section">2.3 Graph Build</a></li><li class="nav-index-item"><a href="#alien-dictionary-section">8.3 Alien Dict</a></li><li class="nav-index-item"><a href="#graph-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><h1 id="graph-how-to-think" class="">🧠 HOW TO THINK ABOUT GRAPHS (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="gtt-p1" class=""><strong>A graph is just &quot;things&quot; (nodes) and the &quot;connections between them&quot; (edges).</strong> The real skill is learning to <em>see</em> a problem as a graph — if you can phrase it as &quot;X connects to Y&quot;, it is a graph problem, even when the word &quot;graph&quot; never appears.</p></div><div style="display:contents" dir="auto"><pre id="gtt-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">IS THIS SECRETLY A GRAPH?   →  name the NODES + the EDGES
 ────────────────────────────────────────────────────────────
 NODES (the &quot;things&quot;)        EDGES (the &quot;connections&quot;)
   cities                     roads between them
@@ -2778,7 +2772,7 @@ SIGNAL that DP is NOT needed:
 - Simple reachability question
 - Just need any path (not optimal)
 - Graph has cycles without clear DAG structure
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-812d-8f8e-c4d809dd98fd"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-818d-975a-d8c61c819b97" class="">⚠️ SECTION 18: COMMON BUGS &amp; FIXES</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8122-98cb-db18b4acac77" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">BUG #1: Using shift() in BFS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-812d-8f8e-c4d809dd98fd"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-818d-975a-d8c61c819b97" class="">⚠️ SECTION 16: COMMON BUGS &amp; FIXES</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8122-98cb-db18b4acac77" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">BUG #1: Using shift() in BFS
 ❌ while (queue.length &gt; 0) node = queue.shift() // O(n) per call!
 ✅ while (head &lt; queue.length) node = queue[head++] // O(1)
 Impact: Turns O(V+E) into O(V^2+E) for sparse graphs
@@ -2840,7 +2834,7 @@ BUG #11: Index Pointer + unshift() in 0-1 BFS (The "Index-Shifting" Trap)
 Impact: unshift() physically shifts all elements right by one. A head index pointer
 tracks absolute position — after unshift(), positions shift, so head points to the
 wrong element. Newly inserted front elements are skipped; prior elements may reprocess.
-Rule: Never mix unshift() with index-pointer traversal. Use shift() exclusively.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-810a-a1bd-c7ba796f619e"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7" class="">📊 SECTION 19: COMPLEXITY & OPTIMIZATION GUIDE</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81be-93ec-d5f90d94833f" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">ALGORITHM               TIME              SPACE         WHEN TO USE
+Rule: Never mix unshift() with index-pointer traversal. Use shift() exclusively.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-810a-a1bd-c7ba796f619e"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7" class="">📊 SECTION 17: COMPLEXITY & OPTIMIZATION GUIDE</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81be-93ec-d5f90d94833f" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">ALGORITHM               TIME              SPACE         WHEN TO USE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BFS                     O(V+E)            O(V)          Shortest unweighted path
 DFS                     O(V+E)            O(V)          Traversal, depth ≤ 10K
