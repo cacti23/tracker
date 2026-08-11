@@ -2546,6 +2546,7 @@ function _isSafeSubmissionUrl(u) {
     if (p.protocol !== 'https:') return false
     if (/(^|\.)leetcode\.(com|cn)$/.test(p.hostname)) return p.pathname.includes('/submissions')
     if (/(^|\.)lintcode\.com$/.test(p.hostname)) return true
+    if (/(^|\.)neetcode\.io$/.test(p.hostname)) return p.pathname.includes('/history')
     return false
   } catch { return false }
 }
@@ -2597,7 +2598,7 @@ function showAddSubmission(lcKey) {
   const host = document.getElementById('sub-add-' + lcKey)
   if (!host) return
   host.innerHTML = '<div class="d-flex gap-2 align-items-center mt-2">' +
-    '<input class="sub-input" id="sub-input-' + lcKey + '" placeholder="Paste a LeetCode submission URL (…/submissions/…) or a LintCode link"' +
+    '<input class="sub-input" id="sub-input-' + lcKey + '" placeholder="Paste a LeetCode submission URL (…/submissions/…), a LintCode link, or a NeetCode history link"' +
     ' onkeydown="if(event.key===\'Enter\')saveSubmissionFromInput(\'' + lcKey + '\');else if(event.key===\'Escape\')cancelAddSubmission(\'' + lcKey + '\')">' +
     '<button class="btn-note-save" onclick="saveSubmissionFromInput(\'' + lcKey + '\')">Save</button>' +
     '<button class="btn-note-cancel" onclick="cancelAddSubmission(\'' + lcKey + '\')">Cancel</button>' +
@@ -2614,7 +2615,7 @@ function saveSubmissionFromInput(lcKey) {
   const url = (document.getElementById('sub-input-' + lcKey)?.value || '').trim()
   const err = document.getElementById('sub-err-' + lcKey)
   if (!_isSafeSubmissionUrl(url)) {
-    if (err) err.textContent = "That doesn't look like a valid link — expected https://leetcode.com/…/submissions/… or a https://lintcode.com/… link"
+    if (err) err.textContent = "That doesn't look like a valid link — expected https://leetcode.com/…/submissions/…, a https://lintcode.com/… link, or a https://neetcode.io/…/history link"
     return
   }
   if (!addSubmission(lcKey, url)) {
