@@ -865,34 +865,6 @@
       font-size: var(--fs-xs); color: var(--yellow); font-weight: 600; white-space: nowrap;
     }
     .ps-streak-badge.streak-zero { background: var(--bg-elevated); border-color: var(--border); color: var(--text-faint); }
-    /* ── Daily ritual ticks (sidebar, top section under the brand) ── */
-    .sidebar-ritual {
-      display: flex; flex-direction: column; gap: 0.35rem;
-      padding: 0 0.7rem 0.6rem; border-bottom: 1px solid var(--border);
-    }
-    .sidebar-ritual .ritual-pct { text-align: center; }
-    .ritual-chip {
-      display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
-      padding: 0.28rem 0.65rem; border-radius: 16px; cursor: pointer;
-      border: 1px solid var(--border); background: var(--bg-elevated);
-      color: var(--text-muted); font-size: var(--fs-xs); font-weight: 600;
-      transition: border-color 0.15s, background 0.15s, color 0.15s;
-    }
-    .ritual-chip:hover { border-color: var(--border-glow); color: var(--text-primary); }
-    .ritual-chip.done { border-color: var(--green); background: rgba(61,214,140,0.14); color: var(--text-primary); }
-    .ritual-box {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 15px; height: 15px; flex-shrink: 0; border-radius: 4px;
-      border: 1.5px solid var(--text-faint); background: transparent;
-      color: #fff; font-size: 0.62rem; font-weight: 800; line-height: 1;
-    }
-    .ritual-chip.done .ritual-box { background: var(--green); border-color: var(--green); }
-    /* Daily-plan adherence badge beside the checklist (percent of days completed) */
-    .ritual-pct {
-      font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; color: var(--text-muted);
-      padding: 0.22rem 0.55rem; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-elevated);
-    }
-    .ritual-pct.done { color: var(--green); border-color: var(--green); background: rgba(61,214,140,0.12); }
     .qp-chip {
       padding: 0.22rem 0.6rem; border-radius: 20px; border: 1px solid var(--border);
       background: var(--bg-elevated); cursor: pointer; font-size: var(--fs-xs);
@@ -901,6 +873,18 @@
     .qp-chip:hover { border-color: var(--border-glow); color: var(--text-primary); }
     .qp-chip.active { background: var(--accent-dim); border-color: var(--border-glow); color: var(--accent); }
 
+    #backToTopBtn {
+      position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 90;
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent); color: #fff; border: none;
+      font-size: 1.2rem; line-height: 1; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      opacity: 0; visibility: hidden; transform: translateY(10px);
+      transition: opacity 0.2s, transform 0.2s, visibility 0.2s, background 0.15s;
+    }
+    #backToTopBtn.show { opacity: 1; visibility: visible; transform: translateY(0); }
+    #backToTopBtn:hover { filter: brightness(1.12); }
 
   </style>
   <!-- Syntax highlighting for note code blocks (dark theme + autoloader so any fenced language works) -->
@@ -924,10 +908,6 @@
       </div>
       <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar" aria-label="Close sidebar">✕</button>
     </div>
-
-    <!-- Daily ritual ticks (resets at midnight) — rendered by _renderSidebarRitual() -->
-    <p class="sidebar-section-label" title="Revise next topic 1h → code current topic 1.5h → re-revise tonight's fails 1h">Daily Plan · 3.5h</p>
-    <div id="sidebar-ritual" class="sidebar-ritual"></div>
 
     <nav class="flex-grow-1 p-2 overflow-auto">
       <button type="button" id="nav-dashboard" onclick="loadDashboard()"
@@ -1036,6 +1016,9 @@
 <!-- Populated by printTopicNote() right before window.print() — hidden on screen (display:none),
      shown only in @media print while the rest of the app is hidden via body.print-note-mode. -->
 <div id="print-note-host"></div>
+
+<!-- Appears once the page is scrolled down; jumps back to the top when clicked -->
+<button type="button" id="backToTopBtn" onclick="scrollToTop()" title="Back to top" aria-label="Back to top">↑</button>
 
 <!-- ═══ SCRIPT ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1253,92 +1236,6 @@ function getStreak() {
   } catch { return { streak: 0, longest: 0, today: false } }
 }
 
-// ─── DAILY RITUAL CHECKLIST ───────────────────────────────────────────────────
-// shape: { date: 'YYYY-MM-DD', revise: bool, code: bool, rerev: bool }. Auto-resets when the date changes.
-const RITUAL_KEY = 'dsa-daily-ritual-v1'
-// The nightly plan (~3.5h) as a checklist that resets each day. Two topics run as a pipeline:
-// the NEXT topic is revised while the CURRENT topic is coded; when the current topic finishes
-// its coding run, the next topic (already warm) slides into the code slot and a new topic
-// enters the revise slot. Revise is capped (warm-up, not deep study); Code is the only block
-// allowed to run over; tonight's failures get the last slot before sleep.
-const RITUAL_STEPS = [
-  { key: 'revise', short: '🧠 Revise next · 1h',  label: 'Revise the NEXT topic (queued for coding) — graded recall, cover-then-check, no coding. Hard cap 1h', note: 'warm-up · do this first' },
-  { key: 'code',   short: '⌨️ Code current · 1.5h', label: 'Code the CURRENT topic cold on the timer, grade each solve', note: 'only block allowed to run over' },
-  { key: 'rerev',  short: '🔁 Re-revise fails · 1h', label: "Re-revise tonight's failed/struggled solves + log a 1-line trigger note per problem", note: 'last thing before sleep' },
-]
-function getRitual() {
-  const today = new Date().toISOString().slice(0, 10)
-  try {
-    const r = JSON.parse(localStorage.getItem(RITUAL_KEY) || 'null')
-    if (r && r.date === today) return r   // same day → keep ticks
-  } catch {}
-  const fresh = { date: today }           // new day (or first ever) → all unticked
-  RITUAL_STEPS.forEach(s => { fresh[s.key] = false })
-  return fresh
-}
-function toggleRitual(step) {
-  const r = getRitual()
-  r[step] = !r[step]
-  r.date = new Date().toISOString().slice(0, 10)
-  try { localStorage.setItem(RITUAL_KEY, JSON.stringify(r)) } catch {}
-  _updateRitualStats()
-  _renderSidebarRitual()
-}
-
-// ─── DAILY-PLAN COMPLETION STATS ──────────────────────────────────────────────
-// Records which days you finished the WHOLE checklist, then shows an adherence % + day-count.
-const RITUAL_STATS_KEY = 'dsa-ritual-stats-v1'
-function _ritualStats() {
-  try { return JSON.parse(localStorage.getItem(RITUAL_STATS_KEY) || 'null') || { firstDay: null, doneDays: [] } }
-  catch { return { firstDay: null, doneDays: [] } }
-}
-function _ritualAllDone(r) { return RITUAL_STEPS.every(s => !!r[s.key]) }
-function _updateRitualStats() {
-  const today = new Date().toISOString().slice(0, 10)
-  const s = _ritualStats()
-  if (!s.firstDay) s.firstDay = today
-  if (!Array.isArray(s.doneDays)) s.doneDays = []
-  const full = _ritualAllDone(getRitual())
-  const has  = s.doneDays.includes(today)
-  if (full && !has) s.doneDays.push(today)
-  else if (!full && has) s.doneDays = s.doneDays.filter(d => d !== today)
-  try { localStorage.setItem(RITUAL_STATS_KEY, JSON.stringify(s)) } catch {}
-}
-function _ritualPercent() {
-  const s = _ritualStats()
-  const today = new Date().toISOString().slice(0, 10)
-  const first = s.firstDay || today
-  const elapsed = Math.max(1, Math.round((new Date(today) - new Date(first)) / 86400000) + 1)
-  const done = Array.isArray(s.doneDays) ? s.doneDays.length : 0
-  return { pct: Math.round(done / elapsed * 100), done, elapsed }
-}
-function renderSidebarRitual() {
-  const r = getRitual()
-  const chips = RITUAL_STEPS.map(s => {
-    const on  = !!r[s.key]
-    const tip = on
-      ? s.label + ' — done today (click to undo)'
-      : s.label + (s.note ? ' · ' + s.note : '') + ' (click when done)'
-    return (
-      '<button type="button" class="ritual-chip' + (on ? ' done' : '') + '" ' +
-      'onclick="toggleRitual(\'' + s.key + '\')" title="' + tip + '" aria-pressed="' + on + '">' +
-      '<span class="ritual-box">' + (on ? '✓' : '') + '</span>' +
-      '<span class="ritual-chip-text">' + s.short + '</span>' +
-      '</button>'
-    )
-  }).join('')
-  const { pct, done, elapsed } = _ritualPercent()
-  const allDone = _ritualAllDone(r)
-  const pctBadge = '<span class="ritual-pct' + (allDone ? ' done' : '') + '" ' +
-    'title="Daily plan completed ' + done + ' of ' + elapsed + ' day' + (elapsed === 1 ? '' : 's') + ' (' + pct + '%)">' +
-    (allDone ? '✅ ' : '') + pct + '% · ' + done + 'd</span>'
-  return chips + pctBadge
-}
-function _renderSidebarRitual() {
-  const el = document.getElementById('sidebar-ritual')
-  if (el) el.innerHTML = renderSidebarRitual()
-}
-
 // A question is "due" if never practiced OR last practiced > N days ago (N = per-key review interval)
 function isDue(lcKey) {
   const last = getLastPracticed(lcKey)
@@ -1431,12 +1328,19 @@ function _loadQpState() {
   } catch {}
 }
 
+// ─── BACK TO TOP ───────────────────────────────────────────────────────────────
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+window.addEventListener('scroll', () => {
+  document.getElementById('backToTopBtn')?.classList.toggle('show', window.scrollY > 400)
+}, { passive: true })
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   syncThemeIcon()
   _loadQpState()
   buildNav()
-  _renderSidebarRitual()
   _restoreView()
 })
 
@@ -4069,7 +3973,6 @@ const BACKUP_KEYS = [
   'dsa-review-interval-v1',
   'dsa-streak-v1',
   'dsa-qp-state-v1',
-  'dsa-ritual-stats-v1',
   'dsa-theme'
 ]
 
