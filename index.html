@@ -2709,6 +2709,11 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
   const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
   const chosen = g => (rv && rv.grade === g) ? ' rev-chosen' : ''
+  const subs = getSubmissions(lcKey)
+  const subLink = subs.length ?
+    '<a href="' + escHtml(subs[subs.length - 1].url) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open your' +
+    (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
+    '" onclick="event.stopPropagation()">🔗</a>' : ''
   return (
     '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
@@ -2722,6 +2727,7 @@ function _buildReviseItem([lcKey, q], i, ctx) {
       '<button class="rev-grade rev-forgot' + chosen('forgot') + '" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
     '</span>' +
     '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>' +
+    subLink +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
   )
