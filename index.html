@@ -1124,8 +1124,9 @@ let _psDoneThisSession      = new Set()  // keys done in current per-topic pract
 let _psStruggledThisSession = new Set()  // subset of done that were marked "struggled"
 let _psCurrentItems         = []         // current ordered list for per-topic session
 let _psCurrentTopic         = null       // currently active topic key for practice session
-let _psMode                 = 'graded'   // per-topic mode default: 'graded' (your graded questions, weakest first) | 'worked' | 'mock' | 'revise' (active recall, grade rows not solve rows)
+let _psMode                 = 'graded'   // per-topic mode default: 'graded' (your graded questions, weakest first) | 'worked' | 'mock' | 'revise' (active recall over the WHOLE topic) | 'revise-pattern' (active recall scoped to selected pattern(s) — see _psRevisePatterns)
 let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
+let _psRevisePatterns       = new Set()  // 'revise-pattern' mode only: pattern IDs (P1, P2…) to scope the due-set to; empty = nothing selected yet
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
 // Store/restore practice sessions (ALL modes — Worked/Graded/Mock) so a refresh or topic
@@ -1152,6 +1153,7 @@ function _psSaveSession() {
       doneInSession: Array.from(_psDoneThisSession),
       struggledInSession: Array.from(_psStruggledThisSession),
       mockReveal: _psMockReveal,
+      revisePatterns: Array.from(_psRevisePatterns),
     }
     localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
   } catch {}
@@ -1162,6 +1164,7 @@ function _psLoadSession(topicKey) {
   // Restore done state from persisted session
   _psDoneThisSession      = new Set(session.doneInSession || [])
   _psStruggledThisSession = new Set(session.struggledInSession || [])
+  _psRevisePatterns       = new Set(session.revisePatterns || [])
   return session
 }
 
@@ -1686,6 +1689,7 @@ function loadTopic(key) {
   _psCurrentItems = []
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psQCount = 5
+  _psRevisePatterns = new Set()
 
   showView('view-topic')
   document.getElementById('page-title').textContent = topic.icon + ' ' + topic.label
@@ -2886,7 +2890,8 @@ function _buildPracticePanel(topicKey, mod) {
   html += '<button type="button" class="qp-chip' + (_psMode === 'worked' ? ' active' : '') + '" onclick="_psSetMode(\'worked\',\'' + topicKey + '\')" title="Worked — solve the questions you have started or solved (🚧 / ✅); weakest first">🚧 Worked</button>'
   html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" onclick="_psSetMode(\'graded\',\'' + topicKey + '\')" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
   html += '<button type="button" class="qp-chip' + (_psMode === 'mock'   ? ' active' : '') + '" onclick="_psSetMode(\'mock\',\'' + topicKey + '\')" title="Mock — a random set from this topic with difficulty hidden, on the timer">🎯 Mock</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'revise' ? ' active' : '') + '" onclick="_psSetMode(\'revise\',\'' + topicKey + '\')" title="Revise — active recall on a random due set from this topic; grade ✓/~/✗ right here, no coding">🧠 Revise</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'revise' ? ' active' : '') + '" onclick="_psSetMode(\'revise\',\'' + topicKey + '\')" title="Revise — active recall on a random due set from this WHOLE topic; grade ✓/~/✗ right here, no coding">🧠 Revise</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'revise-pattern' ? ' active' : '') + '" onclick="_psSetMode(\'revise-pattern\',\'' + topicKey + '\')" title="By Pattern — active recall scoped to just the pattern(s) you pick (e.g. only P1), instead of the whole topic">🧩 By Pattern</button>'
   html += '</div>'
   // ── Controls bar ──────────────────────────────────────────────────────────
   html += '<div class="ps-ctrl-bar">'
@@ -2896,7 +2901,7 @@ function _buildPracticePanel(topicKey, mod) {
       html += '<button type="button" class="ps-shuffle-btn" onclick="_psShuffle(\'' + topicKey + '\')">▶ Generate for Practice</button>'
       html += '<span class="ms-auto text-xxs text-secondary text-muted">Click to start a practice session</span>'
     } else {
-      const modeLabel = _psMode === 'graded' ? '🕒 Graded' : _psMode === 'revise' ? '🧠 Revise' : '🎯 Mock'
+      const modeLabel = _psMode === 'graded' ? '🕒 Graded' : _psMode === 'revise' ? '🧠 Revise' : _psMode === 'revise-pattern' ? '🧩 By Pattern' : '🎯 Mock'
       html += '<span class="text-xxs text-secondary text-muted">' + modeLabel + ' — nothing here right now</span>'
     }
   } else {
@@ -2906,7 +2911,7 @@ function _buildPracticePanel(topicKey, mod) {
     html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
     html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
     html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ ' + (_psMode === 'worked' ? 'Reset' : 'Refresh') + '</button>'
-    if (pinCount && _psMode !== 'mock' && _psMode !== 'revise') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
+    if (pinCount && _psMode !== 'mock' && _psMode !== 'revise' && _psMode !== 'revise-pattern') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
   }
 
   html += '</div>'
@@ -2916,7 +2921,17 @@ function _buildPracticePanel(topicKey, mod) {
     html += '<div class="qp-mock-note mt-2">🎯 <strong>Mock:</strong> random from this topic — difficulty hidden. Set the timer, solve cold, then reveal.' +
       '<button type="button" id="ps-reveal-btn" class="qp-chip ms-2" onclick="_psRevealMock()"' + (showReveal ? '' : ' style="display:none"') + '>🔍 Reveal</button></div>'
   } else if (_psMode === 'revise') {
-    html += '<div class="qp-mock-note mt-2">🧠 <strong>Revise:</strong> a random due set from this topic — active recall, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list.</div>'
+    html += '<div class="qp-mock-note mt-2">🧠 <strong>Revise:</strong> a random due set from this WHOLE topic — active recall, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list. Want just one pattern? Use 🧩 By Pattern instead.</div>'
+  } else if (_psMode === 'revise-pattern') {
+    html += '<div class="qp-mock-note mt-2">🧩 <strong>By Pattern:</strong> active recall scoped to only the pattern(s) selected below — pick one or more, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list.</div>'
+    if (mod.patterns && mod.patterns.length) {
+      html += '<div class="d-flex flex-wrap gap-2 mt-2">'
+      html += mod.patterns.map(p =>
+        '<button type="button" class="qp-chip' + (_psRevisePatterns.has(p.id) ? ' active' : '') + '" title="' + escHtml(p.name) + '" onclick="_psToggleRevisePattern(\'' + p.id + '\',\'' + topicKey + '\')">' + p.id + '</button>'
+      ).join('')
+      if (_psRevisePatterns.size) html += '<button type="button" class="qp-chip" title="Deselect all patterns" onclick="_psSetRevisePatterns([],\'' + topicKey + '\')">✕ Clear</button>'
+      html += '</div>'
+    }
   }
   // ── Question list ──────────────────────────────────────────────────────────
   html += '<div id="ps-list">'
@@ -3048,10 +3063,19 @@ function _psToggleWorkedOnly(topicKey) {
   }
 }
 
-// ── Per-topic mode helpers (Worked / Graded / Mock / Revise) ──────────────────
+// Shared by Revise + By Pattern: weakest-first ordering over an already-filtered due set.
+// ✗ forgot / ~ shaky sink to the top (weighted shuffle within each rank); ✓ solid / never-graded
+// fill the rest, capped at `count`.
+function _psRankedRevisePool(due, count) {
+  const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k)?.grade] ?? 2)
+  const weak = _weightedShuffle(due.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
+  const rest = _shuffle(due.filter(([k]) => rank(k) === 2))
+  return [...weak, ...rest].slice(0, count)
+}
+// ── Per-topic mode helpers (Worked / Graded / Mock / Revise / By Pattern) ─────
 // Worked/Graded/Mock decide WHICH of this topic's questions you solve, and in what order —
-// click a row = solved (sinks). Revise is different: it's an active-recall pass, not a solve —
-// grade ✓/~/✗ right on the row (see _buildReviseItem / _psRecallGrade).
+// click a row = solved (sinks). Revise/By Pattern are different: an active-recall pass, not a
+// solve — grade ✓/~/✗ right on the row (see _buildReviseItem / _psRecallGrade).
 function _psModePool(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
@@ -3070,14 +3094,24 @@ function _psModePool(topicKey, count) {
     return [...pinned, ...weak, ...solid.slice(0, solidFill)]
   }
   if (_psMode === 'revise') {
-    // Revise = active recall, not solving. Due set from THIS topic — anything engaged
+    // Revise = active recall, not solving. Due set from the WHOLE topic — anything engaged
     // (solved, started, or already graded) whose REVISE_LADDER interval is up.
     // ✗ forgot / ~ shaky sink to the top — those are the ones actually worth re-testing first.
-    const due  = Object.entries(mod.questions).filter(([k]) => isReviseDue(k))
-    const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k)?.grade] ?? 2)
-    const weak = _weightedShuffle(due.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
-    const rest = _shuffle(due.filter(([k]) => rank(k) === 2))
-    return [...weak, ...rest].slice(0, count)
+    const due = Object.entries(mod.questions).filter(([k]) => isReviseDue(k))
+    return _psRankedRevisePool(due, count)
+  }
+  if (_psMode === 'revise-pattern') {
+    // By Pattern = same active-recall pass as Revise, but scoped to only the pattern(s) selected
+    // in _psRevisePatterns. No selection → empty pool (the UI prompts you to pick a pattern; this
+    // mode is never "the whole topic" — that's what plain Revise is for).
+    if (!_psRevisePatterns.size || !mod.patterns) return []
+    // Uses each pattern's own questionIds list — NOT templateRefs on the question — because some
+    // modules (e.g. sliding-window) key templateRefs to a separate T1/T2 template scheme, while
+    // pattern.questionIds is always the authoritative per-pattern membership list.
+    const allowed = new Set()
+    mod.patterns.filter(p => _psRevisePatterns.has(p.id)).forEach(p => (p.questionIds || []).forEach(k => allowed.add(k)))
+    const due = Object.entries(mod.questions).filter(([k]) => allowed.has(k) && isReviseDue(k))
+    return _psRankedRevisePool(due, count)
   }
   // Worked/Mock still drop questions on cooldown (solved & resting).
   const all = Object.entries(mod.questions).filter(([k]) => !_onCooldown(k))
@@ -3096,13 +3130,14 @@ function _psModePool(topicKey, count) {
 // Worked/Graded/Mock render solve-rows (click a row = solved); Revise renders grade-rows
 // (✓/~/✗ recall buttons, no click-to-solve).
 function _psRowsHtml() {
-  if (_psMode === 'revise') return _psCurrentItems.map((item, i) => _buildReviseItem(item, i, 'ps')).join('')
+  if (_psMode === 'revise' || _psMode === 'revise-pattern') return _psCurrentItems.map((item, i) => _buildReviseItem(item, i, 'ps')).join('')
   return _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
 }
 function _psEmptyMsg() {
   if (_psMode === 'graded') return 'You haven’t graded any questions in this topic yet — grade them with the 🧠 ✓/~/✗ chip on the cards.'
   if (_psMode === 'mock')   return 'No questions in this topic yet.'
   if (_psMode === 'revise') return 'Nothing due for revise in this topic right now — come back later.'
+  if (_psMode === 'revise-pattern') return _psRevisePatterns.size ? 'Nothing due for the selected pattern(s) right now — come back later.' : 'Select one or more patterns above to build a revise set.'
   return 'No 🚧 In-Progress / ✅ Solved questions in this topic yet — start some, or grade on the cards.'
 }
 function _renderPracticePanel() {
@@ -3119,11 +3154,37 @@ function _psSetMode(mode, topicKey) {
   _stopTimer()
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
-  _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(_psQCount, total)))
+  // Recall modes (Revise / By Pattern) always start uncapped — "how many are due" shouldn't
+  // inherit a narrower _psQCount left behind by a different mode or a different pattern
+  // selection. Worked/Graded/Mock keep the sticky count (their +/- selector is meant to persist).
+  const seedCount = (mode === 'revise' || mode === 'revise-pattern') ? total : _psQCount
+  _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(seedCount, total)))
   _psQCount = _psCurrentItems.length || _psQCount
   // Save BEFORE rendering — with an empty pool, the panel build restores from storage,
   // which must already hold the new mode (not the old session).
   _psSaveSession()
+  _renderPracticePanel()
+}
+// 'revise-pattern' mode only: toggle which pattern(s) (P1, P2…) scope the due-set. Regenerates
+// the pool immediately, same as switching mode.
+function _psToggleRevisePattern(patternId, topicKey) {
+  if (_psTimerRun) return  // don't reshuffle mid-timed-run
+  if (_psRevisePatterns.has(patternId)) _psRevisePatterns.delete(patternId)
+  else _psRevisePatterns.add(patternId)
+  _psRevisePatternsShuffle(topicKey)
+}
+function _psSetRevisePatterns(ids, topicKey) {
+  if (_psTimerRun) return
+  _psRevisePatterns = new Set(ids)
+  _psRevisePatternsShuffle(topicKey)
+}
+// Shared by both: a pattern-scope change should show the FULL due-set for the new scope, not
+// stay capped at whatever _psQCount a previous (possibly narrower) selection left behind —
+// otherwise widening the selection can't recover questions a prior toggle trimmed off.
+function _psRevisePatternsShuffle(topicKey) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (mod) _psQCount = Object.keys(mod.questions).length
+  _psShuffle(topicKey)
   _renderPracticePanel()
 }
 // Reveal hidden difficulty on a per-topic Mock for the post-mortem.
