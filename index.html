@@ -762,6 +762,13 @@
     .rg-solid  { color: var(--green);  background: var(--green-dim); }
     .rg-shaky  { color: var(--yellow); background: var(--yellow-dim); }
     .rg-forgot { color: var(--red);    background: rgba(229,83,83,0.16); }
+    /* Revise/By Pattern: ~20% random spot-check flag — "actually code this one", not just recall */
+    .ps-code-pick {
+      display: inline-flex; align-items: center; gap: 0.2rem;
+      padding: 0.1rem 0.4rem; border-radius: 10px; white-space: nowrap;
+      color: var(--purple); background: var(--purple-dim); border: 1px solid rgba(180,142,247,0.35);
+      font-size: 0.66rem; font-weight: 700; line-height: 1.4;
+    }
     /* "Last revised … ago" label on Revised-log rows */
     .rev-ago { font-size: 0.62rem; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; }
     .ps-ctrl-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
@@ -1127,6 +1134,7 @@ let _psCurrentTopic         = null       // currently active topic key for pract
 let _psMode                 = 'graded'   // per-topic mode default: 'graded' (your graded questions, weakest first) | 'worked' | 'mock' | 'revise' (active recall over the WHOLE topic) | 'revise-pattern' (active recall scoped to selected pattern(s) — see _psRevisePatterns)
 let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
 let _psRevisePatterns       = new Set()  // 'revise-pattern' mode only: pattern IDs (P1, P2…) to scope the due-set to; empty = nothing selected yet
+let _psReviseCodeFlagged    = new Set()  // Revise/By Pattern only: ~20% of the current set, randomly picked, marked "actually code this" (not just recall)
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
 // Store/restore practice sessions (ALL modes — Worked/Graded/Mock) so a refresh or topic
@@ -1154,6 +1162,7 @@ function _psSaveSession() {
       struggledInSession: Array.from(_psStruggledThisSession),
       mockReveal: _psMockReveal,
       revisePatterns: Array.from(_psRevisePatterns),
+      codeFlagged: Array.from(_psReviseCodeFlagged),
     }
     localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
   } catch {}
@@ -1165,6 +1174,7 @@ function _psLoadSession(topicKey) {
   _psDoneThisSession      = new Set(session.doneInSession || [])
   _psStruggledThisSession = new Set(session.struggledInSession || [])
   _psRevisePatterns       = new Set(session.revisePatterns || [])
+  _psReviseCodeFlagged    = new Set(session.codeFlagged || [])
   return session
 }
 
@@ -2718,12 +2728,18 @@ function _buildReviseItem([lcKey, q], i, ctx) {
     '<a href="' + escHtml(subs[subs.length - 1].url) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open your' +
     (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
     '" onclick="event.stopPropagation()">🔗</a>' : ''
+  // ~20% of a freshly generated Revise/By Pattern set is randomly flagged to actually CODE,
+  // not just recall — a spot-check so pure mental recall can't quietly become the whole habit.
+  const codePick = ctx === 'ps' && _psReviseCodeFlagged.has(lcKey)
+  const codeBadge = codePick ?
+    '<span class="ps-code-pick flex-shrink-0" title="Randomly picked to CODE this one — actually write and run the solution, don\'t just recall it">⌨️ Code</span>' : ''
   return (
     '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     topicIcon +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    codeBadge +
     (doneThisSession ? _reviseGradeBadge(lcKey) : '') +
     '<span class="rev-grade-group flex-shrink-0">' +
       '<button class="rev-grade rev-solid' + chosen('solid') + '"  title="Recalled it cold — push the next review further out"   onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
@@ -2879,6 +2895,7 @@ function _buildPracticePanel(topicKey, mod) {
     } else if (_psMode !== 'worked' || prevTopic === topicKey) {
       _psCurrentItems = _psModePool(topicKey, count)
       _psQCount = _psCurrentItems.length
+      _psPickReviseCodeFlags()
       _psSaveSession()
     }
     // First visit to a topic in Worked mode: leave empty (user clicks Generate)
@@ -2921,9 +2938,9 @@ function _buildPracticePanel(topicKey, mod) {
     html += '<div class="qp-mock-note mt-2">🎯 <strong>Mock:</strong> random from this topic — difficulty hidden. Set the timer, solve cold, then reveal.' +
       '<button type="button" id="ps-reveal-btn" class="qp-chip ms-2" onclick="_psRevealMock()"' + (showReveal ? '' : ' style="display:none"') + '>🔍 Reveal</button></div>'
   } else if (_psMode === 'revise') {
-    html += '<div class="qp-mock-note mt-2">🧠 <strong>Revise:</strong> a random due set from this WHOLE topic — active recall, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list. Want just one pattern? Use 🧩 By Pattern instead.</div>'
+    html += '<div class="qp-mock-note mt-2">🧠 <strong>Revise:</strong> a random due set from this WHOLE topic — active recall, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list. Want just one pattern? Use 🧩 By Pattern instead. ~20% are randomly flagged <span class="ps-code-pick" style="margin:0 0.15rem">⌨️ Code</span> — actually write those, don\'t just recall.</div>'
   } else if (_psMode === 'revise-pattern') {
-    html += '<div class="qp-mock-note mt-2">🧩 <strong>By Pattern:</strong> active recall scoped to only the pattern(s) selected below — pick one or more, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list.</div>'
+    html += '<div class="qp-mock-note mt-2">🧩 <strong>By Pattern:</strong> active recall scoped to only the pattern(s) selected below — pick one or more, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list. ~20% are randomly flagged <span class="ps-code-pick" style="margin:0 0.15rem">⌨️ Code</span> — actually write those, don\'t just recall.</div>'
     if (mod.patterns && mod.patterns.length) {
       html += '<div class="d-flex flex-wrap gap-2 mt-2">'
       html += mod.patterns.map(p =>
@@ -3063,6 +3080,17 @@ function _psToggleWorkedOnly(topicKey) {
   }
 }
 
+// Revise + By Pattern only: after a fresh pool is generated, randomly flag ~20% of it as
+// "actually code this one" — a spot-check against fooling yourself with recall alone. Re-rolled
+// on every regeneration (Refresh, mode switch, pattern change); a mere restore-from-storage does
+// NOT re-roll, so the flagged set stays stable across a page refresh until you actually regenerate.
+function _psPickReviseCodeFlags() {
+  _psReviseCodeFlagged = new Set()
+  if (_psMode !== 'revise' && _psMode !== 'revise-pattern') return
+  const n = Math.round(_psCurrentItems.length * 0.2)
+  if (n <= 0) return
+  _shuffle(_psCurrentItems).slice(0, n).forEach(([k]) => _psReviseCodeFlagged.add(k))
+}
 // Shared by Revise + By Pattern: weakest-first ordering over an already-filtered due set.
 // ✗ forgot / ~ shaky sink to the top (weighted shuffle within each rank); ✓ solid / never-graded
 // fill the rest, capped at `count`.
@@ -3160,6 +3188,7 @@ function _psSetMode(mode, topicKey) {
   const seedCount = (mode === 'revise' || mode === 'revise-pattern') ? total : _psQCount
   _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(seedCount, total)))
   _psQCount = _psCurrentItems.length || _psQCount
+  _psPickReviseCodeFlags()
   // Save BEFORE rendering — with an empty pool, the panel build restores from storage,
   // which must already hold the new mode (not the old session).
   _psSaveSession()
@@ -3240,6 +3269,7 @@ function _psShuffle(topicKey) {
   }
 
   _psQCount = _psCurrentItems.length
+  _psPickReviseCodeFlags()
   _psSaveSession()  // Persist the new session
 
   const valEl = document.getElementById('ps-count-val')
