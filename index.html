@@ -3089,7 +3089,9 @@ function _psPickReviseCodeFlags() {
   if (_psMode !== 'revise' && _psMode !== 'revise-pattern') return
   const n = Math.round(_psCurrentItems.length * 0.2)
   if (n <= 0) return
-  _shuffle(_psCurrentItems).slice(0, n).forEach(([k]) => _psReviseCodeFlagged.add(k))
+  // _shuffle() mutates its argument in place — shuffle a COPY so this pick doesn't silently
+  // reorder (and destroy the weakest-first ranking of) the actual displayed list.
+  _shuffle([..._psCurrentItems]).slice(0, n).forEach(([k]) => _psReviseCodeFlagged.add(k))
 }
 // Shared by Revise + By Pattern: weakest-first ordering over an already-filtered due set.
 // ✗ forgot / ~ shaky sink to the top (weighted shuffle within each rank); ✓ solid / never-graded
