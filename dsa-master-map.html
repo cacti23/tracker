@@ -147,22 +147,35 @@ td.tech { color:var(--text-soft); line-height:1.5; }
 .rule { margin-top:9px; font-family:'Space Mono',monospace; font-size:.63rem; color:var(--text-soft); line-height:1.6; }
 .rule b { color:var(--accent-text); }
 
-/* §3 FLOWCHART */
-.flow { display:grid; grid-template-columns:1fr; gap:5px; }
-.frow {
-  display:grid; grid-template-columns:minmax(0,1.15fr) auto minmax(0,1fr);
-  align-items:center; gap:10px;
-  background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--muted);
-  border-radius:7px; padding:8px 13px; cursor:pointer; transition:all .14s;
+/* §3 SHAPE → TECHNIQUE (input shape + output shape, compact card grid — replaces the old
+   one-row-per-goal flowchart, which the reference PDF's bulleted-by-category layout beat
+   on space-per-fact) */
+.shape-sub { font-family:'Space Mono',monospace; font-size:.6rem; letter-spacing:.1em; color:var(--muted); margin:12px 0 7px; }
+.shape-sub:first-child { margin-top:0; }
+.shape-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:7px; }
+.scard {
+  background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--dim);
+  border-radius:7px; padding:9px 11px;
 }
-.frow:hover { border-color:var(--dim); background:var(--hover); }
-.frow.active { border-left-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
-.frow .goal { font-size:.72rem; color:var(--text-strong); font-weight:500; }
-.frow .sep { font-family:'Space Mono',monospace; color:var(--muted); font-size:.8rem; }
-.frow .tech { font-family:'Space Mono',monospace; font-size:.64rem; color:var(--text-soft); }
-.frow .tech b { color:var(--accent-text); }
+.scard h4 { font-size:.72rem; font-weight:600; color:var(--text-strong); margin-bottom:6px; }
+.scard .techs { display:flex; flex-wrap:wrap; gap:4px; }
+.scard .chip { cursor:default; }
+.scard .chip.live { cursor:pointer; transition:all .14s; }
+.scard .chip.live:hover { border-color:var(--dim); color:var(--text-strong); }
+.scard .chip.active { border-color:var(--accent); color:var(--text-strong); box-shadow:0 0 0 1px var(--accent) inset; }
 
-/* §4 PATTERN MAP */
+/* §4 KEYWORD → TECHNIQUE */
+tr.kwrow { cursor:pointer; transition:background .14s; }
+tr.kwrow:hover { background:var(--hover); }
+tr.kwrow.active { box-shadow:0 0 0 1px var(--accent) inset; }
+tr.kwrow.static { cursor:default; }
+td.kwname { white-space:nowrap; }
+td.kwname .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+td.kwname b { color:var(--text-strong); }
+td.kwphr { color:var(--text-soft); line-height:1.6; }
+td.kwphr i { color:var(--text); font-style:normal; }
+
+/* §5 PATTERN MAP */
 .pgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
 details.prow {
   background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--muted);
@@ -190,7 +203,7 @@ details.prow[open] .caret { color:var(--accent-text); }
 .skel-link a { color:var(--accent-text); text-decoration:none; }
 .skel-link a:hover { text-decoration:underline; }
 
-/* §5 RITUAL + LEVERS */
+/* §6 RITUAL + LEVERS */
 .two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .umpire { display:flex; flex-direction:column; gap:6px; }
 .ustep {
@@ -206,7 +219,7 @@ details.prow[open] .caret { color:var(--accent-text); }
 .levers td.cause { color:var(--text-soft); }
 .levers td.fix { font-family:'Space Mono',monospace; color:var(--use); font-weight:700; white-space:nowrap; }
 
-/* §6 LADDER */
+/* §7 LADDER */
 ol.ladder { counter-reset:l; list-style:none; display:flex; flex-direction:column; gap:5px; }
 ol.ladder li {
   counter-increment:l; position:relative; padding:8px 12px 8px 40px;
@@ -234,51 +247,112 @@ ol.ladder li b { color:var(--text-strong); }
 /* RESPONSIVE */
 @media (max-width:820px) {
   .triage, .pgrid, .two { grid-template-columns:1fr; }
-  .frow { grid-template-columns:1fr; gap:3px; }
-  .frow .sep { display:none; }
+  .shape-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
 }
 
-/* ─── PRINT (A4, balanced density — canonical per CHEATSHEET_SPEC §3.4) ─── */
-@page { margin:0.3in; }
+/* ─── PRINT — plain, monochrome, large type. ────────────────────────────────
+   This page's whole reason to exist is being printed and actually read. The
+   on-screen rainbow-per-pattern color coding is a browsing affordance; on paper
+   (especially B&W/grayscale, the common default) 22 distinct accent colors all
+   degrade to indistinguishable grey smears — that's actively WORSE than no
+   color at all, since the design silently depends on a channel that's gone.
+   So: no color carries meaning in print. Everything is black text / black
+   borders on white, distinguished by weight, size, borders and text labels
+   only — correct on any printer, any color setting. ─────────────────────── */
+@page { size:A4; margin:0.35in; }
 @media only print {
   html, body {
-    font-size:11px !important; line-height:1.2 !important; color:#111 !important;
+    font-size:12.5px !important; line-height:1.4 !important; color:#000 !important;
     background:#fff !important; margin:0 !important; padding:0 !important;
   }
+  /* kill every color, everywhere — borders, text, fills — including inline
+     styles the JS sets per-pattern (border-left-color, .dot's background).
+     NOTE: plain `*` does NOT match ::before/::after — ol.ladder li::before (the
+     numbered circle badges) needed its own explicit rule below, confirmed missed
+     by a live PDF render (they kept a faint yellow tint the first time). */
+  *, *::before, *::after {
+    color:#000 !important; background-color:#fff !important;
+    border-color:#000 !important; box-shadow:none !important;
+  }
+  ol.ladder li::before { border:1px solid #000 !important; }
   body::before { display:none !important; }
   .topbar, .search-box, .links, .tbtn, .caret, .sheets-bar { display:none !important; }
   .wrap { max-width:none !important; padding:0 !important; }
-  .s-title, .s-num { font-size:13px !important; page-break-after:avoid !important; }
-  details.prow > summary { padding:3px 8px !important; }
+
+  .s-num {
+    border:1.5px solid #000 !important; font-size:13px !important; padding:1px 8px !important;
+  }
+  .s-title { font-size:17px !important; page-break-after:avoid !important; }
+  .s-num { page-break-after:avoid !important; }
+  .s-note { font-size:11px !important; }
+
+  /* the colored dot carried a category that's already spelled out in the text
+     right next to it (pattern name, keyword-row technique) — safe to drop */
+  .dot { display:none !important; }
+
+  /* every card/border was previously tinted per-pattern; force one uniform
+     plain border everywhere instead of relying on now-invisible color */
+  .tcard, .scard, details.prow, .ustep, ol.ladder li {
+    border:1px solid #000 !important; border-left:1px solid #000 !important;
+  }
+  /* on screen .ptrig is a single truncated line (ellipsis) since the full trigger is
+     one hover/click away — print has no hover, so truncating would silently drop real
+     content. Let it wrap instead; summary switches to flex-start so the now-multi-line
+     trigger doesn't fight vertical centering against the single-line name/complexity. */
+  details.prow > summary { padding:5px 8px !important; align-items:flex-start !important; }
+  .pname { font-size:14px !important; }
+  .ptrig {
+    font-size:11px !important; white-space:normal !important;
+    overflow:visible !important; text-overflow:clip !important;
+  }
+  .pcx { font-size:10.5px !important; white-space:nowrap !important; }
+  /* complexity was red-on-white; bold is the color-free equivalent emphasis */
+  td.o { font-weight:800 !important; }
+
   /* .skel is pre + overflow-x:auto on screen (scrollable); print can't scroll, so an
      unwrapped long line (usually a trailing comment) just gets clipped at the card
-     edge — wrap instead so nothing is silently cut off the page */
+     edge — wrap instead so nothing is silently cut off the page. Font here is smaller
+     than the rest of the page on purpose — code is denser than prose and this is still
+     +16% over the original 9.5px, the biggest single lever on page count (22 cards). */
   .skel {
-    font-size:9.5px !important; line-height:1.2 !important;
+    font-size:11px !important; line-height:1.4 !important; margin:0 8px 8px !important; padding:7px 9px !important;
     white-space:pre-wrap !important; word-break:break-word !important; overflow-x:visible !important;
   }
-  /* only atomic rows/cards avoid a mid-element split — the SECTION as a whole must
-     stay free to flow (page-break-inside:auto is the default) or a section that
-     doesn't fully fit the remaining page gets shoved whole onto a fresh page,
-     leaving a large blank gap behind it */
-  .tcard, .frow, details.prow, .ustep, ol.ladder li, .tbl-wrap, .levers, tr, td, th {
+  table { font-size:12px !important; }
+  th { font-size:10.5px !important; }
+  th, td { padding:5px 10px !important; }
+
+  /* pure whitespace trims (no font/content change) to recover the page the .ptrig
+     wrap-instead-of-truncate fix above cost — tighter than the on-screen padding,
+     which was tuned for mouse click-targets that don't matter on paper. */
+  .section { margin-bottom:16px !important; }
+  .tcard { padding:8px 10px !important; }
+  .scard { padding:6px 8px !important; }
+  .ustep { padding:5px 9px !important; }
+  ol.ladder li { padding:5px 9px 5px 38px !important; }
+  ol.ladder { gap:3px !important; }
+  .shape-grid, .pgrid { gap:5px !important; }
+
+  /* only atomic rows/cards avoid a mid-element split — the CONTAINER as a whole must
+     stay free to flow (page-break-inside:auto is the default) or a container that
+     doesn't fully fit the remaining page gets shoved whole onto a fresh page, leaving
+     a large blank gap behind it (confirmed live via PDF render). .tbl-wrap and .levers
+     (containers) are deliberately EXCLUDED; only tr/td/th (the rows) avoid a split. */
+  .tcard, .scard, details.prow, .ustep, ol.ladder li, tr, td, th {
     page-break-inside:avoid !important;
   }
-  /* the mobile (max-width:820px) breakpoint below accidentally matches an A4 page's
-     printable width (~758px) and collapses these grids to 1 column, wasting pages —
-     force the intended multi-column layout back on for print */
-  .triage { grid-template-columns:repeat(3,1fr) !important; }
-  .pgrid, .two { grid-template-columns:repeat(2,1fr) !important; }
-  .frow {
-    grid-template-columns:minmax(0,1.15fr) auto minmax(0,1fr) !important; gap:10px !important;
-  }
-  .frow .sep { display:inline !important; }
 
-  /* browsers strip background colors by default when printing — force the
-     dots/complexity-tags to survive so patterns stay visually distinguishable on paper */
-  .dot, td.o, .s-num, .frow.active, details.prow.hl {
-    -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
-  }
+  /* the mobile (max-width:820px) breakpoint below accidentally matches a page's
+     printable width and collapses these grids to 1 column, wasting pages — restore
+     the on-screen multi-column density (2-up pattern cards, 3-up shape cards) now
+     that the font sizes above are back in a range where that fits without heavy
+     code-wrapping — this is the main page-count lever. */
+  .triage { grid-template-columns:repeat(3,1fr) !important; }
+  .two { grid-template-columns:repeat(2,1fr) !important; }
+  .pgrid { grid-template-columns:repeat(2,1fr) !important; }
+  .shape-grid { grid-template-columns:repeat(3,1fr) !important; }
+  .scard h4 { font-size:11.5px !important; margin-bottom:4px !important; }
+  .scard .chip { font-size:10.5px !important; padding:2px 6px !important; }
 }
 </style>
 <script>
@@ -295,7 +369,6 @@ ol.ladder li b { color:var(--text-strong); }
     <input id="search" type="text" placeholder="filter: kth, subarray, sorted, n=20..." autocomplete="off" spellcheck="false">
   </div>
   <div class="links">
-    <a href="uppercase.html">◧ PATTERN CARDS</a>
     <a href="index.html">🗂 TRACKER</a>
     <button class="tbtn" id="theme-btn">🌙 DARK</button>
     <button class="tbtn" id="print-btn">🖨 PRINT</button>
@@ -335,11 +408,7 @@ ol.ladder li b { color:var(--text-strong); }
         <h3>① INPUT SHAPE</h3>
         <div class="q">What am I given?</div>
         <p>The structure suggests the toolset. Sorted? almost always means two-pointers or binary search.</p>
-        <div class="opts">
-          <span class="chip">array</span><span class="chip">sorted arr</span><span class="chip">string</span>
-          <span class="chip">linked list</span><span class="chip">tree / BST</span><span class="chip">graph / grid</span>
-          <span class="chip">intervals</span><span class="chip">numbers · bits</span><span class="chip">matrix</span>
-        </div>
+        <div class="arrow">→ look it up in the Shape Map (§3)</div>
       </div>
       <div class="tcard">
         <h3>② CONSTRAINT n</h3>
@@ -348,14 +417,10 @@ ol.ladder li b { color:var(--text-strong); }
         <div class="arrow">→ read it off the Oracle (§2)</div>
       </div>
       <div class="tcard">
-        <h3>③ GOAL VERB</h3>
-        <div class="q">What's being asked?</div>
-        <p>The verb routes you to a technique family.</p>
-        <div class="opts">
-          <span class="chip">find</span><span class="chip">count</span><span class="chip">optimize</span>
-          <span class="chip">enumerate all</span><span class="chip">check / validate</span><span class="chip">build</span>
-        </div>
-        <div class="arrow">→ route it through the Flowchart (§3)</div>
+        <h3>③ WORDING</h3>
+        <div class="q">What phrase does the problem use?</div>
+        <p>"Number of ways", "top k", "next greater" — exact phrasing is a near-deterministic tell.</p>
+        <div class="arrow">→ scan the Keyword Map (§4)</div>
       </div>
     </div>
   </section>
@@ -387,28 +452,45 @@ ol.ladder li b { color:var(--text-strong); }
     </div>
   </section>
 
-  <!-- §3 FLOWCHART -->
-  <section class="section" id="sec-flow">
+  <!-- §3 SHAPE → TECHNIQUE -->
+  <section class="section" id="sec-shape">
     <div class="s-head">
-      <span class="s-num">3</span><span class="s-title">GOAL → TECHNIQUE FLOWCHART</span>
-      <span class="s-note">// click a row to highlight its pattern card below (§4)</span>
+      <span class="s-num">3</span><span class="s-title">SHAPE → TECHNIQUE</span>
+      <span class="s-note">// click a technique to highlight its pattern card (§5)</span>
     </div>
-    <div class="flow" id="flow"></div>
+    <div class="shape-sub">INPUT — what you're given</div>
+    <div class="shape-grid" id="shapesIn"></div>
+    <div class="shape-sub">OUTPUT — what you must return</div>
+    <div class="shape-grid" id="shapesOut"></div>
   </section>
 
-  <!-- §4 PATTERN MAP -->
+  <!-- §4 KEYWORD → TECHNIQUE -->
+  <section class="section" id="sec-keyword">
+    <div class="s-head">
+      <span class="s-num">4</span><span class="s-title">KEYWORD → TECHNIQUE</span>
+      <span class="s-note">// click a row to highlight its pattern card (§5) · these phrases are near-deterministic tells</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>technique</th><th>says…</th></tr></thead>
+        <tbody id="kwbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- §5 PATTERN MAP -->
   <section class="section" id="sec-patterns">
     <div class="s-head">
-      <span class="s-num">4</span><span class="s-title">PATTERN MAP</span>
-      <span class="s-note">// click a row for the code skeleton · full cards live in PATTERN CARDS (uppercase)</span>
+      <span class="s-num">5</span><span class="s-title">PATTERN MAP</span>
+      <span class="s-note">// click a row for the code skeleton · ↳ depth links to the topic's full sheet</span>
     </div>
     <div class="pgrid" id="pgrid"></div>
   </section>
 
-  <!-- §5 RITUAL + LEVERS -->
+  <!-- §6 RITUAL + LEVERS -->
   <section class="section" id="sec-ritual">
     <div class="s-head">
-      <span class="s-num">5</span><span class="s-title">RITUAL + OPTIMIZATION LEVERS</span>
+      <span class="s-num">6</span><span class="s-title">RITUAL + OPTIMIZATION LEVERS</span>
       <span class="s-note">// the loop you run out loud, and how to break the brute force</span>
     </div>
     <div class="two">
@@ -420,17 +502,17 @@ ol.ladder li b { color:var(--text-strong); }
     </div>
   </section>
 
-  <!-- §6 LADDER -->
+  <!-- §7 LADDER -->
   <section class="section" id="sec-ladder">
     <div class="s-head">
-      <span class="s-num">6</span><span class="s-title">STUCK? ESCALATION LADDER</span>
+      <span class="s-num">7</span><span class="s-title">STUCK? ESCALATION LADDER</span>
       <span class="s-note">// run top to bottom — never sit silent</span>
     </div>
     <ol class="ladder" id="ladder"></ol>
   </section>
 
   <div class="foot">
-    SHEETS → <a href="uppercase.html">pattern cards</a> ·
+    SHEETS →
     <a href="two-pointers.html">two-pointers</a> · <a href="sliding-window.html">sliding-window</a> · <a href="binary-search.html">binary-search</a> · <a href="stack.html">stack</a> · <a href="linked-list.html">linked-list</a> · <a href="sorting.html">sorting</a> · <a href="heap.html">heap</a> · <a href="intervals.html">intervals</a> · <a href="recursion.html">recursion</a> · <a href="trees.html">trees</a> · <a href="trie.html">trie</a> · <a href="backtracking.html">backtracking</a> · <a href="graph.html">graph</a> · <a href="dp.html">dp</a> · <a href="bit-manipulation.html">bit-manip</a> · <a href="design.html">design</a><br>
     Every pattern card above deep-links to its sheet · paste <a href="dsa-strong-hire-prompt.md">dsa-strong-hire-prompt.md</a> into an LLM for a full per-problem walkthrough.
   </div>
@@ -460,11 +542,16 @@ const SHEET = {
   dp:'dp.html', bt:'backtracking.html',
   tp:'two-pointers.html', sw:'sliding-window.html', bs:'binary-search.html',
   hp:'heap.html', sg:'trees.html', st:'stack.html', ll:'linked-list.html',
-  tr:'trie.html', bm:'bit-manipulation.html', ms:'sorting.html', gd:'intervals.html'
+  tr:'trie.html', bm:'bit-manipulation.html', ms:'sorting.html', gd:'intervals.html',
+  // no dedicated pattern sheet exists yet for these three — point at the CLOSEST sheet
+  // instead (approximate, not a perfect topical match):
+  ht:'design.html',   // HashMap/Set — design.html covers LRU/LFU + hashmap-backed structures
+  mt:'graph.html',    // Matrix — graph.html already treats grids as implicit graphs
+  seg:'dp.html'       // Segment/Fenwick — dp.html's optimization section is the closest overlap
+  // sa (String KMP/Hash) has NO reasonable match anywhere in the sheet set — sheetFor()
+  // returns null for it below rather than link somewhere misleading.
 };
-// ht (HashMap), mt (Matrix), sa (String/KMP), seg (Segment/Fenwick) have no dedicated
-// sheet yet → fall back to the full pattern cards in uppercase.html.
-const sheetFor = id => SHEET[id] || 'uppercase.html';
+const sheetFor = id => SHEET[id] || null;
 
 const PATTERNS = [
   { id:'ht', name:'HashMap / Set', trig:'seen-before? count? complement? group?', t:'O(n)', s:'O(n)',
@@ -631,27 +718,84 @@ for (let k = 1; k < LOG; k++)
 // LCA: lift deeper node to equal depth, then jump both until parents meet` }
 ];
 
-// ── FLOWCHART: goal -> technique, with pattern ids to highlight ──
-const FLOW = [
-  { goal:'Optimize a value — min / max / longest / cheapest / fewest', tech:'<b>DP</b> · <b>Greedy</b> · <b>binary search on answer</b>', ids:['dp','gd','bs'] },
-  { goal:'Count the number of ways / paths', tech:'<b>DP</b> · combinatorics', ids:['dp'] },
-  { goal:'Enumerate ALL subsets / permutations / combinations', tech:'<b>Backtracking</b> (+ prune)', ids:['bt'] },
-  { goal:'kth largest/smallest · top-k · running median', tech:'<b>Heap</b> · quickselect · two heaps', ids:['hp'] },
-  { goal:'Pair / triplet / subarray summing to a target', tech:'sorted→<b>two pointers</b> · else <b>hashmap</b> · <b>prefix sum</b>', ids:['tp','ht'] },
-  { goal:'Best contiguous subarray / substring (a window)', tech:'<b>Sliding window</b> · prefix sum', ids:['sw','ht'] },
-  { goal:'Next / previous greater or smaller · spans · histogram', tech:'<b>Monotonic stack</b>', ids:['st'] },
-  { goal:'Search in sorted / rotated · find a boundary', tech:'<b>Binary search</b>', ids:['bs'] },
-  { goal:'Connectivity · components · shortest UNWEIGHTED · flood fill', tech:'<b>BFS/DFS</b> · <b>Union-Find</b>', ids:['gr','us'] },
-  { goal:'Shortest WEIGHTED path / minimum cost', tech:'<b>Dijkstra</b> (no neg) · Bellman-Ford', ids:['dijkstra'] },
-  { goal:'Ordering with dependencies / prerequisites', tech:'<b>Topological sort</b>', ids:['topo'] },
-  { goal:'Prefix / autocomplete / many word lookups', tech:'<b>Trie</b>', ids:['tr'] },
-  { goal:'Range query + updates on changing data', tech:'<b>Segment tree / Fenwick</b>', ids:['seg'] },
-  { goal:'Tree: path · subtree aggregate · ancestor', tech:'post-order <b>DFS</b> · BST inorder · <b>LCA</b>', ids:['sg','lca'] },
-  { goal:'Cycle · find duplicate · middle (via pointers)', tech:'fast & slow (<b>Floyd</b>)', ids:['ll'] },
-  { goal:'Single element · XOR tricks · subset masks', tech:'<b>Bit manipulation</b>', ids:['bm'] },
-  { goal:'Pattern match a string (exact / repeated)', tech:'<b>KMP</b> / rolling hash', ids:['sa'] },
-  { goal:'Split into halves & merge · count inversions', tech:'<b>Divide &amp; conquer</b>', ids:['ms'] },
-  { goal:'2-D grid traversal / rotation / spiral', tech:'<b>Matrix</b>', ids:['mt'] }
+// ── §3 SHAPE → TECHNIQUE: input shape and output shape, each mapped to technique chips
+// that cross-link into the Pattern Map (§5) below ──
+const SHAPES_IN = [
+  { label:'Tree / BST', techs:[
+      { t:'DFS — paths, pre/in/postorder', ids:['sg'] },
+      { t:'BFS — level-order, shortest path', ids:['gr'] } ] },
+  { label:'Graph (nodes + edges)', techs:[
+      { t:'BFS shortest path', ids:['gr'] },
+      { t:'DFS components', ids:['gr'] },
+      { t:'Union-Find (# groups)', ids:['us'] },
+      { t:'Topo sort (dependencies)', ids:['topo'] } ] },
+  { label:'2-D Grid / Matrix', techs:[
+      { t:'DFS/BFS — islands', ids:['gr'] },
+      { t:'Union-Find — regions', ids:['us'] },
+      { t:'DP — path problems', ids:['dp'] } ] },
+  { label:'Sorted Array', techs:[
+      { t:'Two pointers', ids:['tp'] },
+      { t:'Binary search', ids:['bs'] },
+      { t:'Greedy', ids:['gd'] } ] },
+  { label:'String', techs:[
+      { t:'Two pointers — palindrome', ids:['tp'] },
+      { t:'Sliding window — substring', ids:['sw'] },
+      { t:'Trie — word problems', ids:['tr'] },
+      { t:'Stack — brackets', ids:['st'] } ] },
+  { label:'Linked List', techs:[
+      { t:'Fast/slow pointers', ids:['ll'] },
+      { t:'Dummy node', ids:['ll'] },
+      { t:'Cycle detection', ids:['ll'] } ] },
+  { label:'Unsorted Array', techs:[
+      { t:'HashMap — seen/count', ids:['ht'] },
+      { t:'Heap — top-k', ids:['hp'] },
+      { t:'Sort first', ids:['ms'] } ] },
+  { label:'Intervals', techs:[
+      { t:'Sort by start/end', ids:['gd'] },
+      { t:'Greedy scheduling', ids:['gd'] },
+      { t:'Heap — min end time', ids:['hp'] } ] },
+  { label:'Numbers · Bits', techs:[
+      { t:'Bit manipulation', ids:['bm'] },
+      { t:'Math / formula', ids:[] } ] }
+];
+const SHAPES_OUT = [
+  { label:'List of Lists (combos, subsets, paths)', techs:[
+      { t:'Backtracking — choose/un-choose', ids:['bt'] } ] },
+  { label:'Single Number (max/min, cost, ways)', techs:[
+      { t:'DP — optimize / count ways', ids:['dp'] },
+      { t:'Greedy — local-optimal', ids:['gd'] },
+      { t:'Math — closed form', ids:[] } ] },
+  { label:'Modified Array/String, in-place', techs:[
+      { t:'Two pointers', ids:['tp'] } ] },
+  { label:'Ordered / valid-sequence list', techs:[
+      { t:'Sort + comparator', ids:['ms'] },
+      { t:'Topological sort', ids:['topo'] },
+      { t:'Heap — maintain order', ids:['hp'] } ] }
+];
+
+// ── §4 KEYWORD → TECHNIQUE: near-verbatim phrases the problem statement uses ──
+const KEYWORDS = [
+  { ids:['dp'], name:'Dynamic Programming', phr:'"number of ways" · "max/min sum, profit, cost" · "can you reach" · "longest/shortest subsequence" · "optimal" / "best"' },
+  { ids:['tp'], name:'Two Pointers', phr:'"palindrome" · "sorted array" · "target sum" · "remove duplicates in-place"' },
+  { ids:['sw'], name:'Sliding Window', phr:'"substring with condition" · "subarray, fixed/variable size" · "max/min window" · "contains all"' },
+  { ids:['hp'], name:'Heap / PQ', phr:'"k largest/smallest" · "top k elements" · "median" · "priority"' },
+  { ids:['st'], name:'Stack', phr:'"parentheses" / "brackets" · "valid expression" · "nested structure" · "undo"' },
+  { ids:['st'], name:'Monotonic Stack', phr:'"next greater element" · "next smaller element"' },
+  { ids:['ht'], name:'HashMap / Set', phr:'"count frequency" · "find duplicates" · "anagram"' },
+  { ids:['tr'], name:'Trie', phr:'"word search" · "word prefixes"' },
+  { ids:['gd'], name:'Greedy', phr:'"minimum operations" — provable local-optimal = global-optimal' },
+  { ids:['us'], name:'Union-Find', phr:'"connected components" · "number of groups"' },
+  { ids:['bs'], name:'Binary Search', phr:'"kth element" · "search in sorted" · "minimize the maximum" · "first/last occurrence"' },
+  { ids:['bm'], name:'Bit Manipulation', phr:'"XOR" · "single number" · "power of 2"' },
+  { ids:['bt'], name:'Backtracking', phr:'"all subsets" / "all permutations" / "all combinations"' },
+  { ids:['gr'], name:'BFS / DFS', phr:'"shortest path (unweighted)" · "connected components" · "islands"' },
+  { ids:['dijkstra'], name:'Dijkstra', phr:'"shortest weighted path" · "minimum cost" (no negative edges)' },
+  { ids:['topo'], name:'Topological Sort', phr:'"dependencies" · "prerequisites" · "build/valid order"' },
+  { ids:['ms'], name:'Divide & Conquer', phr:'"split in half, merge results" · "count inversions"' },
+  { ids:['sg'], name:'Tree DFS', phr:'"path sum" · "subtree aggregate" · "ancestor"' },
+  { ids:['ll'], name:'Linked List', phr:'"cycle" · "middle node" · "reorder"' },
+  { ids:[], name:'Game Theory', phr:'"optimal strategy" · "win/lose" · "minimax" — no single template, usually DP/recursion with two alternating players' },
+  { ids:[], name:'Math / Geometry', phr:'"GCD/LCM" · "prime numbers" · "coordinate/angle calc" — problem-specific formulas, know the basics cold' }
 ];
 
 const UMPIRE = [
@@ -677,7 +821,7 @@ const LADDER = [
   '<b>Solve a tiny example BY HAND.</b> Watch what your brain actually does — that is the algorithm.',
   '<b>Write the brute force and state its O.</b> A working slow answer beats stuck silence, and reveals the structure.',
   '<b>Check the Oracle (§2):</b> what O does n allow? The gap tells you how hard you must push.',
-  '<b>Ask "what am I recomputing?"</b> → apply a Lever (§5).',
+  '<b>Ask "what am I recomputing?"</b> → apply a Lever (§6).',
   '<b>Sort it, or change the representation</b> — index↔value, grid→graph, state→node.',
   '<b>Reduce to a known pattern</b> — "this is just &lt;pattern&gt; in disguise."',
   '<b>Search the ANSWER space, not the input</b> — binary search on the answer · DP over states.',
@@ -685,7 +829,7 @@ const LADDER = [
   '<b>Still stuck? Solve a simpler / special case</b> (k=1, no dups), then generalize.'
 ];
 
-// ── RENDER ──
+// ── RENDER: Pattern Map (§5) ──
 const pgrid = document.getElementById('pgrid');
 function renderPatterns(){
   pgrid.innerHTML = '';
@@ -707,26 +851,80 @@ function renderPatterns(){
     const pre = document.createElement('div');
     pre.className = 'skel';
     pre.textContent = p.code;          // textContent = no HTML-escaping needed
-    const link = document.createElement('div');
-    link.className = 'skel-link';
     const sheet = sheetFor(p.id);
-    link.innerHTML = `↳ depth: <a href="${sheet}">${sheet}</a>`;
-    pre.appendChild(link);
+    if (sheet) {
+      const link = document.createElement('div');
+      link.className = 'skel-link';
+      link.innerHTML = `↳ depth: <a href="${sheet}">${sheet}</a>`;
+      pre.appendChild(link);
+    }
     d.appendChild(pre);
     pgrid.appendChild(d);
   });
 }
 
-const flow = document.getElementById('flow');
-function renderFlow(){
-  flow.innerHTML = '';
-  FLOW.forEach(f => {
-    const row = document.createElement('div');
-    row.className = 'frow';
-    row.dataset.ids = f.ids.join(',');
-    row.dataset.text = (f.goal + ' ' + f.tech).toLowerCase().replace(/<[^>]+>/g,'');
-    row.innerHTML = `<span class="goal">${f.goal}</span><span class="sep">→</span><span class="tech">${f.tech}</span>`;
-    flow.appendChild(row);
+// ── RENDER: highlight helper shared by §3 chips and §4 rows ──
+function highlightPatterns(ids){
+  document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('tr.kwrow.active').forEach(r => r.classList.remove('active'));
+  document.querySelectorAll('details.prow.hl').forEach(d => { d.classList.remove('hl'); d.open = false; });
+  let first = null;
+  ids.forEach(id => {
+    const d = pgrid.querySelector(`details.prow[data-id="${id}"]`);
+    if (d) { d.classList.add('hl'); d.open = true; if (!first) first = d; }
+  });
+  if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// ── RENDER: §3 Shape → Technique ──
+function renderShapeGroup(containerId, arr){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  arr.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'scard';
+    const live = s.techs.some(x => x.ids.length);
+    if (live) card.style.borderLeftColor = HEX[s.techs.find(x=>x.ids.length).ids[0]];
+    card.dataset.text = (s.label + ' ' + s.techs.map(x=>x.t).join(' ')).toLowerCase();
+    const h = document.createElement('h4'); h.textContent = s.label; card.appendChild(h);
+    const row = document.createElement('div'); row.className = 'techs';
+    s.techs.forEach(x => {
+      const chip = document.createElement('span');
+      chip.className = 'chip' + (x.ids.length ? ' live' : '');
+      chip.textContent = x.t;
+      if (x.ids.length) {
+        chip.addEventListener('click', () => {
+          const nowActive = chip.classList.contains('active');
+          highlightPatterns(nowActive ? [] : x.ids);
+          if (!nowActive) chip.classList.add('active');
+        });
+      }
+      row.appendChild(chip);
+    });
+    card.appendChild(row);
+    el.appendChild(card);
+  });
+}
+
+// ── RENDER: §4 Keyword → Technique ──
+const kwbody = document.getElementById('kwbody');
+function renderKeywords(){
+  kwbody.innerHTML = '';
+  KEYWORDS.forEach(k => {
+    const tr = document.createElement('tr');
+    tr.className = 'kwrow' + (k.ids.length ? '' : ' static');
+    tr.dataset.text = (k.name + ' ' + k.phr).toLowerCase().replace(/<[^>]+>/g,'');
+    const dotColor = k.ids.length ? HEX[k.ids[0]] : 'var(--dim)';
+    tr.innerHTML = `<td class="kwname"><span class="dot" style="background:${dotColor}"></span><b>${k.name}</b></td>`
+      + `<td class="kwphr"><i>${k.phr}</i></td>`;
+    if (k.ids.length) {
+      tr.addEventListener('click', () => {
+        const nowActive = tr.classList.contains('active');
+        highlightPatterns(nowActive ? [] : k.ids);
+        if (!nowActive) tr.classList.add('active');
+      });
+    }
+    kwbody.appendChild(tr);
   });
 }
 
@@ -740,35 +938,19 @@ document.getElementById('levers').innerHTML = LEVERS.map(([c,f]) =>
 document.getElementById('ladder').innerHTML = LADDER.map(x => `<li>${x}</li>`).join('');
 
 renderPatterns();
-renderFlow();
+renderShapeGroup('shapesIn', SHAPES_IN);
+renderShapeGroup('shapesOut', SHAPES_OUT);
+renderKeywords();
 
-// ── FLOWCHART CLICK → highlight matching pattern cards ──
-let activeRow = null;
-flow.addEventListener('click', e => {
-  const row = e.target.closest('.frow');
-  if (!row) return;
-  const same = row === activeRow;
-  document.querySelectorAll('.frow.active').forEach(r => r.classList.remove('active'));
-  document.querySelectorAll('details.prow.hl').forEach(d => { d.classList.remove('hl'); d.open = false; });
-  if (same) { activeRow = null; return; }
-  row.classList.add('active');
-  activeRow = row;
-  const ids = row.dataset.ids.split(',');
-  let first = null;
-  ids.forEach(id => {
-    const d = pgrid.querySelector(`details.prow[data-id="${id}"]`);
-    if (d) { d.classList.add('hl'); d.open = true; if (!first) first = d; }
-  });
-  if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
-});
-
-// ── SEARCH (filters flow rows + pattern rows) ──
+// ── SEARCH (filters shape cards + keyword rows + pattern rows) ──
 let timer;
 document.getElementById('search').addEventListener('input', e => {
   clearTimeout(timer);
   timer = setTimeout(() => {
     const q = e.target.value.toLowerCase().trim();
-    document.querySelectorAll('.frow').forEach(r =>
+    document.querySelectorAll('.scard').forEach(c =>
+      c.classList.toggle('hidden', !!q && !c.dataset.text.includes(q)));
+    document.querySelectorAll('tr.kwrow').forEach(r =>
       r.classList.toggle('hidden', !!q && !r.dataset.text.includes(q)));
     document.querySelectorAll('details.prow').forEach(d =>
       d.classList.toggle('hidden', !!q && !d.dataset.text.includes(q)));
