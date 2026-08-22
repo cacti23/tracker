@@ -1130,6 +1130,7 @@ let _psMode                 = 'graded'   // per-topic mode default: 'graded' (yo
 let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
 let _psRevisePatterns       = new Set()  // 'revise-pattern' mode only: pattern IDs (P1, P2…) to scope the due-set to; empty = nothing selected yet
 let _psReviseCodeFlagged    = new Set()  // Revise/By Pattern only: ~20% of the current set, randomly picked, marked "actually code this" (not just recall)
+let _psReviseShownThisSession = new Set()  // Revise/By Pattern only: keys already surfaced by a Refresh since the last full cycle — used to push them to the back so repeated manual Refreshes (with a capped count) cycle through the whole due-set before repeating anything
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
 // Store/restore practice sessions (ALL modes — Worked/Graded/Mock) so a refresh or topic
@@ -1158,6 +1159,7 @@ function _psSaveSession() {
       mockReveal: _psMockReveal,
       revisePatterns: Array.from(_psRevisePatterns),
       codeFlagged: Array.from(_psReviseCodeFlagged),
+      reviseShown: Array.from(_psReviseShownThisSession),
     }
     localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
   } catch {}
@@ -1170,6 +1172,7 @@ function _psLoadSession(topicKey) {
   _psStruggledThisSession = new Set(session.struggledInSession || [])
   _psRevisePatterns       = new Set(session.revisePatterns || [])
   _psReviseCodeFlagged    = new Set(session.codeFlagged || [])
+  _psReviseShownThisSession = new Set(session.reviseShown || [])
   return session
 }
 
@@ -1695,6 +1698,7 @@ function loadTopic(key) {
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psQCount = 5
   _psRevisePatterns = new Set()
+  _psReviseShownThisSession = new Set()
 
   showView('view-topic')
   document.getElementById('page-title').textContent = topic.icon + ' ' + topic.label
@@ -3091,11 +3095,27 @@ function _psPickReviseCodeFlags() {
 // Shared by Revise + By Pattern: weakest-first ordering over an already-filtered due set.
 // ✗ forgot / ~ shaky sink to the top (weighted shuffle within each rank); ✓ solid / never-graded
 // fill the rest, capped at `count`.
+//
+// No-repeat-within-a-cycle: when `count` is capped below the full due-set (manual −), a plain
+// random slice on every Refresh could hand back overlapping subsets by chance, or leave some due
+// questions unshown all day. `_psReviseShownThisSession` tracks keys already surfaced by a Refresh
+// since the last full cycle; within each weakness tier, not-yet-shown keys sort before
+// already-shown ones, so repeated Refreshes work through the WHOLE due-set before anything repeats.
+// Once every current due key has been shown, the tracker resets so the next cycle can begin.
+// (When count >= due.length nothing is capped, so this never changes what's visible.)
 function _psRankedRevisePool(due, count) {
+  if (due.length && due.every(([k]) => _psReviseShownThisSession.has(k))) {
+    _psReviseShownThisSession.clear()
+  }
+  const unseen  = ([k]) => !_psReviseShownThisSession.has(k)
+  const seenCmp = (a, b) => (unseen(a) === unseen(b) ? 0 : unseen(a) ? -1 : 1)
   const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k)?.grade] ?? 2)
-  const weak = _weightedShuffle(due.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
-  const rest = _shuffle(due.filter(([k]) => rank(k) === 2))
-  return [...weak, ...rest].slice(0, count)
+  const weak = _weightedShuffle(due.filter(([k]) => rank(k) < 2))
+    .sort((a, b) => (rank(a[0]) - rank(b[0])) || seenCmp(a, b))
+  const rest = _shuffle(due.filter(([k]) => rank(k) === 2)).sort(seenCmp)
+  const picked = [...weak, ...rest].slice(0, count)
+  picked.forEach(([k]) => _psReviseShownThisSession.add(k))
+  return picked
 }
 // ── Per-topic mode helpers (Worked / Graded / Mock / Revise / By Pattern) ─────
 // Worked/Graded/Mock decide WHICH of this topic's questions you solve, and in what order —
@@ -3178,6 +3198,7 @@ function _psSetMode(mode, topicKey) {
   _psMockReveal = false
   _stopTimer()
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
   // Recall modes (Revise / By Pattern) always start uncapped — "how many are due" shouldn't
   // inherit a narrower _psQCount left behind by a different mode or a different pattern
@@ -3210,6 +3231,7 @@ function _psSetRevisePatterns(ids, topicKey) {
 function _psRevisePatternsShuffle(topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (mod) _psQCount = Object.keys(mod.questions).length
+  _psReviseShownThisSession.clear()  // scope changed — fresh recall-rotation memory for the new due-set
   _psShuffle(topicKey)
   _renderPracticePanel()
 }
