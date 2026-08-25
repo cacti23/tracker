@@ -1116,8 +1116,7 @@ function companyPillsRow(lc, max) {
 }
 
 // ─── PRACTICE SESSION STATE ──────────────────────────────────────────────────
-let _psQCount     = 5     // question count for the CURRENTLY ACTIVE mode (Revise/By Pattern reseed this uncapped on every mode entry)
-let _psStickyQCount = 5   // question count remembered for Worked/Graded/Mock specifically, so switching to Revise (uncapped) and back doesn't clobber it — see _psSaveSession/_psSetMode
+let _psQCount     = 5     // question count — shared across ALL modes (Worked/Graded/Mock/Revise/By Pattern) so it's exactly what you set it to, no matter which mode you're in
 let _psTimerTotal = 0     // timer set value in seconds (0 = off)
 let _psTimerRem   = 0     // remaining seconds
 let _psTimerRun   = false // is timer running?
@@ -1150,11 +1149,6 @@ function _psAllSessions() {
 }
 function _psSaveSession() {
   if (!_psCurrentTopic) return
-  // Keep the Worked/Graded/Mock sticky count fresh while we're actually IN one of those modes
-  // (never while in Revise/By Pattern, which always reseed uncapped — that's not a real "chosen
-  // count" worth remembering as the sticky value). This is the single choke point that keeps
-  // _psStickyQCount accurate no matter which action changed _psQCount.
-  if (_psMode !== 'revise' && _psMode !== 'revise-pattern') _psStickyQCount = _psQCount
   try {
     const all = _psAllSessions()
     all[_psCurrentTopic] = {
@@ -1166,7 +1160,7 @@ function _psSaveSession() {
       revisePatterns: Array.from(_psRevisePatterns),
       codeFlagged: Array.from(_psReviseCodeFlagged),
       reviseShown: Array.from(_psReviseShownThisSession),
-      stickyQCount: _psStickyQCount,
+      qCount: _psQCount,
     }
     localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
   } catch {}
@@ -1180,7 +1174,7 @@ function _psLoadSession(topicKey) {
   _psRevisePatterns       = new Set(session.revisePatterns || [])
   _psReviseCodeFlagged    = new Set(session.codeFlagged || [])
   _psReviseShownThisSession = new Set(session.reviseShown || [])
-  if (typeof session.stickyQCount === 'number') _psStickyQCount = session.stickyQCount
+  if (typeof session.qCount === 'number') _psQCount = session.qCount
   return session
 }
 
@@ -1705,7 +1699,6 @@ function loadTopic(key) {
   _psCurrentItems = []
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psQCount = 5
-  _psStickyQCount = 5
   _psRevisePatterns = new Set()
   _psReviseShownThisSession = new Set()
 
@@ -3209,12 +3202,11 @@ function _psSetMode(mode, topicKey) {
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
-  // Recall modes (Revise / By Pattern) always start uncapped — "how many are due" shouldn't
-  // inherit a narrower count left behind by a different mode or a different pattern selection.
-  // Worked/Graded/Mock restore from _psStickyQCount (NOT the raw _psQCount, which Revise/By
-  // Pattern just overwrote with an uncapped count) so their own +/- selection survives a round
-  // trip through Revise and back.
-  const seedCount = (mode === 'revise' || mode === 'revise-pattern') ? total : _psStickyQCount
+  // Every mode — including Revise / By Pattern — seeds from the SAME count you last set: if you
+  // set 10, Revise shows 10, not every due question in the topic. Use "All" to see everything due
+  // at once. (Revise's own no-repeat-within-a-cycle logic in _psRankedRevisePool means repeated
+  // Refreshes still work through the WHOLE due-set over time instead of the same 10 every time.)
+  const seedCount = _psQCount
   _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(seedCount, total)))
   _psQCount = _psCurrentItems.length || seedCount
   _psPickReviseCodeFlags()
@@ -3236,12 +3228,10 @@ function _psSetRevisePatterns(ids, topicKey) {
   _psRevisePatterns = new Set(ids)
   _psRevisePatternsShuffle(topicKey)
 }
-// Shared by both: a pattern-scope change should show the FULL due-set for the new scope, not
-// stay capped at whatever _psQCount a previous (possibly narrower) selection left behind —
-// otherwise widening the selection can't recover questions a prior toggle trimmed off.
+// Shared by both: a pattern-scope change regenerates at your current count (same as any other
+// Refresh) — it does NOT reset to "show everything," since the count is meant to stay exactly
+// what you set it to across mode/scope changes. Use "All" to see the full due-set for the scope.
 function _psRevisePatternsShuffle(topicKey) {
-  const mod = TOPIC_MODULES[topicKey]
-  if (mod) _psQCount = Object.keys(mod.questions).length
   _psReviseShownThisSession.clear()  // scope changed — fresh recall-rotation memory for the new due-set
   _psShuffle(topicKey)
   _renderPracticePanel()
