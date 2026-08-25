@@ -1116,7 +1116,8 @@ function companyPillsRow(lc, max) {
 }
 
 // ─── PRACTICE SESSION STATE ──────────────────────────────────────────────────
-let _psQCount     = 5     // question count for per-topic practice
+let _psQCount     = 5     // question count for the CURRENTLY ACTIVE mode (Revise/By Pattern reseed this uncapped on every mode entry)
+let _psStickyQCount = 5   // question count remembered for Worked/Graded/Mock specifically, so switching to Revise (uncapped) and back doesn't clobber it — see _psSaveSession/_psSetMode
 let _psTimerTotal = 0     // timer set value in seconds (0 = off)
 let _psTimerRem   = 0     // remaining seconds
 let _psTimerRun   = false // is timer running?
@@ -1149,6 +1150,11 @@ function _psAllSessions() {
 }
 function _psSaveSession() {
   if (!_psCurrentTopic) return
+  // Keep the Worked/Graded/Mock sticky count fresh while we're actually IN one of those modes
+  // (never while in Revise/By Pattern, which always reseed uncapped — that's not a real "chosen
+  // count" worth remembering as the sticky value). This is the single choke point that keeps
+  // _psStickyQCount accurate no matter which action changed _psQCount.
+  if (_psMode !== 'revise' && _psMode !== 'revise-pattern') _psStickyQCount = _psQCount
   try {
     const all = _psAllSessions()
     all[_psCurrentTopic] = {
@@ -1160,6 +1166,7 @@ function _psSaveSession() {
       revisePatterns: Array.from(_psRevisePatterns),
       codeFlagged: Array.from(_psReviseCodeFlagged),
       reviseShown: Array.from(_psReviseShownThisSession),
+      stickyQCount: _psStickyQCount,
     }
     localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
   } catch {}
@@ -1173,6 +1180,7 @@ function _psLoadSession(topicKey) {
   _psRevisePatterns       = new Set(session.revisePatterns || [])
   _psReviseCodeFlagged    = new Set(session.codeFlagged || [])
   _psReviseShownThisSession = new Set(session.reviseShown || [])
+  if (typeof session.stickyQCount === 'number') _psStickyQCount = session.stickyQCount
   return session
 }
 
@@ -1697,6 +1705,7 @@ function loadTopic(key) {
   _psCurrentItems = []
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psQCount = 5
+  _psStickyQCount = 5
   _psRevisePatterns = new Set()
   _psReviseShownThisSession = new Set()
 
@@ -3201,11 +3210,13 @@ function _psSetMode(mode, topicKey) {
   _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
   // Recall modes (Revise / By Pattern) always start uncapped — "how many are due" shouldn't
-  // inherit a narrower _psQCount left behind by a different mode or a different pattern
-  // selection. Worked/Graded/Mock keep the sticky count (their +/- selector is meant to persist).
-  const seedCount = (mode === 'revise' || mode === 'revise-pattern') ? total : _psQCount
+  // inherit a narrower count left behind by a different mode or a different pattern selection.
+  // Worked/Graded/Mock restore from _psStickyQCount (NOT the raw _psQCount, which Revise/By
+  // Pattern just overwrote with an uncapped count) so their own +/- selection survives a round
+  // trip through Revise and back.
+  const seedCount = (mode === 'revise' || mode === 'revise-pattern') ? total : _psStickyQCount
   _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(seedCount, total)))
-  _psQCount = _psCurrentItems.length || _psQCount
+  _psQCount = _psCurrentItems.length || seedCount
   _psPickReviseCodeFlags()
   // Save BEFORE rendering — with an empty pool, the panel build restores from storage,
   // which must already hold the new mode (not the old session).
