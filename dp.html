@@ -1050,71 +1050,13 @@ table{ width:100%; }
 </style></head><body><article id="37cae4f8-635e-8077-a9cb-ee93108bd1c1" class="page sans">
 <h1 class="title">🧮 Dynamic Programming</h1>
 <p class="sub">A standalone, LC-medium/hard-focused sheet. DP = problems that break into smaller versions of themselves that <b>repeat</b> — solve each once, store it, reuse it. Define the state, write the transition, pick the order.</p>
-<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-818d-8119-e342096394f4"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#dp-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8190-a833-cd163cbd58f1">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81cc-9959-dce224dca24b">2. The DP Flavors</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81ac-b284-cac205d7b54f">3. Keyword → Pattern Map</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8160-82b7-da5404195ba9">4. 1D DP Templates</a></li><li class="nav-index-item"><a href="#dp-house-robber-ii">4.1b House Robber II (Circular)</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f2-be61-cec11063109b">4.2b Count of LIS (LC 673)</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81e6-b345-dac19ae9e14e">4.3b DP + Binary Search</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8168-b5dc-cdcc4b15d484">4.4b Max Product Subarray</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81eb-93c9-e98a88a547f0">4.7 DP Reconstruction</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-817d-8f99-f186ca7e77b2">4.8 Partition DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-810b-9ce9-c125b495d37a">5. 2D DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81d2-ba1a-de441b8ad822">5.6 DP + Monotonic Stack</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8169-b62d-d941e2019d8c">6. Interval DP Templates</a></li><li class="nav-index-item"><a href="#dp-lps-substring">6.2 Longest Palindromic Substring</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-818b-9d7c-dd9c4a4edea8">7. String DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8116-b74c-edb95ace732f">8. Knapsack Family</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-b379-dfca6ee65f7d">9. State Machine DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f0-a5ea-ef57d419755f">9.6 Game Theory / Minimax DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-812a-b5f9-f00962cf8472">10. Bitmask DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8193-8951-e63f7aa839c0">10.3 Bitmask: K Equal Subsets</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81b5-b97d-c7949ca4247f">11. Tree DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8157-b541-e13ca5c6dbcc">11.4 Tree Rerooting DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8124-8f20-e6fd6917cfc9">12. DP on DAG / Digit DP</a></li><li class="nav-index-item"><a href="#dp-rare-variants">🗂️ Rare Variants</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8150-bc3a-cf8b3ef19c36">13. Complexity Cheat Card</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-a36d-c7cf1b988a18">14. DP Optimization Techniques</a></li><li class="nav-index-item"><a href="#dp-pitfalls">⚠️ Pitfalls</a></li><li class="nav-index-item"><a href="#dp-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><hr id="dp-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="dp-how-to-think" class="">🧠 HOW TO THINK ABOUT DP (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="dpm-p1" class="">Dynamic programming is for problems that <strong>break into smaller versions of themselves that REPEAT</strong>. Solve each small version once, store the answer, reuse it. That is the whole idea.</p></div>
-
-<div class="box"><b class="tag">🧵 The mental model — a receipt drawer, not a crystal ball</b> Every DP is the <i>same</i> recursive question backtracking would ask — "what are my choices from here?" — except before you answer it, you check a drawer labeled with today's exact question. If a receipt is already in there, you read it and stop; nothing new to compute. If not, you compute the answer the honest way (by asking the smaller versions of the same question) and <b>file a receipt before you leave</b> so nobody ever re-does this exact question again. The drawer's label — <code>dp[state]</code> — is the whole skill: too few facts on the label and two different questions collide in the same drawer (wrong answers); too many facts and nothing ever matches an existing receipt (no speedup at all).</div>
-
-<div style="display:contents" dir="auto"><pre id="dpm-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">WHY DP EXISTS — brute force recomputes the same subproblem:
-
-   fib(5)
-   ├ fib(4)
-   │  ├ fib(3)         ← computed again below
-   │  │  ├ fib(2)
-   │  │  └ fib(1)
-   │  └ fib(2)         ← again
-   └ fib(3)            ← and here
-      ├ fib(2)
-      └ fib(1)
-
-OVERLAP (same call, many times) = the signal to use DP.
-Compute each fib(k) ONCE:
-   top-down  = recursion + a memo[k]      (cache as you go)
-   bottom-up = fill a table dp[0..n] in order</code></pre></div><div style="display:contents" dir="auto"><p id="dpm-p2" class=""><strong>Use DP only when BOTH signals hold</strong> — otherwise a simpler tool wins:</p></div><div style="display:contents" dir="auto"><pre id="dpm-box2" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">1. OPTIMAL SUBSTRUCTURE     the answer is built from answers
-                            to smaller subproblems
-2. OVERLAPPING SUBPROBLEMS  the same subproblem is needed
-                            again and again
-
-only #1, no overlap            → plain recursion / divide &amp; conquer
-#1 and a greedy choice is safe  → greedy (no table needed)
-asks for ALL solutions          → backtracking, not DP</code></pre></div><div style="display:contents" dir="auto"><p id="dpm-p3" class=""><strong>The only hard part is the STATE.</strong> Nail it and the recurrence usually writes itself:</p></div><div style="display:contents" dir="auto"><pre id="dpm-box3" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">Ask: &quot;What is the SMALLEST set of facts that fully
-      describes a subproblem, with no extra context?&quot;
-
-   dp[i]       1-D: best ENDING at i, or using the first i items
-   dp[i][j]    2-D: two indices / two strings / a grid cell
-   dp[i][w]    index + remaining capacity        (knapsack)
-   dp[mask]    which items are used, n ≤ ~20      (bitmask)</code></pre></div><div style="display:contents" dir="auto"><p id="dpm-p4" class=""><strong>So every DP is three moves:</strong> (1) define <code>dp[state]</code> in one plain-English sentence, (2) write the <strong>recurrence</strong> — how this state comes from smaller states, (3) set the <strong>base case(s)</strong>. Start top-down (recursion + memo) since it mirrors your thinking, then convert to a bottom-up table when you need speed or space. Everything below is the standard state + recurrence for each DP family.</p></div>
-
-<div class="box iv"><b class="tag">🧠 Contrast with backtracking</b> DP and <a href="backtracking.html">backtracking</a> walk the <i>exact same</i> recursion tree — same choices, same "what happens at state X" question. The only difference is what you do with a state you've seen before. Backtracking re-explores it, because in backtracking the <i>path taken to get here</i> usually changes what's valid next (e.g. which elements are still "unused"), so the same <code>index</code> reached two ways isn't really the same subproblem. DP memoizes it, because the DP state was defined precisely so that <b>the future depends only on the state, never on how you arrived</b> — that's what "optimal substructure" is really asserting. So the practical test is backtracking's own memo-trigger checklist (its §12): if the same <code>(index, state)</code> is reachable via different paths and always resolves the same way, you're not doing backtracking anymore — you're doing top-down DP and just haven't added the <code>memo</code> yet.</div>
-<div style="display:contents" dir="auto"><hr id="37cae4f8-635e-8184-8d27-fcb43a3fcc46"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8190-a833-cd163cbd58f1" class="">1. DECISION FRAMEWORK</h1></div><div style="display:contents" dir="auto"><blockquote id="37cae4f8-635e-81de-916a-f6f6defaa771" class=""><strong>Senior Engineer mindset</strong>: Before touching the keyboard, spend 3 minutes here. Every minute you spend framing pays back 5 minutes in coding.</blockquote></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><div class="box"><b class="tag">Step 1 · Is it actually DP?</b>
-<b>✅ Optimal substructure</b> — can I express the answer as <code>f(subproblem)</code>? <b>✅ Overlapping subproblems</b> — would brute-force DFS recompute the same arguments?<br/>
-<b>If YES to both</b> → DP is the tool. <b>If only optimal substructure</b> → greedy may work (shorter code, no table). <b>If neither</b> → simulate or math.</div>
-
-<div class="box"><b class="tag">Step 2 · What's the state?</b> Ask: "what information do I need to solve a sub-problem completely, with no extra context?"
-<table>
-<tr><td>Index <code>i</code> in an array/string</td><td>→ 1D DP</td></tr>
-<tr><td>Two indices <code>i, j</code> (intervals, two strings)</td><td>→ 2D / Interval DP</td></tr>
-<tr><td>Index + remaining capacity/budget</td><td>→ Knapsack</td></tr>
-<tr><td>Bitmask of items selected</td><td>→ Bitmask DP</td></tr>
-<tr><td>"Phase" in a state machine (e.g. holding stock)</td><td>→ State machine DP</td></tr>
-<tr><td>Node in a tree/graph</td><td>→ Tree DP / DAG DP</td></tr>
-</table></div>
-
-<div class="box"><b class="tag">Step 3 · What's the recurrence?</b> Always write it as <code>dp[state] = f(dp[smaller state(s)])</code>. Ask: "at position <code>i</code>, what are my choices?" — take/skip · extend left/right · use item <code>k</code> or don't · transition between machine states. Every recurrence below is one of these in disguise.</div>
-
-<div class="box"><b class="tag">Step 4 · Base cases</b> Usually: empty input, a single element, or zero capacity. <b>Write them first</b> — a wrong base case is wrong everything, and it's the hardest bug to spot because the recurrence "looks right."</div>
-
-<div class="box"><b class="tag">Step 5 · Top-down or bottom-up?</b>
-<table>
-<tr><th>Top-down (memoization)</th><th>Bottom-up (tabulation)</th></tr>
-<tr><td>+ Easier to write — mirrors the recursion</td><td>+ No recursion → no stack-overflow risk</td></tr>
-<tr><td>+ Only computes states actually needed</td><td>+ Easier to space-optimize</td></tr>
-<tr><td>− Call stack depth can overflow</td><td>+ Faster constant in practice</td></tr>
-<tr><td>− Slightly slower constant (recursion overhead)</td><td>− Must figure out the correct iteration order; computes ALL states</td></tr>
-</table>
-<b>SDE3 signal:</b> offer both, then implement bottom-up with space optimization where possible.</div>
-
-<div class="box"><b class="tag">Step 6 · What to say out loud</b> "Let me define <code>dp[i]</code> as [exact English sentence]. The recurrence is <code>dp[i] = [formula]</code>. Base case: <code>dp[0] = [value]</code> because [reason]. I'll fill bottom-up from [start] to [end]. Time: <code>O([time])</code>, Space: <code>O([space])</code>."<br/>
-<b>Brain freeze? Do this:</b> (1) brute-force the recursion first, (2) add a <code>memo</code> Map — that's top-down DP, (3) convert the memo to a table — that's bottom-up DP.</div></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-8133-addb-fadb41a49e5f"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81cc-9959-dce224dca24b" class="">2. THE DP FLAVORS</h1></div>
+<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-818d-8119-e342096394f4"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#dp-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8190-a833-cd163cbd58f1">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81cc-9959-dce224dca24b">2. The DP Flavors</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81ac-b284-cac205d7b54f">3. Keyword → Pattern Map</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8160-82b7-da5404195ba9">4. 1D DP Templates</a></li><li class="nav-index-item"><a href="#dp-house-robber-ii">4.1b House Robber II (Circular)</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f2-be61-cec11063109b">4.2b Count of LIS (LC 673)</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81e6-b345-dac19ae9e14e">4.3b DP + Binary Search</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8168-b5dc-cdcc4b15d484">4.4b Max Product Subarray</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81eb-93c9-e98a88a547f0">4.7 DP Reconstruction</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-817d-8f99-f186ca7e77b2">4.8 Partition DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-810b-9ce9-c125b495d37a">5. 2D DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81d2-ba1a-de441b8ad822">5.6 DP + Monotonic Stack</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8169-b62d-d941e2019d8c">6. Interval DP Templates</a></li><li class="nav-index-item"><a href="#dp-lps-substring">6.2 Longest Palindromic Substring</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-818b-9d7c-dd9c4a4edea8">7. String DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8116-b74c-edb95ace732f">8. Knapsack Family</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-b379-dfca6ee65f7d">9. State Machine DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81f0-a5ea-ef57d419755f">9.6 Game Theory / Minimax DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-812a-b5f9-f00962cf8472">10. Bitmask DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8193-8951-e63f7aa839c0">10.3 Bitmask: K Equal Subsets</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-81b5-b97d-c7949ca4247f">11. Tree DP Templates</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8157-b541-e13ca5c6dbcc">11.4 Tree Rerooting DP</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8124-8f20-e6fd6917cfc9">12. DP on DAG / Digit DP</a></li><li class="nav-index-item"><a href="#dp-rare-variants">🗂️ Rare Variants</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8150-bc3a-cf8b3ef19c36">13. Complexity Cheat Card</a></li><li class="nav-index-item"><a href="#37cae4f8-635e-8131-a36d-c7cf1b988a18">14. DP Optimization Techniques</a></li><li class="nav-index-item"><a href="#dp-pitfalls">⚠️ Pitfalls</a></li><li class="nav-index-item"><a href="#dp-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><hr id="dp-hr-mindset"/></div><div style="display:contents" dir="auto"><h1 id="dp-how-to-think" class="">🧠 HOW TO THINK ABOUT DP (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="dpm-p1" class="">DP = <strong>Recursion + Repeated States + Caching</strong>. Solve each state once, store it, reuse it.</p></div>
+<div class="box key"><b class="tag">The flow</b> Can recursion solve it? → What's my state/index? → What choices do I have? → Are states repeating? → Memoize → Tabulate → Optimize space (if the lookback is fixed).</div>
+<div class="box iv"><b class="tag">🧠 vs Backtracking</b> Both walk the <i>same</i> recursion tree of states + choices. Backtracking explores the tree. DP notices a state repeats and caches it instead of re-exploring.</div>
+<div style="display:contents" dir="auto"><hr id="37cae4f8-635e-8184-8d27-fcb43a3fcc46"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8190-a833-cd163cbd58f1" class="">1. DECISION FRAMEWORK</h1></div><div style="display:contents" dir="auto"><blockquote id="37cae4f8-635e-81de-916a-f6f6defaa771" class=""><strong>Senior Engineer mindset</strong>: Before touching the keyboard, spend 3 minutes here. Every minute you spend framing pays back 5 minutes in coding.</blockquote></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><p class="tldr">Recursion → Memoization → Tabulation → Optimization.</p>
+<div class="box key"><b class="tag">The 7 steps</b> 1. State/index → 2. Choices → 3. Write recursion → 4. Repeated states? → 5. Memoize → 6. Tabulate → 7. Optimize space (if the lookback is fixed).</div>
+<div class="box"><b class="tag">Base case</b> Write it first — empty input, one element, or zero capacity. A wrong base case still "looks right" but silently poisons every value downstream.</div>
+<div class="box"><b class="tag">Say this out loud</b> "<code>dp[i]</code> = [one sentence]. Recurrence: <code>dp[i] = [formula]</code>. Base case: <code>dp[0] = [value]</code>. I'll go bottom-up from [start] to [end]. Time <code>O([t])</code>, Space <code>O([s])</code>."</div></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-8133-addb-fadb41a49e5f"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81cc-9959-dce224dca24b" class="">2. THE DP FLAVORS</h1></div>
 <p class="tldr">9 mainstream flavors. (Two rarer ones — Matrix Exponentiation, Probability/EV — live in 🗂️ Rare Variants near the end, not here, since they're the same idea wearing a costume too thin to earn a full row.)</p>
 <table>
 <tr><th>Flavor</th><th>State dims</th><th>Key intuition</th><th>Examples</th></tr>
@@ -1130,260 +1072,343 @@ asks for ALL solutions          → backtracking, not DP</code></pre></div><div 
 </table>
 <div style="display:contents" dir="auto"><blockquote id="37cae4f8-635e-8156-944b-d95c240a3206" class=""><strong>Key insight from 20 years at FAANG</strong>: Most DP problems are one of the above flavors wearing a costume. Once you strip the costume, you have a template. Your job in an interview is to <strong>recognize the flavor in ≤2 minutes</strong>.</blockquote></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81c1-b442-e5df3411bf50"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-81ac-b284-cac205d7b54f" class="">3. KEYWORD → PATTERN MAP</h1></div>
 <table>
-<tr><th>Keyword / phrase</th><th>→ Pattern</th><th>LC examples</th></tr>
-<tr><td>"longest increasing subsequence"</td><td>1D DP / Binary Search</td><td>300, 354</td></tr>
-<tr><td>"longest common subsequence"</td><td>2D DP (two strings)</td><td>1143, 1092</td></tr>
-<tr><td>"edit distance" / "min operations to match"</td><td>2D DP</td><td>72, 97</td></tr>
-<tr><td>"number of ways to climb / reach"</td><td>1D DP (Fibonacci-like)</td><td>70, 746</td></tr>
-<tr><td>"coin change / min coins"</td><td>Unbounded Knapsack</td><td>322, 983</td></tr>
-<tr><td>"coin change II / number of ways"</td><td>Unbounded Knapsack</td><td>518</td></tr>
-<tr><td>"partition into 2 equal subsets"</td><td>0/1 Knapsack (bool)</td><td>416</td></tr>
-<tr><td>"partition into K equal subsets (k&gt;2)"</td><td>Bitmask DP (§10.3)</td><td>698, 1723</td></tr>
-<tr><td>"target sum / count subsets with diff"</td><td>0/1 Knapsack (count)</td><td>494, 1049</td></tr>
-<tr><td>"max profit from stock"</td><td>State Machine DP</td><td>121-123, 309, 188</td></tr>
-<tr><td>"with transaction fee"</td><td>State Machine DP</td><td>714</td></tr>
-<tr><td>"with cooldown"</td><td>State Machine DP</td><td>309</td></tr>
-<tr><td>"burst balloons / remove boxes"</td><td>Interval DP</td><td>312, 546</td></tr>
-<tr><td>"palindrome partition (min cuts)"</td><td>Interval DP</td><td>132, 1278</td></tr>
-<tr><td>"longest palindromic subsequence"</td><td>Interval DP</td><td>516, 1312</td></tr>
-<tr><td>"decode ways / number of decodings"</td><td>1D DP (conditional)</td><td>91, 639</td></tr>
-<tr><td>"word break / can split string"</td><td>1D DP</td><td>139, 140</td></tr>
-<tr><td>"regex / wildcard matching"</td><td>2D DP</td><td>10, 44</td></tr>
-<tr><td>"distinct subsequences"</td><td>2D DP</td><td>115</td></tr>
-<tr><td>"max rectangle in histogram"</td><td>Stack trick / DP</td><td>84, 85</td></tr>
-<tr><td>"triangle / grid max/min path"</td><td>2D DP (grid walk)</td><td>64, 120, 931</td></tr>
-<tr><td>"jump game (can reach)"</td><td>Greedy or 1D DP</td><td>55, 45</td></tr>
-<tr><td>"minimum path sum"</td><td>2D DP (grid walk)</td><td>64, 174, 741</td></tr>
-<tr><td>"dungeon game (reverse DP)"</td><td>2D DP (fill backward)</td><td>174</td></tr>
-<tr><td>"palindrome tiling"</td><td>Interval DP</td><td>1547</td></tr>
-<tr><td>"optimal BST / matrix chain multiply"</td><td>Interval DP (classic)</td><td>312, 1039</td></tr>
-<tr><td>"TSP / visiting all cities minimum cost"</td><td>Bitmask DP</td><td>847</td></tr>
-<tr><td>"collect all keys"</td><td>Bitmask DP</td><td>864</td></tr>
-<tr><td>"assign tasks to workers optimally"</td><td>Bitmask DP</td><td>1125</td></tr>
-<tr><td>"max weight closure / project selection"</td><td>Min-cut (advanced DP)</td><td>—</td></tr>
-<tr><td>"sequence of operations on string"</td><td>2D DP</td><td>1035, 583</td></tr>
-<tr><td>"interleaving strings"</td><td>2D DP (two strings)</td><td>97</td></tr>
-<tr><td>"minimum insertion / deletion to match"</td><td>LCS variant</td><td>583, 1092</td></tr>
-<tr><td>"max product subarray"</td><td>1D DP (min+max track)</td><td>152</td></tr>
-<tr><td>"nth term, N up to 10^18"</td><td>Matrix Exponentiation</td><td>70, 1137, 790</td></tr>
-<tr><td>"probability / expected value"</td><td>Probability DP (float)</td><td>688, 837, 808</td></tr>
-<tr><td>"item with limited count (bounded)"</td><td>Bounded Knapsack (🗂️ Rare Variants)</td><td>—</td></tr>
-<tr><td>"answer for every node as root"</td><td>Tree Rerooting DP</td><td>834, 310</td></tr>
-<tr><td>"stones / piles, two players optimal"</td><td>Game Theory DP (§9.6)</td><td>877, 486, 1140, 1406, 1690, 1872</td></tr>
-<tr><td>"longest palindromic substring (contiguous)"</td><td>Interval DP (§6.2)</td><td>5</td></tr>
-<tr><td>"count numbers ≤ N with digit constraint"</td><td>Digit DP (§12.2)</td><td>233, 902, 1397</td></tr>
+<tr><th>Problem wording</th><th>Think</th></tr>
+<tr><td>take / skip / choose</td><td>DP</td></tr>
+<tr><td>min / max / best</td><td>DP</td></tr>
+<tr><td>number of ways</td><td>DP</td></tr>
+<tr><td>possible / can we</td><td>DP</td></tr>
+<tr><td>sequential decisions</td><td>DP</td></tr>
+<tr><td>repeated state</td><td>Memoization</td></tr>
 </table>
+<div class="box key"><b class="tag">Core trigger</b> Choices + State + Repeated State → DP.</div>
 
-<h3>🔴 DP anti-patterns — mistakes that kill candidates</h3>
-<table>
-<tr><th>Anti-pattern</th><th>❌ Wrong</th><th>✅ Right</th></tr>
-<tr><td>Vague state definition</td><td><code>dp[i] = the answer at i</code> — meaningless, leads to a wrong recurrence</td><td><code>dp[i] = max sum of subarray ENDING at index i</code> — precise, unambiguous</td></tr>
-<tr><td>min/max vs. count recurrence direction</td><td>Using <code>max()</code> on a count problem → gives 1 instead of the total number of ways</td><td>min/max propagates forward: <code>dp[i]=f(dp[i-1],dp[i-2])</code>. Count accumulates: <code>dp[i] += dp[j]</code> for every valid predecessor j.</td></tr>
-<tr><td>Top-down recursion at depth &gt; ~10K</td><td>Top-down on a string of length 100K → call stack overflow</td><td>Use bottom-up tabulation, or raise the stack size explicitly. Rule: n &gt; 10,000 with O(n) states → prefer bottom-up.</td></tr>
-<tr><td>Forgetting MOD in count problems</td><td><code>dp[i] = dp[i-1] + dp[i-2]</code> overflows <code>Number.MAX_SAFE_INTEGER</code> (LC 62, 91, 518, 1155 all require <code>mod 1e9+7</code>)</td><td><code>dp[i] = (dp[i-1] + dp[i-2]) % MOD</code> — apply MOD on every addition, BEFORE storing back into <code>dp[]</code></td></tr>
-<tr><td>Off-by-one in interval DP base cases</td><td><code>for (let len = 1; ...)</code> may skip the len=2 base case for palindromes</td><td>Explicitly set <code>dp[i][i]</code> (length-1) and <code>dp[i][i+1]</code> (length-2) before the main loop</td></tr>
-<tr><td>Space optimization when reconstruction is needed</td><td>Rolling 1D array → can't backtrack to find which items were chosen</td><td>If asked "what items / what path", keep the full 2D table</td></tr>
-<tr><td>Rebuilding substrings in the inner loop</td><td><code>dp[j] &amp;&amp; wordSet.has(s.slice(j, i))</code> — <code>.slice</code> is O(i-j) per call</td><td>Precompute max word length; only try <code>j &gt;= i - maxWordLen</code></td></tr>
-<tr><td>Wrong loop direction in space-optimized knapsack</td><td>0/1 knapsack with a LEFT-TO-RIGHT inner loop → item gets used multiple times</td><td>0/1 = RIGHT-TO-LEFT (prevents reuse). Unbounded = LEFT-TO-RIGHT (allows reuse).</td></tr>
-<tr><td>2D array init shares one row by reference</td><td><code>new Array(m).fill(new Array(n).fill(0))</code> — every row is the SAME array, so <code>dp[0][0]=5</code> silently changes <code>dp[1][0]</code> too</td><td><code>Array.from({length:m}, () =&gt; new Array(n).fill(0))</code> — allocates a fresh row each time</td></tr>
-</table>
+<h3>🚨 Anti-patterns — mistakes that kill candidates</h3>
+<div class="box warn">
+🚨 <b>Vague state?</b> Name it precisely — "max sum ENDING at i", not "the answer at i".<br/>
+🚨 <b>Count vs. optimize?</b> min/max propagates: <code>dp[i]=f(dp[i-1],...)</code>. Count accumulates: <code>dp[i] += dp[j]</code>.<br/>
+🚨 <b>Recursion depth?</b> n &gt; 10K → go bottom-up, top-down will stack-overflow.<br/>
+🚨 <b>Forgot MOD?</b> Apply <code>% MOD</code> on every addition, before storing into <code>dp[]</code>.<br/>
+🚨 <b>Off-by-one interval base?</b> Set <code>dp[i][i]</code> and <code>dp[i][i+1]</code> explicitly before the main loop.<br/>
+🚨 <b>Need to reconstruct?</b> Keep the full table — a rolling array can't backtrack.<br/>
+🚨 <b>Slicing in the inner loop?</b> <code>.slice()</code> is O(n) per call — precompute bounds instead.<br/>
+🚨 <b>Wrong knapsack loop direction?</b> 0/1 = right-to-left (no reuse). Unbounded = left-to-right (reuse).<br/>
+🚨 <b>2D array shares rows?</b> Use <code>Array.from({length:m}, () =&gt; ...)</code>, never <code>.fill(new Array(...))</code>.
+</div>
 
-<h3>🔴 Trap alerts — things that look like DP but aren't</h3>
-<table>
-<tr><th>Keyword / phrase</th><th>→ Actually</th><th>LC examples</th></tr>
-<tr><td>"minimum # of intervals to cover"</td><td>Greedy (sort by end)</td><td>45, 1024</td></tr>
-<tr><td>"activity selection / meeting rooms"</td><td>Greedy</td><td>252, 253</td></tr>
-<tr><td>"assign tasks to minimize max"</td><td>Binary Search</td><td>1011, 410</td></tr>
-<tr><td>"sliding window max/min"</td><td>Monotonic Deque</td><td>239, 862</td></tr>
-</table>
+<h3>🚨 Trap alerts — looks like DP, isn't</h3>
+<div class="box warn">
+🚨 <b>"min # of intervals to cover"?</b> Greedy (sort by end), not DP.<br/>
+🚨 <b>"meeting rooms / activity selection"?</b> Greedy, not DP.<br/>
+🚨 <b>"assign tasks to minimize max"?</b> Binary search, not DP.<br/>
+🚨 <b>"sliding window max/min"?</b> Monotonic deque, not DP.
+</div>
 <div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81ec-b10d-da1dbddef284"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-8160-82b7-da5404195ba9" class="">4. 1D DP TEMPLATES</h1></div>
 <p class="tldr">One evolving index — dp[i] built from a few earlier dp values.</p>
 <div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> dp[i] depends only on a bounded window of earlier, already-finalized dp values (dp[i-1], dp[i-2], … dp[i-k]), and once written it never changes again. <b>Why that's safe:</b> filling i in strictly increasing order guarantees every dp value the recurrence reaches backward for already exists and is final — so there is exactly one correct order to compute in, and no dp[i] is ever read before it's written.</div>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> define <code>dp[i]</code> in one sentence, the LIS <code>O(n²)→O(n log n)</code> patience-sort upgrade, and Kadane's "extend or restart." <b>· Escalation:</b> climbing stairs → house robber → house robber II (circular, §4.1b) → LIS (then n log n) → max product (carry the min) → word break / decode ways (the '0' trap) → reconstruct the actual sequence via <code>parent[]</code>.</div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81d5-b251-d82bd6f2b555" class="">4.1 Classic 1D Template (Fibonacci-style)</h2></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-81ae-944d-d16404c0fbd6" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PATTERN: dp[i] depends on dp[i-1], dp[i-2], ...
-// Examples: Climbing Stairs (LC 70), House Robber (LC 198)
+<div class="box iv"><b class="tag">🎤 State</b> <code>dp[i]</code> = best answer using <code>nums[i..n-1]</code>. <b>Invariant:</b> fixed lookback — <code>dp[i]</code> only ever needs <code>dp[i+1]</code>/<code>dp[i+2]</code>. <b>Escalation:</b> climbing stairs → house robber → house robber II (circular, §4.1b) → LIS → word break / decode ways.</div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81d5-b251-d82bd6f2b555" class="">4.1 Classic 1D Template (Fibonacci-style)</h2></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-81ae-944d-d16404c0fbd6" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = best answer using nums[i..n-1]
+// LC 70 (Climbing Stairs) / LC 198 (House Robber)
 
 function dp1D(nums: number[]): number {
   const n = nums.length;
   if (n === 0) return 0;
 
-  // dp[i] = best answer considering first i elements
-  const dp = new Array(n + 1).fill(0);
-  dp[0] = 0; // base case: empty
-  dp[1] = nums[0]; // base case: one element
+  const dp = new Array(n + 2).fill(0); // dp[n], dp[n+1] = 0 — nothing left to take
 
-  for (let i = 2; i &lt;= n; i++) {
-    // ── FILL RECURRENCE HERE ──
-    // e.g., House Robber: take or skip
-    dp[i] = Math.max(dp[i - 1], dp[i - 2] + nums[i - 1]);
+  for (let i = n - 1; i &gt;= 0; i--) {
+    const skip = dp[i + 1];
+    const take = nums[i] + dp[i + 2];
+
+    dp[i] = Math.max(skip, take);
   }
 
-  return dp[n];
+  return dp[0];
 }
 // Time: O(n), Space: O(n) → can reduce to O(1) with rolling variables
 
-// ⭐ SPACE OPTIMIZATION (when dp[i] only needs dp[i-1] and dp[i-2]):
+// ⭐ SPACE OPTIMIZATION (dp[i] only ever needs dp[i+1] and dp[i+2] — fixed lookback):
 function dp1DSpaceOpt(nums: number[]): number {
-  let prev2 = 0,
-    prev1 = nums[0];
-  for (let i = 1; i &lt; nums.length; i++) {
-    const curr = Math.max(prev1, prev2 + nums[i]);
-    prev2 = prev1;
-    prev1 = curr;
+  let next1 = 0; // dp[i+1]
+  let next2 = 0; // dp[i+2]
+
+  for (let i = nums.length - 1; i &gt;= 0; i--) {
+    const curr = Math.max(next1, nums[i] + next2);
+
+    next2 = next1;
+    next1 = curr;
   }
-  return prev1;
-}</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-81ae-944d-d16404c0rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — rec(i) = best answer using houses[i..n-1] (mirror of the bottom-up prefix state)
+
+  return next1;
+}</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-81ae-944d-d16404c0rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i) = best answer using nums[i..n-1]
 // LC 70 / LC 198
 
 function dp1D_rec(nums: number[]): number {
   const memo = new Map&lt;number, number&gt;();
-  function rec(i: number): number {
+
+  function dfs(i: number): number {
+    // base case
     if (i &gt;= nums.length) return 0;
+
     if (memo.has(i)) return memo.get(i)!;
-    const res = Math.max(rec(i + 1), nums[i] + rec(i + 2));
+
+    const skip = dfs(i + 1);
+    const take = nums[i] + dfs(i + 2);
+
+    const res = Math.max(skip, take);
     memo.set(i, res);
+
     return res;
   }
-  return rec(0);
+
+  return dfs(0);
 }
 
-// ⭐ Note: the iterative version rolls to O(1) space (prev1/prev2). Memoized recursion can't do
-// that trick — the memo has to keep every subproblem it might still need, so it stays O(n).</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="dp-house-robber-ii" class="">4.1b House Robber II — Circular Array (LC 213)</h2></div><div style="display:contents" dir="auto"><p class="tldr">First and last house are now neighbors, so you can't rob both. Run the exact same <code>dp1DSpaceOpt</code> from §4.1 twice — once excluding the last house, once excluding the first — and take the max.</p><pre id="dp-house-robber-ii-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function robCircular(nums: number[]): number {
+// ⭐ The iterative version rolls to O(1) space (next1/next2). Memoized recursion can't —
+// the memo has to keep every subproblem it might still need, so it stays O(n).</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="dp-house-robber-ii" class="">4.1b House Robber II — Circular Array (LC 213)</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> same as §4.1. <b>Invariant:</b> first/last house are now neighbors — one of "exclude first" / "exclude last" must be optimal, since any valid circular pick already skips at least one endpoint.</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="dp-house-robber-ii-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Run §4.1's rolling-variable solver twice, on each of the two sub-ranges
+// Time: O(n), Space: O(1) — called TWICE, constant factor doesn't change the order
+
+function rob(nums: number[]): number {
   const n = nums.length;
-  if (n === 1) return nums[0]; // only one house — no "wrap" conflict
 
-  // dp1DSpaceOpt is the §4.1 O(1)-space House Robber I solver, unchanged
+  if (n === 1) return nums[0];
+
+  function solve(start: number, end: number): number {
+    let next1 = 0;
+    let next2 = 0;
+
+    for (let i = end; i &gt;= start; i--) {
+      const curr = Math.max(next1, nums[i] + next2);
+
+      next2 = next1;
+      next1 = curr;
+    }
+
+    return next1;
+  }
+
   return Math.max(
-    dp1DSpaceOpt(nums.slice(0, n - 1)), // exclude last house
-    dp1DSpaceOpt(nums.slice(1)),        // exclude first house
+    solve(0, n - 2), // exclude last house
+    solve(1, n - 1)  // exclude first house
   );
-}
-// Time: O(n), Space: O(1) extra (the slices are the only allocation)
-// WHY IT'S SAFE: one of "exclude first" / "exclude last" must be optimal, because any
-// valid circular selection already skips at least one of the two endpoints.</code></pre></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8173-9bae-cf3f0fb12a0c" class="">4.2 Longest Increasing Subsequence (LIS) — O(n²)</h2></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-811b-88fe-ecf414eaab01" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = length of LIS ending at index i
+}</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="dp-house-robber-ii-rec" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Same idea, top-down: memoize §4.1's dfs(i), run it on each of the two sub-ranges
+// Time: O(n), Space: O(n) — memo + recursion stack per solve() call, called TWICE
+
+function rob_rec(nums: number[]): number {
+  const n = nums.length;
+
+  if (n === 1) return nums[0];
+
+  function solve(start: number, end: number): number {
+    const memo = new Map&lt;number, number&gt;();
+
+    function dfs(idx: number): number {
+      // base case
+      if (idx &gt; end) return 0;
+
+      if (memo.has(idx)) return memo.get(idx)!;
+
+      const skip = dfs(idx + 1);
+      const take = nums[idx] + dfs(idx + 2);
+
+      const res = Math.max(skip, take);
+      memo.set(idx, res);
+
+      return res;
+    }
+
+    return dfs(start);
+  }
+
+  return Math.max(
+    solve(0, n - 2), // exclude last house
+    solve(1, n - 1)  // exclude first house
+  );
+}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8173-9bae-cf3f0fb12a0c" class="">4.2 Longest Increasing Subsequence (LIS) — O(n²)</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>dp[i][prev]</code> = LIS achievable from <code>nums[i..]</code> given the previously-chosen index. <b>Invariant:</b> <code>prev</code> is stored as an INDEX (sentinel <code>n</code> = "nothing chosen yet"), not a value — avoids <code>-1</code> headaches in the memo/table. This is the template for multi-dimensional state DP.</p><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-811b-88fe-ecf414eaab01" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i][prev] = LIS achievable from nums[i..] given prev index chosen so far
 // LC 300 — Classic, understand BOTH approaches
 
 function lengthOfLIS_DP(nums: number[]): number {
   const n = nums.length;
-  const dp = new Array(n).fill(1); // every element is LIS of length 1
+  let nextRow = new Array(n + 1).fill(0); // base case: i === n
 
-  for (let i = 1; i &lt; n; i++) {
-    for (let j = 0; j &lt; i; j++) {
-      if (nums[j] &lt; nums[i]) {
-        dp[i] = Math.max(dp[i], dp[j] + 1);
+  for (let i = n - 1; i &gt;= 0; i--) {
+    const currRow = new Array(n + 1).fill(0);
+
+    for (let prev = 0; prev &lt;= n; prev++) {
+      const skip = nextRow[prev];
+
+      let take = 0;
+      if (prev === n || nums[i] &gt; nums[prev]) {
+        take = 1 + nextRow[i];
       }
+
+      currRow[prev] = Math.max(skip, take);
     }
+
+    nextRow = currRow;
   }
 
-  return Math.max(...dp);
+  return nextRow[n];
 }
-// Time: O(n²), Space: O(n)</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-811b-88fe-ecf414earec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — rec(i) = length of the LIS that STARTS at i (looks ahead for a bigger next pick)
-// Genuinely a different shape than the bottom-up dp[i] (&quot;ends at i&quot;, looks back) — both valid
+// Time: O(n²), Space: O(n) — dp[i][prev] only ever needs dp[i+1][prev] (same prev,
+// row below) and dp[i+1][i] (row below, different column) — never the same row → 2 rows only</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-811b-88fe-ecf414earec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i, prev) = LIS achievable from nums[i..] given prev index chosen
+// LC 300
 
 function lengthOfLIS_rec(nums: number[]): number {
   const n = nums.length;
-  const memo = new Array(n).fill(-1);
-  function rec(i: number): number {
-    if (memo[i] !== -1) return memo[i];
-    let best = 1;
-    for (let j = i + 1; j &lt; n; j++) {
-      if (nums[j] &gt; nums[i]) best = Math.max(best, 1 + rec(j));
+  const memo: (number | null)[][] = Array.from({ length: n }, () =&gt; new Array(n + 1).fill(null));
+
+  function dfs(i: number, prev: number): number {
+    // base case
+    if (i === n) return 0;
+
+    if (memo[i][prev] !== null) return memo[i][prev];
+
+    const skip = dfs(i + 1, prev);
+
+    let take = 0;
+    if (prev === n || nums[i] &gt; nums[prev]) {
+      take = 1 + dfs(i + 1, i);
     }
-    return (memo[i] = best);
+
+    const res = Math.max(skip, take);
+    memo[i][prev] = res;
+
+    return res;
   }
-  let ans = 0;
-  for (let i = 0; i &lt; n; i++) ans = Math.max(ans, rec(i));
-  return ans;
-}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81f2-be61-cec11063109b" class="">4.2b Count of Longest Increasing Subsequences (LC 673)</h2></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8138-bb07-dc13d368b6f0" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i]    = length of LIS ending at index i
-// count[i] = number of LIS of that length ending at index i
-// LC 673 — common SDE3 follow-up to LC 300
+
+  return dfs(0, n);
+}
+// Time: O(n²) — n × (n+1) distinct (i,prev) states, each computed once
+// Space: O(n²) memo + O(n) recursion stack</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81f2-be61-cec11063109b" class="">4.2b Count of Longest Increasing Subsequences (LC 673)</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> stores BOTH a value and a count — <code>length[i]</code> = LIS length ending at <code>i</code>, <code>count[i]</code> = how many such LIS end at <code>i</code>. <b>Invariant:</b> a strictly longer path found at <code>j</code> RESETS the count; an equally long path ACCUMULATES it.</p><pre id="37cae4f8-635e-8138-bb07-dc13d368b6f0" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 673 — common SDE3 follow-up to LC 300
+// Time: O(n²) — nested loop, outer i: 0..n, inner j: 0..i
+// Space: O(n) — length[] and count[] arrays only, no recursion stack
 
 function findNumberOfLIS(nums: number[]): number {
   const n = nums.length;
-  const dp = new Array(n).fill(1);      // LIS length ending at i
-  const cnt = new Array(n).fill(1);     // # of such LIS ending at i
 
-  for (let i = 1; i &lt; n; i++) {
+  const length = Array(n).fill(1); // length of LIS ending at i
+  const count = Array(n).fill(1);  // how many such LIS end at i
+
+  for (let i = 0; i &lt; n; i++) {
     for (let j = 0; j &lt; i; j++) {
-      if (nums[j] &lt; nums[i]) {
-        if (dp[j] + 1 &gt; dp[i]) {
-          dp[i] = dp[j] + 1;            // found a longer LIS
-          cnt[i] = cnt[j];              // reset count
-        } else if (dp[j] + 1 === dp[i]) {
-          cnt[i] += cnt[j];             // another way to reach same length
-        }
+      if (nums[j] &gt;= nums[i]) continue;
+
+      if (length[j] + 1 &gt; length[i]) {
+        length[i] = length[j] + 1;
+        count[i] = count[j];
+      } else if (length[j] + 1 === length[i]) {
+        count[i] += count[j];
       }
     }
   }
 
-  const maxLen = Math.max(...dp);
+  const maxLen = Math.max(...length);
   let total = 0;
+
   for (let i = 0; i &lt; n; i++) {
-    if (dp[i] === maxLen) total += cnt[i];
+    if (length[i] === maxLen) total += count[i];
   }
+
   return total;
 }
-// Time: O(n²), Space: O(n)
-// KEY INSIGHT: Maintain cnt[] in parallel with dp[].
-//   dp[j]+1 &gt; dp[i]  → strictly longer path found, inherit count from j
-//   dp[j]+1 === dp[i] → equally long path found, accumulate count
-// SDE3 SIGNAL: When asked &quot;how many optimal solutions exist?&quot; — always think
-// about running a parallel count[] array alongside the value dp[].</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81af-bb53-cd875c9a94be"/></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8167-b1af-c1ee251dffc0" class="">4.3 LIS — O(n log n) via Binary Search (SDE3 Expected)</h2></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8176-98e0-eaeb4c1ae642" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PATIENCE SORTING technique — tails[i] = smallest tail of any IS of length i+1
-// ⭐ SDE3 interviewers WILL ask for this optimization
+// SDE3 SIGNAL: "how many optimal solutions exist?" → always think about running
+// a parallel count[] array alongside the value array.</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81af-bb53-cd875c9a94be"/></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8167-b1af-c1ee251dffc0" class="">4.3 LIS — O(n log n) via Binary Search (SDE3 Expected)</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>tails[k]</code> = smallest possible tail value of any increasing subsequence of length <code>k+1</code>. Not the LIS itself — just a tool to find its length. ⭐ SDE3 interviewers WILL ask for this optimization.</p><pre id="37cae4f8-635e-8176-98e0-eaeb4c1ae642" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// PATIENCE SORTING — Time: O(n log n), Space: O(n)
+// Each number does one binary search over tails (size ≤ n) → O(log n) per number
 
-function lengthOfLIS_BS(nums: number[]): number {
-  const tails: number[] = []; // tails[i] = min ending val of IS with length i+1
+function lengthOfLIS(nums: number[]): number {
+  const tails: number[] = [];
 
   for (const num of nums) {
-    let lo = 0,
-      hi = tails.length;
-    // Binary search for first tail &gt;= num (lower_bound)
+    let lo = 0, hi = tails.length;
+
     while (lo &lt; hi) {
       const mid = (lo + hi) &gt;&gt; 1;
-      if (tails[mid] &lt; num) lo = mid + 1;
+      if (num &gt; tails[mid]) lo = mid + 1;
       else hi = mid;
     }
-    tails[lo] = num; // replace or extend
+
+    if (lo === tails.length) tails.push(num);
+    else tails[lo] = num;
   }
 
   return tails.length;
 }
-// Time: O(n log n), Space: O(n)
-//NOTE: tails array is NOT the actual subsequence, just a tool to find length.
-// To reconstruct the actual LIS, you need parent pointers (LC 354).</code></pre></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81e6-b345-dac19ae9e14e" class="">4.3b DP + Binary Search (SDE3 Pattern)</h2></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-819e-b314-ddbdf1eea15d" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">WHEN TO COMBINE DP WITH BINARY SEARCH:
-───────────────────────────────────────────────────────────────
-1. States are sorted / monotone → binary search to find transition
-2. LIS-style problems in 2D    → sort one dimension, LIS on other
-3. Job scheduling               → binary search for last non-overlapping job
-4. Egg drop style               → binary search on answer within dp</code></pre></div><div style="display:contents" dir="auto"><div style="display:contents" dir="auto"><p class="tldr" style="margin-top:1em">Russian Doll Envelopes (LC 354) is the same sort-then-O(n log n)-LIS trick already covered in §4.3 — sort ascending by width / descending by height on ties, then run LIS on heights alone.</p></div><h3 id="37cae4f8-635e-8150-9426-d129dab33f49" class="">Maximum Profit in Job Scheduling (LC 1235)</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8182-9a71-e51695f7081e" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = max profit considering jobs[0..i-1]
-// For each job, binary search for the last job that ends ≤ this job&#x27;s start.
-// LC 1235 — This is the canonical &quot;DP + binary search on sorted structure&quot; problem.
+// To reconstruct the actual LIS (not just its length), you need parent pointers (LC 354, §4.7).</code></pre></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81e6-b345-dac19ae9e14e" class="">4.3b DP + Binary Search (SDE3 Pattern)</h2></div><div style="display:contents" dir="auto"><p class="tldr">States sorted/monotone → binary search finds the transition instead of a linear scan. Common in: job scheduling (last non-overlapping job), LIS-in-2D (sort one dim, LIS the other), egg drop (binary search on the answer).</p></div><div style="display:contents" dir="auto"><div style="display:contents" dir="auto"><p class="tldr" style="margin-top:1em">Russian Doll Envelopes (LC 354) is the same sort-then-O(n log n)-LIS trick already covered in §4.3 — sort ascending by width / descending by height on ties, then run LIS on heights alone.</p></div><h3 id="37cae4f8-635e-8150-9426-d129dab33f49" class="">Maximum Profit in Job Scheduling (LC 1235)</h3></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>dp[i]</code> = max profit from <code>jobs[i..n-1]</code> (sorted by start time). <b>Invariant:</b> after taking job <code>i</code>, binary search jumps straight to the first job whose start ≥ this job's end — skipping every overlapping job in one step.</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-8182-9a71-e51695f7081e" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 1235 — the canonical "DP + binary search on sorted structure" problem
+// Time: O(n log n) [sort + n states × O(log n)], Space: O(n)
 
 function jobScheduling(startTime: number[], endTime: number[], profit: number[]): number {
   const n = startTime.length;
-  // Create job triples and sort by end time
   const jobs = startTime.map((s, i) =&gt; [s, endTime[i], profit[i]]);
-  jobs.sort((a, b) =&gt; a[1] - b[1]);
 
-  // dp[i] = max profit using jobs ending at or before jobs[i-1]
-  const dp = new Array(n + 1).fill(0);
+  jobs.sort((a, b) =&gt; a[0] - b[0]);
 
-  for (let i = 1; i &lt;= n; i++) {
-    const [start, , p] = jobs[i - 1];
+  function findNextJob(i: number): number {
+    let lo = i + 1, hi = n;
 
-    // Binary search: find last job whose endTime &lt;= this job&#x27;s startTime
-    let lo = 0, hi = i - 1;
     while (lo &lt; hi) {
-      const mid = (lo + hi + 1) &gt;&gt; 1;
-      if (jobs[mid - 1][1] &lt;= start) lo = mid;
-      else hi = mid - 1;
+      const mid = (lo + hi) &gt;&gt; 1;
+      // next job's start &gt;= this job's end → compatible
+      if (jobs[mid][0] &gt;= jobs[i][1]) hi = mid;
+      else lo = mid + 1;
     }
-    // lo = index of last compatible job (0 = none)
-    dp[i] = Math.max(dp[i - 1], dp[lo] + p);
+
+    return lo;
   }
-  return dp[n];
+
+  const dp = Array(n + 1).fill(0);
+
+  for (let i = n - 1; i &gt;= 0; i--) {
+    const skip = dp[i + 1];
+    const nextJobIdx = findNextJob(i);
+    const take = jobs[i][2] + dp[nextJobIdx];
+
+    dp[i] = Math.max(skip, take);
+  }
+
+  return dp[0];
 }
-// Time: O(n log n), Space: O(n)
-// KEY: Sort by endTime. Binary search finds &quot;last non-overlapping job&quot;.</code></pre></div><div style="display:contents" dir="auto"><h3 id="37cae4f8-635e-81bd-b085-e8ffc2957809" class="">Super Egg Drop (LC 887) — DP + Binary Search on State</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-81ff-a3a5-c8a692817151" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[m][k] = max floors testable with m moves and k eggs
+// KEY: sort by START time so findNextJob's binary search has a clean
+// "first index ≥ target" (lower_bound) shape.</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-8182-9a71-e51695f7081rec" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i) = max profit from jobs[i..n-1]
+// Time: O(n log n) [n states × O(log n) findNextJob], Space: O(n) memo + recursion stack
+
+function jobScheduling_rec(startTime: number[], endTime: number[], profit: number[]): number {
+  const n = startTime.length;
+  const jobs = startTime.map((s, i) =&gt; [s, endTime[i], profit[i]]);
+
+  jobs.sort((a, b) =&gt; a[0] - b[0]);
+
+  function findNextJob(i: number): number {
+    let lo = i + 1, hi = n;
+
+    while (lo &lt; hi) {
+      const mid = (lo + hi) &gt;&gt; 1;
+      if (jobs[mid][0] &gt;= jobs[i][1]) hi = mid;
+      else lo = mid + 1;
+    }
+
+    return lo;
+  }
+
+  const memo = new Map&lt;number, number&gt;();
+
+  function dfs(i: number): number {
+    // base case
+    if (i === n) return 0;
+
+    if (memo.has(i)) return memo.get(i)!;
+
+    const skip = dfs(i + 1);
+    const nextJobIdx = findNextJob(i);
+    const take = jobs[i][2] + dfs(nextJobIdx);
+
+    const res = Math.max(skip, take);
+    memo.set(i, res);
+
+    return res;
+  }
+
+  return dfs(0);
+}
+// Plain recursion (no memo) would be O(2^n · log n) — 2 choices/call × O(log n) findNextJob work</code></pre></div></div></div><div style="display:contents" dir="auto"><h3 id="37cae4f8-635e-81bd-b085-e8ffc2957809" class="">Super Egg Drop (LC 887) — DP + Binary Search on State</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-81ff-a3a5-c8a692817151" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[m][k] = max floors testable with m moves and k eggs
 // Binary search insight: instead of dp[k][n] (TLE), flip to dp[m][k].
 // LC 887 — Hard. The state flip + binary search is the SDE3 signal.
 
@@ -1409,44 +1434,58 @@ function superEggDrop(k: number, n: number): number {
 // Time: O(k log n), Space: O(k)
 // INSIGHT: &quot;minimum moves to guarantee finding critical floor&quot; = flip to
 // &quot;how many floors can I test with m moves and k eggs?&quot; Then binary search
-// on m (the answer), which is at most O(n).</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81d1-8bf1-f8a68fb7296d"/></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8141-9b18-f930889a4d83" class="">4.4 Maximum Subarray (Kadane’s) — Linear DP</h2></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-81aa-8ed0-cc2cdaa5f131" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = max sum subarray ENDING at i
+// on m (the answer), which is at most O(n).</code></pre></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81d1-8bf1-f8a68fb7296d"/></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8141-9b18-f930889a4d83" class="">4.4 Maximum Subarray (Kadane’s) — Linear DP</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>dp[i]</code> = best sum ENDING at i. <b>Invariant:</b> at each i, either extend the running subarray or start fresh at <code>nums[i]</code> — whichever is bigger.</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-81aa-8ed0-cc2cdaa5f131" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = max sum subarray ENDING at i
 // LC 53, 918 (circular version)
+// Time: O(n), Space: O(1) — already rolling, only one prior value needed
 
 function maxSubArray(nums: number[]): number {
   let maxSum = nums[0];
   let curr = nums[0];
 
   for (let i = 1; i &lt; nums.length; i++) {
-    // At each position: extend previous subarray OR start fresh
-    curr = Math.max(nums[i], curr + nums[i]);
+    const startFresh = nums[i];
+    const extend = curr + nums[i];
+
+    curr = Math.max(startFresh, extend);
     maxSum = Math.max(maxSum, curr);
   }
 
   return maxSum;
 }
-// Time: O(n), Space: O(1)
 
 // ⭐ TRAP: LC 918 (Maximum Sum Circular Subarray)
 // Answer = max(normal Kadane, totalSum - min subarray)
-// Edge case: if all numbers are negative, min subarray = whole array → return normal Kadane</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">BACKWARD · prefix</span></div><pre id="37cae4f8-635e-81aa-8ed0-cc2cdaa5rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — endingAt(i) = max subarray sum ENDING exactly at i (looks back to i-1)
+// Edge case: if all numbers are negative, min subarray = whole array → return normal Kadane</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">BACKWARD · prefix</span></div><pre id="37cae4f8-635e-81aa-8ed0-cc2cdaa5rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i) = max subarray sum ENDING exactly at i (looks back to i-1)
 // Kadane's own derivation IS this recursion — backward suits it better than forward here
+// Time: O(n) — n distinct states, cached. Space: O(n) — memo + recursion stack
 
 function maxSubArray_rec(nums: number[]): number {
   const n = nums.length;
   const memo: number[] = new Array(n).fill(NaN);
-  function endingAt(i: number): number {
+
+  function dfs(i: number): number {
+    // base case
     if (i === 0) return nums[0];
+
     if (!Number.isNaN(memo[i])) return memo[i];
-    const res = Math.max(nums[i], nums[i] + endingAt(i - 1));
-    return (memo[i] = res);
+
+    const startFresh = nums[i];
+    const extend = nums[i] + dfs(i - 1);
+
+    const res = Math.max(startFresh, extend);
+    memo[i] = res;
+
+    return res;
   }
+
   let best = -Infinity;
-  for (let i = 0; i &lt; n; i++) best = Math.max(best, endingAt(i));
+  for (let i = 0; i &lt; n; i++) best = Math.max(best, dfs(i));
   return best;
-}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8168-b5dc-cdcc4b15d484" class="">4.4b Maximum Product Subarray (Min/Max Tracking)</h2></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-817d-9920-ff871159289a" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp tracks BOTH max and min product ending at i.
+}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8168-b5dc-cdcc4b15d484" class="">4.4b Maximum Product Subarray (Min/Max Tracking)</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> BOTH max and min product ending at i. <b>Invariant:</b> a negative number can flip the running min into the new max — recompute both from <code>{n, max*n, min*n}</code> every step, never just one.</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-817d-9920-ff871159289a" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp tracks BOTH max and min product ending at i.
 // WHY min: a negative number flips min→max. The most-negative product can
 // become the largest the moment we multiply by another negative.
-// LC 152 — referenced everywhere; the two-variable trick is the whole point.
+// LC 152 — the two-variable trick is the whole point.
+// Time: O(n), Space: O(1)
 
 function maxProduct(nums: number[]): number {
   let result = nums[0];
@@ -1455,122 +1494,181 @@ function maxProduct(nums: number[]): number {
 
   for (let i = 1; i &lt; nums.length; i++) {
     const n = nums[i];
-    // ⭐ If n is negative, swap: the previous min becomes the candidate max.
-    // Capture both before overwriting (curMax is used to compute curMin).
+    // ⭐ snapshot both BEFORE overwriting — curMax is used to compute curMin
     const cand1 = curMax * n;
     const cand2 = curMin * n;
+
     curMax = Math.max(n, cand1, cand2); // start fresh at n, or extend
     curMin = Math.min(n, cand1, cand2);
 
     result = Math.max(result, curMax);
   }
+
   return result;
 }
-// Time: O(n), Space: O(1)
-// ⭐ KEY INSIGHT: Kadane tracks one running value; product needs TWO because
-// sign flips. Always recompute curMax/curMin from {n, max*n, min*n}.
-// TRAP: don&#x27;t update curMax then use the NEW curMax for curMin — snapshot first.
-// SDE3 SIGNAL: &quot;Unlike sum, product isn&#x27;t monotonic under sign, so I carry the
-// running minimum to capture negative-times-negative comebacks.&quot;</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">BACKWARD · prefix</span></div><pre id="37cae4f8-635e-817d-9920-ff871159rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — same backward shape as Kadane, but the memo stores the [max, min] PAIR ending at i
+// TRAP: don't update curMax then use the NEW curMax for curMin — snapshot first.
+// SDE3 SIGNAL: "Unlike sum, product isn't monotonic under sign, so I carry the
+// running minimum to capture negative-times-negative comebacks."</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">BACKWARD · prefix</span></div><pre id="37cae4f8-635e-817d-9920-ff871159rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i) = [max, min] product PAIR ending exactly at i — same backward shape as Kadane,
+// but the memo stores a pair since either half of the pair can become the answer next step
+// Time: O(n), Space: O(n) — memo + recursion stack
 
 function maxProduct_rec(nums: number[]): number {
   const n = nums.length;
   const memo = new Map&lt;number, [number, number]&gt;();
-  function pair(i: number): [number, number] {
+
+  function dfs(i: number): [number, number] {
+    // base case
     if (i === 0) return [nums[0], nums[0]];
+
     if (memo.has(i)) return memo.get(i)!;
-    const [prevMax, prevMin] = pair(i - 1);
+
+    const [prevMax, prevMin] = dfs(i - 1);
     const ni = nums[i];
-    const cand1 = prevMax * ni, cand2 = prevMin * ni;
+    const cand1 = prevMax * ni;
+    const cand2 = prevMin * ni;
+
     const res: [number, number] = [Math.max(ni, cand1, cand2), Math.min(ni, cand1, cand2)];
     memo.set(i, res);
+
     return res;
   }
+
   let best = -Infinity;
-  for (let i = 0; i &lt; n; i++) best = Math.max(best, pair(i)[0]);
+  for (let i = 0; i &lt; n; i++) best = Math.max(best, dfs(i)[0]);
   return best;
-}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81f8-80a5-e278e549771a" class="">4.5 Word Break — 1D Boolean DP</h2></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-8111-b52b-dda2869d9eec" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = can s[0..i-1] be segmented using wordDict?
+}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81f8-80a5-e278e549771a" class="">4.5 Word Break — 1D Boolean DP</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>dp[start]</code> = can <code>s[start..n]</code> be segmented using <code>wordDict</code>? <b>Invariant:</b> variable-length transition — try every possible split end, not a fixed lookback.</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-8111-b52b-dda2869d9eec" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[start] = can s[start..n] be segmented using wordDict?
 // LC 139
 
 function wordBreak(s: string, wordDict: string[]): boolean {
-  const wordSet = new Set(wordDict);
   const n = s.length;
-  const dp = new Array(n + 1).fill(false);
-  dp[0] = true; // empty string is always valid
+  const wordSet = new Set(wordDict);
 
-  for (let i = 1; i &lt;= n; i++) {
-    for (let j = 0; j &lt; i; j++) {
-      if (dp[j] &amp;&amp; wordSet.has(s.slice(j, i))) {
-        dp[i] = true;
-        break; // ⭐ Early exit once found
+  const dp: boolean[] = Array(n + 1).fill(false);
+  dp[n] = true; // base case: reached the end cleanly
+
+  for (let start = n - 1; start &gt;= 0; start--) {
+    for (let end = start + 1; end &lt;= n; end++) {
+      const seg = s.slice(start, end);
+
+      if (wordSet.has(seg) &amp;&amp; dp[end]) {
+        dp[start] = true;
+        break; // one valid split is enough
       }
     }
   }
 
-  return dp[n];
+  return dp[0];
 }
-// Time: O(n² * L) where L = avg word length for slice, Space: O(n)
-// SDE3: Precompute max word length to prune inner loop: j &gt;= i - maxLen</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-8111-b52b-dda2869drec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — rec(i) = can s[i..n-1] be segmented? Try every dictionary word starting at i
+// Time: O(n² · L) where L = avg slice length, Space: O(n)
+// SDE3: precompute max word length to prune the inner loop: end &lt;= start + maxLen</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-8111-b52b-dda2869drec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(start) = can s[start..n] be segmented? Try every dictionary word starting at start
 // LC 139
 
 function wordBreak_rec(s: string, wordDict: string[]): boolean {
-  const wordSet = new Set(wordDict);
   const n = s.length;
-  const memo = new Map&lt;number, boolean&gt;();
-  function rec(i: number): boolean {
-    if (i === n) return true;
-    if (memo.has(i)) return memo.get(i)!;
-    let ok = false;
-    for (let j = i + 1; j &lt;= n; j++) {
-      if (wordSet.has(s.slice(i, j)) &amp;&amp; rec(j)) { ok = true; break; }
-    }
-    memo.set(i, ok);
-    return ok;
-  }
-  return rec(0);
-}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8170-8122-ddfd6a404c6a" class="">4.6 Decode Ways — Conditional 1D DP</h2></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-81ef-a9d2-ed7252295ecf" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = number of ways to decode s[0..i-1]
-// LC 91 — Hard due to &#x27;0&#x27; handling
+  const wordSet = new Set(wordDict);
+  const memo: (boolean | null)[] = Array(n).fill(null);
 
+  function dfs(start: number): boolean {
+    // base case
+    if (start === n) return true;
+
+    if (memo[start] !== null) return memo[start];
+
+    for (let end = start + 1; end &lt;= n; end++) {
+      const seg = s.slice(start, end);
+
+      if (wordSet.has(seg) &amp;&amp; dfs(end)) {
+        memo[start] = true;
+        return true;
+      }
+    }
+
+    memo[start] = false;
+    return false;
+  }
+
+  return dfs(0);
+}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-8170-8122-ddfd6a404c6a" class="">4.6 Decode Ways — Conditional 1D DP</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>dp[i]</code> = number of ways to decode <code>s[i..n-1]</code>. <b>Invariant:</b> fixed lookback (<code>dp[i]</code> only needs <code>dp[i+1]</code>/<code>dp[i+2]</code>) — same shape as §4.1, rolls to O(1).</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-81ef-a9d2-ed7252295ecf" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i] = number of ways to decode s[i..n-1]
+// LC 91 — Hard due to '0' handling
+
+function numDecodings_DP(s: string): number {
+  const n = s.length;
+  const dp: number[] = new Array(n + 1).fill(0);
+  dp[n] = 1; // base case: reached the end cleanly
+
+  for (let i = n - 1; i &gt;= 0; i--) {
+    if (s[i] === "0") { dp[i] = 0; continue; } // lone '0' — no valid decode from here
+
+    dp[i] = dp[i + 1]; // take 1 digit
+
+    if (i + 1 &lt; n) {
+      const twoDigit = Number(s.slice(i, i + 2));
+      if (twoDigit &gt;= 10 &amp;&amp; twoDigit &lt;= 26) dp[i] += dp[i + 2]; // take 2 digits
+    }
+  }
+
+  return dp[0];
+}
+// Time: O(n), Space: O(n)
+
+// ⭐ SPACE OPTIMIZATION (dp[i] only ever needs dp[i+1] and dp[i+2] — fixed lookback):
 function numDecodings(s: string): number {
   const n = s.length;
-  const dp = new Array(n + 1).fill(0);
-  dp[0] = 1; // empty string: 1 way
+  let next1 = 1; // dp[i+1]
+  let next2 = 0; // dp[i+2]
 
-  for (let i = 1; i &lt;= n; i++) {
-    // Single digit decode: s[i-1] != &#x27;0&#x27;
-    if (s[i - 1] !== &quot;0&quot;) dp[i] += dp[i - 1];
-
-    // Two digit decode: s[i-2..i-1] in range 10-26
-    if (i &gt;= 2) {
-      const twoDigit = parseInt(s.slice(i - 2, i));
-      if (twoDigit &gt;= 10 &amp;&amp; twoDigit &lt;= 26) dp[i] += dp[i - 2];
+  for (let i = n - 1; i &gt;= 0; i--) {
+    if (s[i] === "0") {
+      next2 = next1;
+      next1 = 0;
+      continue;
     }
+
+    const oneDigit = next1;
+    let twoDigit = 0;
+    if (i + 1 &lt; n) {
+      const num = Number(s.slice(i, i + 2));
+      if (num &gt;= 10 &amp;&amp; num &lt;= 26) twoDigit = next2;
+    }
+
+    const curr = oneDigit + twoDigit;
+    next2 = next1;
+    next1 = curr;
   }
 
-  return dp[n];
+  return next1;
 }
-// Time: O(n), Space: O(n) → reducible to O(1) with 3 variables
-// TRAP: &#x27;0&#x27; cannot be decoded alone. Always check before adding dp[i-1].</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-81ef-a9d2-ed725229rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — rec(i) = ways to decode s[i..n-1]; peel off 1 or 2 digits from the front
+// Time: O(n), Space: O(1)
+// TRAP: '0' cannot be decoded alone — always check before adding dp[i+1] / next1.</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-81ef-a9d2-ed725229rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i) = number of ways to decode s[i..n-1]
 // LC 91
 
 function numDecodings_rec(s: string): number {
   const n = s.length;
-  const memo = new Array(n + 1).fill(-1);
-  function rec(i: number): number {
-    if (i === n) return 1;
-    if (s[i] === &quot;0&quot;) return 0;
-    if (memo[i] !== -1) return memo[i];
-    let ways = rec(i + 1);
+  const memo: (number | null)[] = new Array(n).fill(null);
+
+  function dfs(i: number): number {
+    // base case
+    if (i === n) return 1; // successfully decoded
+    if (s[i] === "0") return 0;
+
+    if (memo[i] !== null) return memo[i];
+
+    const oneDigit = dfs(i + 1);
+
+    let twoDigit = 0;
     if (i + 1 &lt; n) {
-      const twoDigit = parseInt(s.slice(i, i + 2));
-      if (twoDigit &lt;= 26) ways += rec(i + 2);
+      const num = Number(s.slice(i, i + 2));
+      if (num &gt;= 10 &amp;&amp; num &lt;= 26) twoDigit = dfs(i + 2);
     }
-    return (memo[i] = ways);
+
+    const res = oneDigit + twoDigit;
+    memo[i] = res;
+
+    return res;
   }
-  return rec(0);
-}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81eb-93c9-e98a88a547f0" class="">4.7 DP Reconstruction — Backtracking Through the Table</h2></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-812d-b4e9-f1e2b78d87ec" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">THE MOST MISSED SKILL: Computing dp[n] gives the OPTIMAL VALUE.
-Interviews almost always want the ACTUAL SOLUTION (path, sequence, items).
-Two techniques: (1) backtrack through the filled dp table, (2) parent pointers.</code></pre></div><div style="display:contents" dir="auto"><h3 id="37cae4f8-635e-8102-acdc-e328160564ba" class="">LCS Reconstruction → Shortest Common Supersequence (LC 1092)</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-81cf-87c5-c45717481542" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Step 1: fill the LCS dp table (same as always)
+
+  return dfs(0);
+}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81eb-93c9-e98a88a547f0" class="">4.7 DP Reconstruction — Backtracking Through the Table</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>The most missed skill:</b> <code>dp[n]</code> gives the optimal VALUE — interviews almost always want the actual solution too. Two techniques: backtrack through the filled table, or track <code>parent[]</code> pointers as you fill it.</p></div><div style="display:contents" dir="auto"><h3 id="37cae4f8-635e-8102-acdc-e328160564ba" class="">LCS Reconstruction → Shortest Common Supersequence (LC 1092)</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-81cf-87c5-c45717481542" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Step 1: fill the LCS dp table (same as always)
 // Step 2: backtrack from dp[m][n] to dp[0][0] to reconstruct the LCS
 // Step 3: for SCS (LC 1092), interleave both strings guided by LCS
 
@@ -1632,17 +1730,16 @@ function lisReconstruct(nums: number[]): number[] {
     lis.push(nums[cur]);
   }
   return lis.reverse();
-}</code></pre></div><div style="display:contents" dir="auto"><div style="display:contents" dir="auto"><p class="tldr" style="margin-top:1em">Knapsack reconstruction (which items were taken) and Edit Distance reconstruction (which operations were used) are the SAME backward table-diff technique shown above for LCS — walk from the final cell to [0][0], and at each step check which neighbor produced the current value.</p></div><h2 id="37cae4f8-635e-817d-8f99-f186ca7e77b2" class="">4.8 Partition DP — Split Array into K Groups</h2></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-8167-a9a8-f86114571edc" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">PATTERN: dp[i][k] = best cost to partition arr[0..i-1] into k groups.
-Different from knapsack: here every element must be assigned exactly once.
-KEY RECURRENCE: dp[i][k] = min over j&lt;i of (dp[j][k-1] + cost(j, i))</code></pre></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-8186-bb67-ce93bab9cfb2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// LC 410 — Split Array Largest Sum (partition into k parts, minimize max sum)
-// dp[i][j] = min possible maximum sum when splitting nums[0..i-1] into j parts
+}
+// Time: O(n²) — same as §4.2's dp[i] fill. Space: O(n) — dp[] + parent[], no recursion</code></pre></div><div style="display:contents" dir="auto"><div style="display:contents" dir="auto"><p class="tldr" style="margin-top:1em">Knapsack reconstruction (which items were taken) and Edit Distance reconstruction (which operations were used) are the SAME backward table-diff technique shown above for LCS — walk from the final cell to [0][0], and at each step check which neighbor produced the current value.</p></div><h2 id="37cae4f8-635e-817d-8f99-f186ca7e77b2" class="">4.8 Partition DP — Split Array into K Groups</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>State:</b> <code>dp[i][k]</code> = best cost to partition <code>arr[0..i-1]</code> into <code>k</code> groups. <b>Invariant:</b> unlike knapsack, every element must be assigned — <code>dp[i][k] = min over j&lt;i of (dp[j][k-1] + cost(j, i))</code>.</p></div><div style="display:contents" dir="auto"><div class="dp-pair"><div><div class="dp-pair-label">⬇ Iterative (bottom-up)</div><pre id="37cae4f8-635e-8186-bb67-ce93bab9cfb2" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dp[i][j] = min possible maximum sum when splitting nums[0..i-1] into j parts
+// LC 410 — Split Array Largest Sum (partition into k parts, minimize max sum)
+// Time: O(n²k), Space: O(nk)
 
 function splitArray(nums: number[], k: number): number {
   const n = nums.length;
   const prefix = new Array(n + 1).fill(0);
   for (let i = 0; i &lt; n; i++) prefix[i + 1] = prefix[i] + nums[i];
 
-  // dp[i][j] = min largest-sum splitting nums[0..i-1] into j groups
   const dp: number[][] = Array.from({ length: n + 1 }, () =&gt;
     new Array(k + 1).fill(Infinity)
   );
@@ -1650,23 +1747,22 @@ function splitArray(nums: number[], k: number): number {
 
   for (let j = 1; j &lt;= k; j++) {
     for (let i = j; i &lt;= n; i++) {
-      // Last group is nums[m..i-1], previous groups cover nums[0..m-1]
+      // last group is nums[m..i-1], previous groups cover nums[0..m-1] — try every split point m
       for (let m = j - 1; m &lt; i; m++) {
         const lastGroupSum = prefix[i] - prefix[m];
         dp[i][j] = Math.min(dp[i][j], Math.max(dp[m][j - 1], lastGroupSum));
       }
     }
   }
+
   return dp[n][k];
 }
-// Time: O(n²k), Space: O(nk)
-// ⭐ ALTERNATIVE: Binary search on answer + greedy feasibility check → O(n log(sum))
-// For interviews: mention both, implement the one that&#x27;s easier to explain.
+// ⭐ ALTERNATIVE: binary search on the answer + greedy feasibility check → O(n log(sum)).
+// For interviews: mention both, implement whichever is easier to explain out loud.
 
-// LC 1043 — Partition Array for Maximum Sum (LC variant)
-// After partition, each element in a subarray becomes the subarray max.
-// dp[i] = max sum for nums[0..i-1]
-// Recurrence: for last group of length len (1..k), all become max of that group
+// LC 1043 — Partition Array for Maximum Sum: after partitioning, every element in a
+// subarray becomes that subarray's max. dp[i] = max sum for arr[0..i-1].
+// Time: O(n*k), Space: O(n)
 
 function maxSumAfterPartitioning(arr: number[], k: number): number {
   const n = arr.length;
@@ -1674,37 +1770,45 @@ function maxSumAfterPartitioning(arr: number[], k: number): number {
 
   for (let i = 1; i &lt;= n; i++) {
     let maxVal = 0;
-    // Try all possible last group lengths
+
+    // fix the group's right endpoint at i, try every length 1..k
     for (let len = 1; len &lt;= k &amp;&amp; i - len &gt;= 0; len++) {
       maxVal = Math.max(maxVal, arr[i - len]);
       dp[i] = Math.max(dp[i], dp[i - len] + maxVal * len);
     }
   }
+
   return dp[n];
-}
-// Time: O(n*k), Space: O(n)
-// INSIGHT: Fixing the group endpoint at i, try all lengths 1..k.
-// maxVal tracks the running max within the current window.</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-8186-bb67-ce93bab9rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// TOP-DOWN — rec(i, j) = min largest-sum splitting nums[i..n-1] into j groups
-// Peels the FIRST group off the front; mirror of the bottom-up prefix table. LC 410
+}</code></pre></div><div><div class="dp-pair-label">↻ Recursive + Memo (top-down) <span class="dir-tag">FORWARD · suffix</span></div><pre id="37cae4f8-635e-8186-bb67-ce93bab9rec1" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// dfs(i, j) = min largest-sum splitting nums[i..n-1] into j groups
+// Peels the FIRST group off the front — mirror of the bottom-up prefix table. LC 410
+// Time: O(n²k) distinct (i,j) states × O(n) inner scan. Space: O(nk) memo + O(k) stack
 
 function splitArray_rec(nums: number[], k: number): number {
   const n = nums.length;
   const prefix = new Array(n + 1).fill(0);
   for (let i = 0; i &lt; n; i++) prefix[i + 1] = prefix[i] + nums[i];
+
   const rangeSum = (i: number, j: number) =&gt; prefix[j] - prefix[i];
   const memo = new Map&lt;string, number&gt;();
-  function rec(i: number, j: number): number {
+
+  function dfs(i: number, j: number): number {
+    // base case
     if (j === 1) return rangeSum(i, n);
+
     const key = i + &quot;,&quot; + j;
     if (memo.has(key)) return memo.get(key)!;
+
     let best = Infinity;
     for (let m = i + 1; m &lt;= n - (j - 1); m++) {
-      best = Math.min(best, Math.max(rangeSum(i, m), rec(m, j - 1)));
+      // first group is nums[i..m-1], recurse on the rest with one fewer group
+      best = Math.min(best, Math.max(rangeSum(i, m), dfs(m, j - 1)));
     }
+
     memo.set(key, best);
     return best;
   }
-  return rec(0, k);
+
+  return dfs(0, k);
 }</code></pre></div></div></div><div style="display:contents" dir="auto"><hr id="37cae4f8-635e-81cc-90d8-e589a55cf80c"/></div><div style="display:contents" dir="auto"><h1 id="37cae4f8-635e-810b-9ce9-c125b495d37a" class="">5. 2D DP TEMPLATES</h1></div>
 <p class="tldr">Two strings / a grid — dp[i][j] from its three neighbors.</p>
 <div class="box key"><b class="tag">🔑 Invariant</b> <b>The invariant:</b> dp[i][j] depends only on dp[i-1][j], dp[i][j-1], and dp[i-1][j-1] — cells strictly above and/or to the left — and is finalized the instant those are known. <b>Why that's safe:</b> filling the table row-major (or any order where a cell's up/left/diag neighbors precede it) guarantees no cell is read before it's written, so a single pass computes every cell exactly once.</div>
