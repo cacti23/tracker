@@ -38,7 +38,17 @@
   .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
-  @media print{.nav{display:none}body{margin:0}}
+  @media print{
+    .nav{display:none}
+    body{margin:0;max-width:100%;padding:0;font-size:12px;line-height:1.4}
+    h1.title{font-size:1.6rem}
+    h2{font-size:1.15rem;margin-top:1em;page-break-after:avoid}
+    h3{font-size:1rem;page-break-after:avoid}
+    pre[class*=language]{font-size:.7rem;line-height:1.35}
+    figure,tr,.box{page-break-inside:avoid}
+    .qa td.a{filter:none}
+    @page{size:A4;margin:8mm}
+  }
 </style>
 </head>
 <body>
@@ -292,16 +302,17 @@ function subarraysKDistinct(a: number[], k: number): number {
 <pre class="language-tsx"><code class="language-tsx">// Sliding Window Maximum — max of every size-k window
 function maxSlidingWindow(a: number[], k: number): number[] {
   const dq: number[] = [];   // indices; a[dq] strictly decreasing
+  let head = 0;               // ⭐ head pointer — never shift(), O(1) evict
   const res: number[] = [];
   for (let i = 0; i &lt; a.length; i++) {
-    while (dq.length &amp;&amp; a[dq[dq.length - 1]] &lt;= a[i]) dq.pop();  // keep decreasing
+    while (dq.length &gt; head &amp;&amp; a[dq[dq.length - 1]] &lt;= a[i]) dq.pop();  // keep decreasing
     dq.push(i);
-    if (dq[0] &lt;= i - k) dq.shift();        // evict out-of-window front
-    if (i &gt;= k - 1) res.push(a[dq[0]]);    // front = current max
+    if (dq[head] &lt;= i - k) head++;          // evict out-of-window front — O(1), no shift
+    if (i &gt;= k - 1) res.push(a[dq[head]]);  // front = current max
   }
   return res;
 }</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> prove amortized <code>O(n)</code> (each index pushed/popped once) and call out that JS <code>Array.shift()</code> is <code>O(n)</code> — use a head pointer for true <code>O(n)</code>. <b>· Escalation:</b> max → min (mirror the comparison) → "Longest subarray with abs(max−min) ≤ limit" (run two deques at once).</div>
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> prove amortized <code>O(n)</code> (each index pushed/popped once), and why <code>Array.shift()</code> would silently make this <code>O(n²)</code> — a head pointer keeps front-eviction <code>O(1)</code> since this deque only ever pops from the back and evicts from the front, never inserts at the front. <b>· Escalation:</b> max → min (mirror the comparison) → "Longest subarray with abs(max−min) ≤ limit" (run two deques at once).</div>
 
 <!-- ───────────────────────── 5 ───────────────────────── -->
 <h2 id="complexity">⏱️ 5 · Complexity</h2>

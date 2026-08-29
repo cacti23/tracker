@@ -941,10 +941,27 @@ blockquote.quote-large {
 	text-decoration: underline;
 }
 
-/* Note: .nav-index print compaction rules removed here — the gold-template's
-   final @media print block hides .nav-index entirely (display:none), so any
-   compaction styling for it is unreachable dead code. See that block if the
-   nav should ever be made visible in print instead. */
+@media print {
+	.nav-index {
+		border: 1px solid #0066cc !important;
+		background: rgba(0, 102, 204, 0.03) !important;
+		padding: 0.8em !important;
+		margin: 0.5em 0 !important;
+		font-size: 9px !important;
+		page-break-inside: avoid !important;
+	}
+
+	.nav-index-grid {
+		grid-template-columns: repeat(2, 1fr) !important;
+		gap: 0.3em !important;
+	}
+
+	.nav-index-item {
+		padding: 0.3em 0.4em !important;
+		margin: 0 !important;
+		font-size: 8px !important;
+	}
+}
 
 /* Enhanced Visual Separators */
 hr {
@@ -1017,15 +1034,14 @@ table.qa td.a:hover, table.qa td.a:active{ filter:none; }
   border-radius:20px; padding:.05em .6em; font-size:.78rem; font-weight:600; margin:.1em .15em; }
 @media print{
   body{ margin:0 !important; max-width:100% !important; padding:0 !important; }
-  .nav-index{ display:none; }
-  table.qa td.a{ filter:none; }
+  table.qa td.a{ filter:none !important; }
   .code, pre, blockquote, table, details{ page-break-inside:auto !important; }
-  figure, tr{ page-break-inside:avoid !important; }
+  figure, tr, .box{ page-break-inside:avoid !important; }
 }
 </style></head><body><article id="37aae4f8-635e-8060-9a26-faae9ba9dc38" class="page sans">
 <h1 class="title">🕸️ Graph</h1>
 <p class="sub">A standalone, LC-medium/hard-focused sheet. Every graph problem is three moves: <b>name the nodes &amp; edges → choose the walk (BFS/DFS/Dijkstra) → keep a visited set</b>. Below is the reusable template for each case.</p>
-<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8148-b44b-f3d666b5bb86"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#graph-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8184-a57c-f33687a96d24">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bb-812e-c86c7844294d">2. TypeScript Setup</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bf-9799-f1c77e6063b6">2.5 TypeScript Gotchas</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81db-8c5f-ef8c94a35431">3. BFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-811b-ba98-dd3e7a77fea8">4. DFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8163-b321-cfc925211888">5. Shortest Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8148-abb8-d8a0911a3914">6. MST</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-815f-b5a7-ce920b9a70c5">7. Union-Find</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818a-9301-eb14c1c15b95">8. Topo Sort</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-812b-9676-e251c4c59feb">9. Cycle Detection</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81cc-9e80-ea1a5ec277f4">10. Bipartite</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8118-81f9-f9624abeaff9">11. Eulerian Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8191-b8a0-f5a70e55f65f">12. SCC</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8183-81f0-d6dea7ceb664">13. Bridges</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8112-866d-f4d9e0cec1d2">14. State Space</a></li><li class="nav-index-item"><a href="#graph-dp-optimization-section-heading">15. Graph + DP</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818d-975a-d8c61c819b97">16. Pre-Submission & Bugs</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7">17. Complexity & Optimization</a></li><li class="nav-index-item"><a href="#clone-graph-bfs-section">4.5 Clone Graph</a></li><li class="nav-index-item"><a href="#dijkstra-state-expansion-section">5.6 Dijkstra+State</a></li><li class="nav-index-item"><a href="#path-reconstruction-section">5.7 Path Reconstruct</a></li><li class="nav-index-item"><a href="#binary-search-bfs-section">14.3 BinSearch+BFS</a></li><li class="nav-index-item"><a href="#graph-construction-section">2.3 Graph Build</a></li><li class="nav-index-item"><a href="#alien-dictionary-section">8.3 Alien Dict</a></li><li class="nav-index-item"><a href="#graph-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><h1 id="graph-how-to-think" class="">🧠 HOW TO THINK ABOUT GRAPHS (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="gtt-p1" class=""><strong>A graph is just &quot;things&quot; (nodes) and the &quot;connections between them&quot; (edges).</strong> The real skill is learning to <em>see</em> a problem as a graph — if you can phrase it as &quot;X connects to Y&quot;, it is a graph problem, even when the word &quot;graph&quot; never appears.</p></div><div style="display:contents" dir="auto"><pre id="gtt-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">IS THIS SECRETLY A GRAPH?   →  name the NODES + the EDGES
+<div class="page-body"><!-- title block folded into the gold header above --><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8148-b44b-f3d666b5bb86"/></div><div style="display:contents" dir="auto"><div class="nav-index"><h2>📑 QUICK NAVIGATION</h2><ul class="nav-index-grid"><li class="nav-index-item"><a href="#graph-how-to-think">🧠 How to Think</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8184-a57c-f33687a96d24">1. Decision Framework</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bb-812e-c86c7844294d">2. TypeScript Setup</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81bf-9799-f1c77e6063b6">2.5 TypeScript Gotchas</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81db-8c5f-ef8c94a35431">3. BFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-811b-ba98-dd3e7a77fea8">4. DFS Templates</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8163-b321-cfc925211888">5. Shortest Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8148-abb8-d8a0911a3914">6. MST</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-815f-b5a7-ce920b9a70c5">7. Union-Find</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818a-9301-eb14c1c15b95">8. Topo Sort</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-812b-9676-e251c4c59feb">9. Cycle Detection</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81cc-9e80-ea1a5ec277f4">10. Bipartite</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8118-81f9-f9624abeaff9">11. Eulerian Path</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8191-b8a0-f5a70e55f65f">12. SCC</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8183-81f0-d6dea7ceb664">13. Bridges</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-8112-866d-f4d9e0cec1d2">14. State Space</a></li><li class="nav-index-item"><a href="#graph-dp-optimization-section-heading">15. Graph + DP</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-818d-975a-d8c61c819b97">16. Pre-Submission & Bugs</a></li><li class="nav-index-item"><a href="#37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7">17. Complexity & Optimization</a></li><li class="nav-index-item"><a href="#clone-graph-bfs-section">4.5 Clone Graph</a></li><li class="nav-index-item"><a href="#dijkstra-state-expansion-section">5.6 Dijkstra+State</a></li><li class="nav-index-item"><a href="#path-reconstruction-section">5.7 Path Reconstruct</a></li><li class="nav-index-item"><a href="#binary-search-bfs-section">14.3 BinSearch+BFS</a></li><li class="nav-index-item"><a href="#graph-construction-section">2.3 Graph Build</a></li><li class="nav-index-item"><a href="#alien-dictionary-section">8.3 Alien Dict</a></li><li class="nav-index-item"><a href="#graph-tarjan-scc">12.b Tarjan's SCC</a></li><li class="nav-index-item"><a href="#graph-coverage">▶ Coverage</a></li><li class="nav-index-item"><a href="#graph-self-check">✅ Self-check</a></li></ul></div></div><div style="display:contents" dir="auto"><h1 id="graph-how-to-think" class="">🧠 HOW TO THINK ABOUT GRAPHS (READ FIRST)</h1></div><div style="display:contents" dir="auto"><p id="gtt-p1" class=""><strong>A graph is just &quot;things&quot; (nodes) and the &quot;connections between them&quot; (edges).</strong> The real skill is learning to <em>see</em> a problem as a graph — if you can phrase it as &quot;X connects to Y&quot;, it is a graph problem, even when the word &quot;graph&quot; never appears.</p></div><div style="display:contents" dir="auto"><pre id="gtt-box1" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">IS THIS SECRETLY A GRAPH?   →  name the NODES + the EDGES
 ────────────────────────────────────────────────────────────
 NODES (the &quot;things&quot;)        EDGES (the &quot;connections&quot;)
   cities                     roads between them
@@ -1094,59 +1110,51 @@ Negative weights?        → Bellman-Ford</code></pre></div><div style="display:
 │ Since we need [shortest/ordering],      │
 │ I&#x27;ll use [algo].                        │
 │ Time: O([time]), Space: O([space])&quot;     │
-└─────────────────────────────────────────┘</code></pre></div><div style="display:contents" dir="auto"><p id="37aae4f8-635e-81f2-b20a-fa56eae0b21b" class=""><strong>Brain Freeze? Do This:</strong></p></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-8159-a286-f61ba6e94751" class="numbered-list" start="1"><li>Draw the graph on paper (even 5 nodes helps)</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-8185-bedf-f5bbb1fc4948" class="numbered-list" start="2"><li>Trace BFS/DFS by hand on your drawing</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-811a-98a0-cdea8d6d86e6" class="numbered-list" start="3"><li>Fill in the BFS template, replace placeholders</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-813f-b569-f08b6ff408d2" class="numbered-list" start="4"><li>Test on example</li></ol></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81ab-851d-e540e1b0de8d"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81fa-be35-fd965f822e20" class="">🗺️ KEYWORD → ALGORITHM QUICK MAP</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81c5-8b90-f2c19f0dd62d" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">KEYWORD/PHRASE                          → ALGORITHM               EXAMPLE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-&quot;shortest path&quot; + unweighted            → BFS                     LC 127, 1091
-&quot;shortest path&quot; + weighted              → Dijkstra                LC 743, 1631, 778
-&quot;shortest path&quot; + negative weights      → Bellman-Ford            LC 787
-&quot;shortest path&quot; + all pairs             → Floyd-Warshall         LC 1334
-&quot;minimum cost to connect all&quot;           → MST (Kruskal/Prim)     LC 1584, 1135
-&quot;minimum cost to reach ALL nodes&quot;        → MST, NOT Dijkstra!      LC 1584, 1135
-   ↳ MST = cheapest way to connect all nodes (no specific target)
-   ↳ Dijkstra = shortest from source to ONE specific target
-   ↳ TRAP: &quot;visit all nodes cheaply&quot; → MST; &quot;reach node K cheaply&quot; → Dijkstra
-&quot;number of connected components&quot;        → BFS/DFS or UF           LC 323, 200
-&quot;minimum number of operations&quot;          → BFS (each op = 1 step)  LC 127, 752
-&quot;transform X to Y in minimum steps&quot;     → BFS state space         LC 127, 433
-&quot;reachable from both sides&quot;             → Multi-source BFS        LC 417
-&quot;detect cycle in directed graph&quot;        → Kahn&#x27;s (len&lt;n) / 3-color LC 207, 210
-&quot;number of ways to reach&quot;              → DFS + memo (DAG DP)     LC 329, 1345
-&quot;group accounts / merge accounts&quot;       → Union-Find              LC 721
-&quot;same connected component&quot;             → Union-Find find() cmp   LC 323, 684
-&quot;can finish all courses&quot;                → Topo Sort (cycle detect) LC 207
-&quot;order of courses/tasks&quot;                → Topo Sort               LC 210, 269
-&quot;redundant connection&quot;                  → Union-Find              LC 684
-&quot;use every edge exactly once&quot;           → Eulerian Path           LC 332
-&quot;reconstruct itinerary&quot;                 → Hierholzer&#x27;s            LC 332
-&quot;all paths from source to target&quot;       → DFS + Backtrack        LC 797
-&quot;flood fill / spread&quot;                   → Multi-source BFS       LC 994, 286
-&quot;surrounded regions&quot;                    → Reverse BFS from border LC 130
-&quot;island&quot; / &quot;region&quot; / &quot;area&quot;            → DFS/BFS connected comp  LC 200, 695
-&quot;bipartite&quot; / &quot;divide into 2&quot;           → 2-Coloring BFS         LC 785, 886
-&quot;critical connections&quot;                  → Bridges (Tarjan)        LC 1192
-&quot;visiting all nodes&quot; (bitmask)          → Bitmask BFS/DP         LC 847
-&quot;collect all keys&quot; (bitmask)            → Bitmask BFS/DP         LC 864
-&quot;k stops&quot; / &quot;at most k edges&quot;           → Bellman-Ford K-stops   LC 787
-&quot;open lock&quot; / &quot;word ladder&quot;             → State Space BFS        LC 752, 127
-&quot;longest path in DAG&quot;                   → Topo Sort + DP         LC 329
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔥 HARD PATTERNS (Easy to Miss — But They Appear in Every Interview Cycle)
-
-&quot;strongly connected&quot; / &quot;reach each other&quot;  → Kosaraju/Tarjan SCC    LC 1192, 802
-&quot;bridge&quot; / &quot;critical edge&quot;              → Tarjan's Bridge        LC 1192
-&quot;articulation point&quot;                    → Tarjan's AP            LC 1192
-&quot;vertex only appears once&quot;              → Articulation Point     LC 1192
-&quot;itinerary&quot; / &quot;route&quot; / &quot;use each edge&quot;  → Hierholzer Path        LC 332
-&quot;sort characters by dependency&quot;        → Topo Sort + Keyword Build LC 269
-&quot;two levels of topo sort&quot;               → Group + Item Sort      LC 1203
-&quot;merge accounts by email&quot;               → Union-Find (complex)   LC 721
-&quot;connected components but with mask&quot;    → Bitmask DFS/UF         LC 864, 847
-&quot;final safe state&quot; / &quot;eventual state&quot;   → Reverse Graph + SCC    LC 802
-&quot;minimum cost to visit (not ALL nodes)&quot;  → Dijkstra (not MST!)    LC 1368
-   ↳ This is a common trap: "minimum path cost" isn't always MST
-
-💡 Key SDE3 Signal: If you see keywords like "STRONGLY", "CRITICAL", "BRIDGE", "ARTICULATION" — you're in SDE3 territory. These problems test deep algorithm knowledge, not just pattern matching.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-812b-9312-dd02e1816171"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81bb-812e-c86c7844294d" class="">📦 SECTION 2: TYPESCRIPT SETUP</h1></div><div style="display:contents" dir="auto"><h2 id="37aae4f8-635e-81bc-a5de-c6d129580bbe" class="">Type Definitions &amp; SDE3 Trade-offs</h2></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><pre id="37aae4f8-635e-81f1-8639-e763af3a9c82" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// 🧠 SDE3 TRADE-OFF: List vs Matrix
+└─────────────────────────────────────────┘</code></pre></div><div style="display:contents" dir="auto"><p id="37aae4f8-635e-81f2-b20a-fa56eae0b21b" class=""><strong>Brain Freeze? Do This:</strong></p></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-8159-a286-f61ba6e94751" class="numbered-list" start="1"><li>Draw the graph on paper (even 5 nodes helps)</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-8185-bedf-f5bbb1fc4948" class="numbered-list" start="2"><li>Trace BFS/DFS by hand on your drawing</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-811a-98a0-cdea8d6d86e6" class="numbered-list" start="3"><li>Fill in the BFS template, replace placeholders</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="37aae4f8-635e-813f-b569-f08b6ff408d2" class="numbered-list" start="4"><li>Test on example</li></ol></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81ab-851d-e540e1b0de8d"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81fa-be35-fd965f822e20" class="">🗺️ KEYWORD → ALGORITHM QUICK MAP</h1></div><div style="display:contents" dir="auto"><table><thead><tr><th>Keyword / phrase</th><th>→ Algorithm</th><th>Example</th></tr></thead><tbody>
+<tr><td>"shortest path" + unweighted</td><td>BFS</td><td>127, 1091</td></tr>
+<tr><td>"shortest path" + weighted</td><td>Dijkstra</td><td>743, 1631, 778</td></tr>
+<tr><td>"shortest path" + negative weights</td><td>Bellman-Ford</td><td>787</td></tr>
+<tr><td>"shortest path" + all pairs</td><td>Floyd-Warshall</td><td>1334</td></tr>
+<tr><td>"minimum cost to connect all"</td><td>MST (Kruskal/Prim)</td><td>1584, 1135</td></tr>
+<tr><td>"minimum cost to reach ALL nodes"</td><td>MST, NOT Dijkstra!</td><td>1584, 1135</td></tr>
+<tr><td>"number of connected components"</td><td>BFS/DFS or UF</td><td>323, 200</td></tr>
+<tr><td>"minimum number of operations"</td><td>BFS (each op = 1 step)</td><td>127, 752</td></tr>
+<tr><td>"transform X to Y in minimum steps"</td><td>BFS state space</td><td>127, 433</td></tr>
+<tr><td>"reachable from both sides"</td><td>Multi-source BFS</td><td>417</td></tr>
+<tr><td>"detect cycle in directed graph"</td><td>Kahn's (len&lt;n) / 3-color</td><td>207, 210</td></tr>
+<tr><td>"number of ways to reach"</td><td>DFS + memo (DAG DP)</td><td>2328</td></tr>
+<tr><td>"group accounts / merge accounts"</td><td>Union-Find</td><td>721</td></tr>
+<tr><td>"same connected component"</td><td>Union-Find find() cmp</td><td>323, 684</td></tr>
+<tr><td>"can finish all courses"</td><td>Topo Sort (cycle detect)</td><td>207</td></tr>
+<tr><td>"order of courses/tasks"</td><td>Topo Sort</td><td>210, 269</td></tr>
+<tr><td>"redundant connection"</td><td>Union-Find</td><td>684</td></tr>
+<tr><td>"use every edge exactly once"</td><td>Eulerian Path</td><td>332</td></tr>
+<tr><td>"reconstruct itinerary"</td><td>Hierholzer's</td><td>332</td></tr>
+<tr><td>"all paths from source to target"</td><td>DFS + Backtrack</td><td>797</td></tr>
+<tr><td>"flood fill / spread"</td><td>Multi-source BFS</td><td>994, 286</td></tr>
+<tr><td>"surrounded regions"</td><td>Reverse BFS from border</td><td>130</td></tr>
+<tr><td>"island" / "region" / "area"</td><td>DFS/BFS connected comp</td><td>200, 695</td></tr>
+<tr><td>"bipartite" / "divide into 2"</td><td>2-Coloring BFS</td><td>785, 886</td></tr>
+<tr><td>"critical connections"</td><td>Bridges (Tarjan)</td><td>1192</td></tr>
+<tr><td>"visiting all nodes" (bitmask)</td><td>Bitmask BFS/DP</td><td>847</td></tr>
+<tr><td>"collect all keys" (bitmask)</td><td>Bitmask BFS/DP</td><td>864</td></tr>
+<tr><td>"k stops" / "at most k edges"</td><td>Bellman-Ford K-stops</td><td>787</td></tr>
+<tr><td>"open lock" / "word ladder"</td><td>State Space BFS</td><td>752, 127</td></tr>
+<tr><td>"longest path in DAG"</td><td>Topo Sort + DP</td><td>329</td></tr>
+</tbody></table><div class="box warn"><b class="tag">⚠️ Trap</b> MST = cheapest way to connect <b>all</b> nodes (no specific target). Dijkstra = shortest from source to <b>one</b> specific target. "Visit all nodes cheaply" → MST; "reach node K cheaply" → Dijkstra.</div>
+<h2 id="graph-hard-patterns">🔥 Hard Patterns (Easy to Miss — But They Appear in Every Interview Cycle)</h2>
+<table><thead><tr><th>Keyword / phrase</th><th>→ Algorithm</th><th>Example</th></tr></thead><tbody>
+<tr><td>"strongly connected" / "reach each other"</td><td>Kosaraju SCC</td><td>802 (rare as a direct ask — usually a subroutine)</td></tr>
+<tr><td>"bridge" / "critical edge"</td><td>Tarjan's Bridges</td><td>1192</td></tr>
+<tr><td>"articulation point" / "cut vertex"</td><td>Tarjan's AP</td><td>1568 (grid variant)</td></tr>
+<tr><td>"itinerary" / "route" / "use each edge"</td><td>Hierholzer Path</td><td>332</td></tr>
+<tr><td>"sort characters by dependency"</td><td>Topo Sort + Keyword Build</td><td>269</td></tr>
+<tr><td>"two levels of topo sort"</td><td>Group + Item Sort</td><td>1203</td></tr>
+<tr><td>"merge accounts by email"</td><td>Union-Find (complex)</td><td>721</td></tr>
+<tr><td>"connected components but with mask"</td><td>Bitmask DFS/UF</td><td>864, 847</td></tr>
+<tr><td>"final safe state" / "eventual state"</td><td>Reverse Graph + SCC</td><td>802</td></tr>
+<tr><td>"minimum cost to visit (not ALL nodes)"</td><td>Dijkstra (not MST!)</td><td>1368</td></tr>
+</tbody></table><div class="box warn"><b class="tag">⚠️ Trap</b> "Minimum path cost" isn't always MST — see the trap box above.</div><div class="box iv"><b class="tag">💡 Key SDE3 signal</b> If you see keywords like "STRONGLY", "CRITICAL", "BRIDGE", "ARTICULATION" — you're in SDE3 territory. These problems test deep algorithm knowledge, not just pattern matching.</div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-812b-9312-dd02e1816171"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81bb-812e-c86c7844294d" class="">📦 SECTION 2: TYPESCRIPT SETUP</h1></div><div style="display:contents" dir="auto"><h2 id="37aae4f8-635e-81bc-a5de-c6d129580bbe" class="">Type Definitions &amp; SDE3 Trade-offs</h2></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js" integrity="sha512-m3JYEI6gx5fh9jF10FjGoMzVKcV2N6nchcDcqPCdI1L3R2WQV7br2XVNR8iTLb2daOMRl3zldbcfT40xU2ntVw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha512-uOw7XYETzS/DPmmirpP5UCMihSDNMeyTS965J0/456OSPfxn9xEtHHjj5Q/5WefVdqyMfN/afmQnNpZd/tpkcA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js" integrity="sha512-xjGCJ9YxyZBfYTCHsEjkOZMoOse1W3cKMXv1szXrxs68myuXt0YTj3/xKPar6iDMlXzTUSEqwUxprWcyp+plaw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><pre id="37aae4f8-635e-81f1-8639-e763af3a9c82" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// 🧠 SDE3 TRADE-OFF: List vs Matrix
 // Adjacency List: O(V+E) Space. Best for Sparse graphs (most real-world/LC problems). Fast neighbor iteration.
 // Adjacency Matrix: O(V^2) Space. Best for Dense graphs. O(1) edge existence lookup.
 
@@ -1312,7 +1320,7 @@ graph.get(1); // undefined! Key is string &quot;1&quot;, not number 1
   }
 }
 // Time: O(V+E) Space: O(V)
-// Why index pointer? shift() is O(n), pointer is O(1)</code></pre></div><div style="display:contents" dir="auto"><h2 id="37aae4f8-635e-8134-9479-fe72f865f6d0" class="">3.2 BFS with Distance/Level Tracking</h2></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8158-b1e8-f9135ca8acaf" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function bfsWithDist(graph: Graph, start: number, n: number): Map&lt;number, number&gt; {
+// Why index pointer? shift() is O(n), pointer is O(1)</code></pre></div><div style="display:contents" dir="auto"><h2 id="37aae4f8-635e-8134-9479-fe72f865f6d0" class="">3.2 BFS with Distance/Level Tracking</h2></div><p class="tldr">Same skeleton as 3.1 — swap the visited <code>Set</code> for a <code>dist</code> Map (its own <code>.has()</code> check now doubles as "visited").</p><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8158-b1e8-f9135ca8acaf" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function bfsWithDist(graph: Graph, start: number, n: number): Map&lt;number, number&gt; {
   const dist = new Map&lt;number, number&gt;([[start, 0]]);
   const queue: number[] = [start];
   let head = 0;
@@ -1428,7 +1436,7 @@ graph.get(1); // undefined! Key is string &quot;1&quot;, not number 1
 // Example LC: 1368 (Min Cost to Make at Least One Valid Path)
 // PRODUCTIONNOTE: unshift() is O(n) — acceptable in interviews if you acknowledge it.
 // For optimal O(V+E), use a circular-buffer deque or two-stack deque.
-// In LC constraints (V ≤ 10^4), unshift() is fast enough in practice.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8117-8d9f-dd9c844f0410"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-811b-ba98-dd3e7a77fea8" class="">🌀 SECTION 4: DFS TEMPLATES (4 Variants)</h1></div>
+// In LC constraints (V ≤ 10^4), unshift() is fast enough in practice.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8117-8d9f-dd9c844f0410"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-811b-ba98-dd3e7a77fea8" class="">🌀 SECTION 4: DFS TEMPLATES</h1></div>
 <p class="tldr">Explore structure — visited set, recurse; pre vs post controls order.</p>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> recursive vs iterative (stack-overflow safety past ~10⁴ depth), in-place grid marking, and using a <code>Set</code> not <code>path.includes()</code> for membership. <b>· Escalation:</b> connected components → number of islands → all-paths backtracking → clone graph (the map doubles as visited; create the clone <i>before</i> enqueuing).</div><div style="display:contents" dir="auto"><h2 id="37aae4f8-635e-81a0-bcfe-e0334dff131d" class="">4.1 DFS Recursive (Cleanest)</h2></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81dd-a9fb-e9d2bb7e79d8" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function dfs(graph: Graph, node: number, visited: Set&lt;number&gt;): void {
   visited.add(node);
@@ -2014,11 +2022,7 @@ function dijkstraWithPath(graph: WeightedGraph, start: number, end: number, n: n
 
 // BUG #3: Not Updating Size During Union
 // ❌ sizeArr[root] remains wrong
-// ✅ Always add: this.sizeArr[rootX] += this.sizeArr[rootY]
-
-// BUG #4: Using on Directed Graphs
-// ❌ Union-Find only works on undirected graphs
-// ✅ Directed cycles → use Kahn's or DFS 3-color</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81b0-b992-cade36a28f3c"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-818a-9301-eb14c1c15b95" class="">📊 SECTION 8: TOPOLOGICAL SORT</h1></div>
+// ✅ Always add: this.sizeArr[rootX] += this.sizeArr[rootY]</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81b0-b992-cade36a28f3c"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-818a-9301-eb14c1c15b95" class="">📊 SECTION 8: TOPOLOGICAL SORT</h1></div>
 <p class="tldr">Order a DAG — Kahn (peel indegree-0) or DFS post-order reversed.</p>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> Kahn doubling as cycle detection (<code>result.length &lt; n</code>), and swapping the queue for a MinHeap to get the lexicographically smallest order. <b>· Escalation:</b> course schedule I/II (207/210) → Alien Dictionary (building the graph from adjacent word pairs is the hard part) → parallel courses / longest path in a DAG.</div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8127-9422-c11eb57d90bd" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">// 🧠 SDE3 TRADE-OFF: Kahn&#x27;s vs DFS
 // Use Kahn&#x27;s (BFS): Need level-by-level processing, or need lexicographically smallest order (replace Queue with MinHeap).
@@ -2198,24 +2202,13 @@ function hasCycleDirected(graph: Graph, n: number): boolean {
     }
   }
   return false;
-}</code></pre></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8120-8fbc-f4f505b5d92c" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">CYCLE DETECTION QUICK REFERENCE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Graph Type    Method              Signal              Complexity
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Undirected    DFS + parent        back edge ≠ parent  O(V+E)
-Undirected    Union-Find          union() returns     O(α(n))
-                                  false
-Directed      DFS 3-color         gray neighbor       O(V+E)
-              (White/Gray/Black)  found
-Directed      Kahn&#x27;s BFS          result.length &lt; n   O(V+E)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-WHEN TO USE WHICH:
-□ Undirected + need components too  → Union-Find (one pass)
-□ Undirected + just cycle           → DFS + parent check
-□ Directed + need topo order too    → Kahn&#x27;s (kills two birds)
-□ Directed + just cycle             → DFS 3-color
-□ NEVER use Union-Find on directed  → Wrong results guaranteed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81cb-a8df-c9271f8d0a73"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81cc-9e80-ea1a5ec277f4" class="">🎨 SECTION 10: BIPARTITE &amp; 2-COLORING</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-813b-8677-ecf5feac4f03" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function isBipartite(graph: number[][]): boolean {
+}</code></pre></div><p class="tldr">Cycle detection quick reference — pick the row that matches your graph type.</p><table><thead><tr><th>Graph type</th><th>Method</th><th>Signal</th><th>Complexity</th></tr></thead><tbody>
+<tr><td>Undirected</td><td>DFS + parent</td><td>back edge ≠ parent</td><td>O(V+E)</td></tr>
+<tr><td>Undirected</td><td>Union-Find</td><td><code>union()</code> returns false</td><td>O(α(n))</td></tr>
+<tr><td>Directed</td><td>DFS 3-color (White/Gray/Black)</td><td>gray neighbor found</td><td>O(V+E)</td></tr>
+<tr><td>Directed</td><td>Kahn's BFS</td><td><code>result.length &lt; n</code></td><td>O(V+E)</td></tr>
+</tbody></table><div class="box"><b class="tag">When to use which</b> Undirected + need components too → Union-Find (one pass) · Undirected + just cycle → DFS + parent check · Directed + need topo order too → Kahn's (kills two birds) · Directed + just cycle → DFS 3-color · <b>NEVER</b> use Union-Find on directed graphs — wrong results guaranteed.</div>
+<div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81cb-a8df-c9271f8d0a73"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81cc-9e80-ea1a5ec277f4" class="">🎨 SECTION 10: BIPARTITE &amp; 2-COLORING</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-813b-8677-ecf5feac4f03" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function isBipartite(graph: number[][]): boolean {
   const n = graph.length;
   const color = new Array(n).fill(-1);
 
@@ -2368,7 +2361,7 @@ Eulerian path = every EDGE once = polynomial O(V+E)
 Hamiltonian path = every NODE once = NP-hard
 &quot;Use every flight once&quot; → Eulerian (Hierholzer)
 &quot;Visit every city once&quot; → Hamiltonian (TSP, don&#x27;t code this)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8137-80e6-decc7db3d4f2"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-8191-b8a0-f5a70e55f65f" class="">🌊 SECTION 12: STRONGLY CONNECTED COMPONENTS (OPTIONAL)</h1></div><div style="display:contents" dir="auto"><p id="37aae4f8-635e-8193-9fdc-cbe570545221" class=""><em>Skip if preparing for LC Medium/Hard — mostly appears in system design or very hard problems. Kosaraju’s Algorithm finds groups of nodes that reach each other in directed graphs.</em></p></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81a0-9d0a-f69890b51e57" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function kosaraju(graph: Graph, n: number): number[][] {
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8137-80e6-decc7db3d4f2"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-8191-b8a0-f5a70e55f65f" class="">🌊 SECTION 12: STRONGLY CONNECTED COMPONENTS</h1></div><div style="display:contents" dir="auto"><p id="37aae4f8-635e-8193-9fdc-cbe570545221" class=""><em>Rare as a standalone LC ask, but exactly the "🔥 hard pattern" territory the keyword map above warns you about — condensation-graph and component-analysis problems lean on it as a subroutine. Kosaraju's Algorithm finds groups of nodes that reach each other in directed graphs.</em></p></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81a0-9d0a-f69890b51e57" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function kosaraju(graph: Graph, n: number): number[][] {
   // Step 1: DFS to get finish times
   const visited = new Set&lt;number&gt;();
   const finishStack: number[] = [];
@@ -2422,7 +2415,51 @@ Hamiltonian path = every NODE once = NP-hard
 // ⚠️ Do NOT confuse with Bridges (Section 13) which is for UNDIRECTED graphs.
 // LC 1192 (Critical Connections) is solved with BRIDGES, NOT with SCC.
 // SCC = directed graph, mutual reachability
-// Bridges = undirected graph, critical edges</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8105-850c-da475f07f5d7"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-8183-81f0-d6dea7ceb664" class="">🌉 SECTION 13: BRIDGES &amp; ARTICULATION POINTS (OPTIONAL)</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8164-bda1-c8e6d30d2a3e" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function findBridges(graph: Graph, n: number): number[][] {
+// Bridges = undirected graph, critical edges</code></pre></div><div style="display:contents" dir="auto"><h2 id="graph-tarjan-scc" class="">Tarjan's SCC (Single-Pass, Low-Link)</h2></div><p class="tldr">The "can you do it in one pass?" follow-up to Kosaraju's — same low-link machinery as Bridges/AP (§13), plus an on-stack check to tell a same-SCC back edge from a cross edge into an already-finished SCC.</p><div style="display:contents" dir="auto"><pre id="graph-tarjan-scc-code" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function tarjanSCC(graph: Graph, n: number): number[][] {
+  const disc = new Array(n).fill(-1);
+  const low = new Array(n).fill(-1);
+  const onStack = new Array(n).fill(false);
+  const stack: number[] = [];
+  const sccs: number[][] = [];
+  let timer = 0;
+
+  function dfs(node: number): void {
+    disc[node] = low[node] = timer++;
+    stack.push(node);
+    onStack[node] = true;
+
+    for (const neighbor of graph.get(node) ?? []) {
+      if (disc[neighbor] === -1) {
+        dfs(neighbor);
+        low[node] = Math.min(low[node], low[neighbor]);
+      } else if (onStack[neighbor]) {
+        // back/cross edge to a node still on the stack — same SCC, use its DISC not LOW
+        low[node] = Math.min(low[node], disc[neighbor]);
+      }
+      // if disc[neighbor] !== -1 and !onStack[neighbor]: a finished, separate SCC — ignore
+    }
+
+    // node is the ROOT of an SCC (low never dipped below its own disc) — pop the stack down to it
+    if (low[node] === disc[node]) {
+      const component: number[] = [];
+      let w: number;
+      do {
+        w = stack.pop()!;
+        onStack[w] = false;
+        component.push(w);
+      } while (w !== node);
+      sccs.push(component);
+    }
+  }
+
+  for (let i = 0; i &lt; n; i++) {
+    if (disc[i] === -1) dfs(i);
+  }
+  return sccs;
+}
+// Time: O(V+E) Space: O(V) — one DFS pass, no graph reversal (unlike Kosaraju's 2-pass).
+// GOTCHA: using low[neighbor] instead of disc[neighbor] in the onStack branch is the
+// single most common bug — that rule is only for tree edges (after dfs(neighbor) returns).</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-8105-850c-da475f07f5d7"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-8183-81f0-d6dea7ceb664" class="">🌉 SECTION 13: BRIDGES &amp; ARTICULATION POINTS (OPTIONAL)</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8164-bda1-c8e6d30d2a3e" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function findBridges(graph: Graph, n: number): number[][] {
   const disc = new Array(n).fill(-1);
   const low = new Array(n).fill(-1);
   const bridges: number[][] = [];
@@ -2841,49 +2878,49 @@ BUG #11: Index Pointer + unshift() in 0-1 BFS (The "Index-Shifting" Trap)
 Impact: unshift() physically shifts all elements right by one. A head index pointer
 tracks absolute position — after unshift(), positions shift, so head points to the
 wrong element. Newly inserted front elements are skipped; prior elements may reprocess.
-Rule: Never mix unshift() with index-pointer traversal. Use shift() exclusively.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-810a-a1bd-c7ba796f619e"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7" class="">📊 SECTION 17: COMPLEXITY & OPTIMIZATION GUIDE</h1></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-81be-93ec-d5f90d94833f" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">ALGORITHM               TIME              SPACE         WHEN TO USE
+Rule: Never mix unshift() with index-pointer traversal. Use shift() exclusively.</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-810a-a1bd-c7ba796f619e"/></div><div style="display:contents" dir="auto"><h1 id="37aae4f8-635e-81a5-ae95-ecdcbfdf0ea7" class="">📊 SECTION 17: COMPLEXITY & OPTIMIZATION GUIDE</h1></div><div style="display:contents" dir="auto"><table><thead><tr><th>Algorithm</th><th>Time</th><th>Space</th><th>When to use</th></tr></thead><tbody>
+<tr><td>BFS</td><td>O(V+E)</td><td>O(V)</td><td>Shortest unweighted path</td></tr>
+<tr><td>DFS</td><td>O(V+E)</td><td>O(V)</td><td>Traversal, depth ≤ 10K</td></tr>
+<tr><td>Dijkstra (lazy)</td><td>O(E log V) [≡ O(E log E)]</td><td>O(V+E)</td><td>Weighted, non-negative edges. Lazy deletion = correct JS/TS impl; true decrease-key (Fibonacci heap) O((V+E)log V) isn't in JS stdlib — in interviews always say O(E log V).</td></tr>
+<tr><td>Bellman-Ford</td><td>O(V·E)</td><td>O(V)</td><td>Negative weights allowed</td></tr>
+<tr><td>Bellman-Ford K-stops</td><td>O(K·E)</td><td>O(V)</td><td>At most K edges (LC 787)</td></tr>
+<tr><td>Floyd-Warshall</td><td>O(V³)</td><td>O(V²)</td><td>All pairs (V ≤ 500)</td></tr>
+<tr><td>0-1 BFS</td><td>O(V+E)*</td><td>O(V)</td><td>Edge weights {0,1} only. *With a true O(1) deque; the shift()/unshift() array version in §3.5 is O(n) per op (Bug #11) — fine for interview-sized inputs, but say "O(V+E) with a real deque" if asked to justify it.</td></tr>
+<tr><td>Topo Sort (Kahn)</td><td>O(V+E)</td><td>O(V)</td><td>DAG ordering + cycle detect</td></tr>
+<tr><td>Topo Sort (DFS)</td><td>O(V+E)</td><td>O(V)</td><td>DAG + post-order</td></tr>
+<tr><td>Prim's MST</td><td>O(E log V)</td><td>O(V+E)</td><td>Sparse graphs (heap, lazy deletion)</td></tr>
+<tr><td>Kruskal's MST</td><td>O(E log E)</td><td>O(V)</td><td>Sparse graphs</td></tr>
+<tr><td>Union-Find</td><td>O(α(n)) per op</td><td>O(V)</td><td>Connectivity (undirected)</td></tr>
+<tr><td>Kosaraju SCC</td><td>O(V+E)</td><td>O(V)</td><td>Directed SCC (2-pass)</td></tr>
+<tr><td>Tarjan SCC</td><td>O(V+E)</td><td>O(V)</td><td>Directed SCC (1-pass)</td></tr>
+<tr><td>Find Bridges (Tarjan)</td><td>O(V+E)</td><td>O(V)</td><td>Critical edges</td></tr>
+<tr><td>Articulation Points</td><td>O(V+E)</td><td>O(V)</td><td>Cut vertices (§13)</td></tr>
+<tr><td>Bipartite Check</td><td>O(V+E)</td><td>O(V)</td><td>2-coloring</td></tr>
+<tr><td>Bidirectional BFS</td><td>O(b^(d/2))</td><td>O(b^(d/2))</td><td>b=branching, d=depth. Each side explores d/2 levels; total = 2×b^(d/2) vs b^d.</td></tr>
+<tr><td>A* Search</td><td>O(E log V)</td><td>O(V)</td><td>Dijkstra + heuristic</td></tr>
+<tr><td>DFS + Memoization</td><td>O(V+E)</td><td>O(V)</td><td>DAG DP (LC 329)</td></tr>
+<tr><td>IDDFS</td><td>O(b^d)</td><td>O(d)</td><td>Space-efficient BFS</td></tr>
+<tr><td>Hierholzer (Euler)</td><td>O(V+E)</td><td>O(V+E)</td><td>Use all edges once</td></tr>
+<tr><td>Multi-source BFS</td><td>O(V+E)</td><td>O(V)</td><td>Multiple starting points (LC 994, 286, 417)</td></tr>
+<tr><td>Bidirectional Dijkstra</td><td>O(b^(d/2))</td><td>O(b^(d/2))</td><td>Single src→dst, weighted. Halves search space vs Dijkstra.</td></tr>
+<tr><td>DFS + Backtrack</td><td>O(V!) worst · O(2^V) typical</td><td>O(V)</td><td>All permutations / paths. Always add pruning in practice.</td></tr>
+<tr><td>Topo Sort + DP</td><td>O(V+E)</td><td>O(V)</td><td>Longest/shortest path in DAG</td></tr>
+<tr><td>Floyd-Warshall + Path Recovery</td><td>O(V³)</td><td>O(V³)</td><td>All pairs + path reconstruction. Store next[u][v] matrix.</td></tr>
+<tr><td>Bitmask BFS/DP</td><td>O(n × 2^n)</td><td>O(n × 2^n)</td><td>Visit all nodes (n ≤ 20)</td></tr>
+<tr><td>State Space BFS</td><td>O(S × T)</td><td>O(S)</td><td>S=states, T=transitions/state</td></tr>
+<tr><td>Johnson's Algorithm</td><td>O(V·E log V)</td><td>O(V²)</td><td>All pairs + negative weights</td></tr>
+</tbody></table></div><div style="display:contents" dir="auto"><pre id="graph-complexity-namedrop" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">
+NAME-DROP ONLY (no dedicated section — the three rows above with no §N):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BFS                     O(V+E)            O(V)          Shortest unweighted path
-DFS                     O(V+E)            O(V)          Traversal, depth ≤ 10K
-Dijkstra (lazy)         O(E log V)        O(V+E)        Weighted, non-negative edges
-                        [≡ O(E log E)]                  NOTE: O(E log E) = O(E log V)
-                                                          since E ≤ V² → log E ≤ 2·log V
-                                                          Lazy deletion = correct JS/TS impl
-                                                          True decrease-key (Fibonacci heap):
-                                                          O((V+E)logV) — not in JS stdlib
-                                                          In interviews: always say O(E log V)
-Bellman-Ford            O(V·E)            O(V)          Negative weights allowed
-Bellman-Ford K-stops    O(K·E)            O(V)          At most K edges (LC 787)
-Floyd-Warshall          O(V³)             O(V²)         All pairs (V ≤ 500)
-0-1 BFS                 O(V+E)            O(V)          Edge weights {0,1} only
-Topo Sort (Kahn)        O(V+E)            O(V)          DAG ordering + cycle detect
-Topo Sort (DFS)         O(V+E)            O(V)          DAG + post-order
-Prim&#x27;s MST              O(E log V)        O(V+E)        Dense graphs (lazy deletion)
-Kruskal&#x27;s MST           O(E log E)        O(V)          Sparse graphs
-Union-Find              O(α(n)) per op    O(V)          Connectivity (undirected)
-Kosaraju SCC            O(V+E)            O(V)          Directed SCC (2-pass)
-Tarjan SCC              O(V+E)            O(V)          Directed SCC (1-pass)
-Find Bridges (Tarjan)   O(V+E)            O(V)          Critical edges
-Bipartite Check         O(V+E)            O(V)          2-coloring
-Bidirectional BFS       O(b^(d/2))        O(b^(d/2))    b=branching, d=depth
-                                                          Each side explores d/2 levels
-                                                          Total = 2×b^(d/2) vs b^d
-A* Search               O(E log V)        O(V)          Dijkstra + heuristic
-DFS + Memoization       O(V+E)            O(V)          DAG DP (LC 329)
-IDDFS                   O(b^d)            O(d)          Space-efficient BFS
-Hierholzer (Euler)      O(V+E)            O(V+E)        Use all edges once
-Multi-source BFS        O(V+E)            O(V)          Multiple starting points
-                                                          (LC 994, 286, 417)
-Bidirectional           O(b^(d/2))        O(b^(d/2))    Single src→dst, weighted
-  Dijkstra                                               Halves search space vs Dijkstra
-DFS + Backtrack         O(V!) worst       O(V)          All permutations / paths
-                        O(2^V) typical                   Always add pruning in practice
-Topo Sort + DP          O(V+E)            O(V)          Longest/shortest path in DAG
-Floyd-Warshall +        O(V³)             O(V³)         All pairs + path reconstruction
-  Path Recovery                                          Store next[u][v] matrix
-Bitmask BFS/DP          O(n × 2^n)        O(n × 2^n)    Visit all nodes (n ≤ 20)
-State Space BFS         O(S × T)          O(S)          S=states, T=transitions/state
-Johnson&#x27;s Algorithm     O(V·E log V)      O(V²)         All pairs + negative weights
+A* Search      = Dijkstra, but the priority queue orders by (distSoFar + heuristic)
+                 instead of just distSoFar. Needs an admissible heuristic (never
+                 overestimates true cost) or it can return a wrong answer, not just slow.
+IDDFS          = DFS re-run at increasing depth limits (1, 2, 3, ...) until found.
+                 O(b^d) time (same order as BFS) but O(d) space instead of O(b^d) —
+                 the trade you make when BFS&#x27;s memory, not its time, is the problem.
+Johnson&#x27;s      = run Bellman-Ford ONCE from a virtual extra source to get potentials
+  Algorithm      h(v), reweight every edge to be non-negative, then run Dijkstra from
+                 EVERY node. Beats Floyd-Warshall&#x27;s O(V³) when the graph is sparse.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 COMPLEXITY QUICK SANITY CHECK
@@ -2939,7 +2976,9 @@ KRUSKAL&#x27;s vs PRIM&#x27;s for MST:
        → Better for SPARSE graphs (E ≈ V). Requires UF.
        → LC 1584, 1135
   Prim&#x27;s: O(E log V). Grow MST from vertex, adjacency list input.
-       → Better for DENSE graphs (E ≈ V²). Requires MinHeap.
+       → This heap-based version is better for SPARSE graphs, same as Kruskal&#x27;s —
+         the O(V²) array-based Prim&#x27;s (no heap, not shown here) is the one that
+         wins on DENSE graphs (E ≈ V²), since it skips the log V factor entirely.
        → Conceptually similar to Dijkstra
   DEFAULT: Use Kruskal&#x27;s for most LC (UF already in template).</code></pre></div><div style="display:contents" dir="auto"><hr id="37aae4f8-635e-81b1-8d9e-eb8e87c11df6"/></div><div style="display:contents" dir="auto"><h2 id="37aae4f8-635e-8115-977a-db687d441574" class="">🚀 OPTIMIZATION UPGRADE LADDER</h2></div><div style="display:contents" dir="auto"><pre id="37aae4f8-635e-8128-9656-f58708a4a820" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">After your solution works, optimize systematically. STOP at the level that passes.
 Over-engineering is penalized in interviews — say &quot;this is sufficient for the constraints.&quot;
@@ -2977,4 +3016,10 @@ OPTIMIZATION DECISION RULES:
 <tr><td>Why mark visited on ENQUEUE, not dequeue?</td><td class="a">Stops a node being queued many times (MLE/dupes).</td></tr>
 <tr><td>Count connected components?</td><td class="a">BFS/DFS sweep, or Union-Find.</td></tr>
 <tr><td>Is a grid / word-ladder / lock a graph?</td><td class="a">Yes — cell/word/state = node, a move = an edge.</td></tr>
-</table><div style="display:contents" dir="auto"><p id="gsc-p2" class=""><strong>Then write these cold</strong> (no peeking): (1) Number of Islands — DFS on a grid, (2) shortest path on a grid — BFS, (3) Dijkstra with a min-heap, (4) Course Schedule — topo sort + cycle check, (5) Clone Graph. Produce all five start-to-finish and you own this topic.</p></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
+<tr><td>"Use every edge exactly once"?</td><td class="a">Eulerian path — Hierholzer's algorithm (§11).</td></tr>
+<tr><td>"Groups of nodes that all reach each other" (directed)?</td><td class="a">Strongly Connected Components — Kosaraju (2-pass) or Tarjan (1-pass, low-link) (§12).</td></tr>
+<tr><td>Tarjan's SCC vs Tarjan's Bridges — same low-link math, what's the one extra check?</td><td class="a">An <code>onStack</code> check — distinguishes a back edge into the current SCC from a cross edge into an already-finished one; Bridges/AP never need it.</td></tr>
+<tr><td>"Critical edge" vs "cut vertex" — which graph type, and what breaks if removed?</td><td class="a">Both are UNDIRECTED-graph concepts (§13). Bridge: removing the EDGE disconnects the graph. Articulation point: removing the NODE disconnects the graph.</td></tr>
+<tr><td>State isn't just a grid cell — what do you do?</td><td class="a">Widen the node to a tuple (e.g. position + keys collected, position + fuel remaining) — it's still BFS/DFS, just over an implicit state graph (§14).</td></tr>
+<tr><td>Graph problem where the answer needs "best over all paths," not just "any path"?</td><td class="a">Graph + DP — topo-sort the DAG first, then relax in that order (§15); a plain BFS/DFS won't give you the optimum.</td></tr>
+</table><div style="display:contents" dir="auto"><p id="gsc-p2" class=""><strong>Then write these cold</strong> (no peeking): (1) Number of Islands — DFS on a grid, (2) shortest path on a grid — BFS, (3) Dijkstra with a min-heap, (4) Course Schedule — topo sort + cycle check, (5) Clone Graph. Produce all five start-to-finish and you own this topic.</p></div></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
