@@ -2878,7 +2878,10 @@ function _buildPracticePanel(topicKey, mod) {
   if (_psCurrentItems.length === 0) {
     const savedSession = _psLoadSession(topicKey)
     if (savedSession) {
-      _psMode       = savedSession.mode || 'worked'
+      // Worked/Mock/whole-topic-Revise were removed from the UI — coerce any old saved
+      // session in one of those modes to Graded so there's still a mode button to land on.
+      _psMode       = (savedSession.mode === 'revise-pattern' || savedSession.mode === 'graded')
+        ? savedSession.mode : 'graded'
       _psMockReveal = !!savedSession.mockReveal
       _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
       // Graded promise: ✗/~ (and 📌) questions ALWAYS appear. Merge in any weak graded
@@ -2903,64 +2906,42 @@ function _buildPracticePanel(topicKey, mod) {
   }
 
   let html = ''
-  // ── Mode toggle: Worked / Graded / Mock (solve, grade on the cards) / Revise (recall) ──
+  // ── Mode toggle: Graded (solve) / By Pattern (recall, scoped to a pattern) ──
   html += '<div class="ps-mode-bar d-flex flex-wrap gap-2 mb-2">'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'worked' ? ' active' : '') + '" onclick="_psSetMode(\'worked\',\'' + topicKey + '\')" title="Worked — solve the questions you have started or solved (🚧 / ✅); weakest first">🚧 Worked</button>'
   html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" onclick="_psSetMode(\'graded\',\'' + topicKey + '\')" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'mock'   ? ' active' : '') + '" onclick="_psSetMode(\'mock\',\'' + topicKey + '\')" title="Mock — a random set from this topic with difficulty hidden, on the timer">🎯 Mock</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'revise' ? ' active' : '') + '" onclick="_psSetMode(\'revise\',\'' + topicKey + '\')" title="Revise — active recall on a random due set from this WHOLE topic; grade ✓/~/✗ right here, no coding">🧠 Revise</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'revise-pattern' ? ' active' : '') + '" onclick="_psSetMode(\'revise-pattern\',\'' + topicKey + '\')" title="By Pattern — active recall scoped to just the pattern(s) you pick (e.g. only P1), instead of the whole topic">🧩 By Pattern</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'revise-pattern' ? ' active' : '') + '" onclick="_psSetMode(\'revise-pattern\',\'' + topicKey + '\')" title="By Pattern — active recall scoped to just the pattern(s) you pick">🧩 By Pattern</button>'
   html += '</div>'
   // ── Controls bar ──────────────────────────────────────────────────────────
   html += '<div class="ps-ctrl-bar">'
 
   if (_psCurrentItems.length === 0) {
-    if (_psMode === 'worked') {
-      html += '<button type="button" class="ps-shuffle-btn" onclick="_psShuffle(\'' + topicKey + '\')">▶ Generate for Practice</button>'
-      html += '<span class="ms-auto text-xxs text-secondary text-muted">Click to start a practice session</span>'
-    } else {
-      const modeLabel = _psMode === 'graded' ? '🕒 Graded' : _psMode === 'revise' ? '🧠 Revise' : _psMode === 'revise-pattern' ? '🧩 By Pattern' : '🎯 Mock'
-      html += '<span class="text-xxs text-secondary text-muted">' + modeLabel + ' — nothing here right now</span>'
-    }
+    const modeLabel = _psMode === 'graded' ? '🕒 Graded' : '🧩 By Pattern'
+    html += '<span class="text-xxs text-secondary text-muted">' + modeLabel + ' — nothing here right now</span>'
   } else {
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
     html += '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(1,\'' + topicKey + '\')">+</button>'
     html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
     html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
-    html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ ' + (_psMode === 'worked' ? 'Reset' : 'Refresh') + '</button>'
-    if (pinCount && _psMode !== 'mock' && _psMode !== 'revise' && _psMode !== 'revise-pattern') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
+    html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Refresh</button>'
+    if (pinCount && _psMode === 'graded') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
   }
 
   html += '</div>'
-  // ── Mock banner (per-topic): hidden difficulty + reveal ─────────────────────
-  if (_psMode === 'mock') {
-    const showReveal = _psCurrentItems.length && !_psMockReveal
-    html += '<div class="qp-mock-note mt-2">🎯 <strong>Mock:</strong> random from this topic — difficulty hidden. Set the timer, solve cold, then reveal.' +
-      '<button type="button" id="ps-reveal-btn" class="qp-chip ms-2" onclick="_psRevealMock()"' + (showReveal ? '' : ' style="display:none"') + '>🔍 Reveal</button></div>'
-  } else if (_psMode === 'revise') {
-    html += '<div class="qp-mock-note mt-2">🧠 <strong>Revise:</strong> a random due set from this WHOLE topic — active recall, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list. Want just one pattern? Use 🧩 By Pattern instead. ~20% are randomly flagged <span class="ps-code-pick" style="margin:0 0.15rem">⌨️ Code</span> — actually write those, don\'t just recall.</div>'
-  } else if (_psMode === 'revise-pattern') {
-    html += '<div class="qp-mock-note mt-2">🧩 <strong>By Pattern:</strong> active recall scoped to only the pattern(s) selected below — pick one or more, no coding. Grade ✓/~/✗ right here; ✗ forgot stays as your code list. ~20% are randomly flagged <span class="ps-code-pick" style="margin:0 0.15rem">⌨️ Code</span> — actually write those, don\'t just recall.</div>'
-    if (mod.patterns && mod.patterns.length) {
-      html += '<div class="d-flex flex-wrap gap-2 mt-2">'
-      html += mod.patterns.map(p =>
-        '<button type="button" class="qp-chip' + (_psRevisePatterns.has(p.id) ? ' active' : '') + '" title="' + escHtml(p.name) + '" onclick="_psToggleRevisePattern(\'' + p.id + '\',\'' + topicKey + '\')">' + p.id + '</button>'
-      ).join('')
-      if (_psRevisePatterns.size) html += '<button type="button" class="qp-chip" title="Deselect all patterns" onclick="_psSetRevisePatterns([],\'' + topicKey + '\')">✕ Clear</button>'
-      html += '</div>'
-    }
+  // ── By Pattern: pick the pattern(s) that scope the active-recall due set ────
+  if (_psMode === 'revise-pattern' && mod.patterns && mod.patterns.length) {
+    html += '<div class="d-flex flex-wrap gap-2 mt-2">'
+    html += mod.patterns.map(p =>
+      '<button type="button" class="qp-chip' + (_psRevisePatterns.has(p.id) ? ' active' : '') + '" title="' + escHtml(p.name) + '" onclick="_psToggleRevisePattern(\'' + p.id + '\',\'' + topicKey + '\')">' + p.id + '</button>'
+    ).join('')
+    if (_psRevisePatterns.size) html += '<button type="button" class="qp-chip" title="Deselect all patterns" onclick="_psSetRevisePatterns([],\'' + topicKey + '\')">✕ Clear</button>'
+    html += '</div>'
   }
   // ── Question list ──────────────────────────────────────────────────────────
   html += '<div id="ps-list">'
   if (_psCurrentItems.length === 0) {
     html += '<div style="text-align: center; padding: 2rem 1rem;">'
-    if (_psMode === 'worked') {
-      html += '<p class="text-secondary text-xs mb-2">No practice session loaded</p>'
-      html += '<p class="text-faint text-xs">Click "Generate for Practice" above to begin</p>'
-    } else {
-      html += '<p class="text-secondary text-xs mb-0">' + _psEmptyMsg() + '</p>'
-    }
+    html += '<p class="text-secondary text-xs mb-0">' + _psEmptyMsg() + '</p>'
     html += '</div>'
   } else {
     html += _psRowsHtml()
@@ -3182,10 +3163,7 @@ function _psRowsHtml() {
 }
 function _psEmptyMsg() {
   if (_psMode === 'graded') return 'You haven’t graded any questions in this topic yet — grade them with the 🧠 ✓/~/✗ chip on the cards.'
-  if (_psMode === 'mock')   return 'No questions in this topic yet.'
-  if (_psMode === 'revise') return 'Nothing due for revise in this topic right now — come back later.'
-  if (_psMode === 'revise-pattern') return _psRevisePatterns.size ? 'Nothing due for the selected pattern(s) right now — come back later.' : 'Select one or more patterns above to build a revise set.'
-  return 'No 🚧 In-Progress / ✅ Solved questions in this topic yet — start some, or grade on the cards.'
+  return _psRevisePatterns.size ? 'Nothing due for the selected pattern(s) right now — come back later.' : 'Select one or more patterns above to build a revise set.'
 }
 function _renderPracticePanel() {
   const mod = TOPIC_MODULES[currentTopicKey]
@@ -3684,21 +3662,11 @@ function _renderQuickPractice() {
   html += '<span class="text-secondary text-xs">questions</span>'
   if (maxQ && !_qpMock && !_qpRevised) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
   html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">' + genLabel + '</button>'
-  if (!_qpRevised && !_qpMock) {
-    html += '<button type="button" class="qp-chip' + (_practiceWorkedOnly ? ' active' : '') + ' ms-1" onclick="_qpToggleWorkedOnly()" title="Practice only questions you have started or solved (🚧 In Progress / ✅ Solved) — skip 📋 Pending">🚧 Worked-on only</button>'
-  }
   html += '<button type="button" class="qp-chip' + (_qpRevised ? ' active' : '') + ' ms-1" onclick="_qpToggleRevised()" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
-  html += '<button type="button" class="qp-chip' + (_qpMock ? ' active' : '') + '" onclick="_qpToggleMock()" title="Mock — a random mixed set across ALL topics with topic & difficulty hidden, for a realistic timed interview run">🎯 Mock</button>'
-  if (totalPinned && !_qpMock) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
+  if (totalPinned) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
   html += '</div>'
 
-  // Mode banner — Mock (hidden-topic timed run) · Graded (solve your graded problems)
-  if (_qpMock) {
-    const showReveal = _qpResults && _qpResults.length && !_qpMockReveal
-    html += '<div class="qp-mock-note mt-2">🎯 <strong>Mock:</strong> random across <em>all</em> topics — topic &amp; difficulty hidden. Set the timer, solve cold, then reveal for the post-mortem.' +
-      '<button type="button" id="qp-reveal-btn" class="qp-chip ms-2" onclick="_qpRevealMock()"' + (showReveal ? '' : ' style="display:none"') + '>🔍 Reveal topics</button>' +
-      '</div>'
-  } else if (_qpRevised) {
+  if (_qpRevised) {
     html += '<div class="qp-mock-note mt-2">🕒 <strong>Graded:</strong> the questions you’ve graded on the cards, ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident. Solve them — click a row when done. Leave topics empty to span all.</div>'
   }
 
