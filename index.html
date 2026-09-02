@@ -2655,10 +2655,11 @@ function _orderByWeakness(pairs) {
     .map(x => x[0])
 }
 
-// Dispatcher: render the Quick Practice results as either grade-rows (Revise) or solve-rows.
+// Dispatcher: Graded renders grade-rows (✓/~/✗ + saved-solution link, right on the row);
+// anything else (Worked-on-only pool, plain generated sets) renders solve-rows.
 function _qpRowsHtml() {
   if (!_qpResults) return ''
-  // All modes are solve-rows now (Worked / Graded / Mock). Grading lives on the question cards.
+  if (_qpRevised) return _qpResults.map((entry, i) => _buildReviseItem(entry, i, 'qp')).join('')
   return _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
 }
 
@@ -3158,8 +3159,9 @@ function _psModePool(topicKey, count) {
 // Worked/Graded/Mock render solve-rows (click a row = solved); Revise renders grade-rows
 // (✓/~/✗ recall buttons, no click-to-solve).
 function _psRowsHtml() {
-  if (_psMode === 'revise' || _psMode === 'revise-pattern') return _psCurrentItems.map((item, i) => _buildReviseItem(item, i, 'ps')).join('')
-  return _psCurrentItems.map((item, i) => _buildPracticeItem(item, i, false)).join('')
+  // Graded + By Pattern both render as grade-rows: ✓/~/✗ right on the row, jump button,
+  // and a 🔗 link to your saved submission if you have one.
+  return _psCurrentItems.map((item, i) => _buildReviseItem(item, i, 'ps')).join('')
 }
 function _psEmptyMsg() {
   if (_psMode === 'graded') return 'You haven’t graded any questions in this topic yet — grade them with the 🧠 ✓/~/✗ chip on the cards.'
@@ -3693,7 +3695,7 @@ function _renderQuickPractice() {
     document.getElementById('qp-results').innerHTML =
       _qpRowsHtml()
     // Restore session-complete banner if the full set was already finished
-    if (_qpDoneThisSession.size >= _qpResults.length) (_qpRevise ? _qpReviseShowComplete : _qpShowSessionComplete)()
+    if (_qpDoneThisSession.size >= _qpResults.length) (_qpRevised ? _qpReviseShowComplete : _qpShowSessionComplete)()
   }
   // Re-apply +/- lock if timer was running when we navigated away
   if (_qpTimerRun) {
