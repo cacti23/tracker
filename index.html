@@ -781,6 +781,13 @@
     .ps-count-btn:hover { border-color: var(--border-glow); background: var(--bg-hover); }
     .ps-count-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); background: var(--bg-elevated); }
     .ps-count-val { font-size: var(--fs-sm); font-weight: 600; min-width: 1.5ch; text-align: center; }
+    .ps-count-input {
+      font-size: var(--fs-sm); font-weight: 600; width: 3.2ch; text-align: center;
+      border: 1px solid var(--border); border-radius: 6px; background: var(--bg-elevated);
+      color: var(--text-primary); padding: 0.1rem 0.2rem; font-family: inherit;
+    }
+    .ps-count-input:focus { outline: none; border-color: var(--border-glow); }
+    .ps-count-input::-webkit-inner-spin-button, .ps-count-input::-webkit-outer-spin-button { opacity: 0.6; }
     .ps-shuffle-btn {
       padding: 0.22rem 0.7rem; border-radius: 6px; border: 1px solid var(--border);
       background: var(--bg-elevated); cursor: pointer; font-size: var(--fs-xs);
@@ -1151,6 +1158,16 @@ function _psSaveSession() {
   if (!_psCurrentTopic) return
   try {
     const all = _psAllSessions()
+    // Graded's empty "pick a count and hit Generate" state must NOT be saved as a session —
+    // an empty-but-truthy saved session would make _psLoadSession return it on the next visit,
+    // which restores it (and its "always show weak graded questions" merge) INSTEAD of leaving
+    // the panel empty, silently defeating the "Graded starts empty" behavior. No items yet means
+    // no session yet: clear any stale entry instead of writing an empty one.
+    if (_psMode === 'graded' && _psCurrentItems.length === 0) {
+      delete all[_psCurrentTopic]
+      localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
+      return
+    }
     all[_psCurrentTopic] = {
       mode: _psMode,
       items: _psCurrentItems.map(([lcKey, q]) => [lcKey, { title: q.title, difficulty: q.difficulty }]),
@@ -1224,6 +1241,15 @@ function bumpReviewInterval(lcKey) {
 function resetReviewInterval(lcKey) {
   setReviewInterval(lcKey, REVIEW_LADDER[0])
   return REVIEW_LADDER[0]
+}
+// Give a ✓ Solid grade in Graded the same "clean solve" credit the old click-to-solve row gave:
+// push the code-cooldown ladder further out, timestamp it as practiced, and mark the question
+// Solved if it isn't already. The confidence-ring bump is NOT repeated here — gradeRevise()
+// already does that (deduped once/day) before this runs.
+function _psCreditCleanSolve(lcKey) {
+  markPracticed(lcKey)
+  bumpReviewInterval(lcKey)
+  if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
 }
 
 // ─── STREAK TRACKING ──────────────────────────────────────────────────────────
@@ -2628,6 +2654,19 @@ function _weightedShuffle(entries) {
     .map(x => x.e)
 }
 
+// Interview-frequency weight for ranking: High > unset (Medium-ish default) > Medium > Low.
+// Used by Graded so limited practice time is spent on your weakest AND highest-impact problems.
+function _freqWeight(q) {
+  return q && q.freq === 'High' ? 3 : q && q.freq === 'Medium' ? 2 : q && q.freq === 'Low' ? 1 : 1.5
+}
+// Like _weightedShuffle, but also favors higher interview-frequency questions within the tier.
+function _weightedShuffleByImpact(entries) {
+  return entries
+    .map(e => ({ e, w: (Math.random() / (getSolveCount(e[0]) + 1)) * _freqWeight(e[1]) }))
+    .sort((a, b) => b.w - a.w)
+    .map(x => x.e)
+}
+
 // Order a practice pool. Normally unsolved-first (you practice what you haven't solved);
 // but with "Worked-on only" ON, mix 🚧 In Progress + ✅ Solved together (weighted) so the
 // completed ones aren't sliced off below the count cap — otherwise you'd see only In Progress.
@@ -2737,6 +2776,16 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   const codePick = ctx === 'ps' && _psReviseCodeFlagged.has(lcKey)
   const codeBadge = codePick ?
     '<span class="ps-code-pick flex-shrink-0" title="Randomly picked to CODE this one — actually write and run the solution, don\'t just recall it">⌨️ Code</span>' : ''
+  // Pin only matters for Graded (its pool always surfaces pinned questions first, both per-topic
+  // and on the dashboard) — By Pattern's pool never reads isPinned, so skip the control there to
+  // avoid a button that does nothing.
+  const showPin   = (ctx === 'ps' && _psMode === 'graded') || (ctx === 'qp' && _qpRevised)
+  const pinned    = showPin && isPinned(lcKey)
+  const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
+  const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
+  const pinBtn = showPin
+    ? '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>'
+    : ''
   return (
     '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
@@ -2745,6 +2794,7 @@ function _buildReviseItem([lcKey, q], i, ctx) {
     '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
     codeBadge +
     (doneThisSession ? _reviseGradeBadge(lcKey) : '') +
+    pinBtn +
     '<span class="rev-grade-group flex-shrink-0">' +
       '<button class="rev-grade rev-solid' + chosen('solid') + '"  title="Recalled it cold — push the next review further out"   onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
       '<button class="rev-grade rev-shaky' + chosen('shaky') + '"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
@@ -2783,6 +2833,8 @@ function _qpReviseGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)               // data + dashboard counts + (card refresh is a no-op here)
   logRecent(lcKey, grade)
+  // ✓ Solid in GRADED specifically gets full "clean solve" credit — see _psCreditCleanSolve.
+  if (grade === 'solid' && _qpRevised) _psCreditCleanSolve(lcKey)
   _qpDoneThisSession.add(lcKey)
   _saveQpState()
   const listEl = document.getElementById('qp-results')
@@ -2920,13 +2972,15 @@ function _buildPracticePanel(topicKey, mod) {
         if (missing.length) { _psCurrentItems = [...missing, ..._psCurrentItems]; _psSaveSession() }
       }
       _psQCount = _psCurrentItems.length || _psQCount
+    } else if (_psMode === 'graded') {
+      // Graded always starts empty — pick a count and hit Generate.
     } else if (_psMode !== 'worked' || prevTopic === topicKey) {
       _psCurrentItems = _psModePool(topicKey, count)
       _psQCount = _psCurrentItems.length
       _psPickReviseCodeFlags()
       _psSaveSession()
     }
-    // First visit to a topic in Worked mode: leave empty (user clicks Generate)
+    // First visit to a topic in Worked/Graded mode: leave empty (user clicks Generate)
   }
 
   let html = ''
@@ -2940,11 +2994,20 @@ function _buildPracticePanel(topicKey, mod) {
   html += '<div class="ps-ctrl-bar">'
 
   if (_psCurrentItems.length === 0) {
-    const modeLabel = _psMode === 'graded' ? '🕒 Graded' : _psMode === 'recent' ? '🕘 Recent' : '🧩 By Pattern'
-    html += '<span class="text-xxs text-secondary text-muted">' + modeLabel + ' — nothing here right now</span>'
+    if (_psMode === 'graded') {
+      // Graded always lands empty — type a count (any number, not just +/-) and hit Generate.
+      html += '<input type="number" class="ps-count-input" id="ps-gen-count-input" min="1" max="' + total + '" value="' + count + '" onclick="event.stopPropagation()">'
+      html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
+      html += '<button type="button" class="ps-shuffle-btn ms-1" onclick="_psGenerateGraded(\'' + topicKey + '\')">▶ Generate</button>'
+    } else {
+      const modeLabel = _psMode === 'recent' ? '🕘 Recent' : '🧩 By Pattern'
+      html += '<span class="text-xxs text-secondary text-muted">' + modeLabel + ' — nothing here right now</span>'
+    }
   } else {
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
-    html += '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
+    html += _psMode === 'graded'
+      ? '<input type="number" class="ps-count-input" id="ps-count-val" min="1" max="' + total + '" value="' + _psCurrentItems.length + '" onclick="event.stopPropagation()" onchange="_psSetCountValue(this.value,\'' + topicKey + '\')">'
+      : '<span class="ps-count-val" id="ps-count-val">' + _psCurrentItems.length + '</span>'
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(1,\'' + topicKey + '\')">+</button>'
     html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
     html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
@@ -2993,6 +3056,41 @@ function _fmtTimer(secs) {
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
 }
 
+// The count control is a plain <span> in most modes, but an editable <input> in Graded
+// (so you can type 1/4/5/10/15/whatever, not just step it) — write to whichever it is.
+function _psSyncCountDisplay(count) {
+  const el = document.getElementById('ps-count-val')
+  if (!el) return
+  if (el.tagName === 'INPUT') el.value = count
+  else el.textContent = count
+}
+// Graded starts empty — read the typed count, clamp it, and generate. Full panel re-render
+// (not _psShuffle's partial DOM patch) because the ctrl bar itself changes shape here: the
+// "type a count → Generate" row becomes the usual −/count/+/All/Refresh row.
+function _psGenerateGraded(topicKey) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return
+  const total = Object.keys(mod.questions).length
+  const input = document.getElementById('ps-gen-count-input')
+  const n = input ? parseInt(input.value, 10) : _psQCount
+  _psQCount = Math.max(1, Math.min(total, isNaN(n) ? _psQCount : n))
+  _psCurrentItems = _psModePool(topicKey, _psQCount)
+  _psQCount = _psCurrentItems.length || _psQCount
+  _psPickReviseCodeFlags()
+  _psSaveSession()
+  _renderPracticePanel()
+}
+// Direct count entry (Graded only) — clamp to [1, total] and regenerate on the fly, same as +/-.
+function _psSetCountValue(value, topicKey) {
+  const mod = TOPIC_MODULES[topicKey]
+  if (!mod) return
+  if (_psTimerRun) return  // locked while timer is running — use Reset to restart
+  const total = Object.keys(mod.questions).length
+  const n = parseInt(value, 10)
+  _psQCount = Math.max(1, Math.min(total, isNaN(n) ? _psQCount : n))
+  _psShuffle(topicKey)
+}
+
 function _psAdjCount(delta, topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
@@ -3034,8 +3132,7 @@ function _psAdjCount(delta, topicKey) {
   }
 
   _psQCount = _psCurrentItems.length
-  const valEl = document.getElementById('ps-count-val')
-  if (valEl) valEl.textContent = _psQCount
+  _psSyncCountDisplay(_psQCount)
   const listEl = document.getElementById('ps-list')
   if (listEl) {
     listEl.innerHTML = _psCurrentItems.length
@@ -3058,8 +3155,7 @@ function _psSetAll(topicKey) {
   const toAdd = Object.entries(mod.questions).filter(([k]) => !currentKeys.has(k))
   _psCurrentItems = [..._psCurrentItems, ...toAdd]
   _psQCount = _psCurrentItems.length
-  const valEl = document.getElementById('ps-count-val')
-  if (valEl) valEl.textContent = _psQCount
+  _psSyncCountDisplay(_psQCount)
   const listEl = document.getElementById('ps-list')
   if (listEl) listEl.innerHTML = _psRowsHtml()
   _psSaveSession()  // Persist the updated list
@@ -3141,8 +3237,8 @@ function _psModePool(topicKey, count) {
     const rank      = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
     const pinned    = _shuffle(graded.filter(([k]) => isPinned(k)))
     const unpinned  = graded.filter(([k]) => !isPinned(k))
-    const weak      = _weightedShuffle(unpinned.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
-    const solid     = _weightedShuffle(unpinned.filter(([k]) => rank(k) === 2 && isReviseDue(k)))
+    const weak      = _weightedShuffleByImpact(unpinned.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
+    const solid     = _weightedShuffleByImpact(unpinned.filter(([k]) => rank(k) === 2 && isReviseDue(k)))
     const solidFill = Math.max(0, count - pinned.length - weak.length)
     return [...pinned, ...weak, ...solid.slice(0, solidFill)]
   }
@@ -3222,13 +3318,19 @@ function _psSetMode(mode, topicKey) {
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
-  // Every mode — including Revise / By Pattern — seeds from the SAME count you last set: if you
-  // set 10, Revise shows 10, not every due question in the topic. Use "All" to see everything due
-  // at once. (Revise's own no-repeat-within-a-cycle logic in _psRankedRevisePool means repeated
-  // Refreshes still work through the WHOLE due-set over time instead of the same 10 every time.)
-  const seedCount = _psQCount
-  _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(seedCount, total)))
-  _psQCount = _psCurrentItems.length || seedCount
+  if (mode === 'graded') {
+    // Graded always lands empty — pick a count and hit Generate. Keeps the count you last
+    // typed/set (seedCount) as the pre-filled value, it just doesn't auto-populate.
+    _psCurrentItems = []
+  } else {
+    // Every mode — including Revise / By Pattern — seeds from the SAME count you last set: if you
+    // set 10, Revise shows 10, not every due question in the topic. Use "All" to see everything due
+    // at once. (Revise's own no-repeat-within-a-cycle logic in _psRankedRevisePool means repeated
+    // Refreshes still work through the WHOLE due-set over time instead of the same 10 every time.)
+    const seedCount = _psQCount
+    _psCurrentItems = _psModePool(topicKey, Math.max(1, Math.min(seedCount, total)))
+    _psQCount = _psCurrentItems.length || seedCount
+  }
   _psPickReviseCodeFlags()
   // Save BEFORE rendering — with an empty pool, the panel build restores from storage,
   // which must already hold the new mode (not the old session).
@@ -3273,6 +3375,10 @@ function _psRecallGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)
   logRecent(lcKey, grade)
+  // ✓ Solid in GRADED specifically (not By Pattern — that stays pure recall) gets full "clean
+  // solve" credit, same as the old click-to-solve: push the code-cooldown ladder further out and
+  // mark the question Solved. gradeRevise() already bumped the confidence ring for a solid grade.
+  if (grade === 'solid' && _psMode === 'graded') _psCreditCleanSolve(lcKey)
   _psDoneThisSession.add(lcKey)
   _psSaveSession()
   const listEl = document.getElementById('ps-list')
@@ -3313,8 +3419,7 @@ function _psShuffle(topicKey) {
   _psPickReviseCodeFlags()
   _psSaveSession()  // Persist the new session
 
-  const valEl = document.getElementById('ps-count-val')
-  if (valEl) valEl.textContent = _psQCount
+  _psSyncCountDisplay(_psQCount)
   const listEl = document.getElementById('ps-list')
   if (!listEl) return
   listEl.innerHTML = _psCurrentItems.length
@@ -3873,11 +3978,24 @@ function _qpGenerate() {
   _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
 
   // Pinned first, then weakest-first (📌 → ✗ forgot → ~ shaky → ✓ confident → rest). Mock stays random.
-  const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
-  const unpinned    = pool.filter(([k]) => !isPinned(k))
-  const fillCount   = Math.max(0, count - pinned.length)
-  const orderedUnpinned = _qpMock ? _orderPracticePool(unpinned) : _orderByWeakness(_orderPracticePool(unpinned))
-  const generated = [...pinned, ...orderedUnpinned.slice(0, fillCount)]
+  // Graded gets the SAME guarantee as per-topic Graded: 📌 pinned and ✗ forgot / ~ shaky NEVER get
+  // cut by the count cap (only ✓ solid padding is capped) — and is weighted by interview frequency
+  // too, so limited practice time goes to your weakest AND highest-impact problems first.
+  let generated
+  if (_qpRevised) {
+    const pinned    = _shuffle(pool.filter(([k]) => isPinned(k)))
+    const unpinned  = pool.filter(([k]) => !isPinned(k))
+    const weak      = _weightedShuffleByImpact(unpinned.filter(([k]) => _weaknessRank(k) < 2)).sort((a, b) => _weaknessRank(a[0]) - _weaknessRank(b[0]))
+    const solid     = _weightedShuffleByImpact(unpinned.filter(([k]) => _weaknessRank(k) === 2))
+    const solidFill = Math.max(0, count - pinned.length - weak.length)
+    generated = [...pinned, ...weak, ...solid.slice(0, solidFill)]
+  } else {
+    const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
+    const unpinned    = pool.filter(([k]) => !isPinned(k))
+    const fillCount   = Math.max(0, count - pinned.length)
+    const orderedUnpinned = _qpMock ? _orderPracticePool(unpinned) : _orderByWeakness(_orderPracticePool(unpinned))
+    generated = [...pinned, ...orderedUnpinned.slice(0, fillCount)]
+  }
 
   const fresh = generated.filter(([k]) => !prevDone.has(k))
   const done  = generated.filter(([k]) =>  prevDone.has(k))
