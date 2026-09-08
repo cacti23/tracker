@@ -231,6 +231,23 @@ function getReviseState(lcKey) {
   return isReviseDue(lcKey) ? 'due' : 'fresh'
 }
 
+// ─── RECENT ACTIVITY LOG ────────────────────────────────────────────────────
+// Newest-first history of grades thrown from a Graded/By Pattern session (NOT from grading
+// directly on a question card — that's a deliberate scope cut so this stays "what did I just
+// practice", not the full revise history). shape: [{ lcKey, grade, ts: ISO }, ...] newest first.
+const RECENT_LOG_KEY = 'dsa-recent-log-v1'
+const RECENT_LOG_MAX = 150
+function _recentLogAll() { try { return JSON.parse(localStorage.getItem(RECENT_LOG_KEY) || '[]') } catch { return [] } }
+function getRecentLog() { return _recentLogAll() }
+// Re-grading the same question moves it back to the top instead of duplicating.
+function logRecent(lcKey, grade) {
+  const log = _recentLogAll().filter(e => e.lcKey !== lcKey)
+  log.unshift({ lcKey, grade, ts: new Date().toISOString() })
+  if (log.length > RECENT_LOG_MAX) log.length = RECENT_LOG_MAX
+  try { localStorage.setItem(RECENT_LOG_KEY, JSON.stringify(log)) } catch {}
+  return log
+}
+
 // ─── CODE-FORCE FLAG ──────────────────────────────────────────────────────────
 // When a recall pass is graded "forgot", the problem is force-queued back into the CODE
 // queue (re-code it cold) no matter where it sits on the code ladder. Cleared on the next

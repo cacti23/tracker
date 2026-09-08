@@ -2663,15 +2663,17 @@ function _qpRowsHtml() {
   return _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
 }
 
-// "today" / "yesterday" / "Nd ago" from an ISO timestamp (calendar-day based).
+// Fine-grained relative time: "just now" / "30 min" / "4h" / "1d" / "12d" from an ISO timestamp.
 function _agoLabel(iso) {
   if (!iso) return ''
-  const a = new Date(); a.setHours(0, 0, 0, 0)
-  const b = new Date(iso); b.setHours(0, 0, 0, 0)
-  const days = Math.round((a - b) / 86400000)
-  if (days <= 0) return 'today'
-  if (days === 1) return 'yesterday'
-  return days + 'd ago'
+  const ms = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(ms / 60000)
+  if (min < 1)  return 'just now'
+  if (min < 60) return min + ' min'
+  const hr = Math.floor(min / 60)
+  if (hr < 24)  return hr + 'h'
+  const days = Math.floor(hr / 24)
+  return days + 'd'
 }
 
 // Revised-log row: a question you've already graded. Shows its grade badge + how long ago, and
@@ -2755,11 +2757,32 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   )
 }
 
+// Read-only row for the 🕘 Recent log: what you graded, in Graded/By Pattern, and when — no
+// grade controls here, this is a history, not another place to grade from.
+const RECENT_GRADE_BADGE = { solid: ['rg-solid', '✓'], shaky: ['rg-shaky', '~'], forgot: ['rg-forgot', '✗'] }
+function _buildRecentItem([lcKey, q], i) {
+  const entry = getRecentLog().find(e => e.lcKey === lcKey)
+  const grade = entry ? entry.grade : null
+  const ts    = entry ? entry.ts : null
+  const badge = RECENT_GRADE_BADGE[grade] || ['rg-none', '']
+  return (
+    '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
+    '<span class="ps-q-num">' + (i + 1) + '</span>' +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
+    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    '<span class="revise-grade-badge ' + badge[0] + '">' + badge[1] + '</span>' +
+    (ts ? '<span class="rev-ago" title="' + escHtml(new Date(ts).toLocaleString()) + '">' + _agoLabel(ts) + ' ago</span>' : '') +
+    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+    '</div>'
+  )
+}
+
 // Grade a row in the Revise Session: drives the revise queue (and force-codes on "forgot"),
 // then marks the row graded. Rows stay put — regrading is allowed (click a different button).
 function _qpReviseGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)               // data + dashboard counts + (card refresh is a no-op here)
+  logRecent(lcKey, grade)
   _qpDoneThisSession.add(lcKey)
   _saveQpState()
   const listEl = document.getElementById('qp-results')
@@ -2881,7 +2904,7 @@ function _buildPracticePanel(topicKey, mod) {
     if (savedSession) {
       // Worked/Mock/whole-topic-Revise were removed from the UI — coerce any old saved
       // session in one of those modes to Graded so there's still a mode button to land on.
-      _psMode       = (savedSession.mode === 'revise-pattern' || savedSession.mode === 'graded')
+      _psMode       = ['revise-pattern', 'graded', 'recent'].includes(savedSession.mode)
         ? savedSession.mode : 'graded'
       _psMockReveal = !!savedSession.mockReveal
       _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
@@ -2911,12 +2934,13 @@ function _buildPracticePanel(topicKey, mod) {
   html += '<div class="ps-mode-bar d-flex flex-wrap gap-2 mb-2">'
   html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" onclick="_psSetMode(\'graded\',\'' + topicKey + '\')" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
   html += '<button type="button" class="qp-chip' + (_psMode === 'revise-pattern' ? ' active' : '') + '" onclick="_psSetMode(\'revise-pattern\',\'' + topicKey + '\')" title="By Pattern — active recall scoped to just the pattern(s) you pick">🧩 By Pattern</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'recent' ? ' active' : '') + '" onclick="_psSetMode(\'recent\',\'' + topicKey + '\')" title="Recent — a read-only log of what you graded in Graded/By Pattern, newest first">🕘 Recent</button>'
   html += '</div>'
   // ── Controls bar ──────────────────────────────────────────────────────────
   html += '<div class="ps-ctrl-bar">'
 
   if (_psCurrentItems.length === 0) {
-    const modeLabel = _psMode === 'graded' ? '🕒 Graded' : '🧩 By Pattern'
+    const modeLabel = _psMode === 'graded' ? '🕒 Graded' : _psMode === 'recent' ? '🕘 Recent' : '🧩 By Pattern'
     html += '<span class="text-xxs text-secondary text-muted">' + modeLabel + ' — nothing here right now</span>'
   } else {
     html += '<button type="button" class="ps-count-btn" onclick="_psAdjCount(-1,\'' + topicKey + '\')">−</button>'
@@ -3142,6 +3166,20 @@ function _psModePool(topicKey, count) {
     const due = Object.entries(mod.questions).filter(([k]) => allowed.has(k) && isReviseDue(k))
     return _psRankedRevisePool(due, count)
   }
+  if (_psMode === 'recent') {
+    // Recent = a read-only, newest-first log of what you graded in Graded/By Pattern — a place
+    // to glance back at what you just practiced, not another pool to solve or grade from.
+    const seen = new Set()
+    const pool = []
+    for (const e of getRecentLog()) {
+      if (seen.has(e.lcKey)) continue
+      seen.add(e.lcKey)
+      const q = mod.questions[e.lcKey]
+      if (q) pool.push([e.lcKey, q])
+      if (pool.length >= count) break
+    }
+    return pool
+  }
   // Worked/Mock still drop questions on cooldown (solved & resting).
   const all = Object.entries(mod.questions).filter(([k]) => !_onCooldown(k))
   if (_psMode === 'mock') {
@@ -3159,12 +3197,14 @@ function _psModePool(topicKey, count) {
 // Worked/Graded/Mock render solve-rows (click a row = solved); Revise renders grade-rows
 // (✓/~/✗ recall buttons, no click-to-solve).
 function _psRowsHtml() {
+  if (_psMode === 'recent') return _psCurrentItems.map((item, i) => _buildRecentItem(item, i)).join('')
   // Graded + By Pattern both render as grade-rows: ✓/~/✗ right on the row, jump button,
   // and a 🔗 link to your saved submission if you have one.
   return _psCurrentItems.map((item, i) => _buildReviseItem(item, i, 'ps')).join('')
 }
 function _psEmptyMsg() {
   if (_psMode === 'graded') return 'You haven’t graded any questions in this topic yet — grade them with the 🧠 ✓/~/✗ chip on the cards.'
+  if (_psMode === 'recent') return 'Nothing graded yet in Graded or By Pattern for this topic — practice a set to build your log.'
   return _psRevisePatterns.size ? 'Nothing due for the selected pattern(s) right now — come back later.' : 'Select one or more patterns above to build a revise set.'
 }
 function _renderPracticePanel() {
@@ -3232,6 +3272,7 @@ function _psRevealMock() {
 function _psRecallGrade(ev, lcKey, grade) {
   ev.stopPropagation()
   gradeRevise(lcKey, grade)
+  logRecent(lcKey, grade)
   _psDoneThisSession.add(lcKey)
   _psSaveSession()
   const listEl = document.getElementById('ps-list')
@@ -4056,6 +4097,7 @@ const BACKUP_KEYS = [
   'dsa-revise-v1',
   'dsa-code-force-v1',
   'dsa-revise-migrated-v1',
+  'dsa-recent-log-v1',
   'dsa-last-practiced-v1',
   'dsa-review-interval-v1',
   'dsa-streak-v1',
