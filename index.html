@@ -1325,7 +1325,7 @@ let _qpTimerRun    = false  // is running?
 let _qpTimerIv     = null   // setInterval handle
 let _qpTimerPreset = 0      // last preset in minutes
 let _qpDueOnly     = false  // when true: generate only "due for review" questions
-let _qpMock        = true   // Mock Mode (DEFAULT): random mixed set across ALL topics, topic & difficulty hidden, timed (interview sim)
+let _qpMock        = false  // Mock Mode removed from the dashboard UI — only Graded (on/off) + Generate remain
 let _qpMockReveal  = false  // after a mock run, reveal the hidden topic/difficulty for post-mortem (not persisted)
 let _qpRevise      = false  // Revise Session: active-recall pass — pulls revise-due problems with ✓/~/✗ grade buttons (no cold-solve). Mutually exclusive with Mock.
 let _qpRevised     = false  // Revised log: read-only list of everything you've already graded, newest-first, with grade + "ago". Re-grade in place. Mutually exclusive with Mock/Revise.
@@ -1355,9 +1355,10 @@ function _loadQpState() {
     const state = JSON.parse(raw)
     if (Array.isArray(state.topics)) state.topics.forEach(k => _qpTopics.add(k))
     if (typeof state.count   === 'number') _qpCount   = state.count
-    // Mode is NOT restored — every page load starts in the default mode (🎯 Mock). Only the
-    // topic selection / count / worked-on filter persist.
-    if (typeof state.workedOnly === 'boolean') _practiceWorkedOnly = state.workedOnly
+    // Mode is NOT restored — every page load starts in the default (Graded off). "Worked-on
+    // only" is NOT restored either: its dashboard toggle chip was removed, so a `true` saved
+    // from before that removal would otherwise be permanently stuck on with no button left to
+    // turn it back off, silently shrinking the pool to just in-progress/solved questions.
     if (Array.isArray(state.results)) {
       // Re-hydrate [lcKey, q] pairs from TOPIC_MODULES
       const pairs = []
@@ -2791,6 +2792,10 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   const pinBtn = showPin
     ? '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>'
     : ''
+  // Jump-to-question assumes a single "current topic" page context, which the dashboard doesn't
+  // have — it doesn't work there. Only offer it in the per-topic Practice Session.
+  const jumpBtn = ctx === 'ps' ?
+    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>' : ''
   return (
     '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
@@ -2805,7 +2810,7 @@ function _buildReviseItem([lcKey, q], i, ctx) {
       '<button class="rev-grade rev-shaky' + chosen('shaky') + '"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
       '<button class="rev-grade rev-forgot' + chosen('forgot') + '" title="Forgot — re-queue it for a cold solve in the CODE queue" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
     '</span>' +
-    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>' +
+    jumpBtn +
     subLink +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
@@ -2906,8 +2911,6 @@ function _jumpToQuestion(ev, lcKey) {
 function _buildPracticeItem([lcKey, q], i, showTopic) {
   const pinned = isPinned(lcKey)
   const status = getStatus(lcKey)
-  // Dashboard (showTopic=true) uses its own session sets so topic navigation never wipes them
-  const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
   const due = isDue(lcKey)
   // Mock Mode hides topic icon, difficulty, freq, status & due dot so you face the problem cold —
   // until "Reveal". Dashboard mock = _qpMock; per-topic mock = _psMode 'mock'.
@@ -2918,16 +2921,38 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
   }
-  const solvedCls    = doneInSession ? ' ps-q-solved' : ''
-  const dueDot = ((due || isCodeForced(lcKey)) && !doneInSession && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
+  // The row itself does nothing on click anymore — only the grade buttons act. Tint reflects the
+  // actual grade (like Graded's rows), not a generic "solved" flag from a click.
+  const rv       = getRevise(lcKey)
+  const forced   = isCodeForced(lcKey)
+  const rowCls   = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
+  const dueDot   = ((due || forced) && !rv && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
   const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
-  const rowClickFn   = showTopic ? '_qpRowClick' : '_psRowClick'
   const isMock       = showTopic ? _qpMock : (_psMode === 'mock')
-  const jumpBtn = isMock ? '' :
+  // Jump-to-question assumes you're already inside that topic's page (currentTopicKey) — on the
+  // dashboard there's no single "current topic" to jump within, so it doesn't actually work
+  // there. Only offer it in the per-topic Practice Session.
+  const jumpBtn = (isMock || showTopic) ? '' :
     '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>'
+  // Saved-solution link — same 🔗 to your last submission that Graded/By Pattern rows have.
+  const subs = getSubmissions(lcKey)
+  const subLink = subs.length ?
+    '<a href="' + escHtml(subs[subs.length - 1].url) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open your' +
+    (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
+    '" onclick="event.stopPropagation()">🔗</a>' : ''
+  // Solve-list rows also get the same ✓/~/✗ grade buttons Graded/By Pattern have. ✓ is the ONLY
+  // way to mark a question Solved here now (see _practiceGrade / _psCreditCleanSolve) — hidden
+  // during an un-revealed Mock so it stays a cold test.
+  const chosen = g => (rv && rv.grade === g) ? ' rev-chosen' : ''
+  const gradeBtns = hideMeta ? '' :
+    '<span class="rev-grade-group flex-shrink-0">' +
+      '<button class="rev-grade rev-solid' + chosen('solid') + '"  title="Recalled it cold — mark solved" onclick="event.stopPropagation();_practiceGrade(event,\'' + lcKey + '\',\'solid\',' + (showTopic ? 'true' : 'false') + ')">✓</button>' +
+      '<button class="rev-grade rev-shaky' + chosen('shaky') + '"  title="Shaky — needed a hint"          onclick="event.stopPropagation();_practiceGrade(event,\'' + lcKey + '\',\'shaky\',' + (showTopic ? 'true' : 'false') + ')">~</button>' +
+      '<button class="rev-grade rev-forgot' + chosen('forgot') + '" title="Forgot"                         onclick="event.stopPropagation();_practiceGrade(event,\'' + lcKey + '\',\'forgot\',' + (showTopic ? 'true' : 'false') + ')">✗</button>' +
+    '</span>'
   return (
-    '<div class="ps-q-row' + solvedCls + '" data-lc-key="' + lcKey + '" onclick="' + rowClickFn + '(event,\'' + lcKey + '\')">' +
+    '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     dueDot +
     topicIcon +
@@ -2935,12 +2960,38 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     (hideMeta ? '' : '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>') +
     (q.freq && !hideMeta ? freqBadge(q, ' flex-shrink-0') : '') +
     (hideMeta ? '' : '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>') +
-    (hideMeta ? '' : _reviseGradeBadge(lcKey)) +
+    gradeBtns +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     jumpBtn +
+    subLink +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
     '</div>'
   )
+}
+// Grade a solve-list row (dashboard's plain generator / Worked / Mock). This is now the ONLY way
+// these rows change state — the row itself has no click handler any more. ✓ Solid gets the same
+// full "clean solve" credit as Graded (_psCreditCleanSolve): ladder push + mark Solved. The ring
+// bump itself lives inside gradeRevise() and is deduped off the PERSISTED revise record (not the
+// UI path that called it), so grading the same question twice today — from here, Graded, or By
+// Pattern, in any combination — only ever credits the ring once.
+function _practiceGrade(ev, lcKey, grade, showTopic) {
+  if (ev) ev.stopPropagation()
+  gradeRevise(lcKey, grade)
+  if (grade === 'solid') _psCreditCleanSolve(lcKey)
+  if (showTopic) _qpDoneThisSession.add(lcKey); else _psDoneThisSession.add(lcKey)
+  const items  = showTopic ? _qpResults : _psCurrentItems
+  const listEl = document.getElementById(showTopic ? 'qp-results' : 'ps-list')
+  if (!listEl || !items) return
+  const idx = items.findIndex(([k]) => k === lcKey)
+  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
+  if (row && idx !== -1) row.outerHTML = _buildPracticeItem(items[idx], idx, showTopic)
+  // Session-complete banner once every row here has been graded (mirrors Graded's sweep-complete).
+  if (showTopic) {
+    const ungraded = items.filter(([k]) => !_qpDoneThisSession.has(k)).length
+    if (ungraded === 0 && !listEl.querySelector('.ps-session-done')) {
+      listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">✅ Session complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span></div>')
+    }
+  }
 }
 
 // Build the full inner HTML for the Practice Session accordion body.
