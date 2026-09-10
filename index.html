@@ -2801,7 +2801,9 @@ function _buildReviseItem([lcKey, q], i, ctx) {
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     topicIcon +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
-    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    // Dashboard rows drop difficulty (and never had status) to match the plain generator's rows —
+    // frequency stays instead. Per-topic Graded/By Pattern keep difficulty, untouched.
+    (ctx === 'ps' ? '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' : (q.freq ? freqBadge(q, ' flex-shrink-0') : '')) +
     codeBadge +
     (doneThisSession ? _reviseGradeBadge(lcKey) : '') +
     pinBtn +
@@ -2910,7 +2912,6 @@ function _jumpToQuestion(ev, lcKey) {
 
 function _buildPracticeItem([lcKey, q], i, showTopic) {
   const pinned = isPinned(lcKey)
-  const status = getStatus(lcKey)
   const due = isDue(lcKey)
   // Mock Mode hides topic icon, difficulty, freq, status & due dot so you face the problem cold —
   // until "Reveal". Dashboard mock = _qpMock; per-topic mock = _psMode 'mock'.
@@ -2957,9 +2958,7 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     dueDot +
     topicIcon +
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
-    (hideMeta ? '' : '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>') +
     (q.freq && !hideMeta ? freqBadge(q, ' flex-shrink-0') : '') +
-    (hideMeta ? '' : '<span class="badge ' + STATUS_DOT[status] + ' q-badge flex-shrink-0 ps-status-badge">' + STATUS_EMOJI[status] + '</span>') +
     gradeBtns +
     '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     jumpBtn +
