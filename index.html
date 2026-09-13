@@ -2922,10 +2922,13 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
   }
-  // The row itself does nothing on click anymore — only the grade buttons act. Tint reflects the
-  // actual grade (like Graded's rows), not a generic "solved" flag from a click.
-  const rv       = getRevise(lcKey)
+  // The row itself does nothing on click anymore — only the grade buttons act. Tint/chosen-button
+  // only reflect a grade thrown THIS session (same rule as Graded/By Pattern rows) — a stale grade
+  // from before this generate doesn't pre-color the row; every row starts neutral until you grade
+  // it again, right here, right now.
+  const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
   const forced   = isCodeForced(lcKey)
+  const rv       = doneInSession ? getRevise(lcKey) : null
   const rowCls   = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
   const dueDot   = ((due || forced) && !rv && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
