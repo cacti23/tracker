@@ -1500,12 +1500,20 @@ function getDifficultyColor(difficulty) {
 function goToQuestion(topicKey, lcKey) {
   // Clear search and navigate to topic/question
   document.getElementById('global-search-input').value = ''
-  loadTopic(topicKey)
-  // Scroll to question
-  setTimeout(() => {
-    const el = document.getElementById('q_' + lcKey.replace(/_/g, ''))
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, 100)
+  loadTopic(topicKey)  // lands on the Questions tab by default (TOPIC_TABS[0])
+  // Expand this question's accordion item and scroll it into view, with a flash to make it
+  // easy to spot. Uses the same data-lc-key lookup _jumpToQuestion relies on elsewhere — the
+  // old selector here (id="q_"+lcKey) never matched anything, so this silently did nothing.
+  requestAnimationFrame(() => {
+    const item = document.querySelector('#tab-questions .accordion-item[data-lc-key="' + lcKey + '"]')
+    if (!item) return
+    const collapseEl = item.querySelector('.accordion-collapse')
+    if (collapseEl && window.bootstrap) bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show()
+    item.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    item.classList.remove('ps-jump-highlight')
+    void item.offsetWidth  // restart the flash animation if clicked again
+    item.classList.add('ps-jump-highlight')
+  })
 }
 
 function skipToDailyQuestion(currentLcKey) {
