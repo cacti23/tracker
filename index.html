@@ -1344,6 +1344,11 @@ function _saveQpState() {
       revised: _qpRevised,
       workedOnly: _practiceWorkedOnly,
       results: _qpResults ? _qpResults.map(([k]) => k) : null,
+      // Which of THIS generated set you've graded/solved this session — without this, closing
+      // and reopening the tab restores the same question list (results, above) but the tint
+      // showing what you'd already graded would vanish, since that's normally in-memory only.
+      // Cleared by _qpGenerate() on every real regenerate, same as the in-memory Set always was.
+      doneThisSession: Array.from(_qpDoneThisSession),
     }
     localStorage.setItem(QP_STATE_KEY, JSON.stringify(state))
   } catch {}
@@ -1370,6 +1375,7 @@ function _loadQpState() {
       })
       if (pairs.length > 0) _qpResults = pairs
     }
+    if (Array.isArray(state.doneThisSession)) _qpDoneThisSession = new Set(state.doneThisSession)
   } catch {}
 }
 
@@ -2988,7 +2994,7 @@ function _practiceGrade(ev, lcKey, grade, showTopic) {
   if (ev) ev.stopPropagation()
   gradeRevise(lcKey, grade)
   if (grade === 'solid') _psCreditCleanSolve(lcKey)
-  if (showTopic) _qpDoneThisSession.add(lcKey); else _psDoneThisSession.add(lcKey)
+  if (showTopic) { _qpDoneThisSession.add(lcKey); _saveQpState() } else { _psDoneThisSession.add(lcKey); _psSaveSession() }
   const items  = showTopic ? _qpResults : _psCurrentItems
   const listEl = document.getElementById(showTopic ? 'qp-results' : 'ps-list')
   if (!listEl || !items) return
