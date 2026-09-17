@@ -1360,10 +1360,14 @@ function _loadQpState() {
     const state = JSON.parse(raw)
     if (Array.isArray(state.topics)) state.topics.forEach(k => _qpTopics.add(k))
     if (typeof state.count   === 'number') _qpCount   = state.count
-    // Mode is NOT restored — every page load starts in the default (Graded off). "Worked-on
-    // only" is NOT restored either: its dashboard toggle chip was removed, so a `true` saved
-    // from before that removal would otherwise be permanently stuck on with no button left to
-    // turn it back off, silently shrinking the pool to just in-progress/solved questions.
+    // Graded IS restored — unlike Mock/"Worked-on only" (deliberately NOT restored below), its
+    // toggle chip is still on the dashboard, so there's always a way to switch it back off; not
+    // restoring it just meant a reload after finishing a Graded set silently re-rendered that
+    // same set as plain rows and showed the wrong ("solved" instead of "graded") banner.
+    if (typeof state.revised === 'boolean') _qpRevised = state.revised
+    // Mock / "Worked-on only" are NOT restored: their dashboard toggle chips were removed, so a
+    // `true` saved from before that removal would otherwise be permanently stuck on with no
+    // button left to turn it back off, silently shrinking the pool or hiding everything.
     if (Array.isArray(state.results)) {
       // Re-hydrate [lcKey, q] pairs from TOPIC_MODULES
       const pairs = []
@@ -3031,19 +3035,32 @@ function _buildPracticePanel(topicKey, mod) {
       _psMode       = ['revise-pattern', 'graded', 'recent'].includes(savedSession.mode)
         ? savedSession.mode : 'graded'
       _psMockReveal = !!savedSession.mockReveal
-      _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
-      // Graded promise: ✗/~ (and 📌) questions ALWAYS appear. Merge in any weak graded
-      // questions missing from the restored set — graded since it was saved (or saved back
-      // when the old cooldown filter still hid them). They go on top, weakest first.
-      if (_psMode === 'graded') {
-        const have = new Set(_psCurrentItems.map(([k]) => k))
-        const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
-        const missing = Object.entries(mod.questions)
-          .filter(([k]) => getRevise(k) && !have.has(k) && (rank(k) < 2 || isPinned(k)))
-          .sort((a, b) => rank(a[0]) - rank(b[0]))
-        if (missing.length) { _psCurrentItems = [...missing, ..._psCurrentItems]; _psSaveSession() }
+      if (_psMode === 'recent') {
+        // Recent is a log of what you just did — it must never show a stale snapshot. A saved
+        // session here only carries the restored mode/scope; the actual rows always come fresh
+        // from the live log, otherwise grading something new (in Graded/By Pattern) wouldn't
+        // show up here again until you happened to hit Refresh.
+        // _psLoadSession (just above) already restored _psQCount from the saved session, but
+        // `count` (top of this function) was computed from the OLD _psQCount before that — recompute.
+        const recentCount = Math.max(1, Math.min(_psQCount, total))
+        _psCurrentItems = _psModePool(topicKey, recentCount)
+        _psQCount = _psCurrentItems.length || _psQCount
+        _psSaveSession()
+      } else {
+        _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
+        // Graded promise: ✗/~ (and 📌) questions ALWAYS appear. Merge in any weak graded
+        // questions missing from the restored set — graded since it was saved (or saved back
+        // when the old cooldown filter still hid them). They go on top, weakest first.
+        if (_psMode === 'graded') {
+          const have = new Set(_psCurrentItems.map(([k]) => k))
+          const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
+          const missing = Object.entries(mod.questions)
+            .filter(([k]) => getRevise(k) && !have.has(k) && (rank(k) < 2 || isPinned(k)))
+            .sort((a, b) => rank(a[0]) - rank(b[0]))
+          if (missing.length) { _psCurrentItems = [...missing, ..._psCurrentItems]; _psSaveSession() }
+        }
+        _psQCount = _psCurrentItems.length || _psQCount
       }
-      _psQCount = _psCurrentItems.length || _psQCount
     } else if (_psMode === 'graded') {
       // Graded always starts empty — pick a count and hit Generate.
     } else if (_psMode !== 'worked' || prevTopic === topicKey) {
