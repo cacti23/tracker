@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DSA Thoughts — Quick Reference</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#4338ca; --accent-soft:#4338ca14; --accent-line:#4338ca40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; --good:#4338ca; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.35rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;
+    padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.05rem;font-weight:700;margin:1.4em 0 .15em}
+  p{margin:.55em 0}
+  ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;
+    font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);
+    border-radius:7px;color:var(--ink);font-size:.86rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.68rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.02rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700}
+  td code{white-space:nowrap}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);
+    border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{
+    .nav{display:none}
+    body{margin:0;max-width:100%;padding:0;font-size:12px;line-height:1.4}
+    h1.title{font-size:1.6rem}
+    h2{font-size:1.1rem;margin-top:1em;page-break-after:avoid}
+    h3{font-size:.98rem;page-break-after:avoid}
+    pre[class*=language]{font-size:.68rem;line-height:1.35}
+    figure,tr,.box{page-break-inside:avoid}
+    @page{size:A4;margin:8mm}
+  }
+</style>
+</head>
+<body>
+
+<h1 class="title">🧠 DSA Thoughts</h1>
+<p class="sub">Quick-reference mental models and decision rules — not a full learning sheet, a "remember this the instant you see the shape" cheat sheet.</p>
+
+<nav class="nav">
+  <a href="#t1"><b>01</b>Blocked start/dest</a>
+  <a href="#t2"><b>02</b>Grid brute force TC</a>
+  <a href="#t3"><b>03</b>Direction array</a>
+  <a href="#t4"><b>04</b>Kahn's cycle detection</a>
+  <a href="#t5"><b>05</b>Hierholzer's</a>
+  <a href="#t6"><b>06</b>Sieve of Eratosthenes</a>
+  <a href="#t7"><b>07</b>Dijkstra init</a>
+  <a href="#t8"><b>08</b>Grid as graph V+E</a>
+  <a href="#t9"><b>09</b>Serialize tree → preorder</a>
+  <a href="#t10"><b>10</b>BST → inorder</a>
+  <a href="#t11"><b>11</b>BFS vs backtracking</a>
+  <a href="#t12"><b>12</b>Tree parent map</a>
+  <a href="#t13"><b>13</b>Dijkstra dist[] need</a>
+  <a href="#t14"><b>14</b>Dijkstra complexity</a>
+  <a href="#t15"><b>15</b>Visited: required vs optional</a>
+  <a href="#t16"><b>16</b>Hierholzer's TC = O(E)</a>
+  <a href="#t17"><b>17</b>V+E is a shortcut</a>
+  <a href="#t18"><b>18</b>Sentinel-seeding safety</a>
+  <a href="#t19"><b>19</b>BFS vs Dijkstra</a>
+  <a href="#t20"><b>20</b>Binary search master summary</a>
+  <a href="#t21"><b>21</b>Cycle detection, all methods</a>
+  <a href="#t22"><b>22</b>2577 vs 3341/3342</a>
+  <a href="#t23"><b>23</b>JS out-of-bounds access</a>
+  <a href="#t24"><b>24</b>Binary search + BFS vs Dijkstra</a>
+  <a href="#t25"><b>25</b>Dijkstra vs Bellman-Ford</a>
+  <a href="#t26"><b>26</b>Floyd-Warshall</a>
+  <a href="#t27"><b>27</b>Skip/Take vs committed-rule DP</a>
+  <a href="#t28"><b>28</b>Dungeon Game</a>
+  <a href="#t29"><b>29</b>MST — Kruskal's</a>
+</nav>
+
+<h2 id="t1">1 · 🧱 Grid Traversal — Blocked Start/Destination</h2>
+<p>Before starting, check if start OR destination is blocked (<code>-1</code>, thorn, obstacle). Handle immediately.</p>
+
+<h2 id="t2">2 · 🌳 Grid Brute Force — TC = branch^depth</h2>
+<ul>
+<li>4 directions → branch≈4, depth≈M×N → <code>O(4^(M×N))</code></li>
+<li>Right/down only → branch=2, depth=M+N → <code>O(2^(M+N))</code></li>
+</ul>
+<p class="hint">Loose bounds — actual cost depends on visited-tracking and work per call.</p>
+
+<h2 id="t3">3 · 🧭 Standard Direction Array</h2>
+<p><b>Top → Right → Down → Left</b></p>
+<pre class="language-tsx"><code class="language-tsx">[-1,  0]
+[ 0,  1]
+[ 1,  0]
+[ 0, -1]</code></pre>
+
+<h2 id="t4">4 · 🔁 Kahn's Algorithm — Cycle Detection (Directed)</h2>
+<p>Peel nodes with <code>indegree=0</code> repeatedly. Cycle nodes NEVER hit 0.</p>
+<div class="box key"><b class="tag">📌 One-line</b> <code>processedNodes &lt; totalNodes</code> → cycle exists.</div>
+
+<h2 id="t5">5 · ✈️ Hierholzer's Algorithm</h2>
+<p>For Eulerian paths — visit every <b>EDGE</b> once, not every node.
+Push node to result on the way OUT (post-order) → <b>reverse at the end</b>.</p>
+
+<h2 id="t6">6 · 🔢 Sieve of Eratosthenes</h2>
+<div class="box key"><b class="tag">📌 One-line</b> <code>TC = O(n log log n)</code> — sum of <code>n/p</code> over all primes <code>p ≤ n</code>.</div>
+
+<h2 id="t7">7 · 🎯 Dijkstra — Initialization</h2>
+<p>Weighted graph, non-negative weights → think Dijkstra.</p>
+<pre class="language-tsx"><code class="language-tsx">dist[node] = Infinity
+dist[source] = 0</code></pre>
+<div class="box key"><b class="tag">🔑 Mental swap</b> BFS → <code>visited[]</code>. Dijkstra → <code>dist[] = ∞</code>.</div>
+
+<h2 id="t8">8 · 📐 Grid as Graph — V+E Complexity</h2>
+<pre class="language-tsx"><code class="language-tsx">V = M×N
+E &lt;= 4×M×N
+V+E = MN+4MN = 5MN = O(MN)</code></pre>
+<div class="box key"><b class="tag">🔑</b> Grid BFS/DFS → <code>O(MN)</code>, the constant 4 drops.</div>
+
+<h2 id="t9">9 · 🌲 Serialize/Deserialize Tree → think PREORDER</h2>
+<ul>
+<li><b>Binary Tree (297):</b> preorder + null markers</li>
+<li><b>BST (449):</b> preorder alone suffices — BST bounds preserve structure</li>
+</ul>
+
+<h2 id="t10">10 · 🔍 BST → think INORDER first</h2>
+<p>Inorder on a BST = <b>sorted order</b>. Use for:</p>
+<ul>
+<li>Kth smallest/largest</li>
+<li>Validate BST</li>
+<li>Predecessor/successor</li>
+<li>Recover BST</li>
+</ul>
+<div class="box warn"><b class="tag">⚠️</b> Not universal — sometimes bounds/preorder/postorder fit better.</div>
+
+<h2 id="t11">11 · 🔦 BFS vs Backtracking on Grids</h2>
+<p><b>🎯 Does the answer depend on the SEQUENCE/path of cells visited?</b></p>
+<table>
+<tr><th>Answer</th><th>Approach</th><th>Examples</th></tr>
+<tr><td>✅ NO</td><td>BFS/DFS, mark visited forever</td><td>Rotting Oranges, Number of Islands</td></tr>
+<tr><td>🚨 YES</td><td>Backtracking, mark → explore → <b>restore</b></td><td>Max Gold, Unique Paths III, Word Search</td></tr>
+</table>
+<div class="box key"><b class="tag">📌</b> No sequence dependence → BFS handles it. Sequence matters → backtrack + undo.</div>
+
+<h2 id="t12">12 · 🌳 Tree Traversal as Undirected Graph — Parent Map</h2>
+<p>Trees only give CHILD pointers (<code>left</code>/<code>right</code>) — no way UP.</p>
+<p><b>🎯</b> Don't build a full adjacency-list graph — just add the ONE missing piece: <b>parent</b>.</p>
+<p>📐 One DFS pass, passing <code>(node, parent)</code>, building <code>parentMap.set(node, parent)</code>.</p>
+<div class="box key"><b class="tag">🔑</b> Then treat the tree as undirected: <code>left</code>, <code>right</code>, AND <code>parentMap.get(node)</code> = 3 directions.</div>
+<p class="hint">Used for: All Nodes Distance K in Binary Tree (863) — any problem needing "go up" in a tree.</p>
+
+<h2 id="t13">13 · 🎯 Dijkstra — Why <code>dist[]</code> Is Always Needed</h2>
+<p><b>🎯</b> Only trust a path if it's the CHEAPEST way found SO FAR to a node.</p>
+<p><code>dist[node]</code> = best cost discovered so far.</p>
+<div class="box warn"><b class="tag">🚨</b> A node CAN be pushed to the queue multiple times (once per improving path). <code>dist[]</code> decides: is THIS entry still the best, or has something better already replaced it?</div>
+<pre class="language-tsx"><code class="language-tsx">if (currTime > dist[row][col]) continue;  // stale — a better path already won</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>dist[]</code> guarantees you only ever ACT using a node's LOWEST known cost, never a stale worse one.</div>
+
+<h2 id="t14">14 · ⏱️ Dijkstra Complexity — Direct Derivation (NOT from V+E)</h2>
+<div class="box warn"><b class="tag">🚨</b> <code>V+E</code> doesn't map cleanly onto Dijkstra — build it from scratch instead.</div>
+<p><b>🎯 Question 1: How many times does a heap PUSH happen, total?</b></p>
+<p>📐 A push happens every time you find a BETTER path to some node — i.e., every time an EDGE relaxation succeeds. There are <code>E</code> edges total → <b>at most <code>E</code> pushes, ever.</b></p>
+<p><b>🎯 Question 2: How much does ONE push/pop cost?</b></p>
+<p>📐 Heap ops cost <code>O(log(heap size))</code>. Heap can grow to <code>E</code> entries (from Q1) → each op costs <code>O(log E)</code>.</p>
+<p><b>🎯 Multiply:</b> <code>(E pushes) × (log E per push) = O(E log E)</code></p>
+<div class="box key"><b class="tag">📌</b> Don't start from V+E for Dijkstra — ask "how many heap pushes total" (E, one per edge relaxation) and "cost per push" (log E) — multiply. V never enters the picture.</div>
+
+<h2 id="t15">15 · 🔁 When Visited Is REQUIRED vs Optional</h2>
+<div class="box warn"><b class="tag">🚨</b> Cycle possible → visited REQUIRED (prevents infinite loops).</div>
+<p>✅ No cycle guaranteed (e.g. DAG, built level-by-level in ONE direction) → visited NOT required for correctness.</p>
+<div class="box key"><b class="tag">🔑 Bonus reason to STILL use it even without cycles</b> efficiency (avoid redundant re-processing) — but this is OPTIONAL, not safety-critical.</div>
+<div class="box warn"><b class="tag">⚠️ Watch out</b> if the SAME node can legitimately appear in MULTIPLE valid paths (like Word Ladder II's DFS reconstructing all shortest paths), adding visited can WRONGLY BLOCK a valid second path — don't add it just out of habit.</div>
+<div class="box key"><b class="tag">📌</b> Cycle possible → visited mandatory. No cycle → visited optional (helps speed, not required for correctness) — and can actively HURT if multiple valid paths legitimately share a node.</div>
+
+<h2 id="t16">16 · ✈️ Hierholzer's DFS — TC = O(E), NOT V+E</h2>
+<p><b>🎯</b> Every edge is CONSUMED exactly once (<code>nei.pop()</code> permanently removes it).</p>
+<div class="box warn"><b class="tag">🚨</b> A NODE can be visited MULTIPLE times (once per outgoing edge it has) — so "V node-visits" isn't a meaningful separate count here.</div>
+<div class="box key"><b class="tag">🔑</b> Total work = total edges popped = <code>O(E)</code> alone. No <code>+V</code> term needed — <code>E</code> already captures ALL the work.</div>
+<div class="box key"><b class="tag">📌</b> Whenever a DFS CONSUMES each edge exactly once (Hierholzer's / Eulerian path problems) → TC = O(E), not V+E.</div>
+
+<h2 id="t17">17 · ⚖️ V+E Is a Shortcut — Only Safe When Work Is O(1)</h2>
+<p><b>🎯</b> <code>V+E</code> secretly means <code>V×(work per node) + E×(work per edge)</code>.</p>
+<p>✅ When work per node/edge is O(1) (a comparison, a fixed neighbor check) → safely write just <code>V+E</code>.</p>
+<div class="box warn"><b class="tag">🚨</b> When work per node/edge is MORE than O(1) (building a string, computing a hash) → must EXPLICITLY multiply:</div>
+<pre class="language-tsx"><code class="language-tsx">Total = (V × work per node) + (E × work per edge)</code></pre>
+<p>📐 <b>Example — removeInvalidParentheses:</b> <code>V=2^n</code> states, <code>E=2^n·L</code> edges (L removal-choices per state), work per edge = <code>O(L)</code> (string slice).</p>
+<pre class="language-tsx"><code class="language-tsx">Total = 2^n×L (work per node, building L edges) + (2^n·L)×L (work per edge)
+      = O(2^n · L²)</code></pre>
+<div class="box key"><b class="tag">📌</b> Don't default to "V+E" blindly — check the cost of ONE unit of work first. If it's O(1), V+E is fine as-is. If it's O(k), multiply that k into both terms explicitly.</div>
+
+<h2 id="t18">18 · 🎯 Sentinel-Seeding: When It's Safe vs When It's Not</h2>
+<p><b>🎯</b> The REAL question: does my function have an EXPLICIT base case, or is the "seed value" secretly ACTING as the base case?</p>
+<p>✅ <b>Explicit base case exists</b> (<code>if(...) return 0;</code> / a clean, dedicated return) → sentinel-seeding is SAFE, don't overthink it. The base case ALWAYS overrides the sentinel with a real answer.</p>
+<pre class="language-tsx"><code class="language-tsx">function dfs(row, col) {
+    if (invalid) return 0;          // explicit base case, resolves cleanly
+    ...
+    let maxGold = 0;                 // sentinel is fine, loop always gets overridden
+    for (...) maxGold = Math.max(maxGold, dfs(...));
+    return currGold + maxGold;       // add currGold ONCE, here
+}</code></pre>
+<div class="box warn"><b class="tag">🚨 NO explicit base case</b> (a "dead end" is just "the loop found nothing," no dedicated return) → the SEED value ITSELF is the base case's answer. It MUST equal the correct "nothing more to add" result — NOT a generic sentinel.</div>
+<pre class="language-tsx"><code class="language-tsx">function dfs(row, col) {
+    // no explicit base case — dead end = loop simply doesn't run
+    let maxGold = currGold;          // seed = the correct dead-end answer itself
+    for (...) maxGold = Math.max(maxGold, currGold + dfs(...));
+    return maxGold;
+}</code></pre>
+<div class="box key"><b class="tag">📌</b> Explicit base case → sentinel-seeding is safe, base case always resolves it. NO explicit base case → the seed IS the base case, so it must already equal the correct answer for "nothing more happens here" — not a placeholder.</div>
+
+<h2 id="t19">19 · 🚦 Plain BFS vs Dijkstra — Which One to Use</h2>
+<p>✅ Edges all cost <code>1</code> → Plain BFS.</p>
+<div class="box warn"><b class="tag">🚨</b> Edges have DIFFERENT weights → Dijkstra.</div>
+<p><b>Why:</b> plain BFS assumes "visited first = reached via shortest path." That's ONLY true when every step costs the same — nothing can skip ahead of a shorter path.</p>
+<p>📐 <b>Concrete break:</b> <code>start→A</code> costs <code>10</code> directly. <code>start→B→A</code> costs <code>1+1=2</code>. If <code>A</code> gets visited FIRST via the expensive <code>10</code> edge, it's locked in with the WRONG distance — the cheaper path via <code>B</code> gets blocked.</p>
+<div class="box key"><b class="tag">📌</b> Weight-1 edges → BFS is safe. Any varying weights → Dijkstra (priority queue + <code>dist[]</code>), since "visited first" no longer means "shortest."</div>
+
+<h2 id="t20">20 · 🎯 Binary Search — Master Summary</h2>
+
+<h3>🔍 Normal (find exact element)</h3>
+<div class="box key"><b class="tag">🔑</b> <code>low</code>/<code>high</code> are ARRAY INDICES — you navigate by index, but compare the ELEMENT'S VALUE at that position.</div>
+<pre class="language-tsx"><code class="language-tsx">low = 0, high = n-1
+while (low &lt;= high) {
+    mid = (low+high) >> 1
+    if (arr[mid] === target) return mid
+    else if (arr[mid] &lt; target) low = mid + 1
+    else high = mid - 1
+}
+return -1</code></pre>
+
+<h3>📐 Boundary search (find a threshold, not an exact element)</h3>
+<p><b>🎯 THE ONE THING TO THINK ABOUT:</b> does the ANSWER have to exist WITHIN the range, or could it legitimately be "one past the end"?</p>
+<ul>
+<li>Searching a VALUE SPACE (weights, thresholds) → <code>high</code> = one past the max real value</li>
+<li>Searching ARRAY INDICES (like LIS's <code>tails</code>) → <code>high</code> = <code>array.length</code> (one past the last valid index) — "insert past everything" IS a real, valid answer</li>
+</ul>
+<div class="box key"><b class="tag">🔑</b> Same rule either way — don't treat arrays differently just because they're arrays. Normal search uses <code>n-1</code> because the answer MUST exist inside; boundary search uses <code>n</code> because it might not.</div>
+
+<p><b>Style A, searching LEFT (shrink toward smaller):</b></p>
+<pre class="language-tsx"><code class="language-tsx">low = 0, high = n
+while (low &lt; high) {
+    mid = (low+high) >> 1        // round DOWN
+    if (condition(mid)) high = mid
+    else low = mid + 1
+}
+return low   // low === high === the answer</code></pre>
+
+<p><b>Style A, searching RIGHT (grow toward bigger):</b></p>
+<pre class="language-tsx"><code class="language-tsx">low = 0, high = n
+while (low &lt; high) {
+    mid = (low+high+1) >> 1      // round UP — REQUIRED
+    if (condition(mid)) low = mid
+    else high = mid - 1
+}
+return low   // low === high === the answer</code></pre>
+
+<p><b>Style A — LIS-specific (lower bound on a REAL ARRAY, e.g. <code>tails</code> in LIS / Russian Doll Envelopes):</b></p>
+<pre class="language-tsx"><code class="language-tsx">lo = 0, hi = arr.length
+while (lo &lt; hi) {
+    mid = (lo+hi) >> 1
+    if (arr[mid] >= target) hi = mid
+    else lo = mid + 1
+}
+// lo IS the answer — insert/replace at lo</code></pre>
+
+<p>📐 <b>Concrete worked example — Russian Doll Envelopes (354),</b> sort by width ASC / height DESC on ties, then LIS on heights:</p>
+<pre class="language-tsx"><code class="language-tsx">function maxEnvelopes(env: number[][]): number {
+    env.sort((a, b) => {
+        if (a[0] === b[0]) return b[1] - a[1];
+        return a[0] - b[0];
+    });
+
+    const hei = env.map(a => a[1]);
+    const tails: number[] = [];
+
+    for (const h of hei) {
+        let lo = 0, hi = tails.length;
+        while (lo &lt; hi) {
+            const mid = (lo + hi) >> 1;
+            if (tails[mid] >= h) hi = mid;
+            else lo = mid + 1;
+        }
+        if (lo === tails.length) tails.push(h);
+        else tails[lo] = h;
+    }
+
+    return tails.length;
+}</code></pre>
+
+<p><b>Style B (kept for reference — see recommendation below):</b></p>
+<pre class="language-tsx"><code class="language-tsx">low = 0, high = n, ans = -1
+while (low &lt;= high) {
+    mid = (low+high) >> 1
+    if (condition(mid)) { ans = mid; high = mid - 1 }  // searching LEFT
+    else low = mid + 1
+}
+return ans</code></pre>
+
+<div class="box key"><b class="tag">🎯 Honest recommendation</b> Default to Style A for ALL boundary search, always. It's strictly less code (no extra <code>ans</code> variable), <code>low</code>/<code>high</code> converge to the answer directly, and it works identically for value-space AND array-index searches. Style B's only "advantage" (matching <code>low&lt;=high</code>'s shape from normal search) doesn't actually save complexity once you know Style A's <code>high=n</code> rule — it just adds bookkeeping. Style B is documented here for reference/recognition (some solutions online use it), but there's no real reason to reach for it over Style A.</div>
+
+<h3>🗺️ Quick decision</h3>
+<table>
+<tr><th>Situation</th><th>Approach</th></tr>
+<tr><td>Exact value exists in array?</td><td>Normal binary search (low/high = indices, high=n-1)</td></tr>
+<tr><td>Threshold/optimal value?</td><td>Boundary search — default Style A (high=n, whether values or array indices)</td></tr>
+<tr><td>&nbsp;&nbsp;Searching LEFT (shrink)?</td><td>high=mid, round DOWN — always safe</td></tr>
+<tr><td>&nbsp;&nbsp;Searching RIGHT (grow)?</td><td>low=mid, round UP — REQUIRED</td></tr>
+</table>
+
+<h2 id="t21">21 · 🔄 Cycle Detection — All Methods, At a Glance</h2>
+
+<h3>🔗 UNDIRECTED — 3 ways</h3>
+<p><b>1. DFS + parent-skip:</b></p>
+<pre class="language-tsx"><code class="language-tsx">dfs(node, parent):
+  visited[node] = true
+  for nei in graph[node]:
+    if nei === parent: skip
+    if visited[nei]: CYCLE
+    dfs(nei, node)</code></pre>
+<p><b>2. BFS + parent-skip:</b> same idea, queue holds <code>(node, parent)</code> pairs instead of recursion.</p>
+<p><b>3. Union-Find:</b></p>
+<pre class="language-tsx"><code class="language-tsx">for each edge (u,v):
+  if find(u) === find(v): CYCLE
+  else union(u,v)</code></pre>
+
+<h3>➡️ DIRECTED — 2 ways (Union-Find does NOT apply — no sense of direction)</h3>
+<p><b>1. DFS with 0/1/2 marking:</b></p>
+<pre class="language-tsx"><code class="language-tsx">state: 0=unvisited, 1=exploring, 2=done
+dfs(node):
+  state[node] = 1
+  for nei in graph[node]:
+    if state[nei]===1: CYCLE (back edge to node still exploring)
+    if state[nei]===0: dfs(nei)
+  state[node] = 2</code></pre>
+<p><b>2. Kahn's (BFS topological sort):</b></p>
+<pre class="language-tsx"><code class="language-tsx">queue = all nodes with indegree 0
+process queue, decrementing neighbors' indegree, adding new indegree-0 nodes
+if processedCount !== n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
+<div class="box key"><b class="tag">📌</b> Undirected → DFS/BFS parent-skip or Union-Find (3 valid ways). Directed → 0/1/2 DFS or Kahn's ONLY — Union-Find can't tell direction apart, so it can't detect directed cycles.</div>
+
+<h2 id="t22">22 · ⏳ 2577 vs 3341/3342 — Can You Wait, or Must You Move?</h2>
+<p><b>🎯</b> All THREE use Dijkstra. The ONE difference: can you WAIT in place?</p>
+<div class="box warn"><b class="tag">🚨 2577 (Minimum Time to Visit a Cell in a Grid): NO waiting.</b> Forced to move every step. Arriving too early → must BOUNCE (move away, come back) to kill time → needs PARITY math:</div>
+<pre class="language-tsx"><code class="language-tsx">if (neiTime &lt;= currTime+1) nextTime = currTime+1
+else if ((neiTime-currTime)%2===0) nextTime = neiTime+1
+else nextTime = neiTime</code></pre>
+<p>⚠️ <b>Special case:</b> <code>(0,0)</code> has NO parent to bounce with. If BOTH its neighbors need <code>&gt;1</code> to enter, you're stuck immediately:</p>
+<pre class="language-tsx"><code class="language-tsx">if (grid[0][1]>1 &amp;&amp; grid[1][0]>1) return -1</code></pre>
+<p>✅ <b>3341/3342 (Reach Last Room I/II): FREE waiting.</b> Just sit and wait, then move:</p>
+<pre class="language-tsx"><code class="language-tsx">nextTime = max(currTime, moveTime[nr][nc]) + moveCost</code></pre>
+<div class="box key"><b class="tag">🔑 3341 vs 3342</b> only the move cost differs: 3341 = fixed <code>+1</code>. 3342 = alternates <code>+1</code>/<code>+2</code> based on <code>(row+col)%2</code>.</div>
+<div class="box key"><b class="tag">📌</b> Can't wait → bounce + parity math (2577, plus the (0,0)-no-parent edge case). Can wait → simple max()+cost (3341/3342).</div>
+
+<h2 id="t23">23 · 🚨 JS Never Throws on Out-of-Bounds Array Access</h2>
+<p><b>🎯</b> <code>arr[100]</code> (too big) or <code>arr[-1]</code> (negative) → both silently return <code>undefined</code>. NO crash, NO error.</p>
+<div class="box warn"><b class="tag">🚨</b> Unlike Java/C++/Python — those THROW immediately, making the bug OBVIOUS right away.</div>
+<div class="box key"><b class="tag">🔑 Why this is dangerous</b> <code>undefined</code> silently flows into math. <code>Math.min(5, undefined) = NaN</code>. Once <code>NaN</code> appears, it POISONS every calculation built on top of it — but nothing crashes, so the bug hides until the FINAL wrong answer shows up.</div>
+<p>📐 <b>Where I hit this:</b> Stone Game DP — <code>dp[i+1][j-1]</code> when <code>j=0</code> reads <code>dp[1][-1]</code> → <code>undefined</code> → <code>Math.min(0, undefined) = NaN</code> → cascaded corruption through the whole table.</p>
+<p>✅ <b>The fix:</b> <code>?? 0</code> (or another sensible default) right at the access point:</p>
+<pre class="language-tsx"><code class="language-tsx">dp[i+1][j-1] ?? 0   // undefined → 0, before it reaches Math.min/arithmetic</code></pre>
+<div class="box key"><b class="tag">📌</b> JS out-of-bounds = silent <code>undefined</code>, not a crash. Anywhere an index MIGHT go negative or past the end, guard with <code>?? default</code> right at the read, or the bug hides until a wrong final answer.</div>
+
+<h2 id="t24">24 · 🎯 Binary Search + BFS vs Binary Search + Dijkstra</h2>
+<p><b>🎯</b> "Can I reach X using only edges ≤ mid?" → BFS. "What's the CHEAPEST path?" → Dijkstra.</p>
+<div class="box key"><b class="tag">🔑</b> When binary search picks <code>mid</code> (max allowed weight) and FILTERS the graph to <code>weight ≤ mid</code>, the weight-reasoning is ALREADY done externally — the inner check just needs YES/NO connectivity.</div>
+<p>📐 <b>Example (LeetCode 3419):</b> minimize the max edge weight so every node reaches node 0. <code>check(mid)</code>: filter edges to <code>≤ mid</code>, then plain BFS — "does everyone reach node 0?" No distances needed, just reachability.</p>
+<div class="box key"><b class="tag">📌</b> Dijkstra finds the CHEAPEST path. BFS finds IF a path exists at all. Binary-search-on-threshold problems often only need the SECOND question — since binary search already handled "which weights count" outside the check.</div>
+
+<h2 id="t25">25 · 🎯 Dijkstra vs Bellman-Ford — When to Reach for Which</h2>
+<p>✅ <b>Dijkstra:</b> only works with NON-NEGATIVE weights. Greedy — assumes "once finalized, always correct."</p>
+<div class="box warn"><b class="tag">🚨</b> Negative weights present → Bellman-Ford, not Dijkstra. Dijkstra's greedy assumption BREAKS with negatives (a later negative edge could invalidate an "already finalized" distance).</div>
+<div class="box key"><b class="tag">🔑 Bellman-Ford bonus</b> detects negative cycles too — run one EXTRA round past <code>V-1</code>; if anything STILL improves, a negative cycle exists.</div>
+<p><b>🎯 Second trigger for Bellman-Ford</b> (no negative weights needed): "at most K stops/edges" constraints. <code>K stops</code> maps directly to <code>K+1</code> bounded relaxation rounds — e.g., Cheapest Flights Within K Stops (787). Dijkstra can't express this cap without extending its state; Bellman-Ford's round-by-round structure handles it naturally.</p>
+<div class="box warn"><b class="tag">⚠️</b> Not "Bellman-Ford needs directed graphs" — the real rule: UNDIRECTED + NEGATIVE weight = automatic negative cycle. A single undirected negative edge <code>(u,v,-w)</code> lets you bounce <code>u→v→u</code> forever, decreasing cost each time — that alone IS a negative cycle.</div>
+<p>✅ Undirected + NON-NEGATIVE weights → safe to convert to directed (add both <code>u→v</code> and <code>v→u</code>, same weight) and run Bellman-Ford normally — same trick as building an adjacency list for BFS/DFS.</p>
+
+<h2 id="t26">26 · 🌊 Floyd-Warshall — General Application</h2>
+<p><b>🎯</b> Shortest distance between EVERY PAIR of nodes, all at once — not just from one source.</p>
+<pre class="language-tsx"><code class="language-tsx">dist[i][i] = 0
+dist[u][v] = w for every direct edge (both directions if undirected)
+
+for k in 0..n:        // MUST be outermost — try every "middle stop"
+  for i in 0..n:
+    for j in 0..n:
+      if dist[i][k]+dist[k][j] &lt; dist[i][j]:
+        dist[i][j] = dist[i][k]+dist[k][j]</code></pre>
+<p>📐 <b>Undirected graph:</b> just set <code>dist[u][v]</code> AND <code>dist[v][u]</code> during init — rest of the algorithm is identical.</p>
+<div class="box warn"><b class="tag">⚠️ <code>Math.min</code> during INIT</b> (not the main loop) — apply it whenever the input CAN have multiple edges between the same pair:</div>
+<pre class="language-tsx"><code class="language-tsx">dist[u][v] = Math.min(dist[u][v], w)</code></pre>
+<p>Safe to ALWAYS include (never wrong) — only STRICTLY required if duplicates are possible. The main triple-loop relaxation never needs this — its own <code>if</code> already keeps the smaller value.</p>
+<div class="box key"><b class="tag">📌</b> <code>k</code> outermost, always. Undirected = set both directions at init. <code>Math.min</code> at init = protect against duplicate edges — harmless habit, required only if duplicates can exist.</div>
+
+<h2 id="t27">27 · 🎯 Skip/Take vs "Committed Rule" DP — When Skip/Take Breaks</h2>
+<p><b>🎯</b> Skip/Take works when "take or skip" depends on ONE thing: comparing to the LAST picked element.</p>
+<p>✅ <b>LIS:</b> "is <code>nums[i] &gt; nums[prev]</code>?" — one comparison, one reference point. Skip/Take works fine.</p>
+<div class="box warn"><b class="tag">🚨</b> Some problems need a rule the CHAIN ALREADY COMMITTED TO — not just the last value:</div>
+<p>📐 <b>1027 Longest Arithmetic Subsequence:</b> "does <code>nums[i]</code> continue the SAME DIFFERENCE this chain already has?" — but a chain only HAS a difference once it's got 2+ elements. Skip/Take (state = just <code>prev</code>) can't express this.</p>
+<div class="box key"><b class="tag">🧠 Simple test</b> "To decide take-or-skip at <code>i</code>, do I need just the LAST element, or a RULE the chain already locked in?"
+<ul><li>Just last element → 🟢 Skip/Take, state = <code>(i, prev)</code></li>
+<li>A committed rule (difference, ratio, count) → 🔴 state = <code>(i, thatRule)</code>, found via PAIRWISE scan, not skip/take</li></ul></div>
+<p>📌 <b>Problems in this "committed rule" family:</b></p>
+<ul>
+<li><b>1027</b> Longest Arithmetic Subsequence — rule = the common difference</li>
+<li><b>673</b> Number of LIS — rule = "how many ways," tracked alongside length</li>
+<li><b>368</b> Largest Divisible Subset — needs the actual subset, not just length</li>
+</ul>
+<p><b>🟢 LIS pseudocode (skip/take works — state = just prev):</b></p>
+<pre class="language-tsx"><code class="language-tsx">dfs(i, prevIdx):
+  if i === n: return 0
+  skip = dfs(i+1, prevIdx)
+  take = 0
+  if prevIdx === -1 or nums[i] > nums[prevIdx]:
+    take = 1 + dfs(i+1, i)
+  return max(skip, take)</code></pre>
+<p><b>🔴 1027 Longest Arithmetic Subsequence</b> — recursive framing (state = committed rule, "ending at i"):</p>
+<pre class="language-tsx"><code class="language-tsx">// dfs(i, diff) -> longest arithmetic subsequence ENDING AT index i, using common difference diff
+memo = map, keyed by (i, diff)
+
+dfs(i, diff):
+  if memo has (i, diff): return memo[(i, diff)]
+  best = 1   // just this element alone, base length
+  for j in 0..i:
+    if nums[i] - nums[j] === diff:
+      best = max(best, 1 + dfs(j, diff))
+  memo[(i, diff)] = best
+  return best
+
+answer = max over all i, all diff = nums[i]-nums[j] for j&lt;i, of dfs(i, diff)</code></pre>
+<div class="box key"><b class="tag">🔑</b> "Ending at <code>i</code>" is the STANDARD framing for this whole family — anchor the state at the LAST index, then ask "for every earlier <code>j</code>, if I extend THAT chain (ending at <code>j</code>, same <code>diff</code>) by adding <code>nums[i]</code>, what do I get?" State = <code>(i, diff)</code>, not <code>(i, prevIndex)</code> — the DIFFERENCE itself is what got "committed" and must be carried forward.</div>
+<div class="box key"><b class="tag">📌</b> If the extension rule only needs the LAST value, it's skip/take. If it needs a relationship the chain already locked in, the state must CARRY that relationship — found by scanning PAIRS, not by skip/take.</div>
+
+<h2 id="t28">28 · 🗡️ Dungeon Game — Work Backward, Clamp to 1</h2>
+<p><b>🎯</b> The question at EVERY cell: "how much HP do I need WALKING IN, so that after this cell's effect, I still have enough for the REST of the trip?"</p>
+<div class="box key"><b class="tag">🔑</b> Work BACKWARD from the destination — a cell's answer depends on EVERY cell AFTER it, so you must know those first.</div>
+<p><b>Base case (destination):</b> need <code>1</code> HP left after its effect.</p>
+<pre class="language-tsx"><code class="language-tsx">Math.max(1, 1 - dungeon[dest])</code></pre>
+<p><b>Every other cell:</b> pick the CHEAPER of the two paths ahead, then ask what's needed HERE.</p>
+<pre class="language-tsx"><code class="language-tsx">neededAhead = Math.min(right, down)
+thisCell = Math.max(1, neededAhead - dungeon[cell])</code></pre>
+<p>📐 <b>Why <code>neededAhead - dungeon[cell]</code> works for BOTH damage and healing, same formula:</b></p>
+<pre class="language-tsx"><code class="language-tsx">Damage (dungeon=-2): neededAhead - (-2) = neededAhead + 2   // need MORE, correct
+Heal (dungeon=+8):   neededAhead - 8                          // need LESS, correct</code></pre>
+<p>Subtracting a negative flips to addition automatically — no separate rule needed for damage vs healing.</p>
+<div class="box warn"><b class="tag">🚨</b> <code>Math.max(1, ...)</code> is a hard safety clamp: you can NEVER be alive with <code>0</code> or negative HP, even if the math suggests a heal covers it. Always floor at <code>1</code>.</div>
+<div class="box key"><b class="tag">📌</b> Walk backward from the end, take the cheaper future path, ask what HP survives THIS cell's effect and still meets that need — always clamped to a minimum of 1, since zero or negative HP is never survivable.</div>
+
+<h2 id="t29">29 · 🕸️ Minimum Spanning Tree — Master Kruskal's, Skip Prim's</h2>
+<p><b>🎯</b> The question: connect ALL nodes together (directly or through others) using MINIMUM TOTAL edge cost. NOT "shortest path between two specific nodes" — that's Dijkstra's job, a DIFFERENT question entirely.</p>
+<div class="box warn"><b class="tag">🚨 Why Dijkstra doesn't fit</b> Dijkstra tracks "total DISTANCE from a source" (accumulated along a path). MST doesn't care about distance FROM anywhere — it just wants the CHEAPEST network connecting everyone.</div>
+<p class="hint">Problems: LC 1584 Min Cost to Connect All Points, LC 1135 Connecting Cities With Minimum Cost, general MST questions.</p>
+<div class="box key"><b class="tag">🔑</b> Kruskal's and Prim's both compute the IDENTICAL MST — just two different strategies for the same answer. Kruskal's is the ONE to master deeply: it reuses Union-Find (already practiced extensively — cycle detection, <code>removeStones</code>, <code>magnificentSets</code>), and "sort edges, greedily add cheapest ones that don't form a cycle" is simpler to explain out loud than Prim's tree-growing approach. Learning Prim's separately isn't needed — recognizing it exists (in case an interviewer asks to compare) is enough.</div>
+<pre class="language-tsx"><code class="language-tsx">// general MST: n nodes, edges = [u, v, weight]
+function minCostToConnectAllNodes(n: number, edges: number[][]): number {
+    const parent = Array.from({ length: n }, (_, i) => i);
+    const rank = Array(n).fill(0);
+
+    function find(x: number): number {
+        let root = x;
+        while (parent[root] !== root) root = parent[root];
+        while (parent[x] !== root) {
+            const next = parent[x];
+            parent[x] = root;
+            x = next;
+        }
+        return root;
+    }
+
+    function union(x: number, y: number): boolean {
+        const px = find(x), py = find(y);
+        if (px === py) return false;
+        if (rank[px] &lt; rank[py]) parent[px] = py;
+        else if (rank[px] > rank[py]) parent[py] = px;
+        else { parent[px] = py; rank[py]++; }
+        return true;
+    }
+
+    edges.sort((a, b) => a[2] - b[2]); // sort by weight ascending
+
+    let totalCost = 0, edgesUsed = 0;
+
+    for (const [u, v, weight] of edges) {
+        if (union(u, v)) {
+            totalCost += weight;
+            edgesUsed++;
+            if (edgesUsed === n - 1) break; // tree complete
+        }
+    }
+
+    return edgesUsed === n - 1 ? totalCost : -1; // -1 if graph can't be fully connected
+}</code></pre>
+<div class="box key"><b class="tag">🔑</b> Why Dijkstra doesn't fit here either: Kruskal's isn't tracking distance from anywhere — it's greedily picking GLOBALLY cheap edges while using Union-Find to AVOID cycles, a totally different mechanism from path-distance tracking.</div>
+<div class="box key"><b class="tag">📌</b> MST (Kruskal's) answers "cheapest way to connect EVERYONE." Dijkstra answers "cheapest way from ONE source to ONE target." Different questions — don't reach for Dijkstra when the problem is really asking for a spanning tree.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>
