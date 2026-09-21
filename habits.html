@@ -152,6 +152,11 @@
     padding: 10px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
   }
   .modal input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .slot-header { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin: 22px 0 10px 2px; }
+  .slot-header:first-child { margin-top: 4px; }
+  .slot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .slot-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); border-radius: 999px; padding: 6px 11px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .slot-chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
   .preview-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
   .preview-badge { font-size: 22px; line-height: 1; flex-shrink: 0; }
   .preview-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
@@ -192,6 +197,8 @@
     <h3 id="modalTitle">New Habit</h3>
     <label>Name</label>
     <input type="text" id="habitNameInput" placeholder="e.g. Read 20 pages" maxlength="60">
+    <label>When</label>
+    <div class="slot-chips" id="slotChips"></div>
     <div class="preview-row" id="previewRow">
       <span class="preview-badge" id="previewBadge"></span>
       <span class="preview-color" id="previewColor"></span>
@@ -231,6 +238,14 @@
     [['swim'], '🏊'], [['cook'], '🍳'], [['vitamin', 'supplement', 'pill'], '💊']
   ];
   const EMOJI_FALLBACK = ['⭐', '🔥', '🎯', '✨', '🌱', '💪', '🎨', '🧩', '🕊️', '🌈'];
+
+  const SLOTS = [
+    { id: 'morning', label: 'Morning', icon: '🌅' },
+    { id: 'noon', label: 'Noon', icon: '☀️' },
+    { id: 'evening', label: 'Evening', icon: '🌇' },
+    { id: 'night', label: 'Night', icon: '🌙' },
+    { id: '', label: 'Anytime', icon: '🕐' }
+  ];
 
   const VIEWS = [
     { id: '7', label: '7 DAYS' },
@@ -280,6 +295,17 @@
   }
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    scheduleAutoPush();
+  }
+
+  // Push to the cloud a couple seconds after the last edit, so changes made
+  // on one device reach the others without waiting for the manual Sync button
+  // or the shared 24h auto-sync throttle in sync.js.
+  let autoPushTimer = null;
+  function scheduleAutoPush() {
+    if (!window.DataSync || !DataSync.isConfigured()) return;
+    clearTimeout(autoPushTimer);
+    autoPushTimer = setTimeout(() => DataSync.syncNow(), 2500);
   }
   function uid() { return 'h_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -485,7 +511,33 @@
       list.appendChild(empty);
       return;
     }
-    state.habits.forEach((habit, idx) => {
+    const anySlot = state.habits.some(h => h.slot);
+    SLOTS.forEach(slot => {
+      const group = state.habits.filter(h => (h.slot || '') === slot.id);
+      if (group.length === 0) return;
+      if (anySlot) {
+        const header = document.createElement('div');
+        header.className = 'slot-header';
+        header.textContent = slot.icon + ' ' + slot.label;
+        header.addEventListener('dragover', (e) => e.preventDefault());
+        header.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const moved = state.habits.find(h => h.id === dragSrcId);
+          if (!moved) return;
+          moved.slot = slot.id;
+          state.habits.splice(state.habits.indexOf(moved), 1);
+          state.habits.push(moved);
+          saveState();
+          renderHabits();
+        });
+        list.appendChild(header);
+      }
+      group.forEach((habit, gi) => list.appendChild(buildCard(habit, gi, group.length)));
+    });
+  }
+
+  function buildCard(habit, idx, groupLen) {
+    {
       const card = document.createElement('div');
       card.className = 'habit-card';
       card.style.borderLeftColor = habit.color;
@@ -496,11 +548,13 @@
       card.addEventListener('dragover', (e) => e.preventDefault());
       card.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!dragSrcId || dragSrcId === habit.id) return;
-        const srcIdx = state.habits.findIndex(h => h.id === dragSrcId);
-        const tgtIdx = state.habits.findIndex(h => h.id === habit.id);
-        const [moved] = state.habits.splice(srcIdx, 1);
-        state.habits.splice(tgtIdx, 0, moved);
+        const moved = state.habits.find(h => h.id === dragSrcId);
+        if (!moved) return;
+        state.habits.splice(state.habits.indexOf(moved), 1);
+        moved.slot = habit.slot || '';
+        state.habits.splice(state.habits.indexOf(habit), 0, moved);
         saveState();
         renderHabits();
       });
@@ -529,12 +583,12 @@
       const upBtn = document.createElement('button');
       upBtn.className = 'icon-btn'; upBtn.textContent = '↑'; upBtn.title = 'Move up';
       upBtn.disabled = idx === 0;
-      upBtn.onclick = () => { moveHabit(idx, -1); };
+      upBtn.onclick = () => { moveHabit(habit, -1); };
 
       const downBtn = document.createElement('button');
       downBtn.className = 'icon-btn'; downBtn.textContent = '↓'; downBtn.title = 'Move down';
-      downBtn.disabled = idx === state.habits.length - 1;
-      downBtn.onclick = () => { moveHabit(idx, 1); };
+      downBtn.disabled = idx === groupLen - 1;
+      downBtn.onclick = () => { moveHabit(habit, 1); };
 
       const editBtn = document.createElement('button');
       editBtn.className = 'icon-btn'; editBtn.textContent = '✎'; editBtn.title = 'Edit';
@@ -554,15 +608,17 @@
       else if (view === '30') card.appendChild(buildDotsRow(habit, 30));
       else card.appendChild(buildMonthCal(habit));
 
-      list.appendChild(card);
-    });
+      return card;
+    }
   }
 
-  function moveHabit(idx, dir) {
-    const newIdx = idx + dir;
-    if (newIdx < 0 || newIdx >= state.habits.length) return;
+  function moveHabit(habit, dir) {
+    const group = state.habits.filter(h => (h.slot || '') === (habit.slot || ''));
+    const neighbor = group[group.indexOf(habit) + dir];
+    if (!neighbor) return;
     const arr = state.habits;
-    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    const a = arr.indexOf(habit), b = arr.indexOf(neighbor);
+    [arr[a], arr[b]] = [arr[b], arr[a]];
     saveState();
     renderHabits();
   }
@@ -579,6 +635,20 @@
 
   // ── add/edit modal ──────────────────────────────────────────────────────
   let modalColor = PALETTE[0];
+  let modalSlot = '';
+
+  function renderSlotChips() {
+    const wrap = document.getElementById('slotChips');
+    wrap.innerHTML = '';
+    SLOTS.forEach(s => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'slot-chip' + (modalSlot === s.id ? ' selected' : '');
+      chip.textContent = s.icon + ' ' + s.label;
+      chip.onclick = () => { modalSlot = s.id; renderSlotChips(); };
+      wrap.appendChild(chip);
+    });
+  }
 
   function updatePreview() {
     const name = document.getElementById('habitNameInput').value.trim();
@@ -590,8 +660,10 @@
   window.openAddModal = function() {
     editingId = null;
     modalColor = pickColor();
+    modalSlot = '';
     document.getElementById('modalTitle').textContent = 'New Habit';
     document.getElementById('habitNameInput').value = '';
+    renderSlotChips();
     updatePreview();
     document.getElementById('modalOverlay').classList.add('open');
     setTimeout(() => document.getElementById('habitNameInput').focus(), 50);
@@ -599,8 +671,10 @@
   function openEditModal(habit) {
     editingId = habit.id;
     modalColor = habit.color;
+    modalSlot = habit.slot || '';
     document.getElementById('modalTitle').textContent = 'Edit Habit';
     document.getElementById('habitNameInput').value = habit.name;
+    renderSlotChips();
     updatePreview();
     document.getElementById('modalOverlay').classList.add('open');
     setTimeout(() => document.getElementById('habitNameInput').focus(), 50);
@@ -616,8 +690,9 @@
       const habit = state.habits.find(h => h.id === editingId);
       habit.name = name;
       habit.emoji = emoji;
+      habit.slot = modalSlot;
     } else {
-      state.habits.push({ id: uid(), name: name, color: modalColor, emoji: emoji });
+      state.habits.push({ id: uid(), name: name, color: modalColor, emoji: emoji, slot: modalSlot });
     }
     saveState();
     closeModal();
@@ -651,7 +726,9 @@
       keys: [STORAGE_KEY, themeKey, 'habits_view'],
       versionLabel: 'habits-v1'
     });
-    DataSync.autoSync();
+    // Check the cloud on every open (not gated to sync.js's 24h autoSync
+    // throttle) so a habit added on one device shows up on another right away.
+    if (DataSync.isConfigured()) DataSync.syncNow();
   }
 
   function init() {
