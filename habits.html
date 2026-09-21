@@ -92,14 +92,24 @@
   .habit-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .habit-icon { flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 1; }
   .habit-name { font-size: 15px; font-weight: 500; flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .stats-row { display: flex; gap: 18px; margin-bottom: 14px; padding-left: 44px; flex-wrap: wrap; }
+  .stats-row { display: flex; gap: 18px; margin-bottom: 14px; padding-left: 0; flex-wrap: wrap; }
   .stat-item { display: flex; align-items: baseline; gap: 5px; }
   .stat-icon { font-size: 11px; }
   .stat-value { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); }
   .stat-label { font-family: 'DM Mono', monospace; font-size: 8.5px; letter-spacing: 0.06em; color: var(--text-faint); }
   @media (max-width: 420px) { .stats-row { gap: 12px; padding-left: 0; } }
   .habit-actions { display: flex; gap: 2px; flex-shrink: 0; }
-  .icon-btn { border: none; background: transparent; color: var(--text-faint); cursor: pointer; padding: 5px 6px; font-size: 13px; border-radius: 6px; transition: all 0.15s; line-height: 1; }
+  .habit-body { display: flex; align-items: center; gap: 8px; margin-top: -6px; }
+  .habit-main { flex: 1; min-width: 0; }
+  .mon { flex-shrink: 0; width: 84px; display: flex; flex-direction: column; align-items: center; position: relative; }
+  .mon img { position: relative; width: 76px; height: 76px; object-fit: contain; }
+  .mon.bounce img { animation: mon-bounce 0.5s ease; }
+  .mon.evolve img { animation: mon-evolve 1.1s ease; }
+  @keyframes mon-bounce { 0%,100% { transform: translateY(0); } 35% { transform: translateY(-7px) scale(1.12); } 70% { transform: translateY(0) scale(0.95); } }
+  @keyframes mon-evolve { 0%,100% { transform: scale(1); filter: none; } 25%,75% { transform: scale(1.35); filter: brightness(3); } 50% { transform: scale(1.5); filter: brightness(0) invert(1); } }
+  .toast { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--surface); color: var(--text); border: 1px solid var(--accent); border-radius: 999px; padding: 10px 18px; font-size: 13px; z-index: 60; box-shadow: 0 6px 24px rgba(0,0,0,0.35); max-width: calc(100vw - 32px); text-align: center; }
+  @media (hover: none) { .drag-handle { display: none; } }
+    .icon-btn { border: none; background: transparent; color: var(--text-faint); cursor: pointer; padding: 5px 6px; font-size: 13px; border-radius: 6px; transition: all 0.15s; line-height: 1; }
   .icon-btn:hover { color: var(--text); background: var(--surface2); }
   .icon-btn:disabled { opacity: 0.25; cursor: default; }
   .icon-btn:disabled:hover { background: transparent; color: var(--text-faint); }
@@ -152,7 +162,7 @@
     padding: 10px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
   }
   .modal input[type="text"]:focus { outline: none; border-color: var(--accent); }
-  .slot-header { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin: 22px 0 10px 2px; }
+  .slot-header { font-family: 'Bebas Neue', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--heading-color); margin: 28px 0 12px 2px; }
   .slot-header:first-child { margin-top: 4px; }
   .slot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .slot-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); border-radius: 999px; padding: 6px 11px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
@@ -181,6 +191,7 @@
     <div class="btn-row">
       <button type="button" id="dataSyncBtn" class="toggle-btn" onclick="DataSync.syncNow()" title="Sync your habits to/from the cloud across devices">☁ Sync</button>
       <button type="button" class="toggle-btn" onclick="DataSync.setToken()" title="Set or change the GitHub token used for cloud sync (stored only in this browser)">⚙</button>
+      <button type="button" class="toggle-btn" id="monToggle" onclick="toggleMons()" title="Show or hide the Pokémon">🎮</button>
       <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()">
         <span id="toggleIcon">☀️</span> <span id="toggleLabel">Light mode</span>
       </button>
@@ -239,6 +250,56 @@
   ];
   const EMOJI_FALLBACK = ['⭐', '🔥', '🎯', '✨', '🌱', '💪', '🎨', '🧩', '🕊️', '🌈'];
 
+  // 3-stage evolution lines: [name, id] per stage (ids = PokeAPI sprite numbers)
+  const MON_LINES = [
+    [['Bulbasaur', 1], ['Ivysaur', 2], ['Venusaur', 3]],
+    [['Charmander', 4], ['Charmeleon', 5], ['Charizard', 6]],
+    [['Squirtle', 7], ['Wartortle', 8], ['Blastoise', 9]],
+    [['Caterpie', 10], ['Metapod', 11], ['Butterfree', 12]],
+    [['Oddish', 43], ['Gloom', 44], ['Vileplume', 45]],
+    [['Poliwag', 60], ['Poliwhirl', 61], ['Poliwrath', 62]],
+    [['Abra', 63], ['Kadabra', 64], ['Alakazam', 65]],
+    [['Machop', 66], ['Machoke', 67], ['Machamp', 68]],
+    [['Geodude', 74], ['Graveler', 75], ['Golem', 76]],
+    [['Gastly', 92], ['Haunter', 93], ['Gengar', 94]],
+    [['Dratini', 147], ['Dragonair', 148], ['Dragonite', 149]],
+    [['Chikorita', 152], ['Bayleef', 153], ['Meganium', 154]],
+    [['Cyndaquil', 155], ['Quilava', 156], ['Typhlosion', 157]],
+    [['Totodile', 158], ['Croconaw', 159], ['Feraligatr', 160]],
+    [['Treecko', 252], ['Grovyle', 253], ['Sceptile', 254]],
+    [['Torchic', 255], ['Combusken', 256], ['Blaziken', 257]],
+    [['Mudkip', 258], ['Marshtomp', 259], ['Swampert', 260]]
+  ];
+  const EVOLVE_AT = [7, 21]; // total days done needed for stage 2 and stage 3
+  const monKey = 'habits_pokemon';
+  let monsOn = localStorage.getItem(monKey) !== 'off';
+
+  function monLineFor(habit) {
+    let idx = habit.mon;
+    if (typeof idx !== 'number' || !MON_LINES[idx]) {
+      let hash = 0;
+      for (let i = 0; i < habit.id.length; i++) hash = (hash * 31 + habit.id.charCodeAt(i)) >>> 0;
+      idx = hash % MON_LINES.length;
+    }
+    return MON_LINES[idx];
+  }
+  function monStage(total) {
+    return total >= EVOLVE_AT[1] ? 2 : total >= EVOLVE_AT[0] ? 1 : 0;
+  }
+  function pickMon() {
+    const used = new Set(state.habits.map(h => h.mon));
+    const free = MON_LINES.map((_, i) => i).filter(i => !used.has(i));
+    const pool = free.length ? free : MON_LINES.map((_, i) => i);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2800);
+  }
+
   const SLOTS = [
     { id: 'morning', label: 'Morning', icon: '🌅' },
     { id: 'noon', label: 'Noon', icon: '☀️' },
@@ -254,6 +315,17 @@
   ];
 
   let state = loadState();
+  (function assignMons() {
+    const used = new Set(state.habits.map(h => h.mon).filter(m => typeof m === 'number'));
+    state.habits.forEach(h => {
+      if (typeof h.mon === 'number') return;
+      let hash = 0;
+      for (let i = 0; i < h.id.length; i++) hash = (hash * 31 + h.id.charCodeAt(i)) >>> 0;
+      let idx = hash % MON_LINES.length;
+      for (let n = 0; n < MON_LINES.length && used.has(idx); n++) idx = (idx + 1) % MON_LINES.length;
+      h.mon = idx; used.add(idx);
+    });
+  })();
   let view = localStorage.getItem('habits_view') || '7';
   let editingId = null;
   let calMonths = {}; // habitId -> {y, m} currently viewed month, default = current
@@ -324,10 +396,22 @@
   function toggleLog(habitId, dateStr) {
     if (isFuture(dateStr)) return;
     if (!state.logs[habitId]) state.logs[habitId] = {};
-    if (state.logs[habitId][dateStr]) delete state.logs[habitId][dateStr];
-    else state.logs[habitId][dateStr] = true;
+    const habit = state.habits.find(h => h.id === habitId);
+    const before = monStage(totalCompletions(habitId));
+    const marking = !state.logs[habitId][dateStr];
+    if (marking) state.logs[habitId][dateStr] = true;
+    else delete state.logs[habitId][dateStr];
+    const after = monStage(totalCompletions(habitId));
     saveState();
     renderHabits();
+    if (!monsOn || !marking) return;
+    const evolved = after > before;
+    const el = document.querySelector('.mon[data-id="' + habitId + '"]');
+    if (el) el.classList.add(evolved ? 'evolve' : 'bounce');
+    if (evolved && habit) {
+      const line = monLineFor(habit);
+      showToast(line[before][0] + ' evolved into ' + line[after][0] + '!');
+    }
   }
 
   function currentStreak(habitId) {
@@ -536,6 +620,25 @@
     });
   }
 
+  function buildMon(habit) {
+    const total = totalCompletions(habit.id);
+    const stage = monStage(total);
+    const line = monLineFor(habit);
+    const next = EVOLVE_AT[stage];
+    const wrap = document.createElement('div');
+    wrap.className = 'mon';
+    wrap.dataset.id = habit.id;
+    wrap.title = next ? total + '/' + next + ' days to evolve' : 'fully evolved';
+    wrap.style.setProperty('--mon-color', habit.color);
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+    img.alt = line[stage][0];
+    img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + line[stage][1] + '.png';
+    img.onerror = () => { wrap.style.display = 'none'; };
+    wrap.appendChild(img);
+    return wrap;
+  }
+
   function buildCard(habit, idx, groupLen) {
     {
       const card = document.createElement('div');
@@ -600,13 +703,24 @@
 
       actions.appendChild(upBtn); actions.appendChild(downBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
       top.appendChild(actions);
-
       card.appendChild(top);
-      card.appendChild(buildStatsRow(habit));
 
-      if (view === '7') card.appendChild(buildDotsRow(habit, 7));
-      else if (view === '30') card.appendChild(buildDotsRow(habit, 30));
-      else card.appendChild(buildMonthCal(habit));
+      card.appendChild(buildStatsRow(habit));
+      const main = document.createElement('div');
+      main.className = 'habit-main';
+      if (view === '7') main.appendChild(buildDotsRow(habit, 7));
+      else if (view === '30') main.appendChild(buildDotsRow(habit, 30));
+      else main.appendChild(buildMonthCal(habit));
+
+      if (monsOn) {
+        const body = document.createElement('div');
+        body.className = 'habit-body';
+        body.appendChild(main);
+        body.appendChild(buildMon(habit));
+        card.appendChild(body);
+      } else {
+        card.appendChild(main);
+      }
 
       return card;
     }
@@ -692,7 +806,7 @@
       habit.emoji = emoji;
       habit.slot = modalSlot;
     } else {
-      state.habits.push({ id: uid(), name: name, color: modalColor, emoji: emoji, slot: modalSlot });
+      state.habits.push({ id: uid(), name: name, color: modalColor, emoji: emoji, slot: modalSlot, mon: pickMon() });
     }
     saveState();
     closeModal();
@@ -713,6 +827,15 @@
     document.getElementById('toggleIcon').textContent = isDark ? '☀️' : '🌙';
     document.getElementById('toggleLabel').textContent = isDark ? 'Light mode' : 'Dark mode';
   }
+  function applyMonToggle() {
+    document.getElementById('monToggle').style.opacity = monsOn ? '1' : '0.45';
+  }
+  window.toggleMons = function() {
+    monsOn = !monsOn;
+    localStorage.setItem(monKey, monsOn ? 'on' : 'off');
+    applyMonToggle();
+    renderHabits();
+  };
   window.toggleTheme = function() {
     isDark = !isDark;
     localStorage.setItem(themeKey, isDark ? 'dark' : 'light');
@@ -723,7 +846,7 @@
   if (window.DataSync) {
     DataSync.init({
       appId: 'habits',
-      keys: [STORAGE_KEY, themeKey, 'habits_view'],
+      keys: [STORAGE_KEY, themeKey, 'habits_view', monKey],
       versionLabel: 'habits-v1'
     });
     // Check the cloud on every open (not gated to sync.js's 24h autoSync
@@ -733,6 +856,7 @@
 
   function init() {
     applyTheme();
+    applyMonToggle();
     renderViewRow();
     renderHabits();
   }
