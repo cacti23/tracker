@@ -2790,9 +2790,14 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   const fn = ctx === 'ps' ? '_psRecallGrade' : '_qpReviseGrade'   // which list this row lives in
   // Every graded row stays in place (never swept off the list) — grading just tints the row and
   // marks the chosen button, so the row itself is your record of what you graded today.
-  // The tint/badge only reflect a grade thrown THIS session — a stale grade from a prior day
-  // doesn't pre-mark the row, so every row starts neutral and ungraded until you click it.
-  const doneThisSession = ctx === 'ps' ? _psDoneThisSession.has(lcKey) : _qpDoneThisSession.has(lcKey)
+  // In active-recall modes (Revise / By Pattern) the tint/badge only reflect a grade thrown THIS
+  // session — a stale grade from a prior day doesn't pre-mark the row, so every row starts
+  // neutral until you click it (no spoiling the recall attempt). Graded mode is the opposite: its
+  // whole point is a persistent log of what you've already graded, so it must show every past
+  // grade regardless of session — otherwise reopening the tab (which clears doneThisSession on
+  // every Generate) makes previously-graded questions look ungraded even though nothing was lost.
+  const isGradedLog = (ctx === 'ps' && _psMode === 'graded') || (ctx === 'qp' && _qpRevised)
+  const doneThisSession = isGradedLog || (ctx === 'ps' ? _psDoneThisSession.has(lcKey) : _qpDoneThisSession.has(lcKey))
   const forced = isCodeForced(lcKey)
   const rv     = doneThisSession ? getRevise(lcKey) : null
   const rowCls = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
@@ -2950,13 +2955,15 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
   }
-  // The row itself does nothing on click anymore — only the grade buttons act. Tint/chosen-button
-  // only reflect a grade thrown THIS session (same rule as Graded/By Pattern rows) — a stale grade
-  // from before this generate doesn't pre-color the row; every row starts neutral until you grade
-  // it again, right here, right now.
+  // The row itself does nothing on click anymore — only the grade buttons act. In an un-revealed
+  // Mock, tint/chosen-button only reflect a grade thrown THIS session — a stale grade from before
+  // this generate doesn't pre-color the row and give away a "cold" test. Outside Mock (the plain
+  // generated list, Worked-on, etc.) there's no cold test to spoil, so the row must always show
+  // the REAL stored grade — otherwise closing/reopening the tab (which the session flag doesn't
+  // survive being re-derived against) makes questions you already graded look ungraded again.
   const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
   const forced   = isCodeForced(lcKey)
-  const rv       = doneInSession ? getRevise(lcKey) : null
+  const rv       = (hideMeta && !doneInSession) ? null : getRevise(lcKey)
   const rowCls   = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
   const dueDot   = ((due || forced) && !rv && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
