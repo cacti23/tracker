@@ -143,6 +143,15 @@
         JSON.stringify({ savedAt: new Date().toISOString(), data: collect(keys) }));
     } catch (e) { /* ignore quota */ }
   }
+  // Cheap content fingerprint of the synced keys — NOT a security hash, just enough
+  // to answer "has anything changed here since the last successful sync?" without
+  // storing (and diffing) a second full copy of potentially hundreds of KB of data.
+  function localHash(keys) {
+    var s = JSON.stringify(collect(keys));
+    var h = 0;
+    for (var i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
+    return h.toString(36) + ':' + s.length;
+  }
   function applyPull(appId, keys, remote) {
     snapshotLocal(appId, keys);
     keys.forEach(function (k) {
@@ -153,10 +162,24 @@
     var m = getMeta(appId);
     m.lastSyncedAt = remote.updatedAt;        // version we now hold
     m.lastCheckAt  = new Date().toISOString();
+    m.lastLocalHash = localHash(keys);        // fingerprint of the data we now hold, post-pull
     setMeta(appId, m);
   }
 
   // ── the newest-wins reconcile ──────────────────────────────────────────
+  // "Newest wins" used to mean "whichever side was UPLOADED most recently wins the
+  // whole file" — which silently discarded a device's own not-yet-pushed edits
+  // whenever anything else (another device/browser sharing the token, or even just
+  // reopening after the 24h autoSync gate) had a later upload timestamp, regardless
+  // of whether that upload actually contained newer data. That's how graded
+  // questions could vanish/revert: you grade a batch, nothing pushes it yet, the
+  // next reconcile sees a "newer" remote timestamp and overwrites your batch with
+  // an older cloud copy.
+  //
+  // Fix: only trust "remote is newer, so pull it" when THIS device has no unpushed
+  // local edits to lose (its data hasn't changed since its own last successful
+  // sync). If local HAS changed since then, local edits always win and get pushed
+  // — never silently discarded by a differently-timestamped copy from elsewhere.
   function reconcile(appId, keys) {
     return pullApp(appId).then(function (remote) {
       var meta = getMeta(appId);
@@ -170,7 +193,8 @@
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
-      if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced) {
+      var localUnchangedSinceSync = !!meta.lastLocalHash && meta.lastLocalHash === localHash(keys);
+      if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced && localUnchangedSinceSync) {
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
@@ -179,6 +203,7 @@
         var m = getMeta(appId);
         m.lastSyncedAt = now;
         m.lastCheckAt  = now;
+        m.lastLocalHash = localHash(keys);
         setMeta(appId, m);
         return { action: 'push' };
       });

@@ -1363,7 +1363,18 @@ function _saveQpState() {
     localStorage.setItem(QP_STATE_KEY, JSON.stringify(state))
   } catch {}
 }
+// Fully replaces in-memory QP state from whatever's on disk right now — safe to call
+// more than once (e.g. re-synced when the tab regains focus, see the visibilitychange
+// listener below), not just once at page load. Being additive/partial here (the old
+// version only ever ADDED to _qpTopics and left _qpResults alone when disk had none)
+// is exactly how a background tab could re-save a stale in-memory snapshot on top of
+// what a different, more-recently-active tab had just written — this makes reload
+// idempotent so a re-sync always matches disk exactly, not "disk merged with whatever
+// I already had in memory".
 function _loadQpState() {
+  _qpTopics = new Set()
+  _qpResults = null
+  _qpDoneThisSession = new Set()
   try {
     const raw = localStorage.getItem(QP_STATE_KEY)
     if (!raw) return
@@ -1407,6 +1418,19 @@ document.addEventListener('DOMContentLoaded', () => {
   _loadQpState()
   buildNav()
   _restoreView()
+})
+
+// Keep a backgrounded tab from clobbering a more-recently-active one: each tab only
+// loads dashboard/practice state from localStorage ONCE, into its own in-memory copy
+// (_qpResults, _qpDoneThisSession, ...) — it never re-reads disk between actions. If
+// you leave a tab open, grade a fresh batch in a DIFFERENT tab, then come back and
+// interact with the old one, it would otherwise save ITS stale in-memory copy over
+// the newer one on disk, making today's grading look like it "disappeared". Re-sync
+// from disk the moment a tab regains focus/visibility, before you can act in it.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return
+  _loadQpState()
+  _renderQuickPractice()
 })
 
 // ─── NAV BADGE COLOUR ───────────────────────────────────────────────────────
