@@ -107,56 +107,54 @@ test('a freshly-solid-graded question drops out of the Graded pool until its lad
   assert.ok(!keys.includes(lcKey), 'this is intentional spaced-repetition behavior, not a bug — a just-graded solid question should rest until due')
 })
 
-// ── Regression: badges must reflect the REAL stored grade, not session-only state ──
-// (This is the actual bug reported: grading 35 questions, closing the tab, reopening
-// it — most of them rendered as "not graded" because the visual badge/tint only
-// looked at an in-memory "graded this session" Set instead of the real data.)
+// ── Row colours mean "graded in THIS generated set" ─────────────────────────
+// A question graded on an earlier day must NOT show its old colour when it reappears
+// in a freshly generated set; a grade thrown in this set must show, and must survive
+// a reload (doneThisSession is persisted in dsa-qp-state-v1).
 
-test('REGRESSION: Graded-panel row shows the real grade after the session Set is cleared (tab reopened)', () => {
+const rowHtml = (lcKey, topicKey, fn, ctxArg) =>
+  evalIn(ctx.sandbox, `${fn}([${JSON.stringify(lcKey)}, TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]], 0, ${ctxArg})`)
+
+test('plain list: a question graded on a previous day starts NEUTRAL in a new generated set', () => {
   const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
-  const q = evalIn(ctx.sandbox, `TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]`)
   grade(lcKey, 'shaky')
-  // Simulate "closed the tab and reopened it": the in-memory done-this-session
-  // Set is gone (a fresh page load starts it empty; _qpGenerate() also clears it).
+  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set()`) // new generate clears it
+  assert.doesNotMatch(rowHtml(lcKey, topicKey, '_buildPracticeItem', 'true'), /ps-q-shaky|rev-chosen/)
+})
+
+test('plain list: a grade thrown in this set colours the row and survives a reload', () => {
+  const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
+  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 5; _qpMock = false; _qpRevised = false; _qpGenerate()`)
+  const k = evalIn(ctx.sandbox, `_qpResults[0][0]`)
+  const t = evalIn(ctx.sandbox, `Object.keys(TOPIC_MODULES).find(t => TOPIC_MODULES[t].questions[${JSON.stringify(k)}])`)
+  evalIn(ctx.sandbox, `_practiceGrade(null, ${JSON.stringify(k)}, 'shaky', true)`)
+  assert.match(rowHtml(k, t, '_buildPracticeItem', 'true'), /ps-q-shaky/)
+  evalIn(ctx.sandbox, `_qpResults = null; _qpDoneThisSession = new Set(); _loadQpState()`) // reopen tab
+  assert.match(rowHtml(k, t, '_buildPracticeItem', 'true'), /ps-q-shaky/, 'colour must survive reload')
+})
+
+test('Graded panel: previously-graded rows start neutral until graded in this set', () => {
+  const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
+  grade(lcKey, 'shaky')
   evalIn(ctx.sandbox, `_qpDoneThisSession = new Set(); _qpRevised = true`)
-  const html = evalIn(ctx.sandbox, `_buildReviseItem([${JSON.stringify(lcKey)}, TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]], 0, 'qp')`)
-  assert.match(html, /rg-shaky/, 'the shaky grade badge must render even though doneThisSession is empty')
+  assert.doesNotMatch(rowHtml(lcKey, topicKey, '_buildReviseItem', "'qp'"), /rg-shaky|ps-q-shaky/)
 })
 
-test('REGRESSION: plain generated-list row shows the real grade after the session Set is cleared', () => {
+test('Graded panel: grading in this set shows the badge', () => {
   const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
-  grade(lcKey, 'forgot')
-  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set()`) // simulate reopening the tab
-  const html = evalIn(ctx.sandbox, `_buildPracticeItem([${JSON.stringify(lcKey)}, TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]], 0, true)`)
-  assert.match(html, /ps-q-forgot/, 'the row tint must reflect the real forgot grade even though doneThisSession is empty')
+  evalIn(ctx.sandbox, `_qpRevised = true`)
+  grade(lcKey, 'shaky')
+  evalIn(ctx.sandbox, `_qpDoneThisSession.add(${JSON.stringify(lcKey)})`)
+  assert.match(rowHtml(lcKey, topicKey, '_buildReviseItem', "'qp'"), /rg-shaky/)
 })
 
-test('REGRESSION: per-topic Graded tab (ctx="ps") also shows the real grade with an empty session Set', () => {
-  const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
-  grade(lcKey, 'solid')
-  evalIn(ctx.sandbox, `_psDoneThisSession = new Set(); _psMode = 'graded'`)
-  const html = evalIn(ctx.sandbox, `_buildReviseItem([${JSON.stringify(lcKey)}, TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]], 0, 'ps')`)
-  assert.match(html, /rg-solid/, 'per-topic Graded rows must also show the persisted grade regardless of session state')
-})
-
-// ── Guard rail: Mock mode must still hide grades before "Reveal" ───────────
-// The fix must not leak this behavior into Mock, where showing a past grade
-// before you attempt the cold question would spoil the test.
-
-test('GUARD: un-revealed Mock still hides a past grade (no spoiler regression)', () => {
+test('un-revealed Mock hides a graded-this-set colour; Reveal shows it', () => {
   const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
   grade(lcKey, 'solid')
-  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set(); _qpMock = true; _qpMockReveal = false`)
-  const html = evalIn(ctx.sandbox, `_buildPracticeItem([${JSON.stringify(lcKey)}, TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]], 0, true)`)
-  assert.doesNotMatch(html, /ps-q-solid/, 'an un-revealed Mock question must not be pre-tinted with its past grade')
-})
-
-test('GUARD: after Reveal, Mock shows the real grade again', () => {
-  const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
-  grade(lcKey, 'solid')
-  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set(); _qpMock = true; _qpMockReveal = true`)
-  const html = evalIn(ctx.sandbox, `_buildPracticeItem([${JSON.stringify(lcKey)}, TOPIC_MODULES[${JSON.stringify(topicKey)}].questions[${JSON.stringify(lcKey)}]], 0, true)`)
-  assert.match(html, /ps-q-solid/, 'once revealed, Mock rows should behave like normal rows again')
+  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set([${JSON.stringify(lcKey)}]); _qpMock = true; _qpMockReveal = false`)
+  assert.doesNotMatch(rowHtml(lcKey, topicKey, '_buildPracticeItem', 'true'), /rev-chosen/)
+  evalIn(ctx.sandbox, `_qpMockReveal = true`)
+  assert.match(rowHtml(lcKey, topicKey, '_buildPracticeItem', 'true'), /ps-q-solid/)
 })
 
 // ── QP state persistence round-trip (dsa-qp-state-v1) ───────────────────────
