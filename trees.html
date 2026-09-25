@@ -468,6 +468,55 @@ function countNodes(root: TreeNode | null): number {
 </details>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you separate <i>what you return</i> from <i>what you record</i>, name your base case, and justify clamping a negative child at <code>0</code> (a branch that only hurts you, you simply don't take). <b>Nail it and they escalate:</b> height → diameter → balanced (<code>-1</code> sentinel) → max path sum — each is the <i>same</i> <code>dfs</code> with one new twist.</div>
 
+<details class="fold">
+<summary>🧩 Three more return-value shapes — Delete Nodes (1110) · Distribute Coins (979) · Cameras (968) · (tap to expand)</summary>
+<div class="box"><b>Same contract, new meaning for the return.</b> Delete Nodes returns <i>the node, or null</i> — the parent overwrites its child pointer with it. Distribute Coins returns a <i>balance</i> (surplus up / deficit down) and records the moves globally. Cameras returns a <i>state</i> (0 = uncovered · 1 = camera · 2 = covered). If you can say "what does the parent need from me?", the body writes itself.</div>
+<pre class="language-tsx"><code class="language-tsx">// 1110 Delete Nodes and Return Forest — return node-or-null, parent re-links
+function delNodes(root: TreeNode | null, toDelete: number[]): TreeNode[] {
+  const del = new Set(toDelete);
+  const forest: TreeNode[] = [];
+  function dfs(node: TreeNode | null, isRoot: boolean): TreeNode | null {
+    if (!node) return null;
+    const gone = del.has(node.val);
+    if (isRoot &amp;&amp; !gone) forest.push(node);   // my parent was deleted (or I'm the root) → I start a new tree
+    node.left = dfs(node.left, gone);         // the RETURN re-links (or cuts) the child
+    node.right = dfs(node.right, gone);
+    return gone ? null : node;
+  }
+  dfs(root, true);
+  return forest;
+}
+
+// 979 Distribute Coins — return the net balance, record moves on each edge
+function distributeCoins(root: TreeNode | null): number {
+  let moves = 0;
+  function dfs(n: TreeNode | null): number {  // + = surplus to send up, - = coins needed from above
+    if (!n) return 0;
+    const l = dfs(n.left), r = dfs(n.right);
+    moves += Math.abs(l) + Math.abs(r);       // every unit crossing an edge costs exactly one move
+    return n.val + l + r - 1;                 // keep one coin for myself
+  }
+  dfs(root);
+  return moves;
+}
+
+// 968 Binary Tree Cameras — greedy post-order, 3 states
+function minCameraCover(root: TreeNode | null): number {
+  let cams = 0;
+  function dfs(n: TreeNode | null): 0 | 1 | 2 {   // 0 = not covered · 1 = has camera · 2 = covered, no camera
+    if (!n) return 2;                             // null needs nothing → counts as covered
+    const l = dfs(n.left), r = dfs(n.right);
+    if (l === 0 || r === 0) { cams++; return 1; }  // a child is uncovered → I MUST hold a camera
+    if (l === 1 || r === 1) return 2;              // a child's camera covers me
+    return 0;                                      // nothing nearby → ask my parent
+  }
+  if (dfs(root) === 0) cams++;                     // root ended uncovered → one more camera
+  return cams;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>1110:</b> forgetting <code>node.left = dfs(...)</code> leaves dangling pointers to deleted nodes. <b>979:</b> use <code>abs</code> — a deficit costs as much as a surplus. <b>968:</b> <code>null → 2</code>, never 0, and never put a camera on a leaf (its parent does it).</div>
+</details>
+
+
 <!-- 4.3 -->
 <h3 id="p-bst">4.3 · BST = ordered</h3>
 <p class="tldr">“Left &lt; node &lt; right — so search is binary, and inorder is sorted.”</p>
@@ -763,6 +812,25 @@ function deserializeBFS(data: string): TreeNode | null {
 </details>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> can you explain <i>why</i> preorder's front is always the root and inorder's split gives left vs right, and why serialization needs explicit null markers (without them the string is ambiguous). <b>Nail it and they escalate:</b> pre+in → in+post → serialize/deserialize (DFS <i>or</i> BFS) → "Flatten Binary Tree to a Linked List."</div>
 
+<details class="fold">
+<summary>🌲 Generate ALL BSTs (95) — recursion that returns a list · (tap to expand)</summary>
+<div class="box"><b>Contract:</b> <code>build(lo, hi)</code> returns <i>every</i> BST over the values <code>lo..hi</code>. Pick each root <code>r</code>, then take the <b>cross product</b> of every left tree from <code>build(lo, r-1)</code> with every right tree from <code>build(r+1, hi)</code>. Pairs with <b>96</b> (count them) — 95 is the enumeration.</div>
+<pre class="language-tsx"><code class="language-tsx">function generateTrees(n: number): (TreeNode | null)[] {
+  function build(lo: number, hi: number): (TreeNode | null)[] {
+    if (lo &gt; hi) return [null];                 // ONE empty tree — NOT []
+    const res: (TreeNode | null)[] = [];
+    for (let r = lo; r &lt;= hi; r++)
+      for (const L of build(lo, r - 1))
+        for (const R of build(r + 1, hi))
+          res.push(new TreeNode(r, L, R));
+    return res;
+  }
+  return build(1, n);
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Trap</b> Base case <code>[null]</code>, not <code>[]</code> — with <code>[]</code> the inner loops never run and every tree with an empty child disappears. Output size is Catalan(n), so time is <code>O(4ⁿ/√n)</code> no matter what; memoizing <code>(lo, hi)</code> only saves constants.</div>
+</details>
+
+
 <!-- 4.6 -->
 <h3 id="p-easy">4.6 · Easy-tier must-knows — write these cold</h3>
 <p>FAANG "easy" tree questions are pure recall — none needs a new idea, each is the §1 contract with a one-line combine. If the sheet is the last thing you see, these are the ones an interviewer is most likely to fire. Have every one in your fingers.</p>
@@ -854,10 +922,10 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-trav">Traversal</a></td><td>102 Level Order · 199 Right Side View · 103 Zigzag · 314 Vertical Order</td><td>Med</td></tr>
-<tr><td><a href="#p-return">Return-value (post-order)</a></td><td>104 Max Depth · 110 Balanced · 543 Diameter · 222 Count Complete · <b>124 Max Path Sum</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td><a href="#p-return">Return-value (post-order)</a></td><td>104 Max Depth · 110 Balanced · 543 Diameter · 222 Count Complete · 1110 Delete Nodes · 979 Distribute Coins · <b>124 Max Path Sum</b> · <b>968 Binary Tree Cameras</b></td><td>Easy → <b>Hard</b></td></tr>
 <tr><td><a href="#p-bst">BST</a></td><td>98 Validate · 230 Kth Smallest · 173 Iterator · 235 LCA · 700 Search · 701 Insert · 285 Successor · <b>450 Delete</b></td><td>Med</td></tr>
 <tr><td><a href="#p-lca">LCA</a></td><td>236 LCA of Binary Tree · 1644 LCA (may not exist) · 437 Path Sum III</td><td>Med</td></tr>
-<tr><td><a href="#p-build">Build / serialize</a></td><td>105/106 Build from Traversals · <b>297 Serialize &amp; Deserialize</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-build">Build / serialize</a></td><td>105/106 Build from Traversals · 95 Unique BSTs II (generate all) · <b>297 Serialize &amp; Deserialize</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-easy">Easy bank</a></td><td>104 Max Depth · 226 Invert · 100 Same · 101 Symmetric · 112 Path Sum</td><td>Easy</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
@@ -874,6 +942,9 @@ function hasPathSum(root: TreeNode | null, target: number): boolean {
 <tr><td>Deleting a BST node with two children — what's the move?</td><td class="a">Overwrite its value with its <b>inorder successor</b> (smallest in the right subtree), then delete that successor — which has ≤1 child, an easy case.</td></tr>
 <tr><td>Why does iterative BST validation track <code>prev</code>?</td><td class="a">A BST's inorder walk must be <b>strictly increasing</b> — each popped value must exceed the previous one; <code>prev</code> is that previous value.</td></tr>
 <tr><td>In <code>inorderSuccessor</code>, when do you go left vs right?</td><td class="a">If <code>p.val &lt; cur.val</code>, <code>cur</code> is a <i>candidate</i> — record it and go <b>left</b> hunting a smaller one; otherwise go <b>right</b> (the successor must be bigger than <code>p</code>).</td></tr>
+<tr><td>Why does <code>delNodes</code> assign <code>node.left = dfs(node.left, gone)</code> instead of just calling it?</td><td class="a">The return value is how a deleted child gets <b>cut out</b> — it returns <code>null</code> and the parent overwrites its pointer. Without the assignment the parent still points at the deleted node.</td></tr>
+<tr><td>In Distribute Coins, what does <code>dfs</code> return, and where do the moves come from?</td><td class="a">Returns the subtree's <b>net balance</b> <code>val + L + R − 1</code>. Moves = <code>|L| + |R|</code> added at each node — every unit crossing a child→parent edge costs one move.</td></tr>
+<tr><td>Binary Tree Cameras — the three states and what <code>null</code> returns?</td><td class="a">0 = uncovered, 1 = has camera, 2 = covered. <code>null → 2</code>. A child at 0 forces a camera here; a child at 1 covers me; otherwise return 0 and let the parent decide.</td></tr>
 <tr><td>Why is <code>BSTIterator.next()</code> amortized O(1)?</td><td class="a">Each node is pushed and popped exactly <b>once</b> across the whole iteration — one call may push a long spine, but n calls do O(n) total work.</td></tr>
 </table>
 

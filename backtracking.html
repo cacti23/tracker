@@ -960,6 +960,47 @@ If you can answer &quot;does order matter?&quot; in 5 seconds, you&#x27;ve alrea
 // ⚠️  Does NOT handle duplicates cleanly — use 6.2 for that</code></pre></div>
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> that you know the two formulations — a <code>used[]</code> flag array vs in-place <b>swapping</b> — and can explain why the duplicate skip needs <code>!used[i-1]</code> (it forces equal values to be consumed strictly left-to-right, so a multiset is permuted exactly once). <b>Nail it and they escalate:</b> permute → permute II (dups) → next permutation (LC 31) → k-th permutation sequence, where you skip building the tree at all and index straight in with the factorial number system.</div>
 
+<div style="display:contents" dir="auto"><h3 id="bt-s6-4" class="">6.4 Constrained Permutations — Android Unlock Patterns (LC 351)</h3></div>
+<p class="tldr">Permutations of length m..n where a move may only jump OVER a key that is already visited.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> Precompute <code>skip[a][b]</code> = the key lying between <code>a</code> and <code>b</code> (0 if none). A move <code>a→b</code> is legal iff <code>b</code> is unvisited and <code>skip[a][b]</code> is 0 or already visited. Count at <i>every</i> length in <code>[m, n]</code>. The keypad's symmetry means corners are all equivalent and edge-centres are all equivalent, so run 3 starts instead of 9.</div>
+<div style="display:contents" dir="auto"><pre id="bt-code-6-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function numberOfPatterns(m: number, n: number): number {
+  const skip = Array.from({ length: 10 }, () =&gt; new Array(10).fill(0));   // skip[a][b] = key between a and b
+  skip[1][3] = skip[3][1] = 2; skip[4][6] = skip[6][4] = 5; skip[7][9] = skip[9][7] = 8;
+  skip[1][7] = skip[7][1] = 4; skip[2][8] = skip[8][2] = 5; skip[3][9] = skip[9][3] = 6;
+  skip[1][9] = skip[9][1] = skip[3][7] = skip[7][3] = 5;
+  const visited = new Array(10).fill(false);
+  function dfs(cur: number, len: number): number {
+    let count = len &gt;= m ? 1 : 0;                        // this pattern itself is valid
+    if (len === n) return count;
+    visited[cur] = true;
+    for (let next = 1; next &lt;= 9; next++) {
+      const mid = skip[cur][next];
+      if (!visited[next] &amp;&amp; (mid === 0 || visited[mid])) count += dfs(next, len + 1);
+    }
+    visited[cur] = false;                                // un-choose
+    return count;
+  }
+  return 4 * dfs(1, 1) + 4 * dfs(2, 1) + dfs(5, 1);      // corners ×4 · edge-centres ×4 · centre ×1
+}</code></pre></div>
+<div class="box warn"><b class="tag">⚠️ Trap</b> Knight-style moves (1→6, 2→7…) have no middle key and are always legal. Forgetting to count shorter patterns (<code>len ≥ m</code>) is the usual bug.</div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s6-5" class="">6.5 The k-th Permutation without enumerating — LC 60</h3></div>
+<p class="tldr">Each leading digit owns a block of (n−1)! permutations — skip whole blocks instead of generating them.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> With <code>k</code> zero-indexed, <code>idx = ⌊k / (n−1−i)!⌋</code> selects the i-th digit from the sorted <i>remaining</i> digits; then <code>k %= (n−1−i)!</code>. Contrast with §6.1: enumerating is <code>O(n · n!)</code>, this is <code>O(n²)</code>. Recognising when backtracking is <i>unnecessary</i> is the whole point.</div>
+<div style="display:contents" dir="auto"><pre id="bt-code-6-5" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function getPermutation(n: number, k: number): string {
+  const fact = [1];
+  for (let i = 1; i &lt; n; i++) fact.push(fact[i - 1] * i);     // fact[i] = i!
+  const digits = Array.from({ length: n }, (_, i) =&gt; i + 1);
+  k--;                                                         // zero-index FIRST
+  let res = '';
+  for (let i = 0; i &lt; n; i++) {
+    const f = fact[n - 1 - i];                                 // permutations per leading digit
+    const idx = Math.floor(k / f);
+    res += digits.splice(idx, 1)[0];                           // pick from the REMAINING digits
+    k %= f;
+  }
+  return res;
+}</code></pre></div>
 <div style="display:contents" dir="auto"><hr id="bt-hr-7"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s7" class="">7. TEMPLATE 3: COMBINATIONS</h1></div>
@@ -1817,6 +1858,44 @@ function canPartitionKSubsets(nums: number[], k: number): boolean {
 // ❌ Each recursive call explores a structurally unique path?  → don&#x27;t memoize</code></pre></div>
 
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>What they're really testing:</b> the single decision that separates pure backtracking from top-down DP — can the <i>same</i> <code>(index, state)</code> be reached by different paths with the <i>same</i> future? If yes, memoize and it's DP; if the path itself changes what's available next (permutations), a memo on the index is wrong. <b>Nail it and they escalate:</b> word break → word break II (cache the suffix lists) → partition to k equal subsets (bucket-fill + the empty-bucket symmetry break) → its bitmask-memo form keyed on <code>mask</code> alone. Naming <i>why</i> a memo is or isn't valid is the whole point.</div>
+<div style="display:contents" dir="auto"><h3 id="bt-s12-4" class="">12.4 Game search — Flip Game II (LC 294)</h3></div>
+<p class="tldr">“Can the player to move force a win?” = exists a move after which the opponent cannot.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> <code>canWin(s)</code> is true iff some legal move leads to a string <code>t</code> with <code>canWin(t) === false</code>. No legal move → false. The state is the <b>whole string</b>, so memoise on it. This is backtracking with a boolean return — the bridge to Game-Theory DP.</div>
+<div style="display:contents" dir="auto"><pre id="bt-code-12-4" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function canWin(s: string, memo: Map&lt;string, boolean&gt; = new Map()): boolean {
+  const hit = memo.get(s);
+  if (hit !== undefined) return hit;
+  for (let i = 0; i + 1 &lt; s.length; i++) {
+    if (s[i] === '+' &amp;&amp; s[i + 1] === '+') {
+      const next = s.slice(0, i) + '--' + s.slice(i + 2);
+      if (!canWin(next, memo)) { memo.set(s, true); return true; }   // found a move that leaves the opponent losing
+    }
+  }
+  memo.set(s, false);                                                  // every move hands the opponent a win (or no moves)
+  return false;
+}
+// Follow-up: Sprague–Grundy numbers per run of '+' solve it in O(n²).</code></pre></div>
+
+<div style="display:contents" dir="auto"><h3 id="bt-s12-5" class="">12.5 Expression search with floats — 24 Game (LC 679)</h3></div>
+<p class="tldr">Merge any two numbers with any operator, recurse on the shorter list; parentheses come for free.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> Picking a pair and replacing it with <code>a op b</code> explores every parenthesisation. Fixed size (4 cards) keeps the tree tiny (~4k leaves). Two hazards: compare to 24 with an <b>epsilon</b>, and try <i>both</i> <code>a−b</code>/<code>b−a</code> and <code>a÷b</code>/<code>b÷a</code> (not commutative) while skipping division by ≈0.</div>
+<div style="display:contents" dir="auto"><pre id="bt-code-12-5" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function judgePoint24(cards: number[]): boolean {
+  const EPS = 1e-6;
+  function solve(a: number[]): boolean {
+    if (a.length === 1) return Math.abs(a[0] - 24) &lt; EPS;
+    for (let i = 0; i &lt; a.length; i++) {
+      for (let j = i + 1; j &lt; a.length; j++) {
+        const rest = a.filter((_, k) =&gt; k !== i &amp;&amp; k !== j);
+        const x = a[i], y = a[j];
+        const results = [x + y, x * y, x - y, y - x];
+        if (Math.abs(y) &gt; EPS) results.push(x / y);
+        if (Math.abs(x) &gt; EPS) results.push(y / x);
+        for (const v of results) if (solve([...rest, v])) return true;
+      }
+    }
+    return false;
+  }
+  return solve(cards);
+}</code></pre></div>
 <div style="display:contents" dir="auto"><hr id="bt-hr-13"/></div>
 
 <div style="display:contents" dir="auto"><h1 id="bt-s13" class="">13. COMPLEXITY ANALYSIS</h1></div>
@@ -1867,12 +1946,12 @@ INTERVIEW TIP: State the tree model first, then derive complexity.
 <table>
 <tr><th>Template (§)</th><th>Representative LeetCode (medium → hard)</th><th>Tier</th></tr>
 <tr><td>Subsets (§5)</td><td>78 · 90 · 416 Partition Equal Subset · 698 K Equal Subsets</td><td>Med</td></tr>
-<tr><td>Permutations (§6)</td><td>46 · 47 · 31 Next Permutation · <b>996 Squareful Arrays</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td>Permutations (§6)</td><td>46 · 47 · 31 Next Permutation · 351 Android Unlock · <b>60 Permutation Sequence</b> · <b>996 Squareful Arrays</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td>Combinations (§7)</td><td>77 · 39 · 40 · 216 · 17 Letter Combinations</td><td>Med</td></tr>
 <tr><td>Grid / path (§8)</td><td>79 · 200 · 130 · <b>212 Word Search II</b> · <b>489 Robot Cleaner</b> · <b>980 Unique Paths III</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td>Constraint (§9)</td><td>51 · 52 · <b>37 Sudoku Solver</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td>String partition (§10)</td><td>131 · 93 · 22 · <b>282 Add Operators</b> · <b>301 Remove Invalid Parens</b></td><td>Med → <b>Hard</b></td></tr>
-<tr><td>Backtracking + memo (§12)</td><td>139 Word Break · <b>140 Word Break II</b> · 698 · 473 Matchsticks to Square</td><td>Med → <b>Hard</b></td></tr>
+<tr><td>Backtracking + memo (§12)</td><td>139 Word Break · <b>140 Word Break II</b> · 698 · 473 Matchsticks to Square · 294 Flip Game II · <b>679 24 Game</b></td><td>Med → <b>Hard</b></td></tr>
 </table>
 
 <div style="display:contents" dir="auto"><hr id="bt-hr-selfcheck"/></div><div style="display:contents" dir="auto"><h1 id="bt-self-check" class="">✅ SELF-CHECK — explain each from memory</h1></div><div style="display:contents" dir="auto"><p id="bts-p1" class="">Reading ≠ understanding. <strong>Cover the right column</strong> and answer from memory. Anything that stalls you = the section to re-read. Get these and you can start any backtracking LC medium/hard cold.</p></div><p class="hint">Cover the right column (it's blurred — hover/tap to reveal). Answer from memory; anything that stalls you = the section to re-read.</p>
@@ -1887,6 +1966,9 @@ INTERVIEW TIP: State the tree model first, then derive complexity.
 <tr><td>Skip duplicates on one level (sorted input)?</td><td class="a"><code>if (i &gt; start &amp;&amp; a[i]===a[i-1]) continue</code></td></tr>
 <tr><td>Why <code>push([...path])</code>, not <code>push(path)</code>?</td><td class="a">Arrays are by-reference — store a snapshot copy.</td></tr>
 <tr><td>What turns a TLE into an AC?</td><td class="a">Pruning — cut dead branches early.</td></tr>
+<tr><td>Android Unlock: when is a move between two keys legal?</td><td class="a">The target is unvisited AND the key between them (if any) is already visited; knight-style jumps have no middle key.</td></tr>
+<tr><td>k-th permutation — why not just enumerate?</td><td class="a">Each leading digit owns (n−1)! permutations: <code>idx = ⌊k / (n−1)!⌋</code>, <code>k %= (n−1)!</code>, repeat with 0-indexed k. <code>O(n²)</code> vs <code>O(n·n!)</code>.</td></tr>
+<tr><td>Flip Game II — how do you decide <code>canWin</code>?</td><td class="a">True iff some move leaves the opponent in a state where <code>canWin</code> is false. Memoise on the whole string.</td></tr>
 <tr><td>Backtracking time is roughly?</td><td class="a">(branching factor)<sup>depth</sup> × work-per-leaf.</td></tr>
 </table><div style="display:contents" dir="auto"><p id="bts-p2" class=""><strong>Then write these cold</strong> (no peeking): (1) subsets, (2) permutations, (3) combination sum, (4) N-Queens, (5) word search on a grid. All five start-to-finish = you own backtracking.</p></div><div style="display:contents" dir="auto"><hr id="bt-hr-end"/></div>
 <div style="display:contents" dir="auto"><p id="bt-footer" class=""><em>Backtracking Cheat Sheet | SDE2/SDE3 FAANG Edition | TypeScript</em></p></div>

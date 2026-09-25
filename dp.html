@@ -1668,7 +1668,45 @@ function numDecodings_rec(s: string): number {
   }
 
   return dfs(0);
-}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81eb-93c9-e98a88a547f0" class="">4.7 DP Reconstruction — Backtracking Through the Table</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>The most missed skill:</b> <code>dp[n]</code> gives the optimal VALUE — interviews almost always want the actual solution too. Two techniques: backtrack through the filled table, or track <code>parent[]</code> pointers as you fill it.</p></div><div style="display:contents" dir="auto"><h3 id="37cae4f8-635e-8102-acdc-e328160564ba" class="">LCS Reconstruction → Shortest Common Supersequence (LC 1092)</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-81cf-87c5-c45717481542" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Step 1: fill the LCS dp table (same as always)
+}</code></pre></div></div></div><div style="display:contents" dir="auto"><h2 id="dp-lvp" class="">4.6b Longest Valid Parentheses — dp ending at i (LC 32)</h2></div>
+<p class="tldr">“Best valid run ENDING at i” — only a <code>)</code> can end one, and it either closes a fresh <code>(</code> or wraps an earlier valid block.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> <code>dp[i]</code> = length of the longest valid substring ending exactly at <code>i</code> (0 if <code>s[i]</code> is <code>(</code>). Case <code>()</code>: <code>dp[i] = dp[i-2] + 2</code>. Case <code>))</code>: the block ending at <code>i-1</code> starts at <code>j+1</code> where <code>j = i - dp[i-1] - 1</code>; if <code>s[j]</code> is <code>(</code> it wraps that block: <code>dp[i] = dp[i-1] + 2 + dp[j-1]</code> — the trailing <code>dp[j-1]</code> glues on any valid run just before <code>j</code>.</div>
+<div style="display:contents" dir="auto"><pre id="dp-code-4-6b" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">function longestValidParentheses(s: string): number {
+  const n = s.length;
+  const dp = new Array(n).fill(0);
+  let best = 0;
+  for (let i = 1; i &lt; n; i++) {
+    if (s[i] !== ')') continue;
+    if (s[i - 1] === '(') {
+      dp[i] = (i &gt;= 2 ? dp[i - 2] : 0) + 2;
+    } else {
+      const j = i - dp[i - 1] - 1;                       // char just before the block ending at i-1
+      if (j &gt;= 0 &amp;&amp; s[j] === '(') dp[i] = dp[i - 1] + 2 + (j &gt;= 1 ? dp[j - 1] : 0);
+    }
+    best = Math.max(best, dp[i]);
+  }
+  return best;
+}
+
+// O(1) space follow-up: two passes, reset when the count "breaks"
+function longestValidParenthesesO1(s: string): number {
+  let open = 0, close = 0, best = 0;
+  for (let i = 0; i &lt; s.length; i++) {                   // left → right: reset when close &gt; open
+    if (s[i] === '(') open++; else close++;
+    if (open === close) best = Math.max(best, 2 * close);
+    else if (close &gt; open) open = close = 0;
+  }
+  open = close = 0;
+  for (let i = s.length - 1; i &gt;= 0; i--) {              // right → left: catches "(()" style leftovers
+    if (s[i] === '(') open++; else close++;
+    if (open === close) best = Math.max(best, 2 * open);
+    else if (open &gt; close) open = close = 0;
+  }
+  return best;
+}
+// Stack alternative: seed [-1]; on '(' push i; on ')' pop, then length = i - stack.top (push i if the stack emptied)</code></pre></div>
+<div class="box warn"><b class="tag">⚠️ Trap</b> In the <code>))</code> case people forget the trailing <code>+ dp[j-1]</code>, and skip the <code>i-2</code> / <code>j-1</code> bounds guards. Interviewers almost always ask for the O(1)-space version next.</div>
+<div style="display:contents" dir="auto"><h2 id="37cae4f8-635e-81eb-93c9-e98a88a547f0" class="">4.7 DP Reconstruction — Backtracking Through the Table</h2></div><div style="display:contents" dir="auto"><p class="tldr"><b>The most missed skill:</b> <code>dp[n]</code> gives the optimal VALUE — interviews almost always want the actual solution too. Two techniques: backtrack through the filled table, or track <code>parent[]</code> pointers as you fill it.</p></div><div style="display:contents" dir="auto"><h3 id="37cae4f8-635e-8102-acdc-e328160564ba" class="">LCS Reconstruction → Shortest Common Supersequence (LC 1092)</h3></div><div style="display:contents" dir="auto"><pre id="37cae4f8-635e-81cf-87c5-c45717481542" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// Step 1: fill the LCS dp table (same as always)
 // Step 2: backtrack from dp[m][n] to dp[0][0] to reconstruct the LCS
 // Step 3: for SCS (LC 1092), interleave both strings guided by LCS
 
@@ -3138,7 +3176,7 @@ when asked &quot;can you do better?&quot; is what separates SDE3 from SDE2.</cod
 <tr><td>1D (§4)</td><td>70 · 198 · 300 LIS · 152 · 139 · 91 · <b>354 Russian Doll</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td>2D (§5)</td><td>62 · 1143 LCS · <b>72 Edit Distance</b> · 115 · 221 Maximal Square</td><td>Med → <b>Hard</b></td></tr>
 <tr><td>Interval (§6)</td><td>516 LPS · 1547 Merge Stones · <b>312 Burst Balloons</b> · 132 Palindrome Part. II</td><td>Med → <b>Hard</b></td></tr>
-<tr><td>String (§7)</td><td><b>10 Regex Matching</b> · 97 Interleaving · <b>44 Wildcard</b></td><td><b>Hard</b></td></tr>
+<tr><td>String (§7)</td><td><b>10 Regex Matching</b> · 97 Interleaving · <b>44 Wildcard</b> · <b>32 Longest Valid Parens</b></td><td><b>Hard</b></td></tr>
 <tr><td>Knapsack (§8)</td><td>416 · 494 · 322 · 518 · 474 Ones &amp; Zeroes</td><td>Med</td></tr>
 <tr><td>State machine (§9)</td><td>121 · 122 · 309 · 714 · <b>188 Stock IV</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td>Bitmask (§10)</td><td><b>847 Visit All Nodes</b> · 1125 · 698 · 526 Beautiful Arrangement</td><td>Med → <b>Hard</b></td></tr>
