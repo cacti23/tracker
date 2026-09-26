@@ -1152,6 +1152,7 @@ let _psMode                 = 'graded'   // per-topic mode default: 'graded' (yo
 let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
 let _psRevisePatterns       = new Set()  // 'revise-pattern' mode only: pattern IDs (P1, P2…) to scope the due-set to; empty = nothing selected yet
 let _psReviseCodeFlagged    = new Set()  // Revise/By Pattern only: ~20% of the current set, randomly picked, marked "actually code this" (not just recall)
+let _psClearedTopics        = new Set()  // topics whose set was emptied with 🗑 Clear — the panel stays empty (with a Generate button) instead of auto-regenerating; dropped by any real regenerate
 let _psReviseShownThisSession = new Set()  // Revise/By Pattern only: keys already surfaced by a Refresh since the last full cycle — used to push them to the back so repeated manual Refreshes (with a capped count) cycle through the whole due-set before repeating anything
 
 // ─── PRACTICE SESSION PERSISTENCE ────────────────────────────────────────────
@@ -1178,7 +1179,7 @@ function _psSaveSession() {
     // which restores it (and its "always show weak graded questions" merge) INSTEAD of leaving
     // the panel empty, silently defeating the "Graded starts empty" behavior. No items yet means
     // no session yet: clear any stale entry instead of writing an empty one.
-    if (_psMode === 'graded' && _psCurrentItems.length === 0) {
+    if (_psCurrentItems.length === 0 && (_psMode === 'graded' || _psClearedTopics.has(_psCurrentTopic))) {
       delete all[_psCurrentTopic]
       localStorage.setItem(PS_SESSION_KEY, JSON.stringify(all))
       return
@@ -3096,8 +3097,8 @@ function _buildPracticePanel(topicKey, mod) {
         }
         _psQCount = _psCurrentItems.length || _psQCount
       }
-    } else if (_psMode === 'graded') {
-      // Graded always starts empty — pick a count and hit Generate.
+    } else if (_psMode === 'graded' || _psClearedTopics.has(topicKey)) {
+      // Graded always starts empty — pick a count and hit Generate. A 🗑 Cleared topic (any mode) stays empty the same way.
     } else if (_psMode !== 'worked' || prevTopic === topicKey) {
       _psCurrentItems = _psModePool(topicKey, count)
       _psQCount = _psCurrentItems.length
@@ -3118,7 +3119,7 @@ function _buildPracticePanel(topicKey, mod) {
   html += '<div class="ps-ctrl-bar">'
 
   if (_psCurrentItems.length === 0) {
-    if (_psMode === 'graded') {
+    if (_psMode === 'graded' || (_psMode === 'revise-pattern' && _psClearedTopics.has(topicKey))) {
       // Graded always lands empty — type a count (any number, not just +/-) and hit Generate.
       html += '<input type="number" class="ps-count-input" id="ps-gen-count-input" min="1" max="' + total + '" value="' + count + '" onclick="event.stopPropagation()">'
       html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
@@ -3134,6 +3135,7 @@ function _buildPracticePanel(topicKey, mod) {
     html += '<button type="button" class="ps-count-btn" title="Show all questions" onclick="_psSetAll(\'' + topicKey + '\')">All</button>'
     html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
     html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Refresh</button>'
+    if (_psMode !== 'recent') html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-clear" title="Remove every question from this list and start from an empty state (your grades and progress are kept)" onclick="_psClear(\'' + topicKey + '\')">🗑 Clear</button>'
     if (pinCount && _psMode === 'graded') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
   }
 
@@ -3189,6 +3191,23 @@ function _psSyncCountDisplay(count) {
 // Graded starts empty — read the typed count, clamp it, and generate. Full panel re-render
 // (not _psShuffle's partial DOM patch) because the ctrl bar itself changes shape here: the
 // "type a count → Generate" row becomes the usual −/count/+/All/Refresh row.
+// 🗑 Clear: drop every question from this topic's practice list and return the panel to its
+// empty "pick a count and hit Generate" state. Only the SET is discarded — grades, statuses,
+// solve counts and the Recent log live elsewhere and are untouched.
+function _psClear(topicKey) {
+  if (!TOPIC_MODULES[topicKey] || !_psCurrentItems.length) return
+  const graded = _psCurrentItems.filter(([k]) => _psDoneThisSession.has(k)).length
+  if (graded && !confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')) return
+  _stopTimer()
+  _psTimerRem = _psTimerTotal                       // back to the preset, not a half-run clock
+  _psCurrentItems = []
+  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  _psReviseCodeFlagged.clear(); _psReviseShownThisSession.clear()
+  _psMockReveal = false
+  _psClearedTopics.add(topicKey)                    // keep By Pattern from auto-refilling on re-render / revisit
+  _psSaveSession()                                  // cleared topic → removes its saved session, so a reload stays empty too
+  _renderPracticePanel()
+}
 function _psGenerateGraded(topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
@@ -3196,6 +3215,7 @@ function _psGenerateGraded(topicKey) {
   const input = document.getElementById('ps-gen-count-input')
   const n = input ? parseInt(input.value, 10) : _psQCount
   _psQCount = Math.max(1, Math.min(total, isNaN(n) ? _psQCount : n))
+  _psClearedTopics.delete(topicKey)
   _psCurrentItems = _psModePool(topicKey, _psQCount)
   _psQCount = _psCurrentItems.length || _psQCount
   _psPickReviseCodeFlags()
@@ -3410,6 +3430,7 @@ function _psRowsHtml() {
   return _psCurrentItems.map((item, i) => _buildReviseItem(item, i, 'ps')).join('')
 }
 function _psEmptyMsg() {
+  if (_psClearedTopics.has(currentTopicKey)) return 'Set cleared — pick a count and hit ▶ Generate to build a new one.'
   if (_psMode === 'graded') return 'You haven’t graded any questions in this topic yet — grade them with the 🧠 ✓/~/✗ chip on the cards.'
   if (_psMode === 'recent') return 'Nothing graded yet in Graded or By Pattern for this topic — practice a set to build your log.'
   return _psRevisePatterns.size ? 'Nothing due for the selected pattern(s) right now — come back later.' : 'Select one or more patterns above to build a revise set.'
@@ -3425,6 +3446,7 @@ function _psSetMode(mode, topicKey) {
   if (_psMode === mode) return
   _psMode = mode
   _psMockReveal = false
+  _psClearedTopics.delete(topicKey)   // a mode switch regenerates, so the topic is no longer 'cleared'
   _stopTimer()
   _psDoneThisSession.clear(); _psStruggledThisSession.clear()
   _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
@@ -3507,6 +3529,7 @@ function _psShuffle(topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
   _stopTimer()
+  _psClearedTopics.delete(topicKey)
 
   // Save which keys were done this session BEFORE clearing, so we can push
   // them to the bottom of the new set — they've been practiced already today.
@@ -3921,6 +3944,7 @@ function _renderQuickPractice() {
   html += '<span class="text-secondary text-xs">questions</span>'
   if (maxQ && !_qpMock && !_qpRevised) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
   html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">' + genLabel + '</button>'
+  html += '<button type="button" class="qp-chip ms-1" id="qp-btn-clear"' + (_qpResults && _qpResults.length ? '' : ' disabled') + ' onclick="_qpClear()" title="Remove every question from the list and start from an empty state (your grades and progress are kept)">🗑 Clear</button>'
   html += '<button type="button" class="qp-chip' + (_qpRevised ? ' active' : '') + ' ms-1" onclick="_qpToggleRevised()" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
   if (totalPinned) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
   html += '</div>'
@@ -3957,8 +3981,10 @@ function _renderQuickPractice() {
     // Nothing generated yet — selecting a topic or toggling Graded/Mock only sets up what
     // WILL be generated; without this, the results area just looks blank/broken.
     const resultsEl = document.getElementById('qp-results')
-    if (resultsEl && !disabled) {
-      resultsEl.innerHTML = '<p class="text-secondary text-xs mb-0">Click “' + genLabel + '” above to generate your set.</p>'
+    if (resultsEl) {
+      resultsEl.innerHTML = '<p class="text-secondary text-xs mb-0">' + (disabled
+        ? 'Pick at least one topic above, then generate your set.'
+        : 'Click “' + genLabel + '” above to generate your set.') + '</p>'
     }
   }
   // Re-apply +/- lock if timer was running when we navigated away
@@ -3968,6 +3994,27 @@ function _renderQuickPractice() {
     if (dec) dec.disabled = true
     if (inc) inc.disabled = true
   }
+}
+
+// Keep 🗑 Clear enabled only while there is a list to clear.
+function _qpSyncClearBtn() {
+  const b = document.getElementById('qp-btn-clear')
+  if (b) b.disabled = !(_qpResults && _qpResults.length)
+}
+// 🗑 Clear: drop the generated set and return the dashboard to its empty state. Topic chips, the
+// count and the Graded toggle stay so one click regenerates; grades/statuses/solve counts are
+// untouched (they're stored per question, not per set).
+function _qpClear() {
+  if (!_qpResults || !_qpResults.length) return
+  const graded = _qpResults.filter(([k]) => _qpDoneThisSession.has(k)).length
+  if (graded && !confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')) return
+  _qpStopTimer()
+  _qpTimerRem = _qpTimerTotal
+  _qpResults = null
+  _qpMockReveal = false
+  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _saveQpState()
+  _renderQuickPractice()
 }
 
 function _qpToggleTopic(key) {
@@ -4086,6 +4133,7 @@ function _qpGenerate() {
     const el = document.getElementById('qp-results')
     if (el) el.innerHTML = '<p class="text-secondary text-xs mt-2 mb-0">' + (_qpRevised ? "You haven't graded any problems yet — grade them with the 🧠 ✓/~/✗ chip on the question cards." : _practiceWorkedOnly ? 'No 🚧 In-Progress or ✅ Solved questions in the selected topics yet — mark some, or turn off “Worked-on only”.' : 'No questions found.') + '</p>'
     _qpResults = []
+    _qpSyncClearBtn()
     return
   }
   const count = Math.max(1, Math.min(_qpCount, maxQ))
@@ -4134,6 +4182,7 @@ function _qpGenerate() {
   _qpCount = _qpResults.length
   const countEl = document.getElementById('qp-count-val')
   if (countEl) countEl.textContent = _qpResults.length
+  _qpSyncClearBtn()
 }
 
 function _qpToggleDueOnly() {
