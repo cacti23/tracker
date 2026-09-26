@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -270,6 +279,51 @@ function largestNumber(nums: number[]): string {
 <b>Sort-then-sweep</b> is the gateway to <a href="intervals.html">intervals</a>.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ Sorting-adjacent tricks — First Missing Positive (41) · Car Fleet (853) · Longest Consecutive (128) · Disappeared Numbers (448)</summary>
+<div class="box">When the values are bounded by <code>n</code> the array can be its own hash table (41, 448) — cyclic sort or sign-marking, O(n) with no sort. <b>128</b> is "don't sort, use a set and start only at sequence heads". <b>853</b> is sort-then-one-pass.</div>
+<pre class="language-tsx"><code class="language-tsx">// 41 First Missing Positive — cyclic sort: put v at index v-1
+function firstMissingPositive(nums: number[]): number {
+  const n = nums.length;
+  for (let i = 0; i &lt; n; i++) {
+    while (nums[i] &gt;= 1 &amp;&amp; nums[i] &lt;= n &amp;&amp; nums[nums[i] - 1] !== nums[i]) {
+      const j = nums[i] - 1, tmp = nums[i];          // temp swap — [nums[i], nums[nums[i]-1]] = ... reads the modified nums[i]
+      nums[i] = nums[j]; nums[j] = tmp;
+    }
+  }
+  for (let i = 0; i &lt; n; i++) if (nums[i] !== i + 1) return i + 1;
+  return n + 1;
+}
+
+// 853 Car Fleet — sort by position (closest to target first), compare arrival times
+function carFleet(target: number, position: number[], speed: number[]): number {
+  const cars = position.map((p, i) =&gt; [p, (target - p) / speed[i]]).sort((a, b) =&gt; b[0] - a[0]);
+  let fleets = 0, lead = 0;
+  for (const [, t] of cars) if (t &gt; lead) { fleets++; lead = t; }   // slower than the fleet ahead → new fleet
+  return fleets;
+}
+
+// 128 Longest Consecutive Sequence — O(n): only count from sequence HEADS
+function longestConsecutive(nums: number[]): number {
+  const set = new Set(nums); let best = 0;
+  for (const x of set) {
+    if (set.has(x - 1)) continue;                    // not a head
+    let len = 1; while (set.has(x + len)) len++;
+    best = Math.max(best, len);
+  }
+  return best;
+}
+
+// 448 Find All Numbers Disappeared — mark presence by negating nums[v-1]
+function findDisappearedNumbers(nums: number[]): number[] {
+  for (const x of nums) { const i = Math.abs(x) - 1; if (nums[i] &gt; 0) nums[i] = -nums[i]; }
+  const res: number[] = [];
+  nums.forEach((v, i) =&gt; { if (v &gt; 0) res.push(i + 1); });
+  return res;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>41:</b> compare the <i>target slot's value</i> in the while condition (comparing to <code>i</code> loops forever on duplicates). <b>853:</b> merge on <code>t ≤ lead</code>. <b>128:</b> skip non-heads or it is O(n²). <b>448:</b> read with <code>Math.abs</code>, negate only if still positive.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
@@ -277,8 +331,8 @@ function largestNumber(nums: number[]): string {
 <tr><td><a href="#p-merge">Merge sort</a></td><td>912 Sort an Array · 148 Sort List · <b>315 Count of Smaller</b> · <b>493 Reverse Pairs</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-quick">Quick sort</a></td><td>912 Sort an Array · 75 Sort Colors</td><td>Med</td></tr>
 <tr><td><a href="#p-select">Quickselect</a></td><td>215 Kth Largest · 973 K Closest Points · 347 Top K Frequent</td><td>Med</td></tr>
-<tr><td><a href="#p-linear">Linear (counting / radix)</a></td><td>1122 Relative Sort · <b>164 Maximum Gap</b> · 451 Sort by Frequency</td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-pre">Sort as prep</a></td><td>56 Merge Intervals · 252/253 Meeting Rooms · 179 Largest Number</td><td>Med</td></tr>
+<tr><td><a href="#p-linear">Linear (counting / radix)</a></td><td>1122 Relative Sort · <b>164 Maximum Gap</b> · 451 Sort by Frequency · <b>41 First Missing Positive</b> · 448 Disappeared Numbers</td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-pre">Sort as prep</a></td><td>56 Merge Intervals · 252/253 Meeting Rooms · 179 Largest Number · 853 Car Fleet · 128 Longest Consecutive (set beats sort)</td><td>Med</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
 <p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
@@ -291,6 +345,8 @@ function largestNumber(nums: number[]): string {
 <tr><td>When does an <code>O(n)</code> sort exist?</td><td class="a">Non-comparison sorts (counting/radix) on bounded integer keys — the <code>Ω(n log n)</code> floor is for comparison sorts only.</td></tr>
 <tr><td>What must a custom comparator be, or the sort breaks?</td><td class="a">A consistent <b>total order</b> — in particular transitive; and in JS it must return a <i>number</i>, not a boolean.</td></tr>
 <tr><td>Name three problems that "collapse" once sorted.</td><td class="a">3Sum (sort + two-pointer), Merge Intervals (sort + sweep), Group Anagrams (sorted-string key). Many more.</td></tr>
+<tr><td>First Missing Positive — why is the answer always in [1, n+1]?</td><td class="a">n numbers can cover at most 1..n; if all of them are present the answer is n+1. That bound lets the array itself act as the hash table.</td></tr>
+<tr><td>Longest Consecutive Sequence — why is it O(n) with a while inside a for?</td><td class="a">You only start counting at a sequence <b>head</b> (<code>x−1</code> absent), so every element is walked at most once from its head.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

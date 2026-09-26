@@ -1881,6 +1881,52 @@ Computes child twice (slow)      Called f(...) twice instead of saving
 <tr><td>"process in order 1..n" / "n..1"</td><td>work before vs after the call (§8)</td></tr>
 <tr><td>"too deep / n up to 1e6"</td><td>convert to iteration + explicit stack</td></tr>
 </table>
+<div style="display:contents" dir="auto"><h3 id="rec-s-more1" class="">➕ Parsing with recursion, level 2 — Basic Calculator III (LC 772)</h3></div>
+<p class="tldr">224 (parentheses) + 227 (precedence) in one function: recurse on <code>(</code>, fold <code>*</code> and <code>/</code> immediately.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> Each call evaluates exactly one parenthesis level and returns its value; the caller treats that value as a plain number operand. The per-level stack trick from 227 handles precedence: push numbers, fold <code>*</code>/<code>/</code> with the top, sum at the end.</div>
+<div style="display:contents" dir="auto"><pre id="rec-code-772" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// 772 Basic Calculator III — recursion replaces the explicit stack for '(' … ')'
+function calculate(s: string): number {
+  let i = 0;
+  const isDigit = (c: string) =&gt; c &gt;= '0' &amp;&amp; c &lt;= '9';
+  const parse = (): number =&gt; {
+    const stack: number[] = [];
+    let num = 0, op = '+';
+    while (i &lt; s.length) {
+      const c = s[i++];
+      if (isDigit(c)) num = num * 10 + (+c);
+      else if (c === '(') num = parse();                      // the whole (...) becomes ONE operand
+      if ((!isDigit(c) &amp;&amp; c !== ' ' &amp;&amp; c !== '(') || i === s.length) {
+        if (op === '+') stack.push(num);
+        else if (op === '-') stack.push(-num);
+        else if (op === '*') stack.push(stack.pop()! * num);   // * and / fold immediately (precedence)
+        else if (op === '/') stack.push(Math.trunc(stack.pop()! / num));
+        op = c; num = 0;
+      }
+      if (c === ')') break;                                    // finished this parenthesis level
+    }
+    return stack.reduce((a, b) =&gt; a + b, 0);
+  };
+  return parse();
+}</code></pre></div>
+<div class="box warn"><b class="tag">⚠️ Trap</b> Consume the <code>)</code> before returning; division truncates toward zero (<code>Math.trunc</code>); apply the <i>pending</i> operator when the next operator, <code>)</code> or the end arrives — not when you read the number.</div>
+
+<div style="display:contents" dir="auto"><h3 id="rec-s-more2" class="">➕ Build by wrapping — Strobogrammatic Number II (LC 247)</h3></div>
+<p class="tldr">Answer for length n = every answer for n − 2 wrapped by a rotation-valid pair.</p>
+<div class="box key"><b class="tag">🔑 Invariant</b> <code>gen(m)</code> returns all valid numbers of length <code>m</code>: base cases <code>[""]</code> and <code>["0","1","8"]</code>; otherwise wrap each <code>gen(m−2)</code> result with 1…1, 6…9, 8…8, 9…6 (and 0…0 only when this is not the outermost layer).</div>
+<div style="display:contents" dir="auto"><pre id="rec-code-247" class="code code-wrap"><code class="language-tsx" style="white-space:pre-wrap;word-break:break-all">// 247 Strobogrammatic Number II — build from the middle outward
+function findStrobogrammatic(n: number): string[] {
+  const gen = (m: number): string[] =&gt; {
+    if (m === 0) return [''];
+    if (m === 1) return ['0', '1', '8'];
+    const pairs = [['1', '1'], ['6', '9'], ['8', '8'], ['9', '6']];
+    if (m !== n) pairs.push(['0', '0']);                      // 0…0 only for INNER layers (no leading zero)
+    const res: string[] = [];
+    for (const mid of gen(m - 2)) for (const [a, b] of pairs) res.push(a + mid + b);
+    return res;
+  };
+  return gen(n);
+}</code></pre></div>
+<div class="box warn"><b class="tag">⚠️ Trap</b> A leading zero is illegal, so <code>0…0</code> is only allowed on inner layers (<code>m !== n</code>). 6 pairs with 9, and 9 with 6.</div>
 <h3 id="rec-coverage">▶ Coverage — what these patterns unlock on LeetCode</h3>
 <p>If you can write each pattern cold, the problems below are in range. <b>Bold</b> = Hard tier — the escalation an interviewer reaches for once you've nailed the medium.</p>
 <table>
@@ -1892,7 +1938,7 @@ Computes child twice (slow)      Called f(...) twice instead of saving
 <tr><td>State down + collect (§14)</td><td>112 Path Sum · 257 Binary Tree Paths · 113 Path Sum II · 129 Sum Root→Leaf</td><td>Easy → Med</td></tr>
 <tr><td>Recursion → iteration (§15)</td><td>94 Inorder · 230 Kth Smallest in BST · 114 Flatten · 173 BST Iterator</td><td>Med</td></tr>
 <tr><td>Memo → DP (§16)</td><td>70 Climb Stairs · 198 House Robber · 322 Coin Change · 91 Decode Ways · <b>312 Burst Balloons</b></td><td>Easy → <b>Hard</b></td></tr>
-<tr><td>Number / grammar D&amp;C</td><td>779 K-th Symbol · 241 Different Ways to Add Parentheses · 395 Longest Substring with ≥ k Repeats</td><td>Med</td></tr>
+<tr><td>Number / grammar D&amp;C</td><td>779 K-th Symbol · 241 Different Ways to Add Parentheses · 395 Longest Substring with ≥ k Repeats · 247 Strobogrammatic II · <b>772 Basic Calculator III</b></td><td>Med</td></tr>
 </table>
 
 <div style="display:contents" dir="auto"><hr/></div>
@@ -1972,6 +2018,8 @@ WHAT you do on the way up (combine, count, collect, undo).</code></pre></div>
 <tr><td>Time of <code>T(n)=2T(n/2)+O(n)</code>?</td><td class="a"><code>O(n log n)</code> — n work × log n levels.</td></tr>
 <tr><td>Space cost of recursion?</td><td class="a">Max depth of the call stack (+ the output).</td></tr>
 <tr><td>Most common bug when collecting results?</td><td class="a">Pushed a live reference, not a <code>[...path]</code> copy.</td></tr>
+<tr><td>Basic Calculator III — how does recursion replace the stack for parentheses?</td><td class="a">On <code>(</code> call <code>parse()</code> to evaluate that level and use its return as one operand; on <code>)</code> finish the level. Precedence is handled inside a level by folding <code>*</code>/<code>/</code> immediately.</td></tr>
+<tr><td>Strobogrammatic Number II — why is <code>0…0</code> only for inner layers?</td><td class="a">The outermost pair would put a 0 at the front (a leading zero), which is not a valid number; inside, zeros are fine.</td></tr>
 </table>
 <div style="display:contents" dir="auto"><blockquote class=""><strong>Then write these cold</strong> (no peeking, in TypeScript): (1) reverse a string, (2) max depth of a binary tree, (3) all subsets of <code>[1,2,3]</code>, (4) climb-stairs count with a memo, (5) merge sort. If you can produce all five start-to-finish, you can recurse at interview level — the rest is just recognizing which shape (§9) the new problem is.</blockquote></div>
 

@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -337,13 +346,75 @@ class BSTIterator {
 <b>Time-based lookup</b> is a <a href="binary-search.html#p-bound">boundary binary search</a>; <b>LFU / Design Twitter</b> lean on a <a href="heap.html">heap</a>.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ More design shapes — Logger Rate Limiter (359) · Snapshot Array (1146) · All O`one (432)</summary>
+<div class="box"><b>359</b>: map message → next allowed time. <b>1146</b>: per-cell version list + binary search (the same idea as 981). <b>432</b>: a doubly linked list of count buckets — LFU's cousin that also exposes the max.</div>
+<pre class="language-tsx"><code class="language-tsx">// 359 Logger Rate Limiter
+class Logger {
+  private next = new Map&lt;string, number&gt;();
+  shouldPrintMessage(ts: number, msg: string): boolean {
+    if ((this.next.get(msg) ?? 0) &gt; ts) return false;   // still inside the 10 s window
+    this.next.set(msg, ts + 10);                         // only update when we actually print
+    return true;
+  }
+}
+
+// 1146 Snapshot Array — store only the cells that changed, per snapshot
+class SnapshotArray {
+  private hist: [number, number][][];                    // hist[i] = [[snapId, value], ...] ascending
+  private snapId = 0;
+  constructor(n: number) { this.hist = Array.from({ length: n }, () =&gt; [[0, 0]] as [number, number][]); }
+  set(i: number, v: number): void {
+    const h = this.hist[i], last = h[h.length - 1];
+    if (last[0] === this.snapId) last[1] = v; else h.push([this.snapId, v]);   // overwrite within the same snap
+  }
+  snap(): number { return this.snapId++; }
+  get(i: number, s: number): number {                    // last version with snapId &lt;= s
+    const h = this.hist[i]; let lo = 0, hi = h.length - 1;
+    while (lo &lt; hi) { const mid = (lo + hi + 1) &gt;&gt; 1; if (h[mid][0] &lt;= s) lo = mid; else hi = mid - 1; }
+    return h[lo][1];
+  }
+}
+
+// 432 All O`one Data Structure — DLL of count buckets, O(1) everything
+class Bucket { keys = new Set&lt;string&gt;(); prev: Bucket | null = null; next: Bucket | null = null; constructor(public count: number) {} }
+class AllOne {
+  private head = new Bucket(0); private tail = new Bucket(Infinity); private where = new Map&lt;string, Bucket&gt;();
+  constructor() { this.head.next = this.tail; this.tail.prev = this.head; }
+  private insertAfter(b: Bucket, count: number): Bucket {
+    if (b.next!.count === count) return b.next!;
+    const nb = new Bucket(count); nb.prev = b; nb.next = b.next; b.next!.prev = nb; b.next = nb; return nb;
+  }
+  private insertBefore(b: Bucket, count: number): Bucket {
+    if (b.prev!.count === count) return b.prev!;
+    const nb = new Bucket(count); nb.next = b; nb.prev = b.prev; b.prev!.next = nb; b.prev = nb; return nb;
+  }
+  private dropIfEmpty(b: Bucket) { if (b !== this.head &amp;&amp; b !== this.tail &amp;&amp; b.keys.size === 0) { b.prev!.next = b.next; b.next!.prev = b.prev; } }
+  inc(key: string): void {
+    const cur = this.where.get(key) ?? this.head;
+    const nb = this.insertAfter(cur, cur.count + 1);
+    nb.keys.add(key); this.where.set(key, nb);
+    if (cur !== this.head) { cur.keys.delete(key); this.dropIfEmpty(cur); }
+  }
+  dec(key: string): void {
+    const cur = this.where.get(key)!;
+    if (cur.count === 1) this.where.delete(key);         // count 0 → forget the key entirely
+    else { const nb = this.insertBefore(cur, cur.count - 1); nb.keys.add(key); this.where.set(key, nb); }
+    cur.keys.delete(key); this.dropIfEmpty(cur);
+  }
+  getMaxKey(): string { const b = this.tail.prev!; return b === this.head ? '' : b.keys.values().next().value!; }
+  getMinKey(): string { const b = this.head.next!; return b === this.tail ? '' : b.keys.values().next().value!; }
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>359:</b> a message may print again at exactly <code>ts + 10</code>; the follow-up is bounding memory (queue of the last 10 s). <b>1146:</b> overwrite the last version if the snap id is unchanged; every cell starts with <code>[0, 0]</code>. <b>432:</b> delete empty buckets immediately; sentinels remove the empty-list cases.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-lru">Map + DLL (LRU)</a></td><td>146 LRU Cache · <b>460 LFU Cache</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-lru">Map + DLL (LRU)</a></td><td>146 LRU Cache · <b>460 LFU Cache</b> · <b>432 All O`one</b> (count buckets)</td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-rand">Map + array (random)</a></td><td>380 Insert Delete GetRandom O(1) · <b>381 (dups allowed)</b> · 528 Random Pick Weight</td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-aux">Auxiliary structure</a></td><td>155 Min Stack · 232 Queue via Stacks · 716 Max Stack</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-aux">Auxiliary structure</a></td><td>155 Min Stack · 232 Queue via Stacks · 716 Max Stack · 359 Logger Rate Limiter</td><td>Easy → Med</td></tr>
 <tr><td><a href="#p-time">Time-ordered</a></td><td>981 Time Based Key-Value Store · 1146 Snapshot Array</td><td>Med</td></tr>
 <tr><td><a href="#p-iter">Iterators</a></td><td>173 BST Iterator · 284 Peeking Iterator · <b>341 Flatten Nested List Iterator</b></td><td>Med → <b>Hard</b></td></tr>
 </table>
@@ -358,6 +429,8 @@ class BSTIterator {
 <tr><td>Why can a time-based store binary-search?</td><td class="a">Timestamps only increase, so each key's history is sorted; a floor search finds the latest time ≤ t.</td></tr>
 <tr><td>What does a BST iterator's stack represent?</td><td class="a">A paused inorder traversal — the un-emitted ancestors; <code>O(h)</code> space, amortized <code>O(1)</code> per <code>next()</code>.</td></tr>
 <tr><td>What's the most common design bug?</td><td class="a">Updating one structure and forgetting the other (e.g., evicting from the list but leaving the map entry).</td></tr>
+<tr><td>Snapshot Array — why not copy the array on every snap()?</td><td class="a">It costs O(n) per snapshot. Store a per-cell list of <code>[snapId, value]</code> only when the cell is set; <code>get</code> binary-searches the last version with <code>snapId ≤ s</code>.</td></tr>
+<tr><td>All O`one — what makes inc / dec / getMax / getMin all O(1)?</td><td class="a">A doubly linked list of buckets sorted by count (each holding a set of keys) plus a map key → bucket; moving a key just hops to the neighbouring bucket, and min/max read the two ends.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

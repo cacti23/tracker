@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -462,12 +471,78 @@ function findMaximumXOR(nums: number[]): number {
 <b>vs a hash set:</b> tries win on prefixes and pruning, lose on memory for exact-membership-only.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ More trie shapes — Autocomplete (642) · Palindrome Pairs (336) · Stream of Characters (1032)</summary>
+<div class="box"><b>642</b>: trie nodes that store counts → ranked suggestions. <b>336</b>: palindromes via prefix/suffix splits (a hash map or a reversed trie). <b>1032</b>: insert words <i>reversed</i>, read the stream newest-first. (<b>14</b> Longest Common Prefix: vertical scan; the trie only pays off across many queries.)</div>
+<pre class="language-tsx"><code class="language-tsx">// 642 Design Search Autocomplete System — every node keeps sentence → count for everything passing through it
+type TNode = { kids: Map&lt;string, TNode&gt;; counts: Map&lt;string, number&gt; };
+class AutocompleteSystem {
+  private root: TNode = { kids: new Map(), counts: new Map() };
+  private cur: TNode | null; private typed = '';
+  constructor(sentences: string[], times: number[]) { this.cur = this.root; sentences.forEach((s, i) =&gt; this.add(s, times[i])); }
+  private add(s: string, t: number) {
+    let n = this.root;
+    for (const ch of s) {
+      if (!n.kids.has(ch)) n.kids.set(ch, { kids: new Map(), counts: new Map() });
+      n = n.kids.get(ch)!; n.counts.set(s, (n.counts.get(s) ?? 0) + t);
+    }
+  }
+  input(c: string): string[] {
+    if (c === '#') { this.add(this.typed, 1); this.typed = ''; this.cur = this.root; return []; }
+    this.typed += c;
+    this.cur = this.cur ? this.cur.kids.get(c) ?? null : null;          // once off the trie, stay off until '#'
+    if (!this.cur) return [];
+    return [...this.cur.counts].sort((a, b) =&gt; b[1] - a[1] || (a[0] &lt; b[0] ? -1 : 1)).slice(0, 3).map(e =&gt; e[0]);
+  }
+}
+
+// 336 Palindrome Pairs — split every word; a palindromic half needs the reverse of the other half to exist
+function palindromePairs(words: string[]): number[][] {
+  const idx = new Map(words.map((w, i) =&gt; [w, i] as [string, number]));
+  const isPal = (s: string) =&gt; { let l = 0, r = s.length - 1; while (l &lt; r) if (s[l++] !== s[r--]) return false; return true; };
+  const rev = (s: string) =&gt; s.split('').reverse().join('');
+  const res: number[][] = [];
+  words.forEach((w, i) =&gt; {
+    for (let k = 0; k &lt;= w.length; k++) {
+      const left = w.slice(0, k), right = w.slice(k);
+      if (isPal(left)) { const j = idx.get(rev(right)); if (j !== undefined &amp;&amp; j !== i) res.push([j, i]); }                    // rev(right) + w
+      if (right.length &gt; 0 &amp;&amp; isPal(right)) { const j = idx.get(rev(left)); if (j !== undefined &amp;&amp; j !== i) res.push([i, j]); } // w + rev(left)  (right.length &gt; 0 avoids double counting)
+    }
+  });
+  return res;
+}
+
+// 1032 Stream of Characters — REVERSED-word trie, walk newest → oldest
+class StreamChecker {
+  private root: any = {}; private buf: string[] = []; private maxLen = 0;
+  constructor(words: string[]) {
+    for (const w of words) {
+      this.maxLen = Math.max(this.maxLen, w.length);
+      let n = this.root;
+      for (let i = w.length - 1; i &gt;= 0; i--) n = n[w[i]] ??= {};
+      n.end = true;
+    }
+  }
+  query(c: string): boolean {
+    this.buf.push(c); if (this.buf.length &gt; this.maxLen) this.buf.shift();
+    let n = this.root;
+    for (let i = this.buf.length - 1; i &gt;= 0; i--) {
+      n = n[this.buf[i]];
+      if (!n) return false;
+      if (n.end) return true;                                             // ANY suffix that is a word counts
+    }
+    return false;
+  }
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>642:</b> the committed sentence must update <i>every</i> node on its path; after a dead branch stay dead until <code>#</code>. <b>336:</b> guard <code>right.length &gt; 0</code> in the second branch and skip <code>j === i</code>. <b>1032:</b> check <code>end</code> at every step of the walk, and cap the buffer at the longest word.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-mech">Mechanics</a></td><td>208 Implement Trie · 1804 Implement Trie II</td><td>Med</td></tr>
-<tr><td><a href="#p-prefix">Prefix queries</a></td><td>1268 Search Suggestions · 648 Replace Words · 677 Map Sum Pairs · 720 Longest Word</td><td>Med</td></tr>
+<tr><td><a href="#p-prefix">Prefix queries</a></td><td>1268 Search Suggestions · 648 Replace Words · 677 Map Sum Pairs · 720 Longest Word · 14 Longest Common Prefix · <b>642 Search Autocomplete</b> · <b>336 Palindrome Pairs</b> · <b>1032 Stream of Characters</b></td><td>Med</td></tr>
 <tr><td><a href="#p-wild">Wildcard</a></td><td>211 Add &amp; Search Word (the <code>.</code> branch)</td><td>Med</td></tr>
 <tr><td><a href="#p-grid">Grid + trie</a></td><td><b>212 Word Search II</b> · <b>425 Word Squares</b></td><td><b>Hard</b></td></tr>
 <tr><td><a href="#p-bit">XOR / bit trie</a></td><td><b>421 Maximum XOR of Two Numbers</b> · <b>1707 Max XOR With an Element</b></td><td>Med → <b>Hard</b></td></tr>
@@ -484,6 +559,8 @@ function findMaximumXOR(nums: number[]): number {
 <tr><td>Why is the bit-trie XOR walk greedy-optimal?</td><td class="a">A higher bit outweighs all lower bits, so taking the opposite branch at the MSB whenever possible is never beaten later.</td></tr>
 <tr><td>A trie's main weakness?</td><td class="a">Memory — many sparse nodes; a <code>Map</code> per node keeps it lean vs a 26-slot array.</td></tr>
 <tr><td>Search Suggestions (1268): how do you serve top-3 per keystroke in O(1)?</td><td class="a">Sort the products once, then during insertion each node keeps the <b>first ≤3 words</b> that pass through it (sorted insertion = lexicographically smallest). A query is just a walk — each node already holds its answer.</td></tr>
+<tr><td>Stream of Characters — why insert the words reversed?</td><td class="a">A match is any <b>suffix</b> of the stream that is a word; reading the stream newest-first through a reversed-word trie turns "suffix match" into a normal prefix walk (check <code>end</code> at every step).</td></tr>
+<tr><td>Palindrome Pairs — the two cases per split?</td><td class="a"><code>left</code> palindrome and <code>rev(right)</code> is a word → <code>rev(right)+w</code>; <code>right</code> palindrome (non-empty) and <code>rev(left)</code> is a word → <code>w+rev(left)</code>.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

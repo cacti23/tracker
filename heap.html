@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -297,6 +306,74 @@ function minMeetingRooms(intervals: number[][]): number {
 <b>"Connect sticks"</b> is Huffman coding; <b>two heaps</b> is the balance trick reused in many median/percentile problems.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ Heap + greedy escalations — Meeting Rooms III (2402) · Rearrange String k Apart (358) · Max Events (1353) · Hire K Workers (857)</summary>
+<div class="box">Four ways a heap drives a greedy: <b>two heaps for rooms</b>, a <b>cooldown queue</b>, <b>earliest-deadline-first</b>, and <b>sort by one key, heap on another</b>.</div>
+<pre class="language-tsx"><code class="language-tsx">// 2402 Meeting Rooms III — free rooms (by index) + busy rooms (by end time, then index)
+function mostBooked(n: number, meetings: number[][]): number {
+  meetings.sort((a, b) =&gt; a[0] - b[0]);
+  const free = new MinHeap&lt;number&gt;((a, b) =&gt; a &lt; b);
+  for (let r = 0; r &lt; n; r++) free.push(r);
+  const busy = new MinHeap&lt;[number, number]&gt;((a, b) =&gt; a[0] &lt; b[0] || (a[0] === b[0] &amp;&amp; a[1] &lt; b[1]));   // [end, room]
+  const used: number[] = new Array(n).fill(0);
+  for (const [s, e] of meetings) {
+    while (busy.size() &amp;&amp; busy.peek()[0] &lt;= s) free.push(busy.pop()[1]);   // release rooms that finished
+    let room: number, end: number;
+    if (free.size()) { room = free.pop(); end = e; }
+    else { const [t, r] = busy.pop(); room = r; end = t + (e - s); }       // delayed: keeps its DURATION
+    busy.push([end, room]); used[room]++;
+  }
+  let best = 0;
+  for (let r = 1; r &lt; n; r++) if (used[r] &gt; used[best]) best = r;          // ties → lowest index
+  return best;
+}
+
+// 358 Rearrange String k Distance Apart — max-heap by count + cooldown queue
+function rearrangeString(s: string, k: number): string {
+  if (k &lt;= 1) return s;
+  const cnt = new Map&lt;string, number&gt;();
+  for (const ch of s) cnt.set(ch, (cnt.get(ch) ?? 0) + 1);
+  const heap = new MinHeap&lt;[number, string]&gt;((a, b) =&gt; a[0] &gt; b[0] || (a[0] === b[0] &amp;&amp; a[1] &lt; b[1]));   // most frequent first
+  for (const [ch, c] of cnt) heap.push([c, ch]);
+  const wait: [number, string][] = []; let res = '';
+  while (heap.size()) {
+    const [c, ch] = heap.pop(); res += ch;
+    wait.push([c - 1, ch]);
+    if (wait.length &gt;= k) { const [c2, ch2] = wait.shift()!; if (c2 &gt; 0) heap.push([c2, ch2]); }   // usable again after k placements
+  }
+  return res.length === s.length ? res : '';
+}
+
+// 1353 Maximum Number of Events That Can Be Attended — earliest deadline first
+function maxEvents(events: number[][]): number {
+  events.sort((a, b) =&gt; a[0] - b[0]);
+  const heap = new MinHeap&lt;number&gt;((a, b) =&gt; a &lt; b);                       // end days
+  let i = 0, day = 0, count = 0;
+  while (i &lt; events.length || heap.size()) {
+    if (!heap.size()) day = Math.max(day, events[i][0]);                   // jump over empty days
+    while (i &lt; events.length &amp;&amp; events[i][0] &lt;= day) heap.push(events[i++][1]);
+    while (heap.size() &amp;&amp; heap.peek() &lt; day) heap.pop();                   // expired
+    if (heap.size()) { heap.pop(); count++; }                              // attend the one ending soonest
+    day++;
+  }
+  return count;
+}
+
+// 857 Minimum Cost to Hire K Workers — sort by wage/quality, heap keeps the K smallest qualities
+function mincostToHireWorkers(quality: number[], wage: number[], k: number): number {
+  const workers = quality.map((q, i) =&gt; ({ q, r: wage[i] / q })).sort((a, b) =&gt; a.r - b.r);
+  const heap = new MinHeap&lt;number&gt;((a, b) =&gt; a &gt; b);                       // max-heap of qualities
+  let sumQ = 0, best = Infinity;
+  for (const w of workers) {
+    heap.push(w.q); sumQ += w.q;
+    if (heap.size() &gt; k) sumQ -= heap.pop();                               // drop the LARGEST quality
+    if (heap.size() === k) best = Math.min(best, w.r * sumQ);              // w.r is the group rate (max ratio so far)
+  }
+  return best;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>2402:</b> a delayed meeting keeps its duration; break end-time ties by room index. <b>358:</b> release a character only after <code>k</code> placements. <b>1353:</b> drop expired events <i>before</i> attending; jump <code>day</code> when the heap is empty. <b>857:</b> compute the cost only when the heap holds exactly <code>k</code>; the current ratio is valid only because you sorted ascending.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
@@ -305,7 +382,7 @@ function minMeetingRooms(intervals: number[][]): number {
 <tr><td><a href="#p-topk">Top-K</a></td><td>347 Top K Frequent · 973 K Closest Points · 692 Top K Words</td><td>Med</td></tr>
 <tr><td><a href="#p-merge">K-way merge</a></td><td><b>23 Merge k Sorted Lists</b> · 373 K Pairs · 378 Kth in Sorted Matrix</td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-twoheap">Two-heap median</a></td><td><b>295 Median from Data Stream</b> · <b>480 Sliding Window Median</b></td><td><b>Hard</b></td></tr>
-<tr><td><a href="#p-greedy">Greedy</a></td><td>1046 Last Stone Weight · 253 Meeting Rooms II · 621 Task Scheduler</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-greedy">Greedy</a></td><td>1046 Last Stone Weight · 253 Meeting Rooms II · 621 Task Scheduler · 2402 Meeting Rooms III · 358 Rearrange k Apart · 1353 Max Events · <b>857 Hire K Workers</b></td><td>Easy → Med</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
 <p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
@@ -318,6 +395,8 @@ function minMeetingRooms(intervals: number[][]): number {
 <tr><td>State the two invariants of the median two-heap.</td><td class="a">Every <code>lo</code> ≤ every <code>hi</code>; and <code>lo.size</code> equals <code>hi.size</code> or is one bigger.</td></tr>
 <tr><td>When should you use quickselect instead of a heap?</td><td class="a">A one-shot k-th on static, in-memory data — quickselect is <code>O(n)</code>. Heaps win for streams / repeated queries.</td></tr>
 <tr><td>How do you "remove a specific element" from a heap?</td><td class="a">Lazy deletion: mark it removed, and skip stale entries when they surface at the top.</td></tr>
+<tr><td>Meeting Rooms III — what happens when every room is busy?</td><td class="a">Pop the room that frees up earliest and run the meeting there starting at that time, keeping its <b>duration</b> (<code>end = t + (e − s)</code>).</td></tr>
+<tr><td>Minimum Cost to Hire K Workers — why sort by wage/quality?</td><td class="a">Everyone in a group is paid at the group's max ratio; sorted ascending, the current worker's ratio <i>is</i> that max, so you just want the K smallest total quality (max-heap).</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

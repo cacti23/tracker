@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -278,13 +287,75 @@ function eraseOverlapIntervals(intervals: number[][]): number {
 <b>Greedy-by-end</b> is classic activity selection; the <b>weighted</b> version becomes <a href="dp.html">DP</a>.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ Difference arrays & interval sets — Car Pooling (1094) · Zero Array I (3355) · My Calendar II (731) · Range Module (715)</summary>
+<div class="box">Two cheap sweep-line tools: a <b>difference array</b> (1094, 3355) and a <b>sorted list of disjoint intervals</b> (715, 731).</div>
+<pre class="language-tsx"><code class="language-tsx">// 1094 Car Pooling — difference array over positions
+function carPooling(trips: number[][], capacity: number): boolean {
+  const diff: number[] = new Array(1002).fill(0);
+  for (const [n, from, to] of trips) { diff[from] += n; diff[to] -= n; }   // they leave AT 'to' (exclusive)
+  let load = 0;
+  for (const d of diff) { load += d; if (load &gt; capacity) return false; }
+  return true;
+}
+
+// 3355 Zero Array Transformation I — coverage count per index must be &gt;= nums[i]
+function isZeroArray(nums: number[], queries: number[][]): boolean {
+  const diff: number[] = new Array(nums.length + 1).fill(0);
+  for (const [l, r] of queries) { diff[l]++; diff[r + 1]--; }
+  let cur = 0;
+  for (let i = 0; i &lt; nums.length; i++) { cur += diff[i]; if (nums[i] &gt; cur) return false; }
+  return true;
+}
+
+// 731 My Calendar II — allow double booking, reject triple
+class MyCalendarTwo {
+  private booked: number[][] = [];
+  private overlaps: number[][] = [];                       // regions already booked twice
+  book(s: number, e: number): boolean {
+    for (const [a, b] of this.overlaps) if (s &lt; b &amp;&amp; a &lt; e) return false;     // would be a 3rd booking
+    for (const [a, b] of this.booked) {
+      const lo = Math.max(s, a), hi = Math.min(e, b);
+      if (lo &lt; hi) this.overlaps.push([lo, hi]);
+    }
+    this.booked.push([s, e]);
+    return true;
+  }
+}
+
+// 715 Range Module — sorted disjoint half-open intervals [l, r)
+class RangeModule {
+  private iv: number[][] = [];
+  addRange(l: number, r: number): void {
+    const out: number[][] = []; let placed = false;
+    for (const [a, b] of this.iv) {
+      if (b &lt; l) out.push([a, b]);                                             // strictly before (touching merges)
+      else if (a &gt; r) { if (!placed) { out.push([l, r]); placed = true; } out.push([a, b]); }
+      else { l = Math.min(l, a); r = Math.max(r, b); }                         // overlaps or touches → absorb
+    }
+    if (!placed) out.push([l, r]);
+    this.iv = out;
+  }
+  removeRange(l: number, r: number): void {
+    const out: number[][] = [];
+    for (const [a, b] of this.iv) {
+      if (b &lt;= l || a &gt;= r) out.push([a, b]);
+      else { if (a &lt; l) out.push([a, l]); if (b &gt; r) out.push([r, b]); }       // one interval can split in two
+    }
+    this.iv = out;
+  }
+  queryRange(l: number, r: number): boolean { return this.iv.some(([a, b]) =&gt; a &lt;= l &amp;&amp; r &lt;= b); }
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>1094:</b> drop-off is exclusive (<code>diff[to] -= n</code>). <b>3355:</b> each query may skip cells, so the test is exactly <code>nums[i] ≤ coverage[i]</code>. <b>731:</b> check <code>overlaps</code> first; intervals are half-open (<code>s &lt; b &amp;&amp; a &lt; e</code>). <b>715:</b> merge <i>touching</i> ranges (<code>b &lt; l</code> to skip); a query needs ONE interval covering it.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-merge">Merge overlapping</a></td><td>56 Merge Intervals · 57 Insert Interval · 763 Partition Labels</td><td>Med</td></tr>
-<tr><td><a href="#p-sweep">Sweep line</a></td><td>253 Meeting Rooms II · 1854 Max Population · <b>218 The Skyline Problem</b></td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-inter">Intersection</a></td><td>986 Interval List Intersections · 436 Find Right Interval</td><td>Med</td></tr>
+<tr><td><a href="#p-merge">Merge overlapping</a></td><td>56 Merge Intervals · 57 Insert Interval · 763 Partition Labels · <b>715 Range Module</b></td><td>Med</td></tr>
+<tr><td><a href="#p-sweep">Sweep line</a></td><td>253 Meeting Rooms II · 1854 Max Population · 1094 Car Pooling · 3355 Zero Array (difference array) · <b>218 The Skyline Problem</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-inter">Intersection</a></td><td>986 Interval List Intersections · 436 Find Right Interval · 731 My Calendar II</td><td>Med</td></tr>
 <tr><td><a href="#p-greedy">Greedy selection</a></td><td>435 Non-overlapping Intervals · 452 Min Arrows · 646 Max Length Chain</td><td>Med</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
@@ -298,6 +369,8 @@ function eraseOverlapIntervals(intervals: number[][]): number {
 <tr><td>In two-list intersection, which pointer advances?</td><td class="a">The interval that <b>ends first</b> — it can't overlap any later interval of the other list.</td></tr>
 <tr><td>Why does greedy sort by <b>end</b> (the exchange argument)?</td><td class="a">The earliest-ending interval leaves the most room; swapping it into an optimal solution never loses a later pick.</td></tr>
 <tr><td>When does the greedy break?</td><td class="a">When intervals are <b>weighted</b> (maximize total value, not count) — that's DP, not greedy.</td></tr>
+<tr><td>Car Pooling — what does the difference array store, and why is drop-off exclusive?</td><td class="a"><code>diff[from] += n</code>, <code>diff[to] −= n</code>; a running sum gives the load at each stop. Passengers leave <i>at</i> <code>to</code> before anyone boards there.</td></tr>
+<tr><td>My Calendar II — the two lists?</td><td class="a"><code>booked</code> (all accepted) and <code>overlaps</code> (already double-booked). Reject if the new interval hits <code>overlaps</code>; otherwise add its intersections with <code>booked</code> to <code>overlaps</code>.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

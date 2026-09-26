@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -299,14 +308,45 @@ function swapPairs(head: ListNode | null): ListNode | null {
 <b>Reverse &amp; merge</b> have clean <b>recursive</b> forms — see <a href="recursion.html">recursion.html</a>.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ Two more list shapes — Partition List (86) · Insert into Sorted Circular List (708)</summary>
+<div class="box"><b>86</b> is the two-dummy-heads trick (same family as Odd Even, 328). <b>708</b> is pure edge-case discipline: a normal slot, the wrap point, and the all-equal list.</div>
+<pre class="language-tsx"><code class="language-tsx">// 86 Partition List — two lists behind two dummy heads, then stitch
+function partition(head: ListNode | null, x: number): ListNode | null {
+  const lessHead = new ListNode(0), geHead = new ListNode(0);
+  let l = lessHead, g = geHead;
+  for (let n = head; n; n = n.next) {
+    if (n.val &lt; x) { l.next = n; l = n; }
+    else           { g.next = n; g = n; }
+  }
+  g.next = null;                 // the last ≥x node may still point into the &lt;x part → cycle if left
+  l.next = geHead.next;
+  return lessHead.next;
+}
+
+// 708 Insert into a Sorted Circular Linked List
+function insertCircular(head: ListNode | null, x: number): ListNode {
+  if (!head) { const n = new ListNode(x); n.next = n; return n; }
+  let prev = head, cur = head.next!;
+  do {
+    if (prev.val &lt;= x &amp;&amp; x &lt;= cur.val) break;                          // normal slot
+    if (prev.val &gt; cur.val &amp;&amp; (x &gt;= prev.val || x &lt;= cur.val)) break;  // wrap point: max → min
+    prev = cur; cur = cur.next!;
+  } while (prev !== head);                                              // one full lap (all-equal list falls through)
+  prev.next = new ListNode(x, cur);
+  return head;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>86:</b> <code>g.next = null</code> is mandatory. <b>708:</b> three cases — normal slot, wrap point, full lap with no match (insert anywhere) — plus the empty list. Return the <i>original</i> head.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-rev">Reverse</a></td><td>206 Reverse List · 92 Reverse II · <b>25 Reverse Nodes in k-Group</b></td><td>Easy → <b>Hard</b></td></tr>
 <tr><td><a href="#p-fast">Fast &amp; slow</a></td><td>141/142 Cycle · 876 Middle · 234 Palindrome Linked List</td><td>Easy → Med</td></tr>
-<tr><td><a href="#p-dummy">Dummy head</a></td><td>21 Merge Two · 19 Remove Nth from End · 83/82 Remove Dups · 2 Add Two Numbers</td><td>Easy → Med</td></tr>
-<tr><td><a href="#p-compose">Compose</a></td><td>143 Reorder List · 148 Sort List · 138 Copy w/ Random Pointer · <b>23 Merge k Sorted Lists</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-dummy">Dummy head</a></td><td>21 Merge Two · 19 Remove Nth from End · 83/82 Remove Dups · 2 Add Two Numbers · 86 Partition List</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-compose">Compose</a></td><td>143 Reorder List · 148 Sort List · 138 Copy w/ Random Pointer · 708 Sorted Circular Insert · <b>23 Merge k Sorted Lists</b></td><td>Med → <b>Hard</b></td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
 <p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
@@ -319,6 +359,8 @@ function swapPairs(head: ListNode | null): ListNode | null {
 <tr><td>What three primitives compose "Reorder List," and what's the easy-to-miss step?</td><td class="a">Find middle, reverse second half, interleave — and <code>slow.next = null</code> to cut, so you don't weld a cycle.</td></tr>
 <tr><td>When should you copy a list to an array instead?</td><td class="a">When you need random access, binary search, or backward traversal — a singly list can't do those in <code>O(1)</code>.</td></tr>
 <tr><td>What turns an <code>O(n)</code> list solution into <code>O(n²)</code>?</td><td class="a">Re-walking from <code>head</code> inside a loop. Keep a running pointer instead.</td></tr>
+<tr><td>Partition List — why must the "greater" list's tail be set to null?</td><td class="a">Its last node may still point to a node now in the "less" list; leaving it creates a cycle.</td></tr>
+<tr><td>Insert into a sorted circular list — the cases?</td><td class="a">Normal slot (<code>prev ≤ x ≤ cur</code>); wrap point (<code>prev &gt; cur</code> and <code>x ≥ prev</code> or <code>x ≤ cur</code>); full lap with no match (all equal) → insert anywhere; empty list → self-loop node.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

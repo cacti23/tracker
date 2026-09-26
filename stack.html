@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -300,13 +309,58 @@ function removeKdigits(num: string, k: number): string {
 <b>Histogram area → "Maximal Rectangle"</b> turns a 2D matrix into a histogram per row.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ Three more stack shapes — Visible People (1944) · Exclusive Time (636) · Max Chunks II (768)</summary>
+<div class="box">Same monotonic-stack machinery, three new roles: <b>count while you pop</b> (1944), <b>the stack is the call stack</b> (636), and <b>each stack element summarises one group</b> (768).</div>
+<pre class="language-tsx"><code class="language-tsx">// 1944 Number of Visible People in a Queue — scan RIGHT→LEFT, decreasing stack
+function canSeePersonsCount(h: number[]): number[] {
+  const res: number[] = new Array(h.length).fill(0), st: number[] = [];
+  for (let i = h.length - 1; i &gt;= 0; i--) {
+    while (st.length &amp;&amp; h[st[st.length - 1]] &lt; h[i]) { st.pop(); res[i]++; }   // every shorter person is visible
+    if (st.length) res[i]++;                                                    // plus the first person &gt;= me
+    st.push(i);
+  }
+  return res;
+}
+
+// 636 Exclusive Time of Functions — simulate the call stack
+function exclusiveTime(n: number, logs: string[]): number[] {
+  const res: number[] = new Array(n).fill(0), st: number[] = [];
+  let prev = 0;
+  for (const log of logs) {
+    const [id, type, t] = log.split(':'); const ts = +t;
+    if (type === 'start') {
+      if (st.length) res[st[st.length - 1]] += ts - prev;   // caller runs until the callee starts
+      st.push(+id); prev = ts;
+    } else {
+      res[st.pop()!] += ts - prev + 1;                       // end timestamp is INCLUSIVE
+      prev = ts + 1;
+    }
+  }
+  return res;
+}
+
+// 768 Max Chunks To Make Sorted II — each stack element = the MAX of one chunk
+function maxChunksToSorted(arr: number[]): number {
+  const st: number[] = [];
+  for (const x of arr) {
+    if (!st.length || x &gt;= st[st.length - 1]) { st.push(x); continue; }   // &gt;= keeps duplicates in separate chunks
+    const cur = st[st.length - 1];                                         // the merged chunk's max
+    while (st.length &amp;&amp; st[st.length - 1] &gt; x) st.pop();                   // absorb every chunk whose max exceeds x
+    st.push(cur);
+  }
+  return st.length;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>1944:</b> pop on strictly <i>shorter</i>; the trailing <code>+1</code> counts the first person ≥ you. <b>636:</b> the <code>+1</code> on <code>end</code> and <code>prev = ts + 1</code>. <b>768:</b> push with <code>&gt;=</code>; push back the <i>old top</i> (<code>cur</code>), not <code>x</code>.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-match">Matching</a></td><td>20 Valid Parentheses · 1047 Remove Adjacent Dups · <b>32 Longest Valid Parens</b></td><td>Easy → <b>Hard</b></td></tr>
+<tr><td><a href="#p-match">Matching</a></td><td>20 Valid Parentheses · 1047 Remove Adjacent Dups · 636 Exclusive Time (call-stack sim) · <b>32 Longest Valid Parens</b></td><td>Easy → <b>Hard</b></td></tr>
 <tr><td><a href="#p-parse">Parsing</a></td><td>150 Eval RPN · 394 Decode String · <b>224 Basic Calculator</b></td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-mono">Monotonic stack</a></td><td>496/503 Next Greater Element · 739 Daily Temperatures · 901 Stock Span</td><td>Med</td></tr>
+<tr><td><a href="#p-mono">Monotonic stack</a></td><td>496/503 Next Greater Element · 739 Daily Temperatures · 901 Stock Span · <b>1944 Visible People</b> · <b>768 Max Chunks II</b></td><td>Med</td></tr>
 <tr><td><a href="#p-area">Histogram / area</a></td><td><b>84 Largest Rectangle in Histogram</b> · <b>85 Maximal Rectangle</b> · 42 Trapping Rain</td><td><b>Hard</b></td></tr>
 <tr><td><a href="#p-greedy">Greedy with a stack</a></td><td>316 Remove Duplicate Letters · 402 Remove K Digits · 1673</td><td>Med → <b>Hard</b></td></tr>
 </table>
@@ -321,6 +375,8 @@ function removeKdigits(num: string, k: number): string {
 <tr><td>Remove K Digits: what are the two cleanup steps after the loop?</td><td class="a">Trim leftover <code>k</code> from the tail, then strip leading zeros (and return "0" if empty).</td></tr>
 <tr><td>When should you <b>not</b> use a stack?</td><td class="a">When you need random/middle access, or the resolution order isn't LIFO / nearest-on-one-side.</td></tr>
 <tr><td>How does a monotonic stack relate to the sliding-window deque?</td><td class="a">Same idea; the deque also evicts from the front when elements leave the window — a stack open at both ends.</td></tr>
+<tr><td>Visible People in a Queue — why scan right to left, and what do you add per person?</td><td class="a">Visibility looks to the right. Each shorter person popped is visible (+1 each), plus +1 for the first person at least as tall who remains on the stack.</td></tr>
+<tr><td>Max Chunks II — what does each stack element represent?</td><td class="a">The <b>maximum of one chunk</b>. A smaller incoming value merges every chunk with a bigger max into one (push the old top back); the stack size is the chunk count.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

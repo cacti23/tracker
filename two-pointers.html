@@ -56,6 +56,15 @@
     .qa td.a{filter:none}
     @page{size:A4;margin:8mm}
   }
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -434,13 +443,77 @@ function isSubsequence(s: string, t: string): boolean {
 <b>Merge (4.4)</b> is the heart of merge sort and of merging k lists with a heap.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ More two-pointer shapes — Rotate Array (189) · Next Permutation (31) · Backspace Compare (844) · Product Except Self (238) · Intersection II (350)</summary>
+<div class="box"><b>Two Sum (1)</b> is the hash-map answer; the moment the array is <i>sorted</i> the same question becomes converging pointers with O(1) space (167). The variants below are the in-place / two-pass tricks Google likes as follow-ups.</div>
+<pre class="language-tsx"><code class="language-tsx">// 189 Rotate Array — three reversals, O(1) space
+function rotate(nums: number[], k: number): void {
+  const n = nums.length; k %= n;                       // k can exceed n
+  const rev = (l: number, r: number) =&gt; { while (l &lt; r) { [nums[l], nums[r]] = [nums[r], nums[l]]; l++; r--; } };
+  rev(0, n - 1); rev(0, k - 1); rev(k, n - 1);
+}
+
+// 31 Next Permutation — pivot from the right, swap, reverse the suffix
+function nextPermutation(nums: number[]): void {
+  let i = nums.length - 2;
+  while (i &gt;= 0 &amp;&amp; nums[i] &gt;= nums[i + 1]) i--;                 // first drop from the right
+  if (i &gt;= 0) {
+    let j = nums.length - 1;
+    while (nums[j] &lt;= nums[i]) j--;                              // rightmost value larger than the pivot
+    [nums[i], nums[j]] = [nums[j], nums[i]];
+  }
+  for (let l = i + 1, r = nums.length - 1; l &lt; r; l++, r--) [nums[l], nums[r]] = [nums[r], nums[l]];  // suffix was non-increasing → reverse = smallest
+}
+
+// 844 Backspace String Compare — from the END with a skip counter, O(1) space
+function backspaceCompare(s: string, t: string): boolean {
+  const next = (str: string, i: number): number =&gt; {
+    let skip = 0;
+    while (i &gt;= 0) {
+      if (str[i] === '#') { skip++; i--; }
+      else if (skip &gt; 0) { skip--; i--; }
+      else break;
+    }
+    return i;
+  };
+  let i = s.length - 1, j = t.length - 1;
+  while (true) {
+    i = next(s, i); j = next(t, j);
+    if (i &lt; 0 || j &lt; 0) return i &lt; 0 &amp;&amp; j &lt; 0;                   // both exhausted together?
+    if (s[i] !== t[j]) return false;
+    i--; j--;
+  }
+}
+
+// 238 Product of Array Except Self — prefix pass, then suffix pass
+function productExceptSelf(nums: number[]): number[] {
+  const n = nums.length, res: number[] = new Array(n).fill(1);
+  let prefix = 1; for (let i = 0; i &lt; n; i++) { res[i] = prefix; prefix *= nums[i]; }        // product of everything LEFT of i
+  let suffix = 1; for (let i = n - 1; i &gt;= 0; i--) { res[i] *= suffix; suffix *= nums[i]; }  // times everything RIGHT of i
+  return res;
+}
+
+// 350 Intersection of Two Arrays II — sort + merge (multiset: advance BOTH on a match)
+function intersect(a: number[], b: number[]): number[] {
+  a = [...a].sort((x, y) =&gt; x - y); b = [...b].sort((x, y) =&gt; x - y);
+  const res: number[] = []; let i = 0, j = 0;
+  while (i &lt; a.length &amp;&amp; j &lt; b.length) {
+    if (a[i] &lt; b[j]) i++;
+    else if (a[i] &gt; b[j]) j++;
+    else { res.push(a[i]); i++; j++; }
+  }
+  return res;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>189:</b> <code>k %= n</code> first. <b>31:</b> <code>&gt;=</code> for the pivot, <code>&lt;=</code> for the swap partner (duplicates); reverse the suffix, don't sort it. <b>844:</b> loop until <i>both</i> pointers are exhausted. <b>238:</b> write <code>res[i]</code> <i>before</i> multiplying <code>prefix</code> by <code>nums[i]</code>. <b>350:</b> advance both on a match; LC 349 (set version) dedupes instead.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-conv">Converging</a></td><td>167 Two Sum II · 15 3Sum · 11 Container With Most Water · <b>42 Trapping Rain Water</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-conv">Converging</a></td><td>1 Two Sum (hash vs pointers) · 167 Two Sum II · 15 3Sum · 11 Container With Most Water · 844 Backspace Compare (from the end) · <b>42 Trapping Rain Water</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-fast">Fast &amp; slow</a></td><td>141/142 Linked List Cycle · 287 Find the Duplicate · 876 Middle of List</td><td>Easy → Med</td></tr>
-<tr><td><a href="#p-rw">Read / write</a></td><td>26/80 Remove Duplicates · 283 Move Zeroes · 75 Sort Colors</td><td>Easy → Med</td></tr>
+<tr><td><a href="#p-rw">Read / write</a></td><td>26/80 Remove Duplicates · 283 Move Zeroes · 75 Sort Colors · 189 Rotate Array · 31 Next Permutation · 238 Product Except Self</td><td>Easy → Med</td></tr>
 <tr><td><a href="#p-seq">Sequential / merge</a></td><td>88 Merge Sorted Array · 977 Squares of a Sorted Array · 350 Intersection</td><td>Easy → Med</td></tr>
 </table>
 <h2 id="selfcheck">✅ 7 · Self-check</h2>
@@ -454,6 +527,9 @@ function isSubsequence(s: string, t: string): boolean {
 <tr><td>How do you find the <i>start</i> of a linked-list cycle?</td><td class="a">After slow/fast meet, reset one pointer to head; advance both by 1; they collide at the entry.</td></tr>
 <tr><td>Sort Colors: when do you <b>not</b> advance <code>mid</code>?</td><td class="a">After swapping with <code>high</code> — the incoming value is un-inspected, so re-check it.</td></tr>
 <tr><td>Why is every two-pointer scan <code>O(n)</code> despite "two passes"?</td><td class="a">Each pointer only moves forward and never resets; total work ≤ total forward distance = linear.</td></tr>
+<tr><td>Rotate Array in O(1) space — the trick?</td><td class="a">Reverse the whole array, then the first <code>k</code>, then the rest (after <code>k %= n</code>).</td></tr>
+<tr><td>Next Permutation — the three steps?</td><td class="a">Find the pivot (first <code>a[i] &lt; a[i+1]</code> from the right); swap it with the rightmost larger value; <b>reverse</b> the suffix (it was non-increasing, so reversed = smallest).</td></tr>
+<tr><td>Backspace Compare in O(1) space?</td><td class="a">Walk both strings from the <b>end</b> with a skip counter (<code>#</code> → skip++, real char with skip &gt; 0 → erased); compare the surviving characters pairwise.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>

@@ -37,6 +37,15 @@
   .hint{color:var(--muted);font-size:.86rem}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{.nav{display:none}body{margin:0}}
+  /* collapsible (fold) sections */
+  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
+  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary::before{content:"▸  ";font-weight:700}
+  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
+  details.fold[open]>summary::before{content:"▾  "}
+  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
+  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
@@ -316,13 +325,32 @@ function findPeak(a: number[]): number {
 <b>Rotated search</b> is a cousin of finding the pivot / minimum in a rotated array.</div>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
+<details class="fold" open>
+<summary>➕ Binary search on a real number — Minimize Max Distance to Gas Station (774)</summary>
+<div class="box">Same "binary search on the answer" template as Koko / Ship Packages, but the answer is <b>continuous</b>: search a floating-point <code>D</code> and stop on an epsilon instead of <code>lo == hi</code>.</div>
+<pre class="language-tsx"><code class="language-tsx">// 774 — smallest possible max gap after adding k stations
+function minmaxGasDist(stations: number[], k: number): number {
+  let lo = 0, hi = 0;
+  for (let i = 1; i &lt; stations.length; i++) hi = Math.max(hi, stations[i] - stations[i - 1]);
+  while (hi - lo &gt; 1e-6) {                               // epsilon, never lo === hi
+    const mid = (lo + hi) / 2;
+    let need = 0;                                        // stations required so every piece is &lt;= mid
+    for (let i = 1; i &lt; stations.length; i++) need += Math.ceil((stations[i] - stations[i - 1]) / mid) - 1;
+    if (need &lt;= k) hi = mid;                             // feasible → try a smaller D
+    else lo = mid;                                       // no ±1: the space is continuous
+  }
+  return hi;
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️ Traps</b> Move <code>hi = mid</code> when feasible and <code>lo = mid</code> otherwise — no <code>±1</code> in a continuous space. Terminate on <code>hi − lo &gt; 1e-6</code> (or a fixed ~100 iterations), and the feasibility count is <code>ceil(gap / D) − 1</code>.</div>
+</details>
+
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
 <p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
 <table>
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-exact">Exact</a></td><td>704 Binary Search · 35 Search Insert Position</td><td>Easy</td></tr>
 <tr><td><a href="#p-bound">Boundary (firstTrue)</a></td><td>34 First &amp; Last Position · 278 First Bad Version</td><td>Med</td></tr>
-<tr><td><a href="#p-answer">Binary search on answer</a></td><td>875 Koko · 1011 Ship Within D Days · <b>410 Split Array</b> · <b>4 Median of Two Arrays</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-answer">Binary search on answer</a></td><td>875 Koko · 1011 Ship Within D Days · <b>410 Split Array</b> · <b>774 Gas Station (real-valued)</b> · <b>4 Median of Two Arrays</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-rot">Rotated array</a></td><td>33 Search in Rotated · 81 (with dups) · 153 Find Minimum</td><td>Med</td></tr>
 <tr><td><a href="#p-peak">Peak / partition</a></td><td>162 Find Peak Element · 852 Peak in Mountain Array</td><td>Med</td></tr>
 </table>
@@ -337,6 +365,7 @@ function findPeak(a: number[]): number {
 <tr><td>Rotated array: how do you pick a half?</td><td class="a">One side of <code>mid</code> is sorted (<code>a[lo] ≤ a[mid]</code> ⇒ left). Range-check whether the target lies in that sorted side; else take the other.</td></tr>
 <tr><td>Find Peak: which way do you move and why?</td><td class="a">Toward the higher neighbor — a rising slope guarantees a peak ahead; the range always keeps one.</td></tr>
 <tr><td>Complexity of "on the answer" with bounds <code>[1, 10⁹]</code> and an <code>O(n)</code> check?</td><td class="a"><code>O(n · log(10⁹))</code> ≈ <code>O(30n)</code> — log of the value range, not the array.</td></tr>
+<tr><td>How does binary search on the answer change when the answer is a real number?</td><td class="a">Loop on <code>hi − lo &gt; ε</code> (or fixed iterations), and move <code>hi = mid</code> / <code>lo = mid</code> with no <code>±1</code>.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>
