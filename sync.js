@@ -269,6 +269,22 @@
     }).catch(function (e) { console.warn('[sync] auto-sync failed', e); resetStatus(); });
   }
 
+  // Debounced background push after local edits (opt-in; call from an app's save()).
+  // Same reconcile as autoSync but ignores the 24h gate. Local edits always win, so this
+  // only ever uploads; it silently does nothing when no token is set.
+  var pushTimer = null;
+  function pushSoon(ms) {
+    if (!getToken()) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () {
+      status('saving…');
+      reconcile(cfg.appId, cfg.keys).then(function (r) {
+        if (r.action === 'pull') { setTimeout(function () { location.reload(); }, 300); }
+        else { status('synced ✓'); setTimeout(resetStatus, 1500); }
+      }).catch(function (e) { console.warn('[sync] background push failed', e); status('offline'); setTimeout(resetStatus, 2500); });
+    }, ms || 4000);
+  }
+
   function init(opts) {
     cfg.appId = opts.appId;
     cfg.keys = opts.keys || [];
@@ -280,6 +296,7 @@
     syncNow: syncNow,
     setToken: setToken,
     autoSync: autoSync,
+    pushSoon: pushSoon,
     isConfigured: function () { return !!getToken(); }
   };
 })();
