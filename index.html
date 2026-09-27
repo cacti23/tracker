@@ -1270,12 +1270,14 @@ function _psCreditCleanSolve(lcKey) {
 
 // ─── STREAK TRACKING ──────────────────────────────────────────────────────────
 const STREAK_KEY = 'dsa-streak-v1'
+// n calendar days before now (setDate keeps it correct across DST, unlike subtracting 86400000 ms)
+function _daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d }
 function _updateStreak() {
   try {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = _localDay()
     const data  = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}')
     if (data.date === today) return  // already counted today
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const yesterday = _localDay(_daysAgo(1))
     const newStreak  = data.date === yesterday ? (data.streak || 0) + 1 : 1
     const newLongest = Math.max(newStreak, data.longest || 0)
     localStorage.setItem(STREAK_KEY, JSON.stringify({ date: today, streak: newStreak, longest: newLongest }))
@@ -1284,8 +1286,8 @@ function _updateStreak() {
 function getStreak() {
   try {
     const data      = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}')
-    const today     = new Date().toISOString().slice(0, 10)
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const today     = _localDay()
+    const yesterday = _localDay(_daysAgo(1))
     if (data.date !== today && data.date !== yesterday) return { streak: 0, longest: data.longest || 0, today: false }
     return { streak: data.streak || 0, longest: data.longest || 0, today: data.date === today }
   } catch { return { streak: 0, longest: 0, today: false } }
@@ -1311,7 +1313,20 @@ function isCodeDue(lcKey) {
 // Graded / Mock, topic + dashboard) until its cooldown ladder (2→4→7→14) comes due again. A
 // ✗-forgot (force-queued) question is never on cooldown — it always resurfaces. Never-solved
 // questions are always "due" (isDue true), so they're never on cooldown either.
-function _onCooldown(lcKey) { return !isDue(lcKey) && !isCodeForced(lcKey) }
+// 📌 Pinned questions are exempt too: a pin means "always include in practice".
+function _onCooldown(lcKey) { return !isDue(lcKey) && !isCodeForced(lcKey) && !isPinned(lcKey) }
+
+// Unique question keys across topics. 49 questions are cross-listed in 2+ topics (same lcKey ⇒ same
+// status / grade / cooldown), so summing per-topic lengths double-counts them — anything that reports a
+// GLOBAL number (totals, due counts, "max N") must count each lcKey once.
+function _uniqueQuestionKeys(topicKeys) {
+  const set = new Set()
+  ;(topicKeys || TOPICS.map(t => t.key)).forEach(k => {
+    const mod = TOPIC_MODULES[k]
+    if (mod) Object.keys(mod.questions).forEach(q => set.add(q))
+  })
+  return set
+}
 
 // Live-update the dashboard's two due-counts (no-op when not on the dashboard).
 function _refreshDueCounts() {
@@ -1319,10 +1334,7 @@ function _refreshDueCounts() {
   const cEl = document.getElementById('due-code-count')
   if (!rEl && !cEl) return
   let codeDue = 0, reviseDue = 0
-  TOPICS.forEach(t => {
-    const mod = TOPIC_MODULES[t.key]
-    if (mod) Object.keys(mod.questions).forEach(k => { if (isCodeDue(k)) codeDue++; if (isReviseDue(k)) reviseDue++ })
-  })
+  _uniqueQuestionKeys().forEach(k => { if (isCodeDue(k)) codeDue++; if (isReviseDue(k)) reviseDue++ })
   if (rEl) rEl.textContent = reviseDue
   if (cEl) cEl.textContent = codeDue
 }
@@ -1641,10 +1653,6 @@ function loadDashboard() {
     const solved  = qKeys.filter(k => getStatus(k) === 'Solved').length
     const inProg  = qKeys.filter(k => getStatus(k) === 'In Progress').length
     const pending = qKeys.filter(k => getStatus(k) === 'Pending').length
-    totalQ       += qKeys.length
-    totalSolved  += solved
-    totalInProg  += inProg
-    totalPending += pending
     return {
       key: t.key, icon: t.icon, label: t.label, mod,
       total: qKeys.length, solved, inProg, pending,
@@ -1653,16 +1661,22 @@ function loadDashboard() {
     }
   })
 
+  // Global totals count each question ONCE (cross-listed questions appear in several topic cards above).
+  const _uniq = _uniqueQuestionKeys()
+  _uniq.forEach(k => {
+    totalQ++
+    const st = getStatus(k)
+    if (st === 'Solved') totalSolved++
+    else if (st === 'In Progress') totalInProg++
+    else totalPending++
+  })
   const solvedPct  = totalQ ? Math.round(totalSolved / totalQ * 100) : 0
   const inProgPct  = totalQ ? Math.round(totalInProg / totalQ * 100) : 0
 
   // Count both spaced-repetition queues across all topics:
   //   reviseDue = problems due for an active-recall pass · codeDue = problems due for a cold solve
   let codeDue = 0, reviseDue = 0
-  TOPICS.forEach(t => {
-    const mod = TOPIC_MODULES[t.key]
-    if (mod) Object.keys(mod.questions).forEach(k => { if (isCodeDue(k)) codeDue++; if (isReviseDue(k)) reviseDue++ })
-  })
+  _uniq.forEach(k => { if (isCodeDue(k)) codeDue++; if (isReviseDue(k)) reviseDue++ })
 
   // ── Overall tracker ─────────────────────────────────────────────────────────
   const streak = getStreak()
@@ -2496,8 +2510,8 @@ function gradeRevise(lcKey, grade, el) {
   // recall to the solve count, and only on an explicit positive grade (unlike the old eye, which
   // bumped on every passive click). Status is untouched here beyond the 📋→🚧 nudge below.
   const prev  = getRevise(lcKey)
-  const today = new Date().toISOString().slice(0, 10)
-  const creditedSolidToday = prev && prev.grade === 'solid' && prev.last && prev.last.slice(0, 10) === today
+  const today = _localDay()
+  const creditedSolidToday = prev && prev.grade === 'solid' && prev.last && _localDay(new Date(prev.last)) === today
   markRevised(lcKey, grade)
   setCodeForced(lcKey, grade === 'forgot')
   if (grade === 'solid' && !creditedSolidToday) _adjSolveCount(lcKey, 1)
@@ -3884,10 +3898,7 @@ function toggleQuestionPin(lcKey, btn) {
   const qpPinLabel = document.querySelector('#quick-practice-panel [title="Pinned questions fill first when generating a set"]')
   if (qpPinLabel) {
     let qpPinned = 0
-    _qpTopics.forEach(key => {
-      const m = TOPIC_MODULES[key]
-      if (m) Object.keys(m.questions).forEach(k => { if (isPinned(k)) qpPinned++ })
-    })
+    _uniqueQuestionKeys(Array.from(_qpTopics)).forEach(k => { if (isPinned(k)) qpPinned++ })
     if (qpPinned > 0) qpPinLabel.textContent = '📌 ' + qpPinned + ' pinned (priority)'
     else qpPinLabel.style.display = 'none'
   }
@@ -3900,20 +3911,14 @@ function _renderQuickPractice() {
   if (!el) return
   const validTopics = TOPICS.filter(t => TOPIC_MODULES[t.key])
 
-  let totalQ = 0
-  _qpTopics.forEach(key => {
-    const mod = TOPIC_MODULES[key]
-    if (mod) totalQ += Object.keys(mod.questions).length
-  })
+  const _selKeys = _uniqueQuestionKeys(Array.from(_qpTopics))
+  const totalQ = _selKeys.size
   const maxQ   = totalQ
   const count  = maxQ ? Math.max(1, Math.min(_qpCount, maxQ)) : _qpCount
 
   // Count pinned only from SELECTED topics (not all topics)
   let totalPinned = 0
-  _qpTopics.forEach(key => {
-    const mod = TOPIC_MODULES[key]
-    if (mod) Object.keys(mod.questions).forEach(k => { if (isPinned(k)) totalPinned++ })
-  })
+  _selKeys.forEach(k => { if (isPinned(k)) totalPinned++ })
 
   let html = '<div class="card mt-4"><div class="card-body">'
   html += '<div class="d-flex align-items-center gap-2 mb-3">'
@@ -4041,11 +4046,7 @@ function _qpSelectAll() {
 
 function _qpAdjCount(delta) {
   if (_qpTimerRun) return  // locked while timer is running
-  let maxQ = 0
-  _qpTopics.forEach(key => {
-    const mod = TOPIC_MODULES[key]
-    if (mod) maxQ += Object.keys(mod.questions).length
-  })
+  const maxQ = _uniqueQuestionKeys(Array.from(_qpTopics)).size
   _qpCount = Math.max(1, Math.min(maxQ || 99, _qpCount + delta))
   const el = document.getElementById('qp-count-val')
   if (el) el.textContent = _qpCount
@@ -4117,7 +4118,7 @@ function _qpGenerate() {
     Object.entries(mod.questions).forEach(([k, q]) => {
       if (seen.has(k)) return  // dedup
       seen.add(k)
-      if (_onCooldown(k)) return                                        // solved & resting — hidden until due again
+      if (!_qpRevised && _onCooldown(k)) return                         // solved & resting — hidden until due again (Graded ignores it: your grade + the revise ladder decide, same as per-topic Graded)
       if (_qpRevised) {
         if (!getRevise(k)) return                                       // Graded: only problems you've graded
         if (_weaknessRank(k) === 2 && !isReviseDue(k)) return            // ✓ solid: wait for the ladder before resurfacing
