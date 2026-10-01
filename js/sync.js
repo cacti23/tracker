@@ -52,6 +52,10 @@
   function api(path, opts) {
     opts = opts || {};
     opts.headers = headers();
+    // api.github.com answers GETs with "Cache-Control: private, max-age=60", so without
+    // this a re-pull within a minute of the last one can be served from Chrome's HTTP
+    // cache — i.e. stale data that looks exactly like "pull did nothing".
+    opts.cache = 'no-store';
     return fetch(API + path, opts).then(function (res) {
       if (!res.ok) {
         return res.text().then(function (t) {
@@ -72,11 +76,45 @@
   // that was never seeded with real data, and no amount of re-syncing will ever
   // surface the old data because it lives under a different account entirely.
   // So this is surfaced loudly instead of happening quietly.
+  // Total bytes of the synced *.json files in a gist-list entry (list responses include
+  // per-file sizes). A duplicate/empty gist — e.g. one a fresh device auto-created —
+  // scores ~0, so the real data-bearing gist wins deterministically on every device.
+  function gistDataSize(g) {
+    var n = 0, files = (g && g.files) || {};
+    Object.keys(files).forEach(function (f) {
+      if (/\.json$/.test(f)) n += (files[f] && files[f].size) || (files[f] && files[f].content ? files[f].content.length : 0);
+    });
+    return n;
+  }
+  // Richest wins; ties go to the most recently updated. The old code took [0] of the
+  // FIRST 100 gists only, so with duplicates (or >100 gists) a device could latch onto
+  // an empty gist forever and "Pull" would find nothing.
+  function pickRichest(matches) {
+    var best = null;
+    matches.forEach(function (g) {
+      if (!best) { best = g; return; }
+      var a = gistDataSize(g), b = gistDataSize(best);
+      if (a > b || (a === b && Date.parse(g.updated_at || 0) > Date.parse(best.updated_at || 0))) best = g;
+    });
+    return best;
+  }
+  // All of this account's gists with our description, across up to 10 pages (1000 gists).
+  function listTrackerGists() {
+    var out = [];
+    function page(n) {
+      return api('/gists?per_page=100&page=' + n).then(function (list) {
+        list = list || [];
+        list.forEach(function (g) { if (g.description === GIST_DESC) out.push(g); });
+        return (list.length === 100 && n < 10) ? page(n + 1) : out;
+      });
+    }
+    return page(1);
+  }
   function resolveGist() {
     var cached = localStorage.getItem(GISTID_KEY);
     if (cached) return Promise.resolve(cached);
-    return api('/gists?per_page=100').then(function (list) {
-      var found = (list || []).filter(function (g) { return g.description === GIST_DESC; })[0];
+    return listTrackerGists().then(function (matches) {
+      var found = pickRichest(matches);
       if (found) { localStorage.setItem(GISTID_KEY, found.id); return found.id; }
       var body = {
         description: GIST_DESC,
@@ -299,6 +337,7 @@
   function syncNow() {
     if (!getToken() && !setToken()) return;
     status('syncing…');
+    localStorage.removeItem(GISTID_KEY);   // manual action: re-resolve rather than trust a possibly-stale cached gist
     reconcile(cfg.appId, cfg.keys).then(function (r) {
       if (r.action === 'pull') {
         status('synced ✓ pulled');
@@ -324,14 +363,23 @@
     if (!getToken() && !setToken()) return;
     if (!confirm('This will overwrite the data on THIS device with whatever is currently in the cloud. Continue?')) return;
     status('pulling…');
+    localStorage.removeItem(GISTID_KEY);   // never trust a cached gist id for a manual pull
     withGist(function () { return pullApp(cfg.appId); }).then(function (remote) {
+      var gid = localStorage.getItem(GISTID_KEY) || '?';
+      var gistLabel = 'gist …' + gid.slice(-6);
       if (!remote || !remote.data || Object.keys(remote.data).length === 0) {
         status('nothing to pull');
+        // Loud, not a 2-second button flash: this is the symptom of pointing at the wrong/empty gist.
+        alert('Nothing to pull for "' + cfg.appId + '" — ' + gistLabel + ' has no ' + cfg.appId + '.json data.\n\n' +
+              'Compare this gist id with the one your other device uses (Pull there shows it too). ' +
+              'If they differ, this device is reading a different gist.');
         setTimeout(resetStatus, 2000);
         return;
       }
       applyPull(cfg.appId, cfg.keys, remote);
       status('pulled ✓');
+      alert('Pulled ' + Object.keys(remote.data).length + ' keys from ' + gistLabel +
+            ' (cloud copy saved ' + remote.updatedAt + ').');
       setTimeout(function () { location.reload(); }, 600);
     }).catch(function (e) {
       console.error('[sync]', e);

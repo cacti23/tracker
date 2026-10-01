@@ -39,7 +39,7 @@ function makeFakeGitHub(opts) {
     fetch(url, fopts) {
       fopts = fopts || {}
       if (/\/user$/.test(url)) return json(user, true)
-      if (/\/gists\?per_page=100$/.test(url)) return json(gist ? [gist] : [], true)
+      if (/\/gists\?per_page=100(&page=\d+)?$/.test(url)) return json(/page=([2-9]|10)$/.test(url) ? [] : (opts.extraGists || []).concat(gist ? [gist] : []), true)
       if (/\/gists$/.test(url) && fopts.method === 'POST') {
         gist = { id: 'gist' + (nextId++), description: 'tracker-sync-v1', files: {} }
         return json(gist, true)
@@ -268,4 +268,21 @@ test('REGRESSION: a token for a different GitHub account used to silently create
   assert.equal(fgh.gist.description, 'tracker-sync-v1')
   const msgs = ds.__alerts.join('\n')
   assert.match(msgs, /brand-new, EMPTY sync store/, 'creating a fresh gist (instead of finding an existing one) must surface a warning explaining the likely account mismatch')
+})
+
+test('REGRESSION: an empty duplicate gist listed first must not hide the real data-bearing gist from Pull', async () => {
+  // Tablet scenario: a duplicate EMPTY "tracker-sync-v1" gist (newer, so GitHub lists it first)
+  // sits ahead of the real gist. Old code took the first match and Pull found "nothing".
+  const gh = makeFakeGitHub({ extraGists: [{ id: 'emptydup', description: 'tracker-sync-v1', updated_at: '2026-10-01T10:00:00Z', files: { 'README.md': { size: 70 } } }] })
+  gh.gist.updated_at = '2026-09-01T10:00:00Z'
+  gh.gist.files['dsa.json'] = { size: 100, content: JSON.stringify({ updatedAt: '2026-09-30T00:00:00Z', data: { 'dsa-revise-v1': '{"q1":1}' } }) }
+  const ls = makeLocalStorage()
+  const ds = load(ls, gh)
+  ls.setItem('tracker-sync-token', 'test-token')
+  ls.setItem('tracker-sync-gistid', 'emptydup') // stale cache pointing at the empty one
+  ds.init({ appId: 'dsa', keys: ['dsa-revise-v1'] })
+  ds.pullLatest()
+  await new Promise(r => setTimeout(r, 50))
+  assert.equal(ls.getItem('dsa-revise-v1'), '{"q1":1}')
+  assert.equal(ls.getItem('tracker-sync-gistid'), 'gist1')
 })
