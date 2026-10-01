@@ -24,19 +24,29 @@ function makeLocalStorage() {
   }
 }
 
-// A minimal fake GitHub Gists API: one gist, keyed by filename, in memory.
-function makeFakeGitHub() {
-  const gist = { id: 'gist1', description: 'tracker-sync-v1', files: {} }
+// A minimal fake GitHub API: /user plus one gist, keyed by filename, in memory.
+// hasExisting:false simulates a token for an account that has NO "tracker-sync-v1"
+// gist yet — the exact shape of "this token belongs to a different GitHub account
+// than the device that already has your data."
+function makeFakeGitHub(opts) {
+  opts = opts || {}
+  const user = opts.user || { login: 'testuser' }
+  let gist = opts.hasExisting === false ? null : { id: 'gist1', description: 'tracker-sync-v1', files: {} }
+  let nextId = 2
   function json(body, ok) { return Promise.resolve({ ok, json: () => Promise.resolve(body), text: () => Promise.resolve(JSON.stringify(body)) }) }
   return {
-    gist,
-    fetch(url, opts) {
-      opts = opts || {}
-      if (/\/gists\?per_page=100$/.test(url)) return json([gist], true)
-      if (/\/gists$/.test(url) && opts.method === 'POST') return json(gist, true)
-      if (/\/gists\/gist1$/.test(url) && (!opts.method || opts.method === 'GET')) return json(gist, true)
-      if (/\/gists\/gist1$/.test(url) && opts.method === 'PATCH') {
-        const body = JSON.parse(opts.body)
+    get gist() { return gist },
+    fetch(url, fopts) {
+      fopts = fopts || {}
+      if (/\/user$/.test(url)) return json(user, true)
+      if (/\/gists\?per_page=100$/.test(url)) return json(gist ? [gist] : [], true)
+      if (/\/gists$/.test(url) && fopts.method === 'POST') {
+        gist = { id: 'gist' + (nextId++), description: 'tracker-sync-v1', files: {} }
+        return json(gist, true)
+      }
+      if (gist && new RegExp('/gists/' + gist.id + '$').test(url) && (!fopts.method || fopts.method === 'GET')) return json(gist, true)
+      if (gist && new RegExp('/gists/' + gist.id + '$').test(url) && fopts.method === 'PATCH') {
+        const body = JSON.parse(fopts.body)
         Object.keys(body.files).forEach(fname => { gist.files[fname] = body.files[fname] })
         return json(gist, true)
       }
@@ -45,19 +55,45 @@ function makeFakeGitHub() {
   }
 }
 
-function load(localStorage, fakeGitHub) {
+// A fake button element good enough for classList.toggle()/dataset/textContent —
+// what sync.js's button-status and ds-token-set highlighting code touches.
+function makeFakeButton() {
+  const classes = new Set()
+  return {
+    dataset: {},
+    textContent: '',
+    classList: {
+      toggle(cls, force) {
+        const shouldHave = force !== undefined ? force : !classes.has(cls)
+        if (shouldHave) classes.add(cls); else classes.delete(cls)
+        return shouldHave
+      },
+      contains(cls) { return classes.has(cls) },
+    },
+  }
+}
+
+// extra: { elements: {id: fakeElement}, prompt(), confirm() }
+function load(localStorage, fakeGitHub, extra) {
+  extra = extra || {}
+  const alerts = []
+  const elements = extra.elements || {}
   const sandbox = {
     localStorage,
-    document: { getElementById: () => null },
+    document: { getElementById: (id) => elements[id] || null },
     fetch: fakeGitHub.fetch.bind(fakeGitHub),
     console, JSON, Object, Array, String, Number, Boolean, Date, Math, Promise, Error,
     setTimeout, clearTimeout,
+    alert: (msg) => { alerts.push(msg) },
+    prompt: extra.prompt || (() => null),
+    confirm: extra.confirm || (() => true),
   }
   sandbox.window = sandbox
   sandbox.location = { reload() {} } // syncNow()/autoSync() reload the page on a successful pull
   vm.createContext(sandbox)
   const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'sync.js'), 'utf8')
   vm.runInContext(src, sandbox, { filename: 'sync.js' })
+  sandbox.DataSync.__alerts = alerts
   return sandbox.DataSync
 }
 
@@ -163,4 +199,73 @@ test('REGRESSION: a device "poisoned" by an earlier thin push still recovers ric
   const pulled = JSON.parse(localStorage.getItem('dsa-revise-v1') || 'null')
   assert.ok(pulled, 'the rich remote data must be pulled in even though this device looked "caught up"')
   assert.equal(pulled.q49.grade, 'solid')
+})
+
+test('the TOKEN button (not the Sync button) reflects whether a token is saved on this device', () => {
+  const ls = makeLocalStorage()
+  const fgh = makeFakeGitHub()
+  const syncBtn = makeFakeButton()
+  const tokenBtn = makeFakeButton()
+  let promptReturn = 'brand-new-token'
+  const ds = load(ls, fgh, {
+    elements: { dataSyncBtn: syncBtn, dataTokenBtn: tokenBtn },
+    prompt: () => promptReturn,
+  })
+  ds.init({ appId: 'dsa', keys: ['dsa-revise-v1'] })
+  assert.equal(tokenBtn.classList.contains('ds-token-set'), false, 'no token yet — token button must not be highlighted')
+
+  ds.setToken() // prompt() returns 'brand-new-token'
+
+  assert.equal(tokenBtn.classList.contains('ds-token-set'), true, 'a token is now saved — the TOKEN button must be highlighted')
+  assert.equal(syncBtn.classList.contains('ds-token-set'), false, 'the Sync button must never get this class — only the Token button reflects token state')
+})
+
+test('clearing the token (blank prompt) un-highlights the token button', () => {
+  const ls = makeLocalStorage()
+  const fgh = makeFakeGitHub()
+  const tokenBtn = makeFakeButton()
+  let promptReturn = 'a-token'
+  const ds = load(ls, fgh, { elements: { dataTokenBtn: tokenBtn }, prompt: () => promptReturn })
+  ds.init({ appId: 'dsa', keys: [] })
+  ds.setToken()
+  assert.equal(tokenBtn.classList.contains('ds-token-set'), true)
+
+  promptReturn = '' // user clears the field
+  ds.setToken()
+  assert.equal(tokenBtn.classList.contains('ds-token-set'), false, 'blanking the token must un-highlight the button')
+})
+
+test('setToken() reports which GitHub account the token belongs to, so mismatched-account devices are obvious', async () => {
+  const ls = makeLocalStorage()
+  const fgh = makeFakeGitHub({ user: { login: 'aditya-real-account' } })
+  const ds = load(ls, fgh, { prompt: () => 'some-token' })
+  ds.init({ appId: 'dsa', keys: [] })
+
+  ds.setToken()
+  await new Promise((r) => setTimeout(r, 20)) // the /user confirmation is async
+
+  const msgs = ds.__alerts.join('\n')
+  assert.match(msgs, /@aditya-real-account/, 'the connected-as confirmation must name the actual GitHub account')
+})
+
+test('REGRESSION: a token for a different GitHub account used to silently create an orphaned empty gist — now it warns instead', async () => {
+  // Simulates exactly what likely happened on the tablet: a token that is valid,
+  // but belongs to an account with no "tracker-sync-v1" gist yet (different account,
+  // or a fine-grained PAT scoped to the wrong resource owner). Before this fix,
+  // resolveGist() would quietly create a fresh empty gist and nothing on screen
+  // would explain why the device's real data never shows up.
+  const ls = makeLocalStorage()
+  const fgh = makeFakeGitHub({ hasExisting: false, user: { login: 'wrong-account' } })
+  ls.setItem('tracker-sync-token', 'token-for-a-different-account')
+  const ds = load(ls, fgh)
+  ds.init({ appId: 'dsa', keys: ['dsa-revise-v1'] })
+  ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'solid' } }))
+
+  ds.syncNow()
+  await new Promise((r) => setTimeout(r, 50))
+
+  assert.ok(fgh.gist, 'a new gist should have been created for this account')
+  assert.equal(fgh.gist.description, 'tracker-sync-v1')
+  const msgs = ds.__alerts.join('\n')
+  assert.match(msgs, /brand-new, EMPTY sync store/, 'creating a fresh gist (instead of finding an existing one) must surface a warning explaining the likely account mismatch')
 })

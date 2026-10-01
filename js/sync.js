@@ -63,6 +63,15 @@
   }
 
   // ── gist resolution (find-by-description, else create) ─────────────────
+  // IMPORTANT failure mode this guards against: a token for a DIFFERENT GitHub
+  // account (e.g. pasted into a new device, or regenerated against the wrong
+  // "resource owner" on a fine-grained PAT) will never find the existing
+  // "tracker-sync-v1" gist — /gists only lists gists owned by the token's own
+  // account. Silently creating a fresh, empty gist in that case looks exactly
+  // like "I synced and nothing happened": the device is now talking to a gist
+  // that was never seeded with real data, and no amount of re-syncing will ever
+  // surface the old data because it lives under a different account entirely.
+  // So this is surfaced loudly instead of happening quietly.
   function resolveGist() {
     var cached = localStorage.getItem(GISTID_KEY);
     if (cached) return Promise.resolve(cached);
@@ -76,6 +85,11 @@
       };
       return api('/gists', { method: 'POST', body: JSON.stringify(body) }).then(function (g) {
         localStorage.setItem(GISTID_KEY, g.id);
+        if (typeof alert === 'function') {
+          alert('⚠️ No existing synced data was found for this GitHub token — a brand-new, EMPTY sync store was just created.\n\n' +
+                'If you expected to see your existing progress here, this token almost certainly belongs to a DIFFERENT GitHub account (or a fine-grained PAT scoped to the wrong "resource owner") than the device that already has your data.\n\n' +
+                'Fix: go to ⚙ Token, clear it, and paste a token generated while signed into the SAME GitHub account used on your other device.');
+        }
         return g.id;
       });
     });
@@ -230,8 +244,11 @@
     });
   }
 
-  // ── button status helpers (button must have id="dataSyncBtn") ──────────
+  // ── button status helpers (sync status button must have id="dataSyncBtn";
+  // token button — the one that reflects "is a token saved on this device" —
+  // must have id="dataTokenBtn") ──────────────────────────────────────────
   function getBtn() { return document.getElementById('dataSyncBtn'); }
+  function getTokenBtn() { return document.getElementById('dataTokenBtn'); }
   function status(msg) {
     var b = getBtn();
     if (b) { if (!b.dataset.orig) b.dataset.orig = b.textContent; b.textContent = msg; }
@@ -240,11 +257,12 @@
     var b = getBtn();
     if (b && b.dataset.orig) b.textContent = b.dataset.orig;
   }
-  // Reflects whether a token is set directly on the button's appearance (class
-  // "ds-token-set", styled per-app in CSS) so it's visually obvious at a glance
-  // whether this device is wired up for sync or still needs a token pasted in.
+  // Reflects whether a token is set directly on the TOKEN button's appearance
+  // (class "ds-token-set", styled per-app in CSS) — not the Sync button, which
+  // stays neutral regardless of token state. This is the at-a-glance answer to
+  // "is this device already wired up, or do I still need to paste a token?"
   function refreshBtnState() {
-    var b = getBtn();
+    var b = getTokenBtn();
     if (!b) return;
     b.classList.toggle('ds-token-set', !!getToken());
   }
@@ -262,6 +280,18 @@
     setTokenValue(t);
     localStorage.removeItem(GISTID_KEY);   // re-resolve gist for the new token/account
     refreshBtnState();
+    // Surface WHICH GitHub account this token belongs to. The #1 cause of "I added
+    // a token, synced, but my old data never shows up" is a token for a different
+    // account than the device that already holds the data — /gists is scoped to the
+    // token's own account, so a mismatch is invisible otherwise. Compare this name
+    // across devices to confirm they're pointed at the same account.
+    if (t && typeof alert === 'function') {
+      api('/user').then(function (u) {
+        alert('Token saved — connected to GitHub as @' + u.login + '.\n\nMake sure every device you sync this tracker on shows the SAME username here, or they will not share data.');
+      }).catch(function (e) {
+        alert('Token saved, but a test request to GitHub failed: ' + e.message + '\n\nDouble-check the token has "Gists" read+write permission.');
+      });
+    }
     return !!t;
   }
 
