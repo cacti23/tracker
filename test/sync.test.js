@@ -286,3 +286,15 @@ test('REGRESSION: an empty duplicate gist listed first must not hide the real da
   assert.equal(ls.getItem('dsa-revise-v1'), '{"q1":1}')
   assert.equal(ls.getItem('tracker-sync-gistid'), 'gist1')
 })
+
+test('REGRESSION: a newer-but-much-thinner cloud copy must not overwrite richer, unchanged local data', async () => {
+  const big = JSON.stringify({ q1: { grade: 'solid' }, q2: { grade: 'shaky' }, q3: { grade: 'forgot' }, pad: 'x'.repeat(500) })
+  localStorage.setItem('dsa-revise-v1', big)
+  await reconcileOnce() // pushes; local now "caught up"
+  // another device overwrites the cloud with near-empty state and a newer timestamp
+  fakeGitHub.gist.files['dsa.json'] = { content: JSON.stringify({ updatedAt: '2999-01-01T00:00:00Z', data: { 'dsa-qp-state-v1': '{}' } }) }
+  await reconcileOnce()
+  assert.equal(localStorage.getItem('dsa-revise-v1'), big)
+  const cloud = JSON.parse(fakeGitHub.gist.files['dsa.json'].content)
+  assert.equal(cloud.data['dsa-revise-v1'], big) // cloud repaired from the richer side
+})

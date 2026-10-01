@@ -266,7 +266,11 @@
         return { action: 'pull' };
       }
       var localUnchangedSinceSync = !!meta.lastLocalHash && meta.lastLocalHash === localHash(keys);
-      if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced && localUnchangedSinceSync) {
+      // Mirror of the guard above: never let a much THINNER cloud copy overwrite richer
+      // local data just because its timestamp is newer (e.g. another device pushed
+      // near-empty first-run state). Fall through to push instead, which repairs the cloud.
+      var remoteMuchThinner = remoteHasData && localSize > 0 && remoteSize * 2 < localSize;
+      if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced && localUnchangedSinceSync && !remoteMuchThinner) {
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
