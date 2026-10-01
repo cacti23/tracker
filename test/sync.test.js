@@ -298,3 +298,23 @@ test('REGRESSION: a newer-but-much-thinner cloud copy must not overwrite richer,
   const cloud = JSON.parse(fakeGitHub.gist.files['dsa.json'].content)
   assert.equal(cloud.data['dsa-revise-v1'], big) // cloud repaired from the richer side
 })
+
+test('INCIDENT REPLAY (2026-10-01): a device holding only 2 keys must never overwrite a 15-key cloud backup', async () => {
+  // Real incident: dsa.json went 161,979 bytes/15 keys -> 123 bytes/2 keys (dsa-revise-v1 +
+  // dsa-revise-migrated-v1) when a near-empty device pushed over the cloud, and every later
+  // Sync/Pull then faithfully propagated the thin copy. Replay it with poisoned bookkeeping
+  // (device thinks it is "caught up" and has local edits) — the worst case for the old logic.
+  const rich = {}
+  ;['progress', 'notes', 'topic-notes', 'submissions', 'solve-counts', 'seen', 'revise', 'last-practiced', 'review-interval']
+    .forEach(n => { rich['dsa-' + n + '-v1'] = JSON.stringify({ n, pad: 'x'.repeat(400) }) })
+  const keys = Object.keys(rich).concat(['dsa-revise-migrated-v1'])
+  fakeGitHub.gist.files['dsa.json'] = { size: 5000, content: JSON.stringify({ updatedAt: '2026-10-01T05:40:03.341Z', data: rich }) }
+  DataSync.init({ appId: 'dsa', keys })
+  localStorage.setItem('dsa-revise-migrated-v1', '1')
+  localStorage.setItem('dsa-revise-v1', '{"a":1}')
+  localStorage.setItem('dsa-sync-meta', JSON.stringify({ lastSyncedAt: '2026-10-01T13:00:00Z', lastLocalHash: 'stale:1', lastCheckAt: '2026-10-01T13:00:00Z' }))
+  await reconcileOnce()
+  const cloud = JSON.parse(fakeGitHub.gist.files['dsa.json'].content)
+  assert.equal(Object.keys(cloud.data).length >= 9, true, 'cloud backup must still hold the rich data')
+  assert.equal(localStorage.getItem('dsa-progress-v1'), rich['dsa-progress-v1'], 'device should have adopted the cloud data')
+})

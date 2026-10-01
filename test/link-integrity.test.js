@@ -108,12 +108,22 @@ test('index.html links out to every moved sub-app with the correct folder prefix
     'dsa/dsa-master-map.html',
     'dsa/dsa-thoughts.html',
     'dsa/js-builtins.html',
-    'google/google-hub.html',
     'apps/gym-5day.html',
     'apps/habits.html',
   ]
   for (const link of expectedLinks) {
     assert.match(html, new RegExp(`href="${link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), `index.html should link to ${link}`)
+  }
+})
+
+test('Google opens in-pane from the sidebar (not a new tab) and embeds both google sub-pages', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  assert.match(html, /id="nav-google"[^>]*onclick="loadGoogle\(\)"/, 'sidebar Google entry must be a button calling loadGoogle()')
+  assert.doesNotMatch(html, /<a[^>]*href="google\/[^"]*"[^>]*target="_blank"/, 'Google must not open in a new tab from the sidebar')
+  assert.match(html, /id="view-google"/, 'index.html needs a #view-google pane')
+  for (const f of ['google/google-interview-sources.html', 'google/google-onsite-log.html']) {
+    assert.ok(html.includes(`'${f}'`), `loadGoogle() should embed ${f}`)
+    assert.ok(fs.existsSync(path.join(ROOT, f)), `${f} should exist`)
   }
 })
 

@@ -79,3 +79,15 @@ test('the dashboard and global search render without throwing', () => {
   assert.doesNotThrow(() => evalIn(sandbox, 'loadDashboard()'), 'loadDashboard() threw')
   assert.doesNotThrow(() => evalIn(sandbox, "searchGlobalQuestions('two sum')"), 'searchGlobalQuestions() threw')
 })
+
+test('Google sidebar entry opens in-pane: loadGoogle() shows #view-google, renders both tabs and embeds a google/ page', () => {
+  const { sandbox, getElement } = loadAppWithDom()
+  evalIn(sandbox, 'loadGoogle()')
+  const tabs = getElement('google-tabs').innerHTML
+  assert.match(tabs, /Interview Sources/, 'Interview Sources tab missing')
+  assert.match(tabs, /Onsite Log/, 'Onsite Log tab missing')
+  assert.equal(getElement('google-frame').getAttribute('src') || evalIn(sandbox, 'GOOGLE_TABS[0].src'), 'google/google-interview-sources.html')
+  evalIn(sandbox, "loadGoogle('log')")
+  assert.match(getElement('google-tabs').innerHTML, /class="nav-link active"[^>]*\n?[^>]*onclick="loadGoogle\('log'\)"/, 'Onsite Log tab should be the active one')
+  assert.equal(evalIn(sandbox, 'currentGoogleTab'), 'log')
+})

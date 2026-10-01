@@ -951,33 +951,33 @@
       <div id="nav-topics"></div>
 
       <p class="sidebar-section-label">Companies</p>
-      <a href="google/google-hub.html" target="_blank" rel="noopener" class="nav-link" title="Google prep hub — interview sources or the worked onsite log">
+      <button type="button" id="nav-google" onclick="loadGoogle()" class="nav-link" title="Google prep — interview sources and the worked onsite log">
         <span class="nav-topic-icon">🔍</span>
         <span class="nav-topic-label">Google</span>
-      </a>
+      </button>
     </nav>
 
-    <a href="apps/gym-5day.html" target="_blank" class="sidebar-gym-link">
+    <a href="apps/gym-5day.html" class="sidebar-gym-link">
       <span class="nav-topic-icon">🔥</span>
       <span class="nav-topic-label">5-Day Elite Split</span>
     </a>
 
-    <a href="apps/habits.html" target="_blank" class="sidebar-gym-link">
+    <a href="apps/habits.html" class="sidebar-gym-link">
       <span class="nav-topic-icon">✓</span>
       <span class="nav-topic-label">Habits</span>
     </a>
 
-    <a href="dsa/dsa-master-map.html" target="_blank" class="sidebar-dsa-link">
+    <a href="dsa/dsa-master-map.html" class="sidebar-dsa-link">
       <span class="nav-topic-icon">🗺️</span>
       <span class="nav-topic-label">DSA Master Map</span>
     </a>
 
-    <a href="dsa/dsa-thoughts.html" target="_blank" class="sidebar-dsa-link">
+    <a href="dsa/dsa-thoughts.html" class="sidebar-dsa-link">
       <span class="nav-topic-icon">🧠</span>
       <span class="nav-topic-label">DSA Thoughts</span>
     </a>
 
-    <a href="dsa/js-builtins.html" target="_blank" class="sidebar-dsa-link">
+    <a href="dsa/js-builtins.html" class="sidebar-dsa-link">
       <span class="nav-topic-icon">📋</span>
       <span class="nav-topic-label">JS Built-ins</span>
     </a>
@@ -1058,6 +1058,12 @@
         <!-- Tab panes: one div per entry in TOPIC_TABS, rendered by buildTopicTabs() -->
         <div id="topic-tab-panes"></div>
 
+      </div>
+
+      <!-- ── VIEW: Google ── rendered by loadGoogle(). Embeds the standalone google/ pages in-pane. -->
+      <div id="view-google" class="d-none">
+        <ul class="nav section-nav-pills mb-3" id="google-tabs"></ul>
+        <iframe id="google-frame" title="Google prep" style="width:100%; height:calc(100vh - 11rem); min-height:480px; border:1px solid var(--border, #2a2f3d); border-radius:12px; background:transparent;"></iframe>
       </div>
 
     </main>
@@ -1656,8 +1662,36 @@ function _saveCurrentView(v) { try { localStorage.setItem(CURRENT_VIEW_KEY, v) }
 function _restoreView() {
   let saved = null
   try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
-  if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
+  if (saved === 'google') loadGoogle()
+  else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
   else loadDashboard()
+}
+
+// ─── GOOGLE (in-pane, same layout as a topic: header title + tab pills + content) ───
+const GOOGLE_TABS = [
+  { key: 'sources', label: '🔍 Interview Sources', src: 'google/google-interview-sources.html' },
+  { key: 'log',     label: '📓 Onsite Log',        src: 'google/google-onsite-log.html' }
+]
+let currentGoogleTab = 'sources'
+function loadGoogle(tab) {
+  if (tab) currentGoogleTab = tab
+  showView('view-google')
+  _stopTimer()
+  _qpStopTimer()
+  document.getElementById('page-title').textContent = '🔍 Google'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const nav = document.getElementById('nav-google')
+  if (nav) nav.classList.add('active')
+  currentTopicKey = null
+  _saveCurrentView('google')
+  document.getElementById('google-tabs').innerHTML = GOOGLE_TABS.map(t =>
+    `<li class="nav-item"><button class="nav-link${t.key === currentGoogleTab ? ' active' : ''}" type="button"
+      onclick="loadGoogle('${t.key}')">${t.label}</button></li>`
+  ).join('')
+  const frame = document.getElementById('google-frame')
+  const want = GOOGLE_TABS.find(t => t.key === currentGoogleTab).src
+  if (frame.getAttribute('src') !== want) frame.setAttribute('src', want)
 }
 
 function loadDashboard() {
@@ -2717,7 +2751,7 @@ function renderTopicAlwaysVisible(mod) {
 
   const topic = TOPICS.find(t => t.key === currentTopicKey)
   const cheatsheetBtn = topic?.cheatsheetUrl
-    ? '<a href="' + topic.cheatsheetUrl + '" target="_blank" class="btn btn-sm btn-outline-secondary mb-3">' +
+    ? '<a href="' + topic.cheatsheetUrl + '" class="btn btn-sm btn-outline-secondary mb-3">' +
       '<span class="me-1">📄</span>Open Cheat Sheet</a>'
     : ''
 
@@ -4369,7 +4403,7 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  ['view-dashboard', 'view-topic', 'view-search-results'].forEach(v => {
+  ['view-dashboard', 'view-topic', 'view-search-results', 'view-google'].forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
       el.classList.remove('d-none', 'anim-fade-in')
@@ -4385,6 +4419,8 @@ function clearActiveNav() {
   document.querySelectorAll('#nav-topics .nav-link').forEach(l => l.classList.remove('active'))
   const dash = document.getElementById('nav-dashboard')
   if (dash) dash.classList.remove('active')
+  const goog = document.getElementById('nav-google')
+  if (goog) goog.classList.remove('active')
 }
 
 function setActiveNav(key) {

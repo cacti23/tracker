@@ -35,13 +35,15 @@ function makeLocalStorage() {
 }
 
 function extractInlineScript(html) {
-  // The app's real logic lives in the LAST <script>...</script> block (no src=),
-  // which starts right after data.js/sync.js are loaded. Grab it specifically
-  // rather than the first inline block (that one's just the pre-paint theme guard).
+  // The app's real logic is the LARGEST inline <script>...</script> block (no src=).
+  // Don't pick by position: small inline snippets exist on both sides of it (the
+  // pre-paint theme guard before, the service-worker registration after — which
+  // silently became the "last" block in v210 and left every app function undefined).
   const blocks = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
     .filter(m => !/<script\s+src=/.test(m[0]))
   if (blocks.length === 0) throw new Error('No inline <script> block found in index.html')
-  return blocks[blocks.length - 1][1].replace(/\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\//g, '')
+  const biggest = blocks.reduce((a, b) => (b[1].length > a[1].length ? b : a))
+  return biggest[1].replace(/\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\//g, '')
 }
 
 function fakeElement() {
