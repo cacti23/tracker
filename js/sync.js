@@ -186,10 +186,16 @@
       var lastSynced = meta.lastSyncedAt ? Date.parse(meta.lastSyncedAt) : 0;
       var localEmpty = Object.keys(collect(keys)).length === 0;
       var remoteHasData = remote && remote.data && Object.keys(remote.data).length > 0;
-      // Safety net: if local is empty (e.g. localStorage was cleared) but the
-      // cloud still has data, ALWAYS restore from the cloud — never let an empty
-      // app overwrite a good backup, regardless of timestamps.
-      if (localEmpty && remoteHasData) {
+      // This device has never completed a sync (no lastSyncedAt) — it has no basis
+      // for claiming its local state is the one worth keeping. That local state can
+      // still look non-empty (e.g. dsa-streak-v1 is written on every page load, before
+      // the user has touched a single question), which used to fall through to the
+      // push branch below and silently clobber a real synced backup with near-empty
+      // first-run state. Treat "never synced here" the same as "local is empty":
+      // adopt the cloud's data. applyPull() always snapshots local to "<appId>-presync"
+      // first, so nothing on this device is lost by doing so.
+      var neverSyncedHere = !meta.lastSyncedAt;
+      if ((localEmpty || neverSyncedHere) && remoteHasData) {
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
