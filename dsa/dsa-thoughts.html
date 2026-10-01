@@ -87,6 +87,20 @@
   <a href="#t27"><b>27</b>Skip/Take vs committed-rule DP</a>
   <a href="#t28"><b>28</b>Dungeon Game</a>
   <a href="#t29"><b>29</b>MST — Kruskal's</a>
+  <a href="#t30"><b>30</b>Stone Game family shapes</a>
+  <a href="#t31"><b>31</b>Prefix vs suffix sentinel</a>
+  <a href="#t32"><b>32</b>Unmemoized recursion TC</a>
+  <a href="#t33"><b>33</b>Graph edges: dense/sparse/tree</a>
+  <a href="#t34"><b>34</b>Combination vs permutation</a>
+  <a href="#t35"><b>35</b>Palindrome min cuts</a>
+  <a href="#t36"><b>36</b>Recursion → DP direction</a>
+  <a href="#t37"><b>37</b>LC 368 divisible subset</a>
+  <a href="#t38"><b>38</b>A % B when A &lt; B</a>
+  <a href="#t39"><b>39</b>LIS: recursion ≠ standard DP</a>
+  <a href="#t40"><b>40</b>LC 1027 tabulation</a>
+  <a href="#t41"><b>41</b>||/&amp;&amp; short-circuit bug</a>
+  <a href="#t42"><b>42</b>Group + delete-once BFS</a>
+  <a href="#t43"><b>43</b>1-indexed labels, the -1 trap</a>
 </nav>
 
 <h2 id="t1">1 · 🧱 Grid Traversal — Blocked Start/Destination</h2>
@@ -501,6 +515,307 @@ function minCostToConnectAllNodes(n: number, edges: number[][]): number {
 }</code></pre>
 <div class="box key"><b class="tag">🔑</b> Why Dijkstra doesn't fit here either: Kruskal's isn't tracking distance from anywhere — it's greedily picking GLOBALLY cheap edges while using Union-Find to AVOID cycles, a totally different mechanism from path-distance tracking.</div>
 <div class="box key"><b class="tag">📌</b> MST (Kruskal's) answers "cheapest way to connect EVERYONE." Dijkstra answers "cheapest way from ONE source to ONE target." Different questions — don't reach for Dijkstra when the problem is really asking for a spanning tree.</div>
+
+<h2 id="t30">30 · 🎲 Stone Game Family — Each Variant Has Its OWN Shape, Don't Force-Fit</h2>
+<div class="box warn"><b class="tag">🚨</b> Don't carry one Stone Game's shape over to another by default — the move rule decides the recursion shape.</div>
+
+<h3>🅰️ Stone Game I — front/back pick, NO for-loop, <code>Math.min</code>-the-opponent</h3>
+<p>Every move removes exactly ONE pile from either END (<code>i</code> or <code>j</code>) → state stays a clean interval <code>[i,j]</code>. Two explicit choices only — no loop needed. Opponent (next player) wants to MINIMIZE what's left for you:</p>
+<pre class="language-tsx"><code class="language-tsx">function dfs(i: number, j: number): number {
+    // base case
+    if(i > j) return 0;
+
+    const pickStart = piles[i] + Math.min(dfs(i + 2, j), dfs(i + 1, j - 1));
+    const pickEnd = piles[j] + Math.min(dfs(i, j - 2), dfs(i + 1, j - 1));
+
+    return Math.max(pickStart, pickEnd);
+}</code></pre>
+
+<h3>🅱️ Stone Game II — variable move size, for-loop + suffix sum</h3>
+<p>Move size <code>X</code> isn't fixed (<code>1..2M</code>) → single advancing pointer <code>i</code>, no "other end." For-loop tries every <code>X</code>, subtracts the opponent's best from here, takes the max:</p>
+<pre class="language-tsx"><code class="language-tsx">function dfs(idx: number, m: number): number {
+    // base case
+    if(idx >= n) return 0;
+    if(idx + 2 * m >= n) return suffix[idx]; // must be suffix[idx], NOT suffix[0] — remaining sum, not total sum
+
+    let best = Number.MIN_SAFE_INTEGER;
+    for(let x = 1; x &lt;= 2 * m; x++) {
+        const taken = suffix[idx] - suffix[idx + x];
+        const oppoTake = dfs(idx + x, Math.max(m, x));
+        best = Math.max(best, taken - oppoTake);
+    }
+
+    return best;
+}</code></pre>
+
+<h3>🅲 Stone Game VII — front/back pick like SG1, but needs PREFIX SUM for scoring</h3>
+<p>Like SG1, picks from either end — but the SCORE for a move isn't <code>piles[i]</code>/<code>piles[j]</code> directly, it's the SUM of whatever stones remain after removing that pile. Needs a prefix-sum array for O(1) range-sum lookup. Shape follows SG1 (2 explicit choices, no loop) since it's still a fixed-one-pile-per-move front/back game:</p>
+<pre class="language-tsx"><code class="language-tsx">function dfs(i: number, j: number): number {
+    // base case
+    if(i >= j) return 0;
+
+    const pickFront = (prefix[j + 1] - prefix[i + 1]) - dfs(i + 1, j);
+    const pickBack = (prefix[j] - prefix[i]) - dfs(i, j - 1);
+
+    return Math.max(pickFront, pickBack);
+}</code></pre>
+<div class="box key"><b class="tag">🎯 Why SG1 alone doesn't use prefix/suffix</b> prefix/suffix exist to sum a RANGE of elements in O(1). SG1's move value is always ONE single pile (<code>piles[i]</code>) — no range, nothing to sum, so there's nothing for prefix/suffix to speed up. SG2 sums a variable-size CHUNK (a range). SG7 sums the REMAINING stretch after a pick (also a range). Rule: reach for prefix/suffix only when a move's value spans more than one element — not just because it's "a Stone Game."</div>
+<div class="box key"><b class="tag">📌</b> The MOVE RULE decides the shape — copy the move rule, not the code.</div>
+
+<h2 id="t31">31 · 🗺️ Prefix vs Suffix — Where the "Extra" Sentinel Index Sits</h2>
+<pre class="language-tsx"><code class="language-tsx">index:      0    1    2    3    4    5
+piles:    [ 2 ][ 7 ][ 9 ][ 4 ][ 4 ]
+
+suffix:   [26 ][24 ][17 ][ 8 ][ 4 ][ 0 ]
+                                    ↑ sentinel (nothing after index 4)
+
+prefix:   [ 0 ][ 2 ][ 9 ][18 ][22 ][26 ]
+            ↑ sentinel (nothing before index 0)</code></pre>
+<p><b>🎯</b> Suffix sentinel sits at the END. Prefix sentinel sits at the START. Both mean the same thing: "empty range → 0."</p>
+<div class="box key"><b class="tag">📌</b> <code>suffix[i]</code> INCLUDES <code>piles[i]</code>, sentinel 0 at the tail. <code>prefix[i]</code> EXCLUDES <code>piles[i]</code>, sentinel 0 at the head. Same size (n+1), opposite ends.</div>
+
+<h2 id="t32">32 · 🌲 Unmemoized Recursion TC — 3-Question Framework</h2>
+<p><b>🎯</b> Ask these in order. Stop at the first one that fits.</p>
+<p><b>Q1 — Constant branching?</b> (same # choices every call)</p>
+<p>→ <code>branches^depth</code>. (take/skip → <code>2ⁿ</code>)</p>
+<p><b>Q2 — Variable branching, but is there a FIXED set of positions each getting an independent yes/no?</b></p>
+<p>→ <code>2^(that count)</code>.</p>
+<pre class="language-tsx"><code class="language-tsx">Stone Game II: n-1 gaps → cut or not → 2^(n-1)
+LC 131 Palindrome Partitioning: n-1 gaps → cut or not → 2^(n-1)</code></pre>
+<p><b>Q3 — Branching is a SPLIT POINT choice</b> (pick <code>k</code>, recurse both sides)?</p>
+<p>→ Catalan-shaped: <code>dfs(i,j) = Σ dfs(i,k) ⊗ dfs(k,j)</code></p>
+<pre class="language-tsx"><code class="language-tsx">function dfs(i: number, j: number): number {
+    if (i >= j) return 1;
+    let total = 0;
+    for (let k = i; k &lt; j; k++) {
+        total += dfs(i, k) * dfs(k + 1, j);   // k = split point
+    }
+    return total;
+}</code></pre>
+<p><code>k</code> = root (<b>96</b> Unique BST), last-op (<b>241</b>), last-burst (<b>312</b> Burst Balloons), matrix-split (Matrix Chain Mult — the textbook Catalan recurrence itself).</p>
+<p><b>None of the above fits?</b></p>
+<p>→ Just say <b>"exponential, no clean polynomial form"</b> — honest, accepted answer.</p>
+<pre class="language-tsx"><code class="language-tsx">LC 301 Remove Invalid Parentheses — removable set shifts as string changes
+minJumps prime-teleport — branch count varies per index
+LC 291 Word Pattern II, LC 139 Word Break (brute) — branch = segment length, a range not a yes/no</code></pre>
+<div class="box key"><b class="tag">📌</b> Constant → power. Fixed yes/no slots → <code>2^slots</code>. Split-and-recurse-both-sides → Catalan sum. Nothing fits → say "exponential."</div>
+
+<h2 id="t33">33 · 📊 Graph Edges (E) — Dense vs Sparse vs Tree</h2>
+<div class="box warn"><b class="tag">🚨</b> Sparse graph ≠ tree. A tree is a SPECIFIC TYPE of sparse graph.</div>
+<pre class="language-tsx"><code class="language-tsx">Dense graph:  E = O(V²)     ← max for a simple graph
+Sparse graph: E = O(V)      ← relatively few edges
+Tree:         E = V - 1     ← always sparse</code></pre>
+<p><b>🎯</b> Values BETWEEN <code>O(V)</code> and <code>O(V²)</code> exist (<code>V log V</code>, <code>V√V</code>, <code>2V</code>...) — but interviews only need the two bounds:</p>
+<pre class="language-tsx"><code class="language-tsx">Sparse → O(V)
+Dense  → O(V²)</code></pre>
+<p>📐 <b>Union-Find TC follows the same split:</b></p>
+<pre class="language-tsx"><code class="language-tsx">O(E · α(V))
+Sparse → O(V · α(V)) ≈ O(V)
+Dense  → O(V² · α(V)) ≈ O(V²)</code></pre>
+<div class="box key"><b class="tag">📌</b> Tree ⊂ Sparse Graph ⊂ Graph. Sparse = O(V) edges, Dense = O(V²) edges. Don't think "sparse = tree" — think "tree is always sparse."</div>
+
+<h2 id="t34">34 · 🔀 Combination vs Permutation — Don't Trust the Problem NAME, Trust a Tiny Example</h2>
+<div class="box warn"><b class="tag">🚨</b> Problem names LIE. "Combination Sum IV" is actually a PERMUTATION problem — LeetCode counts <code>[1,2]</code> and <code>[2,1]</code> as 2 separate ways, not 1.</div>
+<p><b>🎯 The reliable test — plug in a tiny 2-element example and ask:</b></p>
+<p>Does <code>[a, b]</code> and <code>[b, a]</code> count as 1 way or 2 ways?</p>
+<ul>
+<li><b>1 way</b> (order doesn't matter) → 🟢 <b>Combination</b> → loop starts from <code>idx</code> (never revisit earlier indices)
+<pre class="language-tsx"><code class="language-tsx">for(let i = idx; i &lt; n; i++) dfs(i, ...);</code></pre>
+</li>
+<li><b>2 ways</b> (order matters) → 🔴 <b>Permutation</b> → loop restarts from <code>0</code> every call (any element can follow any element)
+<pre class="language-tsx"><code class="language-tsx">for(let i = 0; i &lt; n; i++) dfs(...);   // no idx needed at all</code></pre>
+</li>
+</ul>
+<div class="box key"><b class="tag">🔑 Why this matters beyond just correctness</b> the loop's starting point ISN'T a style choice — it's the mechanism that silently encodes "order matters or not." Using the wrong one doesn't crash or slow down the code — it just quietly solves a DIFFERENT problem while looking almost identical.</div>
+<div class="box key"><b class="tag">📌</b> When unsure which shape a problem wants, don't reason abstractly and don't trust the title — plug in <code>[a,b]</code> vs <code>[b,a]</code> and check the expected count. That single test tells you the loop's starting index.</div>
+
+<h2 id="t35">35 · ✂️ Palindrome Partitioning I vs II — Min Cuts = Min Pieces − 1</h2>
+<p><b>🎯</b> Don't treat "min cuts" as a new problem. It's the SAME dfs shape as counting/listing palindrome partitions — just optimize <code>Math.min</code> instead of collecting paths, then subtract 1 at the very end.</p>
+<div class="box key"><b class="tag">🔑 Why subtract 1</b> cutting a string into <code>k</code> palindrome pieces needs exactly <code>k-1</code> cuts (fence-post logic — 3 pieces, 2 gaps between them).</div>
+<pre class="language-tsx"><code class="language-tsx">"aab" → pieces: ["aa","b"] → 2 pieces → 1 cut</code></pre>
+<p><b>Same skeleton for both LC 131 (list all) and LC 132 (min cuts):</b></p>
+<pre class="language-tsx"><code class="language-tsx">function dfs(start: number): number {
+    if (start === n) return 0;              // 0 pieces needed for empty suffix
+    let minPieces = Infinity;
+    for (let end = start + 1; end &lt;= n; end++) {
+        if (isPalin[start][end - 1]) {
+            minPieces = Math.min(minPieces, 1 + dfs(end));
+        }
+    }
+    return minPieces;
+}
+
+return dfs(0) - 1;   // pieces → cuts</code></pre>
+<div class="box key"><b class="tag">📌</b> Solve "minimum palindrome PIECES" (identical recursion to LC 131, swap path-collection for <code>Math.min</code>), then subtract 1 at the end to convert pieces → cuts.</div>
+
+<h2 id="t36">36 · 🧭 Recursion → DP: Direction and Starting Index Come FROM the Recurrence</h2>
+<p><b>🎯</b> Workflow: write the recursion first, find its recurrence, then read direction + start straight off it — don't guess either one.</p>
+<p><b>Direction — which way does the recurrence point?</b></p>
+<pre class="language-tsx"><code class="language-tsx">dp[i] depends on dp[i+1], dp[i+2]... (LARGER index) → loop i: n-1 DOWN TO 0
+dp[i] depends on dp[i-1], dp[i-2]... (SMALLER index) → loop i: 0 UP TO n</code></pre>
+<p><b>Starting index — ask ONE question: is this index's value already hardcoded, or does the recurrence still need to compute it?</b></p>
+<pre class="language-tsx"><code class="language-tsx">Already hardcoded outside the loop (a true base case, e.g. dp[n] = 0)
+  → loop EXCLUDES it, starts one step further in
+
+Not hardcoded — computed BY the recurrence using a virtual sentinel
+before/after the array (e.g. treating dp[-1] as 0)
+  → loop INCLUDES it, starts right there</code></pre>
+<p>📐 <b>Example — hardcoded base (excluded from loop):</b></p>
+<pre class="language-tsx"><code class="language-tsx">dp[n] = 0;                          // base case, set once, outside
+for (i = n - 1; i >= 0; i--) { ... }  // excludes n</code></pre>
+<p>📐 <b>Example — computed via sentinel (included in loop):</b></p>
+<pre class="language-tsx"><code class="language-tsx">// dp[i] built from dp[i-1], "nothing before index 0" = sentinel 0
+for (i = 0; i &lt;= n; i++) {
+    dp[i] = (i === 0 ? 0 : dp[i - 1]) + something;
+}</code></pre>
+<div class="box key"><b class="tag">📌</b> Direction = which side the recurrence reads from. Starting index = the first slot NOT already hardcoded before the loop runs. Don't memorize "0 to n" or "n-1 to 0" as a rule — re-derive both from the recurrence every time.</div>
+
+<h2 id="t37">37 · 🔗 LC 368 — Largest Divisible Subset</h2>
+<p><b>🎯 Asks:</b> from <code>nums</code>, find the LARGEST subset where every pair <code>(a, b)</code> satisfies <code>a % b === 0</code> or <code>b % a === 0</code>. Return the actual subset (not just its size).</p>
+<div class="box key"><b class="tag">🔑</b> The trick: SORT first. Once sorted ascending, you only need to check <code>nums[i] % nums[j] === 0</code> for <code>j &lt; i</code> — divisibility becomes transitive along the sorted order, so it reduces to an LIS-shaped DP (<a href="#t27">see #27's "committed rule" family</a>): <code>length[i]</code> = longest divisible chain ENDING at <code>i</code>, plus a <code>prevIdx[]</code> array to reconstruct the actual subset (not just its length).</div>
+<pre class="language-tsx"><code class="language-tsx">function largestDivisibleSubset(nums: number[]): number[] {
+    const n = nums.length;
+    nums.sort((a, b) => a - b);
+
+    const length = Array(n).fill(1);
+    const prevIdx = Array(n).fill(-1);
+
+    let maxLen = 1;
+    let lastChosenIdx = 0;
+
+    for (let i = 0; i &lt; n; i++) {
+        for (let j = 0; j &lt; i; j++) {
+            if (nums[i] % nums[j] !== 0) continue;
+
+            if (length[j] + 1 > length[i]) {
+                length[i] = length[j] + 1;
+                prevIdx[i] = j;
+            }
+
+            if (length[i] > maxLen) {
+                maxLen = length[i];
+                lastChosenIdx = i;
+            }
+        }
+    }
+
+    const res: number[] = [];
+    while (lastChosenIdx !== -1) {
+        res.push(nums[lastChosenIdx]);
+        lastChosenIdx = prevIdx[lastChosenIdx];
+    }
+
+    return res;
+}</code></pre>
+<div class="box key"><b class="tag">📌</b> Sort → treat it as LIS but with <code>%</code> instead of <code>&gt;</code> → track <code>prevIdx[]</code> alongside <code>length[]</code> to walk the chain backward and reconstruct the actual subset.</div>
+
+<h2 id="t38">38 · 🍕 <code>A % B</code> when <code>A &lt; B</code> → Always Just <code>A</code></h2>
+<p><b>🎯</b> Smaller <code>%</code> bigger = the number itself. <code>B</code> goes into <code>A</code> zero times → nothing gets subtracted off.</p>
+<pre class="language-tsx"><code class="language-tsx">2 % 6 = 2     3 % 10 = 3     1 % 2 = 1</code></pre>
+<div class="box key"><b class="tag">🔑 Where this bites</b> guessing <code>%</code> always "shrinks" a number — it doesn't, if the left side is already smaller than the right.</div>
+<div class="box key"><b class="tag">📌</b> <code>A % B</code> with <code>A &lt; B</code> (both positive) → always <code>A</code>, untouched.</div>
+
+<h2 id="t39">39 · 🔗 LIS-Family: Natural Recursion ≠ Standard DP (Different States, Not a Compression)</h2>
+<p><b>🎯</b> For LIS-shaped problems, the recursion you'd naturally write and the DP everyone actually uses are TWO DIFFERENT state definitions — the DP is NOT a rolling-array compression of the recursion's memo table.</p>
+<div class="box warn"><b class="tag">🔴 Natural recursion</b> <code>dfs(i, prevIdx)</code>, take/skip:</div>
+<pre class="language-tsx"><code class="language-tsx">dfs(i, prevIdx):
+  skip = dfs(i+1, prevIdx)
+  take = 0
+  if condition(nums[i], nums[prevIdx]):
+    take = 1 + dfs(i+1, i)
+  return max(skip, take)</code></pre>
+<p>→ O(2ⁿ) raw. Memoized: state = <code>(i, prevIdx)</code> → O(n²) states × O(1) work = <b>O(n²) time, O(n²) space</b>.</p>
+<div class="box iv"><b class="tag">✅ Standard/cleaner DP</b> <code>dp[i]</code> = "best chain ENDING AT i", found by scanning <code>j &lt; i</code>:</div>
+<pre class="language-tsx"><code class="language-tsx">for i in 0..n:
+  for j in 0..i:
+    if condition(nums[i], nums[j]) and dp[j]+1 > dp[i]:
+      dp[i] = dp[j] + 1</code></pre>
+<p>→ Also O(n²), but with <b>O(n) space</b> — a smaller, DIFFERENT state (<code>dp[i]</code> alone, no <code>prevIdx</code> dimension).</p>
+<p class="hint"><b>Problems in this family:</b> LC 300 Longest Increasing Subsequence, LC 368 Largest Divisible Subset, LC 673 Number of LIS, LC 1027 Longest Arithmetic Subsequence (see #27) — all naturally tempt <code>(i, prev)</code> recursion, all have a cleaner <code>dp[i]</code>-ending-at-i standard solution.</p>
+<div class="box key"><b class="tag">🔑</b> The recursion you'd write first (<code>(i, prevIdx)</code> take/skip) and the DP everyone actually codes (<code>dp[i]</code> ending-at-i, scan <code>j&lt;i</code>) are different STATE DEFINITIONS that coincidentally match on TC — not one compressed from the other.</div>
+
+<h2 id="t40">40 · 🔗 LC 1027 — Longest Arithmetic Subsequence (tabulation)</h2>
+<p><b>🎯</b> Same "committed rule" family as <a href="#t27">#27</a> — state must carry the DIFFERENCE, not just the previous index, because a chain's <code>diff</code> isn't known until it has 2+ elements.</p>
+<div class="box key"><b class="tag">🔑</b> <code>dp[i][diff]</code> = length of the longest arithmetic chain ending at <code>i</code> with common difference <code>diff</code>. Diff can be negative (<code>-500..500</code>), so offset it to use as an array index.</div>
+<pre class="language-tsx"><code class="language-tsx">function longestArithSeqLength(nums: number[]): number {
+    const n = nums.length;
+
+    // diff range -500 to 500
+    const OFFSET = 500;
+
+    const dp = Array.from({length: n}, () => Array(1001).fill(1));
+
+    let ans = 1;
+
+    for(let i = 0; i &lt; n; i++) {
+        for(let j = 0; j &lt; i; j++) {
+            const diff = nums[i] - nums[j];
+            const key = diff + OFFSET;
+
+            dp[i][key] = Math.max(dp[i][key], 1 + dp[j][key]);
+            ans = Math.max(ans, dp[i][key]);
+        }
+    }
+
+    return ans;
+}</code></pre>
+<p>📐 <b>Why <code>dp[j][key]</code> (same key, not a different one):</b> <code>nums[i]-nums[j] = diff</code> means extending the chain ending at <code>j</code> with that SAME diff — so you read <code>dp[j]</code> at the SAME <code>key</code>. This is the tabulated form of #27's <code>dfs(i, diff)</code> recursion — <code>dp[i][key]</code> ending-at-i, same shape as #39's <code>dp[i]</code>-ending-at-i pattern, just with an extra dimension for the committed rule (<code>diff</code>).</p>
+<div class="box key"><b class="tag">📌</b> Offset negative diffs to use as array index; <code>dp[i][diff]</code> reads <code>dp[j][sameDiff]</code> — extending a chain means matching the SAME diff already locked in, not recomputing a new one.</div>
+
+<h2 id="t41">41 · 🚨 <code>||</code> / <code>&amp;&amp;</code> Short-Circuit SILENTLY Skips a Second Call With Side Effects</h2>
+<p><b>🎯</b> <code>A || B</code> and <code>A &amp;&amp; B</code> don't always evaluate both sides — JS stops early the moment the result is already decided.</p>
+<pre class="language-tsx"><code class="language-tsx">A || B → if A is truthy, B is NEVER CALLED (result already true)
+A &amp;&amp; B → if A is falsy,  B is NEVER CALLED (result already false)</code></pre>
+<div class="box warn"><b class="tag">🚨</b> This is invisible and dangerous when <code>B</code> is a function call with its OWN side effect (mutates state, unions a DSU, pushes to an array) — not just a pure boolean check.</div>
+<p>📐 <b>Where it bit — LC 1579 (Remove Max Edges, dual Union-Find for Alice+Bob):</b></p>
+<pre class="language-tsx"><code class="language-tsx">if(alice.union(u, v) || bob.union(u, v)) edgesUsed++;   // ❌</code></pre>
+<p>If <code>alice.union(u, v)</code> returns <code>true</code> (union succeeded), <code>bob.union(u, v)</code> never runs at all — short-circuited. For a "shared" edge meant to help BOTH graphs, Bob's DSU silently misses the merge whenever Alice's happens to succeed first. No error, no crash — just a wrong final answer.</p>
+<p>✅ <b>Fix — call both FIRST, combine the booleans AFTER:</b></p>
+<pre class="language-tsx"><code class="language-tsx">const usedByAlice = alice.union(u, v);
+const usedByBob = bob.union(u, v);
+if (usedByAlice || usedByBob) edgesUsed++;</code></pre>
+<div class="box key"><b class="tag">🔑</b> The moment a <code>||</code>/<code>&amp;&amp;</code> operand is a function call that MUTATES something (not just reads a value), short-circuiting becomes a correctness bug — call every side-effecting function separately first, THEN combine the results in a boolean expression.</div>
+
+<h2 id="t42">42 · 🎯 "Group + Delete-Once" Kills Repeated O(n) Scans in BFS — and Why It's <code>log(maxVal)</code>, Not <code>n</code></h2>
+<p><b>🎯 Where this shows up:</b> a BFS where one node can jump to MANY other nodes sharing some property (same value, same prime factor, etc.) — the naive version re-scans the WHOLE array from every such node, giving <code>O(n²)</code>.</p>
+<p>📐 <b>Problem:</b> LC 2059-style "Minimum Jumps" — jump <code>i±1</code>, OR jump to any index whose value shares a PRIME FACTOR with <code>nums[i]</code> (when <code>nums[i]</code> is prime).</p>
+<div class="box warn"><b class="tag">🚨 Naive version (<code>O(n²)</code>)</b> for every prime-valued node dequeued, loop over ALL <code>n</code> elements checking <code>nextVal % currVal === 0</code>. If many nodes share the same prime value, this SAME scan repeats from scratch every time — wasted, since the relationships never change.</div>
+<p>✅ <b>Fix — precompute buckets ONCE, then DELETE each bucket the first time it's used:</b></p>
+<pre class="language-tsx"><code class="language-tsx">// prime -> [indices whose value has this prime factor]
+const primeToIdx = new Map&lt;number, number[]&gt;();
+// ...build once, before BFS...
+
+// inside BFS, when processing currIdx with prime value currVal:
+const nextIdxs = primeToIdx.get(currVal);
+for (const idx of nextIdxs ?? []) { /* visit */ }
+primeToIdx.delete(currVal);   // this prime can NEVER be expanded again</code></pre>
+<div class="box key"><b class="tag">🔑 Why deleting is safe</b> once you've pushed every index sharing that prime factor into the queue, there's nothing new to gain from expanding that same prime a second time — every node it could reach is already visited (or about to be).</div>
+<p>📊 <b>Why the resulting TC is <code>O(n log maxVal)</code>, not <code>O(n²)</code>:</b></p>
+<ul>
+<li>Each bucket is now iterated exactly once, total, across the whole BFS (not once per matching node).</li>
+<li>Total work = sum of ALL bucket sizes = total <code>(index, prime)</code> entries across every bucket.</li>
+<li>Each number has at most <code>O(log maxVal)</code> DISTINCT prime factors — because if a number has <code>k</code> distinct primes, and every prime is <code>≥ 2</code>, then <code>number ≥ 2^k</code>, so <code>k ≤ log₂(number) ≤ log₂(maxVal)</code>.</li>
+<li>So: <code>n</code> numbers × <code>O(log maxVal)</code> buckets each = <b>O(n log maxVal) total entries</b> = total BFS expansion cost.</li>
+</ul>
+<div class="box key"><b class="tag">📌</b> Whenever many nodes share edges through a common GROUPING KEY (prime factor, value, etc.), precompute buckets by that key and DELETE each bucket after its first use — this caps total work at "sum of bucket sizes," not "nodes × scan-per-node." And when the key is "distinct prime factors," that count per item is capped at <code>O(log maxVal)</code>, since <code>k</code> distinct primes force the number to be <code>≥ 2^k</code>.</div>
+
+<h2 id="t43">43 · 🚨 1-Indexed Node Labels → EVERY Reference Needs the Same <code>-1</code>, Including the Source</h2>
+<p><b>🎯</b> When a graph problem gives nodes labeled <code>1..n</code> but you build <code>graph[]</code>/<code>dist[]</code> as <code>0..n-1</code>, EVERY single node reference from the input must get the same <code>-1</code> conversion — not just the edges.</p>
+<div class="box warn"><b class="tag">🚨</b> Easy to miss: the source/start node (often a separate parameter like <code>k</code>) gets forgotten, because it's not sitting inside the edge-list loop where the <code>-1</code> conversion is already happening.</div>
+<pre class="language-tsx"><code class="language-tsx">for(const [u, v, w] of times) {
+    const nu = u - 1;   // converted
+    const nv = v - 1;   // converted
+    graph[nu].push([nv, w]);
+}
+
+pq.enqueue([0, k]);   // ❌ k still 1-indexed! forgot the same -1 here
+dist[k] = 0;           // ❌ same bug — writes/reads the WRONG node entirely</code></pre>
+<p>📐 <b>Why this fails silently, not loudly:</b> if <code>k</code> happens to be the max label (<code>k === n</code>), <code>dist[k]</code> writes OUT OF BOUNDS (per <a href="#t23">#23</a> — JS never throws), creating a phantom extra slot nothing else reads. The REAL start node (<code>dist[k-1]</code>) never gets set to <code>0</code>, so Dijkstra never expands from it — often surfacing as a wrong <code>-1</code> ("unreachable") instead of a crash.</p>
+<p>✅ <b>Fix — convert it exactly like every other node reference:</b></p>
+<pre class="language-tsx"><code class="language-tsx">const nk = k - 1;
+pq.enqueue([0, nk]);
+dist[nk] = 0;</code></pre>
+<div class="box key"><b class="tag">📌</b> 1-indexed input → 0-indexed internal structures means converting ALL node references consistently — edges inside a loop are easy to remember, but a standalone source/target parameter sitting OUTSIDE that loop is exactly where this <code>-1</code> gets forgotten. Audit every place a raw input node label touches an array index.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>

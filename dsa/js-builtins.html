@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JS Built-ins — Interview Reference</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet"/>
+<style>
+  :root{ --accent:#4338ca; --accent-soft:#4338ca14; --accent-line:#4338ca40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; --good:#4338ca; }
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
+  h2{font-size:1.35rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;
+    padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.05rem;font-weight:700;margin:1.4em 0 .15em}
+  p{margin:.55em 0}
+  ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;
+    font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);
+    border-radius:7px;color:var(--ink);font-size:.86rem;background:#fff;transition:.12s}
+  .nav a:hover{background:var(--accent-soft);text-decoration:none}
+  .nav a b{display:block;font-size:.68rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
+  .box.warn{border-left-color:var(--warn);background:#c2410c10}
+  .box.key{border-left-color:#7c3aed;background:#7c3aed10}
+  .box.iv{border-left-color:#2563eb;background:#2563eb0d}
+  .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
+  .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.02rem;margin:.1em 0 .7em}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--code-bg);font-weight:700}
+  td code{white-space:nowrap}
+  .hint{color:var(--muted);font-size:.86rem}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);
+    border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  @media print{
+    .nav{display:none}
+    body{margin:0;max-width:100%;padding:0;font-size:12px;line-height:1.4}
+    h1.title{font-size:1.6rem}
+    h2{font-size:1.1rem;margin-top:1em;page-break-after:avoid}
+    h3{font-size:.98rem;page-break-after:avoid}
+    pre[class*=language]{font-size:.68rem;line-height:1.35}
+    figure,tr,.box{page-break-inside:avoid}
+    @page{size:A4;margin:8mm}
+  }
+</style>
+</head>
+<body>
+
+<h1 class="title">📋 JS Built-ins</h1>
+<p class="sub">Interview reference for the JS standard-library APIs that get reached for constantly — the exact gotchas that cost time mid-interview, not a full language guide.</p>
+
+<nav class="nav">
+  <a href="#j1"><b>01</b>Map</a>
+  <a href="#j2"><b>02</b>Set</a>
+  <a href="#j3"><b>03</b>Common mix-ups</a>
+  <a href="#j4"><b>04</b>Priority Queue</a>
+  <a href="#j5"><b>05</b>Math.max / Math.min</a>
+  <a href="#j6"><b>06</b>Map access: never bracket notation</a>
+</nav>
+
+<h2 id="j1">1 · 🗂️ Map</h2>
+<pre class="language-tsx"><code class="language-tsx">const m = new Map&lt;string, number&gt;();
+m.set('a', 1); m.get('a'); m.has('a'); m.delete('a');
+m.size;   // PROPERTY, no ()
+for (const [k, v] of m) {}
+for (const k of m.keys()) {}
+for (const v of m.values()) {}</code></pre>
+
+<h2 id="j2">2 · 🔵 Set</h2>
+<pre class="language-tsx"><code class="language-tsx">const s = new Set&lt;number&gt;();
+s.add(5); s.has(5); s.delete(5);
+s.size;   // PROPERTY, no ()
+for (const v of s) {}
+[...s];   // to array
+
+new Set([1, 2, 3]);   // ✅ needs an ARRAY
+new Set(1, 2, 3);      // ❌ TypeError</code></pre>
+
+<h2 id="j3">3 · ⚠️ Common Mix-ups</h2>
+<ul>
+<li><code>.size</code> (Map/Set) and <code>.length</code> (array/string) → <b>properties</b>, no <code>()</code></li>
+<li>Array <code>.entries()</code> → <b>method</b>, needs <code>()</code>, gives <code>[index, value]</code> pairs</li>
+</ul>
+
+<h2 id="j4">4 · 🏗️ MinPriorityQueue / MaxPriorityQueue (LeetCode's built-in library)</h2>
+<pre class="language-tsx"><code class="language-tsx">const pq = new MinPriorityQueue&lt;number&gt;();                    // simple numeric
+const pq = new MinPriorityQueue&lt;number[]&gt;(x => x[0]);          // callback extracts comparison key
+const pq = new MaxPriorityQueue&lt;number[]&gt;(x => x[0]);           // reverse order, same API
+
+pq.enqueue(item);   // O(log n)
+pq.dequeue();        // O(log n), returns the element directly
+pq.front();           // O(1) peek
+pq.isEmpty();          // O(1)
+pq.size();              // METHOD here — needs ()</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>dequeue()</code>/<code>front()</code> return the element directly — e.g. <code>const [dist, node] = pq.dequeue()</code>.</div>
+
+<h2 id="j5">5 · 🔢 Math.max / Math.min</h2>
+<pre class="language-tsx"><code class="language-tsx">Math.max(1, 5, 3);        // ✅ individual args → 5
+Math.max([1, 5, 3]);       // ❌ NaN
+Math.max(...[1, 5, 3]);    // ✅ spread the array</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>.size</code>/<code>.length</code> = properties (no parens). PQ's <code>.size()</code> = method (needs parens) — the one exception to watch for. <code>Math.max</code>/<code>min</code> never take an array directly — always spread it.</div>
+
+<h2 id="j6">6 · 🚨 Map Access: <code>.get()</code>/<code>.set()</code> ONLY — Never Bracket Notation</h2>
+<pre class="language-tsx"><code class="language-tsx">const m = new Map&lt;string, number&gt;();
+m.set('a', 1);
+
+m.get('a');    // ✅ 1
+m['a'];        // ❌ undefined — does NOT read from the Map's data
+m['a'] = 5;    // ❌ sets a regular object PROPERTY named "a", not a Map entry</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>map[key]</code> silently does NOT throw and does NOT touch the Map's actual key-value data — always use <code>.get(key)</code> / <code>.set(key, val)</code> / <code>.has(key)</code>, never bracket notation, on a <code>Map</code>.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body></html>

@@ -107,6 +107,7 @@ test('index.html links out to every moved sub-app with the correct folder prefix
   const expectedLinks = [
     'dsa/dsa-master-map.html',
     'dsa/dsa-thoughts.html',
+    'dsa/js-builtins.html',
     'google/google-hub.html',
     'apps/gym-5day.html',
     'apps/habits.html',
@@ -121,12 +122,15 @@ test('dsa-master-map.html links back to the tracker root and to every pattern ch
   const html = fs.readFileSync(mapPath, 'utf8')
   assert.match(html, /href="\.\.\/index\.html"/, 'dsa-master-map.html should link back to ../index.html')
 
-  // Every dsa/*.html file except the map and the thoughts page is a pattern
-  // cheatsheet that the map is supposed to deep-link to. This catches both a
-  // broken link AND a new cheatsheet silently added without a link to it.
+  // Every dsa/*.html file except the map and the two standalone reference
+  // pages (dsa-thoughts, js-builtins -- linked straight from index.html's
+  // sidebar instead) is a pattern cheatsheet the map is supposed to
+  // deep-link to. This catches both a broken link AND a new cheatsheet
+  // silently added without a link to it.
   const dsaDir = path.join(ROOT, 'dsa')
+  const standaloneReferencePages = new Set(['dsa-master-map.html', 'dsa-thoughts.html', 'js-builtins.html'])
   const patternFiles = fs.readdirSync(dsaDir)
-    .filter((f) => f.endsWith('.html') && f !== 'dsa-master-map.html' && f !== 'dsa-thoughts.html')
+    .filter((f) => f.endsWith('.html') && !standaloneReferencePages.has(f))
   assert.ok(patternFiles.length > 0, 'expected at least one pattern cheatsheet in dsa/')
   const missing = patternFiles.filter((f) => !html.includes(`href="${f}"`))
   assert.deepEqual(missing, [], `dsa-master-map.html is missing a link to: ${missing.join(', ')}`)
