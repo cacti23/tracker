@@ -139,3 +139,28 @@ test('empty local storage always restores from a non-empty remote regardless of 
   const restored = JSON.parse(localStorage.getItem('dsa-revise-v1'))
   assert.equal(restored.q1.grade, 'solid')
 })
+
+test('REGRESSION: a device "poisoned" by an earlier thin push still recovers rich remote data on the next sync', async () => {
+  // Simulate a device that, under the old bug, already completed one bad sync: it
+  // pushed a near-empty local state once, so it now has its OWN lastSyncedAt/lastLocalHash
+  // that make reconcile() think it's "caught up" — even though the real data lives
+  // only in the cloud. This is the exact trap a fresh tablet install fell into
+  // (dsa-streak-v1 gets written on page load, making "local" look non-empty).
+  localStorage.setItem('dsa-qp-state-v1', JSON.stringify({ touched: true }))
+  await reconcileOnce() // this device's own thin push; now "looks" synced
+
+  // The cloud actually holds much richer real progress from another device, with an
+  // updatedAt that is NOT newer than this device's own lastSyncedAt (so the old
+  // timestamp-based pull condition alone would never fire).
+  const richData = {}
+  for (let i = 0; i < 50; i++) richData['q' + i] = { grade: 'solid', notes: 'practiced multiple times, feeling confident' }
+  fakeGitHub.gist.files['dsa.json'] = {
+    content: JSON.stringify({ updatedAt: new Date(0).toISOString(), data: { 'dsa-revise-v1': JSON.stringify(richData) } }),
+  }
+
+  await reconcileOnce()
+
+  const pulled = JSON.parse(localStorage.getItem('dsa-revise-v1') || 'null')
+  assert.ok(pulled, 'the rich remote data must be pulled in even though this device looked "caught up"')
+  assert.equal(pulled.q49.grade, 'solid')
+})

@@ -199,6 +199,20 @@
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
+      // Belt-and-suspenders guard against the SAME failure mode once meta bookkeeping
+      // has already been poisoned by a prior bad sync (e.g. this device pushed thin
+      // data once under an older bug, so it now has its own lastSyncedAt/lastLocalHash
+      // that make it look "caught up" even though it never actually held the real
+      // data). Ignore all bookkeeping and compare content directly: if remote is
+      // substantially richer than local, the cloud is almost certainly the side with
+      // real data — pull it rather than trust a hash that only proves local matches
+      // its OWN last (possibly bad) push.
+      var localSize = JSON.stringify(collect(keys)).length;
+      var remoteSize = remoteHasData ? JSON.stringify(remote.data).length : 0;
+      if (remoteHasData && remoteSize > localSize * 2) {
+        applyPull(appId, keys, remote);
+        return { action: 'pull' };
+      }
       var localUnchangedSinceSync = !!meta.lastLocalHash && meta.lastLocalHash === localHash(keys);
       if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced && localUnchangedSinceSync) {
         applyPull(appId, keys, remote);
@@ -263,6 +277,31 @@
     });
   }
 
+  // Unconditional pull — ignores all bookkeeping/heuristics and just takes whatever
+  // the cloud currently has. The guaranteed escape hatch for "this device should
+  // have newer data but reconcile() isn't pulling it for some reason." Confirms
+  // first since it overwrites local state (snapshotted to "<appId>-presync" first).
+  function pullLatest() {
+    if (!getToken() && !setToken()) return;
+    if (!confirm('This will overwrite the data on THIS device with whatever is currently in the cloud. Continue?')) return;
+    status('pulling…');
+    withGist(function () { return pullApp(cfg.appId); }).then(function (remote) {
+      if (!remote || !remote.data || Object.keys(remote.data).length === 0) {
+        status('nothing to pull');
+        setTimeout(resetStatus, 2000);
+        return;
+      }
+      applyPull(cfg.appId, cfg.keys, remote);
+      status('pulled ✓');
+      setTimeout(function () { location.reload(); }, 600);
+    }).catch(function (e) {
+      console.error('[sync]', e);
+      status('pull failed ✕');
+      alert('Pull failed: ' + e.message);
+      setTimeout(resetStatus, 3000);
+    });
+  }
+
   function autoSync() {
     if (!getToken()) return;
     var meta = getMeta(cfg.appId);
@@ -303,6 +342,7 @@
     setToken: setToken,
     autoSync: autoSync,
     pushSoon: pushSoon,
+    pullLatest: pullLatest,
     isConfigured: function () { return !!getToken(); }
   };
 })();
