@@ -152,6 +152,51 @@ test('google-hub.html links to both google sub-pages, which exist alongside it',
   }
 })
 
+test('habits-sw.js is registered with a path that scopes it to apps/, never the site root', () => {
+  // A Service Worker's scope defaults to the DIRECTORY of the script URL it
+  // was registered with. Before the reorg, habits.html + habits-sw.js lived
+  // at the repo root, so register('habits-sw.js') silently scoped the worker
+  // to the ENTIRE site -- it could intercept and serve stale cached HTML/JS
+  // for index.html and every other page, not just the habits app. That's a
+  // real, already-shipped landmine for anyone who'd opened the habits page
+  // before this reorg: their browser may still be running that old,
+  // root-scoped worker. This test guards against ever reintroducing an
+  // absolute or parent-escaping registration path, which is the only thing
+  // that can trigger that failure mode in newly-registered workers.
+  const html = fs.readFileSync(path.join(ROOT, 'apps', 'habits.html'), 'utf8')
+  const match = html.match(/navigator\.serviceWorker\.register\(\s*(['"])(.*?)\1/)
+  assert.ok(match, 'habits.html should register a service worker')
+  const registeredPath = match[2]
+  assert.ok(!registeredPath.startsWith('/'), `service worker must be registered with a relative path, not an absolute one ("${registeredPath}") -- an absolute path scopes it to the whole site`)
+  assert.ok(!registeredPath.includes('..'), `service worker registration path ("${registeredPath}") must not escape its own folder`)
+  assert.ok(fs.existsSync(path.join(ROOT, 'apps', registeredPath)), `registered service worker "${registeredPath}" must live in apps/, alongside habits.html`)
+})
+
+test('every inline <script> block in every .html file is syntactically valid JavaScript', () => {
+  // A reorg (or any bulk edit) can corrupt an inline script without touching
+  // any href/src -- e.g. an unbalanced quote introduced by a sed pass. None
+  // of the link checks above would catch that; a syntax error here means the
+  // ENTIRE inline script silently fails to run in the browser (no console
+  // access needed to notice -- the whole page stops working), which is this
+  // exact bug class. Checked with `new vm.Script(...)`, i.e. parsed but not
+  // executed, so this is safe to run against every file unconditionally.
+  const vm = require('vm')
+  const broken = []
+  for (const file of htmlFiles()) {
+    const html = fs.readFileSync(file, 'utf8')
+    const blocks = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].filter((m) => !/<script\s+[^>]*\bsrc=/i.test(m[0]))
+    for (const [i, block] of blocks.entries()) {
+      const code = block[1].replace(/\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\//g, '')
+      try {
+        new vm.Script(code, { filename: `${path.relative(ROOT, file)} inline script #${i + 1}` })
+      } catch (e) {
+        broken.push(`${path.relative(ROOT, file)} inline script #${i + 1}: ${e.message}`)
+      }
+    }
+  }
+  assert.deepEqual(broken, [], `syntax errors found:\n  ${broken.join('\n  ')}`)
+})
+
 test('top-level folder layout matches the reorg contract', () => {
   const expectedDirs = ['js', 'dsa', 'apps', 'google', 'docs', 'icons', 'test']
   for (const d of expectedDirs) {
