@@ -240,6 +240,14 @@
     var b = getBtn();
     if (b && b.dataset.orig) b.textContent = b.dataset.orig;
   }
+  // Reflects whether a token is set directly on the button's appearance (class
+  // "ds-token-set", styled per-app in CSS) so it's visually obvious at a glance
+  // whether this device is wired up for sync or still needs a token pasted in.
+  function refreshBtnState() {
+    var b = getBtn();
+    if (!b) return;
+    b.classList.toggle('ds-token-set', !!getToken());
+  }
 
   // ── token entry ────────────────────────────────────────────────────────
   function setToken() {
@@ -253,6 +261,7 @@
     t = t.trim();
     setTokenValue(t);
     localStorage.removeItem(GISTID_KEY);   // re-resolve gist for the new token/account
+    refreshBtnState();
     return !!t;
   }
 
@@ -334,6 +343,7 @@
     cfg.appId = opts.appId;
     cfg.keys = opts.keys || [];
     cfg.versionLabel = opts.versionLabel || '';
+    refreshBtnState();
   }
 
   window.DataSync = {

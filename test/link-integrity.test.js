@@ -210,7 +210,7 @@ test('top-level folder layout matches the reorg contract', () => {
   const rootEntries = fs.readdirSync(ROOT)
   const shouldNotBeAtRoot = [
     'data.js', 'sync.js', 'habits.html', 'habits-sw.js', 'habits-manifest.json',
-    'gym-5day.html', 'recovery-journal.html', 'google-hub.html',
+    'gym-5day.html', 'google-hub.html',
     'google-interview-sources.html', 'google-onsite-log.html', 'dsa-master-map.html',
     'dsa-thoughts.html', 'backtracking.html', 'binary-search.html', 'bit-manipulation.html',
     'design.html', 'dp.html', 'graph.html', 'heap.html', 'intervals.html', 'linked-list.html',
