@@ -84,7 +84,7 @@ function loadApp() {
   }
   vm.createContext(sandbox)
 
-  const dataJs = fs.readFileSync(path.join(ROOT, 'data.js'), 'utf8')
+  const dataJs = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8')
   vm.runInContext(dataJs, sandbox, { filename: 'data.js' })
 
   const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')

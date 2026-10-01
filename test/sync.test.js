@@ -56,7 +56,7 @@ function load(localStorage, fakeGitHub) {
   sandbox.window = sandbox
   sandbox.location = { reload() {} } // syncNow()/autoSync() reload the page on a successful pull
   vm.createContext(sandbox)
-  const src = fs.readFileSync(path.join(__dirname, '..', 'sync.js'), 'utf8')
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'sync.js'), 'utf8')
   vm.runInContext(src, sandbox, { filename: 'sync.js' })
   return sandbox.DataSync
 }

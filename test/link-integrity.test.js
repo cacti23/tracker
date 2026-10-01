@@ -1,0 +1,173 @@
+'use strict'
+// Guards the file layout introduced by the 2026-10 reorg (flat files -> dsa/,
+// apps/, google/, js/, docs/ folders with index.html kept at the repo root).
+//
+// What broke most easily in that kind of move: a relative href/src left
+// pointing at where a file USED to be. These tests crawl every real HTML
+// link/script/icon reference on disk and fail loudly, listing every broken
+// one at once, if a target doesn't exist relative to the file that
+// references it. They also pin down the specific cross-folder links the
+// reorg depends on (index.html -> dsa/apps/google, dsa-master-map.html's
+// link back to the root, the shared js/ and icons/ paths, the habits PWA's
+// manifest/service-worker asset list) so a future file move trips a test
+// instead of a silent 404 in the browser.
+//
+// Run with: node --test test/link-integrity.test.js
+
+const { test } = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('fs')
+const path = require('path')
+
+const ROOT = path.join(__dirname, '..')
+
+function listFiles(dir, extFilter) {
+  let out = []
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === '.git' || entry.name === 'node_modules') continue
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) out = out.concat(listFiles(full, extFilter))
+    else if (extFilter(entry.name)) out.push(full)
+  }
+  return out
+}
+
+const htmlFiles = () => listFiles(ROOT, (name) => name.endsWith('.html'))
+
+// Pulls every local href/src out of an HTML file: <script src=...> tags, plus
+// <a href>, <link href>, <img src> in the markup. Inline <script>...</script>
+// BODIES are stripped first (after grabbing any src= on the opening tag) so
+// that JS which builds HTML strings at runtime (e.g. `'<a href="' + url +
+// '">'`) can't be mistaken for a real static reference — that pattern is all
+// over index.html's render functions and produced false positives otherwise.
+function extractLocalRefs(filePath) {
+  let html = fs.readFileSync(filePath, 'utf8')
+  const refs = []
+  for (const m of html.matchAll(/<script\b[^>]*\bsrc="([^"]*)"[^>]*>/gis)) refs.push(m[1])
+  html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+  for (const m of html.matchAll(/<(?:a|link|img)\b[^>]*?\s(?:href|src)="([^"]*)"[^>]*>/gis)) refs.push(m[1])
+  return refs.filter((r) => r && !/^(https?:|mailto:|tel:|javascript:|data:|#)/i.test(r))
+}
+
+test('every local href/src/manifest/icon reference in every .html file resolves to a real file', () => {
+  const broken = []
+  for (const file of htmlFiles()) {
+    const dir = path.dirname(file)
+    for (const ref of extractLocalRefs(file)) {
+      const clean = ref.split('#')[0] // strip in-page anchors like two-pointers.html#p-fast
+      if (!clean) continue
+      const target = path.join(dir, clean)
+      if (!fs.existsSync(target)) {
+        broken.push(`${path.relative(ROOT, file)} -> "${ref}" (resolved to ${path.relative(ROOT, target)}, which does not exist)`)
+      }
+    }
+  }
+  assert.deepEqual(broken, [], `broken local references found:\n  ${broken.join('\n  ')}`)
+})
+
+test('habits PWA manifest icon paths resolve relative to the manifest file', () => {
+  const manifestPath = path.join(ROOT, 'apps', 'habits-manifest.json')
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  const dir = path.dirname(manifestPath)
+  assert.ok(manifest.icons.length > 0, 'manifest should declare at least one icon')
+  for (const icon of manifest.icons) {
+    const target = path.join(dir, icon.src)
+    assert.ok(fs.existsSync(target), `manifest icon "${icon.src}" does not resolve to a real file (${target})`)
+  }
+  // start_url/scope are resolved by the browser relative to the manifest's own
+  // location, so habits.html must live in the same folder as the manifest.
+  assert.ok(fs.existsSync(path.join(dir, manifest.start_url)), `manifest start_url "${manifest.start_url}" does not resolve`)
+})
+
+test('habits service worker caches only assets that actually exist', () => {
+  const swPath = path.join(ROOT, 'apps', 'habits-sw.js')
+  const src = fs.readFileSync(swPath, 'utf8')
+  const match = src.match(/const ASSETS\s*=\s*\[([^\]]*)\]/)
+  assert.ok(match, 'habits-sw.js should define a top-level const ASSETS = [...] array')
+  const assets = [...match[1].matchAll(/'([^']+)'|"([^"]+)"/g)].map((m) => m[1] || m[2])
+  assert.ok(assets.length > 0, 'ASSETS array should not be empty')
+  const dir = path.dirname(swPath)
+  for (const asset of assets) {
+    const target = path.join(dir, asset)
+    assert.ok(fs.existsSync(target), `service worker asset "${asset}" does not resolve to a real file (${target})`)
+  }
+})
+
+test('index.html stays at the repo root and loads js/data.js + js/sync.js from there', () => {
+  assert.ok(fs.existsSync(path.join(ROOT, 'index.html')), 'index.html must exist directly at the repo root')
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  assert.match(html, /<script src="js\/data\.js">/, 'index.html must load js/data.js')
+  assert.match(html, /<script src="js\/sync\.js">/, 'index.html must load js/sync.js')
+  assert.ok(fs.existsSync(path.join(ROOT, 'js', 'data.js')), 'js/data.js must exist (test/load-app.js hardcodes this path)')
+  assert.ok(fs.existsSync(path.join(ROOT, 'js', 'sync.js')), 'js/sync.js must exist (test/sync.test.js hardcodes this path)')
+})
+
+test('index.html links out to every moved sub-app with the correct folder prefix', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  const expectedLinks = [
+    'dsa/dsa-master-map.html',
+    'dsa/dsa-thoughts.html',
+    'google/google-hub.html',
+    'apps/gym-5day.html',
+    'apps/habits.html',
+  ]
+  for (const link of expectedLinks) {
+    assert.match(html, new RegExp(`href="${link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), `index.html should link to ${link}`)
+  }
+})
+
+test('dsa-master-map.html links back to the tracker root and to every pattern cheatsheet', () => {
+  const mapPath = path.join(ROOT, 'dsa', 'dsa-master-map.html')
+  const html = fs.readFileSync(mapPath, 'utf8')
+  assert.match(html, /href="\.\.\/index\.html"/, 'dsa-master-map.html should link back to ../index.html')
+
+  // Every dsa/*.html file except the map and the thoughts page is a pattern
+  // cheatsheet that the map is supposed to deep-link to. This catches both a
+  // broken link AND a new cheatsheet silently added without a link to it.
+  const dsaDir = path.join(ROOT, 'dsa')
+  const patternFiles = fs.readdirSync(dsaDir)
+    .filter((f) => f.endsWith('.html') && f !== 'dsa-master-map.html' && f !== 'dsa-thoughts.html')
+  assert.ok(patternFiles.length > 0, 'expected at least one pattern cheatsheet in dsa/')
+  const missing = patternFiles.filter((f) => !html.includes(`href="${f}"`))
+  assert.deepEqual(missing, [], `dsa-master-map.html is missing a link to: ${missing.join(', ')}`)
+})
+
+test('every app under apps/ that loads sync.js points at ../js/sync.js', () => {
+  const appsDir = path.join(ROOT, 'apps')
+  const appFiles = fs.readdirSync(appsDir).filter((f) => f.endsWith('.html'))
+  for (const f of appFiles) {
+    const html = fs.readFileSync(path.join(appsDir, f), 'utf8')
+    if (/\bsync\.js\b/.test(html)) {
+      assert.match(html, /<script src="\.\.\/js\/sync\.js">/, `${f} should load sync.js via ../js/sync.js`)
+    }
+  }
+})
+
+test('google-hub.html links to both google sub-pages, which exist alongside it', () => {
+  const hubPath = path.join(ROOT, 'google', 'google-hub.html')
+  const html = fs.readFileSync(hubPath, 'utf8')
+  for (const link of ['google-interview-sources.html', 'google-onsite-log.html']) {
+    assert.match(html, new RegExp(`href="${link}"`), `google-hub.html should link to ${link}`)
+    assert.ok(fs.existsSync(path.join(ROOT, 'google', link)), `${link} should exist in google/`)
+  }
+})
+
+test('top-level folder layout matches the reorg contract', () => {
+  const expectedDirs = ['js', 'dsa', 'apps', 'google', 'docs', 'icons', 'test']
+  for (const d of expectedDirs) {
+    assert.ok(fs.statSync(path.join(ROOT, d)).isDirectory(), `expected top-level directory "${d}" to exist`)
+  }
+  // Nothing from the old flat layout should still be sitting loose at the root.
+  const rootEntries = fs.readdirSync(ROOT)
+  const shouldNotBeAtRoot = [
+    'data.js', 'sync.js', 'habits.html', 'habits-sw.js', 'habits-manifest.json',
+    'gym-5day.html', 'recovery-journal.html', 'google-hub.html',
+    'google-interview-sources.html', 'google-onsite-log.html', 'dsa-master-map.html',
+    'dsa-thoughts.html', 'backtracking.html', 'binary-search.html', 'bit-manipulation.html',
+    'design.html', 'dp.html', 'graph.html', 'heap.html', 'intervals.html', 'linked-list.html',
+    'recursion.html', 'sliding-window.html', 'sorting.html', 'stack.html', 'trees.html',
+    'trie.html', 'two-pointers.html',
+  ]
+  const stillAtRoot = shouldNotBeAtRoot.filter((f) => rootEntries.includes(f))
+  assert.deepEqual(stillAtRoot, [], `these files should have been moved out of the root but are still there: ${stillAtRoot.join(', ')}`)
+})
