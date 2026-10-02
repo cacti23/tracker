@@ -16,22 +16,22 @@
 // Order = ideal learning/practice progression (NeetCode-style): array techniques →
 // linear structures → sorting/ordered → recursion cluster → graphs → DP → specialized.
 const TOPICS = [
-  { key: 'two-pointers',   icon: '👉', label: 'Two Pointers',  cheatsheetUrl: 'two-pointers.html' },
-  { key: 'sliding-window', icon: '🪟', label: 'Sliding Window', cheatsheetUrl: 'sliding-window.html' },
-  { key: 'binary-search',  icon: '🔍', label: 'Binary Search',  cheatsheetUrl: 'binary-search.html' },
-  { key: 'stack',               icon: '🥞', label: 'Stack & Monotonic Stack', cheatsheetUrl: 'stack.html' },
-  { key: 'linked-list',         icon: '🔗', label: 'Linked List',           cheatsheetUrl: 'linked-list.html' },
-  { key: 'sorting',        icon: '🔃', label: 'Sorting',        cheatsheetUrl: 'sorting.html' },
-  { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue', cheatsheetUrl: 'heap.html' },
-  { key: 'intervals',           icon: '📅', label: 'Intervals',             cheatsheetUrl: 'intervals.html' },
-  { key: 'recursion',      icon: '🔁', label: 'Recursion',      cheatsheetUrl: 'recursion.html' },
-  { key: 'trees',               icon: '🌳', label: 'Trees & BST',            cheatsheetUrl: 'trees.html' },
-  { key: 'trie',                icon: '🔡', label: 'Trie',                   cheatsheetUrl: 'trie.html' },
-  { key: 'backtracking',        icon: '🔙', label: 'Backtracking',          cheatsheetUrl: 'backtracking.html' },
-  { key: 'graph',               icon: '🕸️', label: 'Graph',                 cheatsheetUrl: 'graph.html' },
-  { key: 'dynamic-programming', icon: '🧮', label: 'Dynamic Programming',   cheatsheetUrl: 'dp.html'    },
-  { key: 'bit-manipulation',    icon: '🔢', label: 'Bit Manipulation',      cheatsheetUrl: 'bit-manipulation.html' },
-  { key: 'design',              icon: '🏗️', label: 'Design',                 cheatsheetUrl: 'design.html' },
+  { key: 'two-pointers',   icon: '👉', label: 'Two Pointers',  cheatsheetUrl: 'dsa/two-pointers.html' },
+  { key: 'sliding-window', icon: '🪟', label: 'Sliding Window', cheatsheetUrl: 'dsa/sliding-window.html' },
+  { key: 'binary-search',  icon: '🔍', label: 'Binary Search',  cheatsheetUrl: 'dsa/binary-search.html' },
+  { key: 'stack',               icon: '🥞', label: 'Stack & Monotonic Stack', cheatsheetUrl: 'dsa/stack.html' },
+  { key: 'linked-list',         icon: '🔗', label: 'Linked List',           cheatsheetUrl: 'dsa/linked-list.html' },
+  { key: 'sorting',        icon: '🔃', label: 'Sorting',        cheatsheetUrl: 'dsa/sorting.html' },
+  { key: 'heap',           icon: '🏔️', label: 'Heap / Priority Queue', cheatsheetUrl: 'dsa/heap.html' },
+  { key: 'intervals',           icon: '📅', label: 'Intervals',             cheatsheetUrl: 'dsa/intervals.html' },
+  { key: 'recursion',      icon: '🔁', label: 'Recursion',      cheatsheetUrl: 'dsa/recursion.html' },
+  { key: 'trees',               icon: '🌳', label: 'Trees & BST',            cheatsheetUrl: 'dsa/trees.html' },
+  { key: 'trie',                icon: '🔡', label: 'Trie',                   cheatsheetUrl: 'dsa/trie.html' },
+  { key: 'backtracking',        icon: '🔙', label: 'Backtracking',          cheatsheetUrl: 'dsa/backtracking.html' },
+  { key: 'graph',               icon: '🕸️', label: 'Graph',                 cheatsheetUrl: 'dsa/graph.html' },
+  { key: 'dynamic-programming', icon: '🧮', label: 'Dynamic Programming',   cheatsheetUrl: 'dsa/dp.html'    },
+  { key: 'bit-manipulation',    icon: '🔢', label: 'Bit Manipulation',      cheatsheetUrl: 'dsa/bit-manipulation.html' },
+  { key: 'design',              icon: '🏗️', label: 'Design',                 cheatsheetUrl: 'dsa/design.html' },
 ];
 
 // Per-question user progress (persisted in localStorage)
