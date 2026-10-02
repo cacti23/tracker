@@ -91,7 +91,7 @@
   <a href="#t31"><b>31</b>Prefix vs suffix sentinel</a>
   <a href="#t32"><b>32</b>Unmemoized recursion TC</a>
   <a href="#t33"><b>33</b>Graph edges: dense/sparse/tree</a>
-  <a href="#t34"><b>34</b>Backtracking: order, reuse, dups</a>
+  <a href="#t34"><b>34</b>Backtracking: used[], reuse, dups</a>
   <a href="#t35"><b>35</b>Palindrome min cuts</a>
   <a href="#t36"><b>36</b>Recursion → DP direction</a>
   <a href="#t37"><b>37</b>LC 368 divisible subset</a>
@@ -615,7 +615,7 @@ Sparse → O(V · α(V)) ≈ O(V)
 Dense  → O(V² · α(V)) ≈ O(V²)</code></pre>
 <div class="box key"><b class="tag">📌</b> Tree ⊂ Sparse Graph ⊂ Graph. Sparse = O(V) edges, Dense = O(V²) edges. Don't think "sparse = tree" — think "tree is always sparse."</div>
 
-<h2 id="t34">34 · 🔀 Backtracking — Ask 3 Questions Before Writing the Loop (Order → Reuse → Duplicates)</h2>
+<h2 id="t34">34 · 🔀 Backtracking — <code>used[]</code>, Reuse and Duplicates: Ask 3 Questions Before the Loop</h2>
 <p><b>🎯</b> Before writing any backtracking code, answer three questions in order. Together they decide the whole loop: where it starts, what you recurse with, and whether you need <code>used[]</code> or a skip.</p>
 
 <h3>1️⃣ Does order matter?</h3>
@@ -651,48 +651,20 @@ for(let i = 0; i &lt; n; i++) dfs(...);</code></pre>
 
 // Combination / Subset (Subsets II, Combination Sum II)
 if(i &gt; start &amp;&amp; nums[i] === nums[i - 1]) continue;</code></pre>
-<p>🔀 <b>Permutations II (LC 47) — full code</b> (sort + <code>used[]</code>, no Set):</p>
-<pre class="language-tsx"><code class="language-tsx">function permuteUnique(nums: number[]): number[][] {
-    const n = nums.length;
-    const used = Array(n).fill(false);
-
-    const res: number[][] = [];
-
-    nums.sort((a, b) =&gt; a - b);
-
-    function backtrack(path: number[], used: boolean[]): void {
-        // base case
-        if(path.length === n) {
-            res.push([...path]);
-            return;
-        }
-
-        for(let i = 0; i &lt; n; i++) {
-            if(used[i]) continue;
-            if(i &gt; 0 &amp;&amp; nums[i] === nums[i - 1] &amp;&amp; !used[i - 1]) continue;
-
-            used[i] = true;
-            path.push(nums[i]);
-            backtrack(path, used);
-            path.pop();
-            used[i] = false;
-        }
-    }
-
-    backtrack([], used);
-
-    return res;
-};</code></pre>
+<p>🔀 <b>Permutations II (LC 47)</b> — same sort, then two <code>used[]</code> checks:</p>
+<pre class="language-tsx"><code class="language-tsx">for(let i = 0; i &lt; n; i++) {
+    if(used[i]) continue;                                             // already in my path
+    if(i &gt; 0 &amp;&amp; nums[i] === nums[i - 1] &amp;&amp; !used[i - 1]) continue;    // same value as left twin, twin not in my path
+    used[i] = true; path.push(nums[i]);
+    backtrack();
+    path.pop(); used[i] = false;
+}</code></pre>
 <p>🔁 <b>Can't sort? Use a LOCAL <code>Set</code> instead</b> (LC 491 Non-decreasing Subsequences — sorting would destroy the subsequence order). Create it INSIDE each call, right before the loop:</p>
-<pre class="language-tsx"><code class="language-tsx">function dfs(start) {
-    if(path.length &gt;= 2) res.push([...path]);
-    const seen = new Set();                        // fresh per call
-    for(let i = start; i &lt; n; i++) {
-        if(seen.has(nums[i])) continue;            // already tried this VALUE at this level
-        if(path.length &amp;&amp; nums[i] &lt; path[path.length - 1]) continue;
-        seen.add(nums[i]);                         // never removed — no undo
-        path.push(nums[i]); dfs(i + 1); path.pop();
-    }
+<pre class="language-tsx"><code class="language-tsx">const seen = new Set();                        // fresh per call
+for(let i = start; i &lt; n; i++) {
+    if(seen.has(nums[i])) continue;            // already tried this VALUE at this level
+    seen.add(nums[i]);                         // never removed — no undo
+    path.push(nums[i]); dfs(i + 1); path.pop();
 }</code></pre>
 <div class="box warn"><b class="tag">🚨</b> The Set must be LOCAL (created inside each call): a shared Set would also block <code>[4,7]</code> after <code>[4,6,7]</code> used the 7, which is a different path and must stay allowed.</div>
 
