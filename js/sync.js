@@ -10,9 +10,15 @@
    Use a fine-grained PAT with only the "Gists" permission (read+write), or a
    classic token with the single "gist" scope.
 
-   Mode: two-way, newest-wins. On reconcile we compare the remote version's
-   timestamp against the version we last held locally; the newer side wins. A
-   local pre-sync snapshot ("<appId>-presync") is kept before any overwrite.
+   Mode: two-way, with a key-level MERGE whenever both sides have changes. We never
+   throw one side's edits away just because the other side has a later timestamp:
+   top-level entries from both sides are kept; if both changed the SAME entry, the side
+   that was edited more recently wins (see mergeValue / reconcile). Before anything is
+   overwritten, a local snapshot ("<appId>-presync", last 3 kept) and the previous cloud
+   copy ("<appId>.prev.json" in the gist) are saved, so a bad sync is recoverable.
+   Optional init() settings: autoPush (upload shortly after every local edit),
+   noiseKeys (keys that change on every page load and so don't count as "edited"),
+   maxKeys (counter objects where a conflict keeps the larger number).
    ────────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
@@ -23,7 +29,9 @@
   var API        = 'https://api.github.com';
   var DAY_MS     = 24 * 60 * 60 * 1000;
 
-  var cfg = { appId: null, keys: [], versionLabel: '' };
+  var AUTO_PUSH_MS = 6000;
+  var cfg = { appId: null, keys: [], versionLabel: '', noiseKeys: [], maxKeys: [], autoPush: false, autoPushDelay: AUTO_PUSH_MS };
+  var syncWriting = false;   // true while sync itself writes localStorage, so the edit hook ignores it
 
   // ── config / meta ──────────────────────────────────────────────────────
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
@@ -179,111 +187,229 @@
     });
     return data;
   }
-  function pushApp(appId, keys, updatedAt) {
-    var payload = JSON.stringify({ updatedAt: updatedAt, data: collect(keys) }, null, 2);
+  // data: what to upload (defaults to this device's current values). prevRemote: the cloud
+  // copy we are about to replace — kept as "<appId>.prev.json" so one bad push is undoable.
+  function pushApp(appId, keys, updatedAt, data, prevRemote) {
+    var payload = JSON.stringify({ updatedAt: updatedAt, data: data || collect(keys) }, null, 2);
     return withGist(function (id) {
       var body = { files: {} };
       body.files[appId + '.json'] = { content: payload };
+      if (prevRemote && prevRemote.data && Object.keys(prevRemote.data).length > 0) {
+        body.files[appId + '.prev.json'] = {
+          content: JSON.stringify({ updatedAt: prevRemote.updatedAt, backedUpAt: updatedAt, data: prevRemote.data })
+        };
+      }
       return api('/gists/' + id, { method: 'PATCH', body: JSON.stringify(body) });
     });
   }
 
   // ── local snapshot + apply pulled data ─────────────────────────────────
+  // Keeps the last 3 snapshots ("-presync" newest, then "-presync-2", "-presync-3") so two
+  // bad syncs in a row can't overwrite the only good copy.
   function snapshotLocal(appId, keys) {
     try {
-      localStorage.setItem(appId + '-presync',
-        JSON.stringify({ savedAt: new Date().toISOString(), data: collect(keys) }));
+      var base = appId + '-presync';
+      var prev2 = localStorage.getItem(base + '-2');
+      var prev1 = localStorage.getItem(base);
+      if (prev2 !== null) localStorage.setItem(base + '-3', prev2);
+      if (prev1 !== null) localStorage.setItem(base + '-2', prev1);
+      localStorage.setItem(base, JSON.stringify({ savedAt: new Date().toISOString(), data: collect(keys) }));
     } catch (e) { /* ignore quota */ }
   }
   // Cheap content fingerprint of the synced keys — NOT a security hash, just enough
   // to answer "has anything changed here since the last successful sync?" without
   // storing (and diffing) a second full copy of potentially hundreds of KB of data.
+  // noiseKeys (e.g. a streak counter rewritten on every page load) are left out, so
+  // merely opening the app never makes a stale device look like it has "edits".
   function localHash(keys) {
-    var s = JSON.stringify(collect(keys));
+    var hashKeys = keys.filter(function (k) { return cfg.noiseKeys.indexOf(k) < 0; });
+    var s = JSON.stringify(collect(hashKeys));
     var h = 0;
     for (var i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
     return h.toString(36) + ':' + s.length;
   }
+  function writeKeys(keys, data) {
+    syncWriting = true;
+    try {
+      keys.forEach(function (k) {
+        if (Object.prototype.hasOwnProperty.call(data, k) && typeof data[k] === 'string' && localStorage.getItem(k) !== data[k]) {
+          localStorage.setItem(k, data[k]);
+        }
+      });
+    } finally { syncWriting = false; }
+  }
+  function markSynced(appId, keys, version) {
+    syncWriting = true;
+    try {
+      var m = getMeta(appId);
+      m.lastSyncedAt = version;                 // version we now hold
+      m.lastCheckAt  = new Date().toISOString();
+      m.lastLocalHash = localHash(keys);        // fingerprint of the data we now hold
+      setMeta(appId, m);
+    } finally { syncWriting = false; }
+  }
   function applyPull(appId, keys, remote) {
     snapshotLocal(appId, keys);
-    keys.forEach(function (k) {
-      if (Object.prototype.hasOwnProperty.call(remote.data, k) && typeof remote.data[k] === 'string') {
-        localStorage.setItem(k, remote.data[k]);
-      }
-    });
-    var m = getMeta(appId);
-    m.lastSyncedAt = remote.updatedAt;        // version we now hold
-    m.lastCheckAt  = new Date().toISOString();
-    m.lastLocalHash = localHash(keys);        // fingerprint of the data we now hold, post-pull
-    setMeta(appId, m);
+    writeKeys(keys, remote.data);
+    markSynced(appId, keys, remote.updatedAt);
   }
 
-  // ── the newest-wins reconcile ──────────────────────────────────────────
-  // "Newest wins" used to mean "whichever side was UPLOADED most recently wins the
-  // whole file" — which silently discarded a device's own not-yet-pushed edits
-  // whenever anything else (another device/browser sharing the token, or even just
-  // reopening after the 24h autoSync gate) had a later upload timestamp, regardless
-  // of whether that upload actually contained newer data. That's how graded
-  // questions could vanish/revert: you grade a batch, nothing pushes it yet, the
-  // next reconcile sees a "newer" remote timestamp and overwrites your batch with
-  // an older cloud copy.
-  //
-  // Fix: only trust "remote is newer, so pull it" when THIS device has no unpushed
-  // local edits to lose (its data hasn't changed since its own last successful
-  // sync). If local HAS changed since then, local edits always win and get pushed
-  // — never silently discarded by a differently-timestamped copy from elsewhere.
-  function reconcile(appId, keys) {
+  // ── key-level merge ────────────────────────────────────────────────────
+  // Each synced key holds a JSON string. Two devices that both edited since the last
+  // sync used to fight over the whole file (one side's edits were lost). Now:
+  //   • object  → union of top-level entries; an entry present on both sides takes the
+  //               preferred side's value (numbers in maxKeys take the larger instead)
+  //   • array   → union (entries with {lcKey, ts} dedupe by lcKey, newest first)
+  //   • other   → the preferred side's value
+  // Limits: there are no per-entry timestamps, so a deletion on one device can be undone
+  // by the other device's older copy of that entry, and conflicting edits to the SAME
+  // entry resolve to whichever side was edited most recently overall.
+  function isObj(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+  function tryParse(str) { try { return { v: JSON.parse(str) }; } catch (e) { return null; } }
+  function mergeArrays(pref, other) {
+    var all = pref.concat(other);
+    var logLike = all.length > 0 && all.every(function (e) { return isObj(e) && e.lcKey !== undefined && e.ts; });
+    if (logLike) {
+      var best = {};
+      all.forEach(function (e) {
+        if (!best[e.lcKey] || Date.parse(e.ts) > Date.parse(best[e.lcKey].ts)) best[e.lcKey] = e;
+      });
+      return Object.keys(best).map(function (k) { return best[k]; })
+        .sort(function (a, b) { return Date.parse(b.ts) - Date.parse(a.ts); });
+    }
+    var seen = {}, out = [];
+    all.forEach(function (e) {
+      var sig = JSON.stringify(e);
+      if (!seen[sig]) { seen[sig] = 1; out.push(e); }
+    });
+    return out;
+  }
+  function mergeValue(key, localStr, remoteStr, preferRemote) {
+    if (localStr === undefined) return remoteStr;
+    if (remoteStr === undefined || localStr === remoteStr) return localStr;
+    var l = tryParse(localStr), r = tryParse(remoteStr);
+    var prefStr = preferRemote ? remoteStr : localStr;
+    if (!l || !r) return prefStr;
+    var pref = preferRemote ? r.v : l.v, other = preferRemote ? l.v : r.v;
+    if (isObj(pref) && isObj(other)) {
+      var out = {};
+      Object.keys(pref).forEach(function (k) { out[k] = pref[k]; });
+      Object.keys(other).forEach(function (k) {
+        if (!(k in out)) out[k] = other[k];
+        else if (cfg.maxKeys.indexOf(key) >= 0 && typeof out[k] === 'number' && typeof other[k] === 'number') out[k] = Math.max(out[k], other[k]);
+      });
+      return JSON.stringify(out);
+    }
+    if (Array.isArray(pref) && Array.isArray(other)) return JSON.stringify(mergeArrays(pref, other));
+    return prefStr;
+  }
+  function mergeData(keys, local, remote, preferRemote) {
+    var out = {};
+    keys.forEach(function (k) {
+      var l = Object.prototype.hasOwnProperty.call(local, k) ? local[k] : undefined;
+      var r = Object.prototype.hasOwnProperty.call(remote, k) && typeof remote[k] === 'string' ? remote[k] : undefined;
+      var v = mergeValue(k, l, r, preferRemote);
+      if (v !== undefined) out[k] = v;
+    });
+    return out;
+  }
+  // Merge cloud + local, upload the merged result (keeping the old cloud copy as .prev),
+  // then adopt it locally. 'pull' = the cloud already had everything; 'merge' = this
+  // device's data changed (caller should reload); 'push' = only the cloud needed updating.
+  function mergeAndSave(appId, keys, remote, preferRemote) {
+    var local = collect(keys);
+    var merged = mergeData(keys, local, remote.data, preferRemote);
+    var differsFromRemote = keys.some(function (k) { return merged[k] !== undefined && merged[k] !== remote.data[k]; });
+    var differsFromLocal = keys.some(function (k) { return merged[k] !== undefined && merged[k] !== local[k]; });
+    if (!differsFromRemote) { applyPull(appId, keys, remote); return Promise.resolve({ action: 'pull' }); }
+    var now = new Date().toISOString();
+    var upload = {};
+    Object.keys(remote.data).forEach(function (k) { upload[k] = remote.data[k]; });   // keep keys we don't manage
+    Object.keys(merged).forEach(function (k) { upload[k] = merged[k]; });
+    return pushApp(appId, keys, now, upload, remote).then(function () {
+      if (differsFromLocal) { snapshotLocal(appId, keys); writeKeys(keys, merged); }
+      markSynced(appId, keys, now);
+      return { action: differsFromLocal ? 'merge' : 'push' };
+    });
+  }
+
+  // ── the reconcile ──────────────────────────────────────────────────────
+  // Decision order (first match wins). "Unchanged" = this device's data hasn't changed
+  // since its own last successful sync, so it has no edits to lose.
+  //   1. local empty + cloud has data               → pull (adopt the cloud)
+  //   2. never synced here + cloud has data         → merge, cloud wins conflicts
+  //                                                   (the device may hold real offline
+  //                                                   progress; it used to be replaced)
+  //   3. cloud is much richer than local            → merge, cloud wins conflicts
+  //   4. cloud newer + local unchanged              → pull (clean fast-forward)
+  //   5. cloud newer + local ALSO edited            → merge; whichever side was edited
+  //                                                   most recently wins conflicts. This
+  //                                                   used to push local over the cloud,
+  //                                                   silently discarding the other
+  //                                                   device's edits.
+  //   6. otherwise                                  → push local (cloud copy kept as .prev)
+  // A much THINNER cloud copy is never pulled over richer local data (it is repaired by 6).
+  function doReconcile(appId, keys) {
     return pullApp(appId).then(function (remote) {
       var meta = getMeta(appId);
       var lastSynced = meta.lastSyncedAt ? Date.parse(meta.lastSyncedAt) : 0;
       var localEmpty = Object.keys(collect(keys)).length === 0;
-      var remoteHasData = remote && remote.data && Object.keys(remote.data).length > 0;
-      // This device has never completed a sync (no lastSyncedAt) — it has no basis
-      // for claiming its local state is the one worth keeping. That local state can
-      // still look non-empty (e.g. dsa-streak-v1 is written on every page load, before
-      // the user has touched a single question), which used to fall through to the
-      // push branch below and silently clobber a real synced backup with near-empty
-      // first-run state. Treat "never synced here" the same as "local is empty":
-      // adopt the cloud's data. applyPull() always snapshots local to "<appId>-presync"
-      // first, so nothing on this device is lost by doing so.
+      var remoteHasData = !!(remote && remote.data && Object.keys(remote.data).length > 0);
       var neverSyncedHere = !meta.lastSyncedAt;
-      if ((localEmpty || neverSyncedHere) && remoteHasData) {
+      if (localEmpty && remoteHasData) {
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
-      // Belt-and-suspenders guard against the SAME failure mode once meta bookkeeping
-      // has already been poisoned by a prior bad sync (e.g. this device pushed thin
-      // data once under an older bug, so it now has its own lastSyncedAt/lastLocalHash
-      // that make it look "caught up" even though it never actually held the real
-      // data). Ignore all bookkeeping and compare content directly: if remote is
-      // substantially richer than local, the cloud is almost certainly the side with
-      // real data — pull it rather than trust a hash that only proves local matches
-      // its OWN last (possibly bad) push.
+      if (neverSyncedHere && remoteHasData) {
+        // The device's local state can look non-empty before the user touched anything
+        // (e.g. a streak counter written on page load) — and it may also hold genuine
+        // offline progress. Merge with the cloud preferred; applying a pull snapshots
+        // local first, so nothing is lost either way.
+        return mergeAndSave(appId, keys, remote, true);
+      }
+      // Ignore bookkeeping and compare content: a poisoned lastSyncedAt/lastLocalHash
+      // (an older bug let a thin device "catch up" without real data) must not stop a
+      // substantially richer cloud copy from being recovered.
       var localSize = JSON.stringify(collect(keys)).length;
       var remoteSize = remoteHasData ? JSON.stringify(remote.data).length : 0;
       if (remoteHasData && remoteSize > localSize * 2) {
-        applyPull(appId, keys, remote);
-        return { action: 'pull' };
+        return mergeAndSave(appId, keys, remote, true);
       }
       var localUnchangedSinceSync = !!meta.lastLocalHash && meta.lastLocalHash === localHash(keys);
-      // Mirror of the guard above: never let a much THINNER cloud copy overwrite richer
-      // local data just because its timestamp is newer (e.g. another device pushed
-      // near-empty first-run state). Fall through to push instead, which repairs the cloud.
+      var remoteNewer = !!(remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced);
       var remoteMuchThinner = remoteHasData && localSize > 0 && remoteSize * 2 < localSize;
-      if (remote && remote.updatedAt && Date.parse(remote.updatedAt) > lastSynced && localUnchangedSinceSync && !remoteMuchThinner) {
+      if (remoteNewer && localUnchangedSinceSync && !remoteMuchThinner) {
         applyPull(appId, keys, remote);
         return { action: 'pull' };
       }
+      if (remoteHasData && remoteNewer && !localUnchangedSinceSync && !remoteMuchThinner) {
+        // Both sides edited. Unknown local edit time (older bookkeeping) = trust local.
+        var localEditedAt = meta.lastEditAt ? Date.parse(meta.lastEditAt) : Infinity;
+        var preferRemote = Date.parse(remote.updatedAt) > localEditedAt;
+        return mergeAndSave(appId, keys, remote, preferRemote);
+      }
       var now = new Date().toISOString();
-      return pushApp(appId, keys, now).then(function () {
-        var m = getMeta(appId);
-        m.lastSyncedAt = now;
-        m.lastCheckAt  = now;
-        m.lastLocalHash = localHash(keys);
-        setMeta(appId, m);
+      return pushApp(appId, keys, now, null, remote).then(function () {
+        markSynced(appId, keys, now);
         return { action: 'push' };
       });
     });
+  }
+  // One reconcile at a time: a background push firing while the user taps Sync (or two
+  // quick edits) must not interleave two pull/merge/push cycles. A request that arrives
+  // mid-flight shares the running one and schedules a single follow-up run.
+  var inflight = null, rerun = false;
+  function reconcile(appId, keys) {
+    if (inflight) { rerun = true; return inflight; }
+    inflight = doReconcile(appId, keys).then(function (r) {
+      inflight = null;
+      if (rerun) { rerun = false; reconcile(appId, keys).catch(function () {}); }
+      return r;
+    }, function (e) {
+      inflight = null; rerun = false;
+      throw e;
+    });
+    return inflight;
   }
 
   // ── button status helpers (sync status button must have id="dataSyncBtn";
@@ -343,8 +469,8 @@
     status('syncing…');
     localStorage.removeItem(GISTID_KEY);   // manual action: re-resolve rather than trust a possibly-stale cached gist
     reconcile(cfg.appId, cfg.keys).then(function (r) {
-      if (r.action === 'pull') {
-        status('synced ✓ pulled');
+      if (r.action === 'pull' || r.action === 'merge') {
+        status(r.action === 'merge' ? 'synced ✓ merged' : 'synced ✓ pulled');
         setTimeout(function () { location.reload(); }, 600);
       } else {
         status('synced ✓ pushed');
@@ -400,14 +526,15 @@
     if (Date.now() - last < DAY_MS) return;   // already synced within 24h
     status('auto-sync…');
     reconcile(cfg.appId, cfg.keys).then(function (r) {
-      if (r.action === 'pull') { setTimeout(function () { location.reload(); }, 300); }
+      if (r.action === 'pull' || r.action === 'merge') { setTimeout(function () { location.reload(); }, 300); }
       else { status('synced ✓'); setTimeout(resetStatus, 2000); }
     }).catch(function (e) { console.warn('[sync] auto-sync failed', e); resetStatus(); });
   }
 
   // Debounced background push after local edits (opt-in; call from an app's save()).
-  // Same reconcile as autoSync but ignores the 24h gate. Local edits always win, so this
-  // only ever uploads; it silently does nothing when no token is set.
+  // Same reconcile as autoSync but ignores the 24h gate. Usually this only uploads, but if
+  // another device changed the cloud meanwhile it merges (and reloads). Silently does
+  // nothing when no token is set.
   var pushTimer = null;
   function pushSoon(ms) {
     if (!getToken()) return;
@@ -415,16 +542,51 @@
     pushTimer = setTimeout(function () {
       status('saving…');
       reconcile(cfg.appId, cfg.keys).then(function (r) {
-        if (r.action === 'pull') { setTimeout(function () { location.reload(); }, 300); }
+        if (r.action === 'pull' || r.action === 'merge') { setTimeout(function () { location.reload(); }, 300); }
         else { status('synced ✓'); setTimeout(resetStatus, 1500); }
       }).catch(function (e) { console.warn('[sync] background push failed', e); status('offline'); setTimeout(resetStatus, 2500); });
     }, ms || 4000);
+  }
+
+  // ── auto-push after local edits ────────────────────────────────────────
+  // Without this an app only reached the cloud on a manual Sync or the once-a-day check
+  // on load, so a day's edits lived on ONE device (lost if browser data was cleared, and
+  // stale everywhere else). Opt-in per app via init({ autoPush: true }). Hooks
+  // localStorage writes to this app's synced keys; sync's own writes are ignored.
+  var hooked = false;
+  function onKeyWrite(key) {
+    if (syncWriting || !cfg.appId || cfg.keys.indexOf(key) < 0) return;
+    if (cfg.noiseKeys.indexOf(key) < 0) {
+      var m = getMeta(cfg.appId); m.lastEditAt = new Date().toISOString(); setMeta(cfg.appId, m);
+    }
+    if (cfg.autoPush) pushSoon(cfg.autoPushDelay);
+  }
+  function installWriteHook() {
+    if (hooked) return;
+    hooked = true;
+    // Real localStorage must be patched on Storage.prototype (assigning localStorage.setItem
+    // would store an item named "setItem"); the Node test fake is a plain object.
+    var proto = (typeof Storage !== 'undefined' && localStorage instanceof Storage) ? Storage.prototype : localStorage;
+    ['setItem', 'removeItem'].forEach(function (fn) {
+      var orig = proto[fn];
+      if (typeof orig !== 'function') return;
+      proto[fn] = function (k) {
+        var r = orig.apply(this, arguments);
+        if (this === localStorage) onKeyWrite(String(k));
+        return r;
+      };
+    });
   }
 
   function init(opts) {
     cfg.appId = opts.appId;
     cfg.keys = opts.keys || [];
     cfg.versionLabel = opts.versionLabel || '';
+    cfg.noiseKeys = opts.noiseKeys || [];
+    cfg.maxKeys = opts.maxKeys || [];
+    cfg.autoPush = !!opts.autoPush;
+    cfg.autoPushDelay = opts.autoPushDelayMs || AUTO_PUSH_MS;
+    installWriteHook();
     refreshBtnState();
   }
 

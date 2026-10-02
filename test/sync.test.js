@@ -318,3 +318,190 @@ test('INCIDENT REPLAY (2026-10-01): a device holding only 2 keys must never over
   assert.equal(Object.keys(cloud.data).length >= 9, true, 'cloud backup must still hold the rich data')
   assert.equal(localStorage.getItem('dsa-progress-v1'), rich['dsa-progress-v1'], 'device should have adopted the cloud data')
 })
+
+// ─── merge / multi-device / auto-push (cloud sync hardening) ─────────────────
+// Two "devices" = two (localStorage, DataSync) pairs sharing one fake gist.
+function makeDevice(gh, initOpts) {
+  const ls = makeLocalStorage()
+  const ds = load(ls, gh)
+  ls.setItem('tracker-sync-token', 'test-token')
+  ds.init(Object.assign({ appId: 'dsa', keys: ['dsa-revise-v1', 'dsa-solve-counts-v1', 'dsa-streak-v1'] }, initOpts || {}))
+  return { ls, ds }
+}
+const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40))
+async function syncDevice(dev) { dev.ds.syncNow(); await settle(50) }
+const cloudData = (gh) => JSON.parse(gh.gist.files['dsa.json'].content).data
+const parse = (ls, k) => JSON.parse(ls.getItem(k) || 'null')
+
+test('MERGE: two devices that both edited since the last sync keep BOTH sets of edits', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh), B = makeDevice(gh)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'solid' } }))
+  await syncDevice(A)
+  await syncDevice(B)                                   // B adopts q1
+  await settle(5)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'solid' }, qA: { grade: 'shaky' } }))
+  B.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'solid' }, qB: { grade: 'forgot' } }))
+  await settle(5)
+  await syncDevice(A)                                   // cloud now has qA
+  await settle(5)
+  await syncDevice(B)                                   // B has qB AND the cloud changed: used to wipe qA
+  const merged = parse(B.ls, 'dsa-revise-v1')
+  assert.ok(merged.q1 && merged.qA && merged.qB, 'B must hold q1, qA and qB: ' + JSON.stringify(merged))
+  const cloud = JSON.parse(cloudData(gh)['dsa-revise-v1'])
+  assert.ok(cloud.q1 && cloud.qA && cloud.qB, 'the cloud must hold all three too: ' + JSON.stringify(cloud))
+  await syncDevice(A)                                   // and A picks up qB afterwards
+  assert.ok(parse(A.ls, 'dsa-revise-v1').qB, 'A must receive qB')
+})
+
+test('MERGE: when both edited the SAME entry, the more recently edited side wins', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh), B = makeDevice(gh)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'start' } }))
+  await syncDevice(A); await syncDevice(B)
+  await settle(5)
+  B.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'B-old-edit' } }))   // B edits first...
+  await settle(5)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'A-newer-edit' } })) // ...A edits later and syncs
+  await syncDevice(A)
+  await settle(5)
+  await syncDevice(B)
+  assert.equal(parse(B.ls, 'dsa-revise-v1').q1.grade, 'A-newer-edit', 'the cloud copy is newer than B\'s edit, so it wins')
+
+  // Reverse: B's edit happens AFTER the cloud's last push, so B's value must win.
+  await syncDevice(A)
+  await settle(5)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'A-v3' } }))
+  await syncDevice(A)
+  await settle(5)
+  B.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'B-latest' } }))
+  await settle(5)
+  await syncDevice(B)
+  assert.equal(parse(B.ls, 'dsa-revise-v1').q1.grade, 'B-latest')
+  assert.equal(JSON.parse(cloudData(gh)['dsa-revise-v1']).q1.grade, 'B-latest')
+})
+
+test('MERGE: a device syncing for the first time keeps its own offline progress instead of discarding it', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ qA: { grade: 'solid' } }))
+  await syncDevice(A)
+  const B = makeDevice(gh)                              // never synced, but has real local progress
+  B.ls.setItem('dsa-revise-v1', JSON.stringify({ qB: { grade: 'shaky' } }))
+  await syncDevice(B)
+  const b = parse(B.ls, 'dsa-revise-v1')
+  assert.ok(b.qA && b.qB, 'B must have the cloud entry and keep its own: ' + JSON.stringify(b))
+  const cloud = JSON.parse(cloudData(gh)['dsa-revise-v1'])
+  assert.ok(cloud.qA && cloud.qB, 'the cloud must gain B\'s entry')
+})
+
+test('MERGE: counters listed in maxKeys keep the larger count when both devices incremented', async () => {
+  const gh = makeFakeGitHub()
+  const opts = { maxKeys: ['dsa-solve-counts-v1'] }
+  const A = makeDevice(gh, opts), B = makeDevice(gh, opts)
+  A.ls.setItem('dsa-solve-counts-v1', JSON.stringify({ q1: 1 }))
+  await syncDevice(A); await syncDevice(B)
+  await settle(5)
+  A.ls.setItem('dsa-solve-counts-v1', JSON.stringify({ q1: 4 }))
+  B.ls.setItem('dsa-solve-counts-v1', JSON.stringify({ q1: 2, q2: 1 }))
+  await settle(5)
+  await syncDevice(A)
+  await settle(5)
+  await syncDevice(B)
+  assert.deepEqual(parse(B.ls, 'dsa-solve-counts-v1'), { q1: 4, q2: 1 })
+})
+
+test('MERGE: recent-log style arrays are unioned by question, newest entry kept', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh, { keys: ['dsa-recent-log-v1'] }), B = makeDevice(gh, { keys: ['dsa-recent-log-v1'] })
+  A.ls.setItem('dsa-recent-log-v1', JSON.stringify([{ lcKey: 'q1', grade: 'shaky', ts: '2026-10-01T10:00:00Z' }]))
+  await syncDevice(A); await syncDevice(B)
+  await settle(5)
+  A.ls.setItem('dsa-recent-log-v1', JSON.stringify([{ lcKey: 'q1', grade: 'solid', ts: '2026-10-02T10:00:00Z' }]))
+  B.ls.setItem('dsa-recent-log-v1', JSON.stringify([{ lcKey: 'q2', grade: 'forgot', ts: '2026-10-01T12:00:00Z' }, { lcKey: 'q1', grade: 'shaky', ts: '2026-10-01T10:00:00Z' }]))
+  await settle(5)
+  await syncDevice(A)
+  await settle(5)
+  await syncDevice(B)
+  const log = parse(B.ls, 'dsa-recent-log-v1')
+  assert.deepEqual(log.map(e => e.lcKey + ':' + e.grade), ['q1:solid', 'q2:forgot'])
+})
+
+test('SAFETY NET: every push keeps the previous cloud copy as <app>.prev.json', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'one' } }))
+  await syncDevice(A)
+  assert.equal(gh.gist.files['dsa.prev.json'], undefined, 'nothing to back up on the very first push')
+  await settle(5)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'two' } }))
+  await syncDevice(A)
+  const prev = JSON.parse(gh.gist.files['dsa.prev.json'].content)
+  assert.equal(JSON.parse(prev.data['dsa-revise-v1']).q1.grade, 'one')
+})
+
+test('SAFETY NET: the last three local snapshots are kept, not just the latest', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh)
+  for (const v of ['v1', 'v2', 'v3']) {
+    gh.gist.files['dsa.json'] = { content: JSON.stringify({ updatedAt: new Date().toISOString(), data: { 'dsa-revise-v1': JSON.stringify({ v }) } }) }
+    A.ds.pullLatest()
+    await settle(30)
+  }
+  const ver = (k) => JSON.parse(JSON.parse(A.ls.getItem(k)).data['dsa-revise-v1'] || 'null')
+  // local held nothing before the first pull, so snapshots 1..3 hold: (empty), v1, v2
+  assert.equal(ver('dsa-presync').v, 'v2')
+  assert.equal(ver('dsa-presync-2').v, 'v1')
+  assert.ok(A.ls.getItem('dsa-presync-3') !== null, 'a third snapshot exists')
+})
+
+test('EDIT TRACKING: only real edits (not noiseKeys) move lastEditAt', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh, { noiseKeys: ['dsa-streak-v1'] })
+  A.ls.setItem('dsa-streak-v1', '{"n":1}')
+  assert.equal(JSON.parse(A.ls.getItem('dsa-sync-meta') || '{}').lastEditAt, undefined, 'a streak write on page load is not an edit')
+  A.ls.setItem('dsa-revise-v1', '{"q1":1}')
+  assert.ok(JSON.parse(A.ls.getItem('dsa-sync-meta')).lastEditAt, 'a real edit is recorded')
+})
+
+test('A stale device that only rewrote its streak on load fast-forwards to the cloud instead of pushing over it', async () => {
+  const gh = makeFakeGitHub()
+  const opts = { noiseKeys: ['dsa-streak-v1'] }
+  const A = makeDevice(gh, opts), B = makeDevice(gh, opts)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'a' } }))
+  await syncDevice(A); await syncDevice(B)
+  await settle(5)
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'a' }, q2: { grade: 'new' } }))
+  await syncDevice(A)
+  await settle(5)
+  B.ls.setItem('dsa-streak-v1', '{"n":9}')              // B just opened the app: streak rewritten, no real edits
+  await syncDevice(B)
+  assert.ok(parse(B.ls, 'dsa-revise-v1').q2, 'B must pick up A\'s q2')
+  assert.ok(JSON.parse(cloudData(gh)['dsa-revise-v1']).q2, 'and must not have pushed a stale copy over the cloud')
+})
+
+test('AUTO-PUSH: an edit to a synced key reaches the cloud shortly after, without pressing Sync', async () => {
+  const gh = makeFakeGitHub()
+  const A = makeDevice(gh, { autoPush: true, autoPushDelayMs: 20 })
+  A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'auto' } }))
+  await settle(150)
+  assert.equal(JSON.parse(cloudData(gh)['dsa-revise-v1']).q1.grade, 'auto')
+})
+
+test('AUTO-PUSH: off by default, and edits to keys that are not synced never trigger it', async () => {
+  const gh = makeFakeGitHub()
+  const off = makeDevice(gh)
+  off.ls.setItem('dsa-revise-v1', '{"q1":1}')
+  await settle(100)
+  assert.equal(gh.gist.files['dsa.json'], undefined, 'autoPush is opt-in')
+  const on = makeDevice(makeFakeGitHub(), { autoPush: true, autoPushDelayMs: 20 })
+  on.ls.setItem('some-unrelated-key', 'x')
+  await settle(100)
+  assert.equal(on.ls.getItem('dsa-sync-meta'), null, 'unrelated keys must not touch sync bookkeeping')
+})
+
+test('the DSA app syncs its in-progress practice sessions too', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+  const block = html.slice(html.indexOf('const BACKUP_KEYS'), html.indexOf(']', html.indexOf('const BACKUP_KEYS')))
+  assert.match(block, /'dsa-practice-session-v1'/)
+})
