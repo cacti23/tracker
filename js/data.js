@@ -134,19 +134,8 @@ window.addEventListener('storage', (e) => {
   if (e.key === SUBMISSIONS_KEY) _submissionsCache = null;
 });
 
-// Per-question pins (persisted in localStorage)
-// shape: string[] (array of lcKeys stored as JSON array)
-const PINS_KEY = 'dsa-pins-v1'
-function getPins() {
-  try { return new Set(JSON.parse(localStorage.getItem(PINS_KEY) || '[]')) } catch { return new Set() }
-}
-function isPinned(lcKey) { return getPins().has(lcKey) }
-function togglePin(lcKey) {
-  const pins = getPins()
-  if (pins.has(lcKey)) pins.delete(lcKey); else pins.add(lcKey)
-  localStorage.setItem(PINS_KEY, JSON.stringify([...pins]))
-  return pins.has(lcKey)
-}
+// Per-question pins were removed (Graded/recall grading replaced them). The stored 'dsa-pins-v1'
+// array is deliberately left alone and still exported/synced (see BACKUP_KEYS), so nothing is lost.
 
 // Per-question practice solve counts (persisted in localStorage)
 // shape: { [lcKey]: number }
