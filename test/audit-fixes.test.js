@@ -83,7 +83,7 @@ test('dashboard due counters count a cross-listed question once (LC_56 is in Sor
   assert.equal(els['due-revise-count'].textContent, 1)
 })
 
-// ── Cooldown rules for Graded and pinned questions ─────────────────────────────────────────────
+// ── Cooldown rules for Graded questions ─────────────────────────────────────────────
 
 test('dashboard Graded shows a ~ shaky question even while it is resting (same as per-topic Graded)', () => {
   const k = 'LC_104'
@@ -101,17 +101,24 @@ test('a resting ✓ solid question still waits for its revise ladder in dashboar
   assert.ok(!ev(`_qpResults.map(([x]) => x).includes('${k}')`))
 })
 
-test('a pinned question is never "resting" — it always stays in the practice pool', () => {
+test('pins are gone: a just-solved question rests even if an old pin is still stored', () => {
   const k = 'LC_104'
+  ctx.sandbox.localStorage.setItem('dsa-pins-v1', JSON.stringify([k]))   // legacy data from before the removal
   ev(`setStatus('${k}', 'Solved'); markPracticed('${k}'); bumpReviewInterval('${k}')`)
-  assert.equal(ev(`_onCooldown('${k}')`), true, 'precondition: unpinned + just solved ⇒ resting')
-  ev(`togglePin('${k}')`)
-  assert.equal(ev(`_onCooldown('${k}')`), false)
+  assert.equal(ev(`_onCooldown('${k}')`), true)
   ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpMock = false; _qpCount = 50; _qpGenerate()`)
-  assert.ok(ev(`_qpResults.map(([x]) => x).includes('${k}')`), 'dashboard set includes the pinned question')
+  assert.ok(!ev(`_qpResults.map(([x]) => x).includes('${k}')`), 'legacy pin must not force it into the set')
 })
 
-test('an unpinned resting question is still hidden from a normal generated set', () => {
+test('legacy pin data is untouched and still travels with export/import/sync', () => {
+  const raw = JSON.stringify(['LC_104', 'LC_56'])
+  ctx.sandbox.localStorage.setItem('dsa-pins-v1', raw)
+  ev(`_qpTopics = new Set(['trees']); _qpCount = 50; _qpGenerate()`)
+  assert.equal(ctx.sandbox.localStorage.getItem('dsa-pins-v1'), raw)
+  assert.ok(ev(`BACKUP_KEYS.includes('dsa-pins-v1')`))
+})
+
+test('a resting question is still hidden from a normal generated set', () => {
   const k = 'LC_104'
   ev(`setStatus('${k}', 'Solved'); markPracticed('${k}'); bumpReviewInterval('${k}')`)
   ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpMock = false; _qpCount = 50; _qpGenerate()`)

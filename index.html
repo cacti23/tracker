@@ -669,6 +669,32 @@
     .sub-input::placeholder { color: var(--text-faint); }
     .sub-err { color: var(--red, #e5484d); font-size: var(--fs-xs); margin-top: 0.25rem; }
 
+    /* 🔗 "My solution" button in the question header: sits next to ↗ so a saved submission is
+       one click away without opening the accordion. Dim until you have a link saved. */
+    .sub-open-btn { position: relative; margin-right: 0; }
+    .sub-open-btn.has-subs, .status-cycle-btn.sub-open-btn.has-subs { background: var(--accent-dim); border-color: var(--accent); }
+    .sub-open-btn .sub-btn-count {
+      position: absolute; top: -6px; right: -6px; min-width: 15px; height: 15px; padding: 0 3px;
+      border-radius: 8px; background: var(--accent); color: var(--bg-base);
+      font-size: 0.6rem; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none;
+    }
+    .sub-menu {
+      position: fixed; z-index: 1080; box-sizing: border-box; width: 290px; max-width: calc(100vw - 16px);
+      background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: var(--radius);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.35); padding: 0.5rem;
+    }
+    .sub-menu-title { font-size: var(--fs-xs); color: var(--text-muted); margin: 0.1rem 0.25rem 0.4rem; }
+    .sub-menu-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      padding: 0.4rem 0.55rem; border-radius: 6px; font-size: var(--fs-xs); font-family: var(--font-mono);
+      color: var(--text-primary); text-decoration: none; cursor: pointer;
+    }
+    .sub-menu-item:hover { background: var(--bg-hover); color: var(--accent); }
+    .sub-menu-item.blocked { opacity: 0.55; cursor: default; text-decoration: line-through; }
+    .sub-menu-add { color: var(--text-muted); border-top: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-top: 0.25rem; padding-top: 0.55rem; font-family: inherit; }
+    .sub-menu .sub-input { width: 100%; }
+    .sub-menu-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; justify-content: flex-end; }
+
     /* ── 26. QUESTION HEADER ACTIONS ─────────────────────────────────────────────────── */
     /* Action buttons sit outside the accordion <button> so clicks on them       */
     /* never activate Bootstrap’s toggle, regardless of where in the span they land. */
@@ -683,26 +709,16 @@
     .accordion-header:has(.accordion-button:not(.collapsed)) .q-header-actions { background: var(--bg-hover); }
 
     /* ── Calm & grouped action cluster: hairline dividers split it into
-       [status · open] │ [pin · seen] │ [solve-ring]; occasional buttons recede
+       [status · open · links] │ [seen] │ [solve-ring]; occasional buttons recede
        at rest and go full-opacity on card hover / when the card is open. ── */
     .qa-div { width: 1px; align-self: center; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 0.12rem; }
-    .qa-ghost, .q-header-actions .pin-btn:not(.pinned), .solve-ring-adj { opacity: 0.5; }
+    .qa-ghost, .solve-ring-adj { opacity: 0.5; }
     .accordion-header:hover .qa-ghost,
-    .accordion-header:hover .pin-btn:not(.pinned),
     .accordion-header:hover .solve-ring-adj,
     .accordion-header:has(.accordion-button:not(.collapsed)) .qa-ghost,
-    .accordion-header:has(.accordion-button:not(.collapsed)) .pin-btn:not(.pinned),
     .accordion-header:has(.accordion-button:not(.collapsed)) .solve-ring-adj { opacity: 1; }
 
     /* ── 29. PRACTICE SESSION ───────────────────────────────────────────────── */
-    .pin-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
-      background: var(--bg-elevated); cursor: pointer; font-size: 0.75rem;
-      flex-shrink: 0; transition: transform 0.15s, border-color 0.15s, background 0.15s;
-    }
-    .pin-btn:hover { transform: scale(1.18); border-color: var(--border-glow); background: var(--bg-hover); }
-    .pin-btn.pinned { background: var(--accent-dim); border-color: var(--accent-glow); }
 
     /* 👀 Seen / revised flag — independent of status & solve-ring. Grey = never seen,
        green = fresh (within 15 days), amber = "review again" (15+ days). */
@@ -875,15 +891,6 @@
       20% { background: var(--accent-dim); box-shadow: 0 0 0 2px var(--border-glow); }
     }
     .accordion-item.ps-jump-highlight { animation: ps-jump-flash 1.4s ease-out; border-radius: 8px; }
-    .ps-pin-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 22px; height: 22px; border-radius: 5px; border: 1px solid transparent;
-      background: transparent; cursor: pointer; font-size: 0.72rem; flex-shrink: 0;
-      opacity: 0.18; transition: opacity 0.15s, border-color 0.15s, background 0.15s;
-      padding: 0; line-height: 1;
-    }
-    .ps-pin-btn:hover { opacity: 0.75; border-color: var(--border); background: var(--bg-elevated); }
-    .ps-pin-btn.pinned { opacity: 1; border-color: rgba(255,200,0,0.4); background: rgba(255,200,0,0.1); }
     .ps-session-done {
       display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
       padding: 0.5rem 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;
@@ -983,7 +990,7 @@
     </a>
 
     <div class="sidebar-data-btns">
-      <button type="button" class="sidebar-data-btn" onclick="exportData()" title="Download all progress, notes and pins as a JSON backup file">
+      <button type="button" class="sidebar-data-btn" onclick="exportData()" title="Download all progress, notes and links as a JSON backup file">
         ⬇ Export
       </button>
       <button type="button" class="sidebar-data-btn" onclick="document.getElementById('import-file-input').click()" title="Restore progress from a previously exported JSON backup file">
@@ -1346,8 +1353,7 @@ function isCodeDue(lcKey) {
 // Graded / Mock, topic + dashboard) until its cooldown ladder (2→4→7→14) comes due again. A
 // ✗-forgot (force-queued) question is never on cooldown — it always resurfaces. Never-solved
 // questions are always "due" (isDue true), so they're never on cooldown either.
-// 📌 Pinned questions are exempt too: a pin means "always include in practice".
-function _onCooldown(lcKey) { return !isDue(lcKey) && !isCodeForced(lcKey) && !isPinned(lcKey) }
+function _onCooldown(lcKey) { return !isDue(lcKey) && !isCodeForced(lcKey) }
 
 // Unique question keys across topics. 49 questions are cross-listed in 2+ topics (same lcKey ⇒ same
 // status / grade / cooldown), so summing per-topic lengths double-counts them — anything that reports a
@@ -2453,11 +2459,8 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     ' title="Open on LeetCode"' +
     ' aria-label="Open ' + escHtml(q.title) + ' on LeetCode"' +
     ' onclick="window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
+    _subBtnHtml(lcKey) +
     '<span class="qa-div"></span>' +
-    '<span class="pin-btn' + (isPinned(lcKey) ? ' pinned' : '') + '"' +
-    ' id="pin-btn-' + lcKey + '"' +
-    ' title="' + (isPinned(lcKey) ? 'Unpin from practice set' : 'Pin — always include in practice') + '"' +
-    ' onclick="toggleQuestionPin(\'' + lcKey + '\', this)">📌</span>' +
     reviseCtrl +
     '<span class="qa-div"></span>' +
     solveRing +
@@ -2472,8 +2475,6 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     (q.freq ? '<span class="q-badge-sep"></span>' + freqBadge(q) : '') +
     _reviseGradeBadge(lcKey) +
     (existingNote ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has notes">📝</span>' : '') +
-    (getSubmissions(lcKey).length ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has submission links">🔗' + getSubmissions(lcKey).length + '</span>' : '') +
-    (isPinned(lcKey) ? '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge pin-badge" title="Pinned to practice">📌</span>' : '') +
     '</span>' +
     companyPillsRow(q.leetcode) +
     '</span>' +
@@ -2656,21 +2657,109 @@ function _refreshSubsRow(lcKey) {
   const host = document.getElementById('subs-' + lcKey)
   if (!host) return
   host.innerHTML = _subsRowHtml(lcKey)
-  // Keep the 🔗 badge in the accordion header in step without a full re-render
-  const meta = host.closest('.accordion-item')?.querySelector('.q-meta')
-  if (meta) {
-    const count = getSubmissions(lcKey).length
-    const existing = meta.querySelector('[title="Has submission links"]')
-    if (count && existing) existing.textContent = '🔗' + count
-    else if (count && !existing) {
-      meta.insertAdjacentHTML('beforeend',
-        '<span class="q-badge-sep"></span><span class="badge bg-secondary q-badge" title="Has submission links">🔗' + count + '</span>')
-    } else if (!count && existing) {
-      const sep = existing.previousElementSibling
-      if (sep && sep.classList.contains('q-badge-sep')) sep.remove()
-      existing.remove()
-    }
+  // Keep the 🔗 button in the question header in step without a full re-render
+  _refreshSubBtn(lcKey)
+}
+
+// ─── 🔗 MY-SOLUTION BUTTON (question header) ─────────────────────────────────
+// Lives next to ↗ so you can open your saved submission without expanding the card.
+//   0 links → dim; click opens a small paste-a-link form
+//   1 link  → click opens it in a new tab
+//   2+      → click opens a small list (newest first) with an Add option while under the cap
+function _subBtnTitle(n) {
+  if (!n) return 'Add a link to your submission'
+  return n === 1 ? 'Open my solution' : 'My solutions (' + n + ') — pick one'
+}
+function _subBtnHtml(lcKey) {
+  const n = getSubmissions(lcKey).length
+  return '<span class="status-cycle-btn sub-open-btn ' + (n ? 'has-subs' : 'qa-ghost') + '"' +
+    ' data-sub-btn="' + lcKey + '" role="button" title="' + _subBtnTitle(n) + '" aria-label="' + _subBtnTitle(n) + '"' +
+    ' onclick="event.stopPropagation();onSubBtnClick(\'' + lcKey + '\', this)">🔗' +
+    (n > 1 ? '<span class="sub-btn-count">' + n + '</span>' : '') + '</span>'
+}
+function _refreshSubBtn(lcKey) {
+  document.querySelectorAll('.sub-open-btn[data-sub-btn="' + lcKey + '"]').forEach(btn => {
+    const n = getSubmissions(lcKey).length
+    btn.classList.toggle('has-subs', n > 0)
+    btn.classList.toggle('qa-ghost', n === 0)
+    btn.title = _subBtnTitle(n)
+    btn.setAttribute('aria-label', _subBtnTitle(n))
+    btn.innerHTML = '🔗' + (n > 1 ? '<span class="sub-btn-count">' + n + '</span>' : '')
+  })
+}
+function _closeSubMenu() {
+  document.getElementById('sub-menu')?.remove()
+  document.removeEventListener('mousedown', _subMenuOutside, true)
+  document.removeEventListener('keydown', _subMenuKey, true)
+  window.removeEventListener('scroll', _closeSubMenu, true)
+  window.removeEventListener('resize', _closeSubMenu)
+}
+function _subMenuOutside(e) {
+  const m = document.getElementById('sub-menu')
+  if (m && !m.contains(e.target) && !e.target.closest('.sub-open-btn')) _closeSubMenu()
+}
+function _subMenuKey(e) { if (e.key === 'Escape') _closeSubMenu() }
+function onSubBtnClick(lcKey, btn) {
+  const wasOpenFor = document.getElementById('sub-menu')?.dataset.key === lcKey
+  _closeSubMenu()
+  if (wasOpenFor) return
+  const subs = getSubmissions(lcKey)
+  if (subs.length === 1 && _isSafeSubmissionUrl(subs[0].url)) {
+    window.open(subs[0].url, '_blank', 'noopener,noreferrer')
+    return
   }
+  const menu = document.createElement('div')
+  menu.id = 'sub-menu'; menu.className = 'sub-menu'; menu.dataset.key = lcKey
+  document.body.appendChild(menu)
+  _renderSubMenu(lcKey, !subs.length)
+  const r = btn.getBoundingClientRect()
+  const w = menu.offsetWidth
+  menu.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - w - 8)) + 'px'
+  menu.style.top  = Math.min(r.bottom + 6, Math.max(8, window.innerHeight - menu.offsetHeight - 8)) + 'px'
+  document.addEventListener('mousedown', _subMenuOutside, true)
+  document.addEventListener('keydown', _subMenuKey, true)
+  window.addEventListener('scroll', _closeSubMenu, true)
+  window.addEventListener('resize', _closeSubMenu)
+  menu.querySelector('input')?.focus({ preventScroll: true })
+}
+function _renderSubMenu(lcKey, adding) {
+  const menu = document.getElementById('sub-menu')
+  if (!menu) return
+  const subs = getSubmissions(lcKey)
+  const fmt = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  let html = ''
+  if (adding) {
+    html = '<div class="sub-menu-title">Paste a LeetCode submission, LintCode or NeetCode history link</div>' +
+      '<input class="sub-input" id="sub-menu-input" placeholder="https://leetcode.com/…/submissions/…"' +
+      ' onkeydown="if(event.key===\'Enter\')saveSubmissionFromMenu(\'' + lcKey + '\')">' +
+      '<div class="sub-err" id="sub-menu-err"></div>' +
+      '<div class="sub-menu-actions"><button class="btn-note-cancel" onclick="_closeSubMenu()">Cancel</button>' +
+      '<button class="btn-note-save" onclick="saveSubmissionFromMenu(\'' + lcKey + '\')">Save</button></div>'
+  } else {
+    html = '<div class="sub-menu-title">My solutions</div>' +
+      subs.map((s, i) => ({ s, i })).reverse().map(({ s, i }) =>
+        _isSafeSubmissionUrl(s.url)
+          ? '<a class="sub-menu-item" href="' + escHtml(s.url) + '" target="_blank" rel="noopener noreferrer" onclick="_closeSubMenu()"><span>#' + (i + 1) + ' · ' + fmt(s.addedAt) + '</span><span>↗</span></a>'
+          : '<span class="sub-menu-item blocked" title="Blocked — not a recognized link"><span>🚫 #' + (i + 1) + ' · ' + fmt(s.addedAt) + '</span></span>'
+      ).join('') +
+      (subs.length < MAX_SUBMISSIONS ? '<div class="sub-menu-item sub-menu-add" onclick="_renderSubMenu(\'' + lcKey + '\', true);document.getElementById(\'sub-menu-input\')?.focus({preventScroll:true})">＋ Add link</div>' : '')
+  }
+  menu.innerHTML = html
+}
+function saveSubmissionFromMenu(lcKey) {
+  const url = (document.getElementById('sub-menu-input')?.value || '').trim()
+  const err = document.getElementById('sub-menu-err')
+  if (!_isSafeSubmissionUrl(url)) {
+    if (err) err.textContent = "That doesn't look like a valid link — expected a leetcode.com …/submissions/…, lintcode.com or neetcode.io …/history link."
+    return
+  }
+  if (!addSubmission(lcKey, url)) {
+    if (err) err.textContent = 'Max ' + MAX_SUBMISSIONS + ' links per question — remove one in the card first.'
+    return
+  }
+  _refreshSubsRow(lcKey)   // updates the card's list (if rendered) and the header button
+  _refreshSubBtn(lcKey)
+  _closeSubMenu()
 }
 
 function showAddSubmission(lcKey) {
@@ -2910,16 +2999,6 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   const codePick = ctx === 'ps' && _psReviseCodeFlagged.has(lcKey)
   const codeBadge = codePick ?
     '<span class="ps-code-pick flex-shrink-0" title="Randomly picked to CODE this one — actually write and run the solution, don\'t just recall it">⌨️ Code</span>' : ''
-  // Pin only matters for Graded (its pool always surfaces pinned questions first, both per-topic
-  // and on the dashboard) — By Pattern's pool never reads isPinned, so skip the control there to
-  // avoid a button that does nothing.
-  const showPin   = (ctx === 'ps' && _psMode === 'graded') || (ctx === 'qp' && _qpRevised)
-  const pinned    = showPin && isPinned(lcKey)
-  const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
-  const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
-  const pinBtn = showPin
-    ? '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>'
-    : ''
   // Jump-to-question assumes a single "current topic" page context, which the dashboard doesn't
   // have — it doesn't work there. Only offer it in the per-topic Practice Session.
   const jumpBtn = ctx === 'ps' ?
@@ -2934,7 +3013,6 @@ function _buildReviseItem([lcKey, q], i, ctx) {
     (ctx === 'ps' ? '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' : (q.freq ? freqBadge(q, ' flex-shrink-0') : '')) +
     codeBadge +
     (doneThisSession ? _reviseGradeBadge(lcKey) : '') +
-    pinBtn +
     '<span class="rev-grade-group flex-shrink-0">' +
       '<button class="rev-grade rev-solid' + chosen('solid') + '"  title="Recalled it cold — push the next review further out"   onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
       '<button class="rev-grade rev-shaky' + chosen('shaky') + '"  title="Shaky — needed a hint, keep it in short rotation"        onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
@@ -2997,18 +3075,15 @@ function _qpReviseShowComplete() {
 }
 
 // Generate a practice set for a single topic.
-// Priority: Pinned (fills first, capped at count) → Unsolved (weighted) → Solved (weighted).
+// Priority: Unsolved (weighted) → Solved (weighted), weakest grade first.
 function _genPracticeSet(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
   const all0        = Object.entries(mod.questions)
   // "Worked-on only" filter: exclude 📋 Pending so practice draws only from 🚧 In Progress + ✅ Solved
   const all         = _practiceWorkedOnly ? all0.filter(([k]) => getStatus(k) !== 'Pending') : all0
-  const pinned      = _shuffle(all.filter(([k]) => isPinned(k))).slice(0, count)
-  const unpinned    = all.filter(([k]) => !isPinned(k))
-  const fillCount   = Math.max(0, count - pinned.length)
   // Serve your weakest (forgot → shaky) first within the topic.
-  return [...pinned, ..._orderByWeakness(_orderPracticePool(unpinned)).slice(0, fillCount)]
+  return _orderByWeakness(_orderPracticePool(all)).slice(0, count)
 }
 
 // Render a single practice row. showTopic=true adds the topic icon (dashboard).
@@ -3039,7 +3114,6 @@ function _jumpToQuestion(ev, lcKey) {
 }
 
 function _buildPracticeItem([lcKey, q], i, showTopic) {
-  const pinned = isPinned(lcKey)
   const due = isDue(lcKey)
   // Mock Mode hides topic icon, difficulty, freq, status & due dot so you face the problem cold —
   // until "Reveal". Dashboard mock = _qpMock; per-topic mock = _psMode 'mock'.
@@ -3060,8 +3134,6 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
   const rv       = doneInSession ? getRevise(lcKey) : null
   const rowCls   = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
   const dueDot   = ((due || forced) && !rv && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
-  const pinBtnCls = 'ps-pin-btn' + (pinned ? ' pinned' : '')
-  const pinTitle  = pinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
   const isMock       = showTopic ? _qpMock : (_psMode === 'mock')
   // Jump-to-question assumes you're already inside that topic's page (currentTopicKey) — on the
   // dashboard there's no single "current topic" to jump within, so it doesn't actually work
@@ -3092,7 +3164,6 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
     (q.freq && !hideMeta ? freqBadge(q, ' flex-shrink-0') : '') +
     gradeBtns +
-    '<button class="' + pinBtnCls + '" title="' + pinTitle + '" onclick="event.stopPropagation();_psPinToggle(this,\'' + lcKey + '\')" aria-label="Pin question">📌</button>' +
     jumpBtn +
     subLink +
     '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
@@ -3129,7 +3200,6 @@ function _practiceGrade(ev, lcKey, grade, showTopic) {
 function _buildPracticePanel(topicKey, mod) {
   const total    = Object.keys(mod.questions).length
   const count    = Math.max(1, Math.min(_psQCount, total))
-  const pinCount = Object.keys(mod.questions).filter(k => isPinned(k)).length
 
   // Track current topic for persistence
   const prevTopic = _psCurrentTopic
@@ -3159,14 +3229,14 @@ function _buildPracticePanel(topicKey, mod) {
         _psSaveSession()
       } else {
         _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
-        // Graded promise: ✗/~ (and 📌) questions ALWAYS appear. Merge in any weak graded
+        // Graded promise: ✗/~ questions ALWAYS appear. Merge in any weak graded
         // questions missing from the restored set — graded since it was saved (or saved back
         // when the old cooldown filter still hid them). They go on top, weakest first.
         if (_psMode === 'graded') {
           const have = new Set(_psCurrentItems.map(([k]) => k))
           const rank = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
           const missing = Object.entries(mod.questions)
-            .filter(([k]) => getRevise(k) && !have.has(k) && (rank(k) < 2 || isPinned(k)))
+            .filter(([k]) => getRevise(k) && !have.has(k) && rank(k) < 2)
             .sort((a, b) => rank(a[0]) - rank(b[0]))
           if (missing.length) { _psCurrentItems = [...missing, ..._psCurrentItems]; _psSaveSession() }
         }
@@ -3186,7 +3256,7 @@ function _buildPracticePanel(topicKey, mod) {
   let html = ''
   // ── Mode toggle: Graded (solve) / By Pattern (recall, scoped to a pattern) ──
   html += '<div class="ps-mode-bar d-flex flex-wrap gap-2 mb-2">'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" onclick="_psSetMode(\'graded\',\'' + topicKey + '\')" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
+  html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" onclick="_psSetMode(\'graded\',\'' + topicKey + '\')" title="Graded — solve the questions you have graded on the cards; ranked ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
   html += '<button type="button" class="qp-chip' + (_psMode === 'revise-pattern' ? ' active' : '') + '" onclick="_psSetMode(\'revise-pattern\',\'' + topicKey + '\')" title="By Pattern — active recall scoped to just the pattern(s) you pick">🧩 By Pattern</button>'
   html += '<button type="button" class="qp-chip' + (_psMode === 'recent' ? ' active' : '') + '" onclick="_psSetMode(\'recent\',\'' + topicKey + '\')" title="Recent — a read-only log of what you graded in Graded/By Pattern, newest first">🕘 Recent</button>'
   html += '</div>'
@@ -3211,7 +3281,6 @@ function _buildPracticePanel(topicKey, mod) {
     html += '<span class="text-secondary text-xs">/ ' + total + '</span>'
     html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-reset" onclick="_psShuffle(\'' + topicKey + '\')">↺ Refresh</button>'
     if (_psMode !== 'recent') html += '<button type="button" class="ps-shuffle-btn ms-1" id="ps-btn-clear" title="Remove every question from this list and start from an empty state (your grades and progress are kept)" onclick="_psClear(\'' + topicKey + '\')">🗑 Clear</button>'
-    if (pinCount && _psMode === 'graded') html += '<span class="ms-auto text-xxs text-secondary">📌 ' + pinCount + ' pinned</span>'
   }
 
   html += '</div>'
@@ -3436,17 +3505,15 @@ function _psModePool(topicKey, count) {
   if (!mod) return []
   if (_psMode === 'graded') {
     // Graded ignores the cooldown — your grade is the single source of truth (a clean solve
-    // re-grades the question ✓ solid, and THAT is what sinks it). 📌 pinned and ✗ forgot /
+    // re-grades the question ✓ solid, and THAT is what sinks it). ✗ forgot /
     // ~ shaky ALWAYS appear; ✓ solid only rejoins once its REVISE_LADDER interval is up
     // (isReviseDue), and `count` caps how many of those due-solid rows pad the list after them.
     const graded    = Object.entries(mod.questions).filter(([k]) => getRevise(k))
     const rank      = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
-    const pinned    = _shuffle(graded.filter(([k]) => isPinned(k)))
-    const unpinned  = graded.filter(([k]) => !isPinned(k))
-    const weak      = _weightedShuffleByImpact(unpinned.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
-    const solid     = _weightedShuffleByImpact(unpinned.filter(([k]) => rank(k) === 2 && isReviseDue(k)))
-    const solidFill = Math.max(0, count - pinned.length - weak.length)
-    return [...pinned, ...weak, ...solid.slice(0, solidFill)]
+    const weak      = _weightedShuffleByImpact(graded.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
+    const solid     = _weightedShuffleByImpact(graded.filter(([k]) => rank(k) === 2 && isReviseDue(k)))
+    const solidFill = Math.max(0, count - weak.length)
+    return [...weak, ...solid.slice(0, solidFill)]
   }
   if (_psMode === 'revise') {
     // Revise = active recall, not solving. Due set from the WHOLE topic — anything engaged
@@ -3490,11 +3557,8 @@ function _psModePool(topicKey, count) {
   }
   // worked = questions you've started/solved (🚧/✅)
   const base      = all.filter(([k]) => getStatus(k) !== 'Pending')
-  const pinned    = _shuffle(base.filter(([k]) => isPinned(k))).slice(0, count)
-  const unpinned  = base.filter(([k]) => !isPinned(k))
-  const fillCount = Math.max(0, count - pinned.length)
-  // Weakest first: 📌 pinned → ✗ forgot → ~ shaky → ✓ confident → rest.
-  return [...pinned, ..._orderByWeakness(_orderPracticePool(unpinned)).slice(0, fillCount)]
+  // Weakest first: ✗ forgot → ~ shaky → ✓ confident → rest.
+  return _orderByWeakness(_orderPracticePool(base)).slice(0, count)
 }
 // Worked/Graded/Mock render solve-rows (click a row = solved); Revise renders grade-rows
 // (✓/~/✗ recall buttons, no click-to-solve).
@@ -3575,6 +3639,7 @@ function _psRevealMock() {
   const btn = document.getElementById('ps-reveal-btn')
   if (btn) btn.style.display = 'none'
 }
+
 
 // Grade a row in the per-topic Revise mode: same active-recall grading as the dashboard Revise
 // Session, scoped to this topic. Rows stay in place on grade — tinted + the chosen button
@@ -3721,7 +3786,6 @@ function _refreshReviseOnSolve(lcKey) {
 function _psRowClick(event, lcKey) {
   // Ignore clicks on the link, pin, or struggle button — they already stopPropagation
   if (event.target.classList.contains('ps-q-link')) return
-  if (event.target.classList.contains('ps-pin-btn')) return
 
   const rowEl = event.currentTarget
   if (!rowEl) return
@@ -3761,23 +3825,6 @@ function _psRowClick(event, lcKey) {
   })
 }
 
-// (Struggle button removed — pin 📌 a question to keep it coming back instead.)
-
-// Toggle pin from inside the practice session row.
-// Updates button visuals immediately without re-rendering the whole list.
-function _psPinToggle(btnEl, lcKey) {
-  const nowPinned = togglePin(lcKey)
-  btnEl.classList.toggle('pinned', nowPinned)
-  btnEl.title = nowPinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session'
-  // Sync the 📌 ring badge in the question accordion if it is currently visible
-  const acRing = document.querySelector('[data-pin-key="' + lcKey + '"]')
-  if (acRing) {
-    acRing.classList.toggle('pinned', nowPinned)
-    acRing.title = nowPinned ? 'Unpin from practice set' : 'Pin — always include in practice'
-  }
-}
-
-
 
 // Show a compact banner at the top of ps-list when all session questions are done.
 function _psShowSessionComplete() {
@@ -3816,7 +3863,6 @@ function _qpAfterRowSettled(list) {
 
 function _qpRowClick(event, lcKey) {
   if (event.target.classList.contains('ps-q-link')) return
-  if (event.target.classList.contains('ps-pin-btn')) return
   const rowEl = event.currentTarget
   if (!rowEl) return
   if (_qpDoneThisSession.has(lcKey)) return
@@ -3838,7 +3884,6 @@ function _qpRowClick(event, lcKey) {
   _markRowSolved(rowEl, 'ps-q-solved', _qpAfterRowSettled)
 }
 
-// (Struggle button removed — pin 📌 a question to keep it coming back instead.)
 
 // ── Timer controls ────────────────────────────────────────────────────────────
 function _psTimerSet(mins, btn) {
@@ -3907,64 +3952,6 @@ function _syncTimerDisplay() {
     (!secs && _psTimerTotal > 0 ? ' ps-expired' : '')
 }
 
-// ── Pin toggle ────────────────────────────────────────────────────────────────
-function toggleQuestionPin(lcKey, btn) {
-  const nowPinned = togglePin(lcKey)
-  btn.classList.toggle('pinned', nowPinned)
-  btn.title = nowPinned ? 'Unpin from practice set' : 'Pin — always include in practice'
-  // Sync the 📌 badge in .q-meta without a full re-render
-  const item = btn.closest('.accordion-item')
-  if (item) {
-    const meta = item.querySelector('.q-meta')
-    if (meta) {
-      const existing = meta.querySelector('.pin-badge')
-      if (nowPinned && !existing) {
-        const sep = document.createElement('span'); sep.className = 'q-badge-sep'
-        const badge = document.createElement('span')
-        badge.className = 'badge bg-secondary q-badge pin-badge'; badge.title = 'Pinned to practice'; badge.textContent = '📌'
-        meta.appendChild(sep); meta.appendChild(badge)
-      } else if (!nowPinned && existing) {
-        const sep = existing.previousElementSibling
-        if (sep && sep.classList.contains('q-badge-sep')) sep.remove()
-        existing.remove()
-      }
-    }
-  }
-  // Sync the 📌 practice-row button if this question is visible in the per-topic practice panel.
-  // NOTE: _psShuffle below fully rebuilds the list, so we only need this sync when
-  // the accordion is on the dashboard (currentTopicKey = null) where _psShuffle won't run.
-  if (!currentTopicKey) {
-    const psPin = document.querySelector('.ps-pin-btn[aria-label="Pin question"][onclick*="' + lcKey + '"]')
-    if (psPin) { psPin.classList.toggle('pinned', nowPinned); psPin.title = nowPinned ? 'Unpin — remove from always-practice list' : 'Pin — keep in every future session' }
-  }
-  // Refresh per-topic practice panel (only when a topic is loaded)
-  if (currentTopicKey) _psShuffle(currentTopicKey)
-  // Update the pinned-count label in the per-topic ctrl bar
-  const mod = TOPIC_MODULES[currentTopicKey]
-  if (mod) {
-    const pinCount = Object.keys(mod.questions).filter(k => isPinned(k)).length
-    const ctrl = document.querySelector('#ps-body .ps-ctrl-bar')
-    if (ctrl) {
-      const existing = ctrl.querySelector('.ps-pin-count')
-      if (existing) existing.remove()
-      if (pinCount) {
-        const sp = document.createElement('span')
-        sp.className = 'ms-auto text-xxs text-secondary ps-pin-count'
-        sp.textContent = '📌 ' + pinCount + ' pinned'
-        ctrl.appendChild(sp)
-      }
-    }
-  }
-  // Update the pinned-count label in the QP panel (visible on dashboard)
-  const qpPinLabel = document.querySelector('#quick-practice-panel [title="Pinned questions fill first when generating a set"]')
-  if (qpPinLabel) {
-    let qpPinned = 0
-    _uniqueQuestionKeys(Array.from(_qpTopics)).forEach(k => { if (isPinned(k)) qpPinned++ })
-    if (qpPinned > 0) qpPinLabel.textContent = '📌 ' + qpPinned + ' pinned (priority)'
-    else qpPinLabel.style.display = 'none'
-  }
-}
-
 // ─── QUICK PRACTICE (Dashboard) ───────────────────────────────────────────────
 
 function _renderQuickPractice() {
@@ -3976,10 +3963,6 @@ function _renderQuickPractice() {
   const totalQ = _selKeys.size
   const maxQ   = totalQ
   const count  = maxQ ? Math.max(1, Math.min(_qpCount, maxQ)) : _qpCount
-
-  // Count pinned only from SELECTED topics (not all topics)
-  let totalPinned = 0
-  _selKeys.forEach(k => { if (isPinned(k)) totalPinned++ })
 
   let html = '<div class="card mt-4"><div class="card-body">'
   html += '<div class="d-flex align-items-center gap-2 mb-3">'
@@ -4011,12 +3994,11 @@ function _renderQuickPractice() {
   if (maxQ && !_qpMock && !_qpRevised) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
   html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">' + genLabel + '</button>'
   html += '<button type="button" class="qp-chip ms-1" id="qp-btn-clear"' + (_qpResults && _qpResults.length ? '' : ' disabled') + ' onclick="_qpClear()" title="Remove every question from the list and start from an empty state (your grades and progress are kept)">🗑 Clear</button>'
-  html += '<button type="button" class="qp-chip' + (_qpRevised ? ' active' : '') + ' ms-1" onclick="_qpToggleRevised()" title="Graded — solve the questions you have graded on the cards; ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
-  if (totalPinned) html += '<span class="text-xxs text-secondary ms-2" title="Pinned questions fill first when generating a set">📌 ' + totalPinned + ' pinned (priority)</span>'
+  html += '<button type="button" class="qp-chip' + (_qpRevised ? ' active' : '') + ' ms-1" onclick="_qpToggleRevised()" title="Graded — solve the questions you have graded on the cards; ranked ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
   html += '</div>'
 
   if (_qpRevised) {
-    html += '<div class="qp-mock-note mt-2">🕒 <strong>Graded:</strong> the questions you’ve graded on the cards, ranked 📌 pinned → ✗ forgot → ~ shaky → ✓ confident. Solve them — click a row when done. Leave topics empty to span all.</div>'
+    html += '<div class="qp-mock-note mt-2">🕒 <strong>Graded:</strong> the questions you’ve graded on the cards, ranked ✗ forgot → ~ shaky → ✓ confident. Solve them — click a row when done. Leave topics empty to span all.</div>'
   }
 
   // Timer bar (mirrors per-topic timer)
@@ -4205,24 +4187,16 @@ function _qpGenerate() {
   const prevDone = new Set(_qpDoneThisSession)
   _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
 
-  // Pinned first, then weakest-first (📌 → ✗ forgot → ~ shaky → ✓ confident → rest). Mock stays random.
-  // Graded gets the SAME guarantee as per-topic Graded: 📌 pinned and ✗ forgot / ~ shaky NEVER get
-  // cut by the count cap (only ✓ solid padding is capped) — and is weighted by interview frequency
-  // too, so limited practice time goes to your weakest AND highest-impact problems first.
+  // Graded: ✗ forgot / ~ shaky NEVER get cut by the count cap (only ✓ solid padding is capped), weighted
+  // by interview frequency so limited practice time goes to your weakest AND highest-impact problems.
+  // Other modes go weakest-first (✗ forgot → ~ shaky → ✓ confident → rest); Mock stays random.
   let generated
   if (_qpRevised) {
-    const pinned    = _shuffle(pool.filter(([k]) => isPinned(k)))
-    const unpinned  = pool.filter(([k]) => !isPinned(k))
-    const weak      = _weightedShuffleByImpact(unpinned.filter(([k]) => _weaknessRank(k) < 2)).sort((a, b) => _weaknessRank(a[0]) - _weaknessRank(b[0]))
-    const solid     = _weightedShuffleByImpact(unpinned.filter(([k]) => _weaknessRank(k) === 2))
-    const solidFill = Math.max(0, count - pinned.length - weak.length)
-    generated = [...pinned, ...weak, ...solid.slice(0, solidFill)]
+    const weak      = _weightedShuffleByImpact(pool.filter(([k]) => _weaknessRank(k) < 2)).sort((a, b) => _weaknessRank(a[0]) - _weaknessRank(b[0]))
+    const solid     = _weightedShuffleByImpact(pool.filter(([k]) => _weaknessRank(k) === 2))
+    generated = [...weak, ...solid.slice(0, Math.max(0, count - weak.length))]
   } else {
-    const pinned      = _shuffle(pool.filter(([k]) => isPinned(k))).slice(0, count)
-    const unpinned    = pool.filter(([k]) => !isPinned(k))
-    const fillCount   = Math.max(0, count - pinned.length)
-    const orderedUnpinned = _qpMock ? _orderPracticePool(unpinned) : _orderByWeakness(_orderPracticePool(unpinned))
-    generated = [...pinned, ...orderedUnpinned.slice(0, fillCount)]
+    generated = (_qpMock ? _orderPracticePool(pool) : _orderByWeakness(_orderPracticePool(pool))).slice(0, count)
   }
 
   const fresh = generated.filter(([k]) => !prevDone.has(k))
@@ -4440,7 +4414,7 @@ const BACKUP_KEYS = [
   'dsa-notes-v1',
   'dsa-topic-notes-v1',
   'dsa-submissions-v1',
-  'dsa-pins-v1',
+  'dsa-pins-v1',   // legacy: pins UI was removed, kept so old pins survive export/import/sync
   'dsa-solve-counts-v1',
   'dsa-seen-v1',
   'dsa-revise-v1',
