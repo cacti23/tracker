@@ -68,7 +68,7 @@
   <a href="#t8"><b>08</b>Grid as graph V+E</a>
   <a href="#t9"><b>09</b>Serialize tree → preorder</a>
   <a href="#t10"><b>10</b>BST → inorder</a>
-  <a href="#t11"><b>11</b>BFS vs backtracking</a>
+  <a href="#t11"><b>11</b>BFS vs backtracking (DFS)</a>
   <a href="#t12"><b>12</b>Tree parent map</a>
   <a href="#t13"><b>13</b>Dijkstra dist[] need</a>
   <a href="#t14"><b>14</b>Dijkstra complexity</a>
@@ -160,14 +160,14 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 </ul>
 <div class="box warn"><b class="tag">⚠️</b> Not universal — sometimes bounds/preorder/postorder fit better.</div>
 
-<h2 id="t11">11 · 🔦 BFS vs Backtracking on Grids</h2>
-<p><b>🎯 Does the answer depend on the SEQUENCE/path of cells visited?</b></p>
+<h2 id="t11">11 · 🔦 BFS vs Backtracking (DFS)</h2>
+<p><b>🎯 Do I need the SEQUENCE of cells I took, or only the answer at the end (reachable / count / min steps)?</b></p>
 <table>
-<tr><th>Answer</th><th>Approach</th><th>Examples</th></tr>
-<tr><td>✅ NO</td><td>BFS/DFS, mark visited forever</td><td>Rotting Oranges, Number of Islands</td></tr>
-<tr><td>🚨 YES</td><td>Backtracking, mark → explore → <b>restore</b></td><td>Max Gold, Unique Paths III, Word Search</td></tr>
+<tr><th>I need</th><th>Approach</th><th>Examples</th></tr>
+<tr><td>✅ Only reachability, a count or min steps</td><td>BFS (or plain DFS), mark visited forever</td><td>Rotting Oranges, Number of Islands</td></tr>
+<tr><td>🚨 The sequence itself, or the route affects the rule</td><td>Backtracking = DFS + undo: mark → explore → <b>restore</b></td><td>Max Gold, Unique Paths III, Word Search</td></tr>
 </table>
-<div class="box key"><b class="tag">📌</b> No sequence dependence → BFS handles it. Sequence matters → backtrack + undo.</div>
+<div class="box key"><b class="tag">📌</b> Backtracking IS DFS with undo. BFS keeps many partial paths in the queue at once, so it can't undo one path — when the sequence matters, go DFS + restore.</div>
 
 <h2 id="t12">12 · 🌳 Tree Traversal as Undirected Graph — Parent Map</h2>
 <p>Trees only give CHILD pointers (<code>left</code>/<code>right</code>) — no way UP.</p>
@@ -193,11 +193,15 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 <div class="box key"><b class="tag">📌</b> Don't start from V+E for Dijkstra — ask "how many heap pushes total" (E, one per edge relaxation) and "cost per push" (log E) — multiply. V never enters the picture.</div>
 
 <h2 id="t15">15 · 🔁 When Visited Is REQUIRED vs Optional</h2>
-<div class="box warn"><b class="tag">🚨</b> Cycle possible → visited REQUIRED (prevents infinite loops).</div>
-<p>✅ No cycle guaranteed (e.g. DAG, built level-by-level in ONE direction) → visited NOT required for correctness.</p>
-<div class="box key"><b class="tag">🔑 Bonus reason to STILL use it even without cycles</b> efficiency (avoid redundant re-processing) — but this is OPTIONAL, not safety-critical.</div>
-<div class="box warn"><b class="tag">⚠️ Watch out</b> if the SAME node can legitimately appear in MULTIPLE valid paths (like Word Ladder II's DFS reconstructing all shortest paths), adding visited can WRONGLY BLOCK a valid second path — don't add it just out of habit.</div>
-<div class="box key"><b class="tag">📌</b> Cycle possible → visited mandatory. No cycle → visited optional (helps speed, not required for correctness) — and can actively HURT if multiple valid paths legitimately share a node.</div>
+<p><b>🎯</b> Ask one question: <b>can I walk back to where I came from?</b></p>
+<pre class="language-none"><code class="language-none">What am I walking?                        visited?
+Binary tree (child pointers only)      →  NO        (no way back up)
+Tree as an edge list (undirected)      →  skip PARENT (or visited)
+Undirected graph / grid                →  YES       (edge u–v goes both ways = a tiny cycle)
+Directed graph WITH a cycle            →  YES
+DAG (no cycle)                         →  optional  (speed only)</code></pre>
+<div class="box warn"><b class="tag">🚨</b> "No cycle in the problem" doesn't save an undirected graph — every undirected edge is already a 2-step cycle (u→v→u).</div>
+<div class="box key"><b class="tag">📌</b> Can walk back → visited required. Can't → optional. One catch: if the same node must appear in several valid paths (Word Ladder II reconstruction), visited can wrongly block the second one.</div>
 
 <h2 id="t16">16 · ✈️ Hierholzer's DFS — TC = O(E), NOT V+E</h2>
 <p><b>🎯</b> Every edge is CONSUMED exactly once (<code>nei.pop()</code> permanently removes it).</p>
