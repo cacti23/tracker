@@ -158,3 +158,12 @@ test('every question has a valid difficulty and a link', () => {
   const bad = ev(`(function () { const out = []; Object.entries(TOPIC_MODULES).forEach(([t, m]) => Object.entries(m.questions).forEach(([k, q]) => { if (!['Easy','Medium','Hard'].includes(q.difficulty)) out.push(t + ':' + k + ' difficulty'); if (!/^https?:\\/\\//.test(q.link || '')) out.push(t + ':' + k + ' link') })); return out })()`)
   assert.equal(JSON.stringify(bad), '[]')
 })
+
+test('submission popover survives scrolling its own input (pasting a long link) but closes on page scroll', () => {
+  ctx.sandbox.document.getElementById = () => ({ contains: n => n === 'inside' })
+  ev('_closeSubMenu = (() => { const orig = _closeSubMenu; return function () { globalThis.__closed = (globalThis.__closed || 0) + 1 } })()')
+  ev(`_subMenuReflow({ type: 'scroll', target: 'inside' })`)
+  assert.equal(ev('globalThis.__closed || 0'), 0, 'scroll inside the menu must not close it')
+  ev(`_subMenuReflow({ type: 'scroll', target: 'page' })`)
+  assert.equal(ev('globalThis.__closed'), 1, 'page scroll closes it')
+})

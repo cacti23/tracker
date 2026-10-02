@@ -2691,8 +2691,17 @@ function _closeSubMenu() {
   document.getElementById('sub-menu')?.remove()
   document.removeEventListener('mousedown', _subMenuOutside, true)
   document.removeEventListener('keydown', _subMenuKey, true)
-  window.removeEventListener('scroll', _closeSubMenu, true)
-  window.removeEventListener('resize', _closeSubMenu)
+  window.removeEventListener('scroll', _subMenuReflow, true)
+  window.removeEventListener('resize', _subMenuReflow)
+}
+// Scroll/resize close the popover because it is fixed-position and would drift off its button. But
+// pasting a long link scrolls the INPUT sideways (the capture listener sees that too), and a phone
+// keyboard opening fires resize, so ignore scrolls inside the menu and height-only resizes.
+let _subMenuW = 0
+function _subMenuReflow(e) {
+  if (e.type === 'scroll' && document.getElementById('sub-menu')?.contains(e.target)) return
+  if (e.type === 'resize' && window.innerWidth === _subMenuW) return
+  _closeSubMenu()
 }
 function _subMenuOutside(e) {
   const m = document.getElementById('sub-menu')
@@ -2718,8 +2727,9 @@ function onSubBtnClick(lcKey, btn) {
   menu.style.top  = Math.min(r.bottom + 6, Math.max(8, window.innerHeight - menu.offsetHeight - 8)) + 'px'
   document.addEventListener('mousedown', _subMenuOutside, true)
   document.addEventListener('keydown', _subMenuKey, true)
-  window.addEventListener('scroll', _closeSubMenu, true)
-  window.addEventListener('resize', _closeSubMenu)
+  _subMenuW = window.innerWidth
+  window.addEventListener('scroll', _subMenuReflow, true)
+  window.addEventListener('resize', _subMenuReflow)
   menu.querySelector('input')?.focus({ preventScroll: true })
 }
 function _renderSubMenu(lcKey, adding) {
