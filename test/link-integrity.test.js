@@ -230,3 +230,31 @@ test('top-level folder layout matches the reorg contract', () => {
   const stillAtRoot = shouldNotBeAtRoot.filter((f) => rootEntries.includes(f))
   assert.deepEqual(stillAtRoot, [], `these files should have been moved out of the root but are still there: ${stillAtRoot.join(', ')}`)
 })
+
+// The 2026-10 reorg moved the cheat sheets into dsa/ but js/data.js still pointed at
+// the old flat paths, so every topic's "Open Cheat Sheet" button 404'd. The HTML crawl
+// above can't see links that JS builds at runtime, so check the data directly.
+test('every topic in TOPICS has a cheatsheetUrl that resolves from the site root (where index.html runs)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8')
+  const topicsBlock = src.slice(src.indexOf('const TOPICS = ['), src.indexOf('];', src.indexOf('const TOPICS = [')))
+  const entries = [...topicsBlock.matchAll(/\{\s*key:\s*'([^']+)'[^}]*\}/g)]
+  assert.ok(entries.length >= 16, 'expected to find the 16 topics, found ' + entries.length)
+  const problems = []
+  for (const [entry, key] of entries) {
+    const m = entry.match(/cheatsheetUrl:\s*'([^']+)'/)
+    if (!m) { problems.push(key + ': no cheatsheetUrl'); continue }
+    if (!fs.existsSync(path.join(ROOT, m[1]))) problems.push(key + ': ' + m[1] + ' does not exist')
+  }
+  assert.deepEqual(problems, [], 'broken cheat sheet links:\n' + problems.join('\n'))
+})
+
+test('every .html path written as a string literal in index.html or js/data.js resolves from the site root', () => {
+  const broken = []
+  for (const rel of ['index.html', path.join('js', 'data.js')]) {
+    const text = fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    for (const m of text.matchAll(/['"`]((?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.html)(?:#[^'"`]*)?['"`]/g)) {
+      if (!fs.existsSync(path.join(ROOT, m[1]))) broken.push(rel + ': ' + m[1])
+    }
+  }
+  assert.deepEqual(broken, [], 'broken page links:\n' + broken.join('\n'))
+})
