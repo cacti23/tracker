@@ -91,7 +91,7 @@
   <a href="#t31"><b>31</b>Prefix vs suffix sentinel</a>
   <a href="#t32"><b>32</b>Unmemoized recursion TC</a>
   <a href="#t33"><b>33</b>Graph edges: dense/sparse/tree</a>
-  <a href="#t34"><b>34</b>Backtracking: order, reuse, dups, used vs Set</a>
+  <a href="#t34"><b>34</b>Backtracking: order, reuse, dups</a>
   <a href="#t35"><b>35</b>Palindrome min cuts</a>
   <a href="#t36"><b>36</b>Recursion → DP direction</a>
   <a href="#t37"><b>37</b>LC 368 divisible subset</a>
@@ -650,10 +650,39 @@ for(let i = 0; i &lt; n; i++) dfs(...);</code></pre>
 <pre class="language-tsx"><code class="language-tsx">nums.sort((a, b) =&gt; a - b);
 
 // Combination / Subset (Subsets II, Combination Sum II)
-if(i &gt; start &amp;&amp; nums[i] === nums[i - 1]) continue;
+if(i &gt; start &amp;&amp; nums[i] === nums[i - 1]) continue;</code></pre>
+<p>🔀 <b>Permutations II (LC 47) — full code</b> (sort + <code>used[]</code>, no Set):</p>
+<pre class="language-tsx"><code class="language-tsx">function permuteUnique(nums: number[]): number[][] {
+    const n = nums.length;
+    const used = Array(n).fill(false);
 
-// Permutation (Permutations II)
-if(i &gt; 0 &amp;&amp; nums[i] === nums[i - 1] &amp;&amp; !used[i - 1]) continue;</code></pre>
+    const res: number[][] = [];
+
+    nums.sort((a, b) =&gt; a - b);
+
+    function backtrack(path: number[], used: boolean[]): void {
+        // base case
+        if(path.length === n) {
+            res.push([...path]);
+            return;
+        }
+
+        for(let i = 0; i &lt; n; i++) {
+            if(used[i]) continue;
+            if(i &gt; 0 &amp;&amp; nums[i] === nums[i - 1] &amp;&amp; !used[i - 1]) continue;
+
+            used[i] = true;
+            path.push(nums[i]);
+            backtrack(path, used);
+            path.pop();
+            used[i] = false;
+        }
+    }
+
+    backtrack([], used);
+
+    return res;
+};</code></pre>
 <p>🔁 <b>Can't sort? Use a LOCAL <code>Set</code> instead</b> (LC 491 Non-decreasing Subsequences — sorting would destroy the subsequence order). Create it INSIDE each call, right before the loop:</p>
 <pre class="language-tsx"><code class="language-tsx">function dfs(start) {
     if(path.length &gt;= 2) res.push([...path]);
@@ -665,27 +694,8 @@ if(i &gt; 0 &amp;&amp; nums[i] === nums[i - 1] &amp;&amp; !used[i - 1]) continue
         path.push(nums[i]); dfs(i + 1); path.pop();
     }
 }</code></pre>
-<p>It also works for Permutations II without sorting — there it sits next to <code>used[]</code>:</p>
-<pre class="language-tsx"><code class="language-tsx">const seen = new Set();                            // fresh per call
-for(let i = 0; i &lt; n; i++) {
-    if(used[i] || seen.has(nums[i])) continue;     // used = INDEX, seen = VALUE
-    seen.add(nums[i]);
-    used[i] = true; path.push(nums[i]); dfs(); path.pop(); used[i] = false;
-}</code></pre>
-<table>
-<tr><th></th><th><code>used[]</code> (Permutations)</th><th>local <code>Set</code> (491)</th></tr>
-<tr><td>❓ Asks</td><td>Is this INDEX already in my path?</td><td>Did I already try this VALUE in this loop?</td></tr>
-<tr><td>🌍 Scope</td><td>Shared by the whole recursion</td><td>Created inside each call</td></tr>
-<tr><td>↩️ Undo</td><td>Yes (<code>true</code> → <code>false</code> on the way back)</td><td>No — thrown away when the call returns</td></tr>
-<tr><td>🧭 Direction</td><td>⬇️ Vertical (down the path)</td><td>➡️ Horizontal (across the loop)</td></tr>
-<tr><td>🎯 Prevents</td><td>Reusing the same element</td><td>Duplicate sibling branches</td></tr>
-</table>
-<div class="box warn"><b class="tag">🚨</b> 491 has no <code>used[]</code> because <code>dfs(i + 1)</code> already only moves forward — an index can never repeat. And the Set must be LOCAL: a shared Set would also block <code>[4,7]</code> after <code>[4,6,7]</code> used the 7, which is a different path and must stay allowed.</div>
-<div class="box key"><b class="tag">📌</b> <code>used[]</code> = "in my path?" ⬇️ · local Set = "tried it here?" ➡️ · a local Set is new per call, so it needs no undo · Permutations II (without sorting) needs both.</div>
+<div class="box warn"><b class="tag">🚨</b> The Set must be LOCAL (created inside each call): a shared Set would also block <code>[4,7]</code> after <code>[4,6,7]</code> used the 7, which is a different path and must stay allowed.</div>
 
-<p>📐 <b>Subset vs Combination:</b> neither cares about order. The only difference is WHEN you save: a <b>subset</b> saves the path at every node (any size), a <b>combination</b> saves only when it hits size <code>k</code> or the target sum.</p>
-
-<div class="box key"><b class="tag">🔑 Why this matters beyond just correctness</b> the loop's starting point, the <code>i</code> vs <code>i + 1</code>, and <code>used[]</code> aren't style choices — they're the mechanism that silently encodes the problem's rules. Getting one wrong doesn't crash; it quietly solves a DIFFERENT problem while looking almost identical.</div>
 <div class="box key"><b class="tag">📌</b> Order → Reuse → Duplicates. Order picks the loop start (<code>0</code> or <code>start</code>), reuse picks <code>i</code> vs <code>i + 1</code> (or <code>used[]</code> for permutations), duplicates add sort + skip. Three answers give you the whole loop.</div>
 
 <h2 id="t35">35 · ✂️ Palindrome Partitioning I vs II — Min Cuts = Min Pieces − 1</h2>
