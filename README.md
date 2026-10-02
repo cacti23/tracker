@@ -44,6 +44,11 @@ The tests load `js/data.js` and the inline script from `index.html` into a Node 
 
 Paste a GitHub token once per device (a fine-grained token with only the **Gists** permission, or a classic token with the `gist` scope). Data is synced to one private gist called `tracker-sync-v1`, one JSON file per app. The token is stored only in that browser's localStorage.
 
+- The DSA notebook and the gym app upload a few seconds after every edit. The habits app syncs after its own edits.
+- If two devices both changed things, the data is merged entry by entry rather than one device overwriting the other. If both changed the same entry, the most recently edited side wins.
+- Safety nets: the previous cloud copy is kept as `<app>.prev.json` in the gist (GitHub also keeps gist revision history), and each device keeps its last three pre-sync snapshots in localStorage (`<app>-presync`, `-presync-2`, `-presync-3`).
+- Known limit: there are no per-entry timestamps, so deleting something on one device can be undone by another device that still has it.
+
 ## Deploying
 
 Pushing to the branch Vercel watches deploys automatically. Pull requests get a Vercel preview URL if the Vercel GitHub integration is on for this repo. The service worker serves HTML and JS network-first, so a new deploy shows up on the next load.

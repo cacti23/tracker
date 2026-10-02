@@ -19,7 +19,9 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 ## Data and sync
 
 - All state is in localStorage. The keys that sync are listed in `BACKUP_KEYS` in `index.html`. If you add a new localStorage key that should survive across devices, add it there.
-- `js/sync.js` is shared by `index.html`, `apps/gym-5day.html` and `apps/habits.html`. It syncs through a private gist, newest-wins per app, and keeps a local `-presync` snapshot before overwriting. Changes here are risky (this is where data loss would happen). Run `test/sync.test.js` and add a test for any behaviour change.
+- `js/sync.js` is shared by `index.html`, `apps/gym-5day.html` and `apps/habits.html`. The decision order is documented above `doReconcile`; the short version: pull when only the cloud changed, push when only this device changed, and **merge** (key by key, `mergeValue`) when both did. The previous cloud copy is kept as `<app>.prev.json` and local snapshots rotate through `<app>-presync`, `-2`, `-3`. This is where data loss would happen, so run `node --test test/sync.test.js` after any change and add a test for any behaviour change.
+- `DataSync.init` options: `autoPush` (upload shortly after each edit; works by hooking `Storage.prototype.setItem/removeItem` for the synced keys), `noiseKeys` (keys rewritten on every load, such as the streak, which don't count as edits), `maxKeys` (counter objects where a conflict keeps the larger number). Keep `noiseKeys` up to date if you add a key that is rewritten on page load, or a stale device will look edited and merge instead of fast-forwarding.
+- `data.js` caches parsed objects in memory and writes the whole object back on save, so after sync changes localStorage the page must reload (sync does this itself on pull and merge). Don't write synced keys behind its back.
 - Never commit tokens. The sync token lives only in the browser's localStorage.
 
 ## Deploy
