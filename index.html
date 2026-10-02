@@ -160,6 +160,23 @@
     #sidebar.collapsed { width: 0; overflow: hidden; }
     #sidebar nav { padding: 0.6rem; overflow-y: auto; flex: 1; }
 
+    /* Phones/tablets: the sidebar is an off-canvas drawer over the page (it used to sit
+       in the flex row and squeeze the content into a sliver). Starts closed on load. */
+    #sidebar-backdrop { display: none; }
+    @media (max-width: 768px) {
+      #sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0; z-index: 1040;
+        min-height: 0; max-width: 85vw; overflow-y: auto;
+        box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      }
+      #sidebar.collapsed { box-shadow: none; }
+      #sidebar:not(.collapsed) + #sidebar-backdrop {
+        display: block; position: fixed; inset: 0; z-index: 1030; background: rgba(0,0,0,0.55);
+      }
+      main { padding: 1rem !important; }
+      header #global-search-input { width: 100% !important; min-width: 0; margin: 0 0.5rem !important; flex: 1 1 0; }
+    }
+
     .sidebar-brand {
       padding: 1rem 1.1rem; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between; white-space: nowrap;
@@ -1003,6 +1020,7 @@
 
     <div class="sidebar-footer">v29 · DSA Notebook</div>
   </aside>
+  <div id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
   <!-- ═══ MAIN ═══ -->
   <div class="flex-grow-1 d-flex flex-column" style="min-width:0; min-height:100vh;">
@@ -1461,6 +1479,7 @@ window.addEventListener('scroll', () => {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   syncThemeIcon()
+  _initMobileSidebar()
   _loadQpState()
   buildNav()
   _restoreView()
@@ -4383,6 +4402,20 @@ function _qpSyncTimerDisplay() {
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed')
+}
+
+// On narrow screens the sidebar is a drawer: start it closed, and close it after picking
+// a destination so the page underneath is actually visible.
+function _isNarrowScreen() {
+  return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)
+}
+function _initMobileSidebar() {
+  const sb = document.getElementById('sidebar')
+  if (!sb) return
+  if (_isNarrowScreen()) sb.classList.add('collapsed')
+  sb.addEventListener('click', (e) => {
+    if (_isNarrowScreen() && e.target.closest && e.target.closest('.nav-link')) sb.classList.add('collapsed')
+  })
 }
 
 // ─── THEME TOGGLE ─────────────────────────────────────────────────────────────
