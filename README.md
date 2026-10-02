@@ -35,7 +35,7 @@ Opening the file directly (`file://`) won't work properly because of the service
 ## Tests
 
 ```sh
-node --test test/
+node --test test/*.test.js
 ```
 
 The tests load `js/data.js` and the inline script from `index.html` into a Node `vm` with a fake localStorage, so they check state logic (grading, sync, security rules, link integrity), not how things look in a real browser.

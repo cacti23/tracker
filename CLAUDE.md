@@ -5,7 +5,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 ## Run and test
 
 - Serve the repo root: `python3 -m http.server 8000`
-- Tests: `node --test test/`. All of them should pass before you push.
+- Tests: `node --test test/*.test.js`. All of them should pass before you push.
 
 ## How the code is organised
 
