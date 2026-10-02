@@ -183,14 +183,12 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 <pre class="language-tsx"><code class="language-tsx">if (currTime > dist[row][col]) continue;  // stale — a better path already won</code></pre>
 <div class="box key"><b class="tag">📌</b> <code>dist[]</code> guarantees you only ever ACT using a node's LOWEST known cost, never a stale worse one.</div>
 
-<h2 id="t14">14 · ⏱️ Dijkstra Complexity — Direct Derivation (NOT from V+E)</h2>
-<div class="box warn"><b class="tag">🚨</b> <code>V+E</code> doesn't map cleanly onto Dijkstra — build it from scratch instead.</div>
-<p><b>🎯 Question 1: How many times does a heap PUSH happen, total?</b></p>
-<p>📐 A push happens every time you find a BETTER path to some node — i.e., every time an EDGE relaxation succeeds. There are <code>E</code> edges total → <b>at most <code>E</code> pushes, ever.</b></p>
-<p><b>🎯 Question 2: How much does ONE push/pop cost?</b></p>
-<p>📐 Heap ops cost <code>O(log(heap size))</code>. Heap can grow to <code>E</code> entries (from Q1) → each op costs <code>O(log E)</code>.</p>
-<p><b>🎯 Multiply:</b> <code>(E pushes) × (log E per push) = O(E log E)</code></p>
-<div class="box key"><b class="tag">📌</b> Don't start from V+E for Dijkstra — ask "how many heap pushes total" (E, one per edge relaxation) and "cost per push" (log E) — multiply. V never enters the picture.</div>
+<h2 id="t14">14 · ⏱️ Dijkstra Complexity — How Many Times Can an Edge Relax? (NOT from V+E)</h2>
+<p><b>🎯 Relax</b> = an edge finds a smaller distance to a node → update <code>dist[]</code> and push.</p>
+<p><b>Q1. How many times can an edge relax?</b> Once each — an edge is only looked at when its source node is popped for real (not a stale entry). So at most <code>E</code> relaxations → at most <b><code>E</code> pushes</b>.</p>
+<p><b>Q2. Cost of one push/pop?</b> The heap holds up to <code>E</code> entries → <b><code>log E</code></b>.</p>
+<p>📐 <b>Total:</b> <code>E × log E = O(E log E)</code> — V never appears.</p>
+<div class="box key"><b class="tag">📌</b> Complexity = (how many times can an edge relax) × (cost per relax). Dijkstra: <code>E × log E</code>. Same question for Bellman-Ford: every edge can relax up to <code>V−1</code> times → <code>O(V·E)</code>.</div>
 
 <h2 id="t15">15 · 🔁 When Visited Is REQUIRED vs Optional</h2>
 <p><b>🎯</b> Ask one question: <b>can I walk back to where I came from?</b></p>
