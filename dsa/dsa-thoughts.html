@@ -104,6 +104,7 @@
   <a href="#t44"><b>44</b>Valid tree — the two conditions</a>
   <a href="#t45"><b>45</b>Designing the state: read it twice</a>
   <a href="#t46"><b>46</b>Leaves vs total nodes</a>
+  <a href="#t47"><b>47</b>k pieces = k−1 cuts</a>
 </nav>
 
 <h2 id="t1">1 · 🧱 Grid Traversal — Blocked Start/Destination</h2>
@@ -948,6 +949,23 @@ permutations: leaves n!,   nodes ≈ e·n!         → still O(n!)</code></pre>
 </ul>
 <div class="box warn"><b class="tag">🚨</b> Only a chain (b = 1) breaks "nodes ≈ leaves": 1 leaf but <code>d + 1</code> nodes. Count nodes only when work per node is not the same everywhere. See <a href="#t2">#2</a> and <a href="#t32">#32</a> for the <code>bᵈ</code> shapes.</div>
 <div class="box key"><b class="tag">📌</b> TC = <b>(number of nodes) × (work per node)</b>. For b ≥ 2, nodes = O(leaves) = <code>bᵈ</code>, so the only thing left to ask is the work at each node.</div>
+
+<h2 id="t47">47 · ✂️ Split Into k Pieces — k−1 Cuts, and Each Cut Leaves Room for the Pieces After It</h2>
+<p><b>🎯</b> A string of <code>n</code> characters has <code>n − 1</code> gaps. <b>k pieces = pick k − 1 gaps</b> (3 pieces → 2 cuts 🔪🔪). This is the same fence-post idea as <a href="#t35">#35</a>, here used to write the loop bounds.</p>
+<table>
+<tr><th></th><th>🔪 Slice (cut positions)</th><th>📦 Array (inclusive end)</th></tr>
+<tr><td><b>Pieces</b></td><td><code>[0,i) [i,j) [j,n)</code></td><td><code>[0..i] [i+1..j] [j+1..n-1]</code></td></tr>
+<tr><td><b>i</b></td><td><code>1</code> to <code>n − 2</code></td><td><code>0</code> to <code>n − 3</code></td></tr>
+<tr><td><b>j</b></td><td><code>i + 1</code> to <code>n − 1</code></td><td><code>i + 1</code> to <code>n − 2</code></td></tr>
+</table>
+<pre class="language-tsx"><code class="language-tsx">for (let i = 1; i &lt;= n - 2; i++)          // slice cuts
+    for (let j = i + 1; j &lt;= n - 1; j++) {}
+
+for (let i = 0; i &lt; n - 2; i++)           // array ends
+    for (let j = i + 1; j &lt; n - 1; j++) {}</code></pre>
+<p>🔒 <b>Why the limits stop early:</b> every piece after a cut needs at least 1 character. The 3rd piece needs 1 → <code>j</code> stops 1 early. The 2nd and 3rd need 2 → <code>i</code> stops 2 early. The array version is just the slice version shifted by 1.</p>
+<div class="box warn"><b class="tag">🚨</b> Array version: <code>j</code> starts at <code>i + 1</code> (not 0) and stops at <code>n − 2</code> (not <code>n − 1</code>). Running <code>j</code> up to <code>n</code> and then writing <code>if (j === n) break</code> gives the same splits — that guard IS the "3rd piece can't be empty" rule — but putting the limit in the loop bounds is cleaner (LC 306 Additive Number).</div>
+<div class="box key"><b class="tag">📌</b> <b>k pieces = k − 1 cuts. Each cut leaves room for the pieces after it.</b> Slice → cuts in <code>1..n−1</code>. Array → piece ends in <code>0..n−2</code>. Number of splits = <code>C(n−1, k−1)</code> (n = 5, 3 pieces → 6).</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
