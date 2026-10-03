@@ -106,6 +106,7 @@
   <a href="#t46"><b>46</b>Leaves vs total nodes</a>
   <a href="#t47"><b>47</b>k pieces = k−1 cuts</a>
   <a href="#t48"><b>48</b>Return up vs push down</a>
+  <a href="#t49"><b>49</b>Set → bitmask</a>
 </nav>
 
 <h2 id="t1">1 · 🧱 Grid Traversal — Blocked Start/Destination</h2>
@@ -985,6 +986,43 @@ if (grid[r][c] === 2) return zeroCount === 0 ? 1 : 0;</code></pre>
 <p>❓ <b>Pick with one question:</b> "What does <code>dfs(state)</code> mean?" → "the answer for the subproblem from here" = <b>return up</b>. "I'm here with this path so far, report when you arrive" = <b>push down</b>.</p>
 <p>♻️ <b>Same rule in both:</b> if you mutate a shared grid, undo before you return.</p>
 <div class="box key"><b class="tag">📌</b> <b>Return = answers climb UP the stack 🪜. Push = state walks DOWN the stack 🚶.</b> Only need a number → return up. Need every path → push down.</div>
+
+<h2 id="t49">49 · 🔢 Set → Bitmask — A Set of Small Integers Is ONE Integer</h2>
+<p><b>🎯</b> When the options are small integers (columns <code>0…n−1</code>, digits <code>1…9</code>), a Set of them fits in one integer: number <code>x</code> is in the set ⇔ <b>bit <code>x</code> is ON</b>. Same algorithm, cheaper operations. (<a href="#t45">#45</a> uses a mask to memoize; here it only speeds up plain backtracking.)</p>
+<pre class="language-tsx"><code class="language-tsx">bit = 1 &lt;&lt; x
+
+set.has(x)      →   mask &amp; bit
+set.add(x)      →   mask |= bit
+set.delete(x)   →   mask &amp;= ~bit</code></pre>
+
+<h3>♟️ N-Queens: 3 Sets → 3 integers</h3>
+<pre class="language-tsx"><code class="language-tsx">// Set
+const cols = new Set&lt;number&gt;()
+cols.has(col)
+cols.add(col)
+cols.delete(col)
+
+// Bitmask
+let cols = 0
+cols &amp; (1 &lt;&lt; col)
+cols |= 1 &lt;&lt; col
+cols &amp;= ~(1 &lt;&lt; col)</code></pre>
+<p><code>diag1</code> and <code>diag2</code> work exactly the same (with <code>d1</code> and <code>d2</code>). 🔎 <b>Example:</b> queens in columns 1 and 3 → bits <code>1010</code> = 10.</p>
+
+<h3>🔢 Sudoku: array of 9 Sets → array of 9 integers</h3>
+<pre class="language-tsx"><code class="language-tsx">// Set
+const rows = Array.from({length: 9}, () => new Set&lt;string&gt;())
+rows[r].has('5')
+
+// Bitmask
+const rows = new Array(9).fill(0)
+const bit = 1 &lt;&lt; Number('5')
+rows[r] &amp; bit
+rows[r] |= bit
+rows[r] &amp;= ~bit</code></pre>
+<div class="box warn"><b class="tag">🚨</b> The board holds digit <b>strings</b> (<code>'5'</code>), but a bit position needs a <b>number</b> — convert with <code>Number(ch)</code>. Same for <code>cols[9]</code> and <code>blocks[9]</code>.</div>
+<div class="box warn"><b class="tag">🚨 Gain and limit</b> Same Big-O, about 5x faster in N-Queens (n = 10 to 12, Node 22). A mask holds only bits <code>0…31</code>: <code>1 &lt;&lt; 32</code> wraps back to <code>1</code>. N-Queens diagonals use bits up to <code>2n−2</code>, so n ≤ 16 is safe and n = 17 breaks.</div>
+<div class="box key"><b class="tag">📌</b> "Options are small integers, so each Set can be one integer: bit <code>x</code> on means <code>x</code> is taken. Same algorithm, smaller constant."</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
