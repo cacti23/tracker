@@ -65,6 +65,11 @@
   <a href="#j5"><b>05</b>Math.max / Math.min</a>
   <a href="#j6"><b>06</b>Map access: never bracket notation</a>
   <a href="#j7"><b>07</b>Big numbers: when to use BigInt</a>
+  <a href="#j8"><b>08</b>fill([]) shares one array</a>
+  <a href="#j9"><b>09</b>Arrays as Set/Map keys</a>
+  <a href="#j10"><b>10</b>Strings are immutable</a>
+  <a href="#j11"><b>11</b>Integer math: % / and bits</a>
+  <a href="#j12"><b>12</b>queue.shift() is slow</a>
 </nav>
 
 <h2 id="j1">1 · 🗂️ Map</h2>
@@ -112,7 +117,8 @@ pq.size();              // METHOD here — needs ()</code></pre>
 <h2 id="j5">5 · 🔢 Math.max / Math.min</h2>
 <pre class="language-tsx"><code class="language-tsx">Math.max(1, 5, 3);        // ✅ individual args → 5
 Math.max([1, 5, 3]);       // ❌ NaN
-Math.max(...[1, 5, 3]);    // ✅ spread the array</code></pre>
+Math.max(...[1, 5, 3]);    // ✅ spread the array
+Math.max(...hugeArr);       // ❌ RangeError around 100k+ items (engine-dependent) → use a loop</code></pre>
 <div class="box key"><b class="tag">📌</b> <code>.size</code>/<code>.length</code> = properties (no parens). PQ's <code>.size()</code> = method (needs parens) — the one exception to watch for. <code>Math.max</code>/<code>min</code> never take an array directly — always spread it.</div>
 
 <h2 id="j6">6 · 🚨 Map Access: <code>.get()</code>/<code>.set()</code> ONLY — Never Bracket Notation</h2>
@@ -139,6 +145,44 @@ BigInt(a) + BigInt(b) === BigInt(c);   // ✅ LC 306 Additive Number check</code
 <div class="box warn"><b class="tag">🚨 BigInt traps</b> <code>1n + 2</code> → TypeError (can't mix BigInt and Number — write <code>1n + 2n</code>) · <code>7n / 2n</code> → <code>3n</code> (drops the fraction) · <code>Math.max(1n, 2n)</code> → TypeError (<code>Math.*</code> doesn't take BigInt).</div>
 <p class="hint">"Without BigInt?" → add the two strings digit by digit from the right, carrying 1 (LC 415).</p>
 <div class="box key"><b class="tag">📌</b> ≤ 15 digits → <code>Number</code> is fine. 16+ digits → <code>BigInt</code> (or string addition if BigInt isn't allowed). Never mix <code>n</code> numbers with plain numbers.</div>
+
+<h2 id="j8">8 · 🚨 <code>new Array(n).fill([])</code> — Every Row Is the SAME Array</h2>
+<pre class="language-tsx"><code class="language-tsx">const g = new Array(3).fill([]);
+g[0].push(1);                                   // ❌ [[1],[1],[1]] — one array shared by all rows
+const g = Array.from({length: 3}, () => []);    // ✅ a fresh array per row</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>.fill(x)</code> copies the REFERENCE. <code>fill(0)</code> is fine (numbers), <code>fill([])</code> / <code>fill({})</code> is not. 2D DP: <code>Array.from({length: m}, () => new Array(n).fill(0))</code>.</div>
+
+<h2 id="j9">9 · 🚨 Arrays as Set/Map Keys Compare by REFERENCE — Use a String Key</h2>
+<pre class="language-tsx"><code class="language-tsx">const seen = new Set&lt;number[]&gt;();
+seen.add([0, 1]);
+seen.has([0, 1]);                 // ❌ false — a different array object
+
+const seen = new Set&lt;string&gt;();
+seen.add(`${r},${c}`);
+seen.has(`${r},${c}`);            // ✅ true — strings compare by value</code></pre>
+<div class="box key"><b class="tag">📌</b> Visited cells in a grid: key = <code>`${r},${c}`</code>, or the number <code>r * cols + c</code> (faster). Same rule for Map keys.</div>
+
+<h2 id="j10">10 · 🔤 Strings Are Immutable — <code>s[i] = 'x'</code> Does Nothing</h2>
+<pre class="language-tsx"><code class="language-tsx">s[0] = 'z';                                  // ❌ silently ignored (TypeError in strict mode)
+const a = s.split(''); a[0] = 'z'; a.join('');   // ✅ edit as an array, join back
+s.charCodeAt(i) - 97;                        // letter → index ('a' = 0 … 'z' = 25)
+String.fromCharCode(97 + k);                 // index → letter</code></pre>
+<div class="box key"><b class="tag">📌</b> Need to change a string? <code>split('')</code> → edit → <code>join('')</code>. Building one piece by piece? Push to an array, <code>join</code> once at the end.</div>
+
+<h2 id="j11">11 · 🔢 Integer Math: <code>%</code> and <code>/</code> With Negatives, and 32-bit Bit Ops</h2>
+<pre class="language-tsx"><code class="language-tsx">-1 % 5;                  // ❌ -1, not 4 — % keeps the sign of the LEFT side
+((x % n) + n) % n;       // ✅ always 0…n-1 (circular index, hashing)
+Math.floor(-7 / 2);      // -4 — rounds down
+Math.trunc(-7 / 2);      // -3 — cuts the decimal (what Java/C++ `/` does)
+1 << 31;                 // -2147483648 — bit ops work on 32-bit signed ints</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>a / b</code> is a float — wrap it: <code>Math.floor</code> for positives, pick <code>floor</code> vs <code>trunc</code> on purpose for negatives. <code>| &amp; ^ &lt;&lt; &gt;&gt;</code> cut numbers to 32 bits: fine up to 2^31, wrong beyond it.</div>
+
+<h2 id="j12">12 · 🐢 <code>queue.shift()</code> Is Slow on Big Arrays — BFS With a Head Pointer</h2>
+<pre class="language-tsx"><code class="language-tsx">while (q.length) { const x = q.shift(); }          // ❌ each shift moves every element → O(n)
+
+let head = 0;
+while (head &lt; q.length) { const x = q[head++]; }   // ✅ O(1) per pop, push() still works</code></pre>
+<div class="box key"><b class="tag">📌</b> Measured on Node 22: 200k <code>shift()</code> calls took ~3.5 s, the head pointer ~1 ms. Use <code>q[head++]</code> for BFS queues.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
