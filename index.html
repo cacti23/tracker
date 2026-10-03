@@ -18,6 +18,17 @@
     (function() {
       const t = localStorage.getItem('dsa-theme') || 'dark'
       document.documentElement.setAttribute('data-bs-theme', t)
+      // Same for the sidebar: a closed sidebar must not flash open (and re-open on every reload).
+      // <html> carries the state until the sidebar exists, then #sidebar.collapsed takes over.
+      try {
+        if (localStorage.getItem('dsa-sidebar-collapsed') === '1') {
+          document.documentElement.classList.add('sidebar-collapsed')
+          document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('sidebar')?.classList.add('collapsed')
+            document.documentElement.classList.remove('sidebar-collapsed')
+          })
+        }
+      } catch (e) {}
     })()
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -157,7 +168,7 @@
       border-right: 1px solid var(--border);
       transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
     }
-    #sidebar.collapsed { width: 0; overflow: hidden; }
+    #sidebar.collapsed, .sidebar-collapsed #sidebar { width: 0; overflow: hidden; }
     #sidebar nav { padding: 0.6rem; overflow-y: auto; flex: 1; }
 
     .sidebar-brand {
@@ -4366,7 +4377,9 @@ function _qpSyncTimerDisplay() {
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('collapsed')
+  const collapsed = document.getElementById('sidebar').classList.toggle('collapsed')
+  // Per-device UI preference on purpose: not in BACKUP_KEYS, so a phone and a laptop keep their own.
+  try { localStorage.setItem('dsa-sidebar-collapsed', collapsed ? '1' : '0') } catch (e) {}
 }
 
 // ─── THEME TOGGLE ─────────────────────────────────────────────────────────────
