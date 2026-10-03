@@ -167,3 +167,15 @@ test('submission popover survives scrolling its own input (pasting a long link) 
   ev(`_subMenuReflow({ type: 'scroll', target: 'page' })`)
   assert.equal(ev('globalThis.__closed'), 1, 'page scroll closes it')
 })
+
+test('the sidebar open/closed choice is remembered per device (and not synced)', () => {
+  const cls = new Set()
+  const sidebar = { classList: { toggle: c => (cls.has(c) ? (cls.delete(c), false) : (cls.add(c), true)) } }
+  ctx.sandbox.document.getElementById = id => (id === 'sidebar' ? sidebar : null)
+  const store = ctx.sandbox.localStorage
+  ev('toggleSidebar()')
+  assert.equal(store.getItem('dsa-sidebar-collapsed'), '1')
+  ev('toggleSidebar()')
+  assert.equal(store.getItem('dsa-sidebar-collapsed'), '0')
+  assert.ok(!ev(`BACKUP_KEYS.includes('dsa-sidebar-collapsed')`), 'layout choice is per device, not cloud-synced')
+})
