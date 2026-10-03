@@ -408,6 +408,12 @@
             <td><span class="pill offer">L3 offer</span></td>
             <td>4 rounds</td>
           </tr>
+          <tr>
+            <td>4</td>
+            <td><a href="#exp-4">Google L4 India &mdash; Screening</a></td>
+            <td><span class="pill reject">Rejected at screening</span></td>
+            <td>3 rounds</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -484,87 +490,56 @@
             <a href="https://leetcode.com/problems/longest-word-in-dictionary/" target="_blank" rel="noopener">LC 720 &mdash; Longest Word in Dictionary</a>
           </div>
         </div>
-        <div class="note">🪜 <strong>dfs(word)</strong> returns the longest chain from <code>word</code> down to length 1. <strong>0 means a dead end 🚧</strong> &mdash; no way to reach length 1 from here, so that branch is skipped. Any value <code>&gt; 0</code> means it got there, so the chain can be extended by 1.</div>
+        <div class="note">🪜 <strong>canReduce(word)</strong> answers one yes/no question: can this word shrink to a single letter, with every step landing on a dictionary word? <strong>One working path is enough</strong>, so return <code>true</code> the moment you find it. A reducible word's chain is exactly as long as the word, so there is nothing to count.</div>
+        <div class="note">⏱️ TC: exponential in the worst case, because the same shorter word is re-tried through different delete orders<br>📦 SC: O(L), the recursion depth (L = word length)</div>
 
         <div class="code-wrap">
           <div class="code-label"><span>longestValidWord.ts &mdash; base (no memo)</span><button class="copy-btn" data-copy-target="code-q2a">Copy</button></div>
           <pre id="code-q2a"><span class="kw">function</span> longestValidWord(words: <span class="kw">string</span>[]): <span class="kw">number</span> {
     <span class="kw">const</span> wordSet = <span class="kw">new</span> Set(words);
 
-    <span class="cmt">// Returns the longest chain from `word` down to length 1, or 0 if impossible</span>
-    <span class="kw">function</span> dfs(word: <span class="kw">string</span>): <span class="kw">number</span> {
-        <span class="cmt">// Base: single character</span>
-        <span class="kw">if</span> (word.length === <span class="kw">1</span>) <span class="kw">return</span> wordSet.has(word) ? <span class="kw">1</span> : <span class="kw">0</span>;
-
-        <span class="kw">let</span> best = <span class="kw">0</span>;
+    <span class="cmt">// can `word` be reduced to a single character, with every step in the dictionary?</span>
+    <span class="kw">function</span> canReduce(word: <span class="kw">string</span>): <span class="kw">boolean</span> {
+        <span class="kw">if</span> (word.length === <span class="kw">1</span>) <span class="kw">return</span> wordSet.has(word);   <span class="cmt">// 🛑 base case</span>
 
         <span class="kw">for</span> (<span class="kw">let</span> i = <span class="kw">0</span>; i &lt; word.length; i++) {
             <span class="kw">const</span> next = word.slice(<span class="kw">0</span>, i) + word.slice(i + <span class="kw">1</span>);
 
-            <span class="cmt">// Shorter word must exist in dictionary</span>
-            <span class="kw">if</span> (!wordSet.has(next)) <span class="kw">continue</span>;
-
-            <span class="kw">const</span> len = dfs(next);
-
-            <span class="cmt">// 🚧 len === 0 → dead end, this branch never reaches length 1, skip it</span>
-            <span class="cmt">// ✅ len &gt; 0  → it reached length 1, extend the chain by 1</span>
-            <span class="kw">if</span> (len &gt; <span class="kw">0</span>) best = Math.max(best, len + <span class="kw">1</span>);
+            <span class="kw">if</span> (wordSet.has(next) &amp;&amp; canReduce(next)) <span class="kw">return</span> <span class="kw">true</span>;  <span class="cmt">// 🏆 one path is enough</span>
         }
 
-        <span class="kw">return</span> best;
+        <span class="kw">return</span> <span class="kw">false</span>;                                       <span class="cmt">// ❌ dead end</span>
     }
 
     <span class="kw">let</span> maxLen = <span class="kw">0</span>;
 
     <span class="kw">for</span> (<span class="kw">const</span> word <span class="kw">of</span> words) {
-        maxLen = Math.max(maxLen, dfs(word));
+        <span class="kw">if</span> (canReduce(word)) maxLen = Math.max(maxLen, word.length);  <span class="cmt">// 📏 the chain length is the word's length</span>
     }
 
     <span class="kw">return</span> maxLen;
-}
-<span class="cmt">// ⏱️ TC (no memo): exponential — the same shorter word gets reached via different delete orders and recomputed every time
-// 📦 SC: O(L) — recursion depth, L = word length</span></pre>
+}</pre>
         </div>
 
+        <div class="note">⏱️ TC (follow-up): O(D · L²), each distinct word fails at most once, and each try costs an O(L) slice<br>📦 SC: O(D · L) for the dead set<br>🔁 The follow-up is a 3-line change to the code above: remember the words that already failed.</div>
         <div class="code-wrap">
-          <div class="code-label"><span>longestValidWord.ts &mdash; with memo (the follow-up)</span><button class="copy-btn" data-copy-target="code-q2b">Copy</button></div>
-          <pre id="code-q2b"><span class="kw">function</span> longestValidWordMemo(words: <span class="kw">string</span>[]): <span class="kw">number</span> {
-    <span class="kw">const</span> wordSet = <span class="kw">new</span> Set(words);
-    <span class="kw">const</span> memo = <span class="kw">new</span> Map&lt;<span class="kw">string</span>, <span class="kw">number</span>&gt;(); <span class="cmt">// word -> longest chain from this word</span>
+          <div class="code-label"><span>longestValidWord.ts &mdash; follow-up: skip known dead ends</span><button class="copy-btn" data-copy-target="code-q2b">Copy</button></div>
+          <pre id="code-q2b">    <span class="kw">const</span> dead = <span class="kw">new</span> Set&lt;<span class="kw">string</span>&gt;(); <span class="cmt">// ➕ words already proven NOT reducible</span>
 
-    <span class="kw">function</span> dfs(word: <span class="kw">string</span>): <span class="kw">number</span> {
-        <span class="kw">if</span> (word.length === <span class="kw">1</span>) <span class="kw">return</span> wordSet.has(word) ? <span class="kw">1</span> : <span class="kw">0</span>;
-
-        <span class="cmt">// 🔁 Already solved this word via a different delete order, reuse it</span>
-        <span class="kw">if</span> (memo.has(word)) <span class="kw">return</span> memo.get(word)!;
-
-        <span class="kw">let</span> best = <span class="kw">0</span>;
+    <span class="kw">function</span> canReduce(word: <span class="kw">string</span>): <span class="kw">boolean</span> {
+        <span class="kw">if</span> (word.length === <span class="kw">1</span>) <span class="kw">return</span> wordSet.has(word);
+        <span class="kw">if</span> (dead.has(word)) <span class="kw">return</span> <span class="kw">false</span>;           <span class="cmt">// ➕ seen this dead end before</span>
 
         <span class="kw">for</span> (<span class="kw">let</span> i = <span class="kw">0</span>; i &lt; word.length; i++) {
             <span class="kw">const</span> next = word.slice(<span class="kw">0</span>, i) + word.slice(i + <span class="kw">1</span>);
-
-            <span class="kw">if</span> (!wordSet.has(next)) <span class="kw">continue</span>;
-
-            <span class="kw">const</span> len = dfs(next);
-            <span class="kw">if</span> (len &gt; <span class="kw">0</span>) best = Math.max(best, len + <span class="kw">1</span>);
+            <span class="kw">if</span> (wordSet.has(next) &amp;&amp; canReduce(next)) <span class="kw">return</span> <span class="kw">true</span>;
         }
 
-        memo.set(word, best);
-        <span class="kw">return</span> best;
-    }
-
-    <span class="kw">let</span> maxLen = <span class="kw">0</span>;
-
-    <span class="kw">for</span> (<span class="kw">const</span> word <span class="kw">of</span> words) {
-        maxLen = Math.max(maxLen, dfs(word));
-    }
-
-    <span class="kw">return</span> maxLen;
-}
-<span class="cmt">// ⏱️ TC (memo): O(D · L²) — D = dictionary size, L = max word length; each word solved once, O(L) work × O(L) slice per attempt
-// 📦 SC: O(D · L) — memo stores up to D words as keys, each up to L chars</span></pre>
+        dead.add(word);                                <span class="cmt">// ➕ remember it</span>
+        <span class="kw">return</span> <span class="kw">false</span>;
+    }</pre>
         </div>
-        <div class="note">💡 Without the memo, the same shorter word gets reached through different delete orders and recomputed every time. The memo is why the interviewer moved on and said to implement it.</div>
+        <div class="note">💡 Without the dead set, the same shorter word gets reached through different delete orders and re-explored every time. This is the memo the interviewer asked for. Only failures need remembering: a success returns straight up the call stack.</div>
       </div>
     </div>
 
@@ -595,43 +570,43 @@
         <h3>Googlyness</h3>
       </div>
       <p class="round-sub">Conflict with a co-worker, plus similar situation-based questions.</p>
-      <p class="persona">🎓 Sample answers, told the way a principal engineer with 20+ years across Meta, Facebook and Google would tell them</p>
+      <p class="persona">🎓 Sample answers, told the way an engineer who aces every Googlyness round would tell them: the decision is mine, the mechanism is concrete, the result is measurable</p>
       <ul class="beh-list">
         <li class="beh-item">
           <div class="beh-q">Tell me about a disagreement with your manager or tech lead.</div>
           <div class="beh-tag">Example answer</div>
-          <p class="beh-answer">"My tech lead wanted to ship a quick patch for a data-sync bug before a release deadline. I'd traced it to a race condition and believed the patch would only mask it. Instead of pushing back in the meeting, I asked for 30 minutes to write up the root cause with a repro. I showed him the trace, proposed a 2-day fix with a feature flag so the release wasn't blocked, and let him make the call with that on the table. He agreed to the real fix. What mattered wasn't winning the argument, it was giving him better information to decide with."</p>
-          <div class="beh-tip">🧭 Shows you escalate with evidence, not opinion, and still respect the final call.</div>
+          <p class="beh-answer">"Our tech lead wanted to build our own notification service. I thought we should reuse the company's shared one, because building meant about two months of work that we'd then have to maintain forever. I didn't argue in the meeting. I spent two days comparing both options and wrote a one-page summary: the shared service covered about 80% of what we needed and could ship in two weeks, and here were the gaps. He read it and told me something I didn't know: next quarter's roadmap needed custom per-user scheduling that the shared service would never support, and migrating later would cost more. He was right, and I hadn't had that context. So we agreed on a middle path: we reuse the shared service for delivery and build only a thin scheduling layer of our own. We shipped in five weeks instead of eight, and I now ask 'what's coming next quarter?' before I propose build-versus-reuse."</p>
+          <div class="beh-tip">🧭 You disagreed with evidence, stayed curious, changed your mind when you learned something new, and the team ended up with a better answer than either of you started with.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a mistake you made at work.</div>
           <div class="beh-tag">Example answer</div>
-          <p class="beh-answer">"I pushed a config change to production without checking it against our staging traffic pattern, and it dropped cache hit rate for about 20 minutes before I caught it in the dashboards and rolled back. I wrote a short postmortem the same day, no blame, just what happened and why. The fix I actually care about: I added a pre-deploy checklist step that diffs config against the last known-good state, and that check has caught two similar issues since."</p>
-          <div class="beh-tip">🧭 One sentence owning it, most of the time spent on the system-level fix, not the apology.</div>
+          <p class="beh-answer">"I pushed a config change without checking it against production-like traffic, and the cache hit rate dropped for 20 minutes before I rolled back. I posted in the team channel within minutes saying what I'd done. The next day I wrote a blameless postmortem and added a pre-deploy step that diffs config against the last known-good state. That step has since caught two similar bad changes, one of them from someone else."</p>
+          <div class="beh-tip">🧭 You owned it fast and publicly, then fixed the system and not just yourself.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a time you worked with unclear or changing requirements.</div>
           <div class="beh-tag">Example answer</div>
-          <p class="beh-answer">"Product wanted 'smarter duplicate detection' for listings, with no defined accuracy target. Rather than wait for a spec, I built a small offline scorer on 200 sample listings in two days, showed the team where it got things wrong, and used those failures to write the actual requirements with them. That turned a vague ask into a concrete precision/recall target we could build against."</p>
-          <div class="beh-tip">🧭 You created clarity yourself instead of waiting to be handed it.</div>
+          <p class="beh-answer">"Product asked for 'smarter duplicate detection' with no accuracy target. Instead of waiting for a spec, I built a quick scorer on 200 labelled listings in two days and showed the team where it failed. Those failures turned into the real requirements: at least 95% precision, because a wrong merge hurts sellers more than a missed duplicate. That became the target we built against, and the feature launched without a rewrite."</p>
+          <div class="beh-tip">🧭 You created clarity with data, and you defined success from the user's side.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a time you helped a struggling teammate.</div>
           <div class="beh-tag">Example answer</div>
-          <p class="beh-answer">"A newer engineer on my team was stuck for two days on a flaky integration test and had started avoiding that part of the codebase. I paired with him for an hour, not to fix it for him, but to show him how I'd narrow down a flaky test: isolate it, run it 50 times locally, add logging at the boundary. He found the actual race condition himself. A few weeks later he was the one debugging a similar issue for someone else."</p>
-          <div class="beh-tip">🧭 Unblocked him, then stepped back. Ends with him being capable on his own.</div>
+          <p class="beh-answer">"A newer engineer had been stuck on a flaky test for two days and was starting to avoid that part of the code. I paired with him for an hour, but I didn't take the keyboard. I showed him how I'd narrow it down: isolate the test, run it 50 times, log at the boundary. He found the race himself. The next month he walked someone else through the same method, and our flaky-test rate dropped."</p>
+          <div class="beh-tip">🧭 You unblocked him and stepped back, and the result is a team habit.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a time you took initiative beyond your role.</div>
           <div class="beh-tag">Example answer</div>
-          <p class="beh-answer">"We had a large-scale migration underway, moving a set of legacy endpoints onto a new unified service. It touched the platform team, the trust team, the core team and another consuming team, and every one of them only saw their own slice of it. Nobody was officially driving the migration end-to-end, so I picked it up. I mapped every dependent endpoint, sequenced the cutover so nothing broke mid-flight, and ran the cross-team syncs myself to get sign-off from each side. It wasn't glamorous, but without someone owning that coordination, it would have stalled for months waiting on four teams to self-organize."</p>
-          <div class="beh-tip">🧭 The initiative here isn't code, it's owning coordination across four teams that nobody else would claim.</div>
+          <p class="beh-answer">"A migration of legacy endpoints touched four teams, and each one only saw its own slice, so nobody owned the whole thing. I mapped every dependent endpoint, built one shared cutover checklist, and ran a weekly sync to get sign-off from each team. We moved everything without a user-visible outage, and two weeks ahead of the date we'd feared we'd miss. I made a point of having each team present its own part, so the credit stayed with them."</p>
+          <div class="beh-tip">🧭 The initiative is owning coordination that nobody else would claim, and you shared the credit.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a tight deadline and what you cut.</div>
           <div class="beh-tag">Example answer</div>
-          <p class="beh-answer">"We had a hard external deadline to ship a duplicate-detection feature before a partner integration went live. About two weeks out, it was clear we couldn't finish both the detection model and a polished internal review UI in time. I flagged the trade-off to my manager immediately, instead of quietly cutting corners: we'd ship the model with a bare, functional review table, and build the proper UI afterward. I made that call because the partner integration only depended on the model's output, not on how nice our internal tooling looked. We hit the date, and the review UI shipped two weeks later without blocking anyone."</p>
-          <div class="beh-tip">🧭 The cut is named early and tied to what the deadline actually depended on, not picked arbitrarily.</div>
+          <p class="beh-answer">"We had a hard partner date for duplicate detection, and two weeks out it was clear we couldn't finish both the model and a polished review UI. I told my manager that day, not at the end. I proposed shipping the model with a plain review table, because the partner only depended on the model's output. We hit the date, and the real UI followed two weeks later without blocking anyone."</p>
+          <div class="beh-tip">🧭 You raised it early, and you cut based on what the deadline actually depended on.</div>
         </li>
       </ul>
       <div class="note">🎯 These are templates, not scripts &mdash; the examples above work as-is. Swap in your own details whenever you want to, but keep the same shape: specific situation, a decision you made, a concrete result.</div>
@@ -923,7 +898,7 @@
   </details>
 
   <!-- ===================== EXPERIENCE 3 ===================== -->
-  <details class="exp" id="exp-3" open>
+  <details class="exp" id="exp-3">
     <summary class="exp-summary">
       <div class="exp-head">
         <span class="exp-num">EXP 03</span>
@@ -1088,6 +1063,110 @@
           <li>🧵 When a problem only has 2 possible values (here, 2 letters), a "match two conditions at once" problem often collapses to one fixed segment length &mdash; worth checking for early.</li>
           <li>🎯 A positive verdict on every round still came with feedback to work on time management &mdash; solving isn't the whole bar at L3/L4, pacing is graded too.</li>
           <li>🔁 Both onsite rounds were disguised prefix-sum problems wrapped in a story &mdash; same recurring pattern as prior experiences.</li>
+        </ol>
+      </div>
+    </div>
+  </details>
+
+  <!-- ===================== EXPERIENCE 4 ===================== -->
+  <details class="exp" id="exp-4" open>
+    <summary class="exp-summary">
+      <div class="exp-head">
+        <span class="exp-num">EXP 04</span>
+        <h2>Google L4 India &mdash; rejected at screening</h2>
+      </div>
+      <p class="exp-meta">
+        Source: <a href="https://leetcode.com/discuss/post/8551877/google-l4-software-engineer-india-aug-20-zgn1/" target="_blank" rel="noopener">leetcode.com/discuss/post/8551877</a>
+        &nbsp;&middot;&nbsp; 3+ YOE, FAANG India. Two online assessments, a Googlyness interview (Strong Hire) and a DSA interview (Lean No Hire after an ads puzzle). Rejected.
+      </p>
+    </summary>
+    <div class="exp-body">
+
+      <!-- ROUND 1: OAs -->
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 1</span>
+          <h3>Online assessments (Googlyness + DSA)</h3>
+        </div>
+        <p class="placeholder">📋 Googlyness OA (~30 min): situational judgment, like the Amazon Work Style assessment. No questions shared. Answer as one consistent, sensible persona and it is easy to pass.</p>
+        <p class="placeholder">🧩 DSA OA (~60 min, webcam proctored): one strings Medium and one DP Hard. The candidate doesn't remember the problems, so there is nothing to match. Speed matters: both were solved at the last minute. Cooldown after failing either OA: 6 months.</p>
+      </div>
+
+      <!-- ROUND 2: GOOGLYNESS -->
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 2</span>
+          <h3>Googlyness interview &mdash; Strong Hire</h3>
+        </div>
+        <p class="round-sub">45 minutes, about 10 questions, interviewer from Poland. Only three questions were named. For the other common ones, see <a href="#exp1-googlyness">Experience #1 &rarr; Googlyness</a>.</p>
+        <p class="persona">🎓 Sample answers, told the way an engineer who aces every Googlyness round would tell them: the decision is mine, the mechanism is concrete, the result is measurable</p>
+        <ul class="beh-list">
+          <li class="beh-item">
+            <div class="beh-q">Describe an ambiguous situation.</div>
+            <div class="beh-tag">Example answer</div>
+            <p class="beh-answer">"Leadership gave our team a one-line ask: 'reduce payment failures.' There was no target, no definition of a failure, and three teams who each thought it was someone else's problem. Before proposing anything, I pulled two weeks of logs and found that 70% of failures came from one cause: retries hitting an expired session token. I wrote a one-page doc that defined the problem as user-visible failures, proposed halving them, and got the three teams to agree on who owned which piece. We shipped the fix in three weeks, failures dropped 55%, and that one-pager became our org's template for vague asks."</p>
+            <div class="beh-tip">🧭 You didn't wait for clarity, you created it with data, and you defined success from the user's side.</div>
+          </li>
+          <li class="beh-item">
+            <div class="beh-q">Talk about negative feedback.</div>
+            <div class="beh-tag">Example answer</div>
+            <p class="beh-answer">"Early on as a tech lead, a peer told me I was making design decisions in my head and just announcing them, so people felt their input didn't count. It stung, because I thought I was being efficient. I asked two other teammates, and they said the same. So I changed one concrete thing: every non-trivial design now goes out as a doc with an 'options I rejected and why' section and 48 hours for comments before I decide. Within a quarter, two of our best roadmap ideas came out of those comment threads."</p>
+            <div class="beh-tip">🧭 You checked the feedback instead of defending yourself, made one specific change, and the result is about the team, not you.</div>
+          </li>
+          <li class="beh-item">
+            <div class="beh-q">How do you manage work with remote colleagues?</div>
+            <div class="beh-tag">Example answer</div>
+            <p class="beh-answer">"I led a project split between two time zones, and in the first month every decision slipped a day waiting on an overnight reply. I moved us to async-first: decisions were made in a shared doc, everyone posted an end-of-day handoff, and we kept two short overlap calls a week, rotated so the same people weren't always taking the late slot. I also split ownership by whole components, so nobody was blocked on the other side's half-finished work. We shipped on time, and in the retro the remote half said it was the first project where they didn't feel like the second office."</p>
+            <div class="beh-tip">🧭 It names concrete mechanisms, it's fair (the meeting times rotate), and it measures success by how the remote team felt.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- ROUND 3: DSA -->
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 3</span>
+          <h3>Data Structures &amp; Algorithms &mdash; Lean No Hire</h3>
+        </div>
+        <p class="round-sub">45 minutes, interviewer from London. A warm-up, then a probability puzzle for the last 15 minutes.</p>
+
+        <div class="q">
+          <div class="q-title">Q1 &mdash; Two Sum</div>
+          <div class="q-body">The classic. The candidate went brute force, then sort + two pointers, then a hashmap, coded the O(n) one cleanly and covered test cases and integer overflow.</div>
+          <div class="match">
+            <span class="match-tag exact">✅ Exact match</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/two-sum/" target="_blank" rel="noopener">LC 1 &mdash; Two Sum</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div class="q-title">Q2 &mdash; The ads puzzle (probability)</div>
+          <div class="q-body">Function <code>F</code> returns the 4 best ads for a user, as an unordered set. Function <code>G</code> returns the worst ad of any set you give it. Each can be called once. Return the best ad with the highest probability you can. The interviewer asked it as a puzzle, not as a coding task.</div>
+          <div class="match">
+            <span class="match-tag none">🔍 No LeetCode match</span>
+          </div>
+          <div class="note">🪜 The candidate got 25% (pick any of the 4), then 33% (call <code>G</code> on all 4, pick one of the 3 left), and was told to beat 33%. A chatbot later said 37.5%. <strong>The best is 50%:</strong> call <code>F</code> once, call <code>G</code> on just <em>two</em> of its ads, and return the one <code>G</code> didn't pick. The best ad is in that pair half the time, and <code>G</code> can never remove it because it is never the worst of the two.</div>
+          <div class="note">💡 Calling <code>G</code> on a pair works like a comparison. Spend it where the winner is decided, not on removing a loser from a big set.</div>
+          <div class="note">⏱️ TC: O(1), two function calls<br>📦 SC: O(1)<br>🧪 The one-liner below is a study check, not something the interviewer asked for.</div>
+
+          <div class="code-wrap">
+            <div class="code-label"><span>adsWinRate.ts &mdash; study check</span><button class="copy-btn" data-copy-target="code-e4-ads">Copy</button></div>
+            <pre id="code-e4-ads"><span class="cmt">// F gives 4 ads. Call G on k of them, drop its pick, guess one of the k-1 left.</span>
+<span class="kw">const</span> winRate = (k: <span class="kw">number</span>) =&gt; (k / <span class="kw">4</span>) * (<span class="kw">1</span> / (k - <span class="kw">1</span>));
+<span class="cmt">// k=2: 0.5   k=3: 0.375   k=4: 0.333</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXCEPTIONAL LEARNINGS -->
+      <div class="exceptional">
+        <h3>⭐ Exceptional learnings</h3>
+        <ol class="learn-plain">
+          <li>🎲 A "worst of a set" oracle behaves like a comparator: it gives the most information on a pair. When a puzzle caps your calls, ask where one call decides the answer.</li>
+          <li>🗣️ State the hidden assumption out loud ("F's four ads are unordered, right?"). If they were ordered, the puzzle would be trivial.</li>
+          <li>🚪 A Strong Hire on Googlyness did not save a Lean No Hire on DSA: at L4 the screening is one interview each, and a single weak coding round ends the loop (12-month cooldown).</li>
         </ol>
       </div>
     </div>
