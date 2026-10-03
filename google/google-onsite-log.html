@@ -338,6 +338,7 @@
     margin:0 0 8px;
     line-height:1.65;
   }
+  .beh-head{ font-size:13.5px; font-weight:600; margin-bottom:6px; }
   .beh-tip{ font-size:12.5px; color:var(--text-dim); padding-left:14px; border-left:2px solid var(--border); }
 
   /* ---- Learnings list (one per line) ---- */
@@ -441,8 +442,8 @@
       </div>
 
       <div class="q">
-        <div class="q-title">Q1 &mdash; Max root-to-leaf path sum</div>
-        <div class="q-body">Given a binary tree, find the maximum sum along any root-to-leaf path.</div>
+        <div class="q-title">Q1 &mdash; Leaf (or leaves) with the maximum root-to-leaf value</div>
+        <div class="q-body">The post says: &ldquo;return all the leaf node of the binary tree with the maximum value from root to leaf node in the path&rdquo;. The wording is unclear. Most likely meaning: return every leaf whose root-to-leaf sum is the maximum, ties included. If only the best sum is wanted, drop the list and keep <code>best</code>.</div>
         <div class="match">
           <span class="match-tag closest">Closest matches</span>
           <div class="match-links">
@@ -451,32 +452,31 @@
             <a href="https://leetcode.com/problems/binary-tree-maximum-path-sum/" target="_blank" rel="noopener">LC 124 &mdash; Binary Tree Maximum Path Sum (harder variant)</a>
           </div>
         </div>
+        <div class="note">⏱️ TC: O(n), every node is visited once<br>📦 SC: O(h) for the recursion, plus the list of tied leaves</div>
+
         <div class="code-wrap">
-          <div class="code-label"><span>maxRootToLeafSum.ts</span><button class="copy-btn" data-copy-target="code-q1">Copy</button></div>
-          <pre id="code-q1"><span class="kw">function</span> maxRootToLeafSum(root: TreeNode | <span class="kw">null</span>): <span class="kw">number</span> {
-    <span class="kw">let</span> maxSum = -Infinity;
+          <div class="code-label"><span>maxPathLeaves.ts</span><button class="copy-btn" data-copy-target="code-q1">Copy</button></div>
+          <pre id="code-q1"><span class="kw">function</span> maxPathLeaves(root: TreeNode | <span class="kw">null</span>): TreeNode[] {
+    <span class="kw">let</span> best = -<span class="kw">Infinity</span>;
+    <span class="kw">let</span> leaves: TreeNode[] = [];
 
-    <span class="kw">function</span> dfs(node: TreeNode | <span class="kw">null</span>, currentSum: <span class="kw">number</span>): <span class="kw">void</span> {
+    <span class="kw">function</span> dfs(node: TreeNode | <span class="kw">null</span>, sum: <span class="kw">number</span>): <span class="kw">void</span> {
         <span class="kw">if</span> (!node) <span class="kw">return</span>;
+        sum += node.val;
 
-        currentSum += node.val;
-
-        <span class="cmt">// Leaf</span>
         <span class="kw">if</span> (!node.left &amp;&amp; !node.right) {
-            maxSum = Math.max(maxSum, currentSum);
+            <span class="kw">if</span> (sum &gt; best) { best = sum; leaves = [node]; }   <span class="cmt">// new best, start a fresh list</span>
+            <span class="kw">else</span> <span class="kw">if</span> (sum === best) leaves.push(node);          <span class="cmt">// tie, keep it too</span>
             <span class="kw">return</span>;
         }
 
-        dfs(node.left, currentSum);
-        dfs(node.right, currentSum);
+        dfs(node.left, sum);
+        dfs(node.right, sum);
     }
 
     dfs(root, <span class="kw">0</span>);
-
-    <span class="kw">return</span> maxSum;
-}
-<span class="cmt">// ⏱️ TC: O(n) — every node visited once
-// 📦 SC: O(h) — recursion stack, h = tree height</span></pre>
+    <span class="kw">return</span> leaves;
+}</pre>
         </div>
       </div>
 
@@ -553,13 +553,14 @@
         <div class="q-title">"Maximum total" &mdash; cities &amp; flights</div>
         <div class="q-body">Pick 4 distinct cities A&ndash;B&ndash;C&ndash;D with direct flights A-B, B-C, C-D, maximizing the total excitement across all 4 cities.</div>
         <div class="match">
-          <span class="match-tag exact">Exact match</span>
+          <span class="match-tag closest">Unconfirmed match</span>
           <div class="match-links">
             <a href="https://leetcode.com/problems/maximum-score-of-a-node-sequence/" target="_blank" rel="noopener">LC 2242 &mdash; Maximum Score of a Node Sequence</a>
           </div>
         </div>
+        <div class="note warn">⚠️ The post only says &ldquo;exact same question&rdquo; and links to a discussion titled &ldquo;Maximum total&rdquo;, which now returns 404. The wording above and the LC 2242 match are reconstructed and unconfirmed. Check the LC 2242 statement before relying on this.</div>
         <div class="note">💡 Try every edge as the middle pair, keep only the <strong>top 3 neighbours</strong> per node (2 slots can get blocked &mdash; the middle partner and the other end's pick &mdash; so 3 is the safe number). Beats the n! brute force.</div>
-        <p class="q-body" style="margin-top:8px;">Candidate solved the optimized version and coded it in the given time. Since this is an exact match, check LC 2242 directly rather than working from a rebuilt snippet.</p>
+        <p class="q-body" style="margin-top:8px;">Candidate solved the optimized version and coded it in the given time. Since it looks like an exact match, check LC 2242 directly rather than working from a rebuilt snippet.</p>
       </div>
     </div>
 
@@ -569,42 +570,55 @@
         <span class="round-badge">ROUND 3</span>
         <h3>Googlyness</h3>
       </div>
-      <p class="round-sub">Conflict with a co-worker, plus similar situation-based questions.</p>
-      <p class="persona">🎓 Sample answers, told the way an engineer who aces every Googlyness round would tell them: the decision is mine, the mechanism is concrete, the result is measurable</p>
+      <p class="round-sub">The post names one question, a conflict with a co-worker, plus &ldquo;similar situation-based questions&rdquo;. The other six below are common questions of that kind, not ones the candidate reported.</p>
+      <p class="persona">🎓 Sample answers, written in your voice at L3/L4 scope. They are generic until you swap in stories from your own story bank, so change the details before you use one.</p>
       <ul class="beh-list">
         <li class="beh-item">
+          <div class="beh-q">Tell me about a conflict with a co-worker. <em>(the question the post names)</em></div>
+          <div class="beh-tag">Example answer &middot; 🤝 team &middot; ⚖️ disagreement &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 A peer and I clashed over when to ship; I asked what he was worried about, and we found a plan that met both goals.</div>
+          <p class="beh-answer">"A teammate and I were building two halves of one feature, and we kept clashing: he wanted to ship his half early, and I wanted to wait so users got one complete experience. It was starting to show in code reviews. I asked him for 20 minutes, one on one, and asked what he was most worried about. It turned out his half was blocking another team, which I hadn't known. We agreed he'd ship it hidden from users, I'd finish mine within a week, and we'd turn it on together. The other team was unblocked, users got the full feature, and we reviewed each other's changes from then on."</p>
+          <div class="beh-tip">🧭 You went to the person first, asked about their worry instead of arguing your position, and ended with a plan where both of you won.</div>
+        </li>
+        <li class="beh-item">
           <div class="beh-q">Tell me about a disagreement with your manager or tech lead.</div>
-          <div class="beh-tag">Example answer</div>
+          <div class="beh-tag">Example answer &middot; ⚖️ disagreement &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 I disagreed with building our own service, brought a two-day comparison, learned something I'd missed, and we landed on a middle path that shipped faster.</div>
           <p class="beh-answer">"Our tech lead wanted to build our own notification service. I thought we should reuse the company's shared one, because building meant about two months of work that we'd then have to maintain forever. I didn't argue in the meeting. I spent two days comparing both options and wrote a one-page summary: the shared service covered about 80% of what we needed and could ship in two weeks, and here were the gaps. He read it and told me something I didn't know: next quarter's roadmap needed custom per-user scheduling that the shared service would never support, and migrating later would cost more. He was right, and I hadn't had that context. So we agreed on a middle path: we reuse the shared service for delivery and build only a thin scheduling layer of our own. We shipped in five weeks instead of eight, and I now ask 'what's coming next quarter?' before I propose build-versus-reuse."</p>
           <div class="beh-tip">🧭 You disagreed with evidence, stayed curious, changed your mind when you learned something new, and the team ended up with a better answer than either of you started with.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a mistake you made at work.</div>
-          <div class="beh-tag">Example answer</div>
+          <div class="beh-tag">Example answer &middot; ✅ ownership &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 I broke production with an unchecked change, owned it within minutes, and added a check that has since caught two more.</div>
           <p class="beh-answer">"I pushed a config change without checking it against production-like traffic, and the cache hit rate dropped for 20 minutes before I rolled back. I posted in the team channel within minutes saying what I'd done. The next day I wrote a blameless postmortem and added a pre-deploy step that diffs config against the last known-good state. That step has since caught two similar bad changes, one of them from someone else."</p>
           <div class="beh-tip">🧭 You owned it fast and publicly, then fixed the system and not just yourself.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a time you worked with unclear or changing requirements.</div>
-          <div class="beh-tag">Example answer</div>
+          <div class="beh-tag">Example answer &middot; 🌫️ ambiguity &middot; 👤 user &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 With no target for duplicate detection, I built a small test first and used its failures to write the real requirements.</div>
           <p class="beh-answer">"Product asked for 'smarter duplicate detection' with no accuracy target. Instead of waiting for a spec, I built a quick scorer on 200 labelled listings in two days and showed the team where it failed. Those failures turned into the real requirements: at least 95% precision, because a wrong merge hurts sellers more than a missed duplicate. That became the target we built against, and the feature launched without a rewrite."</p>
           <div class="beh-tip">🧭 You created clarity with data, and you defined success from the user's side.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a time you helped a struggling teammate.</div>
-          <div class="beh-tag">Example answer</div>
+          <div class="beh-tag">Example answer &middot; 🤝 team &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 I helped a stuck teammate by teaching him how to find the problem, not by fixing it for him.</div>
           <p class="beh-answer">"A newer engineer had been stuck on a flaky test for two days and was starting to avoid that part of the code. I paired with him for an hour, but I didn't take the keyboard. I showed him how I'd narrow it down: isolate the test, run it 50 times, log at the boundary. He found the race himself. The next month he walked someone else through the same method, and our flaky-test rate dropped."</p>
           <div class="beh-tip">🧭 You unblocked him and stepped back, and the result is a team habit.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a time you took initiative beyond your role.</div>
-          <div class="beh-tag">Example answer</div>
+          <div class="beh-tag">Example answer &middot; ✅ ownership &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 Nobody owned a four-team migration, so I built a shared checklist and kept it moving.</div>
           <p class="beh-answer">"A migration of legacy endpoints touched four teams, and each one only saw its own slice, so nobody owned the whole thing. I mapped every dependent endpoint, built one shared cutover checklist, and ran a weekly sync to get sign-off from each team. We moved everything without a user-visible outage, and two weeks ahead of the date we'd feared we'd miss. I made a point of having each team present its own part, so the credit stayed with them."</p>
           <div class="beh-tip">🧭 The initiative is owning coordination that nobody else would claim, and you shared the credit.</div>
         </li>
         <li class="beh-item">
           <div class="beh-q">Tell me about a tight deadline and what you cut.</div>
-          <div class="beh-tag">Example answer</div>
+          <div class="beh-tag">Example answer &middot; ✅ ownership &middot; 👤 user &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 With two weeks left I told my manager early and cut the review screen, not the model the partner depended on.</div>
           <p class="beh-answer">"We had a hard partner date for duplicate detection, and two weeks out it was clear we couldn't finish both the model and a polished review UI. I told my manager that day, not at the end. I proposed shipping the model with a plain review table, because the partner only depended on the model's output. We hit the date, and the real UI followed two weeks later without blocking anyone."</p>
           <div class="beh-tip">🧭 You raised it early, and you cut based on what the deadline actually depended on.</div>
         </li>
@@ -626,8 +640,8 @@
       <h3>⭐ Exceptional learnings</h3>
       <ol class="learn-plain">
         <li>🌱 Brute force first, then optimize is a fine strategy here &mdash; backtracking &rarr; memo was accepted without needing a Trie.</li>
-        <li>🎭 A "new" Google question can still be a disguised known problem &mdash; Round 2 was LC 2242 with a story wrapped around it. Recognize the pattern, not just the wording.</li>
-        <li>📈 Expect a "can you do better than this?" follow-up once the first working solution lands.</li>
+        <li>🎭 A "new" Google question can still be a disguised known problem &mdash; Round 2 was probably LC 2242 with a story wrapped around it. Recognize the pattern, not just the wording.</li>
+        <li>🔀 Before returning numbers, ask whether you need the count or just a yes/no. The reducible-word problem only needs a boolean helper, because a reducible word's chain is as long as the word itself.</li>
       </ol>
     </div>
     </div>
@@ -734,43 +748,14 @@
           <div class="q-title">Max sum of 3 directly-connected islands</div>
           <div class="q-body">N islands, each with a value, and edges between some of them. Pick 3 islands A, B, C that are directly connected in a chain (no island in between), maximizing the total value.</div>
           <div class="match">
-            <span class="match-tag closest">Closest match</span>
+            <span class="match-tag variant">🔁 Close variant (~90%)</span>
             <div class="match-links">
               <a href="https://leetcode.com/problems/maximum-score-of-a-node-sequence/" target="_blank" rel="noopener">LC 2242 &mdash; Maximum Score of a Node Sequence (same idea, chain of 4 instead of 3)</a>
             </div>
           </div>
           <div class="note">⏱️ TC: O(n &middot; d log d), n = islands, d = max connections per island &mdash; sort each island's neighbours once. 📦 SC: O(n + e) &mdash; adjacency list, e = edges.</div>
           <div class="note">💡 For a 3-chain, top-2 neighbours per middle island is enough. Unlike the 4-chain version, A and C both come from the same neighbour list, so there's no clash to guard against &mdash; no need for a 3rd backup.</div>
-
-          <div class="code-wrap">
-            <div class="code-label"><span>maxIslandTriple.ts</span><button class="copy-btn" data-copy-target="code-e2-islands">Copy</button></div>
-            <pre id="code-e2-islands"><span class="kw">function</span> maxIslandTriple(n: <span class="kw">number</span>, values: <span class="kw">number</span>[], edges: <span class="kw">number</span>[][]): <span class="kw">number</span> {
-    <span class="kw">const</span> graph: <span class="kw">number</span>[][] = Array.from({ length: n }, () =&gt; []);
-
-    <span class="cmt">// Build adjacency list</span>
-    <span class="kw">for</span> (<span class="kw">const</span> [u, v] <span class="kw">of</span> edges) {
-        graph[u].push(v);
-        graph[v].push(u);
-    }
-
-    <span class="kw">let</span> maxScore = -<span class="kw">1</span>;
-
-    <span class="cmt">// Try every island as the middle node B</span>
-    <span class="kw">for</span> (<span class="kw">let</span> b = <span class="kw">0</span>; b &lt; n; b++) {
-        <span class="cmt">// Sort neighbours by value, keep the top 2</span>
-        <span class="kw">const</span> neighbours = [...graph[b]].sort((x, y) =&gt; values[y] - values[x]);
-
-        <span class="kw">if</span> (neighbours.length &lt; <span class="kw">2</span>) <span class="kw">continue</span>;
-
-        <span class="kw">const</span> a = neighbours[<span class="kw">0</span>];
-        <span class="kw">const</span> c = neighbours[<span class="kw">1</span>];
-
-        maxScore = Math.max(maxScore, values[a] + values[b] + values[c]);
-    }
-
-    <span class="kw">return</span> maxScore;
-}</pre>
-          </div>
+          <div class="note">Open the link above and adapt it to a 3-chain. It is not different enough to need separate code here.</div>
         </div>
       </div>
 
@@ -891,7 +876,6 @@
         <ol class="learn-plain">
           <li>🎨 Google L3/L4 rounds aren't always pure DSA &mdash; one round here was LLD + recommendation-system design, not a LeetCode problem at all.</li>
           <li>🧩 The "keep top-k neighbours" trick from Experience #1 reappears at a smaller scale (3-chain here vs. 4-chain there) &mdash; a real recurring pattern, not a coincidence.</li>
-          <li>📡 A rough round caused by bad internet, not bad performance, didn't block an offer &mdash; the rest of the loop carried it.</li>
         </ol>
       </div>
     </div>
@@ -906,7 +890,7 @@
       </div>
       <p class="exp-meta">
         Source: <a href="https://leetcode.com/discuss/post/8543506/google-india-l3-interview-experience-off-1uw5/" target="_blank" rel="noopener">leetcode.com/discuss/post/8543506</a>
-        &nbsp;&middot;&nbsp; 4 rounds: virtual DSA, virtual Googlyness, 2 onsite DSA back-to-back. Positive verdict every round, offer within a week of team matching.
+        &nbsp;&middot;&nbsp; 4 rounds: virtual DSA, virtual Googlyness, 2 onsite DSA back-to-back. Positive verdict every round. Team match 2 business days after clearing, offer 3 days after the hiring-committee packet went in.
       </p>
     </summary>
     <div class="exp-body">
@@ -920,14 +904,14 @@
 
         <div class="q">
           <div class="q-title">Maximum good subarray sum &mdash; return the indices, not the sum</div>
-          <div class="q-body">Candidate named this one directly: same rule as the LeetCode problem (subarray is "good" if <code>|nums[i] - nums[j]| == k</code>), but return the index pair <code>{i, j}</code> instead of the max sum.</div>
+          <div class="q-body">The post says: &ldquo;A variation of [LC 3026] in which we have to return any pair of indices {i, j} rather than the max sum.&rdquo; Same rule as the LeetCode problem (a subarray is &ldquo;good&rdquo; if <code>|nums[i] - nums[j]| == k</code>). The wording is ambiguous: &ldquo;any pair&rdquo; could mean any good subarray, or the best one.</div>
           <div class="match">
             <span class="match-tag variant">🔁 Close variant (~90%)</span>
             <div class="match-links">
               <a href="https://leetcode.com/problems/maximum-good-subarray-sum/" target="_blank" rel="noopener">LC 3026 &mdash; Maximum Good Subarray Sum</a>
             </div>
           </div>
-          <div class="note">💡 Same prefix-sum + hashmap technique as the original, just track the index alongside the minimum prefix sum instead of only the sum. Open the link above and adapt the return value &mdash; not different enough to need separate code here.</div>
+          <div class="note">💡 If the best pair is wanted: same prefix-sum + hashmap technique as the original, just track the index alongside the minimum prefix sum instead of only the sum. If any good pair is accepted it is simpler: return as soon as a matching earlier value is found. Ask the interviewer which one they mean. Open the link above and adapt it &mdash; not different enough to need separate code here.</div>
         </div>
       </div>
 
@@ -957,6 +941,8 @@
             </div>
           </div>
           <div class="note">💡 <strong>Key insight:</strong> with only 2 letters, any segment carrying exactly half the a's and half the b's must have length exactly <code>n/2</code>. That turns "find 2 cuts" into "slide a fixed-size window and check the a-count."</div>
+
+          <div class="note">⏱️ TC: O(n), one sliding-window pass<br>📦 SC: O(1)</div>
 
           <div class="code-wrap">
             <div class="code-label"><span>findEqualSplitCuts.ts</span><button class="copy-btn" data-copy-target="code-e3-cuts">Copy</button></div>
@@ -988,8 +974,7 @@
 
     <span class="kw">return</span> [];
 }
-<span class="cmt">// ⏱️ TC: O(n) — sliding window, one pass
-// 📦 SC: O(1)</span></pre>
+</pre>
           </div>
         </div>
       </div>
@@ -1011,47 +996,40 @@
               <a href="https://leetcode.com/problems/number-of-ways-to-split-array/" target="_blank" rel="noopener">LC 2270 &mdash; Number of Ways to Split Array</a>
             </div>
           </div>
-          <div class="note">💡 <strong>Key insight:</strong> for removed index <code>k</code> and split point <code>m</code>, either <code>k &ge; m</code> (removed element lands in the right part) or <code>k &lt; m</code> (lands in the left part) &mdash; each case gives a different target prefix sum to look up.</div>
+          <div class="note">💡 <strong>Key insight:</strong> for removed index <code>k</code> and split point <code>m</code>, either <code>k &ge; m</code> (removed element lands in the right part) or <code>k &lt; m</code> (lands in the left part) &mdash; each case gives a different target prefix sum to look up. The first or last index of that prefix sum is enough to check it.</div>
+
+          <div class="note">⏱️ TC: O(n), one pass plus two hashmaps<br>📦 SC: O(n), the prefix sums and the two maps<br>✅ Assumes both parts must be non-empty after the removal. An empty part has sum 0 and would give wrong &ldquo;yes&rdquo; answers (for example <code>[0, -3]</code>).</div>
 
           <div class="code-wrap">
             <div class="code-label"><span>canSplitAfterRemoval.ts</span><button class="copy-btn" data-copy-target="code-e3-split">Copy</button></div>
             <pre id="code-e3-split"><span class="kw">function</span> canSplitAfterRemoval(nums: <span class="kw">number</span>[]): <span class="kw">boolean</span> {
     <span class="kw">const</span> n = nums.length;
-    <span class="kw">const</span> prefixSum: <span class="kw">number</span>[] = <span class="kw">new</span> Array(n + <span class="kw">1</span>).fill(<span class="kw">0</span>);
-    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="kw">0</span>; i &lt; n; i++) prefixSum[i + <span class="kw">1</span>] = prefixSum[i] + nums[i];
+    <span class="kw">const</span> prefix: <span class="kw">number</span>[] = <span class="kw">new</span> Array(n + <span class="kw">1</span>).fill(<span class="kw">0</span>);
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="kw">0</span>; i &lt; n; i++) prefix[i + <span class="kw">1</span>] = prefix[i] + nums[i];
+    <span class="kw">const</span> total = prefix[n];
 
-    <span class="kw">const</span> total = prefixSum[n];
-
-    <span class="cmt">// m = 0..n-1 only — m = n would leave the right part empty</span>
-    <span class="kw">const</span> rightCounts = <span class="kw">new</span> Map&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();
-    <span class="kw">for</span> (<span class="kw">let</span> m = <span class="kw">0</span>; m &lt; n; m++) {
-        rightCounts.set(prefixSum[m], (rightCounts.get(prefixSum[m]) ?? <span class="kw">0</span>) + <span class="kw">1</span>);
+    <span class="cmt">// Split point m means the left part is nums[0..m-1]. Keep the first and last m (1..n-1) for each prefix sum</span>
+    <span class="kw">const</span> first = <span class="kw">new</span> Map&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();
+    <span class="kw">const</span> last = <span class="kw">new</span> Map&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();
+    <span class="kw">for</span> (<span class="kw">let</span> m = <span class="kw">1</span>; m &lt; n; m++) {
+        <span class="kw">if</span> (!first.has(prefix[m])) first.set(prefix[m], m);
+        last.set(prefix[m], m);
     }
-
-    <span class="kw">const</span> leftSeen = <span class="kw">new</span> Set&lt;<span class="kw">number</span>&gt;();
 
     <span class="kw">for</span> (<span class="kw">let</span> k = <span class="kw">0</span>; k &lt; n; k++) {
-        <span class="cmt">// Drop prefixSum[k], so rightCounts now represents m &gt; k</span>
-        <span class="kw">const</span> count = rightCounts.get(prefixSum[k])!;
-        <span class="kw">if</span> (count === <span class="kw">1</span>) rightCounts.delete(prefixSum[k]);
-        <span class="kw">else</span> rightCounts.set(prefixSum[k], count - <span class="kw">1</span>);
+        <span class="kw">const</span> rest = total - nums[k];            <span class="cmt">// sum of what is left after removing nums[k]</span>
+        <span class="kw">if</span> (rest % <span class="kw">2</span> !== <span class="kw">0</span>) <span class="kw">continue</span>;
+        <span class="kw">const</span> half = rest / <span class="kw">2</span>;
 
-        <span class="cmt">// Removed element sits in the left part (split point m &gt; k)</span>
-        <span class="kw">const</span> target2 = total + nums[k];
-        <span class="kw">if</span> (target2 % <span class="kw">2</span> === <span class="kw">0</span> &amp;&amp; rightCounts.has(target2 / <span class="kw">2</span>)) <span class="kw">return true</span>;
+        <span class="cmt">// k is in the right part: the left part is untouched, so prefix[m] = half (m &lt;= k, and the right part keeps an element)</span>
+        <span class="kw">if</span> ((first.get(half) ?? <span class="kw">Infinity</span>) &lt;= Math.min(k, n - <span class="kw">2</span>)) <span class="kw">return</span> <span class="kw">true</span>;
 
-        <span class="cmt">// Removed element sits in the right part (split point m &lt;= k, m &gt;= 1)</span>
-        <span class="kw">if</span> (k &gt; <span class="kw">0</span>) {
-            leftSeen.add(prefixSum[k]);
-            <span class="kw">const</span> target1 = total - nums[k];
-            <span class="kw">if</span> (target1 % <span class="kw">2</span> === <span class="kw">0</span> &amp;&amp; leftSeen.has(target1 / <span class="kw">2</span>)) <span class="kw">return true</span>;
-        }
+        <span class="cmt">// k is in the left part: prefix[m] - nums[k] = half (m &gt; k, and the left part keeps an element)</span>
+        <span class="kw">if</span> ((last.get(half + nums[k]) ?? -<span class="kw">1</span>) &gt;= Math.max(k + <span class="kw">1</span>, <span class="kw">2</span>)) <span class="kw">return</span> <span class="kw">true</span>;
     }
 
-    <span class="kw">return false</span>;
-}
-<span class="cmt">// ⏱️ TC: O(n) average — one pass, hashmap/set lookups
-// 📦 SC: O(n) — prefix-sum multiset + seen-set</span></pre>
+    <span class="kw">return</span> <span class="kw">false</span>;
+}</pre>
           </div>
         </div>
       </div>
@@ -1099,26 +1077,29 @@
           <h3>Googlyness interview &mdash; Strong Hire</h3>
         </div>
         <p class="round-sub">45 minutes, about 10 questions, interviewer from Poland. Only three questions were named. For the other common ones, see <a href="#exp1-googlyness">Experience #1 &rarr; Googlyness</a>.</p>
-        <p class="persona">🎓 Sample answers, told the way an engineer who aces every Googlyness round would tell them: the decision is mine, the mechanism is concrete, the result is measurable</p>
+        <p class="persona">🎓 Sample answers, written in your voice at L3/L4 scope. They are generic until you swap in stories from your own story bank, so change the details before you use one.</p>
         <ul class="beh-list">
           <li class="beh-item">
-            <div class="beh-q">Describe an ambiguous situation.</div>
-            <div class="beh-tag">Example answer</div>
-            <p class="beh-answer">"Leadership gave our team a one-line ask: 'reduce payment failures.' There was no target, no definition of a failure, and three teams who each thought it was someone else's problem. Before proposing anything, I pulled two weeks of logs and found that 70% of failures came from one cause: retries hitting an expired session token. I wrote a one-page doc that defined the problem as user-visible failures, proposed halving them, and got the three teams to agree on who owned which piece. We shipped the fix in three weeks, failures dropped 55%, and that one-pager became our org's template for vague asks."</p>
-            <div class="beh-tip">🧭 You didn't wait for clarity, you created it with data, and you defined success from the user's side.</div>
-          </li>
+          <div class="beh-q">Describe an ambiguous situation.</div>
+          <div class="beh-tag">Example answer &middot; 🌫️ ambiguity &middot; 👤 user &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 With a one-line ask and no target, I let two weeks of logs define the problem and the goal.</div>
+          <p class="beh-answer">"Leadership gave our team a one-line ask: 'reduce payment failures.' There was no target, no definition of a failure, and three teams who each thought it was someone else's problem. Before proposing anything, I pulled two weeks of logs and found that 70% of failures came from one cause: retries hitting an expired session token. I wrote a one-page doc that defined the problem as user-visible failures, proposed halving them, and got the three teams to agree on who owned which piece. We shipped the fix in three weeks, failures dropped 55%, and that one-pager became our team's template for vague asks."</p>
+          <div class="beh-tip">🧭 You didn't wait for clarity, you created it with data, and you defined success from the user's side.</div>
+        </li>
           <li class="beh-item">
-            <div class="beh-q">Talk about negative feedback.</div>
-            <div class="beh-tag">Example answer</div>
-            <p class="beh-answer">"Early on as a tech lead, a peer told me I was making design decisions in my head and just announcing them, so people felt their input didn't count. It stung, because I thought I was being efficient. I asked two other teammates, and they said the same. So I changed one concrete thing: every non-trivial design now goes out as a doc with an 'options I rejected and why' section and 48 hours for comments before I decide. Within a quarter, two of our best roadmap ideas came out of those comment threads."</p>
-            <div class="beh-tip">🧭 You checked the feedback instead of defending yourself, made one specific change, and the result is about the team, not you.</div>
-          </li>
+          <div class="beh-q">Talk about negative feedback.</div>
+          <div class="beh-tag">Example answer &middot; 🗣️ feedback &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 A peer told me my design decisions felt closed; I checked it, changed one habit, and better ideas started arriving.</div>
+          <p class="beh-answer">"A peer on my team told me I was making design decisions in my head and just announcing them, so people felt their input didn't count. It stung, because I thought I was being efficient. I asked two other teammates, and they said the same. So I changed one concrete thing: every non-trivial design now goes out as a doc with an 'options I rejected and why' section and 48 hours for comments before I decide. Within a quarter, two of our best roadmap ideas came out of those comment threads."</p>
+          <div class="beh-tip">🧭 You checked the feedback instead of defending yourself, made one specific change, and the result is about the team, not you.</div>
+        </li>
           <li class="beh-item">
-            <div class="beh-q">How do you manage work with remote colleagues?</div>
-            <div class="beh-tag">Example answer</div>
-            <p class="beh-answer">"I led a project split between two time zones, and in the first month every decision slipped a day waiting on an overnight reply. I moved us to async-first: decisions were made in a shared doc, everyone posted an end-of-day handoff, and we kept two short overlap calls a week, rotated so the same people weren't always taking the late slot. I also split ownership by whole components, so nobody was blocked on the other side's half-finished work. We shipped on time, and in the retro the remote half said it was the first project where they didn't feel like the second office."</p>
-            <div class="beh-tip">🧭 It names concrete mechanisms, it's fair (the meeting times rotate), and it measures success by how the remote team felt.</div>
-          </li>
+          <div class="beh-q">How do you manage work with remote colleagues?</div>
+          <div class="beh-tag">Example answer &middot; 🤝 team &middot; ⚠️ generic &ndash; swap in a real story</div>
+          <div class="beh-head">🎯 Working across time zones, I switched to written decisions and rotating late calls so nobody was always the one waiting.</div>
+          <p class="beh-answer">"I owned a feature that was built by people in two time zones, and in the first month every decision slipped a day waiting on an overnight reply. I moved us to async-first: decisions were made in a shared doc, everyone posted an end-of-day handoff, and we kept two short overlap calls a week, rotated so the same people weren't always taking the late slot. I also split ownership by whole components, so nobody was blocked on the other side's half-finished work. We shipped on time, and in the retro the remote half said it was the first project where they didn't feel like the second office."</p>
+          <div class="beh-tip">🧭 It names concrete mechanisms, it's fair (the meeting times rotate), and it measures success by how the remote team felt.</div>
+        </li>
         </ul>
       </div>
 
