@@ -58,43 +58,43 @@
 <p class="sub">Interview reference for the JS standard-library APIs that get reached for constantly — the exact gotchas that cost time mid-interview, not a full language guide.</p>
 
 <nav class="nav">
-  <a href="#j1"><b>01</b>Map</a>
-  <a href="#j2"><b>02</b>Set</a>
-  <a href="#j3"><b>03</b>Common mix-ups</a>
-  <a href="#j4"><b>04</b>Priority Queue</a>
-  <a href="#j5"><b>05</b>Math.max / Math.min</a>
-  <a href="#j6"><b>06</b>Map access: never bracket notation</a>
-  <a href="#j7"><b>07</b>Map/Set iterators: no .sort()</a>
-  <a href="#j8"><b>08</b>Backtracking: push a copy of path</a>
-  <a href="#j9"><b>09</b>Backtracking: new Set() inside dfs</a>
-  <a href="#j10"><b>10</b>Big numbers: when to use BigInt</a>
+  <a href="#j1"><b>01</b>Map &amp; Set, iterators</a>
+  <a href="#j2"><b>02</b>Common mix-ups</a>
+  <a href="#j3"><b>03</b>Priority Queue</a>
+  <a href="#j4"><b>04</b>Math.max / Math.min</a>
+  <a href="#j5"><b>05</b>Map access: never bracket notation</a>
+  <a href="#j6"><b>06</b>Backtracking: push a copy of path</a>
+  <a href="#j7"><b>07</b>Big numbers: when to use BigInt</a>
 </nav>
 
-<h2 id="j1">1 · 🗂️ Map</h2>
+<h2 id="j1">1 · 🗂️ Map &amp; Set — Basics, and <code>.keys()</code>/<code>.values()</code>/<code>.entries()</code> Are ITERATORS</h2>
 <pre class="language-tsx"><code class="language-tsx">const m = new Map&lt;string, number&gt;();
 m.set('a', 1); m.get('a'); m.has('a'); m.delete('a');
-m.size;   // PROPERTY, no ()
-for (const [k, v] of m) {}
-for (const k of m.keys()) {}
-for (const v of m.values()) {}</code></pre>
-
-<h2 id="j2">2 · 🔵 Set</h2>
-<pre class="language-tsx"><code class="language-tsx">const s = new Set&lt;number&gt;();
+const s = new Set&lt;number&gt;();
 s.add(5); s.has(5); s.delete(5);
-s.size;   // PROPERTY, no ()
+m.size; s.size;          // PROPERTY, no ()
+for (const [k, v] of m) {}
 for (const v of s) {}
-[...s];   // to array
 
-new Set([1, 2, 3]);   // ✅ needs an ARRAY
-new Set(1, 2, 3);      // ❌ TypeError</code></pre>
+new Set([1, 2, 3]);      // ✅ needs an ARRAY
+new Set(1, 2, 3);        // ❌ TypeError
 
-<h2 id="j3">3 · ⚠️ Common Mix-ups</h2>
+m.keys().sort((a, b) => a - b);            // ❌ iterator has no .sort()
+[...m.keys()].sort((a, b) => a - b);       // ✅ spread to array first
+Array.from(m.values());                    // ✅ same idea</code></pre>
+<div class="box warn"><b class="tag">🚨</b> On a Map or Set, <code>.keys()</code>, <code>.values()</code> and <code>.entries()</code> return an <b>iterator</b>, not an array — so no <code>.sort()</code>, <code>.map()</code>, <code>.filter()</code> until you convert with <code>[...x]</code> or <code>Array.from(x)</code>. A bare <code>Set</code> is the same: iterable, not an array. (Set: <code>.keys()</code> is <code>.values()</code>, and <code>.entries()</code> gives <code>[v, v]</code>.)</div>
+<div class="box key"><b class="tag">🔑 Don't forget the comparator</b> <code>.sort()</code> with no comparator sorts as STRINGS — <code>10</code> before <code>2</code>. Always pass <code>(a, b) => a - b</code> for numbers.</div>
+<p class="hint">Spreading an iterator with <code>[...]</code> can need <code>"target": "ES2015"+</code> (or <code>downlevelIteration</code>) in <code>tsconfig</code> — not an issue on LeetCode.</p>
+<div class="box key"><b class="tag">📌</b> <code>.size</code> = property, no parens. <code>.keys()</code>/<code>.values()</code>/<code>.entries()</code> = iterator → convert first, THEN use array methods.</div>
+
+<h2 id="j2">2 · ⚠️ Common Mix-ups</h2>
 <ul>
 <li><code>.size</code> (Map/Set) and <code>.length</code> (array/string) → <b>properties</b>, no <code>()</code></li>
-<li>Array <code>.entries()</code> → <b>method</b>, needs <code>()</code>, gives <code>[index, value]</code> pairs</li>
+<li><code>.entries()</code> exists on Array, Map and Set → <b>method</b>, needs <code>()</code>, returns an <b>iterator</b> on all three (Array: <code>[index, value]</code>, Map: <code>[key, value]</code>, Set: <code>[v, v]</code>)</li>
+<li><code>Object.entries(obj)</code> → a <b>function</b> that returns a real <b>array</b>; <code>m.entries()</code> → a method that returns an <b>iterator</b></li>
 </ul>
 
-<h2 id="j4">4 · 🏗️ MinPriorityQueue / MaxPriorityQueue (LeetCode's built-in library)</h2>
+<h2 id="j3">3 · 🏗️ MinPriorityQueue / MaxPriorityQueue (LeetCode's built-in library)</h2>
 <pre class="language-tsx"><code class="language-tsx">const pq = new MinPriorityQueue&lt;number&gt;();                    // simple numeric
 const pq = new MinPriorityQueue&lt;number[]&gt;(x => x[0]);          // callback extracts comparison key
 const pq = new MaxPriorityQueue&lt;number[]&gt;(x => x[0]);           // reverse order, same API
@@ -106,13 +106,13 @@ pq.isEmpty();          // O(1)
 pq.size();              // METHOD here — needs ()</code></pre>
 <div class="box key"><b class="tag">📌</b> <code>dequeue()</code>/<code>front()</code> return the element directly — e.g. <code>const [dist, node] = pq.dequeue()</code>.</div>
 
-<h2 id="j5">5 · 🔢 Math.max / Math.min</h2>
+<h2 id="j4">4 · 🔢 Math.max / Math.min</h2>
 <pre class="language-tsx"><code class="language-tsx">Math.max(1, 5, 3);        // ✅ individual args → 5
 Math.max([1, 5, 3]);       // ❌ NaN
 Math.max(...[1, 5, 3]);    // ✅ spread the array</code></pre>
 <div class="box key"><b class="tag">📌</b> <code>.size</code>/<code>.length</code> = properties (no parens). PQ's <code>.size()</code> = method (needs parens) — the one exception to watch for. <code>Math.max</code>/<code>min</code> never take an array directly — always spread it.</div>
 
-<h2 id="j6">6 · 🚨 Map Access: <code>.get()</code>/<code>.set()</code> ONLY — Never Bracket Notation</h2>
+<h2 id="j5">5 · 🚨 Map Access: <code>.get()</code>/<code>.set()</code> ONLY — Never Bracket Notation</h2>
 <pre class="language-tsx"><code class="language-tsx">const m = new Map&lt;string, number&gt;();
 m.set('a', 1);
 
@@ -121,16 +121,7 @@ m['a'];        // ❌ undefined — does NOT read from the Map's data
 m['a'] = 5;    // ❌ sets a regular object PROPERTY named "a", not a Map entry</code></pre>
 <div class="box key"><b class="tag">📌</b> <code>map[key]</code> silently does NOT throw and does NOT touch the Map's actual key-value data — always use <code>.get(key)</code> / <code>.set(key, val)</code> / <code>.has(key)</code>, never bracket notation, on a <code>Map</code>.</div>
 
-<h2 id="j7">7 · 🚨 Map/Set <code>.keys()</code> / <code>.values()</code> / <code>.entries()</code> Return an ITERATOR, Not an Array</h2>
-<pre class="language-tsx"><code class="language-tsx">const sorted = valueToNodes.keys().sort((a, b) => a - b);      // ❌ TS error — no .sort() on an iterator
-const sorted = [...valueToNodes.keys()].sort((a, b) => a - b);  // ✅ spread to array first
-const sorted = Array.from(valueToNodes.keys()).sort((a, b) => a - b); // ✅ same idea</code></pre>
-<div class="box warn"><b class="tag">🚨</b> Same trap applies to <code>.values()</code> and <code>.entries()</code> (and a bare <code>Set</code> itself, which is iterable but not an array) — any array method (<code>.sort()</code>, <code>.map()</code>, <code>.filter()</code>...) needs a REAL array first. Convert with <code>[...x]</code> or <code>Array.from(x)</code> before chaining one on.</div>
-<div class="box key"><b class="tag">🔑 Don't forget the comparator</b> <code>.sort()</code> with no comparator sorts as STRINGS — <code>10</code> would sort before <code>2</code>. Always pass <code>(a, b) => a - b</code> for numeric sort.</div>
-<p class="hint">Spreading a Map/Set iterator with <code>[...]</code> can need <code>"target": "ES2015"+</code> (or <code>downlevelIteration</code>) in <code>tsconfig</code> — not an issue on LeetCode.</p>
-<div class="box key"><b class="tag">📌</b> <code>.keys()</code>/<code>.values()</code>/<code>.entries()</code> on a Map or Set → always an iterator, never an array. Convert first (<code>[...x]</code> or <code>Array.from(x)</code>), THEN call array methods — and always supply the <code>(a,b)=&gt;a-b</code> comparator for numeric sorts.</div>
-
-<h2 id="j8">8 · 🚨 Backtracking: <code>res.push(path)</code> Saves a REFERENCE — Push a Copy</h2>
+<h2 id="j6">6 · 🚨 Backtracking: <code>res.push(path)</code> Saves a REFERENCE — Push a Copy</h2>
 <pre class="language-tsx"><code class="language-tsx">const res: number[][] = [];
 const path: number[] = [];
 
@@ -146,22 +137,7 @@ function dfs(start: number) {
 <div class="box warn"><b class="tag">🚨</b> Arrays are passed by reference. <code>res.push(path)</code> stores a pointer to the one <code>path</code> array, not its contents. Every <code>pop()</code> afterwards changes all the "saved" answers too — at the end, every entry in <code>res</code> is the same (usually empty) array, e.g. <code>[[],[],[],[]]</code>.</div>
 <div class="box key"><b class="tag">📌</b> When saving a backtracking answer, always push a COPY: <code>res.push([...path])</code> (or <code>path.slice()</code>). Same rule for strings built in an array: <code>res.push(path.join(''))</code> already makes a new value.</div>
 
-<h2 id="j9">9 · 🚨 Backtracking Dedup: <code>new Set()</code> Goes INSIDE <code>dfs</code>, Not Outside</h2>
-<pre class="language-tsx"><code class="language-tsx">function dfs(start: number) {
-    const seen = new Set&lt;number&gt;();   // ✅ new Set every call = "values tried at THIS level"
-    for(let i = start; i &lt; n; i++) {
-        if(seen.has(nums[i])) continue;
-        seen.add(nums[i]);                // no delete needed — the Set dies when this call returns
-        path.push(nums[i]); dfs(i + 1); path.pop();
-    }
-}
-
-const seen = new Set&lt;number&gt;();       // ❌ declared outside dfs: shared by every level,
-                                         //    so it blocks valid answers like [4,7]</code></pre>
-<div class="box warn"><b class="tag">🚨</b> <code>used[]</code> is the opposite: declared OUTSIDE <code>dfs</code> (shared) and undone with <code>used[i] = false</code>. Set up inside a call = per-level, no undo. Set up outside = whole-recursion, must undo.</div>
-<div class="box key"><b class="tag">📌</b> <code>.has()</code> / <code>.add()</code> are O(1) and the Set is garbage-collected when the call returns. Use <code>nums[i]</code> (the VALUE) as the key — not the index <code>i</code>, which is always unique and would dedupe nothing.</div>
-
-<h2 id="j10">10 · 🔢 Big Numbers: <code>Number</code> Is Exact Only Up to 15 Digits — Beyond That, <code>BigInt</code></h2>
+<h2 id="j7">7 · 🔢 Big Numbers: <code>Number</code> Is Exact Only Up to 15 Digits — Beyond That, <code>BigInt</code></h2>
 <pre class="language-tsx"><code class="language-tsx">Number.MAX_SAFE_INTEGER;               // 9007199254740991 = 2^53 − 1 → 16 digits
 Number("12345678901234567890");        // ❌ 12345678901234567000 — silently wrong, no error
 
