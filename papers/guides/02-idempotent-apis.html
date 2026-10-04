@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idempotent APIs: Study Guide</title>
+<style>
+:root {
+  --bg: #f7f6f2; --card: #ffffff; --text: #1d1d1f; --muted: #66666d; --line: #e4e2dc;
+  --accent: #3b5bdb; --chip: #eef1fb; --good: #2f9e44; --bad: #e03131; --warn: #d9480f;
+  --code-bg: #f1f0ea; --hl: #fff3bf; --track: #e9e7e1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
+    --accent: #7c95ff; --chip: #23263a; --good: #51cf66; --bad: #ff6b6b; --warn: #ff922b;
+    --code-bg: #17171a; --hl: #3b3520; --track: #2a2a2f;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
+  --accent: #7c95ff; --chip: #23263a; --good: #51cf66; --bad: #ff6b6b; --warn: #ff922b;
+  --code-bg: #17171a; --hl: #3b3520; --track: #2a2a2f;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+.layout { max-width: 1080px; margin: 0 auto; padding: 20px 16px 80px; display: grid; grid-template-columns: 1fr; gap: 32px; }
+@media (min-width: 980px) { .layout { grid-template-columns: 200px minmax(0, 760px); } }
+nav.toc { display: none; }
+@media (min-width: 980px) {
+  nav.toc { display: block; position: sticky; top: 20px; align-self: start; font-size: 13px; }
+  nav.toc a { display: block; padding: 3px 0; color: var(--muted); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+}
+main { min-width: 0; }
+.back { font-size: 14px; text-decoration: none; }
+h1 { font-size: 28px; line-height: 1.25; margin: 10px 0 6px; }
+h2 { font-size: 21px; margin: 44px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 16px; margin: 22px 0 6px; }
+p { margin: 8px 0; }
+.meta { color: var(--muted); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.chip { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--chip); color: var(--accent); text-decoration: none; }
+.tldr { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px; }
+.tldr p { margin: 4px 0; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 12px 0; }
+.says { color: var(--muted); font-size: 15px; }
+.means { border-left: 3px solid var(--good); padding-left: 10px; margin-top: 6px; }
+ul, ol { padding-left: 22px; margin: 8px 0; }
+li { margin: 4px 0; }
+dl.terms { display: grid; grid-template-columns: 1fr; gap: 2px 14px; margin: 8px 0; }
+@media (min-width: 600px) { dl.terms { grid-template-columns: max-content 1fr; } }
+dl.terms dt { font-weight: 600; }
+dl.terms dd { margin: 0 0 8px; color: var(--muted); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; font-size: inherit; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 10px 0; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+mark { background: var(--hl); color: inherit; padding: 0 2px; border-radius: 3px; }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 8px 0; }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+.card-remember { background: var(--card); border: 2px dashed var(--accent); border-radius: 12px; padding: 14px 18px; }
+figure { margin: 14px 0; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+figure img { width: 100%; height: auto; border-radius: 6px; background: #fff; display: block; }
+.img-pair { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 640px) { .img-pair { grid-template-columns: 1fr 1fr; } }
+.img-pair small { color: var(--muted); font-size: 12px; }
+svg { width: 100%; height: auto; display: block; }
+.vs { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 640px) { .vs { grid-template-columns: 1fr 1fr; } }
+.vs > div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 15px; }
+.vs .lvl { font-weight: 700; font-size: 13px; }
+.vs .sde1 .lvl { color: var(--warn); } .vs .sde2 .lvl { color: var(--good); }
+/* Interactive widgets */
+.widget { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 14px 0; }
+.widget h4 { margin: 0 0 4px; font-size: 15px; }
+.widget .hint { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 14px; margin-bottom: 10px; }
+.controls label { display: flex; align-items: center; gap: 6px; }
+.controls input[type=range] { width: 140px; accent-color: var(--accent); }
+.controls label { flex-wrap: wrap; max-width: 100%; }
+.controls select { max-width: 100%; }
+.controls select, .controls button { font: inherit; font-size: 14px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+.controls button { cursor: pointer; }
+.controls button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.stat { background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+.stat b { display: block; font-size: 20px; line-height: 1.2; }
+.stat span { font-size: 12px; color: var(--muted); }
+.w-svg text { font-family: inherit; }
+.big { font-size: 34px; font-weight: 800; color: var(--bad); line-height: 1.1; }
+.dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 8px; max-height: 150px; overflow: hidden; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--bad); display: block; }
+.dots i.one { background: var(--good); }
+.footer-src { font-size: 13px; color: var(--muted); }
+/* Mental map, legends, "how to read" notes */
+.flow { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
+.flow .step { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 15px; }
+.flow .step b { color: var(--accent); }
+.flow .arrow { text-align: center; color: var(--muted); font-size: 14px; line-height: 1; }
+.flow .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.flow .checks { margin: 6px 0 0; padding-left: 4px; list-style: none; }
+.flow .checks li { margin: 3px 0; }
+.flow .stop { border-color: var(--bad); }
+.flow .go { border-color: var(--good); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin: 6px 0; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+.legend i.line { height: 0; border-top: 2px dashed var(--warn); border-radius: 0; vertical-align: 3px; }
+.legend i.solid { height: 0; border-top: 2px solid var(--warn); border-radius: 0; vertical-align: 3px; }
+.read { font-size: 13.5px; background: var(--bg); border-radius: 8px; padding: 8px 12px; margin: 8px 0 0; }
+.read p { margin: 3px 0; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.quick button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.quick button { font: inherit; font-size: 13px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+.layers { display: grid; gap: 4px; margin-top: 10px; font-size: 14px; }
+.layers .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.layers .bar { height: 10px; border-radius: 5px; background: var(--bad); min-width: 4px; }
+.layers .row.first .bar { background: var(--good); }
+.layers .name { font-size: 13px; color: var(--muted); }
+.layers .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Code highlighting (Prism tokens, themed for light and dark) */
+:root { --tk-comment: #6a737d; --tk-keyword: #cf222e; --tk-string: #0a3069; --tk-fn: #8250df; --tk-num: #0550ae; --tk-class: #953800; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --tk-comment: #8b949e; --tk-keyword: #ff7b72; --tk-string: #a5d6ff; --tk-fn: #d2a8ff; --tk-num: #79c0ff; --tk-class: #ffa657; }
+}
+:root[data-theme="dark"] { --tk-comment: #8b949e; --tk-keyword: #ff7b72; --tk-string: #a5d6ff; --tk-fn: #d2a8ff; --tk-num: #79c0ff; --tk-class: #ffa657; }
+pre .token.comment { color: var(--tk-comment); font-style: italic; }
+pre .token.keyword, pre .token.builtin { color: var(--tk-keyword); }
+pre .token.string, pre .token.template-string { color: var(--tk-string); }
+pre .token.function { color: var(--tk-fn); }
+pre .token.number, pre .token.boolean { color: var(--tk-num); }
+pre .token.class-name, pre .token.decorator { color: var(--tk-class); }
+pre .token.operator, pre .token.punctuation { color: var(--muted); }
+pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.controls button:disabled { opacity: .45; cursor: default; }
+#inTable td, #inTable th { font-size: 13.5px; }
+#inTable code { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <a href="#tldr">⚡ TL;DR</a>
+    <a href="#terms">🔤 Terms first</a>
+    <a href="#howto">📍 How to read it</a>
+    <a href="#model">🧠 Mental model</a>
+    <a href="#walk">📖 Walkthrough</a>
+    <a href="#tradeoffs">⚖️ Tradeoffs</a>
+    <a href="#now">🌱 Then vs now</a>
+    <a href="#work">🛠️ At work</a>
+    <a href="#interview">🎤 In the interview</a>
+    <a href="#traps">⚠️ Traps</a>
+    <a href="#check">✅ Check yourself</a>
+    <a href="#remember">📝 Remember</a>
+    <a href="#deeper">🔭 Go deeper</a>
+  </nav>
+
+<main>
+  <a class="back" href="../paper-club.html">← Paper Club</a>
+  <h1>🔑 Making Retries Safe with Idempotent APIs</h1>
+  <div class="meta">Malcolm Featonby · Amazon Builders' Library · Study guide for #2</div>
+  <div class="chips">
+    <span class="chip">🟢 Level 1</span>
+    <span class="chip">⏱️ Original: 20 min</span>
+    <span class="chip">⏱️ Guide: ~25 min + 25 min lab</span>
+    <a class="chip" href="https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/" target="_blank" rel="noopener">🔗 Read the original</a>
+  </div>
+  <div class="chips">
+    <a class="chip" href="01-timeouts-retries-jitter.html">🔗 #1 Timeouts &amp; retries: retries are only safe if repeats are harmless</a>
+    <span class="chip">🔗 #8 Kafka: "at least once" delivery means consumers must dedupe</span>
+    <span class="chip">🔗 #23 Life Beyond Distributed Transactions: idempotent messages</span>
+    <span class="chip">🔗 #20 End-to-End: the end that knows the intent makes the key</span>
+  </div>
+
+  <h2 id="tldr">⚡ TL;DR</h2>
+  <div class="tldr">
+    <p>🧩 <b>The problem:</b> your code calls an API that <b>creates or changes</b> something: an order, a payment, a server. The call times out. Did it happen or not? <b>You can't tell.</b> Retrying might do it twice: two orders, two charges.</p>
+    <p>🔁 <b>Idempotent</b> (safe to repeat): doing it twice has the same effect as doing it once.</p>
+    <p>🔑 <b>Idempotency key</b> (one id per intent): the client makes a random id once and sends it with the request <b>and every retry</b>. The server remembers which ids it has already handled.</p>
+    <p>🧾 <b>Same answer for a repeat</b> (a "semantically equivalent" response): the server answers a repeat with the <b>same meaning</b> as the first time, not an "already exists" error, so the caller never notices the retry.</p>
+    <p>⏳ <b>Edge cases:</b> remember keys long enough for late retries (not forever), and reject a key reused with different data.</p>
+    <p>👉 In one line: <b>the client sends one key per intent and reuses it on every retry; the server saves the key and the result together and replays the result for repeats.</b></p>
+  </div>
+
+  <div class="box" id="one-flow">
+    <p style="margin:0 0 4px"><b>🗺️ The whole article in one flow</b>: one "create" call, start to finish.</p>
+    <div class="flow" aria-label="Flow: client makes a key once, sends the request, retries with the same key; server checks whether it has seen the key, does the work once, replays the result for repeats, rejects mismatches, and forgets keys after a retention window">
+      <div class="step">📱 <b>1. Client makes a key</b> once per intent ("pay ₹500 for order #123"), e.g. a random UUID.</div>
+      <div class="arrow">↓</div>
+      <div class="step">📤 <b>2. Send</b> the request with the key. No answer (timeout, 503)? Wait, then <b>back to 2</b> ↺ with the <b>same</b> key.</div>
+      <div class="arrow">↓</div>
+      <div class="step">🗄️ <b>3. Server: have I seen this key from this caller?</b></div>
+      <div class="branch">
+        <div>
+          <div class="arrow">↓ no</div>
+          <div class="step go">🆕 <b>Do the work</b> and save key + result in <b>one transaction</b>. Reply.</div>
+        </div>
+        <div>
+          <div class="arrow">↓ yes</div>
+          <div class="step">🔍 <b>Check:</b>
+            <ul class="checks">
+              <li>🧾 <b>Same data?</b> No → 422 error.</li>
+              <li>⏳ <b>Still running?</b> → 409, try again soon.</li>
+              <li>✅ <b>Done?</b> → replay the saved result.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="arrow">↓ much later</div>
+      <div class="step">🗑️ <b>4. Forget the key</b> after a retention window that is <b>longer than any retry could take</b>.</div>
+    </div>
+  </div>
+
+  <h2 id="terms">🔤 Terms first</h2>
+  <dl class="terms">
+    <dt id="t-side">Side effect</dt><dd>A change a call makes in the world: a row inserted, a card charged, an email sent, a server launched. A plain read has none.</dd>
+    <dt id="t-idem">Idempotent</dt><dd>Repeating it causes no extra side effects. "Set my plan to Pro" is idempotent (twice = still Pro). "Add ₹100 to my wallet" is not (twice = ₹200).</dd>
+    <dt id="t-key">Idempotency key</dt><dd>A unique id the <b>client</b> attaches to one intent and reuses on every retry. The article calls it a <b>client request identifier</b>; EC2 calls the field <code>ClientToken</code>; Stripe and an IETF draft use an <code>Idempotency-Key</code> header. Usually a UUID: a random 36-character id like <code>7f3c9a1e-…</code>.</dd>
+    <dt id="t-fp">Fingerprint</dt><dd>A short hash of the request's data (e.g. SHA-256 of the JSON body), saved with the key so the server can tell "same request again" from "same key, different data".</dd>
+    <dt id="t-codes">409 / 422</dt><dd>HTTP status codes. <b>409 Conflict</b>: "another request with this key is still running, try again soon". <b>422 Unprocessable</b>: "this key was used with different data".</dd>
+    <dt id="t-dup">Duplicate request</dt><dd>A request the server already handled, arriving again: a retry, or a copy that was stuck in the network.</dd>
+    <dt id="t-recon">Reconciliation</dt><dd>Checking afterwards what really happened ("list my servers: is my job running?") and fixing differences. Slow, and often still unsure.</dd>
+    <dt id="t-valid">Validation error</dt><dd>The request itself is wrong (bad input, a 4xx). Sending it again gives the same error, so it's the one kind of error you don't retry.</dd>
+    <dt id="t-equiv">Semantically equivalent response</dt><dd><b>Same meaning, not the same bytes.</b> First reply: "server i-0abc, status pending". Repeat a minute later: "server i-0abc, status running". Same server, same outcome, current status.</dd>
+    <dt id="t-atomic">Atomic (the A in ACID)</dt><dd>All or nothing. A database transaction either saves all its writes or none of them, even if the process crashes halfway.</dd>
+    <dt id="t-once">At most once / exactly-once effect</dt><dd>"At most once" means never twice. Networks can deliver a request more than once, so the practical goal is an <b>exactly-once effect</b>: keep retrying until it works, and let the key make repeats harmless.</dd>
+    <dt id="t-late">Late-arriving request</dt><dd>A copy of a request that shows up long after it was sent, e.g. stuck in a slow network path or a queue.</dd>
+    <dt id="t-ret">Retention window</dt><dd>How long the server remembers a key before deleting it.</dd>
+  </dl>
+
+  <h2 id="howto">📍 How to read the original</h2>
+  <ul>
+    <li>📖 <b>Read closely:</b> "Retrying and side effects" (the timeout dilemma) and "Reducing client complexity" (why hashing fails, why tokens win, the ACID rule, why "already exists" is a bad reply).</li>
+    <li>👀 <b>Read:</b> "Semantic equivalence", "Late arriving requests", and "Same client request ID, different intent". Each is short.</li>
+    <li>⏭️ <b>Skim:</b> the CLI JSON outputs (only spot the <code>ClientToken</code> and the state field), and the conclusion.</li>
+    <li>🧭 Read it in order. About 20 minutes.</li>
+  </ul>
+
+  <h2 id="model">🧠 Mental model</h2>
+  <p>🍽️ <b>The restaurant order slip.</b> A waiter writes your order on slip <b>#42</b> and takes it to the kitchen. He isn't sure the chef got it, so he brings slip #42 again. The chef sees #42 already on the spike and says "already cooking it". <b>No second meal.</b></p>
+  <ul>
+    <li>🔑 The slip number is the <b>idempotency key</b>. The waiter (client) writes it, not the chef.</li>
+    <li>❌ If a new waiter writes a <b>new slip number</b> for the same order, the chef cooks twice. That's a client making a new key per retry.</li>
+    <li>🧾 If slip #42 comes back saying "2 coffees" instead of "1 coffee", the chef asks "is this a different order?" That's the <b>parameter mismatch</b> check.</li>
+    <li>🗑️ The chef clears old slips at closing time. That's the <b>retention window</b>.</li>
+  </ul>
+
+  <div class="widget" id="dilemma">
+    <h4>🎛️ Try it: a create call times out. What happens when you retry?</h4>
+    <p class="hint">Pick where the failure happened and how the client retries. The client can't see where it failed: it only sees "timeout".</p>
+    <div class="controls"><span>💥 Where it failed:</span>
+      <span class="quick" id="dlWhere">
+        <button data-v="req" class="on">📤 Request lost</button>
+        <button data-v="mid">💥 Server crashed midway</button>
+        <button data-v="resp">📥 Response lost</button>
+      </span>
+    </div>
+    <div class="controls"><span>🔁 Client retries with:</span>
+      <span class="quick" id="dlHow">
+        <button data-v="none" class="on">🚫 No key</button>
+        <button data-v="new">🔄 A new key each try</button>
+        <button data-v="same">🔑 The same key</button>
+      </span>
+    </div>
+    <div class="flow" id="dlFlow"></div>
+    <div class="stats">
+      <div class="stat"><b id="dlOrders">1</b><span>orders created</span></div>
+      <div class="stat"><b id="dlCharged">1×</b><span>customer charged</span></div>
+      <div class="stat"><b id="dlVerdict">✅</b><span>outcome</span></div>
+    </div>
+    <h4 style="margin-top:16px">📊 Now at scale: 10,000 checkouts</h4>
+    <div class="controls"><label>⏱️ Calls that time out: <input type="range" id="dlRate" min="0.1" max="5" step="0.1" value="1"> <b id="dlRateTxt">1%</b></label></div>
+    <div class="stats">
+      <div class="stat"><b id="dlNone">0</b><span>🚫 no key: duplicate orders</span></div>
+      <div class="stat"><b id="dlNew">0</b><span>🔄 new key each try: duplicates</span></div>
+      <div class="stat"><b id="dlSame">0</b><span>🔑 same key: duplicates</span></div>
+    </div>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> Each checkout tries once; a timed-out try is retried until it works. Of the timeouts, about a third each were a lost request, a crash midway, or a lost response. The server here does its work in one transaction, so a crash midway saves nothing.</p>
+      <p id="dlExplain"></p>
+      <p>👀 <b>What to look for.</b> Only the <b>lost response</b> case duplicates, because the work already happened. A new key per try is exactly as bad as no key: the server can't link the tries.</p>
+    </div>
+  </div>
+
+  <h2 id="walk">📖 Walkthrough</h2>
+
+  <h3>1. Why AWS retries everything, and the catch</h3>
+  <p class="says">What it says: big operations at Amazon are split into steps handled by smaller services. Launching an EC2 server, for example, calls services that pick a host, create an EBS disk, create a network interface, and start the VM. A controller drives every step to success. The simplest tool for that is to <b>retry until it works</b>, and many random faults go away on a retry (that's paper #1). It works so well that AWS SDKs (AWS's client libraries) <b>retry automatically</b> on network errors, server faults and throttling (being told "slow down", HTTP 429). That saves every caller from writing "undifferentiated boilerplate": the same failure-handling wrapper code everyone would otherwise write. <b>The catch:</b> a retry is only safe if it has no extra side effects. Retrying "create EBS disk" must not leave you with two disks.</p>
+  <div class="means">What it means for you: your Nest services do the same. A checkout endpoint calls inventory, payments and shipping, and your HTTP client may retry for you (the AWS SDK does by default; libraries like <code>axios-retry</code> can). <b>Every POST that gets retried, by you or a library, must be safe to repeat.</b></div>
+
+  <div class="box" id="three-fails">
+    <p>🧩 <b>Primer: three ways a call can fail, and the client can't tell which</b></p>
+    <div class="flow">
+      <div class="step">📤 <b>Request lost</b> on the way. The server never saw it. <b>Nothing happened.</b></div>
+      <div class="step">💥 <b>Server crashed midway.</b> Some work may have happened, unless it was all-or-nothing.</div>
+      <div class="step stop">📥 <b>Response lost</b> on the way back. <b>The work fully happened</b>; you just didn't hear.</div>
+    </div>
+    <p>All three look identical to the client: <b>a timeout</b>. So a timeout means <b>"unknown"</b>, not "failed". Retrying is right for the first, and wrong for the third unless the server can recognise the repeat. The widget above shows all three.</p>
+  </div>
+
+  <h3>2. The singleton story: why the client can't fix this alone</h3>
+  <p class="says">What it says, step by step:</p>
+  <ol>
+    <li>🧱 <b>Setup.</b> A customer runs a "singleton" workload: one that must have <b>at most one</b> EC2 server at any time. Their provisioning script (the code that sets up servers) asks EC2 to launch it.</li>
+    <li>⏱️ <b>What goes wrong.</b> The call times out. No response.</li>
+    <li>🤔 <b>The dilemma.</b> Is the workload running? Retrying might start a second copy, which could be very bad for a job that must only run once.</li>
+    <li>🔍 <b>The workaround.</b> Reconciliation: list what's running and work out whether the launch happened. That's a lot of work for a rare case.</li>
+    <li>❓ <b>Still unsure.</b> Even if a matching server exists, was it started by <b>this</b> script, or by another provisioning process?</li>
+    <li>💡 <b>Lesson.</b> The client can't make this safe on its own. <b>The API has to help.</b></li>
+  </ol>
+  <div class="means">What it means for you: picture a nightly billing job that must run once. If "start billing run" times out and you blindly retry, every customer could be billed twice. Your Node code faces the same dilemma every time a POST times out.</div>
+
+  <h3>3. The fix: make the operation idempotent</h3>
+  <p class="says">What it says: make the operation idempotent, so a request can be resent with no extra side effects. Then the API can promise clients something simple: <b>any error that isn't a validation error can be retried until it succeeds.</b> Client code gets much simpler. The complexity moves to the server, which now has to answer one question among many clients and many requests in flight: <b>is this request a repeat of an earlier one?</b></p>
+
+  <h3>3a. 🔍 How does the server spot a repeat?</h3>
+  <p class="says">What it says: one idea is a <b>hash of the parameters</b>: same caller, same parameters, so it must be a duplicate. No client changes needed. But it doesn't always hold. Two identical "create DynamoDB table" calls (DynamoDB is AWS's key-value database, and table names are unique) seconds apart are surely a retry. Two identical "launch an EC2 server" calls might be a customer who <b>really wants two identical servers</b>. Amazon's preferred way is a <b>client request identifier</b>: the caller adds a unique id to the request, and the same caller with the same id means a duplicate.</p>
+  <div class="means">What it means for you: only the client knows its intent. "Send ₹500 to Priya" twice in a minute: a retry, or a second real transfer? A hash can't know. A key can: same key = same intent, new key = new intent.</div>
+  <p>✅ <b>Why the key is better, from the article:</b></p>
+  <ul>
+    <li>🎯 <b>Intent is explicit</b>, so there are fewer surprises.</li>
+    <li>📜 <b>Auditable:</b> the id shows up in logs like AWS CloudTrail (AWS's log of every API call), so you can trace what a request did.</li>
+    <li>🏷️ <b>Resources are labelled</b> with the id. EC2's DescribeInstances (the API that lists your servers) shows the <code>ClientToken</code> each server was launched with. That answers the "mine or another process's?" question from the singleton story.</li>
+  </ul>
+  <div class="box" id="natural-key">
+    <p>🤔 <b>"Can't I just put a unique constraint on <code>orderId</code>?"</b></p>
+    <p>Yes, when your business rule already says "only one": one payment per order, one refund per return. That's a <b>natural key</b>, and the database rejects the duplicate for you. The idempotency key is the general tool for when no such rule exists, like two genuine ₹500 transfers to Priya. 🧠 My take: use a natural key when you have one, and an idempotency key for everything else. Note that a unique-constraint error is an "already exists" reply, which §3c explains is awkward for retries.</p>
+  </div>
+
+  <h3>3b. 🔒 Save the key and do the work in one atomic step</h3>
+  <p class="says">What it says: on a request, the server checks whether it has seen this id. If not, it processes the request and records an idempotent "session" keyed by <b>customer + id</b>. If the same customer sends the same id again, the server knows it's a repeat. The key rule: <b>recording the id and all the changes the request makes must be one ACID, all-or-nothing operation.</b> Otherwise you can record the id but fail to create the resource, or create the resource but fail to record the id.</p>
+  <div class="means">What it means for you: in Postgres, the key row and the order row go in <b>one transaction</b>. Try the two wrong orders below to see why.</div>
+
+  <div class="widget" id="atomic">
+    <h4>🎛️ Try it: the server crashes between the two steps</h4>
+    <p class="hint">A request to create a disk arrives. The server saves the key and creates the disk, then crashes right between those two steps. The client times out and retries with the same key.</p>
+    <div class="controls"><span>🗂️ Server writes:</span>
+      <span class="quick" id="atOrder">
+        <button data-v="keyFirst" class="on">Key, then disk</button>
+        <button data-v="workFirst">Disk, then key</button>
+        <button data-v="tx">Both in one transaction</button>
+      </span>
+    </div>
+    <div class="flow" id="atFlow"></div>
+    <div class="stats">
+      <div class="stat"><b id="atDisks">0</b><span>disks that exist</span></div>
+      <div class="stat"><b id="atTold">…</b><span>client was told</span></div>
+      <div class="stat"><b id="atVerdict">❌</b><span>outcome</span></div>
+    </div>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> The steps run top to bottom; 💥 is the crash. "Disks that exist" counts real disks after the retry.</p>
+      <p>👀 <b>What to look for.</b> Key first loses the work but reports success. Disk first creates a duplicate. Only one transaction gives exactly one disk.</p>
+    </div>
+  </div>
+
+  <div class="box" id="all-the-way">
+    <p>🤔 <b>"But my work calls another service. One transaction can't cover that."</b></p>
+    <p>Right. If the work is "charge the card at a payment provider", your database transaction can't roll back the provider's charge. The usual fix is <b>keys all the way down</b>: pass an idempotency key to the provider too (Stripe accepts one), save your progress in steps, and make each step safe to redo. Then a retry after a crash calls the provider again with the same key, and the provider replays the first charge instead of charging twice. Details and code in <a href="#external">At work §3</a>.</p>
+  </div>
+
+  <h3>3c. 📨 What should a repeat get back?</h3>
+  <p class="says">What it says: say <code>CreateResource</code> with id <code>123</code> succeeds, but the response is lost. The client retries with <code>123</code>. The server could reply <b>ResourceAlreadyExists</b>. That's technically idempotent: nothing extra happened on the server. But it hurts the caller in two ways:</p>
+  <ul>
+    <li>❓ <b>Ambiguity:</b> did <b>my</b> request create it, or someone else's?</li>
+    <li>🔀 <b>A side effect on the client:</b> the caller's code takes a different path. They must handle "already exists" for something that, from their view, didn't exist when they called. So automatic retries inside an SDK no longer stay invisible.</li>
+  </ul>
+  <div class="means">What it means for you: in Nest terms, a retry that returns <code>409 Conflict</code> where the first call would have returned <code>201 Created</code> forces every caller to write special handling. That's the boilerplate idempotency was supposed to remove.</div>
+
+  <h3>4. 🧾 Semantic equivalence: same meaning every time</h3>
+  <p class="says">What it says: for a given id, return a response with the <b>same meaning</b> as the first successful one, for some period. The EC2 demo shows it. Run <code>run-instances</code> from the AWS CLI <b>without</b> a token, and the response still contains a <code>ClientToken</code>: the CLI generated one. Repeat the call minutes later with that token and you get the <b>same instance id</b>, but its state now says "running" instead of "pending". Similar, not identical. The SDKs and CLI know which operations accept a token, add one when you don't, and <b>reuse it on every retry</b>. That keeps the "at most once" promise while your code never sees the retries.</p>
+  <p>Here's the shape of it, trimmed to the fields that matter:</p>
+<pre><code class="language-js"><span class="file">// 1st call (times out on the client, but EC2 did launch)</span>
+{ instanceId: 'i-0abc', state: 'pending', clientToken: '7f3c…' }
+
+<span class="file">// retry with the same clientToken, a minute later</span>
+{ instanceId: 'i-0abc', state: 'running', clientToken: '7f3c…' }</code></pre>
+  <div class="means">What it means for you: "same meaning" = same resource, same outcome. Fields that naturally change (status, timestamps) can be current. Build your HTTP client wrappers the same way: <b>create a key per call when the caller didn't pass one, and reuse it across the wrapper's own retries.</b></div>
+  <div class="box" id="replay-or-rebuild">
+    <p>🤔 <b>"Do I store the whole response, or rebuild it?"</b></p>
+    <p>Either works if the meaning is the same. <b>Replay</b> (simplest): save the status code and body of the first result and send them back. Stripe does this. <b>Rebuild</b> from the resource's current state: what EC2 does, which is why the retry shows "running". Start with replay.</p>
+  </div>
+
+  <h3>5. ⏳ Late-arriving requests</h3>
+  <p class="says">What it says, step by step:</p>
+  <ol>
+    <li>📤 Client A creates a resource with key <code>k1</code>, and retries. The retry gets <b>stuck</b> in the network.</li>
+    <li>🗑️ Meanwhile, a second actor <b>deletes</b> the resource.</li>
+    <li>📬 The stuck retry with <code>k1</code> finally arrives. What now?</li>
+  </ol>
+  <p>The options: create it again (a resource someone deliberately deleted comes back, which is a surprise), return an error (confusing, since the client did nothing wrong), or do what EC2 does: <b>honour the original promise</b> and return the equivalent response, which now shows the server as <b>terminated</b>. Amazon calls this the "principle of least astonishment": when in doubt, do what surprises the caller least.</p>
+  <p class="says">On retention, it says: the server must remember the first request to do this, but not forever. Storage grows, and a much later request could reuse an old id by accident and be wrongly matched. Each service picks its own window. For EC2 instances it's <b>the lifetime of the server plus an extra interval</b>, after which any late request has either arrived or no longer matters.</p>
+  <div class="box" id="retention-math">
+    <p>🔢 <b>Worked example: retention vs retry window</b></p>
+    <ul>
+      <li>📬 A queue worker retries a failed "create payment" for up to <b>24 hours</b>.</li>
+      <li>🗑️ The API forgets keys after <b>1 hour</b>.</li>
+      <li>💥 A retry at hour 3 carries a key the server no longer knows, so it's treated as <b>new</b>: a second payment.</li>
+    </ul>
+    <p>👉 Rule: <b>retention &gt; your longest retry window + delays</b>. Stripe documents that keys can be removed once they're at least 24 hours old, so a client retrying for longer than that loses the protection.</p>
+  </div>
+
+  <h3>6. 🧾 Same key, different data</h3>
+  <p class="says">What it says: if a known id arrives with <b>different parameters</b>, the safest assumption is that the customer meant something different. EC2 returns a <b>validation error</b> (a parameter mismatch). To check this, it stores the original parameters with the id.</p>
+  <div class="box" id="mismatch-math">
+    <p>🔢 <b>Worked example</b>: key <code>k9</code> paid ₹500, then a client bug reuses <code>k9</code> for ₹5,000. Three possible replies:</p>
+    <table>
+      <tr><th>Server does</th><th>Result</th></tr>
+      <tr><td>Replay the ₹500 result</td><td>❌ The client believes ₹5,000 was paid.</td></tr>
+      <tr><td>Charge ₹5,000</td><td>❌ The key protects nothing.</td></tr>
+      <tr><td>Reject: "key reused with different parameters"</td><td>✅ The bug surfaces at once. The IETF draft suggests HTTP <b>422</b>.</td></tr>
+    </table>
+    <p>In practice you store a <b>fingerprint</b> (a hash such as SHA-256 of the request body), not the whole body.</p>
+  </div>
+
+  <div class="widget" id="inside">
+    <h4>🎛️ Step through it: inside the server's key table</h4>
+    <p class="hint">One customer, one key, seven events. Press Next and watch the key table and the disks change.</p>
+    <div class="controls">
+      <button id="inBack">◀ Back</button>
+      <button id="inNext" class="primary">Next ▶</button>
+      <button id="inReset">↺ Reset</button>
+      <span id="inStep" class="hint" style="margin:0"></span>
+    </div>
+    <div class="flow" id="inFlow"></div>
+    <p style="margin:10px 0 4px"><b>🗄️ Key table</b></p>
+    <table id="inTable"></table>
+    <p style="margin:10px 0 4px"><b>💽 Disks</b></p>
+    <div id="inDisks" class="hint" style="margin:0"></div>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> The top box is the event and what the server decides. The table is what the server remembers: customer, key, a short fingerprint of the request data, and the saved reply.</p>
+      <p>👀 <b>What to look for.</b> Steps 2 and 5: repeats never create a disk. Step 3: the mismatch check. Step 7: once the key is forgotten, a very late copy creates a second disk. That's why retention must outlast every retry.</p>
+    </div>
+  </div>
+
+  <h3>7. Conclusion: worth it where "at most once" matters</h3>
+  <p class="says">What it says: failures are normal ("expect the unexpected"), and handling them is necessary but undifferentiated work. Building on paper #1's automated retries, idempotent APIs give customers those retries while keeping the "at most once" promise. Customers like the simpler client code. But it costs time and complexity to build, and it isn't right for every API. Sometimes moving faster with a simpler contract is better for customers.</p>
+  <div class="means">What it means for you: use it where a duplicate hurts: <b>money, creating resources, sending messages, anything with a "once" rule</b>. Reads don't need it, and neither do naturally idempotent writes like <code>PUT /users/42/plan</code> or <code>DELETE</code>.</div>
+
+  <h2 id="tradeoffs">⚖️ Tradeoffs</h2>
+  <table>
+    <tr><th>Choice</th><th>You gain</th><th>You give up</th></tr>
+    <tr><td>Client key (UUID)</td><td>Explicit intent, works for any operation, shows up in logs</td><td>Clients must create and reuse it correctly; a table to run</td></tr>
+    <tr><td>Hash of parameters</td><td>No client changes</td><td>Can't tell a retry from a real second request</td></tr>
+    <tr><td>Natural key (unique constraint)</td><td>No extra table</td><td>Only works where a "one per X" rule exists; replies "already exists"</td></tr>
+    <tr><td>Replay the stored response</td><td>Simple and exact</td><td>Storage; fields like status may be stale</td></tr>
+    <tr><td>Rebuild from current state</td><td>Always fresh</td><td>You must define "equivalent" per API</td></tr>
+    <tr><td>Longer retention</td><td>Safe for very late retries</td><td>More storage; more room for accidental reuse</td></tr>
+    <tr><td>Strict parameter check</td><td>Catches client bugs</td><td>Store a fingerprint per key</td></tr>
+  </table>
+  <p>🔀 <b>If an assumption changes, what breaks:</b></p>
+  <ul>
+    <li>🌐 The work touches <b>another system</b> (a provider, an email service): one DB transaction no longer covers it. Use keys all the way down (<a href="#external">At work §3</a>).</li>
+    <li>🔄 Clients make a <b>new key per retry</b>: zero protection.</li>
+    <li>⏳ Retention is <b>shorter than the retry window</b>: late retries become duplicates.</li>
+    <li>🪞 The key lookup reads from a <b>lagging read replica</b> (a read-only copy of the database that can be a moment behind): a quick retry may not see the key yet. 🧠 My take: read keys from the primary.</li>
+    <li>👥 Keys aren't <b>scoped per caller</b>: two customers who pick the same key collide, and one could get the other's saved response. The article scopes by customer + id for a reason.</li>
+  </ul>
+
+  <h2 id="now">🌱 Then vs now</h2>
+  <ul>
+    <li>✅ <b>Still how AWS works:</b> many AWS APIs take a <code>ClientToken</code>, and the SDKs and CLI add one for you (from the article).</li>
+    <li>💳 <b>Stripe</b> (checked 2026-10-04): send an <code>Idempotency-Key</code> header on POSTs. Stripe saves the status code and body of the first result, <b>even a 500 error</b>, and replays it. It compares parameters and errors if they differ. Keys may be removed once they're at least 24 hours old. It doesn't save a result if validation fails or another request with the same key is still running, so those can be retried. GET and DELETE need no key.</li>
+    <li>📄 <b>IETF draft "The Idempotency-Key HTTP Header Field"</b> (checked: draft-07, expired, not an RFC): recommends a UUID, and suggests <b>400</b> when a required key is missing, <b>422</b> when a key is reused with a different payload, and <b>409</b> while the first request is still running.</li>
+    <li>🌐 <b>HTTP itself</b> defines GET, PUT and DELETE as idempotent and POST and PATCH as not. That's why the key goes on POSTs.</li>
+    <li>📬 <b>Queues:</b> Kafka and SQS (AWS's queue service) deliver "at least once" by default, so consumers dedupe by message or event id. That's the same idea on the receiving end.</li>
+    <li>🗣️ <b>What to say today:</b> "exactly-once <b>effect</b>: at-least-once delivery plus idempotent handling." <b>Don't say</b> the network or a queue gives you exactly-once delivery for free.</li>
+  </ul>
+
+  <h2 id="work">🛠️ At work</h2>
+  <h3>1. The client: one key per intent, reused on every retry</h3>
+<pre><code class="language-ts"><span class="file">// payments.client.ts: calling a payments API from another service</span>import { randomUUID } from 'node:crypto';
+import { HttpError, withRetry } from './retry'; // from guide #1
+
+export function createPayment(
+  api: string,
+  body: { orderId: string; amount: number },
+) {
+  // ONE key per intent, made before the first attempt...
+  const key = randomUUID();
+
+  return withRetry(async (signal) =&gt; {
+    const res = await fetch&#40;`${api}/payments`, {
+      method: 'POST',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        // ...and the SAME key on every retry.
+        'Idempotency-Key': key,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new HttpError(res.status);
+    return res.json();
+  });
+}</code></pre>
+  <p class="hint">Uses <code>withRetry</code> and <code>HttpError</code> from guide #1's <code>retry.ts</code>. In a browser or mobile app, create the key when the user taps <b>Pay</b> and keep it with the pending order, so a page reload or a second tap reuses it.</p>
+
+  <h3>2. The server: a key table plus one transaction</h3>
+<pre><code class="language-none"><span class="file">-- schema.sql: the key table</span>CREATE TABLE idempotency_keys (
+  caller_id   text        NOT NULL,
+  key         text        NOT NULL,
+  fingerprint text        NOT NULL,
+  response    jsonb,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (caller_id, key)
+);</code></pre>
+<pre><code class="language-ts"><span class="file">// idempotency.service.ts</span>import { createHash } from 'node:crypto';
+import { UnprocessableEntityException } from '@nestjs/common';
+
+// Same shape as pg / PGlite: query() returns { rows }.
+export interface Tx {
+  query&lt;R&gt;(sql: string, params?: unknown[]): Promise&lt;{ rows: R[] }&gt;;
+}
+export interface Db {
+  transaction&lt;T&gt;(fn: (tx: Tx) =&gt; Promise&lt;T&gt;): Promise&lt;T&gt;;
+}
+
+const fingerprint = (body: unknown) =&gt;
+  createHash('sha256').update(JSON.stringify(body)).digest('hex');
+
+export class IdempotencyService {
+  constructor(private readonly db: Db) {}
+
+  /** Runs `work` at most once per (caller, key). */
+  run&lt;T&gt;(
+    callerId: string,
+    key: string,
+    body: unknown,
+    work: (tx: Tx) =&gt; Promise&lt;T&gt;,
+  ): Promise&lt;T&gt; {
+    const fp = fingerprint(body);
+    // One transaction: the key and the work commit together or not at all.
+    return this.db.transaction(async (tx) =&gt; {
+      const claimed = await tx.query(
+        `INSERT INTO idempotency_keys (caller_id, key, fingerprint)
+         VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING
+         RETURNING 1`,
+        [callerId, key, fp],
+      );
+
+      if (claimed.rows.length === 0) {
+        // Seen before: answer from what we saved, never redo the work.
+        const { rows } = await tx.query&lt;{
+          fingerprint: string;
+          response: T;
+        }&gt;(
+          `SELECT fingerprint, response FROM idempotency_keys
+           WHERE caller_id = $1 AND key = $2`,
+          [callerId, key],
+        );
+        if (rows[0].fingerprint !== fp) {
+          throw new UnprocessableEntityException(
+            'Idempotency-Key reused with different parameters',
+          );
+        }
+        return rows[0].response;
+      }
+
+      const result = await work(tx);
+      await tx.query(
+        `UPDATE idempotency_keys SET response = $3
+         WHERE caller_id = $1 AND key = $2`,
+        [callerId, key, JSON.stringify(result)],
+      );
+      return result;
+    });
+  }
+}</code></pre>
+<pre><code class="language-ts"><span class="file">// payments.controller.ts</span>import {
+  BadRequestException,
+  Body,
+  Controller,
+  Headers,
+  Post,
+  Req,
+} from '@nestjs/common';
+import { IdempotencyService } from './idempotency.service';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { PaymentsService } from './payments.service';
+
+@Controller('payments')
+export class PaymentsController {
+  constructor(
+    private readonly idem: IdempotencyService,
+    private readonly payments: PaymentsService,
+  ) {}
+
+  @Post()
+  create(
+    @Headers('idempotency-key') key: string | undefined,
+    @Body() dto: CreatePaymentDto,
+    @Req() req: { user: { id: string } },
+  ) {
+    if (!key) {
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
+    // Keys are scoped per caller: two users may pick the same key.
+    return this.idem.run(req.user.id, key, dto, (tx) =&gt;
+      this.payments.create(tx, dto),
+    );
+  }
+}</code></pre>
+  <p class="hint">Run on Node 22 against PGlite (Postgres compiled to WebAssembly): the first call created payment 1; the retry replayed it and the table still had 1 payment; reusing the key for ₹5,000 got a 422; a crash inside <code>work</code> rolled back the key and the payment together, and the retry then succeeded. The replayed reply came back from <code>jsonb</code> (Postgres's JSON column type) with its fields in a different order: same meaning, not the same bytes.</p>
+  <div class="box" id="concurrent">
+    <p>⚡ <b>Two identical requests at the same moment?</b> With this code in Postgres, the second <code>INSERT</code> waits until the first transaction commits, then hits the conflict and replays the saved result. If the first rolls back, the second does the work. Holding a transaction open during the work is fine when the work is quick database writes. It isn't when the work is a slow call to another service, which is the next section.</p>
+  </div>
+
+  <h3 id="external">3. When the work calls another service: keys all the way down</h3>
+  <div class="flow">
+    <div class="step">🗄️ <b>1. Claim the key</b> in its own transaction, with status <code>started</code>, and commit.</div>
+    <div class="arrow">↓</div>
+    <div class="step">🏦 <b>2. Call the provider with a key</b> (reuse yours). If this times out, retrying with that key is safe on their side too.</div>
+    <div class="arrow">↓</div>
+    <div class="step go">💾 <b>3. Save the provider's result</b> and status <code>done</code> in one transaction.</div>
+  </div>
+  <p>💥 Crash after step 2? The retry finds the key still <code>started</code>, calls the provider again <b>with the same key</b>, gets the same charge back, and finishes step 3. Another request with that key while one is running gets <b>409</b> (or waits). Brandur Leach's write-up from his time at Stripe (Go deeper) builds this with a <code>locked_at</code> column (marks a key as being worked on) and "recovery points" (saved checkpoints, so a retry resumes where the last try stopped).</p>
+<pre><code class="language-ts"><span class="file">// inside step 2 (stripe-node accepts an idempotencyKey option)</span>
+const intent = await stripe.paymentIntents.create(
+  { amount: 50_000, currency: 'inr' },
+  { idempotencyKey: key },
+);</code></pre>
+
+  <h3>✅ Code-review checklist</h3>
+  <ul>
+    <li>🔑 Does every non-idempotent POST that can be retried take an <code>Idempotency-Key</code>?</li>
+    <li>🔄 Is the key created <b>once per intent</b>, outside the retry loop?</li>
+    <li>🔒 Are the key row and the business writes in <b>one transaction</b>?</li>
+    <li>🧾 Is there a fingerprint check that returns 422 on mismatch?</li>
+    <li>👥 Is the key scoped per caller (user, API client or tenant)?</li>
+    <li>⏳ Is the retention window longer than the longest retry, including queue retries?</li>
+    <li>🌐 If the work calls another service, does that call carry a key too?</li>
+  </ul>
+  <p>📅 <b>Try this week:</b> find one POST in your codebase that a client, a queue or a library retries. Ask: if the response is lost and it's retried, what happens? If the answer is "a duplicate", sketch the key table for it.</p>
+
+  <h3>🧪 Lab (25 min): break it, then fix it</h3>
+  <ol>
+    <li>🏗️ Create the table and <code>IdempotencyService</code> above with <code>@electric-sql/pglite</code> (no install of Postgres needed) or your local Postgres.</li>
+    <li>💥 Write a tiny Node HTTP server whose <b>first</b> reply is slower than the client's 800 ms timeout, but which has already created the payment. Call it with the client above. Count payments: 2 if the server ignores keys, 1 if it uses them. (Run on Node 22: "server ignores keys → payments created: 2"; "server honours keys → payments created: 1".)</li>
+    <li>🔄 Move <code>randomUUID()</code> <b>inside</b> the retry callback and watch the duplicate come back.</li>
+    <li>➕ Stretch: with real Postgres and a <code>pg.Pool</code>, fire the same request 5 times at once with <code>Promise.all</code> and confirm one payment.</li>
+  </ol>
+
+  <h2 id="interview">🎤 In the interview</h2>
+  <h3>① Where it shows up</h3>
+  <p>Any design with money or "do it once": <b>payments and checkout</b>, <b>wallet transfers</b>, <b>ticket or hotel booking</b>, <b>ride requests</b>, <b>order placement</b>, <b>"send exactly one notification"</b>, <b>webhook receivers</b>, <b>queue consumers</b>, and the classic <b>"design a payments API like Stripe"</b>.</p>
+
+  <h3>② 30-second version</h3>
+  <div class="box">"A timeout means the result is unknown, so clients must retry, and retrying a write can do it twice. So I make writes idempotent: the client sends a unique idempotency key per intent and reuses it on retries. The server stores the key, a fingerprint of the request and the result in the same transaction as the write, replays the result for repeats, rejects a reused key with different data, and keeps keys longer than any retry window."</div>
+
+  <h3>③ 2-minute version (say it out loud)</h3>
+  <ul>
+    <li>🧩 <b>Problem:</b> request lost, crashed midway, or response lost all look like a timeout. Retrying a create can duplicate it.</li>
+    <li>🔑 <b>Key:</b> client-generated (UUID), one per intent, reused on retries, scoped per caller. Hashing parameters can't tell a retry from a real second request.</li>
+    <li>🔒 <b>Atomic:</b> the key and the writes commit together; otherwise you lose work or duplicate it.</li>
+    <li>🧾 <b>Reply:</b> replay a response with the same meaning, not "already exists", so SDK retries stay invisible.</li>
+    <li>⚠️ <b>Edges:</b> 422 on a parameter mismatch, 409 or wait while the first is still running, retention longer than the retry window, late requests get the original answer.</li>
+    <li>🌐 <b>Beyond one database:</b> pass keys downstream to providers and dedupe queue consumers by event id.</li>
+  </ul>
+
+  <h3>④ "Design the Pay button for a food-delivery app"</h3>
+  <p>🧭 <b>Who's who:</b></p>
+  <div class="flow">
+    <div class="step go">📱 <b>App</b> (yours). The rider taps Pay. The network is flaky.</div>
+    <div class="arrow">↓ POST /payments</div>
+    <div class="step go">💳 <b>Payments service</b> (yours, NestJS + Postgres). Owns the key table.</div>
+    <div class="arrow">↓ HTTPS "charge ₹500"</div>
+    <div class="step">🏦 <b>Card / UPI provider</b> (third party). Accepts its own idempotency key.</div>
+  </div>
+  <div class="vs">
+    <div class="sde1"><div class="lvl">SDE1 answer</div>"I'll disable the button after the first tap, and check whether a payment already exists for the order before charging."</div>
+    <div class="sde2"><div class="lvl">SDE2 answer</div>
+      <p style="margin:4px 0"><b>In the app:</b></p>
+      <ul style="margin:4px 0">
+        <li>🔑 Create a key when Pay is tapped; keep it with the pending order; reuse it on every retry and after a reload. Disabling the button is UX only.</li>
+      </ul>
+      <p style="margin:4px 0"><b>In the payments service:</b></p>
+      <ul style="margin:4px 0">
+        <li>🗄️ Require <code>Idempotency-Key</code> (400 if missing). Table keyed by (user, key) with a fingerprint and the saved reply.</li>
+        <li>🔒 Key and payment row in one transaction. Repeat → replay. Mismatch → 422. Still running → 409.</li>
+        <li>⏳ Keep keys longer than the app's and the queues' retry windows (at least a day).</li>
+      </ul>
+      <p style="margin:4px 0"><b>Toward the provider:</b></p>
+      <ul style="margin:4px 0">
+        <li>🏦 Pass our key along, so our own retries can't double-charge; save progress as <code>started</code> → <code>done</code>.</li>
+        <li>📬 Publish "payment.succeeded" with an event id; consumers dedupe on it.</li>
+      </ul>
+    </div>
+  </div>
+  <p>The difference: the SDE1 answer blocks the easy duplicate (a double tap). The SDE2 answer also covers <b>timeouts, retries, crashes and late requests</b>, and says <b>where each piece lives</b>.</p>
+
+  <h3>⑤ Likely follow-ups</h3>
+  <details><summary>"Why not just dedupe by hashing the request body?"</summary><p><b>Say:</b> "Because two identical requests can be two real intents." Two ₹500 transfers to the same friend are both legitimate. Only the client knows whether it's a retry, so the client sends the key. That's exactly the RunInstances vs CreateTable example in the article.</p></details>
+  <details><summary>"Two requests with the same key arrive at the same moment?"</summary><p><b>Say:</b> "The primary key on (caller, key) makes only one win." In Postgres the second insert waits for the first transaction, then replays its result. If the work is slow or external, mark the key <code>started</code> and return 409 to the second until it's done, as the IETF draft suggests.</p></details>
+  <details><summary>"The provider charged the card, then your service crashed before saving. Now what?"</summary><p><b>Say:</b> "The retry calls the provider again with the same key." The provider replays the original charge instead of making a new one, and we save the result. That's why every hop that has side effects needs its own key (<a href="#external">keys all the way down</a>).</p></details>
+  <details><summary>"How long do you keep keys, and where? Could you use Redis?"</summary><p><b>Say:</b> "Longer than the longest retry; at least 24 hours, like Stripe." Keep them in the same database as the data, so they commit together. Redis <code>SET NX</code> ("set only if it doesn't exist") with a TTL (an expiry time) is fine for best-effort dedupe (like not sending a notification twice), but it can't commit atomically with a Postgres write, so for money, use the database.</p></details>
+  <details><summary>"Is exactly-once delivery possible?"</summary><p><b>Say:</b> "Not over a network that can lose replies. We get an <a href="#t-once">exactly-once <b>effect</b></a>." That means at-least-once delivery (retry until it works) plus idempotent handling (repeats do nothing extra).</p></details>
+
+  <h3>⑥ Red flags that cost points</h3>
+  <ul>
+    <li>"Disable the button" as the whole answer.</li>
+    <li>The server generates the key. It can't then link a retry to the first request.</li>
+    <li>The key is saved in Redis while the order is saved in Postgres, so the two aren't atomic.</li>
+    <li>Returning "already exists" or 409 on a successful retry.</li>
+    <li>Saying "Kafka gives exactly-once, so we're fine" without idempotent consumers.</li>
+  </ul>
+
+  <h3>⑦ Numbers worth knowing</h3>
+  <ul>
+    <li>⏳ <b>24 hours:</b> Stripe may remove keys once they're at least this old.</li>
+    <li>🧮 <b>122 random bits</b> in a UUID v4: you'd need about 2.7 × 10¹⁸ keys for a 50% chance of any collision. In practice, never.</li>
+    <li>🚦 <b>400 / 422 / 409:</b> the IETF draft's codes for a missing key, a reused key with different data, and a request still running.</li>
+  </ul>
+
+  <h3>⑧ 🗣️ Your behavioral story (fill in from real work)</h3>
+  <div class="box">"We had [an endpoint/job] where [a retry/double tap/queue redelivery] caused [duplicate X]. I traced it to [no key / key per retry / non-atomic writes]. I [added an idempotency key + table / a unique constraint / a dedupe step], and [duplicates went from N to 0 / the incident stopped]. I also [added a test or alert]."</div>
+  <p class="hint">Use a real story only. If you don't have one yet, the lab gives you something honest to talk about: "I reproduced a duplicate payment on a lost response and fixed it with…".</p>
+
+  <h2 id="traps">⚠️ Traps</h2>
+  <ul>
+    <li>🔄 <b>A new key per retry</b> (key made inside the retry callback). Fix: create it once, before the first attempt.</li>
+    <li>🏭 <b>Key made on the server.</b> Fix: the client makes it; only the client knows its intent.</li>
+    <li>🧩 <b>Key in Redis, data in Postgres.</b> A crash between them loses work or duplicates it. Fix: the same database, one transaction.</li>
+    <li>🚫 <b>"Already exists" on a retry.</b> Fix: replay the first result (<a href="#t-equiv">same meaning</a>).</li>
+    <li>🧾 <b>No parameter check.</b> A buggy reuse silently returns the wrong result. Fix: fingerprint, and 422 on mismatch.</li>
+    <li>⏳ <b>Retention shorter than retries.</b> Fix: retention &gt; longest retry window (<a href="#retention-math">worked example</a>).</li>
+    <li>👥 <b>Keys not scoped per caller.</b> Fix: primary key (caller, key).</li>
+    <li>🖱️ <b>Relying on a disabled button.</b> It stops double taps, not timeouts, reloads or SDK retries.</li>
+    <li>➕ <b>Assuming PATCH is safe.</b> "Increment by 1" in a PATCH is not idempotent; give it a key or make it "set to N".</li>
+  </ul>
+
+  <h2 id="check">✅ Check yourself</h2>
+  <details><summary>1. A "create order" call times out. Why can't the client just check and decide?</summary>
+    <p>A timeout can mean the request was lost (nothing happened), the server crashed midway, or the response was lost (it fully happened). The client can't tell which. Checking afterwards (reconciliation) is extra work and still can't tell whether its own request or another one created the order.</p></details>
+  <details><summary>2. Why is hashing the parameters fine for "create table" but wrong for "launch server"?</summary>
+    <p>A table name must be unique, so two identical creates seconds apart must be a retry. Two identical server launches may be a real request for two servers. Only a client key expresses which one was meant.</p></details>
+  <details><summary>3. The server saves the key, then creates the resource, and crashes in between. What goes wrong? And in the other order?</summary>
+    <p>Key first: the retry sees the key and reports success, but no resource exists (lost work). Resource first: the retry doesn't see the key and creates a second resource (duplicate). Only one atomic transaction is safe.</p></details>
+  <details><summary>4. Why is "ResourceAlreadyExists" on a retry worse than replaying the first response?</summary>
+    <p>The caller can't tell whether its request created the resource, and its code must take a different path for something that didn't exist when it called. Automatic retries stop being invisible.</p></details>
+  <details><summary>5. A key arrives again with a different amount. What should the server do?</summary>
+    <p>Reject it as a validation error (422 in the IETF draft). Replaying the old result would mislead the client, and doing the new work would make the key meaningless. Store a <a href="#t-fp">fingerprint</a> with the key to detect it.</p></details>
+  <details id="mini-design"><summary>⏱️ 6. Mini design (10 min): "Send money" in a wallet app. Sketch it, then compare.</summary>
+    <p>🧩 <b>What we're designing.</b> A wallet app like GPay or Paytm. Ravi sends <b>₹500</b> to Priya: the app calls our Transfers API, which moves money between two balances in our database.</p>
+    <p>⚠️ <b>The catch:</b> phones lose signal mid-request, users tap twice, and the app retries. Ravi must <b>never</b> be debited twice, and must always find out whether it worked.</p>
+    <p>🔀 <b>The flow:</b></p>
+    <div class="flow">
+      <div class="step">📱 <b>1. Tap Send.</b> The app creates key <code>k-77</code>, saves it with the pending transfer, and shows "Sending…".</div>
+      <div class="arrow">↓</div>
+      <div class="step">📤 <b>2. POST /transfers</b> with <code>Idempotency-Key: k-77</code>. Timeout? Retry with <code>k-77</code>, even after an app restart.</div>
+      <div class="arrow">↓</div>
+      <div class="step">🗄️ <b>3. One transaction:</b> claim (Ravi, k-77), debit Ravi ₹500, credit Priya ₹500, save the reply.</div>
+      <div class="arrow">↓</div>
+      <div class="step go">✅ <b>4a. New key:</b> the transfer is done; reply "Sent, transfer #9001".</div>
+      <div class="step">🔁 <b>4b. Repeat key:</b> replay "Sent, transfer #9001". No second debit.</div>
+      <div class="step stop">🧾 <b>4c. Same key, different amount:</b> 422. The app shows an error and logs the bug.</div>
+    </div>
+    <p>🧠 <b>Why each piece is there:</b></p>
+    <table>
+      <tr><th>Problem</th><th>Fix</th></tr>
+      <tr><td>📶 Signal drops after the money moved</td><td>🔑 Retry with the same key; the reply is replayed.</td></tr>
+      <tr><td>👆 Double tap</td><td>📱 One key per Send screen, not per tap.</td></tr>
+      <tr><td>🔄 App killed and reopened</td><td>💾 The key is stored with the pending transfer, so the retry reuses it.</td></tr>
+      <tr><td>💥 Server crashes mid-transfer</td><td>🔒 One transaction: the key, debit and credit commit together or not at all.</td></tr>
+      <tr><td>⚡ Two retries arrive together</td><td>🗄️ Primary key (user, key): one wins, the other waits and replays.</td></tr>
+      <tr><td>🐛 Key reused for a different amount</td><td>🧾 Fingerprint check → 422.</td></tr>
+      <tr><td>🔔 "Money received" notification</td><td>📬 Sent from an event with the transfer id; the notifier dedupes on it.</td></tr>
+    </table>
+    <p class="hint">"₹500", "k-77" and "#9001" are made-up examples; the design choices are what to justify in the room.</p></details>
+
+  <h2 id="remember">📝 Remember card</h2>
+  <div class="card-remember">
+    <ul>
+      <li>⏱️ A timeout means <b>unknown</b>: lost request, crash midway, or lost response.</li>
+      <li>🔑 The client makes one key per intent and reuses it on every retry.</li>
+      <li>🔒 Save the key and the work in one transaction.</li>
+      <li>🧾 Answer repeats with the same meaning, never "already exists".</li>
+      <li>🚫 Same key + different data → reject (422).</li>
+      <li>⏳ Keep keys longer than any retry; late requests get the original answer.</li>
+      <li>🌐 Pass keys downstream; dedupe consumers by event id.</li>
+    </ul>
+  </div>
+  <h3>🃏 Flashcards</h3>
+  <details><summary>Why can't the server dedupe by hashing the request?</summary><p>Identical requests can be two real intents (two identical servers, two equal transfers). Only the client knows.</p></details>
+  <details><summary>Where must the idempotency key be created?</summary><p>On the client, once per intent, before the first attempt.</p></details>
+  <details><summary>Why must the key and the work be atomic?</summary><p>Key first + crash = lost work reported as success. Work first + crash = duplicate.</p></details>
+  <details><summary>What's a semantically equivalent response?</summary><p>Same meaning as the first reply (same resource and outcome), possibly with current fields like status.</p></details>
+  <details><summary>How long should keys live?</summary><p>Longer than the longest retry window plus delays. EC2: the resource's lifetime plus an interval. Stripe: may prune after 24 hours.</p></details>
+  <p class="hint">🗓️ Revisit: flip the flashcards <b>tomorrow</b>, <b>in a week</b> and <b>in a month</b>. Say the 2-minute version out loud once each time.</p>
+
+  <h2 id="deeper">🔭 Go deeper</h2>
+  <ul>
+    <li><a href="https://docs.stripe.com/api/idempotent_requests" target="_blank" rel="noopener">Stripe API: Idempotent requests</a>. A short, real contract: what's saved, for how long, and what's not saved.</li>
+    <li><a href="https://brandur.org/idempotency-keys" target="_blank" rel="noopener">Implementing Stripe-like Idempotency Keys in Postgres</a> (Brandur Leach, 2017). The best walk-through of keys plus external calls: <code>locked_at</code>, recovery points, and a reaper that deletes old keys.</li>
+    <li><a href="https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/" target="_blank" rel="noopener">IETF draft: The Idempotency-Key HTTP Header Field</a>. Not a standard yet, but the status codes are a sensible default.</li>
+  </ul>
+  <p class="footer-src"><b>📚 Sources &amp; confidence</b> (checked 2026-10-04): the walkthrough's stories, examples and rules come from the article's full text (Malcolm Featonby, Amazon Builders' Library), paraphrased. The JSON in §4 is a trimmed illustration, not AWS's output. Stripe's behaviour, the IETF draft's status and codes, and Brandur Leach's design were checked on their pages. The service, controller and client code ran on Node 22 against PGlite (Postgres in WebAssembly), and the lab's lost-response test ran as described. The note on concurrent inserts is standard Postgres behaviour for unique keys, but it wasn't re-run here with two real connections. The UUID collision figure is the birthday bound for 122 random bits. The widgets are simplified models. Anything marked 🧠 is my opinion.</p>
+</main>
+</div>
+<script>
+// Follow the tracker's theme ('dsa-theme', same origin); default dark when embedded, like the tracker.
+try {
+  const t = localStorage.getItem("paper-club-v1-theme") || localStorage.getItem("dsa-theme") || (window.top !== window.self ? "dark" : null);
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+} catch (e) {}
+
+const $ = id => document.getElementById(id);
+// Flow rows: [cls, html]. cls is "", "go" or "stop"; a row with cls "arrow" is an arrow line.
+function flow(target, rows) {
+  $(target).innerHTML = rows.map(([cls, html]) =>
+    cls === "arrow" ? `<div class="arrow">${html}</div>` : `<div class="step ${cls}">${html}</div>`).join("");
+}
+// A row of .quick buttons that behaves like a radio group.
+function picker(id, onChange) {
+  const box = $(id);
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    box.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    onChange(b.dataset.v);
+  });
+  return () => box.querySelector("button.on").dataset.v;
+}
+// Small seeded RNG so the at-scale numbers don't jump around between redraws.
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ── Widget 1: the timeout dilemma ────────────────────────────────────────────
+(() => {
+  let where, how;
+  const keyLabel = n => how === "none" ? "no key" : how === "same" ? "key k-1" + (n > 1 ? " (same)" : "") : "key k-" + n + (n > 1 ? " (new!)" : "");
+  function draw() {
+    const dup = where === "resp" && how !== "same";
+    const rows = [["", `📤 <b>Attempt 1:</b> POST /orders, ₹500, ${keyLabel(1)}`]];
+    if (where === "req") rows.push(["stop", "📤❌ Lost on the way. The server never saw it. <b>Nothing happened.</b>"]);
+    if (where === "mid") rows.push(["stop", "💥 Server crashed midway. Its transaction rolled back, so <b>nothing was saved</b>. (Without all-or-nothing writes this gets messy: see §3b.)"]);
+    if (where === "resp") rows.push(["stop", "✅ Server created <b>order #1</b> and charged ₹500… 📥❌ but the reply was lost."]);
+    rows.push(["arrow", "↓ client sees only: ⏱️ timeout. Unknown. Retry."]);
+    rows.push(["", `📤 <b>Attempt 2:</b> POST /orders, ₹500, ${keyLabel(2)}`]);
+    if (where !== "resp") rows.push(["go", "🆕 Server: a new request → creates <b>order #1</b>, charges ₹500. The reply arrives. ✅"]);
+    else if (how === "none") rows.push(["stop", "🆕 Server: no key, so it looks new → creates <b>order #2</b> and charges ₹500 <b>again</b>."]);
+    else if (how === "new") rows.push(["stop", "🆕 Server: k-2 was never seen → creates <b>order #2</b> and charges <b>again</b>. It can't link k-2 to k-1."]);
+    else rows.push(["go", "🔁 Server: k-1 already handled → <b>replays</b> \"order #1 created\". Nothing new happens. ✅"]);
+    flow("dlFlow", rows);
+    $("dlOrders").textContent = dup ? 2 : 1;
+    $("dlCharged").textContent = dup ? "2×" : "1×";
+    $("dlVerdict").textContent = dup ? "❌ duplicate" : "✅ once";
+  }
+  function scale() {
+    const p = +$("dlRate").value / 100, N = 10000, rand = rng(7);
+    let timeouts = 0, lostReplies = 0;
+    for (let i = 0; i < N; i++) {
+      // Retry until an attempt gets through; each attempt independently times out with probability p.
+      while (rand() < p) {
+        timeouts++;
+        if (rand() < 1 / 3) lostReplies++; // a lost reply means the work already happened
+      }
+    }
+    $("dlRateTxt").textContent = (+$("dlRate").value).toFixed(1) + "%";
+    $("dlNone").textContent = lostReplies;
+    $("dlNew").textContent = lostReplies;
+    $("dlSame").textContent = 0;
+    $("dlExplain").innerHTML = `🔢 <b>This run:</b> ${timeouts} timeouts (≈ 10,000 × ${(p * 100).toFixed(1)}%). About a third of them, <b>${lostReplies}</b>, were lost replies: the order already existed, so retrying without the same key created ${lostReplies} duplicate orders. With the same key, those ${lostReplies} retries were replayed instead.`;
+  }
+  where = picker("dlWhere", v => { where = v; draw(); })();
+  how = picker("dlHow", v => { how = v; draw(); })();
+  $("dlRate").addEventListener("input", scale);
+  draw(); scale();
+})();
+
+// ── Widget 2: crash between saving the key and doing the work ───────────────
+(() => {
+  const CASES = {
+    keyFirst: {
+      rows: [["", "1️⃣ Save key <code>k-1</code> ✅"], ["stop", "💥 Crash before the disk is created."],
+        ["arrow", "↓ client times out, retries with k-1"],
+        ["stop", "🔁 Server: k-1 is known, so it assumes the work is done and replies \"created\". <b>No disk exists.</b>"]],
+      disks: 0, told: "\"created\"", verdict: "❌ lost work",
+    },
+    workFirst: {
+      rows: [["", "1️⃣ Create disk <b>vol-1</b> ✅"], ["stop", "💥 Crash before the key is saved."],
+        ["arrow", "↓ client times out, retries with k-1"],
+        ["stop", "🆕 Server: k-1 is unknown → creates <b>vol-2</b>, saves the key. <b>Two disks.</b>"]],
+      disks: 2, told: "\"created vol-2\"", verdict: "❌ duplicate",
+    },
+    tx: {
+      rows: [["", "1️⃣ BEGIN → save key <code>k-1</code>, create disk vol-1 (not committed yet)"],
+        ["stop", "💥 Crash before COMMIT → the database <b>rolls back both</b>."],
+        ["arrow", "↓ client times out, retries with k-1"],
+        ["go", "🆕 Server: k-1 is unknown → BEGIN, save key, create <b>vol-1</b>, COMMIT. ✅"]],
+      disks: 1, told: "\"created vol-1\"", verdict: "✅ exactly one",
+    },
+  };
+  function draw(v) {
+    const c = CASES[v];
+    flow("atFlow", c.rows);
+    $("atDisks").textContent = c.disks;
+    $("atTold").textContent = c.told;
+    $("atVerdict").textContent = c.verdict;
+  }
+  draw(picker("atOrder", draw)());
+})();
+
+// ── Widget 3: step through the server's key table ───────────────────────────
+(() => {
+  const ROW = (fp, reply) => ({ caller: "C1", key: "k-7f3", fp, reply });
+  const STEPS = [
+    { ev: "Nothing yet. Customer C1 is about to create a 100 GB disk with key <code>k-7f3</code>.", cls: "", table: [], disks: [] },
+    { ev: "📨 C1: create disk, 100 GB, key k-7f3", cls: "go",
+      dec: "🆕 Unknown key → create <b>vol-1</b>, and save the key and the reply in one transaction.",
+      table: [ROW("a1b2 (100 GB)", "vol-1 created")], disks: ["vol-1 (creating)"] },
+    { ev: "📨 C1 retries (the reply was lost): 100 GB, key k-7f3", cls: "go",
+      dec: "🔁 Key known, fingerprint matches → <b>replay</b> \"vol-1 created\". No new disk. Its status is now \"available\": same meaning, current state.",
+      table: [ROW("a1b2 (100 GB)", "vol-1 created")], disks: ["vol-1 (available)"] },
+    { ev: "📨 C1 sends key k-7f3 with <b>500 GB</b> (a client bug)", cls: "stop",
+      dec: "🧾 Key known, but fingerprint c9d0 ≠ a1b2 → <b>422</b> \"key reused with different parameters\". Nothing changes.",
+      table: [ROW("a1b2 (100 GB)", "vol-1 created")], disks: ["vol-1 (available)"] },
+    { ev: "🗑️ Another admin deletes vol-1", cls: "",
+      dec: "The key row stays: a late copy of C1's request may still arrive.",
+      table: [ROW("a1b2 (100 GB)", "vol-1 created")], disks: ["vol-1 (deleted)"] },
+    { ev: "📬 A late copy of C1's retry finally arrives: 100 GB, key k-7f3", cls: "go",
+      dec: "🔁 Key known → replay the original answer: vol-1, which is now <b>deleted</b>. The disk is <b>not</b> re-created (least astonishment).",
+      table: [ROW("a1b2 (100 GB)", "vol-1 created")], disks: ["vol-1 (deleted)"] },
+    { ev: "🗓️ Retention ends: vol-1's lifetime plus a grace period has passed", cls: "",
+      dec: "🗑️ The key row is deleted to save space.",
+      table: [], disks: ["vol-1 (deleted)"] },
+    { ev: "📬 An <b>extremely</b> late copy arrives: 100 GB, key k-7f3", cls: "stop",
+      dec: "🆕 Unknown key → creates <b>vol-2</b> 😬. This copy was delayed longer than the retention window.",
+      table: [ROW("a1b2 (100 GB)", "vol-2 created")], disks: ["vol-1 (deleted)", "vol-2 (creating)"] },
+  ];
+  let i = 0;
+  function draw() {
+    const s = STEPS[i];
+    flow("inFlow", s.dec ? [["", s.ev], ["arrow", "↓ server decides"], [s.cls, s.dec]] : [["", s.ev]]);
+    $("inTable").innerHTML = "<tr><th>Customer</th><th>Key</th><th>Fingerprint</th><th>Saved reply</th></tr>" +
+      (s.table.length ? s.table.map(r => `<tr><td>${r.caller}</td><td><code>${r.key}</code></td><td>${r.fp}</td><td>${r.reply}</td></tr>`).join("")
+        : "<tr><td colspan=\"4\">(empty)</td></tr>");
+    $("inDisks").textContent = s.disks.length ? s.disks.join(" · ") : "(none)";
+    $("inStep").textContent = `Step ${i} / ${STEPS.length - 1}`;
+    $("inBack").disabled = i === 0;
+    $("inNext").disabled = i === STEPS.length - 1;
+  }
+  $("inNext").addEventListener("click", () => { i = Math.min(i + 1, STEPS.length - 1); draw(); });
+  $("inBack").addEventListener("click", () => { i = Math.max(i - 1, 0); draw(); });
+  $("inReset").addEventListener("click", () => { i = 0; draw(); });
+  draw();
+})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js" integrity="sha384-7LHwxHIDSHTBleLmgDWZbC/IMJsfYfFVOihKhvsrxYW4j47YQcRwZja4ToFE3bA8" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" integrity="sha384-D44bgYYKvaiDh4cOGlj1dbSDpSctn2FSUj118HZGmZEShZcO2v//Q5vvhNy206pp" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha384-PeOqKNW/piETaCg8rqKFy+Pm6KEk7e36/5YZE5XO/OaFdO+/Aw3O8qZ9qDPKVUgx" crossorigin="anonymous"></script>
+<script src="../../js/back-button.js"></script>
+</body>
+</html>
