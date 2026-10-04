@@ -414,7 +414,7 @@ req.on('timeout', () => {
       <li>That timeout also covered <b>opening a secure connection</b> (the TLS handshake: a few round trips to agree on encryption keys).</li>
       <li>Normally that cost is invisible. Clients keep connections open and <b>reuse</b> them (keep-alive, a connection pool), so most calls skip the handshake.</li>
       <li>After every <b>deploy</b>, a new server starts with <b>zero</b> open connections. Its first calls must do the handshake, which took <b>longer than 20 ms</b> on its own. Result: a small burst of timeouts right after each deploy, only on new servers.</li>
-      <li><b>First fix:</b> a longer timeout just for setting up new connections. <b>Better fix:</b> open the connections <b>when the process starts, before it takes traffic</b> (warm-up).</li>
+      <li>They fixed it in two ways, explained below the diagram.</li>
     </ol>
     <svg class="w-svg" viewBox="0 0 640 190" role="img" aria-label="Two bars against a 20 ms timeout line: a warm call takes about 6 ms; a cold call needs a TLS handshake first and crosses the line">
       <text x="20" y="28" font-size="20" style="fill:var(--muted)">Warm call: connection reused</text>
@@ -429,7 +429,23 @@ req.on('timeout', () => {
       <text x="320" y="178" font-size="19" style="fill:var(--bad)" text-anchor="middle">20 ms timeout</text>
     </svg>
     <p class="hint" style="margin:4px 0 0">Bar lengths are illustrative; the article only says the handshake took longer than 20 ms.</p>
-    <p>🛠️ <b>In NestJS terms:</b> warm your HTTP and DB connection pools in <code>onApplicationBootstrap()</code>, and only report the pod ready (the readiness probe) after that. The lesson: <b>a timeout covers more than you think, and the first call on a fresh server is not a normal call</b>.</p>
+    <p><b>The two fixes.</b> The problem: <b>one 20 ms clock</b> covered both opening a connection (slow, only on new servers) and the call itself (fast).</p>
+    <ul>
+      <li>🩹 <b>First fix: give connecting its own, longer timeout.</b> Use two clocks instead of one: say 100 ms to open a new connection, and still 20 ms for the call once connected (numbers illustrative). Cold calls stop failing, and normal calls are still guarded by 20 ms. ⚠️ The first calls on a new server are <b>still slow</b>; they just stop counting as failures.</li>
+      <li>✅ <b>Better fix: warm up before taking traffic.</b> When a new server starts, it opens its connections (does the handshakes) <b>before</b> it receives any requests. By the time real traffic arrives, every call is a <b>warm call</b> (~6 ms), so the original 20 ms timeout just works. The only cost is a slightly slower startup.</li>
+    </ul>
+    <p>🛠️ <b>In NestJS:</b> warm up in <code>onApplicationBootstrap()</code>, and only mark the pod ready (the readiness probe) after it finishes, so no traffic arrives early.</p>
+<pre><code class="language-ts">// payments.client.ts
+@Injectable()
+export class PaymentsClient implements OnApplicationBootstrap {
+  async onApplicationBootstrap() {
+    // Open a few connections now; Node's fetch keeps them open for reuse.
+    await Promise.all(
+      Array.from({ length: 5 }, () =&gt; fetch&#40;`${API}/health`)),
+    );
+  }
+}</code></pre>
+    <p>The lesson: <b>a timeout covers more than you think, and the first call on a fresh server is not a normal call</b>.</p>
   </div>
 
   <div class="means">What it means for you: if the payment API's p99.9 is 350 ms, a ~400 ms timeout cuts off about 1 in 1,000 calls that would have succeeded, and you never hang for 30 seconds. Too high and the timeout protects nothing. Too low and you create retries, and possibly an outage, yourself.</div>
