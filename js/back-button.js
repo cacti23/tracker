@@ -4,9 +4,9 @@
 
    - The href to index.html is derived from THIS script's own URL, so it works
      from any folder depth without per-page paths.
-   - If the visitor arrived from the tracker itself (same-origin referrer that
-     is the tracker root/index.html) it uses history.back(), so the tracker
-     returns exactly where they left off; otherwise it just navigates there.
+   - It always NAVIGATES to the tracker (never history.back()): on a long page you click in-page
+     anchors and links, so "back" would just undo those instead of leaving. The tracker reopens
+     on the view you were last in (see _restoreView in index.html).
    - Not shown inside an iframe (the Google tabs embed these pages in-pane),
      and hidden when printing (cheatsheets are print-optimised).
    ────────────────────────────────────────────────────────────────────────── */
@@ -19,16 +19,6 @@
   var home;
   try { home = new URL('../index.html', src || location.href); }
   catch (e) { return; }
-
-  function cameFromTracker() {
-    try {
-      if (!document.referrer || history.length < 2) return false;
-      var r = new URL(document.referrer);
-      if (r.origin !== home.origin) return false;
-      var homeDir = home.pathname.replace(/index\.html$/, '');
-      return r.pathname === homeDir || r.pathname === home.pathname;
-    } catch (e) { return false; }
-  }
 
   var style = document.createElement('style');
   style.textContent =
@@ -46,8 +36,5 @@
   a.href = home.href;
   a.setAttribute('aria-label', 'Back to tracker');
   a.textContent = '← Tracker';
-  a.addEventListener('click', function (e) {
-    if (cameFromTracker()) { e.preventDefault(); history.back(); }
-  });
   document.body.appendChild(a);
 })();
