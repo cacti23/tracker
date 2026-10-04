@@ -489,6 +489,21 @@ export class DbWarmup implements OnApplicationBootstrap {
     <li>The database gets 3 × 3 = <b>9 calls</b> for one click. With a third layer it's 3 × 3 × 3 = 27. The article's 5 layers: 3⁵ = <b>243 calls</b>.</li>
   </ol>
   <p>So a database that's <b>struggling</b> sees its load jump <b>up to 243×</b> exactly when it can least handle it. The article's fix: <b>retry at one point in the stack</b>, and let every other layer fail fast.</p>
+  <div class="box" id="one-layer">
+    <p>🤔 <b>"But every layer uses backoff + jitter. Isn't that enough?"</b> No. Backoff and jitter change <b>when</b> retries happen, not <b>how many</b>.</p>
+    <ul>
+      <li>🔢 <b>The count still multiplies.</b> If your service, service B and B's database layer each try 3 times, a failing database still gets 3 × 3 × 3 = <b>27 calls</b> for one user request. Jitter only spreads those 27 out in time.</li>
+      <li>⏳ <b>Waiting multiplies too.</b> Each layer sits through its own backoffs, nested inside the layer above. Lower layers can keep retrying long after the user, and your service, have given up: pure wasted work.</li>
+    </ul>
+    <p>🛠️ <b>So, for your service calling a downstream service B:</b></p>
+    <ul>
+      <li>✅ Retry in <b>one</b> place, usually the code that calls the flaky dependency directly (your client for B). That's where you know whether the call is safe to repeat and how long the user can wait.</li>
+      <li>🔍 <b>Look for hidden layers.</b> Things that often retry for you: the AWS SDK (3 attempts by default), <code>axios-retry</code>, some DB drivers, service-mesh proxies like Envoy or Istio, and B itself. If one already retries, you're the second layer, so retry less or not at all.</li>
+      <li>⬆️ Every other layer <b>fails fast</b> and passes the error up instead of retrying.</li>
+      <li>🪣 Add a <b>retry budget</b> (§3b), and pass a <b>deadline</b> down so lower layers stop once the caller has given up.</li>
+    </ul>
+    <p>👉 <b>In one line:</b> backoff + jitter make each retry polite; one retrying layer keeps the number of retries small. You need both.</p>
+  </div>
 
   <div class="widget" id="mw">
     <h4>🎛️ Try it: retries multiply</h4>
@@ -604,7 +619,7 @@ const fullJitter = Math.random() * ceiling;  // everyone waits a different 0…c
 
   <h3>5. Conclusion</h3>
   <p class="says">What it says: retry only when the dependency looks healthy, and stop when retries aren't improving availability.</p>
-  <div class="means">What it means for you: retries are for <b>blips</b>, not <b>outages</b>. During an outage, failing fast is the kind thing to do.</div>
+  <div class="means">What it means for you: retries are for <b>blips</b>, not <b>outages</b>. During an outage, failing fast is the kind thing to do. And keep retries in <b>one layer</b>, even when every layer uses backoff and jitter (<a href="#one-layer">why</a>).</div>
 
   <h2 id="tradeoffs">⚖️ Tradeoffs</h2>
   <table>
@@ -876,9 +891,30 @@ server.listen(0, async () =&gt; {
 
   <h3>④ SDE1 vs SDE2 answer</h3>
   <p class="hint">Prompt: "Your checkout service calls a payment provider that's sometimes flaky. How do you handle it?"</p>
+  <p>🗺️ <b>First, who's who.</b> There are only two parties, and you control one of them:</p>
+  <div class="flow">
+    <div class="step go">🛒 <b>Checkout service</b> (yours). Inside it, a small <b>payment client</b>: the code that calls the provider.</div>
+    <div class="arrow">↓ HTTPS call: "charge ₹500"</div>
+    <div class="step">🌐 <b>Payment provider</b> (third party, like Stripe or Razorpay). You <b>can't change</b> its code; you only call its API.</div>
+  </div>
+  <p>So <b>everything below lives in your checkout service</b>, mostly in its payment client. You don't add anything to the provider; you only use what its API offers, like idempotency keys.</p>
   <div class="vs">
     <div class="sde1"><div class="lvl">SDE1 answer</div>"I'd wrap the call in a retry, maybe 3 attempts, and log errors."</div>
-    <div class="sde2"><div class="lvl">SDE2 answer</div>"800 ms timeout from their p99.9. Retry only timeouts, 5xx and 429, with exponential backoff and full jitter, max 3 attempts within a 3 s total deadline. Every charge carries an idempotency key, so a retry after a timeout can't double-charge. Retries live only in the payment client, with a retry budget. If the provider is down, I stop retrying, mark the order pending, and reconcile from a queue. I alert on retry rate, not just errors."</div>
+    <div class="sde2"><div class="lvl">SDE2 answer</div>
+      <p style="margin:4px 0"><b>In the checkout service's payment client:</b></p>
+      <ul style="margin:4px 0">
+        <li>⏱️ A timeout of ~800 ms, picked from the provider's p99.9 latency.</li>
+        <li>🔁 Retry only timeouts, 5xx and 429, with exponential backoff and full jitter. Max 3 attempts, all within a 3 s total deadline.</li>
+        <li>🔑 Send an <b>idempotency key</b> with every charge (the provider supports this), so a retry after a timeout can't charge twice.</li>
+        <li>🪣 This is the <b>only</b> place that retries, with a retry budget. The layers above it don't retry.</li>
+      </ul>
+      <p style="margin:4px 0"><b>In the checkout flow, when the provider is really down:</b></p>
+      <ul style="margin:4px 0">
+        <li>🛑 Stop retrying (the budget runs dry), mark the order <b>"payment pending"</b>, and put it on a queue.</li>
+        <li>🔄 A background worker retries from the queue later and reconciles with the provider. This isn't a second layer stacked on top: it runs minutes later, after the payment client has given up, so the retries don't multiply.</li>
+        <li>📈 Alert on the <b>retry rate</b>, not just errors, so we see trouble early.</li>
+      </ul>
+    </div>
   </div>
   <p>The difference isn't vocabulary. It's <b>numbers, safety (idempotency), where retries live, and what happens when it's really down</b>.</p>
 
