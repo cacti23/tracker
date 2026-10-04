@@ -74,7 +74,6 @@ summary::-webkit-details-marker { display: none; }
 .seg button:last-child { border-right: 0; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 .revs { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 0 0 10px; }
-.revs button { padding: 3px 9px; }
 .body { padding: 0 14px 14px 50px; }
 .body a { color: var(--accent); }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; font-size: 13px; }
@@ -294,9 +293,8 @@ function render() {
   // The ring sits inside <summary>, so stop the click from also opening/closing the card.
   list.querySelectorAll(".ring").forEach(r => r.addEventListener("click", e => {
     e.preventDefault(); e.stopPropagation();
-    setRevs(+r.dataset.n, 1);
+    addRev(+r.dataset.n);
   }));
-  list.querySelectorAll(".revs button").forEach(b => b.addEventListener("click", () => setRevs(+b.dataset.n, -1)));
   list.querySelectorAll("a.chip").forEach(a => a.addEventListener("click", e => {
     e.preventDefault();
     const el = document.getElementById("p" + a.dataset.to);
@@ -330,8 +328,7 @@ function card(p) {
         <span class="seg" role="group" aria-label="Status">${STATUSES.map(x =>
           `<button data-n="${p.n}" data-s="${x}" aria-pressed="${x === s.status}">${x}</button>`).join("")}</span>
       </div>
-      <div class="revs"><span id="revTxt${p.n}">${revTxt(p.n)}</span>
-        <button id="revUndo${p.n}" data-n="${p.n}" title="Undo one"${revs(p.n) ? "" : " disabled"}>−1</button></div>
+      <div class="revs" id="revTxt${p.n}">${revTxt(p.n)}</div>
       <div class="chips">${p.related.map(r => {
         const q = PAPERS.find(x => x.n === r);
         return `<a class="chip" href="#p${r}" data-to="${r}">#${r} ${esc(q.title.split(":")[0])}</a>`;
@@ -340,17 +337,16 @@ function card(p) {
   </details>`;
 }
 
-function setRevs(n, delta) {
+function addRev(n) {
   const s = get(n);
-  s.revs = Math.max(0, revs(n) + delta);
+  s.revs = revs(n) + 1;
   save();
   const r = document.getElementById("ring" + n);
   r.textContent = revs(n); r.title = ringLabel(n); r.setAttribute("aria-label", ringLabel(n));
   r.classList.toggle("has", revs(n) > 0);
   r.classList.remove("bump"); void r.offsetWidth; r.classList.add("bump");
   document.getElementById("revTxt" + n).textContent = revTxt(n);
-  document.getElementById("revUndo" + n).disabled = revs(n) === 0;
-  if (delta > 0) toast(`⭕ #${n}: gone through ${revs(n)}×`);
+  toast(`⭕ #${n}: gone through ${revs(n)}×`);
 }
 const revTxt = n => revs(n) ? `⭕ Gone through ${revs(n)} time${revs(n) === 1 ? "" : "s"}` : "⭕ Not gone through yet. Tap the ring after each pass.";
 
