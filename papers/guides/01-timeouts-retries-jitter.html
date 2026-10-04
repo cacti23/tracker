@@ -573,8 +573,34 @@ const fullJitter = Math.random() * ceiling;  // everyone waits a different 0…c
   </div>
 
   <p>⏰ <b>Jitter for scheduled work, too.</b> A <code>0 0 * * *</code> cron (midnight every night) running on 20 pods hits your database at the <b>same second</b>. Amazon saw the same with clients that fired "every minute, on the minute". Their <b>per-minute</b> graphs looked fine, because the average over 60 seconds was low. Only <b>per-second</b> graphs showed the spike in the first second of each minute. Spreading those clients across the minute let them run the same work on fewer servers.</p>
-  <p>🎯 <b>Deterministic jitter</b>: for scheduled jobs, Amazon does <b>not</b> pick a new random offset each run. Each host gets <b>the same offset every time</b>, computed from something stable like its hostname. Why? If load spikes at 00:03:17 every night, you can trace it to the one host that always runs then. With fresh randomness, the spike would move around and be much harder to debug.</p>
-  <div class="means">What it means for you: give each pod its own fixed offset of a few minutes for nightly jobs (code in <a href="#work">At work</a>), and use random jitter for retries and reconnects.</div>
+  <div class="box" id="deterministic">
+    <p>🎯 <b>Deterministic jitter, explained</b></p>
+    <p><b>The setup:</b> 8 pods each run a "build reports" job at midnight. All at 00:00:00 means 8 heavy jobs hit the database in the <b>same second</b>. So you spread them over the first 5 minutes. There are two ways to pick each pod's delay:</p>
+    <ul>
+      <li>🎲 <b>Random jitter:</b> every night, each pod rolls a new random delay between 0 and 5 minutes. The load is spread ✅, but <b>who runs when changes every night</b>.</li>
+      <li>🎯 <b>Deterministic jitter</b> (what Amazon does): each pod computes its delay from something that never changes, like its <b>own name</b>. The load is spread just as well ✅, and <b>each pod runs at the same time every night</b>.</li>
+    </ul>
+    <p>🔢 <b>How a name becomes a delay.</b> A hash function turns any text into a big number. The number looks random, but the same text always gives the same number. Then <code>%</code> (remainder) squeezes it into the 5-minute window:</p>
+    <div class="flow">
+      <div class="step">"reports-2" → SHA-256 hash → first 4 bytes = 785,671,122 → % 300,000 ms = 271,122 ms → <b>runs at 00:04:31, every night</b></div>
+    </div>
+
+    <div class="widget" id="dj" style="margin:12px 0">
+      <h4>🎛️ Try it: random vs deterministic, night after night</h4>
+      <p class="hint">8 pods, a midnight job, spread over 5 minutes. Click "Next night" a few times and watch which column changes.</p>
+      <div class="controls"><button class="primary" id="djNext">🌙 Next night</button><b id="djNight">Night 1</b></div>
+      <table id="djTable"></table>
+      <div class="read">
+        <p>📖 <b>How to read it.</b> Each row is one pod. The two columns show when that pod's job starts tonight under each method.</p>
+        <p>👀 <b>What to look for.</b> The 🎲 column reshuffles every night. The 🎯 column never changes. Now say your database graph shows a spike at <b>00:04:31 every night</b>. With 🎯 you know straight away it's <b>reports-2</b>, so you check that pod's logs. With 🎲 a different pod runs at that time each night (if any), and the spike itself moves around.</p>
+      </div>
+    </div>
+
+    <p>💡 <b>Why Amazon cares:</b> in the article's words, the same host always gets "the same number", so an overload <b>repeats in a pattern a human can spot</b> and trace. Random spreading fixes the load but makes problems harder to reproduce and debug.</p>
+    <p>⚠️ <b>Pick a name that stays put.</b> In Kubernetes, a Deployment gives pods new random names on every deploy (<code>reports-7f9c4-x2k8p</code>), so offsets reshuffle once per deploy, then stay fixed until the next one. That's usually fine. For fully fixed offsets, use a stable id such as a StatefulSet's <code>reports-0</code>, <code>reports-1</code>… (🧠 my take). Code: <a href="#work">At work §5</a>.</p>
+    <p>🔀 <b>Rule of thumb:</b> 🎯 deterministic jitter for <b>scheduled</b> work (crons, periodic syncs, cache refreshes); 🎲 random jitter for <b>retries and reconnects</b>, where you want every attempt to land somewhere new.</p>
+  </div>
+  <div class="means">What it means for you: give each pod its own fixed offset of a few minutes for nightly jobs (details above, code in <a href="#work">At work</a>), and use random jitter for retries and reconnects.</div>
 
   <h3>5. Conclusion</h3>
   <p class="says">What it says: retry only when the dependency looks healthy, and stop when retries aren't improving availability.</p>
@@ -1234,6 +1260,22 @@ const pName = p => "p" + +(p * 100).toFixed(1);
   }
   caseSel.addEventListener("change", draw);
   kindSel.addEventListener("change", draw);
+  draw();
+})();
+
+// ── Widget: random vs deterministic jitter ───────────────────────────────────
+(function () {
+  // Offsets (ms) from the "At work" code: sha256(name) first 4 bytes % 300,000, precomputed.
+  const PODS = [["reports-0", 12919], ["reports-1", 51869], ["reports-2", 271122], ["reports-3", 153331],
+    ["reports-4", 76836], ["reports-5", 299784], ["reports-6", 18883], ["reports-7", 111459]];
+  const clock = ms => { const s = Math.floor(ms / 1000); return `00:${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+  let night = 1;
+  function draw() {
+    const rows = PODS.map(([name, det]) => `<tr><td style="white-space:nowrap">${name}</td><td>${clock(Math.random() * 300000)}</td><td><b>${clock(det)}</b></td></tr>`).join("");
+    document.getElementById("djTable").innerHTML = `<tr><th>Pod</th><th>🎲 Random (tonight)</th><th>🎯 Deterministic</th></tr>${rows}`;
+    document.getElementById("djNight").textContent = `Night ${night}`;
+  }
+  document.getElementById("djNext").addEventListener("click", () => { night++; draw(); });
   draw();
 })();
 
