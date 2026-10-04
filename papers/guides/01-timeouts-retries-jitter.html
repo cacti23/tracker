@@ -84,6 +84,8 @@ svg { width: 100%; height: auto; display: block; }
 .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 14px; margin-bottom: 10px; }
 .controls label { display: flex; align-items: center; gap: 6px; }
 .controls input[type=range] { width: 140px; accent-color: var(--accent); }
+.controls label { flex-wrap: wrap; max-width: 100%; }
+.controls select { max-width: 100%; }
 .controls select, .controls button { font: inherit; font-size: 14px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
 .controls button { cursor: pointer; }
 .controls button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -332,12 +334,78 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
   <ul>
     <li>🌍 <b>Far-away clients.</b> Latency measured inside one AWS region doesn't include a long trip over the internet. For those clients, add the worst-case network time on top.</li>
     <li>📏 <b>Very tight latency.</b> If p50 is 10 ms and p99.9 is 12 ms, a 12 ms timeout trips on any small hiccup, like a GC pause. Add padding.</li>
-    <li>🕳️ <b>Timeouts that don't cover the whole call.</b> A remote call has several steps, and some timeout settings only cover the last ones:
-      <div class="flow" style="margin:8px 0">
-        <div class="step">🔎 DNS lookup (name → IP) → 🔌 TCP connect → 🔐 TLS handshake (agree on encryption) → 📤 send request → ⚙️ server works → 📥 read response</div>
-      </div>
-      If your timeout only starts at 📤, a stuck DNS lookup or handshake can hang far longer than your "timeout". The article's advice: use a well-tested client whose timeout covers everything. In Node, <code>AbortSignal.timeout()</code> on fetch covers the whole call.</li>
+    <li>🕳️ <b>Timeouts that don't cover the whole call.</b> A "timeout" setting often watches only part of the call, so a call can hang far longer than the number you set. Explained in detail just below.</li>
   </ul>
+
+  <div class="box" id="whole-call">
+    <p>🕳️ <b>Deep dive: "timeouts that don't cover the whole call"</b></p>
+    <p><b>Step 1: one HTTPS call is really 6 steps.</b> Say your service calls <code>https://api.payments.com/charge</code>:</p>
+    <table>
+      <tr><th>Step</th><th>What happens</th><th>Normally</th><th>How it can hang</th></tr>
+      <tr><td>🔎 DNS lookup</td><td>Ask a DNS server for the IP address of <code>api.payments.com</code></td><td>~1 ms (cached) to tens of ms</td><td>DNS server slow or unreachable: the OS resolver typically waits seconds before giving up</td></tr>
+      <tr><td>🔌 TCP connect</td><td>Open a connection to that IP: "hello?", "hello!", "ok" (one round trip)</td><td>~1 ms in a region</td><td>Server down or a firewall silently drops packets: the OS keeps re-trying the "hello?", about <b>2 minutes</b> on Linux by default</td></tr>
+      <tr><td>🔐 TLS handshake</td><td>Agree on encryption keys (1–2 more round trips plus some crypto)</td><td>a few ms</td><td>Overloaded server is slow to do the crypto (the 20 ms story below)</td></tr>
+      <tr><td>📤 Send request</td><td>Write the request bytes</td><td>&lt;1 ms</td><td>Rarely the problem</td></tr>
+      <tr><td>⚙️ Server works</td><td>The server does the actual job</td><td>~40 ms</td><td>Slow query, lock, GC pause: <b>the part everyone thinks of</b></td></tr>
+      <tr><td>📥 Read response</td><td>Headers, then the body, in chunks</td><td>a few ms</td><td>"Slow drip": the server sends a few bytes every second, forever</td></tr>
+    </table>
+
+    <p><b>Step 2: "timeout" means different clocks in different libraries.</b> There are three common kinds:</p>
+    <ul>
+      <li>⏸️ <b>Idle (read) timeout</b>: "fail if <b>no bytes arrive</b> for 1 s". It <b>resets on every byte</b>, so it is not a limit on the whole call. The Linux socket option the article names, <code>SO_RCVTIMEO</code>, works like this.</li>
+      <li>🔌 <b>Connect timeout</b>: "fail if the connection isn't open within 1 s". It covers TCP (sometimes TLS), but <b>not DNS</b> in many clients, and nothing after connecting.</li>
+      <li>⏱️ <b>Total deadline</b>: <b>one clock</b> from the start of DNS to the last byte. This is what you actually want: "this call takes at most 1 s, whatever goes wrong".</li>
+    </ul>
+
+    <div class="widget" id="ph" style="margin:12px 0">
+      <h4>🎛️ Try it: which timeout catches which hang?</h4>
+      <p class="hint">Pick what goes wrong and which kind of 1-second timeout you set. The rows show which steps your timeout is watching.</p>
+      <div class="controls">
+        <label>What goes wrong
+          <select id="phCase">
+            <option value="normal">Nothing (normal call)</option>
+            <option value="server">Server is slow to answer (5 s)</option>
+            <option value="dns">DNS server is slow (3 s)</option>
+            <option value="drop" selected>Server down, packets dropped</option>
+            <option value="drip">Slow drip: bytes every 0.8 s, for 10 s</option>
+          </select>
+        </label>
+        <label>Your timeout
+          <select id="phKind">
+            <option value="idle">Idle timeout 1 s</option>
+            <option value="connect">Connect 1 s + idle 1 s</option>
+            <option value="total">Total deadline 1 s</option>
+          </select>
+        </label>
+      </div>
+      <div class="legend"><span>👁️ = your timeout is watching this step</span><span>🙈 = it isn't</span><span><i style="background:var(--bad)"></i>where the call is stuck</span></div>
+      <div class="layers" id="phRows"></div>
+      <div class="big" id="phOut" style="margin-top:10px; font-size:26px">–</div>
+      <p class="hint" id="phText" style="margin:2px 0 0"></p>
+      <div class="read">
+        <p>📖 <b>How to read it.</b> Each row is one step of the call, with how long it takes in this scenario (bar lengths use a log scale, so 2 ms and 2 minutes both fit). The red row is where the call is stuck. The big number is how long your code actually waits before it gets an answer or an error.</p>
+        <p>👀 <b>What to look for.</b> With "Server down", an idle timeout never starts (no connection, so no bytes to wait for) and you wait ~2 minutes. With "Slow drip", both idle-based timeouts keep resetting and you wait 10 s. Only the <b>total deadline</b> stops at 1 s in every case.</p>
+        <p>🧪 Simplified model: real clients differ in exactly which steps each setting covers. That's the article's point, so check yours.</p>
+      </div>
+    </div>
+
+    <p><b>Step 3: what this means in Node.</b> Worth checking against your versions' docs:</p>
+    <table>
+      <tr><th>What you write</th><th>What it really covers</th></tr>
+      <tr><td><code>fetch&#40;url, { signal: AbortSignal.timeout(1000) })</code></td><td>✅ A total deadline: DNS to the last byte of the body.</td></tr>
+      <tr><td><code>fetch&#40;url)</code> with no signal</td><td>⚠️ Only the defaults of undici (the engine behind Node's fetch): up to 10 s to connect, then up to <b>300 s</b> for headers and 300 s between body chunks. One hung server can hold the call for minutes.</td></tr>
+      <tr><td><code>http.request(url, { timeout: 1000 })</code></td><td>⚠️ An <b>idle</b> timer on the socket, and it only <b>emits a <code>'timeout'</code> event</b>. The request keeps going unless you call <code>req.destroy()</code> yourself.</td></tr>
+      <tr><td>axios <code>timeout</code> (what Nest's <code>HttpModule</code> uses)</td><td>🤔 Check your axios version's docs for what it covers. 🧠 My take: also pass <code>signal: AbortSignal.timeout(ms)</code> for a hard total deadline.</td></tr>
+    </table>
+<pre><code class="language-ts">// The http.request trap: 'timeout' is only a notification.
+const req = http.get(url, { timeout: 1_000 });
+
+req.on('timeout', () => {
+  // Without this line, the request keeps waiting.
+  req.destroy(new Error('Request timed out'));
+});</code></pre>
+    <p>🎯 <b>Rule of thumb:</b> for every outbound call, ask "what is the <b>longest</b> this can take, from DNS to the last byte?" If you can't answer with one number, add a total deadline.</p>
+  </div>
 
   <div class="box">
     <p>🏭 <b>The paper's 20 ms story, step by step</b></p>
@@ -346,7 +414,7 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
       <li>That timeout also covered <b>opening a secure connection</b> (the TLS handshake: a few round trips to agree on encryption keys).</li>
       <li>Normally that cost is invisible. Clients keep connections open and <b>reuse</b> them (keep-alive, a connection pool), so most calls skip the handshake.</li>
       <li>After every <b>deploy</b>, a new server starts with <b>zero</b> open connections. Its first calls must do the handshake, which took <b>longer than 20 ms</b> on its own. Result: a small burst of timeouts right after each deploy, only on new servers.</li>
-      <li><b>First fix:</b> a longer timeout just for setting up new connections. <b>Better fix:</b> open the connections <b>when the process starts, before it takes traffic</b> (warm-up).</li>
+      <li>They fixed it in two ways, explained below the diagram.</li>
     </ol>
     <svg class="w-svg" viewBox="0 0 640 190" role="img" aria-label="Two bars against a 20 ms timeout line: a warm call takes about 6 ms; a cold call needs a TLS handshake first and crosses the line">
       <text x="20" y="28" font-size="20" style="fill:var(--muted)">Warm call: connection reused</text>
@@ -361,7 +429,51 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
       <text x="320" y="178" font-size="19" style="fill:var(--bad)" text-anchor="middle">20 ms timeout</text>
     </svg>
     <p class="hint" style="margin:4px 0 0">Bar lengths are illustrative; the article only says the handshake took longer than 20 ms.</p>
-    <p>🛠️ <b>In NestJS terms:</b> warm your HTTP and DB connection pools in <code>onApplicationBootstrap()</code>, and only report the pod ready (the readiness probe) after that. The lesson: <b>a timeout covers more than you think, and the first call on a fresh server is not a normal call</b>.</p>
+    <p><b>The two fixes.</b> The problem: <b>one 20 ms clock</b> covered both opening a connection (slow, only on new servers) and the call itself (fast).</p>
+    <ul>
+      <li>🩹 <b>First fix: give connecting its own, longer timeout.</b> Use two clocks instead of one: say 100 ms to open a new connection, and still 20 ms for the call once connected (numbers illustrative). Cold calls stop failing, and normal calls are still guarded by 20 ms. ⚠️ The first calls on a new server are <b>still slow</b>; they just stop counting as failures.</li>
+      <li>✅ <b>Better fix: warm up before taking traffic.</b> When a new server starts, it opens its connections (does the handshakes) <b>before</b> it receives any requests. By the time real traffic arrives, every call is a <b>warm call</b> (~6 ms), so the original 20 ms timeout just works. The only cost is a slightly slower startup.</li>
+    </ul>
+    <p>🛠️ <b>In NestJS:</b> warm up in <code>onApplicationBootstrap()</code>, and only mark the pod ready (the readiness probe) after it finishes, so no traffic arrives early.</p>
+<pre><code class="language-ts">// payments.client.ts
+@Injectable()
+export class PaymentsClient implements OnApplicationBootstrap {
+  async onApplicationBootstrap() {
+    // Open a few connections now; Node's fetch keeps them open for reuse.
+    await Promise.all(
+      Array.from({ length: 5 }, () =&gt; fetch&#40;`${API}/health`)),
+    );
+  }
+}</code></pre>
+    <details id="warmup">
+      <summary>🔥 What is a connection pool, and what does "warming it up" mean?</summary>
+      <p>🔌 <b>A connection</b> is an open line from your service to another one (an API, Postgres, Redis). Opening one costs several round trips: TCP connect, the TLS handshake, and for a database also the login. That's a few ms to tens of ms, every time.</p>
+      <p>🚕 <b>A connection pool</b> is a set of connections your app keeps open and <b>reuses</b>. Like keeping a few taxis waiting outside instead of phoning for a new one per trip: a request borrows an open connection, uses it, and gives it back.</p>
+      <ul>
+        <li><b>HTTP:</b> Node's built-in fetch keeps connections to each host open and reuses them (keep-alive).</li>
+        <li><b>Database:</b> <code>pg.Pool</code> (what TypeORM uses for Postgres) keeps up to N connections open, 10 by default. Prisma has its own pool that works the same way.</li>
+      </ul>
+      <p>🧊 <b>The catch:</b> a new pod starts with an <b>empty pool</b>. Connections are only opened when the first requests need them, so those first requests are slow:</p>
+      <div class="flow">
+        <div class="step stop">🧊 Cold: request → TCP connect → TLS handshake → DB login → query → answer</div>
+        <div class="step go">🔥 Warm: request → borrow an open connection → query → answer</div>
+      </div>
+      <p>🔥 <b>Warming up</b> means filling the pool <b>at startup, before any traffic arrives</b>: make a few cheap calls (an HTTP <code>/health</code> request, a DB <code>SELECT 1</code>) so open connections are already waiting. Only then mark the pod ready, so Kubernetes sends it traffic. Like a chef preheating the ovens before opening the doors.</p>
+<pre><code class="language-ts">// db-warmup.service.ts (TypeORM)
+@Injectable()
+export class DbWarmup implements OnApplicationBootstrap {
+  constructor(private readonly db: DataSource) {}
+
+  async onApplicationBootstrap() {
+    // 5 queries at once need 5 connections, so the pool opens 5.
+    await Promise.all(
+      Array.from({ length: 5 }, () =&gt; this.db.query('SELECT 1')),
+    );
+  }
+}</code></pre>
+      <p>⚠️ Pools close <b>idle</b> connections after a while (<code>pg</code>'s default is 10 s), so warm-up helps the first moments after a deploy, which is exactly when the 20 ms story hit. Busy services keep their pools warm on their own.</p>
+    </details>
+    <p>The lesson: <b>a timeout covers more than you think, and the first call on a fresh server is not a normal call</b>.</p>
   </div>
 
   <div class="means">What it means for you: if the payment API's p99.9 is 350 ms, a ~400 ms timeout cuts off about 1 in 1,000 calls that would have succeeded, and you never hang for 30 seconds. Too high and the timeout protects nothing. Too low and you create retries, and possibly an outage, yourself.</div>
@@ -1047,6 +1159,81 @@ const pName = p => "p" + +(p * 100).toFixed(1);
     document.getElementById("twV").textContent = to + " ms";
   }
   slider.addEventListener("input", draw);
+  draw();
+})();
+
+// ── Widget: which timeout catches which hang? ────────────────────────────────
+(function () {
+  const STEPS = [
+    { id: "dns", name: "🔎 DNS lookup", ms: 2 },
+    { id: "tcp", name: "🔌 TCP connect", ms: 1 },
+    { id: "tls", name: "🔐 TLS handshake", ms: 3 },
+    { id: "send", name: "📤 Send request", ms: 1 },
+    { id: "server", name: "⚙️ Server works", ms: 40 },
+    { id: "read", name: "📥 Read response", ms: 5 },
+  ];
+  // What goes wrong: [step, how long it takes, longest silence with no bytes, ends in an error?]
+  const CASES = {
+    normal: null,
+    server: ["server", 5000, 5000, false],
+    dns: ["dns", 3000, 3000, false],
+    drop: ["tcp", 127000, 127000, true],
+    drip: ["read", 10000, 800, false],
+  };
+  const LIMIT = 1000;
+  // Which steps each kind of timeout watches (simplified; real clients differ).
+  const WATCH = {
+    idle: ["tls", "send", "server", "read"],
+    connect: ["tcp", "tls", "send", "server", "read"],
+    total: ["dns", "tcp", "tls", "send", "server", "read"],
+  };
+  const fmt = ms => ms >= 60000 ? `${Math.floor(ms / 60000)} min ${Math.round(ms % 60000 / 1000)} s` : fmtMs(ms);
+  const caseSel = document.getElementById("phCase"), kindSel = document.getElementById("phKind");
+  function draw() {
+    const c = CASES[caseSel.value], kind = kindSel.value;
+    const steps = STEPS.map(s => ({ ...s, gap: s.ms }));
+    if (c) { const s = steps.find(x => x.id === c[0]); s.ms = c[1]; s.gap = c[2]; }
+    let t = 0, firedAt = null, stuck = c ? c[0] : null, connectStart = null;
+    for (const s of steps) {
+      const watched = WATCH[kind].includes(s.id);
+      if (kind === "total" && watched && t + s.ms > LIMIT) { firedAt = LIMIT; stuck = s.id; break; }
+      if (kind === "connect" && (s.id === "tcp" || s.id === "tls")) {
+        if (connectStart === null) connectStart = t;
+        if (t + s.ms - connectStart > LIMIT) { firedAt = connectStart + LIMIT; stuck = s.id; break; }
+      } else if (kind !== "total" && watched && s.gap > LIMIT) {
+        firedAt = t + LIMIT; stuck = s.id; break;
+      }
+      t += s.ms;
+      if (c && c[3] && s.id === c[0]) break; // the OS gave up: connection failed
+    }
+    const rows = document.getElementById("phRows");
+    rows.innerHTML = "";
+    steps.forEach(s => {
+      const watched = WATCH[kind].includes(s.id);
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<div><div class="name">${watched ? "👁️" : "🙈"} ${s.name}</div><div class="bar" style="width:${Math.max(2, Math.min(100, Math.log10(s.ms + 1) / 5.2 * 100))}%; background:${s.id === stuck ? "var(--bad)" : "var(--good)"}"></div></div><div class="n">${fmt(s.ms)}</div>`;
+      rows.appendChild(row);
+    });
+    const out = document.getElementById("phOut"), text = document.getElementById("phText");
+    if (firedAt !== null) {
+      out.textContent = `⏱️ You wait ${fmt(firedAt)}`;
+      out.style.color = "var(--good)";
+      text.textContent = `Your timeout fired during "${steps.find(s => s.id === stuck).name.slice(3)}". The call fails fast and you can retry or fall back.`;
+    } else if (!c) {
+      out.textContent = `✅ You wait ${fmt(t)}`;
+      out.style.color = "var(--good)";
+      text.textContent = "Normal call: every step is quick, so no timeout is needed.";
+    } else {
+      out.textContent = `🙈 You wait ${fmt(t)}`;
+      out.style.color = "var(--bad)";
+      text.textContent = c[3]
+        ? "Your 1-second timeout never noticed: the OS finally gave up on the connection after ~2 minutes."
+        : "Your 1-second timeout never fired, even though the call took far longer than 1 second.";
+    }
+  }
+  caseSel.addEventListener("change", draw);
+  kindSel.addEventListener("change", draw);
   draw();
 })();
 
