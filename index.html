@@ -270,6 +270,20 @@
     .nav-topic-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
     .nav-topic-label { flex: 1; }
 
+    /* ── EMBEDDED PAGES (Google, Paper Club) ────────────────────────────────────
+       The embedded page owns its own scrolling, so the app shell is locked to exactly one
+       viewport while one is open. Otherwise the frame is taller than the space left under the
+       header, the outer page scrolls too, and the frame slides up when the inner scroll hits
+       its end. The frame fills whatever height the header and tabs leave. */
+    #main-col { min-width: 0; min-height: 100vh; }
+    body.embed-view { overflow: hidden; }
+    body.embed-view > .d-flex { height: 100vh; }
+    body.embed-view #main-col { min-height: 0; height: 100vh; }
+    body.embed-view main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+    body.embed-view #view-google, body.embed-view #view-papers { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .embed-frame { width: 100%; flex: 1 1 auto; min-height: 0; height: calc(100vh - 8rem);
+      border: 1px solid var(--border, #2a2f3d); border-radius: 12px; background: transparent; }
+
     /* ── 7. HEADER — Bootstrap has no sticky glassmorphic header ────────────── */
     header {
       background: var(--bg-surface);
@@ -1032,7 +1046,7 @@
   </aside>
 
   <!-- ═══ MAIN ═══ -->
-  <div class="flex-grow-1 d-flex flex-column" style="min-width:0; min-height:100vh;">
+  <div id="main-col" class="flex-grow-1 d-flex flex-column">
 
     <!-- Top Bar -->
     <header>
@@ -1090,12 +1104,12 @@
       <!-- ── VIEW: Google ── rendered by loadGoogle(). Embeds the standalone google/ pages in-pane. -->
       <div id="view-google" class="d-none">
         <ul class="nav section-nav-pills mb-3" id="google-tabs"></ul>
-        <iframe id="google-frame" title="Google prep" style="width:100%; height:calc(100vh - 11rem); min-height:480px; border:1px solid var(--border, #2a2f3d); border-radius:12px; background:transparent;"></iframe>
+        <iframe id="google-frame" class="embed-frame" title="Google prep"></iframe>
       </div>
 
       <!-- ── VIEW: Papers ── rendered by loadPapers(). Embeds papers/paper-club.html in-pane, like Google. -->
       <div id="view-papers" class="d-none">
-        <iframe id="papers-frame" title="Paper Club" style="width:100%; height:calc(100vh - 8rem); min-height:480px; border:1px solid var(--border, #2a2f3d); border-radius:12px; background:transparent;"></iframe>
+        <iframe id="papers-frame" class="embed-frame" title="Paper Club"></iframe>
       </div>
 
     </main>
@@ -4432,7 +4446,12 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers'].forEach(v => {
+  const embed = id === 'view-google' || id === 'view-papers'
+  document.body.classList.toggle('embed-view', embed)
+  // html has smooth scrolling; a scrolled page would shift the locked frame
+  if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
+  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers']
+  views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
       el.classList.remove('d-none', 'anim-fade-in')
