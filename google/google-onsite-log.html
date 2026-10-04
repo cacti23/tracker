@@ -462,6 +462,12 @@
             <td><span class="pill reject">Rejected</span></td>
             <td>5 rounds</td>
           </tr>
+          <tr>
+            <td>11</td>
+            <td><a href="#exp-11">Google L4 India &mdash; all rounds positive</a></td>
+            <td><span class="pill mixed">Pending (all positive)</span></td>
+            <td>4 rounds + Googlyness</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -2016,7 +2022,7 @@
 
 
   <!-- ===================== EXPERIENCE 10 ===================== -->
-  <details class="exp" id="exp-10" open>
+  <details class="exp" id="exp-10">
     <summary class="exp-summary">
       <div class="exp-head">
         <span class="exp-num">EXP 10</span>
@@ -2253,6 +2259,202 @@ class XmlNode {
           <li>🧭 &ldquo;Shortest&rdquo; means BFS. Part 1 passed with DFS, but the follow-up then needed a workaround instead of the standard BFS-with-state from LC 1293.</li>
           <li>🪜 &ldquo;Similar to LC X&rdquo; can change the base case: only chains reaching a single letter count, which turns &ldquo;longest chain&rdquo; into a yes/no &ldquo;is this word buildable&rdquo; DP.</li>
           <li>📉 A great behavioral round and an easy Round 3 didn&rsquo;t save the loop. Two weak coding rounds blocked L4 and the L3 fallback.</li>
+        </ol>
+      </div>
+    </div>
+  </details>
+
+
+  <!-- ===================== EXPERIENCE 11 ===================== -->
+  <details class="exp" id="exp-11" open>
+    <summary class="exp-summary">
+      <div class="exp-head">
+        <span class="exp-num">EXP 11</span>
+        <h2>Google L4 India &mdash; 4 strong rounds, Googlyness pending</h2>
+      </div>
+      <p class="exp-meta">
+        Source: <a href="https://leetcode.com/discuss/post/2085058/google-l4-india-by-anonymous_user-4zrw/" target="_blank" rel="noopener">leetcode.com/discuss/post/2085058</a>
+        &nbsp;&middot;&nbsp; 5+ YOE, L4, India (role and dates not given); 4 coding rounds all Strong Hire or Lean/Strong Hire, Googlyness round being scheduled, no final outcome posted.
+      </p>
+    </summary>
+    <div class="exp-body">
+
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 1</span>
+          <h3>Highest straight flush (elimination) &mdash; Strong Hire</h3>
+        </div>
+        <p class="round-sub">Sorted first (O(n log n)); the interviewer wanted O(n), so a counting table.</p>
+        <div class="q">
+          <div class="q-title">Q1 &mdash; Highest five-card straight flush</div>
+          <div class="q-body">&ldquo;Given a deck of cards of X suits and Y ranks (e.g., normal decks have 4 suits and 13 ranks), how do you find the highest (if any) five straight flush (i.e., five cards of the same suit with contiguous/consecutive numbers)?&rdquo; (<a href="https://leetcode.com/discuss/interview-question/1681277/google-phone-card-suit" target="_blank" rel="noopener">linked question</a>)<br>Examples: S1R2, S1R0, S1R1, S0R1, S1R3, S0R7, S1R4 &rarr; S1R0-S1R4; S0R7, S2R0, S0R1, S2R1, S2R2, S2R3, S2R5, S2R4 &rarr; S2R1-S2R5 (both checked: correct).</div>
+          <div class="match">
+            <span class="match-tag none">🔍 No LeetCode match</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/hand-of-straights/" target="_blank" rel="noopener">LC 846 &mdash; Hand of Straights</a>
+            </div>
+          </div>
+          <div class="note">💡 Mark every card in a suit &times; rank table, then walk each suit&rsquo;s ranks counting the current run. A run of 5+ ending at rank r is a straight flush topped by r; keep the highest r.</div>
+          <div class="note warn">⚠️ Assumes the ace does not wrap (rank 12 is not next to rank 0) and any suit is fine on a tie. Ask.</div>
+          <div class="note">⏱️ TC: O(n + X&middot;Y), one pass over the cards and one over the table<br>📦 SC: O(X&middot;Y), the table<br>🧪 Checked against brute force on 5,000 random decks (straight flush) and 3,000 random lots / 120,000 operations (parking): 0 mismatches.<br>📝 <code>createParkingLot</code> in the same block is Round 4&rsquo;s follow-up.</div>
+
+          <div class="code-wrap">
+            <div class="code-label"><span>straightFlushAndParking.ts</span><button class="copy-btn" data-copy-target="code-e11-cards">Copy</button></div>
+            <pre id="code-e11-cards">type Card = { suit: <span class="kw">number</span>; rank: <span class="kw">number</span> };
+
+<span class="cmt">// Round 1: highest straight flush (5 same-suit cards with consecutive ranks)</span>
+<span class="kw">function</span> findHighestStraightFlush(cards: Card[], suits = 4, ranks = 13): Card[] {
+  <span class="cmt">// has[s][r] = true if we hold that card</span>
+  <span class="kw">const</span> has = Array.from({ length: suits }, () =&gt; <span class="kw">new</span> Array&lt;<span class="kw">boolean</span>&gt;(ranks).fill(<span class="kw">false</span>));
+  <span class="kw">for</span> (<span class="kw">const</span> c of cards) has[c.suit][c.rank] = <span class="kw">true</span>;
+
+  <span class="kw">let</span> bestSuit = -1;
+  <span class="kw">let</span> bestTop = -1; <span class="cmt">// highest rank that ends a run of 5</span>
+  <span class="kw">for</span> (<span class="kw">let</span> s = 0; s &lt; suits; s++) {
+    <span class="kw">let</span> run = 0;
+    <span class="kw">for</span> (<span class="kw">let</span> r = 0; r &lt; ranks; r++) {
+      run = has[s][r] ? run + 1 : 0;
+      <span class="kw">if</span> (run &gt;= 5 &amp;&amp; r &gt; bestTop) { bestTop = r; bestSuit = s; }
+    }
+  }
+  <span class="kw">if</span> (bestTop === -1) <span class="kw">return</span> []; <span class="cmt">// no straight flush</span>
+
+  <span class="kw">const</span> out: Card[] = [];
+  <span class="kw">for</span> (<span class="kw">let</span> r = bestTop - 4; r &lt;= bestTop; r++) out.push({ suit: bestSuit, rank: r });
+  <span class="kw">return</span> out;
+}
+
+<span class="cmt">// Round 4: parking strip from 0 to size; a car at x takes (x - 0.5, x + 0.5)</span>
+<span class="kw">function</span> createParkingLot(size = 10000) {
+  <span class="kw">const</span> cars: <span class="kw">number</span>[] = []; <span class="cmt">// parked centres, kept sorted</span>
+  <span class="kw">const</span> EPS = 1e-9; <span class="cmt">// doubles like 12.4 aren't exact, so allow a tiny slack</span>
+
+  <span class="kw">const</span> canPark = (x: <span class="kw">number</span>): <span class="kw">boolean</span> =&gt; {
+    <span class="kw">if</span> (x - 0.5 &lt; -EPS || x + 0.5 &gt; size + EPS) <span class="kw">return</span> <span class="kw">false</span>; <span class="cmt">// off the strip</span>
+    <span class="kw">return</span> cars.every(c =&gt; Math.abs(c - x) &gt;= 1 - EPS); <span class="cmt">// touching is fine, overlap is not</span>
+  };
+
+  <span class="kw">const</span> park = (x: <span class="kw">number</span>): <span class="kw">void</span> =&gt; {
+    <span class="kw">let</span> i = 0;
+    while (i &lt; cars.length &amp;&amp; cars[i] &lt; x) i++;
+    cars.splice(i, 0, x); <span class="cmt">// insert in order, like Insert Interval</span>
+  };
+
+  <span class="cmt">// follow-up: is there a gap of length &gt;= 1 anywhere?</span>
+  <span class="kw">const</span> isSpaceAvailable = (): <span class="kw">boolean</span> =&gt; {
+    <span class="kw">let</span> freeFrom = 0; <span class="cmt">// end of the previous car (or the strip start)</span>
+    <span class="kw">for</span> (<span class="kw">const</span> c of cars) {
+      <span class="kw">if</span> (c - 0.5 - freeFrom &gt;= 1 - EPS) <span class="kw">return</span> <span class="kw">true</span>;
+      freeFrom = c + 0.5;
+    }
+    <span class="kw">return</span> size - freeFrom &gt;= 1 - EPS;
+  };
+
+  <span class="kw">return</span> { canPark, park, isSpaceAvailable };
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 2</span>
+          <h3>Maximum score of a 4-node sequence &mdash; Lean/Strong Hire</h3>
+        </div>
+        <p class="round-sub">The candidate&rsquo;s hardest round; several hints.</p>
+        <div class="q">
+          <div class="q-title">Q1 &mdash; Best-scoring sequence of 4 connected nodes</div>
+          <div class="q-body">&ldquo;The question asked was very similar to this&rdquo; LC 2242. The exact changes aren&rsquo;t described.</div>
+          <div class="match">
+            <span class="match-tag variant">🔁 Close variant</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/maximum-score-of-a-node-sequence/" target="_blank" rel="noopener">LC 2242 &mdash; Maximum Score of a Node Sequence</a>
+            </div>
+          </div>
+          <div class="note">💡 Path: multi-source BFS (too slow) &rarr; &ldquo;for every edge(u,v), find one node connected to &lsquo;u&rsquo; ... and one node connected to &lsquo;v&rsquo;&rdquo;. They missed the case where those two are the same node; the interviewer pointed it out. Keeping each node&rsquo;s top 3 neighbours by value is enough to avoid every clash.</div>
+        </div>
+      </div>
+
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 3</span>
+          <h3>Rate limiter, minute and hour limits &mdash; Strong Hire</h3>
+        </div>
+        <p class="round-sub">Coding-style design: agree on the class, then implement.</p>
+        <div class="q">
+          <div class="q-title">Q1 &mdash; Rate limiter with two windows</div>
+          <div class="q-body">&ldquo;Design a Rate Limiter which has a Minute based and Hour based Limit. (hour based limiter is not 60 times minute based)&rdquo;<br>Follow-up: &ldquo;What if you are getting millions of request every minute.&rdquo;</div>
+          <div class="match">
+            <span class="match-tag variant">🔁 Close variant</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/design-hit-counter/" target="_blank" rel="noopener">LC 362 &mdash; Design Hit Counter</a>
+              <a href="https://www.hellointerview.com/learn/system-design/problem-breakdowns/distributed-rate-limiter" target="_blank" rel="noopener">Hello Interview &mdash; Design a Rate Limiter</a>
+            </div>
+          </div>
+          <div class="note">💡 Two deques of request timestamps, one per window. For the follow-up, store (timestamp, count) instead of one entry per request: the minute deque then holds at most 60 entries and the hour deque at most 3600. LC 362 has the same &ldquo;many hits per second&rdquo; follow-up.</div>
+          <div class="note warn">⚠️ The 60 / 3600 bound only holds if timestamps are whole seconds. Also ask whether a rejected request counts against the limits.</div>
+        </div>
+      </div>
+
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 4</span>
+          <h3>Tree leaves, then a parking strip &mdash; Strong Hire</h3>
+        </div>
+        <p class="round-sub">~55 minutes; many questions.</p>
+        <div class="q">
+          <div class="q-title">Q1 &mdash; Print leaves; are two trees&rsquo; leaf sequences equal?</div>
+          <div class="q-body">&ldquo;Print leaves of a tree.&rdquo; Follow-up: &ldquo;given 2 trees. return true if traversal of leaves is same for both trees.&rdquo;</div>
+          <div class="match">
+            <span class="match-tag exact">✅ Exact match</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/leaf-similar-trees/" target="_blank" rel="noopener">LC 872 &mdash; Leaf-Similar Trees</a>
+            </div>
+          </div>
+        </div>
+        <div class="q">
+          <div class="q-title">Q2 &mdash; canPark / park on a strip</div>
+          <div class="q-body">&ldquo;Given a parking lot with parking space from 0 to 10000. We need to check if a car can be parked. We would first call canPark(location) method with a location (eg. 12.4). Each car would take (location - 0.5, location + 0.5) space. If car cannot be parked, simply return false. If yes, call the park(location) method to park it.&rdquo;</div>
+          <div class="match">
+            <span class="match-tag variant">🔁 Close variant</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/my-calendar-i/" target="_blank" rel="noopener">LC 729 &mdash; My Calendar I</a>
+              <a href="https://leetcode.com/problems/insert-interval/" target="_blank" rel="noopener">LC 57 &mdash; Insert Interval</a>
+            </div>
+          </div>
+          <div class="note">💡 Check for overlap, then insert in order: My Calendar I with every interval 1 long. The post links Insert Interval.</div>
+        </div>
+        <div class="q">
+          <div class="q-title">Q3 &mdash; isSpaceAvailable()</div>
+          <div class="q-body">&ldquo;Implement one more method isSpaceAvailable() which would return true if there is any slot left for a car to park in whole parking strip.&rdquo; The candidate did it in O(n).</div>
+          <div class="match">
+            <span class="match-tag none">🔍 No LeetCode match</span>
+            <div class="match-links">
+              <a href="https://leetcode.com/problems/maximize-distance-to-closest-person/" target="_blank" rel="noopener">LC 849 &mdash; Maximize Distance to Closest Person</a>
+            </div>
+          </div>
+          <div class="note">💡 Keep cars sorted and walk the gaps (strip start &rarr; first car, between cars, last car &rarr; strip end); any gap of length &ge; 1 fits a car. Code: <code>createParkingLot</code> in the Round 1 block.</div>
+          <div class="note warn">⚠️ Assumes a car must sit fully inside 0..10000 and two cars may touch (the intervals are open). Locations are decimals, so comparisons use a tiny slack (EPS).</div>
+          <div class="note">⏱️ TC: O(n) per call, one scan of the sorted cars<br>📦 SC: O(n), the parked cars</div>
+        </div>
+      </div>
+
+      <div class="round">
+        <div class="round-head">
+          <span class="round-badge">ROUND 5</span>
+          <h3>Googlyness &mdash; pending</h3>
+        </div>
+        <p class="placeholder">📋 Being scheduled when the post was written. No questions named, so there is nothing new to answer. See <a href="#exp1-googlyness">Experience #1 &rarr; Googlyness</a> for the worked answers.</p>
+      </div>
+
+      <!-- EXCEPTIONAL LEARNINGS -->
+      <div class="exceptional">
+        <h3>⭐ Exceptional learnings</h3>
+        <ol class="learn-plain">
+          <li>🃏 A small fixed range (13 ranks) is the hint for O(n): swap sorting for a counting table. Expect a push past the first O(n log n) answer.</li>
+          <li>🧩 &ldquo;Only 4 nodes in a sequence&rdquo; was the real clue: fix the middle edge and pick the ends from a few top neighbours. Small fixed sizes usually mean &ldquo;enumerate the middle&rdquo;.</li>
+          <li>🪣 For high-volume windows, store counts per timestamp, not one entry per request. Memory then depends on the window length, not the traffic.</li>
+          <li>🗣️ Hints don&rsquo;t sink a round: several hints in Round 2 still got Lean/Strong Hire by talking it through and fixing the missed case.</li>
         </ol>
       </div>
     </div>
