@@ -244,8 +244,8 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
       <div class="stat"><b id="simTime">–</b><span>until every client succeeded</span></div>
     </div>
     <div class="read">
-      <p>📖 <b>How to read it.</b> Time runs left to right, from the moment all clients start. Each bar is one <b>50 ms slot</b>. A bar's <b>height</b> is how many requests reached the server in that slot: the green part got served, the red part got turned away. The server can serve 20 requests per slot, so the dashed line sits at 20.</p>
-      <p>👀 <b>What to look for.</b> <i>Retry immediately</i>: a huge red wall. With 200 clients, only 20 get in during the first 50 ms. The other 180 each retry about 25 times in that window (every 2 ms), so the first bar is ~4,700 requests, almost all rejected. The server still serves only 20 clients per 50 ms, so serving all 200 takes 10 slots and ~22,000 requests. <i>Backoff</i>: far fewer calls, but the red comes back in spikes, because everyone waits the same time and returns together. <i>Jitter</i>: retries spread out and the bars hug the dashed line, so the server stays busy and everyone finishes soon.</p>
+      <p>📖 <b>How to read it.</b> Time runs left to right, from the moment all clients start. Each bar is one <b>time slot</b>: 50 ms for short runs, wider for long ones so the bars stay readable (the chart says "1 bar = …"). A bar's <b>height</b> is how many requests reached the server in that slot: the green part got served, the red part got turned away. The dashed line is the most the server can serve in one slot (20 every 50 ms, so 100 in a 250 ms bar).</p>
+      <p>👀 <b>What to look for.</b> <i>Retry immediately</i>: a huge red wall. With 200 clients, only 20 get in during the first 50 ms. The other 180 each retry about 25 times in that window (every 2 ms), so the first bar is ~4,700 requests, almost all rejected. The server still serves only 20 clients per 50 ms, so serving all 200 takes 10 slots and ~22,000 requests. <i>Backoff</i>: far fewer calls, but the red comes back in spikes, because everyone waits the same time and returns together. The <b>empty gaps between spikes</b> are the server sitting idle while everyone waits, which is why it takes ~9 s. <i>Jitter</i>: retries spread out and the bars hug the dashed line, so the server stays busy and everyone finishes soon.</p>
       <p>🧪 Simplified on purpose: real servers also slow down when flooded with rejections, which makes "retry immediately" even worse than shown. Backoff starts at 50 ms and caps at 2 s.</p>
     </div>
   </div>
@@ -892,30 +892,41 @@ const fmtMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : Math.round(ms) 
   function draw(r, progress) {
     svg.innerHTML = "";
     const W = 640, H = 235, L = 64, B = 196, T = 22;
-    const maxY = Math.max(CAP * 1.5, ...r.buckets.map(x => x[0] + x[1]));
-    const n = Math.max(r.buckets.length, 1), bw = (W - L) / n;
+    const { size, bars } = r.view;
+    const maxY = Math.max(CAP * size / WORK * 1.5, ...bars.map(x => x[0] + x[1]));
+    const n = Math.max(bars.length, 1), bw = (W - L) / n;
     const y = v => B - (v / maxY) * (B - T);
     el("line", { x1: L, y1: B, x2: W, y2: B, stroke: css("--line"), "stroke-width": 1.5 }, svg);
     const shown = Math.ceil(n * progress);
     for (let i = 0; i < shown; i++) {
-      const [ok, bad] = r.buckets[i], x = L + i * bw, w = Math.max(1, bw - 1);
+      const [ok, bad] = bars[i], x = L + i * bw, w = Math.max(1, bw - 2);
       if (ok) el("rect", { x, y: y(ok), width: w, height: B - y(ok), fill: css("--good") }, svg);
       if (bad) el("rect", { x, y: y(ok + bad), width: w, height: y(ok) - y(ok + bad), fill: css("--bad") }, svg);
     }
-    // Capacity: CAP requests per WORK ms → CAP * BUCKET / WORK per bucket.
-    const capY = y(CAP * BUCKET / WORK);
+    // Capacity: CAP requests per WORK ms → CAP * size / WORK per bar.
+    const capY = y(CAP * size / WORK);
     el("line", { x1: L, y1: capY, x2: W, y2: capY, stroke: css("--warn"), "stroke-dasharray": "5 4", "stroke-width": 1.5 }, svg);
     txt(svg, W - 4, capY - 5, "server capacity", 20, css("--warn"), "end");
     txt(svg, L - 4, T + 8, String(Math.round(maxY)), 19, css("--muted"), "end");
     txt(svg, L - 4, B, "0", 19, css("--muted"), "end");
     txt(svg, L, B + 28, "0", 20);
-    txt(svg, W, B + 28, fmtMs(n * BUCKET), 20, css("--muted"), "end");
-    txt(svg, (L + W) / 2, B + 28, "time →", 20, css("--muted"), "middle");
+    txt(svg, W, B + 28, fmtMs(n * size), 20, css("--muted"), "end");
+    txt(svg, (L + W) / 2, B + 28, `time → (1 bar = ${fmtMs(size)})`, 20, css("--muted"), "middle");
     const yLabel = txt(svg, 17, (T + B) / 2, "requests", 19, css("--muted"), "middle");
     yLabel.setAttribute("transform", `rotate(-90 17 ${(T + B) / 2})`);
   }
   function run() {
     const r = simulate(+slider.value, sel.value);
+    // Long runs (plain backoff takes ~9 s) would mean ~180 hairline bars, so merge
+    // 50 ms buckets into wider bars: at most ~30 on screen, whatever the strategy.
+    const size = [50, 100, 250, 500, 1000, 2000].find(sz => r.buckets.length * BUCKET / sz <= 30) || 5000;
+    const k = size / BUCKET, bars = [];
+    r.buckets.forEach(([ok, bad], i) => {
+      const j = Math.floor(i / k);
+      bars[j] = bars[j] || [0, 0];
+      bars[j][0] += ok; bars[j][1] += bad;
+    });
+    r.view = { size, bars };
     document.getElementById("simCalls").textContent = r.calls.toLocaleString();
     document.getElementById("simRejected").textContent = r.rejected.toLocaleString();
     document.getElementById("simTime").textContent = fmtMs(r.time);
