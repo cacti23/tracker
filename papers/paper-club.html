@@ -45,6 +45,8 @@ button:hover { border-color: var(--accent); }
 .sources a { color: var(--accent); }
 .sources .sub { display: block; }
 .skim { font-size: 12px; color: var(--reading); margin-top: 3px; }
+.guide-btn { display: inline-block; margin: 2px 0 8px; padding: 7px 14px; border-radius: 8px; background: var(--accent); color: #fff !important; text-decoration: none; font-weight: 600; font-size: 14px; }
+.guide-tag { font-size: 13px; }
 section { margin-top: 28px; }
 section h2 { font-size: 17px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
 section h2 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: auto; }
@@ -135,6 +137,7 @@ const LEVELS = [
 const PAPERS = [
   { n: 1, lvl: 1, title: "Timeouts, Retries & Backoff with Jitter", org: "Amazon Builders' Library (Marc Brooker)", year: 2019, time: "20 min",
     url: "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+    guide: "guides/01-timeouts-retries-jitter.html",
     why: "Why naive retries take systems down, and the small fix (jittered backoff) that stops it.", related: [2, 3], prereq: [] },
   { n: 2, lvl: 1, title: "Making Retries Safe with Idempotent APIs", org: "Amazon Builders' Library (Malcolm Featonby)", year: 2021, time: "20 min",
     url: "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/",
@@ -282,7 +285,7 @@ function card(p) {
     <summary>
       <span class="num">#${p.n}</span>
       <span class="meta">
-        <div class="title">${esc(p.title)}</div>
+        <div class="title">${esc(p.title)}${p.guide ? ' <span class="guide-tag" title="Study guide available">📖</span>' : ""}</div>
         <div class="sub">${esc(p.org)} · ${p.year} · ⏱️ ${p.time}</div>
         <div class="why">${p.added ? "🆕 " : ""}${esc(p.why)}</div>
         ${p.skim ? `<div class="skim">⏬ ${esc(p.skim)}</div>` : ""}
@@ -290,6 +293,7 @@ function card(p) {
       <span class="pill ${pillClass(s.status)}" id="pill${p.n}">${s.status}</span>
     </summary>
     <div class="body">
+      ${p.guide ? `<a class="guide-btn" href="${p.guide}">📖 Open the study guide</a>` : ""}
       <div>🔗 <a href="${p.url}" target="_blank" rel="noopener">Open the reading</a>${extra}</div>
       ${p.linkNote ? `<div class="sub">ℹ️ ${esc(p.linkNote)}</div>` : ""}
       <div class="warn" id="warn${p.n}"></div>
