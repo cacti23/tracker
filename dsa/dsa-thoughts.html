@@ -85,7 +85,7 @@
   <a href="#t25"><b>25</b>Dijkstra vs Bellman-Ford</a>
   <a href="#t26"><b>26</b>Floyd-Warshall</a>
   <a href="#t27"><b>27</b>Skip/Take vs committed-rule DP</a>
-  <a href="#t28"><b>28</b>Dungeon Game</a>
+  <a href="#t28"><b>28</b>Dungeon Game: need ahead − cell</a>
   <a href="#t29"><b>29</b>MST — Kruskal's</a>
   <a href="#t30"><b>30</b>Stone Game family shapes</a>
   <a href="#t31"><b>31</b>Prefix vs suffix sentinel</a>
@@ -462,20 +462,15 @@ answer = max over all i, all diff = nums[i]-nums[j] for j&lt;i, of dfs(i, diff)<
 <div class="box key"><b class="tag">🔑</b> "Ending at <code>i</code>" is the STANDARD framing for this whole family — anchor the state at the LAST index, then ask "for every earlier <code>j</code>, if I extend THAT chain (ending at <code>j</code>, same <code>diff</code>) by adding <code>nums[i]</code>, what do I get?" State = <code>(i, diff)</code>, not <code>(i, prevIndex)</code> — the DIFFERENCE itself is what got "committed" and must be carried forward.</div>
 <div class="box key"><b class="tag">📌</b> If the extension rule only needs the LAST value, it's skip/take. If it needs a relationship the chain already locked in, the state must CARRY that relationship — found by scanning PAIRS, not by skip/take.</div>
 
-<h2 id="t28">28 · 🗡️ Dungeon Game — Work Backward, Clamp to 1</h2>
-<p><b>🎯</b> The question at EVERY cell: "how much HP do I need WALKING IN, so that after this cell's effect, I still have enough for the REST of the trip?"</p>
-<div class="box key"><b class="tag">🔑</b> Work BACKWARD from the destination — a cell's answer depends on EVERY cell AFTER it, so you must know those first.</div>
-<p><b>Base case (destination):</b> need <code>1</code> HP left after its effect.</p>
-<pre class="language-tsx"><code class="language-tsx">Math.max(1, 1 - dungeon[dest])</code></pre>
-<p><b>Every other cell:</b> pick the CHEAPER of the two paths ahead, then ask what's needed HERE.</p>
-<pre class="language-tsx"><code class="language-tsx">neededAhead = Math.min(right, down)
-thisCell = Math.max(1, neededAhead - dungeon[cell])</code></pre>
-<p>📐 <b>Why <code>neededAhead - dungeon[cell]</code> works for BOTH damage and healing, same formula:</b></p>
-<pre class="language-tsx"><code class="language-tsx">Damage (dungeon=-2): neededAhead - (-2) = neededAhead + 2   // need MORE, correct
-Heal (dungeon=+8):   neededAhead - 8                          // need LESS, correct</code></pre>
-<p>Subtracting a negative flips to addition automatically — no separate rule needed for damage vs healing.</p>
-<div class="box warn"><b class="tag">🚨</b> <code>Math.max(1, ...)</code> is a hard safety clamp: you can NEVER be alive with <code>0</code> or negative HP, even if the math suggests a heal covers it. Always floor at <code>1</code>.</div>
-<div class="box key"><b class="tag">📌</b> Walk backward from the end, take the cheaper future path, ask what HP survives THIS cell's effect and still meets that need — always clamped to a minimum of 1, since zero or negative HP is never survivable.</div>
+<h2 id="t28">28 · 🗡️ Dungeon Game — Need Here = Need Ahead − This Cell (at least 1)</h2>
+<p><b>🎯</b> <code>dfs(r, c)</code> = the minimum HP needed walking INTO this cell. Leap of faith: trust <code>dfs</code> to give the need for the rest of the trip.</p>
+<pre class="language-tsx"><code class="language-tsx">// past the destination → 1 (just survive). Off the grid → Infinity
+const neededAhead = Math.min(dfs(r + 1, c), dfs(r, c + 1))
+return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
+<p>➖ <b>Why subtract:</b> damage <code>-2</code> → need goes UP by 2. Heal <code>+8</code> → need goes DOWN by 8. One formula covers both.</p>
+<p>🛡️ <b>Why <code>max(1, …)</code>:</b> HP can never be 0 or below, even if a big heal "covers" everything ahead.</p>
+<div class="box key"><b class="tag">📌</b> <b>Need here = need ahead − this cell, never below 1.</b> After the last cell, need ahead = 1.</div>
+
 
 <h2 id="t29">29 · 🕸️ Minimum Spanning Tree — Master Kruskal's, Skip Prim's</h2>
 <p><b>🎯</b> The question: connect ALL nodes together (directly or through others) using MINIMUM TOTAL edge cost. NOT "shortest path between two specific nodes" — that's Dijkstra's job, a DIFFERENT question entirely.</p>
