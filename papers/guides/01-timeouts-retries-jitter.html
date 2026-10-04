@@ -737,7 +737,7 @@ export class UsersClient {
 }</code></pre>
   <p>This is a <b>GET</b>, so retrying is safe. For a POST that creates something, don't retry unless the API takes an idempotency key (#2). A 404 throws <code>HttpError(404)</code>, which isn't retryable, so it fails at once.</p>
 
-  <h3>4. A retry budget (the token-bucket idea)</h3>
+  <h3 id="budget-code">4. A retry budget (the token-bucket idea)</h3>
 <pre><code class="language-ts"><span class="file">// retry-budget.ts</span>
 // Each retry spends 1 token; each success earns back 0.1.
 // So retries can't stay above ~10% of successful traffic, even in an outage.
@@ -910,7 +910,7 @@ server.listen(0, async () =&gt; {
       </ul>
       <p style="margin:4px 0"><b>In the checkout flow, when the provider is really down:</b></p>
       <ul style="margin:4px 0">
-        <li>🛑 Stop retrying (the budget runs dry), mark the order <b>"payment pending"</b>, and put it on a queue.</li>
+        <li>🛑 Stop retrying (the <a href="#outage">budget runs dry</a>), mark the order <b>"payment pending"</b>, and put it on a queue.</li>
         <li>🔄 A background worker retries from the queue later and reconciles with the provider. This isn't a second layer stacked on top: it runs minutes later, after the payment client has given up, so the retries don't multiply.</li>
         <li>📈 Alert on the <b>retry rate</b>, not just errors, so we see trouble early.</li>
       </ul>
@@ -920,7 +920,28 @@ server.listen(0, async () =&gt; {
 
   <h3>⑤ Likely follow-ups</h3>
   <details><summary>"How did you pick that timeout?"</summary><p>From the dependency's latency distribution: pick an acceptable false-timeout rate (0.1%) and use the matching percentile (p99.9), plus padding if the distribution is tight, plus network latency for far-away clients.</p></details>
-  <details><summary>"What if the provider is completely down for 10 minutes?"</summary><p>Retries won't help, so the retry budget runs dry and we fail fast. Degrade gracefully: accept the order as "payment pending", queue it, and process when the provider is healthy. Alert. Optionally a circuit breaker, knowing it's a blunter tool.</p></details>
+  <details id="outage"><summary>"What if the provider is completely down for 10 minutes?"</summary>
+    <p><b>Short answer:</b> "Retries can't fix a 10-minute outage, so I don't let them try. The retry budget runs dry within a second, every call after that is tried <b>once</b> and fails fast, and checkout degrades to 'payment pending'."</p>
+    <p>🪣 <b>What a retry budget is.</b> A limit on how many <b>retries</b> (not first attempts) one service may send to one dependency, measured against how many calls are succeeding. Think of a jar of tokens in the payment client (the <code>RetryBudget</code> class in <a href="#budget-code">At work §4</a>, one per provider):</p>
+    <ul>
+      <li>🫙 The jar holds <b>10 tokens</b> and starts full.</li>
+      <li>➖ Every <b>retry</b> takes 1 token. The first attempt of a call is free.</li>
+      <li>➕ Every <b>success</b> puts back 0.1 tokens. So 10 successes earn 1 retry, which caps retries at about <b>10% of successful traffic</b>.</li>
+      <li>🚫 Jar empty means no retry: return the first error straight away.</li>
+    </ul>
+    <p>⏱️ <b>The 10 minutes, step by step</b> (say 100 checkouts per second):</p>
+    <table>
+      <tr><th>When</th><th>What happens</th><th>Jar</th></tr>
+      <tr><td>Normal</td><td>Almost every call succeeds. The rare blip gets retried and works.</td><td>Full (10)</td></tr>
+      <tr><td>12:00:00</td><td>Provider goes down. The first few failing calls spend all 10 tokens on retries. Those retries fail too.</td><td>Empty within a second</td></tr>
+      <tr><td>12:00:01 to 12:10</td><td>Nothing succeeds, so nothing earns tokens back. Every call gets <b>1 attempt</b>, fails, and the order goes to "payment pending".</td><td>Stays empty</td></tr>
+      <tr><td>12:10</td><td>Provider is back. Each success earns 0.1, so retries return gradually and the jar is full again after ~100 successes, about a second.</td><td>Refills</td></tr>
+    </table>
+    <p>📊 <b>Why it matters, in numbers.</b> Without a budget, every call makes 3 attempts: the dead provider gets <b>300 calls/s</b> instead of 100, and every user waits through all 3 attempts and the backoff (up to the 3 s deadline) only to fail anyway. With the budget: <b>100 calls/s</b>, and each user waits one timeout (≤800 ms) before seeing "payment pending". Less load on a provider trying to recover, faster answers for users.</p>
+    <p>🌗 <b>The nice part: it adapts on its own.</b> In a partial outage where half the calls fail, the 50 successes per second earn 5 tokens, so 5 retries per second still go through. Blips still get retried, but retries can never <b>triple</b> the load.</p>
+    <p>🔌 <b>Versus a circuit breaker:</b> a breaker sends <b>zero</b> calls while open, then must guess when to test again. The budget still sends every first attempt (1×), so it notices recovery the moment calls start succeeding. That's why the article prefers it.</p>
+    <p>🛟 <b>Then degrade:</b> accept the order as "payment pending", queue it, let the worker charge it once the provider is healthy (same idempotency key), and alert on the retry rate. Optionally add a breaker, knowing it's the blunter tool.</p>
+  </details>
   <details><summary>"Why jitter if you already have exponential backoff?"</summary><p>Clients that failed together back off by the same amounts and retry together, so the spike comes back. With a cap they all retry at the same fixed rate. Jitter decorrelates them; in Brooker's simulation with 100 clients it cut the call count by more than half.</p></details>
   <details><summary>"Five services in the chain each retry. Problem?"</summary><p>Yes: retries multiply, up to attempts^layers (3⁵ = 243×). Retry in one layer, ideally where you know the operation is idempotent, and propagate a deadline so lower layers stop early.</p></details>
   <details><summary>"The server is recovering and 50k mobile clients reconnect. What happens?"</summary><p>A thundering herd knocks it down again. Clients need jittered backoff on reconnect, and the server needs load shedding / admission control because we don't control old app versions.</p></details>
@@ -963,17 +984,34 @@ server.listen(0, async () =&gt; {
     <p>Its latency percentiles: pick a false-timeout rate (0.1%), take that percentile (p99.9), pad it if p99.9 is close to p50, and make sure it covers connect, TLS and response.</p></details>
   <details><summary>4. Your nightly cron runs on 20 pods and DB CPU spikes at 00:00. Fix?</summary>
     <p>A deterministic per-pod offset (hash of the host name, modulo a few minutes), or run the job on one leader. Deterministic beats random so the pattern is debuggable.</p></details>
-  <details><summary>⏱️ 5. Mini design (10 min): webhook delivery for an e-commerce platform. Merchants' endpoints are often slow or down. Sketch it, then compare.</summary>
-    <ul>
-      <li><b>Durable queue</b> of deliveries; workers pull from it, so a slow merchant never blocks the order flow.</li>
-      <li><b>Timeout</b> per delivery (seconds, not minutes) so one slow endpoint doesn't hold a worker.</li>
-      <li><b>Retry schedule</b>: exponential backoff with jitter, capped, stretching over hours for long outages; then a <b>dead-letter queue</b> plus a "replay" button and an alert to the merchant.</li>
-      <li><b>Idempotency</b>: each event carries a unique id header so the merchant can drop duplicates, because a timeout may have been delivered.</li>
-      <li><b>Isolation</b>: a per-merchant concurrency limit or budget, so one dead endpoint can't eat all workers.</li>
-      <li><b>Jitter on recovery</b>: when a merchant comes back, the backlog drains at a controlled rate, not all at once.</li>
-      <li><b>Metrics</b>: success rate, retry rate and backlog age per merchant.</li>
-    </ul>
-    <p class="hint">Numbers like "seconds" and "hours" here are design choices to justify in the room, not facts from the article.</p></details>
+  <details id="mini-design"><summary>⏱️ 5. Mini design (10 min): an e-commerce platform that notifies merchants (webhooks). Sketch it, then compare.</summary>
+    <p>🧩 <b>What we're designing.</b> Think of a platform like Shopify. A merchant, say "Chai Store", runs a shop on it and also has <b>their own server</b> (for their warehouse or accounting). When something happens, like an order placed, the platform must <b>tell that server</b> by sending an HTTP POST to a URL the merchant gave us, e.g. <code>https://chaistore.in/hooks</code>. That notification is a <b>webhook</b>.</p>
+    <p>⚠️ <b>The catch:</b> we don't control merchants' servers. Some are slow, some go down for hours. Our job: deliver every notification, without slowing checkout, and without one broken merchant hurting the others.</p>
+    <p>🔀 <b>The flow</b> (order #123 at Chai Store):</p>
+    <div class="flow">
+      <div class="step go">🛒 <b>1. Order placed.</b> Checkout saves the order, drops an event "order.created #123" onto a <b>queue</b>, and replies to the shopper. It never calls the merchant itself.</div>
+      <div class="arrow">↓</div>
+      <div class="step">📬 <b>2. Queue</b> keeps the event safely, even if a server crashes.</div>
+      <div class="arrow">↓</div>
+      <div class="step">👷 <b>3. A worker</b> picks it up and POSTs to Chai Store's URL, with a <b>5 s timeout</b> and a unique <b>event id</b> header.</div>
+      <div class="arrow">↓</div>
+      <div class="step go">✅ <b>4a. Got 2xx?</b> Done.</div>
+      <div class="step stop">❌ <b>4b. Timeout, 5xx or 429?</b> Put it back on the queue to try <b>later</b>: in 1 min, 2, 4, 8… (with jitter, capped at ~1 h apart), for up to ~24 h. The worker moves on to other events meanwhile.</div>
+      <div class="arrow">↓</div>
+      <div class="step stop">☠️ <b>5. Still failing after ~24 h?</b> Move it to a <b>dead-letter queue</b> (a "failed" pile), email the merchant, and give them a <b>Replay</b> button.</div>
+    </div>
+    <p>🧠 <b>Why each piece is there:</b></p>
+    <table>
+      <tr><th>Problem</th><th>Fix</th></tr>
+      <tr><td>🐢 A slow merchant would slow down checkout</td><td>📬 The queue. Checkout only writes the event and moves on.</td></tr>
+      <tr><td>🔒 One slow server could tie up all our workers</td><td>⏱️ A short timeout, plus a per-merchant limit (e.g. at most 5 deliveries in flight to one merchant).</td></tr>
+      <tr><td>🔌 A merchant is down for hours</td><td>🔁 Retries spread over hours, then the dead-letter queue. Nothing is lost.</td></tr>
+      <tr><td>👯 A timeout may have arrived anyway, so a retry sends it twice</td><td>🔑 The event id. The merchant ignores ids they've already handled (idempotency).</td></tr>
+      <tr><td>🌊 Merchant comes back and 10,000 waiting events hit them at once</td><td>🎲 Jitter, and send the backlog at a controlled rate.</td></tr>
+      <tr><td>👀 Spotting trouble early</td><td>📈 Per merchant: success rate, retry rate, and age of the oldest waiting event.</td></tr>
+    </table>
+    <p>🔗 <b>Link to this paper:</b> the worker is the <b>one layer</b> that retries, and its retries wait on the queue rather than inside a running request, so nothing multiplies.</p>
+    <p class="hint">Numbers like "5 s", "1 h" and "24 h" are design choices to justify in the room, not facts from the article.</p></details>
 
   <h2 id="remember">📝 Remember card</h2>
   <div class="card-remember">
