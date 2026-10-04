@@ -105,6 +105,8 @@ svg { width: 100%; height: auto; display: block; }
 .flow .step b { color: var(--accent); }
 .flow .arrow { text-align: center; color: var(--muted); font-size: 14px; line-height: 1; }
 .flow .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.flow .checks { margin: 6px 0 0; padding-left: 4px; list-style: none; }
+.flow .checks li { margin: 3px 0; }
 .flow .stop { border-color: var(--bad); }
 .flow .go { border-color: var(--good); }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin: 6px 0; }
@@ -182,19 +184,28 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
     <p>🎲 <b>Backoff + jitter</b> (wait longer, plus a random bit): so 1,000 clients that failed together don't all try again at the same instant.</p>
     <p>👉 In one line: <b>don't wait forever, don't retry blindly, and never retry in sync.</b></p>
   </div>
-  <p><b>🗺️ The whole article as one flow</b>, what your code does on every remote call:</p>
-  <div class="flow" aria-label="Flow: call with a timeout; on failure, check whether to retry; if yes, wait with backoff and jitter and try again; if no, fail fast">
-    <div class="step">📞 Call the service, with a <b>timeout</b> (e.g. 800 ms)</div>
-    <div class="arrow">↓ it failed or timed out</div>
-    <div class="step">🤔 Worth retrying? <b>Temporary error</b> (503, timeout)? <b>Safe to repeat</b>? <b>Attempts left</b>? <b>Retry budget</b> left?</div>
-    <div class="branch">
-      <div>
-        <div class="arrow">↓ yes</div>
-        <div class="step go">⏳ Wait: <b>backoff</b> (100, 200, 400 ms…) × random <b>jitter</b>, then call again</div>
+  <div class="box" id="one-flow">
+    <p style="margin:0 0 4px"><b>🗺️ The whole article in one flow</b>: what your code does on <b>every</b> remote call.</p>
+    <div class="flow" aria-label="Flow: call with a timeout; if it works, done; if it fails, check four questions; if all yes, wait with backoff and jitter and call again; if any no, fail fast">
+      <div class="step">📞 <b>1. Call</b> the service with a <b>timeout</b> (e.g. 800 ms).</div>
+      <div class="arrow">↓ ✅ worked? Done. ❌ failed or timed out?</div>
+      <div class="step">🤔 <b>2. Should I retry?</b> Only if <b>all four</b> are yes:
+        <ul class="checks">
+          <li>🌦️ <b>Temporary error?</b> 503, 429, timeout. Not 400 or 404.</li>
+          <li>🔑 <b>Safe to repeat?</b> A read, or a write with an idempotency key.</li>
+          <li>🔢 <b>Attempts left?</b> E.g. at most 3.</li>
+          <li>🪣 <b>Retry budget left?</b> Retries stay a small share of traffic.</li>
+        </ul>
       </div>
-      <div>
-        <div class="arrow">↓ no</div>
-        <div class="step stop">🛑 <b>Fail fast</b>: return the error, show a fallback, or queue it for later</div>
+      <div class="branch">
+        <div>
+          <div class="arrow">↓ all yes</div>
+          <div class="step go">⏳ <b>3. Wait</b> (backoff × jitter), then <b>back to 1</b> ↺</div>
+        </div>
+        <div>
+          <div class="arrow">↓ any no</div>
+          <div class="step stop">🛑 <b>Fail fast</b>: return the error, a fallback, or queue it</div>
+        </div>
       </div>
     </div>
   </div>
