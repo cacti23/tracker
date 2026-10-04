@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeouts, Retries & Jitter: Study Guide</title>
+<style>
+:root {
+  --bg: #f7f6f2; --card: #ffffff; --text: #1d1d1f; --muted: #66666d; --line: #e4e2dc;
+  --accent: #3b5bdb; --chip: #eef1fb; --good: #2f9e44; --bad: #e03131; --warn: #d9480f;
+  --code-bg: #f1f0ea; --hl: #fff3bf;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
+    --accent: #7c95ff; --chip: #23263a; --good: #51cf66; --bad: #ff6b6b; --warn: #ff922b;
+    --code-bg: #17171a; --hl: #3b3520;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
+  --accent: #7c95ff; --chip: #23263a; --good: #51cf66; --bad: #ff6b6b; --warn: #ff922b;
+  --code-bg: #17171a; --hl: #3b3520;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+.layout { max-width: 1080px; margin: 0 auto; padding: 20px 16px 80px; display: grid; grid-template-columns: 1fr; gap: 32px; }
+@media (min-width: 980px) { .layout { grid-template-columns: 200px minmax(0, 760px); } }
+nav.toc { display: none; }
+@media (min-width: 980px) {
+  nav.toc { display: block; position: sticky; top: 20px; align-self: start; font-size: 13px; }
+  nav.toc a { display: block; padding: 3px 0; color: var(--muted); text-decoration: none; }
+  nav.toc a:hover { color: var(--accent); }
+}
+main { min-width: 0; }
+.back { font-size: 14px; text-decoration: none; }
+h1 { font-size: 28px; line-height: 1.25; margin: 10px 0 6px; }
+h2 { font-size: 21px; margin: 44px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 16px; margin: 22px 0 6px; }
+p { margin: 8px 0; }
+.meta { color: var(--muted); font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.chip { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--chip); color: var(--accent); text-decoration: none; }
+.tldr { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px; }
+.tldr p { margin: 4px 0; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 12px 0; }
+.says { color: var(--muted); font-size: 15px; }
+.means { border-left: 3px solid var(--good); padding-left: 10px; margin-top: 6px; }
+ul { padding-left: 22px; margin: 8px 0; }
+li { margin: 4px 0; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; padding: 0; font-size: inherit; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 10px 0; display: block; overflow-x: auto; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+mark { background: var(--hl); color: inherit; padding: 0 2px; border-radius: 3px; }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 8px 0; }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] summary { margin-bottom: 6px; }
+.card-remember { background: var(--card); border: 2px dashed var(--accent); border-radius: 12px; padding: 14px 18px; }
+figure { margin: 14px 0; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+svg { width: 100%; max-width: 600px; height: auto; display: block; margin: 0 auto; }
+.svg-text { fill: var(--text); font-size: 17px; font-family: inherit; }
+.svg-muted { fill: var(--muted); font-size: 15px; }
+.svg-axis { stroke: var(--line); stroke-width: 1.5; }
+.svg-bad { fill: var(--bad); }
+.svg-good { fill: var(--good); }
+.svg-cap { stroke: var(--warn); stroke-dasharray: 4 4; stroke-width: 1.5; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <a href="#tldr">⚡ TL;DR</a>
+    <a href="#why">🧭 Why it exists</a>
+    <a href="#model">🧠 Mental model</a>
+    <a href="#walk">📖 Walkthrough</a>
+    <a href="#ideas">💎 Core ideas</a>
+    <a href="#tradeoffs">⚖️ Tradeoffs</a>
+    <a href="#real">🏭 Real world</a>
+    <a href="#stack">🛠️ In your stack</a>
+    <a href="#traps">⚠️ Traps</a>
+    <a href="#legacy">🌱 Legacy</a>
+    <a href="#links">🔗 Connections</a>
+    <a href="#check">✅ Check yourself</a>
+    <a href="#remember">📝 Remember card</a>
+    <a href="#deeper">🔭 Go deeper</a>
+  </nav>
+
+<main>
+  <a class="back" href="../paper-club.html">← Paper Club</a>
+  <h1>⏱️ Timeouts, Retries &amp; Backoff with Jitter</h1>
+  <div class="meta">Marc Brooker · Amazon Builders' Library · 2019 · Study guide for #1</div>
+  <div class="chips">
+    <span class="chip">🟢 Level 1</span>
+    <span class="chip">⏱️ Original: 20 min</span>
+    <span class="chip">⏱️ This guide: 15 min</span>
+    <a class="chip" href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/" target="_blank" rel="noopener">🔗 Read the original</a>
+  </div>
+
+  <h2 id="tldr">⚡ TL;DR</h2>
+  <div class="tldr">
+    <p>⏱️ <b>Every remote call needs a timeout</b>, or one slow dependency quietly eats all your connections and memory.</p>
+    <p>🔁 <b>Retries are "selfish"</b>: they help you, but they add load, and during an overload they make things worse. Retry a little, in one layer only.</p>
+    <p>🎲 <b>Back off exponentially and add randomness (jitter)</b> so a thousand clients don't all retry at the same millisecond.</p>
+  </div>
+
+  <h2 id="why">🧭 Why it exists</h2>
+  <p>In a big system, something is always failing: a server, a network link, a load balancer, a deploy. Amazon's stance is <b>don't try to prevent every failure; design so failures stay small</b>.</p>
+  <p>Three tools do most of that work: <b>timeouts</b> (stop waiting), <b>retries</b> (try again), and <b>backoff with jitter</b> (try again politely). Each one is simple. The article is about how each one, used naively, causes the outage it was meant to prevent.</p>
+
+  <h2 id="model">🧠 Mental model</h2>
+  <p>🍽️ Think of a restaurant kitchen that's slammed. If every waiter re-shouts their order every 5 seconds, the kitchen gets slower, not faster. If every waiter waits exactly 30 seconds and then shouts together, it's still a wall of noise, just later. What works: each waiter waits a bit longer each time <b>and</b> picks a slightly random moment. The orders arrive spread out, and the kitchen catches up.</p>
+  <figure>
+    <svg viewBox="0 0 640 230" role="img" aria-labelledby="fig1t">
+      <title id="fig1t">Retries without jitter arrive in synchronized spikes; with full jitter they spread out under the server's capacity line.</title>
+      <text class="svg-text" x="0" y="16" font-weight="600">No jitter: everyone retries at 1s, 2s, 4s</text>
+      <line class="svg-axis" x1="0" y1="100" x2="640" y2="100"/>
+      <line class="svg-cap" x1="0" y1="62" x2="640" y2="62"/>
+      <text class="svg-muted" x="360" y="56">server capacity</text>
+      <rect class="svg-bad" x="20" y="26" width="18" height="74" rx="2"/>
+      <rect class="svg-bad" x="160" y="34" width="18" height="66" rx="2"/>
+      <rect class="svg-bad" x="300" y="42" width="18" height="58" rx="2"/>
+      <rect class="svg-bad" x="580" y="48" width="18" height="52" rx="2"/>
+      <text class="svg-muted" x="22" y="120">0s</text><text class="svg-muted" x="162" y="120">1s</text>
+      <text class="svg-muted" x="302" y="120">2s</text><text class="svg-muted" x="582" y="120">4s</text>
+
+      <text class="svg-text" x="0" y="140" font-weight="600">Full jitter: each client waits random(0, backoff)</text>
+      <line class="svg-axis" x1="0" y1="222" x2="640" y2="222"/>
+      <line class="svg-cap" x1="0" y1="184" x2="640" y2="184"/>
+      <rect class="svg-bad" x="20" y="148" width="18" height="74" rx="2"/>
+      <g class="svg-good">
+        <rect x="50" y="200" width="10" height="22" rx="2"/><rect x="74" y="196" width="10" height="26" rx="2"/>
+        <rect x="100" y="203" width="10" height="19" rx="2"/><rect x="128" y="198" width="10" height="24" rx="2"/>
+        <rect x="160" y="205" width="10" height="17" rx="2"/><rect x="196" y="201" width="10" height="21" rx="2"/>
+        <rect x="236" y="207" width="10" height="15" rx="2"/><rect x="280" y="204" width="10" height="18" rx="2"/>
+        <rect x="330" y="209" width="10" height="13" rx="2"/><rect x="392" y="208" width="10" height="14" rx="2"/>
+        <rect x="460" y="211" width="10" height="11" rx="2"/><rect x="530" y="212" width="10" height="10" rx="2"/>
+      </g>
+    </svg>
+    <figcaption>Same number of retries in both rows. Without jitter they arrive as spikes that blow past capacity again. With jitter they arrive as a trickle the server can absorb.</figcaption>
+  </figure>
+
+  <h2 id="walk">📖 Walkthrough</h2>
+
+  <h3>1. Failures happen</h3>
+  <p class="says">What it says: slow requests hold resources (memory, threads, connections, ports). Many failures are <b>partial</b> (some requests fail) or <b>transient</b> (fail briefly, then work). Traffic also arrives in <b>bursts</b>.</p>
+  <div class="means">What it means for you: a hung call isn't "just slow". In Node, each in-flight request holds a socket, a DB pool slot, and memory for its closures. Enough of them and your healthy service falls over because of someone else's slow one.</div>
+
+  <h3>2. Timeouts</h3>
+  <p class="says">What it says: set a <b>connection timeout</b> and a <b>request timeout</b> on every remote call. Pick the value from the downstream's latency data: choose an acceptable false-timeout rate, like 0.1%, and use the matching percentile, p99.9.</p>
+  <ul>
+    <li>🌍 Clients across the internet need room for worst-case network latency.</li>
+    <li>📏 If p99.9 is close to p50 (a very tight service), add padding, or a tiny slowdown turns into a flood of timeouts.</li>
+    <li>🧩 Make sure the timeout covers <b>everything</b>: DNS, TLS handshake, connecting, sending, reading. Use a well-tested client's timeout instead of rolling your own.</li>
+  </ul>
+  <div class="means">What it means for you: "p99.9" means 99.9% of calls finish faster than this. If the payment API's p99.9 is 350 ms, a ~400 ms timeout cuts off about 1 in 1,000 calls that would have succeeded, and in exchange you never hang for 30 seconds. Too high and the timeout protects nothing. Too low and you create retries, and possibly an outage, yourself.</div>
+  <div class="box">🏭 <b>The paper's 20 ms story:</b> a service had ~20 ms timeouts. After every deploy, the first requests on new servers timed out, because the timeout also covered TLS connection setup, which took longer than 20 ms. Connections were reused afterward, so it only hit fresh servers. The first fix was a longer timeout for connection setup. The better fix was to <b>open connections at startup, before taking traffic</b>.</div>
+
+  <h3>3. Retries and backoff</h3>
+  <p class="says">What it says: retries are selfish. They're fine when failures are rare and random. When failures come from overload, retries add load and slow recovery. Back off <b>exponentially</b> (wait 100 ms, 200 ms, 400 ms…) with a <b>cap</b>, and <b>limit the number of retries</b>.</p>
+  <ul>
+    <li>📚 <b>Retries multiply across layers.</b> Five layers that each try 3 times means up to 3⁵ = <mark>243× the load</mark> on the database. Retry in <b>one</b> layer of the stack.</li>
+    <li>🪣 <b>Cap retries with a token bucket.</b> Retries spend tokens; when tokens run out, retries fall to a fixed low rate. Amazon prefers this over circuit breakers, whose on/off modes are hard to test and slow to recover. The AWS SDK added this behavior in 2016.</li>
+    <li>🔑 <b>Only retry what's safe.</b> Reads usually are. Creates usually aren't, unless the API takes an idempotency token, like EC2's RunInstances does. That's the whole subject of #2.</li>
+    <li>🚦 <b>Know which errors to retry.</b> 5xx can succeed later; 4xx usually won't. Eventual consistency blurs this: a 404 can become a 200 once data replicates.</li>
+  </ul>
+  <div class="means">What it means for you: if your GraphQL resolver retries, your REST client retries, and the HTTP library retries underneath, you already have the multiplication problem. Pick one place.</div>
+
+  <h3>4. Jitter</h3>
+  <p class="says">What it says: backoff alone keeps retries <b>correlated</b>: everyone who failed together retries together. Add randomness. And not just for retries: <b>timers, cron jobs and periodic work</b> cause spikes too, often hidden by per-minute metrics.</p>
+  <ul>
+    <li>🔁 For scheduled work, Amazon uses <b>deterministic jitter</b>: the same offset every time on the same host, derived from something like the host name. Overloads then repeat in a pattern humans can spot, instead of randomly.</li>
+    <li>📉 EBS and Lambda saw clients firing every minute on the minute, or right after midnight. Spreading those out let them <b>do the same work with less capacity</b>.</li>
+  </ul>
+  <div class="means">What it means for you: a <code>0 0 * * *</code> cron running on 20 pods hits your DB at the same second every night. A per-pod offset of a few minutes fixes it for free.</div>
+
+  <h3>5. Conclusion</h3>
+  <p class="says">What it says: retry only when the dependency looks healthy, and stop when retries aren't improving availability.</p>
+  <div class="means">What it means for you: retries are for <b>blips</b>, not for <b>outages</b>. During an outage, failing fast is the kind thing to do.</div>
+
+  <h2 id="ideas">💎 Core ideas</h2>
+  <ul>
+    <li>⏱️ <b>No call without a deadline.</b> Like a <code>useEffect</code> without cleanup: fine until it isn't, and then it leaks everywhere.</li>
+    <li>🔁 <b>Retries are a loan against the server's capacity.</b> Borrow small, and never during a crisis.</li>
+    <li>📚 <b>Retries multiply per layer.</b> Retry in exactly one place.</li>
+    <li>🎲 <b>Spread out anything that happens "at the same time"</b>: retries, crons, cache expiries, reconnects.</li>
+    <li>🪣 <b>Budget retries</b> (token bucket) instead of trusting every caller to be polite.</li>
+  </ul>
+
+  <h2 id="tradeoffs">⚖️ Tradeoffs</h2>
+  <table>
+    <tr><th>Choice</th><th>You gain</th><th>You give up</th></tr>
+    <tr><td>Short timeout</td><td>Resources freed fast, quick failure</td><td>False timeouts on slow-but-fine calls; more retries</td></tr>
+    <tr><td>Long timeout</td><td>Fewer false failures</td><td>Threads/sockets held while you wait; slow user experience</td></tr>
+    <tr><td>More retries</td><td>Higher success on random blips</td><td>Load amplification during overload; longer tail latency</td></tr>
+    <tr><td>Retry at the top layer only</td><td>No multiplication</td><td>Redoes work the lower layers already did</td></tr>
+    <tr><td>Random jitter</td><td>Spreads load</td><td>Harder to reproduce timing bugs (hence deterministic jitter for crons)</td></tr>
+  </table>
+  <p><b>If assumptions change:</b> the advice assumes failures are mostly transient. If a dependency is <b>hard down</b>, every retry is pure waste. If your clients are <b>not under your control</b> (mobile apps, partners), you can't enforce jitter, so the server must protect itself with throttling and load shedding (#25).</p>
+
+  <h2 id="real">🏭 Real world</h2>
+  <ul>
+    <li>From the paper: the <b>20 ms TLS timeout</b> after deploys, the <b>243×</b> multi-layer math, the <b>AWS SDK token bucket</b> (2016), <b>EBS and Lambda</b> clients synchronizing on the minute.</li>
+    <li>Today: <b>AWS SDKs</b> ship retry modes with exponential backoff, jitter and a retry token bucket. <b>gRPC</b> supports retry policies with throttling, and <b>Envoy</b> supports retry budgets. Same idea: retries capped as a share of normal traffic.</li>
+    <li>🧠 My take: the most common version of this bug in web apps isn't in the backend. It's <b>mobile and web clients reconnecting together</b> after a deploy or a network blip. Every client's websocket or polling loop needs backoff with jitter too.</li>
+  </ul>
+
+  <h2 id="stack">🛠️ In your stack</h2>
+  <h3>1. A timeout on every call</h3>
+  <p>Many Node clients have <b>no timeout, or a very long one, by default</b>. Examples worth checking in your versions: <code>axios</code> defaults to no timeout, and <code>pg</code> pools wait forever for a connection unless you set <code>connectionTimeoutMillis</code>. Built-in <code>fetch</code> takes a signal:</p>
+<pre><code>const res = await fetch&#40;url, { signal: AbortSignal.timeout(800) })</code></pre>
+
+  <h3>2. Retry with capped exponential backoff and full jitter</h3>
+<pre><code>const sleep = (ms: number) =&gt; new Promise(r =&gt; setTimeout(r, ms))
+
+export async function withRetry&lt;T&gt;(
+  fn: (signal: AbortSignal) =&gt; Promise&lt;T&gt;,
+  { attempts = 3, baseMs = 100, capMs = 2000, timeoutMs = 800,
+    isRetryable = (_e: unknown) =&gt; true } = {},
+): Promise&lt;T&gt; {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn(AbortSignal.timeout(timeoutMs))
+    } catch (err) {
+      if (attempt + 1 &gt;= attempts || !isRetryable(err)) throw err
+      // Full jitter: a random point between 0 and the capped exponential backoff
+      const ceiling = Math.min(capMs, baseMs * 2 ** attempt)
+      await sleep(Math.random() * ceiling)
+    }
+  }
+}
+
+// Only retry what can succeed later: timeouts, network errors, 5xx, 429.
+class HttpError extends Error { constructor(public status: number) { super(`HTTP ${status}`) } }
+
+const user = await withRetry(async signal =&gt; {
+  const r = await fetch&#40;`${API}/users/42`, { signal })
+  if (r.status &gt;= 500 || r.status === 429) throw new HttpError(r.status)
+  return r.json()
+}, {
+  isRetryable: e =&gt; e instanceof HttpError || e instanceof TypeError ||
+    (e as Error).name === 'TimeoutError',
+})</code></pre>
+  <p>This is a <b>GET</b>. For a POST that creates something, don't retry unless the API takes an idempotency key (#2).</p>
+
+  <h3>3. A retry budget (the token-bucket idea)</h3>
+<pre><code>// Retries spend a token; each success earns back a fraction.
+// Net effect: retries stay a small share of real traffic, even during an outage.
+class RetryBudget {
+  private tokens: number
+  constructor(private max = 10, private earnPerSuccess = 0.1) { this.tokens = max }
+  trySpend() { if (this.tokens &lt; 1) return false; this.tokens -= 1; return true }
+  onSuccess() { this.tokens = Math.min(this.max, this.tokens + this.earnPerSuccess) }
+}</code></pre>
+
+  <h3>4. Deterministic jitter for crons</h3>
+<pre><code>import { createHash } from 'node:crypto'
+import os from 'node:os'
+
+// Same host, same offset, every night: spreads 20 pods over 5 minutes, reproducibly.
+const offsetMs = createHash('sha256').update(os.hostname()).digest().readUInt32BE(0) % 300_000
+setTimeout(runNightlyJob, offsetMs)</code></pre>
+
+  <h3>✅ Code-review checklist</h3>
+  <ul>
+    <li>Does every outbound call (HTTP, DB, Redis, queue) have a timeout, and does it cover connect + response?</li>
+    <li>Is there exactly <b>one</b> retrying layer for this call path?</li>
+    <li>Are retries capped (count and total time) and jittered?</li>
+    <li>Is the operation safe to repeat? If not, is there an idempotency key?</li>
+    <li>Do we only retry retryable errors (timeouts, 5xx, 429, network), never 400/401/403?</li>
+    <li>Do scheduled jobs and client reconnects have jitter?</li>
+  </ul>
+  <div class="box">🎯 <b>Try this week:</b> grep your service for <code>axios.create</code>, <code>new Pool(</code>, <code>new Redis(</code> and bare <code>fetch&#40;</code>. List which ones have no explicit timeout and how many layers retry the same call. That list alone is a solid PR.</div>
+
+  <h2 id="traps">⚠️ Traps</h2>
+  <ul>
+    <li><b>"The library retries for me, so I'll add my own retry too."</b> → Now you have 2 layers multiplying. Check what your SDK or client already does.</li>
+    <li><b>Timeout on the request but not on getting a pool connection.</b> → Requests queue forever waiting for a DB slot. Time out both.</li>
+    <li><b>Retrying non-idempotent POSTs on timeout.</b> → A timeout doesn't mean it failed. The order may exist; now it exists twice.</li>
+    <li><b>Backoff without jitter.</b> → You've only moved the stampede a few seconds later.</li>
+    <li><b>Retrying forever "because it's important".</b> → That's exactly how a 1-minute blip becomes a 1-hour outage.</li>
+  </ul>
+
+  <h2 id="legacy">🌱 Legacy</h2>
+  <ul>
+    <li>Not outdated at all. This is current practice, and it's built into AWS SDKs, gRPC and service meshes like Envoy.</li>
+    <li>The article's <b>skepticism of circuit breakers</b> is Amazon's view, not a universal law. Netflix popularized circuit breakers with Hystrix (now in maintenance mode), and many teams still use them. 🧠 My take: retry budgets and load shedding usually beat breakers, because they degrade gradually instead of flipping a switch.</li>
+    <li>What's missing: <b>deadline propagation</b>. Passing the remaining time budget down the call chain, so lower layers don't keep working on a request the caller has already given up on. The SRE book (#25) covers it.</li>
+  </ul>
+
+  <h2 id="links">🔗 Connections</h2>
+  <div class="chips">
+    <span class="chip">#2 Idempotent APIs: what makes a retry safe</span>
+    <span class="chip">#25 Cascading Failures: what retries do during overload</span>
+    <span class="chip">#24 Tail at Scale: hedged requests, a smarter cousin of retries</span>
+    <span class="chip">#3 Caching: jitter on cache expiry prevents stampedes</span>
+    <span class="chip">#20 End-to-End: why the client has to own correctness</span>
+  </div>
+
+  <h2 id="check">✅ Check yourself</h2>
+  <details><summary>1. Why does the article call retries "selfish"?</summary>
+    <p>A retry spends the server's capacity to raise <b>your</b> chance of success. That's fine when failures are rare. During overload, everyone's selfish retries add up to more load on a server that's already drowning.</p></details>
+  <details><summary>2. API → service → DB layer → driver → DB, and each layer tries 3 times. Worst case?</summary>
+    <p>3 × 3 × 3 × 3 = 81 calls to the database for one user action (243 with five retrying layers, as in the paper). Fix: retry in one layer, usually the one closest to the user or the one that knows the operation is idempotent.</p></details>
+  <details><summary>3. How would you choose a timeout for a call to an internal pricing service?</summary>
+    <p>Look at its latency percentiles. Decide what false-timeout rate you'll accept (say 0.1%), take the matching percentile (p99.9), and add padding if p99.9 is close to p50. Make sure it covers connect, TLS and response.</p></details>
+  <details><summary>4. You already have capped exponential backoff. Why add jitter?</summary>
+    <p>Clients that failed together back off by the same amounts and retry together, recreating the spike. With a cap, they even end up retrying at the same fixed rate. Jitter decorrelates them.</p></details>
+  <details><summary>5. Your nightly report cron runs on 20 pods and the DB CPU spikes at 00:00. Fix?</summary>
+    <p>Give each pod a deterministic offset (a hash of the host name, modulo a few minutes), or run the job on one leader. Deterministic beats random here, because the pattern repeats and you can debug it.</p></details>
+  <details><summary>6. <code>POST /orders</code> timed out after 800 ms. Do you retry?</summary>
+    <p>Only if the endpoint is idempotent, for example it accepts an <code>Idempotency-Key</code> so the server can spot the duplicate. Otherwise you may create the order twice, because a timeout doesn't tell you whether it ran. That's #2.</p></details>
+
+  <h2 id="remember">📝 Remember card</h2>
+  <div class="card-remember">
+    <ul>
+      <li>⏱️ Every remote call gets a timeout, and it covers DNS, connect, TLS and response.</li>
+      <li>📊 Timeout ≈ downstream p99.9, plus padding when the latency distribution is tight.</li>
+      <li>🔁 Retry rarely, in one layer, only for retryable errors on safe operations.</li>
+      <li>📈 Exponential backoff + cap + max attempts + <b>full jitter</b>.</li>
+      <li>🪣 Budget retries as a share of traffic (token bucket).</li>
+      <li>🎲 Jitter anything synchronized: crons, reconnects, cache TTLs. Use deterministic jitter for scheduled work.</li>
+      <li>🚨 During an outage, failing fast beats retrying.</li>
+    </ul>
+  </div>
+
+  <h2 id="deeper">🔭 Go deeper</h2>
+  <ul>
+    <li><a href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" target="_blank" rel="noopener">Exponential Backoff and Jitter</a> (Marc Brooker, AWS Architecture Blog, 2015). The simulation behind "use full jitter", with the formulas for full, equal and decorrelated jitter.</li>
+    <li><a href="https://sre.google/sre-book/addressing-cascading-failures/" target="_blank" rel="noopener">Addressing Cascading Failures</a> (Google SRE book). What retries do to a system that's already overloaded, plus deadline propagation. This is #25 on your list.</li>
+  </ul>
+</main>
+</div>
+<script>
+// Follow the tracker's theme ('dsa-theme', same origin); default dark when embedded, like the tracker.
+try {
+  const t = localStorage.getItem("paper-club-v1-theme") || localStorage.getItem("dsa-theme") || (window.top !== window.self ? "dark" : null);
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+} catch (e) {}
+</script>
+<script src="../../js/back-button.js"></script>
+</body>
+</html>
