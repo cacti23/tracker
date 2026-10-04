@@ -224,7 +224,7 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
 
   <div class="widget" id="sim">
     <h4>🎛️ Try it: a retry storm</h4>
-    <p class="hint">All clients hit a server at the same instant. The server handles 20 requests at a time, 50 ms each, and rejects the rest. Every rejected client retries using the strategy you pick, until it succeeds.</p>
+    <p class="hint">All clients hit a server at the same instant. The server handles 20 requests at a time, 50 ms each, and rejects the rest. Every rejected client retries using the strategy you pick, until it succeeds. ⚠️ <b>Clients are not requests:</b> a client is one user, while the chart counts every attempt, so one client can send dozens of requests. "Retry immediately" means trying again 2 ms after a rejection.</p>
     <div class="controls">
       <label>Strategy
         <select id="simStrategy">
@@ -245,7 +245,7 @@ pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom:
     </div>
     <div class="read">
       <p>📖 <b>How to read it.</b> Time runs left to right, from the moment all clients start. Each bar is one <b>50 ms slot</b>. A bar's <b>height</b> is how many requests reached the server in that slot: the green part got served, the red part got turned away. The server can serve 20 requests per slot, so the dashed line sits at 20.</p>
-      <p>👀 <b>What to look for.</b> <i>Retry immediately</i>: a huge red wall, the same clients hammering again every millisecond. <i>Backoff</i>: far fewer calls, but the red comes back in spikes, because everyone waits the same time and returns together. <i>Jitter</i>: retries spread out and the bars hug the dashed line, so the server stays busy and everyone finishes soon.</p>
+      <p>👀 <b>What to look for.</b> <i>Retry immediately</i>: a huge red wall. With 200 clients, only 20 get in during the first 50 ms. The other 180 each retry about 25 times in that window (every 2 ms), so the first bar is ~4,700 requests, almost all rejected. The server still serves only 20 clients per 50 ms, so serving all 200 takes 10 slots and ~22,000 requests. <i>Backoff</i>: far fewer calls, but the red comes back in spikes, because everyone waits the same time and returns together. <i>Jitter</i>: retries spread out and the bars hug the dashed line, so the server stays busy and everyone finishes soon.</p>
       <p>🧪 Simplified on purpose: real servers also slow down when flooded with rejections, which makes "retry immediately" even worse than shown. Backoff starts at 50 ms and caps at 2 s.</p>
     </div>
   </div>
