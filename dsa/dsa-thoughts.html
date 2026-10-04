@@ -976,6 +976,8 @@ for (let i = 0; i &lt; n - 2; i++)           // array ends
 <tr><td><b>Function returns</b></td><td>a value (max, sum, count)</td><td><code>void</code></td></tr>
 <tr><td><b>Answer lives in</b></td><td>the top call's return value</td><td>an outer variable (<code>best</code>, <code>count++</code>, <code>res.push</code>)</td></tr>
 <tr><td><b>Natural for</b></td><td>one number: max / min / count / yes-no. Memoizes easily (the subproblem is just the arguments)</td><td>every path, or a rule like "visited all zero cells"</td></tr>
+<tr><td><b>Params hold</b></td><td>only what's LEFT to decide (<code>row, prevCol</code>)</td><td>the past too (<code>currSum</code>, <code>path</code>)</td></tr>
+<tr><td><b>Memo works?</b></td><td>✅ yes → DP</td><td>❌ no → stays brute force</td></tr>
 </table>
 <pre class="language-tsx"><code class="language-tsx">// Gold (LC 1219) as PUSH DOWN: carry the sum, update an outer variable
 sum += grid[r][c];
@@ -983,9 +985,16 @@ best = Math.max(best, sum);                                // answer collected o
 
 // Paths III (LC 980) as RETURN UP: base case returns 1 or 0, parent adds
 if (grid[r][c] === 2) return zeroCount === 0 ? 1 : 0;</code></pre>
+<p>🧪 <b>Parameter test:</b> before adding a parameter, ask "does the FUTURE need this to decide?" Yes (<code>row</code>, <code>prevCol</code>) → it's state, keep it. No, it only records the past (<code>currSum</code>) → drop it and return the answer instead. Two paths reach the same <code>(row, prevCol)</code> with different sums, so with <code>currSum</code> in the params nothing repeats and a memo never hits. (Same idea as <a href="#t45">#45</a>: small carry → memoize.)</p>
+<pre class="language-tsx"><code class="language-tsx">// Falling Path Sum II (LC 1289)
+// ⬇️ push down: currSum is the past → no memo
+dfs(row + 1, col, currSum + grid[row][col]);
+
+// 🔙 return up: state = (row, prevCol) → memo → O(m·n²)
+best = Math.min(best, grid[row][col] + dfs(row + 1, col));</code></pre>
 <p>❓ <b>Pick with one question:</b> "What does <code>dfs(state)</code> mean?" → "the answer for the subproblem from here" = <b>return up</b>. "I'm here with this path so far, report when you arrive" = <b>push down</b>.</p>
 <p>♻️ <b>Same rule in both:</b> if you mutate a shared grid, undo before you return.</p>
-<div class="box key"><b class="tag">📌</b> <b>Return = answers climb UP the stack 🪜. Push = state walks DOWN the stack 🚶.</b> Only need a number → return up. Need every path → push down.</div>
+<div class="box key"><b class="tag">📌</b> <b>Return = answers climb UP the stack 🪜. Push = state walks DOWN the stack 🚶.</b> Params = what's LEFT to decide, not what already happened. Only need a number → return up (memo → DP). Need every path → push down (backtracking).</div>
 
 <h2 id="t49">49 · 🔢 Set → Bitmask — A Set of Small Integers Is ONE Integer</h2>
 <p><b>🎯</b> When the options are small integers (columns <code>0…n−1</code>, digits <code>1…9</code>), a Set of them fits in one integer: number <code>x</code> is in the set ⇔ <b>bit <code>x</code> is ON</b>. Same algorithm, cheaper operations. (<a href="#t45">#45</a> uses a mask to memoize; here it only speeds up plain backtracking.)</p>
