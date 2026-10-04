@@ -367,6 +367,17 @@
     color:var(--text-dim);
     margin-top:12px;
   }
+  /* Review counter: one ring per experience, tap after each pass */
+  .rev-ring{
+    flex:none; width:34px; height:34px; padding:0; border-radius:50%;
+    border:3px solid var(--border); background:var(--surface); color:var(--text-dim);
+    font:700 13px/1 "Sora", system-ui, sans-serif; cursor:pointer;
+  }
+  .rev-ring.has{ border-color:var(--accent); color:var(--accent); }
+  .rev-ring.bump{ animation:rev-bump .25s; }
+  @keyframes rev-bump{ 50%{ transform:scale(1.18); } }
+  .rev-note{ font-size:12.5px; color:var(--text-dim); margin-top:6px; }
+  .rev-cell{ white-space:nowrap; color:var(--text-dim); }
 </style>
 
 <div class="wrap">
@@ -1608,5 +1619,83 @@
 })();
 </script>
 
+<script>
+(function(){
+  // Per-experience review counter. Counts live in their own key so sync can keep the
+  // larger number on a conflict (maxKeys in index.html); dates sit in a second key.
+  var COUNTS = 'google-log-reviews-v1';
+  var DATES = 'google-log-reviewed-at-v1';
+  function load(k){ try{ return JSON.parse(localStorage.getItem(k)) || {}; }catch(e){ return {}; } }
+  function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ /* storage blocked: page still works */ } }
+  var counts = load(COUNTS), dates = load(DATES);
+
+  function when(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { day:'numeric', month:'short' });
+  }
+  function note(id){
+    var n = counts[id] || 0;
+    if(!n) return '⭕ Not reviewed yet. Tap the ring after each pass.';
+    return '⭕ Reviewed ' + n + (n === 1 ? ' time' : ' times') + (dates[id] ? ' · last ' + when(dates[id]) : '');
+  }
+  function label(id){
+    var n = counts[id] || 0;
+    return 'Reviewed ' + n + (n === 1 ? ' time' : ' times') + '. Tap to add one.';
+  }
+
+  var cells = {};
+  var table = document.querySelector('table');
+  if(table){
+    var head = table.querySelector('thead tr, tr');
+    if(head){ var th = document.createElement('th'); th.textContent = 'Reviewed'; head.appendChild(th); }
+    table.querySelectorAll('tbody tr').forEach(function(tr){
+      var a = tr.querySelector('a[href^="#exp-"]');
+      var td = document.createElement('td');
+      td.className = 'rev-cell';
+      if(a) cells[a.getAttribute('href').slice(1)] = td;
+      tr.appendChild(td);
+    });
+  }
+  function paintCell(id){
+    if(cells[id]) cells[id].textContent = counts[id] ? counts[id] + '×' : '–';
+  }
+
+  document.querySelectorAll('details.exp').forEach(function(exp){
+    var id = exp.id;
+    var headEl = exp.querySelector('.exp-head');
+    var meta = exp.querySelector('.exp-meta');
+    if(!headEl) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rev-ring';
+    var txt = document.createElement('div');
+    txt.className = 'rev-note';
+    function paint(){
+      var n = counts[id] || 0;
+      btn.textContent = n;
+      btn.classList.toggle('has', n > 0);
+      btn.title = label(id);
+      btn.setAttribute('aria-label', label(id));
+      txt.textContent = note(id);
+      paintCell(id);
+    }
+    btn.addEventListener('click', function(e){
+      // The ring sits inside <summary>; don't let the tap open or close the card
+      e.preventDefault();
+      e.stopPropagation();
+      counts = load(COUNTS); dates = load(DATES);   // another tab may have counted too
+      counts[id] = (counts[id] || 0) + 1;
+      dates[id] = new Date().toISOString();
+      save(COUNTS, counts); save(DATES, dates);
+      paint();
+      btn.classList.remove('bump'); void btn.offsetWidth; btn.classList.add('bump');
+    });
+    headEl.insertBefore(btn, headEl.firstChild);
+    (meta || headEl).insertAdjacentElement('afterend', txt);
+    paint();
+  });
+})();
+</script>
 <script src="../js/back-button.js"></script>
 </body></html>
