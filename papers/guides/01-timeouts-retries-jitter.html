@@ -445,6 +445,34 @@ export class PaymentsClient implements OnApplicationBootstrap {
     );
   }
 }</code></pre>
+    <details id="warmup">
+      <summary>🔥 What is a connection pool, and what does "warming it up" mean?</summary>
+      <p>🔌 <b>A connection</b> is an open line from your service to another one (an API, Postgres, Redis). Opening one costs several round trips: TCP connect, the TLS handshake, and for a database also the login. That's a few ms to tens of ms, every time.</p>
+      <p>🚕 <b>A connection pool</b> is a set of connections your app keeps open and <b>reuses</b>. Like keeping a few taxis waiting outside instead of phoning for a new one per trip: a request borrows an open connection, uses it, and gives it back.</p>
+      <ul>
+        <li><b>HTTP:</b> Node's built-in fetch keeps connections to each host open and reuses them (keep-alive).</li>
+        <li><b>Database:</b> <code>pg.Pool</code> (what TypeORM uses for Postgres) keeps up to N connections open, 10 by default. Prisma has its own pool that works the same way.</li>
+      </ul>
+      <p>🧊 <b>The catch:</b> a new pod starts with an <b>empty pool</b>. Connections are only opened when the first requests need them, so those first requests are slow:</p>
+      <div class="flow">
+        <div class="step stop">🧊 Cold: request → TCP connect → TLS handshake → DB login → query → answer</div>
+        <div class="step go">🔥 Warm: request → borrow an open connection → query → answer</div>
+      </div>
+      <p>🔥 <b>Warming up</b> means filling the pool <b>at startup, before any traffic arrives</b>: make a few cheap calls (an HTTP <code>/health</code> request, a DB <code>SELECT 1</code>) so open connections are already waiting. Only then mark the pod ready, so Kubernetes sends it traffic. Like a chef preheating the ovens before opening the doors.</p>
+<pre><code class="language-ts">// db-warmup.service.ts (TypeORM)
+@Injectable()
+export class DbWarmup implements OnApplicationBootstrap {
+  constructor(private readonly db: DataSource) {}
+
+  async onApplicationBootstrap() {
+    // 5 queries at once need 5 connections, so the pool opens 5.
+    await Promise.all(
+      Array.from({ length: 5 }, () =&gt; this.db.query('SELECT 1')),
+    );
+  }
+}</code></pre>
+      <p>⚠️ Pools close <b>idle</b> connections after a while (<code>pg</code>'s default is 10 s), so warm-up helps the first moments after a deploy, which is exactly when the 20 ms story hit. Busy services keep their pools warm on their own.</p>
+    </details>
     <p>The lesson: <b>a timeout covers more than you think, and the first call on a fresh server is not a normal call</b>.</p>
   </div>
 
