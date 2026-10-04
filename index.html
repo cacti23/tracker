@@ -973,6 +973,12 @@
         <span class="nav-topic-icon">🔍</span>
         <span class="nav-topic-label">Google</span>
       </button>
+
+      <p class="sidebar-section-label">Papers</p>
+      <button type="button" id="nav-papers" onclick="loadPapers()" class="nav-link" title="Engineering Paper Club: distributed-systems papers and blogs, easy to hard">
+        <span class="nav-topic-icon">📚</span>
+        <span class="nav-topic-label">Paper Club</span>
+      </button>
     </nav>
 
     <a href="apps/gym-5day.html" class="sidebar-gym-link">
@@ -1082,6 +1088,11 @@
       <div id="view-google" class="d-none">
         <ul class="nav section-nav-pills mb-3" id="google-tabs"></ul>
         <iframe id="google-frame" title="Google prep" style="width:100%; height:calc(100vh - 11rem); min-height:480px; border:1px solid var(--border, #2a2f3d); border-radius:12px; background:transparent;"></iframe>
+      </div>
+
+      <!-- ── VIEW: Papers ── rendered by loadPapers(). Embeds papers/paper-club.html in-pane, like Google. -->
+      <div id="view-papers" class="d-none">
+        <iframe id="papers-frame" title="Paper Club" style="width:100%; height:calc(100vh - 8rem); min-height:480px; border:1px solid var(--border, #2a2f3d); border-radius:12px; background:transparent;"></iframe>
       </div>
 
     </main>
@@ -1680,6 +1691,7 @@ function _restoreView() {
   let saved = null
   try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
   if (saved === 'google') loadGoogle()
+  else if (saved === 'papers') loadPapers()
   else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
   else loadDashboard()
 }
@@ -1709,6 +1721,23 @@ function loadGoogle(tab) {
   const frame = document.getElementById('google-frame')
   const want = GOOGLE_TABS.find(t => t.key === currentGoogleTab).src
   if (frame.getAttribute('src') !== want) frame.setAttribute('src', want)
+}
+
+// ─── PAPERS (in-pane, same pattern as Google; the page saves to 'paper-club-v1') ───
+const PAPERS_SRC = 'papers/paper-club.html'
+function loadPapers() {
+  showView('view-papers')
+  _stopTimer()
+  _qpStopTimer()
+  document.getElementById('page-title').textContent = '📚 Paper Club'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const nav = document.getElementById('nav-papers')
+  if (nav) nav.classList.add('active')
+  currentTopicKey = null
+  _saveCurrentView('papers')
+  const frame = document.getElementById('papers-frame')
+  if (frame.getAttribute('src') !== PAPERS_SRC) frame.setAttribute('src', PAPERS_SRC)
 }
 
 function loadDashboard() {
@@ -4400,7 +4429,7 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  ['view-dashboard', 'view-topic', 'view-search-results', 'view-google'].forEach(v => {
+  ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers'].forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
       el.classList.remove('d-none', 'anim-fade-in')
@@ -4418,6 +4447,8 @@ function clearActiveNav() {
   if (dash) dash.classList.remove('active')
   const goog = document.getElementById('nav-google')
   if (goog) goog.classList.remove('active')
+  const papers = document.getElementById('nav-papers')
+  if (papers) papers.classList.remove('active')
 }
 
 function setActiveNav(key) {
@@ -4449,7 +4480,8 @@ const BACKUP_KEYS = [
   'dsa-streak-v1',
   'dsa-qp-state-v1',
   'dsa-practice-session-v1',
-  'dsa-theme'
+  'dsa-theme',
+  'paper-club-v1'   // written by papers/paper-club.html (same origin), synced with the rest
 ]
 
 // Cloud sync (shared module in sync.js): reuse the BACKUP_KEYS allowlist.

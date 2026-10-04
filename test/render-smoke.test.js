@@ -91,3 +91,10 @@ test('Google sidebar entry opens in-pane: loadGoogle() shows #view-google, rende
   assert.match(getElement('google-tabs').innerHTML, /class="nav-link active"[^>]*\n?[^>]*onclick="loadGoogle\('log'\)"/, 'Onsite Log tab should be the active one')
   assert.equal(evalIn(sandbox, 'currentGoogleTab'), 'log')
 })
+
+test('Papers sidebar entry opens in-pane: loadPapers() shows #view-papers and embeds papers/paper-club.html', () => {
+  const { sandbox, getElement } = loadAppWithDom()
+  evalIn(sandbox, 'loadPapers()')
+  assert.equal(getElement('papers-frame').getAttribute('src') || evalIn(sandbox, 'PAPERS_SRC'), 'papers/paper-club.html')
+  assert.equal(evalIn(sandbox, "localStorage.getItem('dsa-current-view-v1')"), 'papers')
+})

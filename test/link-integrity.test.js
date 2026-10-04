@@ -212,7 +212,7 @@ test('every inline <script> block in every .html file is syntactically valid Jav
 })
 
 test('top-level folder layout matches the reorg contract', () => {
-  const expectedDirs = ['js', 'dsa', 'apps', 'google', 'docs', 'icons', 'test']
+  const expectedDirs = ['js', 'dsa', 'apps', 'google', 'papers', 'docs', 'icons', 'test']
   for (const d of expectedDirs) {
     assert.ok(fs.statSync(path.join(ROOT, d)).isDirectory(), `expected top-level directory "${d}" to exist`)
   }

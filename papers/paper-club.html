@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engineering Paper Club</title>
+<style>
+:root {
+  --bg: #f7f6f2; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc;
+  --accent: #3b5bdb; --chip: #eef1fb; --done: #2f9e44; --reading: #e67700; --reread: #7048e8;
+  --l1: #2f9e44; --l2: #e0a800; --l3: #e8590c; --l4: #e03131; --l5: #7048e8;
+  --track: #e9e7e1; --input: #fbfaf7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
+    --accent: #7c95ff; --chip: #23263a; --track: #2a2a2f; --input: #18181b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
+  --accent: #7c95ff; --chip: #23263a; --track: #2a2a2f; --input: #18181b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+header h1 { font-size: 24px; margin: 0 0 4px; }
+header p { margin: 0; color: var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+button, .btn { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); cursor: pointer; }
+button:hover { border-color: var(--accent); }
+.bar { height: 8px; background: var(--track); border-radius: 99px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.overall { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.overall .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 12px; }
+.levels div { font-size: 12px; color: var(--muted); }
+.levels .bar { height: 5px; margin-top: 3px; }
+.sources { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; }
+.sources summary { font-weight: 600; }
+.sources ul { margin: 0; padding: 0 16px 14px 34px; }
+.sources li { margin: 6px 0; font-size: 14px; }
+.sources a { color: var(--accent); }
+.sources .sub { display: block; }
+.skim { font-size: 12px; color: var(--reading); margin-top: 3px; }
+section { margin-top: 28px; }
+section h2 { font-size: 17px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+section h2 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: auto; }
+section > .bar { height: 4px; margin-bottom: 12px; }
+details.paper { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--lvl);
+  border-radius: 10px; margin-bottom: 8px; }
+details.paper[open] { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+summary::-webkit-details-marker { display: none; }
+.num { font-weight: 700; color: var(--lvl); min-width: 26px; }
+.meta { flex: 1; min-width: 0; }
+.title { font-weight: 600; }
+.sub { font-size: 13px; color: var(--muted); }
+.why { font-size: 13px; margin-top: 2px; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; border: 1px solid var(--line); color: var(--muted); }
+.pill.reading { color: var(--reading); border-color: var(--reading); }
+.pill.done { color: var(--done); border-color: var(--done); }
+.pill.reread { color: var(--reread); border-color: var(--reread); }
+.body { padding: 0 14px 14px 50px; }
+.body a { color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; font-size: 13px; }
+select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--input); color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: var(--chip); color: var(--accent); text-decoration: none; }
+.warn { font-size: 12px; color: var(--reading); margin: 4px 0; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (max-width: 560px) {
+  .body { padding-left: 14px; }
+  summary { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📚 Engineering Paper Club</h1>
+    <p>28 readings, easy → hard. 🆕 = added after review, ⏬ = skim only. Pace: 1 blog + 1 paper per week.</p>
+  </header>
+
+  <div class="toolbar">
+    <button id="exportBtn">📤 Export JSON</button>
+    <button id="importBtn">📥 Import JSON</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+    <button id="themeBtn">🌗 Theme</button>
+    <button id="expandBtn">↕️ Expand all</button>
+  </div>
+
+  <div class="overall">
+    <div class="row"><span>Overall progress</span><span id="overallTxt"></span></div>
+    <div class="bar"><span id="overallBar"></span></div>
+    <div class="levels" id="levelBars"></div>
+  </div>
+
+  <details class="sources">
+    <summary>🌐 Where these come from (sites worth exploring)</summary>
+    <ul>
+      <li><a href="https://aws.amazon.com/builders-library/" target="_blank" rel="noopener">Amazon Builders' Library</a><span class="sub">Where #1–#3 come from. Every article is worth reading.</span></li>
+      <li><a href="https://github.com/papers-we-love/papers-we-love" target="_blank" rel="noopener">Papers We Love</a><span class="sub">Community collection of classic CS papers, sorted by topic.</span></li>
+      <li><a href="https://blog.acolyer.org/" target="_blank" rel="noopener">The Morning Paper (Adrian Colyer)</a><span class="sub">One paper explained per day, 2014–2021. Archived but the best paper summaries anywhere.</span></li>
+      <li><a href="https://brooker.co.za/blog/" target="_blank" rel="noopener">Marc Brooker's blog</a><span class="sub">AWS engineer behind #1. Short, sharp posts on retries, queues, databases.</span></li>
+      <li><a href="https://muratbuffalo.blogspot.com/" target="_blank" rel="noopener">Metadata (Murat Demirbas)</a><span class="sub">Distributed-systems paper reviews, still active.</span></li>
+      <li><a href="https://sre.google/sre-book/table-of-contents/" target="_blank" rel="noopener">Google SRE book (free)</a><span class="sub">Running services in production. Start with ch. 21–22 (overload, cascading failures).</span></li>
+      <li><a href="https://dataintensive.net/" target="_blank" rel="noopener">Designing Data-Intensive Applications</a><span class="sub">Kleppmann's book. The best companion to this whole list.</span></li>
+      <li><a href="https://jepsen.io/analyses" target="_blank" rel="noopener">Jepsen analyses</a><span class="sub">What databases actually guarantee vs. what they claim.</span></li>
+      <li><a href="https://www.usenix.org/publications/proceedings" target="_blank" rel="noopener">USENIX proceedings</a><span class="sub">OSDI, NSDI and ATC papers, free to read. Home of TAO, Raft, Spanner, Zanzibar.</span></li>
+      <li><a href="https://research.google/pubs/" target="_blank" rel="noopener">Google Research publications</a><span class="sub">Official home of GFS, MapReduce, Bigtable, Dapper and more.</span></li>
+      <li><a href="https://discord.com/blog" target="_blank" rel="noopener">Discord engineering blog</a><span class="sub">Where #4 comes from. Good real-world scaling stories.</span></li>
+    </ul>
+  </details>
+
+  <main id="list"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LEVELS = [
+  { id: 1, emoji: "🟢", name: "Level 1: Easy blogs", color: "var(--l1)" },
+  { id: 2, emoji: "🟡", name: "Level 2: Gentle papers", color: "var(--l2)" },
+  { id: 3, emoji: "🟠", name: "Level 3: Core classics", color: "var(--l3)" },
+  { id: 4, emoji: "🔴", name: "Level 4: Advanced", color: "var(--l4)" },
+  { id: 5, emoji: "🧠", name: "Engineering judgment", color: "var(--l5)" }
+];
+
+// prereq: papers this one builds on.
+const PAPERS = [
+  { n: 1, lvl: 1, title: "Timeouts, Retries & Backoff with Jitter", org: "Amazon Builders' Library (Marc Brooker)", year: 2019, time: "20 min",
+    url: "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/",
+    why: "Why naive retries take systems down, and the small fix (jittered backoff) that stops it.", related: [2, 3], prereq: [] },
+  { n: 2, lvl: 1, title: "Making Retries Safe with Idempotent APIs", org: "Amazon Builders' Library (Malcolm Featonby)", year: 2021, time: "20 min",
+    url: "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/",
+    why: "Retries only work if repeating a request is harmless. How idempotency tokens make that true.", related: [1, 23], prereq: [1] },
+  { n: 3, lvl: 1, title: "Caching Challenges and Strategies", org: "Amazon Builders' Library (Brinkley, Chhabra)", year: 2019, time: "25 min",
+    url: "https://aws.amazon.com/builders-library/caching-challenges-and-strategies/",
+    why: "Caches help until your service gets 'addicted' to them. Covers the failure modes nobody mentions.", related: [9, 1], prereq: [] },
+  { n: 25, lvl: 1, title: "Addressing Cascading Failures", org: "Google SRE Book, ch. 22 (Mike Ulrich)", year: 2016, time: "40 min",
+    url: "https://sre.google/sre-book/addressing-cascading-failures/",
+    why: "How one overloaded server takes down the rest, and how load shedding and deadlines stop it. Pairs with #1.", related: [1, 24, 3], prereq: [1], added: true },
+  { n: 4, lvl: 1, title: "How Discord Stores Trillions of Messages", org: "Discord (Bo Ingram)", year: 2023, time: "20 min",
+    url: "https://discord.com/blog/how-discord-stores-trillions-of-messages",
+    why: "A real migration story: hot partitions, Cassandra pain, and request coalescing in practice.", related: [12, 10, 11], prereq: [] },
+  { n: 5, lvl: 1, title: "The Log: What Every Software Engineer Should Know", org: "LinkedIn (Jay Kreps)", year: 2013, time: "45 min",
+    url: "https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying",
+    why: "The append-only log as the one idea behind databases, replication, Kafka and stream processing.", related: [8, 16], prereq: [] },
+
+  { n: 6, lvl: 2, title: "The Google File System", org: "Google", year: 2003, time: "1.5 h",
+    url: "https://research.google.com/archive/gfs-sosp2003.pdf",
+    why: "Designing for cheap hardware that fails constantly. One master, big chunks, relaxed consistency.", related: [7, 11, 15], prereq: [] },
+  { n: 7, lvl: 2, title: "MapReduce: Simplified Data Processing on Large Clusters", org: "Google", year: 2004, time: "1 h",
+    url: "https://research.google.com/archive/mapreduce-osdi04.pdf",
+    why: "Hide parallelism and failure behind two functions. Read right after GFS.", related: [6], skim: "Mostly history now. Skim in about 20 min right after GFS.", prereq: [6] },
+  { n: 8, lvl: 2, title: "Kafka: A Distributed Messaging System for Log Processing", org: "LinkedIn (NetDB '11)", year: 2011, time: "45 min",
+    url: "https://www.microsoft.com/en-us/research/wp-content/uploads/2017/09/Kafka.pdf",
+    linkNote: "NetDB '11 has no live proceedings site; this copy is hosted by Microsoft Research (workshop co-organizer). Content verified.",
+    why: "The log idea from #5 turned into a product. Pull-based consumers and dumb brokers.", related: [5, 6], skim: "Outdated: the 2011 paper predates Kafka's replication. Skim only; #5 already covers the idea.", prereq: [5] },
+  { n: 9, lvl: 2, title: "Scaling Memcache at Facebook", org: "Facebook (NSDI '13)", year: 2013, time: "1.5 h",
+    url: "https://www.usenix.org/node/172909",
+    why: "Caching at billions of reads/sec: leases, thundering herds, cross-region invalidation.", related: [3, 13], prereq: [3] },
+  { n: 24, lvl: 2, title: "The Tail at Scale", org: "Google (Dean & Barroso, CACM)", year: 2013, time: "40 min",
+    url: "https://research.google/pubs/the-tail-at-scale/",
+    why: "Why p99 latency matters more than the average once one request fans out to many services.", related: [25, 1, 17], prereq: [], added: true },
+
+  { n: 26, lvl: 3, title: "CAP Twelve Years Later: How the \"Rules\" Have Changed", org: "Eric Brewer (IEEE Computer)", year: 2012, time: "30 min",
+    url: "https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/",
+    linkNote: "The IEEE original is paywalled; this is InfoQ's authorized free reprint.",
+    why: "Fixes the 'pick 2 of 3' myth before you meet it in Dynamo. Read just before #10.", related: [10, 15, 23], prereq: [], added: true },
+  { n: 10, lvl: 3, title: "Dynamo: Amazon's Highly Available Key-Value Store", org: "Amazon (SOSP '07)", year: 2007, time: "2 h",
+    url: "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
+    why: "The #1 classic. Always-writable by design: consistent hashing, quorums, vector clocks.", related: [12, 4, 23], prereq: [] },
+  { n: 11, lvl: 3, title: "Bigtable: A Distributed Storage System for Structured Data", org: "Google (OSDI '06)", year: 2006, time: "2 h",
+    url: "https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf",
+    why: "Sorted wide-column store on top of GFS. Origin of SSTables, memtables and LSM-style storage.", related: [6, 12, 15, 14], prereq: [6] },
+  { n: 12, lvl: 3, title: "Cassandra: A Decentralized Structured Storage System", org: "Facebook (LADIS '09)", year: 2009, time: "45 min",
+    url: "https://www.cs.cornell.edu/projects/ladis2009/papers/lakshman-ladis2009.pdf",
+    why: "Dynamo's partitioning + Bigtable's data model in one system.", related: [10, 11, 4], skim: "Thin workshop paper that mostly restates Dynamo + Bigtable. Skim in about 30 min.", prereq: [10, 11] },
+  { n: 13, lvl: 3, title: "TAO: Facebook's Distributed Data Store for the Social Graph", org: "Facebook (USENIX ATC '13)", year: 2013, time: "1.5 h",
+    url: "https://www.usenix.org/conference/atc13/technical-sessions/presentation/bronson",
+    why: "A graph-shaped cache-plus-DB that replaced raw memcache. Read-heavy design taken seriously.", related: [9], prereq: [9] },
+  { n: 14, lvl: 3, title: "Chubby, then ZooKeeper", org: "Google (OSDI '06) / Yahoo (ATC '10)", year: "2006 / 2010", time: "2.5 h",
+    url: "https://research.google.com/archive/chubby-osdi06.pdf",
+    extra: [{ label: "ZooKeeper paper (USENIX ATC '10)", url: "https://www.usenix.org/conference/usenix-atc-10/zookeeper-wait-free-coordination-internet-scale-systems" }],
+    why: "Coordination as a service: locks, leader election, config. Why everyone uses one instead of writing Paxos.", related: [11, 16, 15], skim: "Chubby is the core read. ZooKeeper is optional.", prereq: [] },
+
+  { n: 15, lvl: 4, title: "Spanner: Google's Globally-Distributed Database", org: "Google (OSDI '12)", year: 2012, time: "2.5 h",
+    url: "https://www.usenix.org/conference/osdi12/technical-sessions/presentation/corbett",
+    why: "Global SQL transactions using synchronized clocks (TrueTime). The end of the GFS → Bigtable → Spanner arc.", related: [6, 11, 16, 23], prereq: [6, 11] },
+  { n: 16, lvl: 4, title: "Raft: In Search of an Understandable Consensus Algorithm", org: "Stanford (USENIX ATC '14)", year: 2014, time: "2 h",
+    url: "https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro",
+    why: "Consensus explained so humans can implement it. Powers etcd, Consul, CockroachDB.", related: [14, 5, 15], skim: "Watch the Raft visualization (thesecretlivesofdata.com/raft) first, then read sections 1–5 only.", prereq: [5] },
+  { n: 17, lvl: 4, title: "Dapper: Large-Scale Distributed Systems Tracing", org: "Google", year: 2010, time: "1 h",
+    url: "https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/",
+    why: "Where trace IDs and spans come from. The ancestor of OpenTelemetry.", related: [1], prereq: [] },
+  { n: 18, lvl: 4, title: "Zanzibar: Google's Consistent, Global Authorization System", org: "Google (USENIX ATC '19)", year: 2019, time: "2 h",
+    url: "https://www.usenix.org/conference/atc19/presentation/pang",
+    why: "Permissions as a graph of relation tuples, kept consistent with 'zookies'. Inspired SpiceDB, OpenFGA.", related: [15, 13], prereq: [15] },
+
+  { n: 19, lvl: 5, title: "Hints for Computer System Design", org: "Butler Lampson (SOSP '83)", year: 1983, time: "1.5 h",
+    url: "https://www.microsoft.com/en-us/research/publication/hints-for-computer-system-design/",
+    why: "Forty years of design rules of thumb that still hold. Reread yearly.", related: [20, 21], prereq: [] },
+  { n: 20, lvl: 5, title: "End-to-End Arguments in System Design", org: "Saltzer, Reed, Clark (MIT)", year: 1984, time: "45 min",
+    url: "https://web.mit.edu/Saltzer/www/publications/endtoend/endtoend.pdf",
+    why: "Put correctness checks at the ends, not the middle. Explains why retries need idempotency.", related: [2, 19], prereq: [] },
+  { n: 21, lvl: 5, title: "Out of the Tar Pit", org: "Moseley & Marks", year: 2006, time: "2 h",
+    url: "https://curtclifton.net/papers/MoseleyMarks06a.pdf",
+    linkNote: "No official publisher or author page exists. This is the long-standing copy everyone links to; content verified.",
+    why: "State is the main source of complexity. Not about distributed systems, but changes how you write React and backends.", related: [19, 22], skim: "Read sections 1–7 closely; skim the rest (their FRP proposal never caught on).", prereq: [] },
+  { n: 22, lvl: 5, title: "Big Ball of Mud", org: "Foote & Yoder (PLoP '97)", year: 1997, time: "1 h",
+    url: "http://www.laputan.org/mud/",
+    why: "Why most real systems end up messy, and why that's sometimes the rational choice.", related: [21, 19], skim: "Read the intro, 'Big Ball of Mud' and 'Shearing Layers' sections only.", prereq: [] },
+  { n: 23, lvl: 5, title: "Life Beyond Distributed Transactions", org: "Pat Helland (CIDR '07)", year: 2007, time: "1 h",
+    url: "https://www.cidrdb.org/cidr2007/papers/cidr07p15.pdf",
+    why: "How to build at scale without cross-machine transactions: entities, messages, idempotence.", related: [2, 10, 15], prereq: [2] },
+  { n: 27, lvl: 5, title: "Design Docs at Google", org: "Malte Ubl (industrialempathy.com)", year: 2020, time: "20 min",
+    url: "https://www.industrialempathy.com/posts/design-docs-at-google/",
+    why: "How to write the doc that gets you trusted with bigger projects: goals, non-goals, alternatives.", related: [19], prereq: [], added: true },
+  { n: 28, lvl: 5, title: "Designing Data-Intensive Applications (companion book)", org: "Martin Kleppmann (O'Reilly)", year: 2017, time: "book",
+    url: "https://dataintensive.net/",
+    why: "Not one sitting: read the matching chapter alongside each paper. Get the 2nd edition if available.", related: [10, 11, 16, 5], prereq: [], added: true }
+];
+
+const STATUSES = ["Not started", "Reading", "Done", "Want to reread"];
+const KEY = "paper-club-v1";
+const $ = s => document.querySelector(s);
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+}
+let state = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: page still works */ }
+  progress();
+}
+const get = n => state[n] || (state[n] = { status: "Not started" });
+const isDone = n => ["Done", "Want to reread"].includes(get(n).status);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pillClass = s => ({ Reading: "reading", Done: "done", "Want to reread": "reread" }[s] || "");
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+function render() {
+  const list = $("#list");
+  list.innerHTML = LEVELS.map(L => {
+    const items = PAPERS.filter(p => p.lvl === L.id);
+    return `<section style="--lvl:${L.color}">
+      <h2>${L.emoji} ${L.name}<small id="lvlTxt${L.id}"></small></h2>
+      <div class="bar"><span id="lvlBar${L.id}" style="background:${L.color}"></span></div>
+      ${items.map(card).join("")}
+    </section>`;
+  }).join("");
+
+  list.querySelectorAll("select").forEach(sel => sel.addEventListener("change", e => {
+    const n = +e.target.dataset.n; get(n).status = e.target.value; save();
+    const pill = document.getElementById("pill" + n);
+    pill.textContent = e.target.value; pill.className = "pill " + pillClass(e.target.value);
+    warn(n);
+  }));
+  list.querySelectorAll("a.chip").forEach(a => a.addEventListener("click", e => {
+    e.preventDefault();
+    const el = document.getElementById("p" + a.dataset.to);
+    el.open = true; el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  PAPERS.forEach(p => warn(p.n));
+  progress();
+}
+
+function card(p) {
+  const s = get(p.n);
+  const extra = (p.extra || []).map(x => `<br>🔗 <a href="${x.url}" target="_blank" rel="noopener">${esc(x.label)}</a>`).join("");
+  return `<details class="paper" id="p${p.n}">
+    <summary>
+      <span class="num">#${p.n}</span>
+      <span class="meta">
+        <div class="title">${esc(p.title)}</div>
+        <div class="sub">${esc(p.org)} · ${p.year} · ⏱️ ${p.time}</div>
+        <div class="why">${p.added ? "🆕 " : ""}${esc(p.why)}</div>
+        ${p.skim ? `<div class="skim">⏬ ${esc(p.skim)}</div>` : ""}
+      </span>
+      <span class="pill ${pillClass(s.status)}" id="pill${p.n}">${s.status}</span>
+    </summary>
+    <div class="body">
+      <div>🔗 <a href="${p.url}" target="_blank" rel="noopener">Open the reading</a>${extra}</div>
+      ${p.linkNote ? `<div class="sub">ℹ️ ${esc(p.linkNote)}</div>` : ""}
+      <div class="warn" id="warn${p.n}"></div>
+      <div class="controls">Status
+        <select data-n="${p.n}">${STATUSES.map(x => `<option${x === s.status ? " selected" : ""}>${x}</option>`).join("")}</select>
+      </div>
+      <div class="chips">${p.related.map(r => {
+        const q = PAPERS.find(x => x.n === r);
+        return `<a class="chip" href="#p${r}" data-to="${r}">#${r} ${esc(q.title.split(":")[0])}</a>`;
+      }).join("")}</div>
+    </div>
+  </details>`;
+}
+
+function warn(n) {
+  const p = PAPERS.find(x => x.n === n);
+  const el = document.getElementById("warn" + n);
+  const missing = p.prereq.filter(r => !isDone(r));
+  el.textContent = get(n).status !== "Not started" && missing.length
+    ? `⚠️ Builds on ${missing.map(r => "#" + r).join(", ")}, which you haven't finished.` : "";
+}
+
+function progress() {
+  const done = PAPERS.filter(p => isDone(p.n)).length;
+  $("#overallTxt").textContent = `${done} / ${PAPERS.length} done`;
+  $("#overallBar").style.width = (done / PAPERS.length * 100) + "%";
+  $("#levelBars").innerHTML = LEVELS.map(L => {
+    const items = PAPERS.filter(p => p.lvl === L.id);
+    const d = items.filter(p => isDone(p.n)).length;
+    const pct = d / items.length * 100;
+    const t = document.getElementById("lvlTxt" + L.id), b = document.getElementById("lvlBar" + L.id);
+    if (t) t.textContent = `${d}/${items.length}`;
+    if (b) b.style.width = pct + "%";
+    return `<div>${L.emoji} ${d}/${items.length}<div class="bar"><span style="width:${pct}%;background:${L.color}"></span></div></div>`;
+  }).join("");
+}
+
+$("#exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: KEY, exported: new Date().toISOString(), state }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `paper-club-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$("#importBtn").onclick = () => $("#importFile").click();
+$("#importFile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(txt => {
+    const data = JSON.parse(txt);
+    if (!data.state || typeof data.state !== "object") throw new Error("bad file");
+    state = data.state; save(); render(); toast("✅ Progress imported");
+  }).catch(() => toast("⚠️ Not a valid Paper Club export"));
+  e.target.value = "";
+};
+$("#themeBtn").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem(KEY + "-theme", root.dataset.theme); } catch (e) {}
+};
+$("#expandBtn").onclick = () => {
+  const all = document.querySelectorAll("details.paper");
+  const open = [...all].some(d => !d.open);
+  all.forEach(d => d.open = open);
+};
+// Follow the tracker's own theme ('dsa-theme', same origin) unless this page has its own override.
+try {
+  // The tracker defaults to dark when 'dsa-theme' is unset, so match that when embedded.
+  const t = localStorage.getItem(KEY + "-theme") || localStorage.getItem("dsa-theme") || (window.top !== window.self ? "dark" : null);
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+} catch (e) {}
+
+render();
+</script>
+<script src="../js/back-button.js"></script>
+</body>
+</html>

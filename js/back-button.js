@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   Floating "← Tracker" pill for every standalone page (dsa/, apps/, google/).
+   Floating "← Tracker" pill for every standalone page (dsa/, apps/, google/, papers/).
    Load with:  <script src="../js/back-button.js"></script>  (before </body>)
 
    - The href to index.html is derived from THIS script's own URL, so it works
