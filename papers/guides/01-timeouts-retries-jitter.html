@@ -97,6 +97,43 @@ svg { width: 100%; height: auto; display: block; }
 .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--bad); display: block; }
 .dots i.one { background: var(--good); }
 .footer-src { font-size: 13px; color: var(--muted); }
+/* Mental map, legends, "how to read" notes */
+.flow { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
+.flow .step { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 15px; }
+.flow .step b { color: var(--accent); }
+.flow .arrow { text-align: center; color: var(--muted); font-size: 14px; line-height: 1; }
+.flow .branch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.flow .stop { border-color: var(--bad); }
+.flow .go { border-color: var(--good); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin: 6px 0; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+.legend i.line { height: 0; border-top: 2px dashed var(--warn); border-radius: 0; vertical-align: 3px; }
+.legend i.solid { height: 0; border-top: 2px solid var(--warn); border-radius: 0; vertical-align: 3px; }
+.read { font-size: 13.5px; background: var(--bg); border-radius: 8px; padding: 8px 12px; margin: 8px 0 0; }
+.read p { margin: 3px 0; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.quick button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.quick button { font: inherit; font-size: 13px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+.layers { display: grid; gap: 4px; margin-top: 10px; font-size: 14px; }
+.layers .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.layers .bar { height: 10px; border-radius: 5px; background: var(--bad); min-width: 4px; }
+.layers .row.first .bar { background: var(--good); }
+.layers .name { font-size: 13px; color: var(--muted); }
+.layers .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Code highlighting (Prism tokens, themed for light and dark) */
+:root { --tk-comment: #6a737d; --tk-keyword: #cf222e; --tk-string: #0a3069; --tk-fn: #8250df; --tk-num: #0550ae; --tk-class: #953800; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --tk-comment: #8b949e; --tk-keyword: #ff7b72; --tk-string: #a5d6ff; --tk-fn: #d2a8ff; --tk-num: #79c0ff; --tk-class: #ffa657; }
+}
+:root[data-theme="dark"] { --tk-comment: #8b949e; --tk-keyword: #ff7b72; --tk-string: #a5d6ff; --tk-fn: #d2a8ff; --tk-num: #79c0ff; --tk-class: #ffa657; }
+pre .token.comment { color: var(--tk-comment); font-style: italic; }
+pre .token.keyword, pre .token.builtin { color: var(--tk-keyword); }
+pre .token.string, pre .token.template-string { color: var(--tk-string); }
+pre .token.function { color: var(--tk-fn); }
+pre .token.number, pre .token.boolean { color: var(--tk-num); }
+pre .token.class-name, pre .token.decorator { color: var(--tk-class); }
+pre .token.operator, pre .token.punctuation { color: var(--muted); }
+pre .file { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -137,22 +174,41 @@ svg { width: 100%; height: auto; display: block; }
 
   <h2 id="tldr">⚡ TL;DR</h2>
   <div class="tldr">
-    <p>⏱️ <b>Every remote call needs a timeout</b>, or one slow dependency quietly eats all your connections and memory.</p>
-    <p>🔁 <b>Retries are "selfish"</b>: they help you, but add load, and during an overload they make things worse. Retry a little, in one layer only.</p>
-    <p>🎲 <b>Back off exponentially and add randomness (jitter)</b> so a thousand clients don't all retry in the same millisecond.</p>
+    <p>🧩 <b>The problem:</b> your service calls other services over the network (an API, a DB, Redis). Sometimes they're slow, or fail for a moment. How should your code react?</p>
+    <p>⏱️ <b>Timeout</b> (max wait): never wait forever. Give every call a time limit, based on how slow that service normally is.</p>
+    <p>🔁 <b>Retry</b> (try again): only for temporary errors, only when repeating is safe, only a few times, in one place. Every retry is extra load on a service that may already be struggling.</p>
+    <p>🎲 <b>Backoff + jitter</b> (wait longer, plus a random bit): so 1,000 clients that failed together don't all try again at the same instant.</p>
+    <p>👉 In one line: <b>don't wait forever, don't retry blindly, and never retry in sync.</b></p>
+  </div>
+  <p><b>🗺️ The whole article as one flow</b>, what your code does on every remote call:</p>
+  <div class="flow" aria-label="Flow: call with a timeout; on failure, check whether to retry; if yes, wait with backoff and jitter and try again; if no, fail fast">
+    <div class="step">📞 Call the service, with a <b>timeout</b> (e.g. 800 ms)</div>
+    <div class="arrow">↓ it failed or timed out</div>
+    <div class="step">🤔 Worth retrying? <b>Temporary error</b> (503, timeout)? <b>Safe to repeat</b>? <b>Attempts left</b>? <b>Retry budget</b> left?</div>
+    <div class="branch">
+      <div>
+        <div class="arrow">↓ yes</div>
+        <div class="step go">⏳ Wait: <b>backoff</b> (100, 200, 400 ms…) × random <b>jitter</b>, then call again</div>
+      </div>
+      <div>
+        <div class="arrow">↓ no</div>
+        <div class="step stop">🛑 <b>Fail fast</b>: return the error, show a fallback, or queue it for later</div>
+      </div>
+    </div>
   </div>
 
   <h2 id="terms">🔤 Terms first</h2>
   <dl class="terms">
     <dt>Timeout</dt><dd>The longest a client will wait for a call before giving up.</dd>
     <dt>Retry</dt><dd>Sending the same request again after a failure.</dd>
-    <dt>Backoff</dt><dd>Waiting longer between each retry. <b>Exponential</b>: 100 ms, 200 ms, 400 ms… usually with a <b>cap</b>.</dd>
-    <dt>Jitter</dt><dd>Adding randomness to that wait so clients don't retry in sync.</dd>
+    <dt>Backoff</dt><dd>Waiting longer between each retry. <b>Exponential</b>: 100 ms, 200 ms, 400 ms… (doubles each time), usually with a <b>cap</b> (a maximum wait).</dd>
+    <dt>Jitter</dt><dd>Adding randomness to that wait so clients don't retry at the same moment.</dd>
     <dt>Transient failure</dt><dd>A failure that goes away on its own after a short time (a blip).</dd>
-    <dt>p99.9</dt><dd>The latency 99.9% of calls beat. Only 1 in 1,000 is slower.</dd>
-    <dt>Idempotent</dt><dd>Safe to repeat: doing it twice has the same effect as once.</dd>
+    <dt>Latency</dt><dd>How long one call takes, from sending the request to getting the full response.</dd>
+    <dt>p50, p99, p99.9</dt><dd>Line up 1,000 calls from fastest to slowest. <b>p50</b> is the 500th call's time (a typical call). <b>p99</b> is the 990th: only 10 calls were slower. <b>p99.9</b> is the 999th: only 1 call was slower. Full explainer with a chart in <a href="#percentiles">Walkthrough §2</a>.</dd>
+    <dt>Idempotent</dt><dd>Safe to repeat: doing it twice has the same effect as once. Reading a user: yes. Charging a card: no, unless the API takes an idempotency key.</dd>
     <dt>Thundering herd</dt><dd>Many clients hitting a server at the same moment, often right after it recovers.</dd>
-    <dt>Retry budget</dt><dd>A cap on retries as a share of normal traffic, often built as a token bucket.</dd>
+    <dt>Retry budget</dt><dd>A cap on retries as a share of normal traffic (say at most 10%), often built as a <b>token bucket</b>: each retry spends a token, successes slowly earn tokens back.</dd>
   </dl>
 
   <h2 id="howto">📍 How to read the original</h2>
@@ -180,13 +236,18 @@ svg { width: 100%; height: auto; display: block; }
       <label>Clients <input id="simClients" type="range" min="50" max="500" step="50" value="200"> <span id="simClientsV">200</span></label>
       <button class="primary" id="simRun">▶ Run</button>
     </div>
+    <div class="legend"><span><i style="background:var(--good)"></i>accepted (server had room)</span><span><i style="background:var(--bad)"></i>rejected (server full, client must retry)</span><span><i class="line"></i>the most the server can accept per slot</span></div>
     <svg class="w-svg" id="simSvg" viewBox="0 0 640 235" role="img" aria-label="Requests per 50 ms, accepted in green and rejected in red, with the server's capacity as a dashed line"></svg>
     <div class="stats">
       <div class="stat"><b id="simCalls">–</b><span>total calls (ideal = clients)</span></div>
       <div class="stat"><b id="simRejected">–</b><span>rejected calls (wasted work)</span></div>
       <div class="stat"><b id="simTime">–</b><span>until every client succeeded</span></div>
     </div>
-    <p class="hint" style="margin-top:8px">Simplified on purpose: real servers also slow down when flooded with rejections, which makes "retry immediately" even worse than shown. Backoff starts at 50 ms and caps at 2 s.</p>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> Time runs left to right, from the moment all clients start. Each bar is one <b>50 ms slot</b>. A bar's <b>height</b> is how many requests reached the server in that slot: the green part got served, the red part got turned away. The server can serve 20 requests per slot, so the dashed line sits at 20.</p>
+      <p>👀 <b>What to look for.</b> <i>Retry immediately</i>: a huge red wall, the same clients hammering again every millisecond. <i>Backoff</i>: far fewer calls, but the red comes back in spikes, because everyone waits the same time and returns together. <i>Jitter</i>: retries spread out and the bars hug the dashed line, so the server stays busy and everyone finishes soon.</p>
+      <p>🧪 Simplified on purpose: real servers also slow down when flooded with rejections, which makes "retry immediately" even worse than shown. Backoff starts at 50 ms and caps at 2 s.</p>
+    </div>
   </div>
 
   <p>The same effect from Brooker's original simulation on the AWS blog. Each dot is a call; left is backoff without jitter, right is with jitter:</p>
@@ -205,50 +266,203 @@ svg { width: 100%; height: auto; display: block; }
   <div class="means">What it means for you: a hung call isn't "just slow". In Node, each in-flight request holds a socket, a DB pool slot and memory for its closures. Enough of them and your healthy service falls over because of someone else's slow one.</div>
 
   <h3>2. Timeouts</h3>
-  <p class="says">What it says: set a <b>connection timeout</b> and a <b>request timeout</b> on every remote call. Pick the value from the downstream's latency data: choose an acceptable false-timeout rate, like 0.1%, and use the matching percentile, p99.9. Watch out for: clients across the internet (add worst-case network latency), very tight services where p99.9 ≈ p50 (add padding), and timeouts that don't cover DNS or TLS (use a well-tested client).</p>
+  <p class="says">What it says: set a <b>connection timeout</b> (max wait to open a connection) and a <b>request timeout</b> (max wait for the answer) on every remote call. Pick the value from the downstream service's latency data: choose an acceptable <b>false-timeout rate</b>, like 0.1%, and use the <b>matching percentile</b>, p99.9. Then it lists pitfalls and a 20 ms story. All of these are unpacked below.</p>
+
+  <div class="box" id="percentiles">
+    <p>📊 <b>First, percentiles (p50, p99, p99.9), because the whole section depends on them.</b></p>
+    <p>🏃 Picture <b>1,000 runners</b> in a race. Sort them by finish time. <b>p50</b> is the time of runner #500: half finished faster. <b>p99</b> is runner #990: only 10 people were slower. <b>p99.9</b> is runner #999: only <b>1</b> person was slower.</p>
+    <p>📞 Now the runners are <b>1,000 calls</b> to an API. "p99.9 = 1,004 ms" means: <b>999 of 1,000 calls finished within 1,004 ms</b>, and 1 took longer.</p>
+    <p>🤔 <b>Why not just use the average?</b> Because most calls are fast and a few are very slow. The average hides those few, but your users still hit them. If one page load makes 100 backend calls, the chance that at least one of them is slower than p99 is 1 − 0.99¹⁰⁰ ≈ <b>63%</b>. So the "rare" slow tail shows up on most page loads.</p>
+  </div>
+
+  <div class="widget" id="pc">
+    <h4>🎛️ Try it: what a percentile means</h4>
+    <p class="hint">1,000 calls to one service, sorted from fastest (left) to slowest (right). Pick a percentile to see where it lands.</p>
+    <div class="quick" id="pcQuick">
+      <button data-p="0.5">p50</button><button data-p="0.9">p90</button><button data-p="0.99">p99</button><button data-p="0.999">p99.9</button>
+    </div>
+    <div class="controls"><label><input id="pcZoom" type="checkbox"> 🔍 Zoom into the slowest 50 calls (the "tail")</label></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>each call's latency (sorted)</span><span><i class="solid"></i>the percentile you picked</span></div>
+    <svg class="w-svg" id="pcSvg" viewBox="0 0 640 250" role="img" aria-label="Sorted latencies of 1,000 calls; the curve is flat for most calls and shoots up for the slowest few"></svg>
+    <div class="stats">
+      <div class="stat"><b id="pcName">–</b><span>percentile</span></div>
+      <div class="stat"><b id="pcVal">–</b><span>latency at that point</span></div>
+      <div class="stat"><b id="pcSlower">–</b><span>calls slower than that</span></div>
+    </div>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> Across: every call, fastest to slowest (call #1 to #1,000). Up: how long that call took. The curve stays low for most calls, then <b>shoots up at the far right</b>. That jump is the "long tail": a handful of calls hit a garbage-collection pause, a cold cache or a slow disk.</p>
+      <p>👀 <b>What to look for.</b> p50 and p90 sit on the flat part (~40–70 ms). p99 and p99.9 sit on the jump (~500 ms and ~1 s). Turn on zoom to see them apart.</p>
+    </div>
+  </div>
+
+  <p>📏 <b>Now the article's words, one at a time:</b></p>
+  <ul>
+    <li>❌ <b>False timeout</b>: a call that <b>would have succeeded</b>, but your timeout gave up first. The service was fine, just slower than your limit. You still treat it as a failure, and probably retry, adding load.</li>
+    <li>🎯 <b>Acceptable false-timeout rate</b>: how many of those you're willing to cause. "0.1%" means "I'm OK cutting off 1 healthy call in 1,000".</li>
+    <li>🔗 <b>Matching percentile</b>: if you accept cutting off the slowest 0.1%, set the timeout to the time that the other 99.9% beat. That's exactly p99.9.</li>
+  </ul>
+  <table>
+    <tr><th>You accept cutting off…</th><th>Set the timeout to</th><th>In the chart below</th></tr>
+    <tr><td>1 in 100 healthy calls (1%)</td><td>p99</td><td>~533 ms</td></tr>
+    <tr><td>1 in 1,000 (0.1%), the article's example</td><td>p99.9</td><td>~1,004 ms</td></tr>
+    <tr><td>1 in 10,000 (0.01%)</td><td>p99.99</td><td>even higher; long waits</td></tr>
+  </table>
 
   <div class="widget" id="tw">
     <h4>🎛️ Try it: pick a timeout</h4>
-    <p class="hint">5,000 sample calls to a downstream service with a long tail. Drag the timeout and watch what it costs.</p>
+    <p class="hint">5,000 calls to a service. Drag the timeout, or jump to a percentile, and watch how many healthy calls you cut off.</p>
+    <div class="quick" id="twQuick"><span class="hint" style="margin:0">Set to:</span></div>
     <div class="controls">
       <label>Timeout <input id="twSlider" type="range" min="20" max="1200" step="10" value="150"> <b id="twV">150 ms</b></label>
     </div>
-    <svg class="w-svg" id="twSvg" viewBox="0 0 640 210" role="img" aria-label="Latency histogram with the timeout line; calls past the line are cut off"></svg>
+    <div class="legend"><span><i style="background:var(--good)"></i>calls that finish before the timeout (kept)</span><span><i style="background:var(--bad)"></i>calls slower than the timeout (cut off = false timeouts)</span><span><i class="solid"></i>your timeout</span></div>
+    <svg class="w-svg" id="twSvg" viewBox="0 0 640 240" role="img" aria-label="Histogram of call latencies with the timeout line; calls past the line are cut off"></svg>
     <div class="stats">
-      <div class="stat"><b id="twCut">–</b><span>calls cut off (false timeouts)</span></div>
+      <div class="stat"><b id="twCut">–</b><span>of healthy calls cut off (false timeouts)</span></div>
       <div class="stat"><b id="twPct">–</b><span>p50 / p99 / p99.9</span></div>
-      <div class="stat"><b id="twWait">–</b><span>worst wait per call</span></div>
+      <div class="stat"><b id="twWait">–</b><span>longest you'll ever wait per call</span></div>
     </div>
-    <p class="hint" style="margin-top:8px">Notice the jump: a timeout just under p99 cuts 1 in 100 good calls, and each of those becomes a retry. Just above p99.9 it cuts about 1 in 1,000.</p>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> This is a histogram. Across: how long a call took, 0 to 1,200 ms. Up: how many calls took about that long (each bar is a 20 ms range). The tall green hill on the left is the normal case, ~40 ms. The long flat strip to the right is the slow tail. Bar heights use a square-root scale so the tail is visible; otherwise it would be almost flat.</p>
+      <p>👀 <b>What to look for.</b> Click p99: about 1% of calls turn red, each one a false timeout and probably a retry. Click p99.9: about 0.1% turn red. Drag far right: almost nothing is cut, but a stuck call can now hold a connection for over a second.</p>
+    </div>
+  </div>
+
+  <p>⚠️ <b>The article's pitfalls, in plain words:</b></p>
+  <ul>
+    <li>🌍 <b>Far-away clients.</b> Latency measured inside one AWS region doesn't include a long trip over the internet. For those clients, add the worst-case network time on top.</li>
+    <li>📏 <b>Very tight latency.</b> If p50 is 10 ms and p99.9 is 12 ms, a 12 ms timeout trips on any small hiccup, like a GC pause. Add padding.</li>
+    <li>🕳️ <b>Timeouts that don't cover the whole call.</b> A remote call has several steps, and some timeout settings only cover the last ones:
+      <div class="flow" style="margin:8px 0">
+        <div class="step">🔎 DNS lookup (name → IP) → 🔌 TCP connect → 🔐 TLS handshake (agree on encryption) → 📤 send request → ⚙️ server works → 📥 read response</div>
+      </div>
+      If your timeout only starts at 📤, a stuck DNS lookup or handshake can hang far longer than your "timeout". The article's advice: use a well-tested client whose timeout covers everything. In Node, <code>AbortSignal.timeout()</code> on fetch covers the whole call.</li>
+  </ul>
+
+  <div class="box">
+    <p>🏭 <b>The paper's 20 ms story, step by step</b></p>
+    <ol>
+      <li>A service at Amazon called another service with a <b>~20 ms timeout</b>. Normal calls took a few ms, so 20 ms looked generous.</li>
+      <li>That timeout also covered <b>opening a secure connection</b> (the TLS handshake: a few round trips to agree on encryption keys).</li>
+      <li>Normally that cost is invisible. Clients keep connections open and <b>reuse</b> them (keep-alive, a connection pool), so most calls skip the handshake.</li>
+      <li>After every <b>deploy</b>, a new server starts with <b>zero</b> open connections. Its first calls must do the handshake, which took <b>longer than 20 ms</b> on its own. Result: a small burst of timeouts right after each deploy, only on new servers.</li>
+      <li><b>First fix:</b> a longer timeout just for setting up new connections. <b>Better fix:</b> open the connections <b>when the process starts, before it takes traffic</b> (warm-up).</li>
+    </ol>
+    <svg class="w-svg" viewBox="0 0 640 190" role="img" aria-label="Two bars against a 20 ms timeout line: a warm call takes about 6 ms; a cold call needs a TLS handshake first and crosses the line">
+      <text x="20" y="28" font-size="20" style="fill:var(--muted)">Warm call: connection reused</text>
+      <rect x="20" y="38" width="90" height="26" rx="5" style="fill:var(--good)"></rect>
+      <text x="120" y="58" font-size="19" style="fill:var(--muted)">call ~6 ms ✅</text>
+      <text x="20" y="104" font-size="20" style="fill:var(--muted)">Cold call: new server, new connection</text>
+      <rect x="20" y="114" width="375" height="26" rx="5" style="fill:var(--warn)"></rect>
+      <text x="30" y="133" font-size="18" fill="#fff">TLS handshake</text>
+      <rect x="395" y="114" width="90" height="26" rx="5" style="fill:var(--good)"></rect>
+      <text x="495" y="133" font-size="19" style="fill:var(--bad)">❌ timed out</text>
+      <line x1="320" y1="108" x2="320" y2="152" style="stroke:var(--bad)" stroke-width="2.5" stroke-dasharray="6 4"></line>
+      <text x="320" y="178" font-size="19" style="fill:var(--bad)" text-anchor="middle">20 ms timeout</text>
+    </svg>
+    <p class="hint" style="margin:4px 0 0">Bar lengths are illustrative; the article only says the handshake took longer than 20 ms.</p>
+    <p>🛠️ <b>In NestJS terms:</b> warm your HTTP and DB connection pools in <code>onApplicationBootstrap()</code>, and only report the pod ready (the readiness probe) after that. The lesson: <b>a timeout covers more than you think, and the first call on a fresh server is not a normal call</b>.</p>
   </div>
 
   <div class="means">What it means for you: if the payment API's p99.9 is 350 ms, a ~400 ms timeout cuts off about 1 in 1,000 calls that would have succeeded, and you never hang for 30 seconds. Too high and the timeout protects nothing. Too low and you create retries, and possibly an outage, yourself.</div>
-  <div class="box">🏭 <b>The paper's 20 ms story:</b> a service had ~20 ms timeouts. After every deploy, the first requests on new servers timed out, because the timeout also covered TLS connection setup, which took longer than 20 ms. Connections were reused afterward, so only fresh servers were hit. The first fix was a longer timeout for connection setup. The better fix: <b>open connections at startup, before taking traffic</b>.</div>
 
   <h3>3. Retries and backoff</h3>
-  <p class="says">What it says: retries are selfish. They're fine when failures are rare and random. When failures come from overload, retries add load and slow recovery. Back off <b>exponentially</b> with a <b>cap</b>, and <b>limit the number of retries</b>.</p>
-  <ul>
-    <li>📚 <b>Retries multiply across layers.</b> Five layers that each try 3 times means up to 3⁵ = <mark>243× the load</mark> on the database. Retry in <b>one</b> layer.</li>
-    <li>🪣 <b>Cap retries with a token bucket.</b> Retries spend tokens; when tokens run out, retries fall to a fixed low rate. Amazon prefers this over circuit breakers, whose on/off modes are hard to test and slow to recover. The AWS SDK added this in 2016.</li>
-    <li>🔑 <b>Only retry what's safe.</b> Reads usually are. Creates usually aren't, unless the API takes an idempotency token, like EC2's RunInstances. That's #2.</li>
-    <li>🚦 <b>Know which errors to retry.</b> 5xx can succeed later; 4xx usually won't. Eventual consistency blurs this: a 404 can turn into a 200 once data replicates.</li>
-  </ul>
+  <p class="says">What it says: retries are <b>selfish</b>: a retry spends the server's capacity to raise <i>your</i> chance of success. That's fine when failures are rare and random. When failures come from <b>overload</b>, retries add even more load and slow recovery. So back off <b>exponentially</b> with a <b>cap</b>, and <b>limit the number of retries</b>. Then it lists four complications.</p>
+
+  <h3>3a. 📚 Retries multiply across layers</h3>
+  <p>Real requests pass through a chain of services. If <b>every</b> layer retries on its own, the retries multiply. Start small, with 2 layers that each try up to 3 times, while the database is down:</p>
+  <ol>
+    <li>The <b>API</b> calls the Order service. It fails, so the API tries again, <b>3 times</b> in total.</li>
+    <li>Each of those 3 calls reaches the <b>Order service</b>, which calls the database. It fails, so the Order service also tries <b>3 times</b>.</li>
+    <li>The database gets 3 × 3 = <b>9 calls</b> for one click. With a third layer it's 3 × 3 × 3 = 27. The article's 5 layers: 3⁵ = <b>243 calls</b>.</li>
+  </ol>
+  <p>So a database that's <b>struggling</b> sees its load jump <b>up to 243×</b> exactly when it can least handle it. The article's fix: <b>retry at one point in the stack</b>, and let every other layer fail fast.</p>
 
   <div class="widget" id="mw">
     <h4>🎛️ Try it: retries multiply</h4>
-    <p class="hint">Each layer in the call chain makes up to N attempts at the layer below it.</p>
+    <p class="hint">A click travels down a chain of services. Every layer that retries makes up to N attempts at the layer below it. The bottom is failing, so every attempt fails and every layer uses all its attempts.</p>
     <div class="controls">
-      <label>Layers that retry <input id="mwLayers" type="range" min="1" max="6" value="5"> <b id="mwLayersV">5</b></label>
+      <label>Layers that retry <input id="mwLayers" type="range" min="1" max="5" value="3"> <b id="mwLayersV">3</b></label>
       <label>Attempts per layer <input id="mwAttempts" type="range" min="1" max="5" value="3"> <b id="mwAttemptsV">3</b></label>
     </div>
-    <div class="big" id="mwOut">243×</div>
-    <p class="hint" id="mwText" style="margin:2px 0 0">the load on the database for one user click, in the worst case.</p>
-    <div class="dots" id="mwDots" aria-hidden="true"></div>
+    <div class="layers" id="mwRows" aria-live="polite"></div>
+    <div class="big" id="mwOut" style="margin-top:10px">27×</div>
+    <p class="hint" id="mwText" style="margin:2px 0 0"></p>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> Each row is one hop in the chain, top to bottom. The number is how many calls arrive at that hop for <b>one</b> user click, and the bar shows it to scale. Green is the single call the user made.</p>
+      <p>👀 <b>What to look for.</b> Each row multiplies the one above by "attempts". Set layers to 1: one layer retries, so the database gets just 3 calls. That's the article's advice.</p>
+    </div>
   </div>
 
+  <h3>3b. 🪣 Cap retries with a token bucket</h3>
+  <p>Picture a jar of 10 tokens. <b>Each retry takes a token</b>; each success slowly puts some back. While there are tokens, retry freely. When the jar is empty, the article's version drops to retrying at a slow, fixed rate. So during a real outage, retries stay a small share of traffic instead of multiplying it. Amazon prefers this to <b>circuit breakers</b> (a switch that blocks all calls after too many failures), whose on/off behavior is hard to test and slow to recover. The AWS SDK added this in 2016.</p>
+
+  <h3>3c. 🔑 Only retry what's safe to repeat</h3>
+  <ul>
+    <li>✅ <code>GET /users/42</code> twice: you read the same user twice. Harmless. Reads are usually safe.</li>
+    <li>❌ <code>POST /orders</code> twice: possibly <b>two orders</b>. And a timeout doesn't mean it failed. The first order may have been created; you just didn't hear back.</li>
+    <li>🔑 The fix is an <b>idempotency key</b>: the client sends a unique id (a UUID) with the create, the server remembers "already handled this id" and returns the first result instead of creating again. EC2's <code>RunInstances</code> takes one; so does Stripe. That's paper #2.</li>
+  </ul>
+
+  <h3>3d. 🚦 Know which errors to retry</h3>
+  <p>The test is simple: <b>could the same request succeed if sent again in a moment?</b> HTTP status codes tell you most of it. <b>4xx</b> means "your request is wrong", so sending the same request again gets the same answer. <b>5xx</b> means "the server had a problem", which may clear up.</p>
+  <table>
+    <tr><th>Status / error</th><th>Means</th><th>Retry?</th></tr>
+    <tr><td>400, 422</td><td>Bad input</td><td>❌ No. Fix the request.</td></tr>
+    <tr><td>401</td><td>Not logged in / token expired</td><td>❌ No. Refresh the token once, then it's a new request.</td></tr>
+    <tr><td>403</td><td>Not allowed</td><td>❌ No.</td></tr>
+    <tr><td>404</td><td>Not found</td><td>❌ Usually not. ⚠️ Exception below.</td></tr>
+    <tr><td>409</td><td>Conflict (e.g. version mismatch)</td><td>❌ Not blindly. Re-read, then decide.</td></tr>
+    <tr><td>408</td><td>Server gave up waiting for your request</td><td>✅ Yes</td></tr>
+    <tr><td>429</td><td>Too many requests (rate limited)</td><td>✅ Yes, but wait at least the <code>Retry-After</code> header</td></tr>
+    <tr><td>500</td><td>Server bug or crash</td><td>🤔 Once or twice at most. A bug fails every time.</td></tr>
+    <tr><td>502, 503</td><td>Bad gateway / temporarily unavailable</td><td>✅ Yes, with backoff (503 may send <code>Retry-After</code>)</td></tr>
+    <tr><td>504, or your own timeout</td><td>No answer in time</td><td>✅ For reads. For writes only with an idempotency key: it may have worked.</td></tr>
+    <tr><td><code>ECONNRESET</code>, <code>ECONNREFUSED</code>, "socket hang up"</td><td>Network error</td><td>✅ Same rule as 504</td></tr>
+  </table>
+  <p>⚠️ <b>Eventual consistency blurs the line</b> (the article's point). Many databases copy writes to read replicas a moment later. Create a user, read it back from a replica 5 ms later, and you can get a <b>404 that turns into a 200</b> soon after. So for "read right after write" flows, a short retry on 404 can be correct. Know your data store.</p>
+
   <h3>4. Jitter</h3>
-  <p class="says">What it says: backoff alone keeps retries <b>correlated</b>: everyone who failed together retries together. Add randomness. Not just for retries: <b>timers, cron jobs and periodic work</b> cause spikes too, often hidden by per-minute metrics. For scheduled work Amazon uses <b>deterministic jitter</b> (the same offset every time on the same host), so overloads repeat in a pattern humans can spot. EBS and Lambda saw clients firing every minute on the minute; spreading them let them <b>do the same work with less capacity</b>.</p>
-  <div class="means">What it means for you: a <code>0 0 * * *</code> cron running on 20 pods hits your DB at the same second every night. A per-pod offset of a few minutes fixes it for free.</div>
+  <p class="says">What it says: backoff alone keeps retries <b>correlated</b>: everyone who failed together retries together. So add randomness. And not only to retries: <b>timers, cron jobs and periodic work</b> cause spikes too. Amazon uses <b>deterministic jitter</b> for scheduled work, and found that spreading out clients that fired every minute on the minute let them <b>do the same work with less capacity</b>.</p>
+
+  <p>🐑 <b>Why backoff alone isn't enough.</b> Say 100 clients all fail at the same moment, t = 0.</p>
+  <ul>
+    <li><b>Backoff, no jitter:</b> every client computes the same wait. All of them wait 100 ms and retry together at t = 100. They collide, so all wait 200 ms and retry together at t = 300, then t = 700… <b>They move as one herd</b>, so every retry is a spike. Backoff only made the spikes rarer.</li>
+    <li><b>Backoff + full jitter:</b> each client waits a <b>random</b> time between 0 and the backoff. On the first retry, one client waits 13 ms, another 78 ms, another 41 ms. The herd breaks up into a steady trickle the server can handle.</li>
+  </ul>
+  <pre><code class="language-ts">const ceiling = Math.min(capMs, baseMs * 2 ** attempt); // 100, 200, 400… up to the cap
+
+const noJitter = ceiling;                    // everyone waits exactly the same
+const fullJitter = Math.random() * ceiling;  // everyone waits a different 0…ceiling</code></pre>
+
+  <div class="widget" id="jw">
+    <h4>🎛️ Try it: jitter breaks up the herd</h4>
+    <p class="hint">20 clients fail at the same moment and retry up to 5 times. Backoff starts at 100 ms, doubles, and caps at 1 s.</p>
+    <div class="controls">
+      <label>Strategy
+        <select id="jwMode">
+          <option value="none">Backoff, no jitter</option>
+          <option value="full" selected>Backoff + full jitter</option>
+        </select>
+      </label>
+      <button id="jwRoll">🎲 Re-roll</button>
+    </div>
+    <div class="legend"><span><i style="background:var(--accent); border-radius:50%"></i>one retry by one client</span><span><i style="background:var(--warn)"></i>retries reaching the server per 10 ms</span></div>
+    <svg class="w-svg" id="jwSvg" viewBox="0 0 640 420" role="img" aria-label="Dots for each client's retries over time, and a bar chart of retries per 100 ms reaching the server"></svg>
+    <div class="stats">
+      <div class="stat"><b id="jwPeak">–</b><span>most retries in any 10 ms (the spike)</span></div>
+      <div class="stat"><b id="jwTotal">100</b><span>total retries (the same in both)</span></div>
+      <div class="stat"><b id="jwSpan">–</b><span>until the last retry</span></div>
+    </div>
+    <div class="read">
+      <p>📖 <b>How to read it.</b> Top: each row is one client, and each dot is a moment it retried. Across is time since the failure. Bottom: how many retries hit the server in each 10 ms window. A tall bar is a spike.</p>
+      <p>👀 <b>What to look for.</b> No jitter: the dots stack into 5 straight columns, so the server gets 5 spikes of 20 retries with nothing in between. Full jitter: the dots scatter, and the bottom bars stay low. It's the <b>same number of retries</b>, just spread out. That's the whole point of jitter.</p>
+    </div>
+  </div>
+
+  <p>⏰ <b>Jitter for scheduled work, too.</b> A <code>0 0 * * *</code> cron (midnight every night) running on 20 pods hits your database at the <b>same second</b>. Amazon saw the same with clients that fired "every minute, on the minute". Their <b>per-minute</b> graphs looked fine, because the average over 60 seconds was low. Only <b>per-second</b> graphs showed the spike in the first second of each minute. Spreading those clients across the minute let them run the same work on fewer servers.</p>
+  <p>🎯 <b>Deterministic jitter</b>: for scheduled jobs, Amazon does <b>not</b> pick a new random offset each run. Each host gets <b>the same offset every time</b>, computed from something stable like its hostname. Why? If load spikes at 00:03:17 every night, you can trace it to the one host that always runs then. With fresh randomness, the spike would move around and be much harder to debug.</p>
+  <div class="means">What it means for you: give each pod its own fixed offset of a few minutes for nightly jobs (code in <a href="#work">At work</a>), and use random jitter for retries and reconnects.</div>
 
   <h3>5. Conclusion</h3>
   <p class="says">What it says: retry only when the dependency looks healthy, and stop when retries aren't improving availability.</p>
@@ -274,60 +488,148 @@ svg { width: 100%; height: auto; display: block; }
   </ul>
 
   <h2 id="work">🛠️ At work</h2>
+  <p class="hint">Examples are NestJS + TypeScript on Node 20+. The helpers are plain TypeScript, so they work in any Node service.</p>
+
   <h3>1. A timeout on every call</h3>
-  <p>Many Node clients have <b>no timeout, or a very long one, by default</b>. Worth checking in your versions: <code>axios</code> defaults to no timeout, and <code>pg</code> pools wait forever for a connection unless you set <code>connectionTimeoutMillis</code>. Built-in fetch takes a signal:</p>
-<pre><code>const res = await fetch&#40;url, { signal: AbortSignal.timeout(800) })</code></pre>
+  <p>Many Node clients have <b>no timeout, or a very long one, by default</b>. Worth checking in your versions: <code>axios</code> (what Nest's <code>HttpModule</code> uses) defaults to <b>no timeout</b>, and a <code>pg</code> pool waits forever for a free connection unless you set <code>connectionTimeoutMillis</code>.</p>
+<pre><code class="language-ts"><span class="file">// app.module.ts: one place to set it for every HttpService call</span>
+@Module({
+  imports: [
+    HttpModule.register({
+      timeout: 800, // ms; axios default is 0 = wait forever
+    }),
+  ],
+})
+export class AppModule {}</code></pre>
+<pre><code class="language-ts"><span class="file">// Built-in fetch: pass a signal that aborts after 800 ms</span>
+const res = await fetch&#40;url, {
+  signal: AbortSignal.timeout(800),
+});</code></pre>
 
-  <h3>2. Retry with capped exponential backoff and full jitter</h3>
-<pre><code>const sleep = (ms: number) =&gt; new Promise(r =&gt; setTimeout(r, ms))
-
-export async function withRetry&lt;T&gt;(
-  fn: (signal: AbortSignal) =&gt; Promise&lt;T&gt;,
-  { attempts = 3, baseMs = 100, capMs = 2000, timeoutMs = 800,
-    isRetryable = (_e: unknown) =&gt; true } = {},
-): Promise&lt;T&gt; {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await fn(AbortSignal.timeout(timeoutMs))
-    } catch (err) {
-      if (attempt + 1 &gt;= attempts || !isRetryable(err)) throw err
-      // Full jitter: a random point between 0 and the capped exponential backoff
-      const ceiling = Math.min(capMs, baseMs * 2 ** attempt)
-      await sleep(Math.random() * ceiling)
-    }
+  <h3>2. Decide what's retryable (the status-code table, as code)</h3>
+<pre><code class="language-ts"><span class="file">// retry.ts</span>
+export class HttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
   }
 }
 
-// Only retry what can succeed later: timeouts, network errors, 5xx, 429.
-class HttpError extends Error { constructor(public status: number) { super(`HTTP ${status}`) } }
+// Only errors that can succeed if sent again (see the table in §3d).
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
-const user = await withRetry(async signal =&gt; {
-  const r = await fetch&#40;`${API}/users/42`, { signal })
-  if (r.status &gt;= 500 || r.status === 429) throw new HttpError(r.status)
-  return r.json()
-}, {
-  isRetryable: e =&gt; e instanceof HttpError || e instanceof TypeError ||
-    (e as Error).name === 'TimeoutError',
-})</code></pre>
-  <p>This is a <b>GET</b>. For a POST that creates something, don't retry unless the API takes an idempotency key (#2).</p>
-
-  <h3>3. A retry budget (the token-bucket idea)</h3>
-<pre><code>// Retries spend a token; each success earns back a fraction.
-// Net effect: retries stay a small share of real traffic, even during an outage.
-class RetryBudget {
-  private tokens: number
-  constructor(private max = 10, private earnPerSuccess = 0.1) { this.tokens = max }
-  trySpend() { if (this.tokens &lt; 1) return false; this.tokens -= 1; return true }
-  onSuccess() { this.tokens = Math.min(this.max, this.tokens + this.earnPerSuccess) }
+export function isRetryable(err: unknown): boolean {
+  if (err instanceof HttpError) {
+    return RETRYABLE_STATUS.has(err.status);
+  }
+  if (err instanceof Error && err.name === 'TimeoutError') {
+    return true; // our own AbortSignal.timeout fired
+  }
+  if (err instanceof TypeError) {
+    return true; // fetch's network failure: DNS, refused, reset
+  }
+  return false; // 4xx and anything unknown: don't retry
 }</code></pre>
 
-  <h3>4. Deterministic jitter for crons</h3>
-<pre><code>import { createHash } from 'node:crypto'
-import os from 'node:os'
+  <h3>3. Retry with capped exponential backoff and full jitter</h3>
+<pre><code class="language-ts"><span class="file">// retry.ts (continued)</span>
+type RetryOptions = {
+  attempts?: number; // total tries, including the first
+  baseMs?: number; // backoff ceiling for the first retry
+  capMs?: number; // never wait longer than this
+  timeoutMs?: number; // per-attempt timeout
+};
 
-// Same host, same offset, every night: spreads 20 pods over 5 minutes, reproducibly.
-const offsetMs = createHash('sha256').update(os.hostname()).digest().readUInt32BE(0) % 300_000
-setTimeout(runNightlyJob, offsetMs)</code></pre>
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function withRetry&lt;T&gt;(
+  fn: (signal: AbortSignal) => Promise&lt;T&gt;,
+  opts: RetryOptions = {},
+): Promise&lt;T&gt; {
+  const {
+    attempts = 3,
+    baseMs = 100,
+    capMs = 2_000,
+    timeoutMs = 800,
+  } = opts;
+
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn(AbortSignal.timeout(timeoutMs));
+    } catch (err) {
+      const isLastTry = attempt + 1 >= attempts;
+      if (isLastTry || !isRetryable(err)) throw err;
+
+      // Full jitter: a random wait between 0 and the capped backoff,
+      // so clients that failed together don't retry together.
+      const ceiling = Math.min(capMs, baseMs * 2 ** attempt);
+      await sleep(Math.random() * ceiling);
+    }
+  }
+}</code></pre>
+<pre><code class="language-ts"><span class="file">// users.client.ts: using it in a Nest service</span>
+@Injectable()
+export class UsersClient {
+  constructor(private readonly config: ConfigService) {}
+
+  getUser(id: string) {
+    const api = this.config.getOrThrow&lt;string&gt;('USERS_API');
+
+    return withRetry(async (signal) => {
+      const res = await fetch&#40;`${api}/users/${id}`, { signal });
+      if (!res.ok) throw new HttpError(res.status);
+      return res.json();
+    });
+  }
+}</code></pre>
+  <p>This is a <b>GET</b>, so retrying is safe. For a POST that creates something, don't retry unless the API takes an idempotency key (#2). A 404 throws <code>HttpError(404)</code>, which isn't retryable, so it fails at once.</p>
+
+  <h3>4. A retry budget (the token-bucket idea)</h3>
+<pre><code class="language-ts"><span class="file">// retry-budget.ts</span>
+// Each retry spends 1 token; each success earns back 0.1.
+// So retries can't stay above ~10% of successful traffic, even in an outage.
+export class RetryBudget {
+  private tokens: number;
+
+  constructor(
+    private readonly max = 10,
+    private readonly earnPerSuccess = 0.1,
+  ) {
+    this.tokens = max;
+  }
+
+  /** Call before retrying. false means the budget is empty: fail now. */
+  trySpend(): boolean {
+    if (this.tokens &lt; 1) return false;
+    this.tokens -= 1;
+    return true;
+  }
+
+  onSuccess(): void {
+    this.tokens = Math.min(this.max, this.tokens + this.earnPerSuccess);
+  }
+}</code></pre>
+  <p class="hint">Simpler than the article's version: when tokens run out this fails at once, while AWS's keeps retrying at a slow fixed rate. Share one budget per downstream service (a singleton provider in Nest).</p>
+
+  <h3>5. Deterministic jitter for crons</h3>
+<pre><code class="language-ts"><span class="file">// reports.job.ts (uses @nestjs/schedule)</span>
+import { createHash } from 'node:crypto';
+import { hostname } from 'node:os';
+
+// Same pod, same offset (0–5 min) every night. A spike at 00:03:17
+// then always points to the same pod.
+const offsetMs =
+  createHash('sha256').update(hostname()).digest().readUInt32BE(0) %
+  300_000;
+
+@Injectable()
+export class ReportsJob {
+  @Cron('0 0 * * *')
+  async nightly() {
+    await sleep(offsetMs);
+    await this.buildReports();
+  }
+}</code></pre>
 
   <h3>✅ Code-review checklist</h3>
   <ul>
@@ -342,48 +644,77 @@ setTimeout(runNightlyJob, offsetMs)</code></pre>
 
   <h3>🧪 Lab (25 min): cause a retry storm, then fix it</h3>
   <p>A tiny server that handles 20 requests at a time and rejects the rest with 503. Then 200 clients start at once. Save as <code>lab.mjs</code> and run <code>node lab.mjs immediate</code>, then <code>backoff</code>, then <code>jitter</code>.</p>
-<pre><code>import http from 'node:http'
+<pre><code class="language-js">import http from 'node:http';
 
-const CAPACITY = 20
-let inFlight = 0, served = 0, rejected = 0
+// A server that can work on 20 requests at a time and rejects the rest.
+const CAPACITY = 20;
+let inFlight = 0;
+let served = 0;
+let rejected = 0;
 
 const server = http.createServer((req, res) =&gt; {
-  if (inFlight &gt;= CAPACITY) { rejected++; res.writeHead(503).end(); return }
-  inFlight++
-  setTimeout(() =&gt; { inFlight--; served++; res.end('ok') }, 50) // 50 ms of "work"
-})
+  if (inFlight &gt;= CAPACITY) {
+    rejected++;
+    res.writeHead(503).end();
+    return;
+  }
+  inFlight++;
+  setTimeout(() =&gt; {
+    inFlight--;
+    served++;
+    res.end('ok');
+  }, 50); // 50 ms of "work"
+});
 
-const sleep = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+const sleep = (ms) =&gt; new Promise((resolve) =&gt; setTimeout(resolve, ms));
+
+// How long to wait before retry number `attempt` (0, 1, 2, ...).
 const STRATEGIES = {
   immediate: () =&gt; 0,
-  backoff:   attempt =&gt; Math.min(2000, 50 * 2 ** attempt),
-  jitter:    attempt =&gt; Math.random() * Math.min(2000, 50 * 2 ** attempt),
+  backoff: (attempt) =&gt; Math.min(2000, 50 * 2 ** attempt),
+  jitter: (attempt) =&gt; Math.random() * Math.min(2000, 50 * 2 ** attempt),
+};
+
+function get(port) {
+  return new Promise((resolve) =&gt; {
+    http
+      .get(`http://127.0.0.1:${port}/`, (res) =&gt; {
+        res.resume();
+        resolve(res.statusCode);
+      })
+      .on('error', () =&gt; resolve(0));
+  });
 }
 
 async function client(port, delayFor) {
   for (let attempt = 0; ; attempt++) {
-    const status = await new Promise(resolve =&gt;
-      http.get(`http://127.0.0.1:${port}/`, res =&gt; { res.resume(); resolve(res.statusCode) })
-        .on('error', () =&gt; resolve(0)))
-    if (status === 200) return
-    await sleep(delayFor(attempt))
+    const status = await get(port);
+    if (status === 200) return;
+    await sleep(delayFor(attempt));
   }
 }
 
-const name = process.argv[2] ?? 'jitter'
+const name = process.argv[2] ?? 'jitter';
+
 server.listen(0, async () =&gt; {
-  const { port } = server.address()
-  const t0 = Date.now()
-  await Promise.all(Array.from({ length: 200 }, () =&gt; client(port, STRATEGIES[name])))
-  console.log(`${name.padEnd(9)} calls=${served + rejected} rejected=${rejected} time=${Date.now() - t0}ms`)
-  server.close()
-})</code></pre>
+  const { port } = server.address();
+  const start = Date.now();
+  const clients = Array.from({ length: 200 }, () =&gt;
+    client(port, STRATEGIES[name]),
+  );
+  await Promise.all(clients);
+
+  const calls = served + rejected;
+  const ms = Date.now() - start;
+  console.log(`${name}: calls=${calls} rejected=${rejected} time=${ms}ms`);
+  server.close();
+});</code></pre>
   <p>What I got on Node 22 (your numbers will differ a little):</p>
   <table>
     <tr><th>Strategy</th><th>Total calls</th><th>Time</th><th>Read it as</th></tr>
-    <tr><td>Retry immediately</td><td>~4,700–5,600</td><td>~0.6 s</td><td>Fast here only because rejections are free locally. On a real server those 5,000 calls burn CPU and slow everyone.</td></tr>
-    <tr><td>Exponential backoff</td><td>~1,100</td><td>~9.3 s</td><td>Far less load, but clients stay in sync and hit the 2 s cap together. Slow.</td></tr>
-    <tr><td>Backoff + full jitter</td><td>~740</td><td>~1.2 s</td><td>Least load <b>and</b> fast. This is the point of the article.</td></tr>
+    <tr><td>Retry immediately</td><td>~3,400–5,600</td><td>~0.6 s</td><td>Fast here only because rejections are free locally. On a real server those 5,000 calls burn CPU and slow everyone.</td></tr>
+    <tr><td>Exponential backoff</td><td>~900–1,100</td><td>~7–9 s</td><td>Far less load, but clients stay in sync and hit the 2 s cap together. Slow.</td></tr>
+    <tr><td>Backoff + full jitter</td><td>~740–760</td><td>~1–1.5 s</td><td>Least load <b>and</b> fast. This is the point of the article.</td></tr>
   </table>
   <p>➕ Stretch: add a 2-layer chain (a proxy that also retries 3 times) and watch the call count multiply. Then wrap the client in the <code>RetryBudget</code> above.</p>
 
@@ -495,7 +826,7 @@ server.listen(0, async () =&gt; {
     <li><a href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/" target="_blank" rel="noopener">Exponential Backoff and Jitter</a> (Marc Brooker, AWS Architecture Blog, 2015). The simulation behind "use jitter", with the formulas for full, equal and decorrelated jitter.</li>
     <li><a href="https://sre.google/sre-book/addressing-cascading-failures/" target="_blank" rel="noopener">Addressing Cascading Failures</a> (Google SRE book). What retries do to an overloaded system, plus deadline propagation. This is #25 on your list.</li>
   </ul>
-  <p class="footer-src"><b>📚 Sources &amp; confidence</b> (checked 2026-10-04): every quote, number and story in the walkthrough comes from AWS's official PDF of the article. The figures and the "more than half" result are from Brooker's 2015 blog post. The lab numbers are my own runs on Node 22. The interactive simulators are simplified models, not measurements. Notes on AWS SDKs, gRPC, Envoy, Hystrix and Node client defaults are well-known but weren't re-checked for this guide, so confirm against your versions' docs. Anything marked 🧠 is my opinion.</p>
+  <p class="footer-src"><b>📚 Sources &amp; confidence</b> (checked 2026-10-04): every quote, number and story in the walkthrough comes from AWS's official PDF of the article. The figures and the "more than half" result are from Brooker's 2015 blog post. The lab numbers and the TypeScript helpers were run on Node 22. The status-code table is standard HTTP semantics plus my judgment (the article only says "don't retry client errors, server errors may succeed"). The 63% figure is plain probability (1 − 0.99¹⁰⁰). The interactive simulators are simplified models, not measurements. Notes on AWS SDKs, gRPC, Envoy, Hystrix and Node client defaults are well-known but weren't re-checked for this guide, so confirm against your versions' docs. Anything marked 🧠 is my opinion.</p>
 </main>
 </div>
 
@@ -560,7 +891,7 @@ const fmtMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : Math.round(ms) 
   let anim = 0;
   function draw(r, progress) {
     svg.innerHTML = "";
-    const W = 640, H = 235, L = 52, B = 196, T = 22;
+    const W = 640, H = 235, L = 64, B = 196, T = 22;
     const maxY = Math.max(CAP * 1.5, ...r.buckets.map(x => x[0] + x[1]));
     const n = Math.max(r.buckets.length, 1), bw = (W - L) / n;
     const y = v => B - (v / maxY) * (B - T);
@@ -579,7 +910,9 @@ const fmtMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : Math.round(ms) 
     txt(svg, L - 4, B, "0", 19, css("--muted"), "end");
     txt(svg, L, B + 28, "0", 20);
     txt(svg, W, B + 28, fmtMs(n * BUCKET), 20, css("--muted"), "end");
-    txt(svg, (L + W) / 2, B + 28, "requests per 50 ms", 20, css("--muted"), "middle");
+    txt(svg, (L + W) / 2, B + 28, "time →", 20, css("--muted"), "middle");
+    const yLabel = txt(svg, 17, (T + B) / 2, "requests", 19, css("--muted"), "middle");
+    yLabel.setAttribute("transform", `rotate(-90 17 ${(T + B) / 2})`);
   }
   function run() {
     const r = simulate(+slider.value, sel.value);
@@ -598,43 +931,107 @@ const fmtMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : Math.round(ms) 
   run();
 })();
 
-// ── Widget 2: timeout explorer ───────────────────────────────────────────────
-(function () {
-  // Seeded RNG so the numbers are the same for every reader.
-  let s = 42;
+// ── Shared: a seeded latency sample, so every reader sees the same numbers ───
+function latencySample(n, seed) {
+  let s = seed;
   const rnd = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   const gauss = () => Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
   // Mostly ~40 ms (log-normal), plus a 1.5% slow tail (GC pauses, cold caches, retries downstream).
-  const lat = Array.from({ length: 5000 }, () => rnd() < 0.015 ? 200 + rnd() * 900 : 40 * Math.exp(0.45 * gauss())).sort((a, b) => a - b);
-  const pct = p => lat[Math.min(lat.length - 1, Math.floor(p * lat.length))];
+  return Array.from({ length: n }, () => rnd() < 0.015 ? 200 + rnd() * 900 : 40 * Math.exp(0.45 * gauss())).sort((a, b) => a - b);
+}
+const LAT = latencySample(5000, 42);
+const pct = p => LAT[Math.min(LAT.length - 1, Math.floor(p * LAT.length))];
+const pName = p => "p" + +(p * 100).toFixed(1);
+
+// ── Widget: what a percentile means (sorted latency curve) ───────────────────
+(function () {
+  // Every 5th call of the 5,000 sample: 1,000 calls with the same shape and percentiles.
+  const calls = LAT.filter((_, i) => i % 5 === 4);
+  const svg = document.getElementById("pcSvg"), zoom = document.getElementById("pcZoom");
+  let picked = 0.99;
+  function draw() {
+    svg.innerHTML = "";
+    const W = 640, L = 70, R = 14, T = 16, B = 200;
+    const from = zoom.checked ? 950 : 0, to = 1000;
+    const maxY = 1200;
+    const x = i => L + (i - from) / (to - from) * (W - L - R);
+    const y = v => B - Math.min(v, maxY) / maxY * (B - T);
+    [0, 300, 600, 900, 1200].forEach(v => {
+      el("line", { x1: L, y1: y(v), x2: W - R, y2: y(v), stroke: css("--line"), "stroke-width": 1 }, svg);
+      txt(svg, L - 6, y(v) + 6, v + " ms", 17, css("--muted"), "end");
+    });
+    let d = `M ${x(from)} ${B}`;
+    for (let i = from; i < to; i++) d += ` L ${x(i + 0.5)} ${y(calls[i])}`;
+    d += ` L ${x(to)} ${B} Z`;
+    el("path", { d, fill: css("--accent"), "fill-opacity": 0.35, stroke: css("--accent"), "stroke-width": 2 }, svg);
+    // The picked percentile: rank on the x-axis, latency on the y-axis.
+    const rank = Math.round(picked * 1000), v = pct(picked); // same numbers as the timeout chart below
+    if (rank > from) {
+      const px = x(rank - 0.5), py = y(v);
+      el("line", { x1: px, y1: B, x2: px, y2: py, stroke: css("--warn"), "stroke-width": 2.5 }, svg);
+      el("line", { x1: L, y1: py, x2: px, y2: py, stroke: css("--warn"), "stroke-width": 2.5, "stroke-dasharray": "6 4" }, svg);
+      el("circle", { cx: px, cy: py, r: 6, fill: css("--warn") }, svg);
+      const right = px > W * 0.6;
+      txt(svg, right ? px - 10 : px + 10, Math.max(T + 20, py - 10), `${pName(picked)} = ${Math.round(v)} ms`, 21, css("--warn"), right ? "end" : "start");
+    }
+    txt(svg, L, B + 26, zoom.checked ? "call #950" : "call #1 (fastest)", 18, css("--muted"));
+    txt(svg, W - R, B + 26, "#1,000 (slowest)", 18, css("--muted"), "end");
+    txt(svg, (L + W) / 2, B + 46, "calls, sorted fastest → slowest", 18, css("--muted"), "middle");
+    document.getElementById("pcName").textContent = pName(picked);
+    document.getElementById("pcVal").textContent = Math.round(v) + " ms";
+    document.getElementById("pcSlower").textContent = (1000 - rank) + " of 1,000";
+    document.querySelectorAll("#pcQuick button").forEach(b => b.classList.toggle("on", +b.dataset.p === picked));
+  }
+  document.querySelectorAll("#pcQuick button").forEach(b => b.addEventListener("click", () => {
+    picked = +b.dataset.p;
+    // p99 and p99.9 sit in the last few calls; zoom in so they're visibly apart.
+    if (picked >= 0.99) zoom.checked = true;
+    draw();
+  }));
+  zoom.addEventListener("change", draw);
+  draw();
+})();
+
+// ── Widget: timeout explorer (histogram) ─────────────────────────────────────
+(function () {
   const p50 = pct(0.5), p99 = pct(0.99), p999 = pct(0.999);
   document.getElementById("twPct").textContent = `${Math.round(p50)} / ${Math.round(p99)} / ${Math.round(p999)} ms`;
   const svg = document.getElementById("twSvg"), slider = document.getElementById("twSlider");
-  const W = 640, H = 210, L = 10, B = 176, T = 10, MAXX = 1200, BIN = 20;
+  const W = 640, L = 34, R = 14, B = 172, T = 10, MAXX = 1200, BIN = 20;
   const bins = new Array(MAXX / BIN).fill(0);
-  lat.forEach(v => { bins[Math.min(bins.length - 1, Math.floor(v / BIN))]++; });
+  LAT.forEach(v => { bins[Math.min(bins.length - 1, Math.floor(v / BIN))]++; });
   const maxB = Math.max(...bins);
   // sqrt scale so the thin tail stays visible next to the big peak
   const h = c => c ? Math.max(2, Math.sqrt(c / maxB) * (B - T)) : 0;
+  const xOf = ms => L + (ms / MAXX) * (W - L - R);
+  const quick = document.getElementById("twQuick");
+  [["p50", p50], ["p99", p99], ["p99.9", p999]].forEach(([name, v]) => {
+    const b = document.createElement("button");
+    b.textContent = `${name} (${Math.round(v)} ms)`;
+    b.addEventListener("click", () => { slider.value = Math.round(v / 10) * 10 + 10; draw(); });
+    quick.appendChild(b);
+  });
   function draw() {
     const to = +slider.value;
     svg.innerHTML = "";
-    const bw = (W - L) / bins.length;
+    const bw = (W - L - R) / bins.length;
     bins.forEach((c, i) => {
       if (!c) return;
-      el("rect", { x: L + i * bw, y: B - h(c), width: Math.max(1, bw - 1), height: h(c), fill: i * BIN >= to ? css("--bad") : css("--good") }, svg);
+      el("rect", { x: xOf(i * BIN), y: B - h(c), width: Math.max(1, bw - 1), height: h(c), fill: i * BIN >= to ? css("--bad") : css("--good") }, svg);
     });
-    el("line", { x1: L, y1: B, x2: W, y2: B, stroke: css("--line"), "stroke-width": 1.5 }, svg);
-    const x = L + (to / MAXX) * (W - L);
-    el("line", { x1: x, y1: T, x2: x, y2: B, stroke: css("--warn"), "stroke-width": 2 }, svg);
+    el("line", { x1: L, y1: B, x2: W - R, y2: B, stroke: css("--line"), "stroke-width": 1.5 }, svg);
+    [0, 300, 600, 900, 1200].forEach(v => {
+      el("line", { x1: xOf(v), y1: B, x2: xOf(v), y2: B + 6, stroke: css("--muted") }, svg);
+      txt(svg, xOf(v), B + 28, v === 1200 ? "1200 ms" : String(v), 20, css("--muted"), v === 0 ? "start" : v === 1200 ? "end" : "middle");
+    });
+    txt(svg, (L + W) / 2, B + 56, "how long a call took →", 21, css("--muted"), "middle");
+    const yl = txt(svg, 16, (T + B) / 2, "calls", 20, css("--muted"), "middle");
+    yl.setAttribute("transform", `rotate(-90 16 ${(T + B) / 2})`);
+    const x = xOf(to);
+    el("line", { x1: x, y1: T, x2: x, y2: B, stroke: css("--warn"), "stroke-width": 2.5 }, svg);
     txt(svg, Math.min(x + 6, W - 175), T + 20, "timeout " + to + " ms", 21, css("--warn"));
-    [p50, p99, p999].forEach((p, i) => {
-      const px = L + (p / MAXX) * (W - L);
-      el("line", { x1: px, y1: B, x2: px, y2: B + 6, stroke: css("--muted") }, svg);
-      txt(svg, px, B + 26, ["p50", "p99", "p99.9"][i], 19, css("--muted"), "middle");
-    });
-    const cut = lat.filter(v => v > to).length;
-    document.getElementById("twCut").textContent = (cut / lat.length * 100).toFixed(2) + "%";
+    const cut = LAT.filter(v => v > to).length;
+    document.getElementById("twCut").textContent = (cut / LAT.length * 100).toFixed(2) + "%";
     document.getElementById("twWait").textContent = to + " ms";
     document.getElementById("twV").textContent = to + " ms";
   }
@@ -642,28 +1039,88 @@ const fmtMs = ms => ms >= 1000 ? (ms / 1000).toFixed(1) + " s" : Math.round(ms) 
   draw();
 })();
 
-// ── Widget 3: retry multiplication ───────────────────────────────────────────
+// ── Widget: retry multiplication, hop by hop ─────────────────────────────────
 (function () {
   const layers = document.getElementById("mwLayers"), attempts = document.getElementById("mwAttempts");
+  const NAMES = ["API", "Order service", "Inventory service", "Pricing service", "Data layer"];
   function draw() {
     const l = +layers.value, a = +attempts.value, total = a ** l;
     document.getElementById("mwLayersV").textContent = l;
     document.getElementById("mwAttemptsV").textContent = a;
-    document.getElementById("mwOut").textContent = total.toLocaleString() + "×";
-    document.getElementById("mwText").textContent = `${a}^${l} calls to the database for one user click, in the worst case.` + (total > 600 ? " (dots capped at 600)" : "");
-    const dots = document.getElementById("mwDots");
-    dots.innerHTML = "";
-    for (let i = 0; i < Math.min(total, 600); i++) {
-      const d = document.createElement("i");
-      if (i === 0) d.className = "one";
-      dots.appendChild(d);
+    const hops = [{ name: "👤 User → " + NAMES[0], n: 1 }];
+    for (let k = 1; k <= l; k++) {
+      const to = k === l ? "🗄️ Database" : NAMES[k];
+      hops.push({ name: `${NAMES[k - 1]} → ${to}`, n: a ** k });
     }
+    const rows = document.getElementById("mwRows");
+    rows.innerHTML = "";
+    hops.forEach((hop, i) => {
+      const row = document.createElement("div");
+      row.className = "row" + (i === 0 ? " first" : "");
+      row.innerHTML = `<div><div class="name">${hop.name}</div><div class="bar" style="width:${Math.max(1, hop.n / total * 100)}%"></div></div><div class="n">${hop.n.toLocaleString()}</div>`;
+      rows.appendChild(row);
+    });
+    document.getElementById("mwOut").textContent = total.toLocaleString() + "×";
+    document.getElementById("mwText").textContent = l === 1
+      ? `Only one layer retries: the database gets ${a} calls for one click.`
+      : `${Array(l).fill(a).join(" × ")} = ${total.toLocaleString()} calls reach the database for one click.`;
   }
   layers.addEventListener("input", draw);
   attempts.addEventListener("input", draw);
   draw();
 })();
+
+// ── Widget: jitter breaks up the herd ────────────────────────────────────────
+(function () {
+  const N = 20, RETRIES = 5, BASE = 100, CAP = 1000, SLOT = 10, MAXT = 3200;
+  const svg = document.getElementById("jwSvg"), mode = document.getElementById("jwMode");
+  function draw() {
+    const jitter = mode.value === "full";
+    // Retry times per client: wait, retry, wait longer, retry…
+    const times = Array.from({ length: N }, () => {
+      let t = 0;
+      return Array.from({ length: RETRIES }, (_, attempt) => {
+        const ceiling = Math.min(CAP, BASE * 2 ** attempt);
+        t += jitter ? Math.random() * ceiling : ceiling;
+        return t;
+      });
+    });
+    svg.innerHTML = "";
+    const W = 640, L = 30, R = 14, T = 8, ROW = 11, DOTS_B = T + N * ROW, BARS_T = DOTS_B + 24, BARS_B = BARS_T + 110;
+    const x = t => L + Math.min(t, MAXT) / MAXT * (W - L - R);
+    times.forEach((ts, c) => {
+      el("line", { x1: L, y1: T + c * ROW + ROW / 2, x2: W - R, y2: T + c * ROW + ROW / 2, stroke: css("--line"), "stroke-width": 1 }, svg);
+      ts.forEach(t => el("circle", { cx: x(t), cy: T + c * ROW + ROW / 2, r: 4.5, fill: css("--accent") }, svg));
+    });
+    const yl = txt(svg, 14, (T + DOTS_B) / 2, "clients", 17, css("--muted"), "middle");
+    yl.setAttribute("transform", `rotate(-90 14 ${(T + DOTS_B) / 2})`);
+    // Retries reaching the server per 100 ms
+    const slots = new Array(Math.ceil(MAXT / SLOT)).fill(0);
+    times.flat().forEach(t => { slots[Math.min(slots.length - 1, Math.floor(t / SLOT))]++; });
+    const peak = Math.max(...slots), bw = (W - L - R) / slots.length;
+    slots.forEach((c, i) => {
+      if (!c) return;
+      const hgt = c / N * (BARS_B - BARS_T);
+      el("rect", { x: L + i * bw, y: BARS_B - hgt, width: Math.max(3, bw - 0.5), height: hgt, fill: css("--warn") }, svg);
+    });
+    el("line", { x1: L, y1: BARS_B, x2: W - R, y2: BARS_B, stroke: css("--line"), "stroke-width": 1.5 }, svg);
+    const bl = txt(svg, 14, (BARS_T + BARS_B) / 2, "server", 17, css("--muted"), "middle");
+    bl.setAttribute("transform", `rotate(-90 14 ${(BARS_T + BARS_B) / 2})`);
+    [0, 1000, 2000, 3000].forEach(t => txt(svg, x(t), BARS_B + 24, t ? t / 1000 + " s" : "0", 18, css("--muted"), t ? "middle" : "start"));
+    txt(svg, (L + W) / 2, BARS_B + 48, "time since the failure →", 18, css("--muted"), "middle");
+    document.getElementById("jwPeak").textContent = peak;
+    document.getElementById("jwTotal").textContent = N * RETRIES;
+    document.getElementById("jwSpan").textContent = fmtMs(Math.max(...times.flat()));
+  }
+  mode.addEventListener("change", draw);
+  document.getElementById("jwRoll").addEventListener("click", draw);
+  draw();
+})();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js" integrity="sha384-7LHwxHIDSHTBleLmgDWZbC/IMJsfYfFVOihKhvsrxYW4j47YQcRwZja4ToFE3bA8" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" integrity="sha384-D44bgYYKvaiDh4cOGlj1dbSDpSctn2FSUj118HZGmZEShZcO2v//Q5vvhNy206pp" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js" integrity="sha384-PeOqKNW/piETaCg8rqKFy+Pm6KEk7e36/5YZE5XO/OaFdO+/Aw3O8qZ9qDPKVUgx" crossorigin="anonymous"></script>
 <script src="../../js/back-button.js"></script>
 </body>
 </html>
