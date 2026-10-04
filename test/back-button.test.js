@@ -69,16 +69,11 @@ test('does nothing inside an iframe (the Google tabs embed these pages)', () => 
   assert.equal(run({ top: false }).btn, undefined)
 })
 
-test('arriving from the tracker uses history.back() so it returns to where you were', () => {
-  const r = run({ referrer: 'https://t.example/' }).click()
-  assert.equal(r.prevented, true)
-  assert.equal(r.backCalls, 1)
-})
-
-test('arriving from elsewhere (or a direct open) just navigates to index.html', () => {
-  for (const referrer of ['', 'https://t.example/dsa/dsa-master-map.html', 'https://other.site/']) {
-    const r = run({ referrer }).click()
-    assert.equal(r.prevented, false, `referrer "${referrer}" should not hijack the click`)
-    assert.equal(r.backCalls, 0)
+test('the pill always navigates to the tracker and never hijacks the click with history.back()', () => {
+  // history.back() would only undo in-page anchors/links on a long page; it must never be used.
+  for (const referrer of ['https://t.example/', 'https://t.example/index.html', '', 'https://other.site/']) {
+    const { btn, click } = run({ referrer })
+    assert.equal(btn.href, 'https://t.example/index.html')
+    assert.throws(() => click(), TypeError, 'no click handler should be attached')
   }
 })
