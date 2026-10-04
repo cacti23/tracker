@@ -64,7 +64,17 @@ summary::-webkit-details-marker { display: none; }
 .pill { font-size: 11px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; border: 1px solid var(--line); color: var(--muted); }
 .pill.reading { color: var(--reading); border-color: var(--reading); }
 .pill.done { color: var(--done); border-color: var(--done); }
-.pill.reread { color: var(--reread); border-color: var(--reread); }
+.ring { flex: none; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 3px solid var(--line);
+  background: var(--card); color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1; }
+.ring.has { border-color: var(--reread); color: var(--reread); }
+.ring.bump { animation: bump .25s; }
+@keyframes bump { 50% { transform: scale(1.2); } }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); padding: 6px 10px; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.revs { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 0 0 10px; }
+.revs button { padding: 3px 9px; }
 .body { padding: 0 14px 14px 50px; }
 .body a { color: var(--accent); }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; font-size: 13px; }
@@ -87,6 +97,7 @@ select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; b
   <header>
     <h1>📚 Engineering Paper Club</h1>
     <p>28 readings, easy → hard. 🆕 = added after review, ⏬ = skim only. Pace: 1 blog + 1 paper per week.</p>
+    <p>Status: Not started → In progress → Done. ⭕ The ring counts how many times you've gone through a reading: tap it to add one.</p>
   </header>
 
   <div class="toolbar">
@@ -230,7 +241,9 @@ const PAPERS = [
     why: "Not one sitting: read the matching chapter alongside each paper. Get the 2nd edition if available.", related: [10, 11, 16, 5], prereq: [], added: true }
 ];
 
-const STATUSES = ["Not started", "Reading", "Done", "Want to reread"];
+const STATUSES = ["Not started", "In progress", "Done"];
+// Older saves used four statuses; map them so nobody's progress is lost.
+const LEGACY = { Reading: "In progress", "Want to reread": "Done" };
 const KEY = "paper-club-v1";
 const $ = s => document.querySelector(s);
 
@@ -242,10 +255,17 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: page still works */ }
   progress();
 }
-const get = n => state[n] || (state[n] = { status: "Not started" });
-const isDone = n => ["Done", "Want to reread"].includes(get(n).status);
+function get(n) {
+  const s = state[n] || (state[n] = { status: "Not started" });
+  if (LEGACY[s.status]) s.status = LEGACY[s.status];
+  if (!STATUSES.includes(s.status)) s.status = "Not started";
+  return s;
+}
+const revs = n => get(n).revs || 0;
+const isDone = n => get(n).status === "Done";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const pillClass = s => ({ Reading: "reading", Done: "done", "Want to reread": "reread" }[s] || "");
+const pillClass = s => ({ "In progress": "reading", Done: "done" }[s] || "");
+const ringLabel = n => `Gone through ${revs(n)} time${revs(n) === 1 ? "" : "s"}. Tap to add one.`;
 
 function toast(msg) {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
@@ -263,12 +283,19 @@ function render() {
     </section>`;
   }).join("");
 
-  list.querySelectorAll("select").forEach(sel => sel.addEventListener("change", e => {
-    const n = +e.target.dataset.n; get(n).status = e.target.value; save();
+  list.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    const n = +b.dataset.n; get(n).status = b.dataset.s; save();
     const pill = document.getElementById("pill" + n);
-    pill.textContent = e.target.value; pill.className = "pill " + pillClass(e.target.value);
+    pill.textContent = b.dataset.s; pill.className = "pill " + pillClass(b.dataset.s);
+    b.parentNode.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
     warn(n);
   }));
+  // The ring sits inside <summary>, so stop the click from also opening/closing the card.
+  list.querySelectorAll(".ring").forEach(r => r.addEventListener("click", e => {
+    e.preventDefault(); e.stopPropagation();
+    setRevs(+r.dataset.n, 1);
+  }));
+  list.querySelectorAll(".revs button").forEach(b => b.addEventListener("click", () => setRevs(+b.dataset.n, -1)));
   list.querySelectorAll("a.chip").forEach(a => a.addEventListener("click", e => {
     e.preventDefault();
     const el = document.getElementById("p" + a.dataset.to);
@@ -291,6 +318,7 @@ function card(p) {
         ${p.skim ? `<div class="skim">⏬ ${esc(p.skim)}</div>` : ""}
       </span>
       <span class="pill ${pillClass(s.status)}" id="pill${p.n}">${s.status}</span>
+      <button class="ring${revs(p.n) ? " has" : ""}" id="ring${p.n}" data-n="${p.n}" title="${ringLabel(p.n)}" aria-label="${ringLabel(p.n)}">${revs(p.n)}</button>
     </summary>
     <div class="body">
       ${p.guide ? `<a class="guide-btn" href="${p.guide}">📖 Open the study guide</a>` : ""}
@@ -298,8 +326,11 @@ function card(p) {
       ${p.linkNote ? `<div class="sub">ℹ️ ${esc(p.linkNote)}</div>` : ""}
       <div class="warn" id="warn${p.n}"></div>
       <div class="controls">Status
-        <select data-n="${p.n}">${STATUSES.map(x => `<option${x === s.status ? " selected" : ""}>${x}</option>`).join("")}</select>
+        <span class="seg" role="group" aria-label="Status">${STATUSES.map(x =>
+          `<button data-n="${p.n}" data-s="${x}" aria-pressed="${x === s.status}">${x}</button>`).join("")}</span>
       </div>
+      <div class="revs"><span id="revTxt${p.n}">${revTxt(p.n)}</span>
+        <button id="revUndo${p.n}" data-n="${p.n}" title="Undo one"${revs(p.n) ? "" : " disabled"}>−1</button></div>
       <div class="chips">${p.related.map(r => {
         const q = PAPERS.find(x => x.n === r);
         return `<a class="chip" href="#p${r}" data-to="${r}">#${r} ${esc(q.title.split(":")[0])}</a>`;
@@ -307,6 +338,20 @@ function card(p) {
     </div>
   </details>`;
 }
+
+function setRevs(n, delta) {
+  const s = get(n);
+  s.revs = Math.max(0, revs(n) + delta);
+  save();
+  const r = document.getElementById("ring" + n);
+  r.textContent = revs(n); r.title = ringLabel(n); r.setAttribute("aria-label", ringLabel(n));
+  r.classList.toggle("has", revs(n) > 0);
+  r.classList.remove("bump"); void r.offsetWidth; r.classList.add("bump");
+  document.getElementById("revTxt" + n).textContent = revTxt(n);
+  document.getElementById("revUndo" + n).disabled = revs(n) === 0;
+  if (delta > 0) toast(`⭕ #${n}: gone through ${revs(n)}×`);
+}
+const revTxt = n => revs(n) ? `⭕ Gone through ${revs(n)} time${revs(n) === 1 ? "" : "s"}` : "⭕ Not gone through yet. Tap the ring after each pass.";
 
 function warn(n) {
   const p = PAPERS.find(x => x.n === n);
