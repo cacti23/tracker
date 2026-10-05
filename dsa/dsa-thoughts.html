@@ -893,53 +893,44 @@ dist[nk] = 0;</code></pre>
 <div class="box key"><b class="tag">📌</b> Both views encode the same underlying fact — connected + acyclic — just counted differently: directed counts PARENTS PER NODE (max 1, exactly one with 0), undirected counts EDGES (exactly n-1) and checks connectivity directly. Pick whichever matches how the problem hands you the graph.</div>
 
 <h2 id="t45">45 · 🧠 Recursion / DP — Designing the STATE: Read the Question Twice</h2>
-<p><b>🎯</b> Before writing any recursion, backtracking or DP, read the question TWICE — each read answers a different design question.</p>
-<table>
-<tr><th></th><th>Ask yourself</th><th>It gives you</th></tr>
-<tr><td>1️⃣ <b>Read 1</b></td><td>"What do they want — max, min, count, true/false?"</td><td>What <code>dfs</code> <b>RETURNS</b> + how you combine children (<code>Math.max</code> / <code>Math.min</code> / <code>+</code> / <code>||</code>)</td></tr>
-<tr><td>2️⃣ <b>Read 2</b></td><td>"After each choice, what changes that my NEXT choices depend on?"</td><td>The <b>STATE</b> = <code>dfs</code> parameters</td></tr>
-</table>
-<table>
-<tr><th>Problem</th><th>Read 1 → returns</th><th>Read 2 → state</th></tr>
-<tr><td>House Robber</td><td>max money</td><td><code>i</code></td></tr>
-<tr><td>Coin Change</td><td>min coins</td><td>remaining <code>amount</code></td></tr>
-<tr><td>Unique Paths</td><td>count</td><td><code>(r, c)</code></td></tr>
-<tr><td>Distribute Cookies</td><td>min unfairness</td><td><code>(i, childSums[])</code></td></tr>
-</table>
-<div class="box warn"><b class="tag">🚨</b> Don't mix them up. Coin Change asks for min COINS, but the state is the AMOUNT LEFT — two different things.</div>
+<p><b>🎯</b> Read the question TWICE before any recursion or DP:</p>
+<ul>
+<li>1️⃣ <b>Read 1, "what do they want?"</b> (max, min, count, true/false) → what <code>dfs</code> <b>RETURNS</b>.</li>
+<li>2️⃣ <b>Read 2, "after each choice, what changes that my NEXT choices depend on?"</b> → the <b>STATE</b> (the <code>dfs</code> params).</li>
+</ul>
+<div class="box warn"><b class="tag">🚨</b> Don't mix them up. Coin Change returns min COINS, but the state is the AMOUNT LEFT.</div>
+<p>🧪 <b>Friend test:</b> pause the recursion and hand it to a friend. The MINIMUM they need to finish the job is your state.</p>
 
-<h3>🧪 The friend test</h3>
-<p>"If I pause the recursion here and hand it to a friend, what's the MINIMUM they need to finish the job?" → that minimum is your state.</p>
-
-<h3>🗺️ The 8 state shapes — almost every problem is one of these</h3>
+<h3>🗺️ State shapes — almost every problem is one of these</h3>
 <table>
-<tr><th>Shape</th><th>State</th><th>Easy / Medium</th><th>Hard</th></tr>
-<tr><td>1️⃣ Position</td><td><code>i</code></td><td>House Robber 198</td><td>—</td></tr>
-<tr><td>2️⃣ Remaining value</td><td><code>amount</code>, <code>n</code></td><td>Coin Change 322, Perfect Squares 279</td><td>—</td></tr>
-<tr><td>3️⃣ Position + one constraint</td><td><code>(i, holding)</code>, <code>(i, cap)</code>, <code>(i, k)</code></td><td>Stock Cooldown 309, 0/1 Knapsack</td><td>Stock IV 188</td></tr>
-<tr><td>4️⃣ Two sequences</td><td><code>(i, j)</code></td><td>LCS 1143, Edit Distance 72</td><td>Regex Matching 10</td></tr>
-<tr><td>5️⃣ Interval, try every split</td><td><code>(l, r)</code></td><td>Longest Palindromic Subseq 516</td><td>Burst Balloons 312, Cut Stick 1547</td></tr>
-<tr><td>6️⃣ Grid</td><td><code>(r, c)</code></td><td>Min Path Sum 64</td><td>Cherry Pickup 741</td></tr>
-<tr><td>7️⃣ Size, not position</td><td><code>n</code></td><td>Unique BST 96, Integer Break 343</td><td>—</td></tr>
-<tr><td>8️⃣ Set of used items</td><td><code>mask</code>, <code>(mask, last)</code></td><td>Matchsticks to Square 473</td><td>Visit All Nodes 847</td></tr>
+<tr><th>Shape</th><th>State</th><th>Example</th></tr>
+<tr><td>1️⃣ Position</td><td><code>i</code></td><td>House Robber 198</td></tr>
+<tr><td>2️⃣ Remaining value</td><td><code>amount</code></td><td>Coin Change 322</td></tr>
+<tr><td>3️⃣ Position + one constraint</td><td><code>(i, holding)</code>, <code>(i, k)</code></td><td>Stock Cooldown 309</td></tr>
+<tr><td>4️⃣ Two sequences</td><td><code>(i, j)</code></td><td>LCS 1143</td></tr>
+<tr><td>5️⃣ Interval, try every split</td><td><code>(l, r)</code></td><td>Burst Balloons 312</td></tr>
+<tr><td>6️⃣ Grid</td><td><code>(r, c)</code></td><td>Min Path Sum 64</td></tr>
+<tr><td>7️⃣ Size, not position</td><td><code>n</code></td><td>Unique BST 96</td></tr>
+<tr><td>8️⃣ Set of used items</td><td><code>mask</code></td><td>Matchsticks to Square 473</td></tr>
 </table>
+<div class="box warn"><b class="tag">🚨</b> Burst Balloons: <code>k</code> is the balloon burst LAST in <code>(l, r)</code>, not first. Then its neighbours are fixed (<code>l−1</code>, <code>r+1</code>), which is what makes the state work.</div>
 
 <h3>✂️ 3 rules to get the state right</h3>
 <ul>
-<li>➕ <b>Add a variable only if the future depends on it.</b> The index alone can't tell you "am I holding a stock?" → Stock Cooldown adds <code>holding</code>.</li>
-<li>🧮 <b>Drop what you can work out.</b> Cherry Pickup's two walkers move together → <code>c2 = r1 + c1 − r2</code>, so the state is <code>(r1, c1, r2)</code>. Unique BST: <code>1..3</code> and <code>5..7</code> give the same count → drop positions, keep size <code>n</code>.</li>
-<li>🗑️ <b>Drop what's already decided.</b> The path so far is NOT state — unless it changes your next choices (like <code>prev</code> in LIS).</li>
+<li>➕ <b>Add a variable only if the future depends on it</b> (Stock Cooldown needs <code>holding</code>).</li>
+<li>🧮 <b>Drop what you can compute</b> (Cherry Pickup: <code>c2 = r1 + c1 − r2</code>).</li>
+<li>🗑️ <b>Drop what's already decided.</b> The path so far is NOT state, unless it changes your next choices (like <code>prev</code> in LIS).</li>
 </ul>
 
 <h3>⚖️ Small state vs big state</h3>
 <ul>
 <li>🔢 <b>Small</b> (a few numbers) → the same state repeats → <b>memoize → DP</b></li>
 <li>📦 <b>Big</b> (an array or a path) → too big to memoize → <b>mutate + undo → backtracking</b> (Distribute Cookies: <code>childSums[]</code>)</li>
-<li>🗜️ <b>Squeeze big → small:</b> Cookies has n ≤ 8 → "which cookies are used" fits in a bitmask → <code>dp[child][mask]</code>. This is how a backtracking problem becomes DP.</li>
+<li>🗜️ <b>Squeeze big → small:</b> Cookies has n ≤ 8, so "which cookies are used" fits in a bitmask → <code>dp[child][mask]</code>.</li>
 </ul>
-<p>📏 <b>Constraints hint the shape:</b> n ≤ 20 → <code>mask</code> · n ≤ 500 → <code>(l, r)</code> + split loop · n ≤ 10⁵ → 1D state.</p>
-<div class="box warn"><b class="tag">🚨 Interval trap</b> in Burst Balloons, <code>k</code> is the balloon burst LAST in <code>(l, r)</code>, not first — then its neighbours are fixed (<code>l−1</code> and <code>r+1</code>), which is what makes the state work.</div>
+<p>📏 <b>Constraints hint the shape:</b> n ≤ 20 → <code>mask</code> · n ≤ 500 → <code>(l, r)</code> · n ≤ 10⁵ → 1D.</p>
 <div class="box key"><b class="tag">📌</b> Read 1 = what I RETURN. Read 2 = what I CARRY. Small carry → memoize (DP). Big carry → undo (backtracking).</div>
+
 
 <h2 id="t46">46 · 🍃 Recursion Tree — <code>bᵈ</code> Counts LEAVES, Not Every Node</h2>
 <p><b>🎯</b> <code>2ⁿ</code> (take/skip) and <code>nᵈ</code> (a <code>for</code> loop inside recursion) are the number of <b>leaves</b>. The tree has more nodes than that, but not a different big-O.</p>
