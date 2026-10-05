@@ -88,7 +88,7 @@
   <a href="#t28"><b>28</b>Dungeon Game: need ahead − cell</a>
   <a href="#t29"><b>29</b>MST — Kruskal's</a>
   <a href="#t30"><b>30</b>Stone Game family shapes</a>
-  <a href="#t31"><b>31</b>Prefix vs suffix sentinel</a>
+  <a href="#t31"><b>31</b>Prefix / suffix range sum</a>
   <a href="#t32"><b>32</b>Unmemoized recursion TC</a>
   <a href="#t33"><b>33</b>Graph edges: dense/sparse/tree</a>
   <a href="#t34"><b>34</b>Backtracking: used[], reuse, dups</a>
@@ -565,7 +565,7 @@ function minCostToConnectAllNodes(n: number, edges: number[][]): number {
 <div class="box key"><b class="tag">🎯 Why SG1 alone doesn't use prefix/suffix</b> prefix/suffix exist to sum a RANGE of elements in O(1). SG1's move value is always ONE single pile (<code>piles[i]</code>) — no range, nothing to sum, so there's nothing for prefix/suffix to speed up. SG2 sums a variable-size CHUNK (a range). SG7 sums the REMAINING stretch after a pick (also a range). Rule: reach for prefix/suffix only when a move's value spans more than one element — not just because it's "a Stone Game."</div>
 <div class="box key"><b class="tag">📌</b> The MOVE RULE decides the shape — copy the move rule, not the code.</div>
 
-<h2 id="t31">31 · 🗺️ Prefix vs Suffix — Where the "Extra" Sentinel Index Sits</h2>
+<h2 id="t31">31 · 🗺️ Prefix / Suffix — Range Sum in O(1), the +1 Goes on <code>j</code></h2>
 <pre class="language-tsx"><code class="language-tsx">index:      0    1    2    3    4    5
 piles:    [ 2 ][ 7 ][ 9 ][ 4 ][ 4 ]
 
@@ -575,7 +575,19 @@ suffix:   [26 ][24 ][17 ][ 8 ][ 4 ][ 0 ]
 prefix:   [ 0 ][ 2 ][ 9 ][18 ][22 ][26 ]
             ↑ sentinel (nothing before index 0)</code></pre>
 <p><b>🎯</b> Suffix sentinel sits at the END. Prefix sentinel sits at the START. Both mean the same thing: "empty range → 0."</p>
-<div class="box key"><b class="tag">📌</b> <code>suffix[i]</code> INCLUDES <code>piles[i]</code>, sentinel 0 at the tail. <code>prefix[i]</code> EXCLUDES <code>piles[i]</code>, sentinel 0 at the head. Same size (n+1), opposite ends.</div>
+<p><code>suffix[i]</code> INCLUDES <code>piles[i]</code>. <code>prefix[i]</code> EXCLUDES it (sum of everything before <code>i</code>).</p>
+<p>➕ <b>Sum of <code>i..j</code> (inclusive):</b> the +1 always goes on <code>j</code>.</p>
+<pre class="language-tsx"><code class="language-tsx">prefix[j + 1] - prefix[i]   // 1..3 → 22 - 2 = 20 (7 + 9 + 4)
+suffix[i] - suffix[j + 1]   // 1..3 → 24 - 4 = 20</code></pre>
+<p>🔁 <b>Same trick, other interview shapes:</b></p>
+<ul>
+<li>🎯 <b>Subarray sum = k (LC 560):</b> count <code>seen[prefix - k]</code>. Start with <code>seen = {0: 1}</code>, that's the sentinel (empty prefix).</li>
+<li>⊕ <b>Range XOR:</b> <code>px[j + 1] ^ px[i]</code>, same shape as sum.</li>
+<li>🔲 <b>2D range sum (LC 304):</b> <code>P[r2+1][c2+1] - P[r1][c2+1] - P[r2+1][c1] + P[r1][c1]</code> (add back the corner you subtracted twice).</li>
+<li>📈 <b>Range ADD (difference array):</b> <code>diff[i] += v</code>, <code>diff[j + 1] -= v</code>, then prefix-sum it. The +1 lands on <code>j</code> again.</li>
+<li>✖️ <b>Product except self (LC 238):</b> <code>left[i] * right[i]</code>, both EXCLUDE <code>i</code>.</li>
+</ul>
+<div class="box key"><b class="tag">📌</b> <b>Size n+1, sentinel 0 = empty range. For <code>i..j</code> the +1 always goes on <code>j</code>.</b> Prefix: <code>p[j+1] - p[i]</code>. Suffix: <code>s[i] - s[j+1]</code>.</div>
 
 <h2 id="t32">32 · 🌲 Unmemoized Recursion TC — 3-Question Framework</h2>
 <p><b>🎯</b> Ask these in order. Stop at the first one that fits.</p>
