@@ -909,6 +909,16 @@
         <div class="q">
           <div class="q-title">Traverse a graph where edges are categorized by relationship type</div>
           <div class="q-body">A normal graph gives each node one flat neighbour list: <code>adj[1] = [2, 5, 6]</code>. Here, edges are split by type, so each node maps to several neighbour lists, one per relationship type: <code>adj[1] = {"type1": [2], "type2": [5, 6], "type3": []}</code>. The candidate had to design that structure and write traversal logic over it, with heavy discussion on the data-type choices (Map vs. plain object, array vs. Set per type).</div>
+          <div class="note warn">⚠️ The post only says &ldquo;there was a lot of discussions about the datatype choices&rdquo;. The points below are what that discussion most likely covered (inferred, not quoted). Be ready to make each choice out loud and say why.</div>
+          <div class="note">🗣️ <strong>The likely data-type discussion</strong>
+            <ol class="learn-plain">
+              <li><strong>Outer container (node &rarr; its edges): array, plain object or Map?</strong> An array <code>adj[node]</code> is fastest and smallest, but only when nodes are numbered 0..n&minus;1. A plain object turns every key into a string (<code>adj[1]</code> and <code>adj["1"]</code> are the same key) and can clash with built-in names like <code>"constructor"</code>. A <code>Map</code> takes any key type, has <code>.size</code>, and keeps insertion order. Pick array for dense numeric ids, Map otherwise.</li>
+              <li><strong>Inner container (type &rarr; neighbours): object, Map or a fixed type list?</strong> If the relationship types are a small fixed set, write them as a TypeScript type, <code>type Rel = "friend" | "colleague" | "family"</code>, and use <code>Record&lt;Rel, number[]&gt;</code>. The compiler then catches a misspelled type. If new types can appear at runtime, use <code>Map&lt;string, number[]&gt;</code>.</li>
+              <li><strong>Neighbour list: array or Set?</strong> An array is cheapest to build and loop over, but allows duplicate edges and makes &ldquo;is X a neighbour?&rdquo; or &ldquo;remove this edge&rdquo; O(degree). A <code>Set</code> removes duplicates and makes those O(1), at more memory.</li>
+              <li><strong>Grouped by type vs one list of edge objects.</strong> Grouping (<code>adj[1].friend</code>) makes &ldquo;walk only friend edges&rdquo; touch only those edges. A flat list <code>adj[1] = [{ to: 2, type: "friend" }]</code> must filter every time, but is easier when edges gain more fields (weight, date). Say which queries matter most, then pick.</li>
+              <li><strong>Empty types:</strong> store <code>type3: []</code> for every node, or leave it out and read <code>?? []</code>? Leaving it out saves memory; the traversal below reads <code>?? []</code> so both work.</li>
+              <li><strong>Likely follow-ups:</strong> walk edges of a <em>set</em> of types (check <code>allowed.has(type)</code> in the loop); directed vs two-way edges (add the reverse edge, maybe with its own type, like parent/child); a path whose types must follow a pattern (BFS over <em>(node, step in the pattern)</em> pairs instead of nodes).</li>
+            </ol></div>
           <div class="match">
             <span class="match-tag none">No LeetCode equivalent</span>
           </div>
@@ -1016,13 +1026,56 @@
 
         <div class="q">
           <div class="q-title">Alice &amp; Bob string split &mdash; at most 2 cuts, equal a's and b's</div>
-          <div class="q-body">A string of only 'a' and 'b', with an even count of each. Make at most 2 cuts and give the resulting pieces to Alice and Bob so each person ends up with the same number of a's and the same number of b's. Return the cut index/indices.</div>
+          <div class="q-body">&ldquo;Given a string consisting of only 2 letters 'a' and 'b' such that the number of 'a' and number of 'b' is even in the string. You can make at most 2 cuts in the string and divide the sub-strings amongst Alice and Bob in such a way that the number of 'a' Alice has == number of 'a' Bob has and number of 'b' Alice has == number of 'b' Bob has. Return the index or indices of the cut(s).&rdquo;<br><br>
+            <strong>In plain words:</strong> cut the string in at most 2 places, so you get at most 3 pieces. Hand every piece to Alice or Bob. When you&rsquo;re done, both must hold the same number of a&rsquo;s and the same number of b&rsquo;s. Return where you cut.<br><br>
+            <strong>Example:</strong> <code>s = "aabb"</code> (2 a&rsquo;s, 2 b&rsquo;s). Cut at 1 and 3 &rarr; pieces <code>"a" | "ab" | "b"</code>. Alice gets the middle <code>"ab"</code>, Bob gets <code>"a" + "b"</code>. Each has 1 a and 1 b, so return <code>[1, 3]</code>. For <code>"abba"</code> one cut is enough: <code>"ab" | "ba"</code> &rarr; <code>[2]</code>.</div>
           <div class="match">
             <span class="match-tag none">No LeetCode match</span>
             <div class="match-links">
               <a href="https://leetcode.com/problems/partition-array-into-three-parts-with-equal-sum/" target="_blank" rel="noopener">LC 1013 &mdash; Partition Array Into Three Parts With Equal Sum (loosely related concept only)</a>
             </div>
           </div>
+
+          <div class="note">🔑 <strong>What the cuts really mean:</strong> 3 pieces are left | middle | right. Whatever you hand out, one person always ends up with one unbroken stretch of the string (the middle, or left+middle, or middle+right), and the other gets the rest. So the question becomes: <strong>find one substring <code>s[start..end)</code> that holds exactly half the a&rsquo;s and half the b&rsquo;s.</strong> Its start and end are the cuts (skip a cut at 0 or n).</div>
+          <div class="note">🪜 <strong>Step 1, the subset/substring way (say this first):</strong> try every <code>(start, end)</code>, like generating substrings, and memoize the a-count so <code>s[start..end)</code> reuses <code>s[start..end-1)</code> instead of recounting.<br>⏱️ TC: O(n&sup2;), n&sup2;/2 substrings, O(1) each thanks to the memo<br>📦 SC: O(n&sup2;) for the memo<br>🧪 Both versions checked against brute force on 4,800 random strings (every way to hand out the pieces): 0 mismatches.</div>
+          <div class="code-wrap">
+            <div class="code-label"><span>findCutsMemo.ts</span><button class="copy-btn" data-copy-target="code-e3-cuts-memo">Copy</button></div>
+            <pre id="code-e3-cuts-memo"><span class="kw">function</span> findCutsMemo(s: <span class="kw">string</span>): <span class="kw">number</span>[] {
+  <span class="kw">const</span> n = s.length;
+  <span class="kw">let</span> totalA = 0;
+  <span class="kw">for</span> (<span class="kw">const</span> ch of s) <span class="kw">if</span> (ch === <span class="str">'a'</span>) totalA++;
+  <span class="kw">const</span> totalB = n - totalA;
+
+  <span class="cmt">// memo["start,end"] = number of a's in s[start..end)</span>
+  <span class="kw">const</span> memo = <span class="kw">new</span> <span class="kw">Map</span>&lt;<span class="kw">string</span>, <span class="kw">number</span>&gt;();
+  <span class="kw">const</span> countA = (start: <span class="kw">number</span>, end: <span class="kw">number</span>): <span class="kw">number</span> =&gt; {
+    <span class="kw">if</span> (start === end) <span class="kw">return</span> 0;
+    <span class="kw">const</span> key = `${start},${end}`;
+    <span class="kw">if</span> (memo.has(key)) <span class="kw">return</span> memo.get(key)!;
+    <span class="cmt">// reuse the shorter substring s[start..end-1)</span>
+    <span class="kw">const</span> res = countA(start, end - 1) + (s[end - 1] === <span class="str">'a'</span> ? 1 : 0);
+    memo.set(key, res);
+    <span class="kw">return</span> res;
+  };
+
+  <span class="cmt">// try every substring s[start..end): it goes to one person, the rest to the other</span>
+  <span class="kw">for</span> (<span class="kw">let</span> start = 0; start &lt; n; start++) {
+    <span class="kw">for</span> (<span class="kw">let</span> end = start + 1; end &lt;= n; end++) {
+      <span class="kw">const</span> a = countA(start, end);
+      <span class="kw">const</span> b = end - start - a;
+      <span class="kw">if</span> (2 * a === totalA &amp;&amp; 2 * b === totalB) {
+        <span class="kw">const</span> cuts: <span class="kw">number</span>[] = [];
+        <span class="kw">if</span> (start &gt; 0) cuts.push(start);
+        <span class="kw">if</span> (end &lt; n) cuts.push(end);
+        <span class="kw">return</span> cuts;
+      }
+    }
+  }
+  <span class="kw">return</span> [];
+}</pre>
+          </div>
+
+          <div class="note">⚡ <strong>Step 2, when the interviewer asks for faster:</strong> the memo is really a prefix count, and you don&rsquo;t even need all substrings. Use the insight below to check only windows of length n/2.</div>
           <div class="note">💡 <strong>Key insight:</strong> with only 2 letters, any segment carrying exactly half the a's and half the b's must have length exactly <code>n/2</code>. That turns "find 2 cuts" into "slide a fixed-size window and check the a-count."</div>
 
           <div class="note">⏱️ TC: O(n), one sliding-window pass<br>📦 SC: O(1)</div>
