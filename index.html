@@ -2517,6 +2517,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
     ' aria-label="Open ' + escHtml(q.title) + ' on LeetCode"' +
     ' onclick="window.open(\'' + q.link + '\', \'_blank\')">↗</span>' +
     _subBtnHtml(lcKey) +
+    _animBtnHtml(lcKey) +
     '<span class="qa-div"></span>' +
     reviseCtrl +
     '<span class="qa-div"></span>' +
@@ -2707,7 +2708,7 @@ function _subsRowHtml(lcKey) {
     html += '<button class="btn-add-sub" onclick="showAddSubmission(\'' + lcKey + '\')">＋ Add link</button>'
   }
   html += '</div><div id="sub-add-' + lcKey + '"></div>'
-  return html
+  return html + _animRowHtml(lcKey)
 }
 
 function _refreshSubsRow(lcKey) {
@@ -2765,19 +2766,13 @@ function _subMenuOutside(e) {
   if (m && !m.contains(e.target) && !e.target.closest('.sub-open-btn')) _closeSubMenu()
 }
 function _subMenuKey(e) { if (e.key === 'Escape') _closeSubMenu() }
-function onSubBtnClick(lcKey, btn) {
-  const wasOpenFor = document.getElementById('sub-menu')?.dataset.key === lcKey
-  _closeSubMenu()
-  if (wasOpenFor) return
-  const subs = getSubmissions(lcKey)
-  if (subs.length === 1 && _isSafeSubmissionUrl(subs[0].url)) {
-    window.open(subs[0].url, '_blank', 'noopener,noreferrer')
-    return
-  }
+// Opens the shared popover under `btn`. `key` identifies what it is for so a second click on the
+// same button closes it; `render` fills it (it may be an add form or a list).
+function _openSubMenuAt(btn, key, render) {
   const menu = document.createElement('div')
-  menu.id = 'sub-menu'; menu.className = 'sub-menu'; menu.dataset.key = lcKey
+  menu.id = 'sub-menu'; menu.className = 'sub-menu'; menu.dataset.key = key
   document.body.appendChild(menu)
-  _renderSubMenu(lcKey, !subs.length)
+  render()
   const r = btn.getBoundingClientRect()
   const w = menu.offsetWidth
   menu.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - w - 8)) + 'px'
@@ -2788,6 +2783,17 @@ function onSubBtnClick(lcKey, btn) {
   window.addEventListener('scroll', _subMenuReflow, true)
   window.addEventListener('resize', _subMenuReflow)
   menu.querySelector('input')?.focus({ preventScroll: true })
+}
+function onSubBtnClick(lcKey, btn) {
+  const wasOpenFor = document.getElementById('sub-menu')?.dataset.key === lcKey
+  _closeSubMenu()
+  if (wasOpenFor) return
+  const subs = getSubmissions(lcKey)
+  if (subs.length === 1 && _isSafeSubmissionUrl(subs[0].url)) {
+    window.open(subs[0].url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  _openSubMenuAt(btn, lcKey, () => _renderSubMenu(lcKey, !subs.length))
 }
 function _renderSubMenu(lcKey, adding) {
   const menu = document.getElementById('sub-menu')
@@ -2864,6 +2870,82 @@ function removeSubmission(lcKey, i) {
   if (!confirm('Remove this submission link?')) return
   removeSubmissionAt(lcKey, i)
   _refreshSubsRow(lcKey)
+}
+
+// ─── PER-QUESTION ANIMATION LINK ──────────────────────────────────────────────
+// One Claude artifact per question (an animation for the hard ones), opened from the 🎬 button in
+// the row. Storage lives in data.js (ANIMATIONS_KEY). Same safety rule as submissions: https-only
+// and claude.ai artifact pages only, checked on save AND at render/open time.
+function _isSafeAnimationUrl(u) {
+  try {
+    const p = new URL(u)
+    return p.protocol === 'https:' && p.hostname === 'claude.ai' &&
+      (/^\/artifact\/[^/]+/.test(p.pathname) || /^\/public\/artifacts\/[^/]+/.test(p.pathname))
+  } catch { return false }
+}
+function _animBtnTitle(has) { return has ? 'Open the animation' : 'Add a link to an animation (Claude artifact)' }
+function _animBtnHtml(lcKey) {
+  const has = !!getAnimation(lcKey)
+  return '<span class="status-cycle-btn sub-open-btn ' + (has ? 'has-subs' : 'qa-ghost') + '"' +
+    ' data-anim-btn="' + lcKey + '" role="button" title="' + _animBtnTitle(has) + '" aria-label="' + _animBtnTitle(has) + '"' +
+    ' onclick="event.stopPropagation();onAnimBtnClick(\'' + lcKey + '\', this)">🎬</span>'
+}
+function _refreshAnimBtn(lcKey) {
+  document.querySelectorAll('.sub-open-btn[data-anim-btn="' + lcKey + '"]').forEach(btn => {
+    const has = !!getAnimation(lcKey)
+    btn.classList.toggle('has-subs', has)
+    btn.classList.toggle('qa-ghost', !has)
+    btn.title = _animBtnTitle(has)
+    btn.setAttribute('aria-label', _animBtnTitle(has))
+  })
+}
+function _animRowHtml(lcKey) {
+  const a = getAnimation(lcKey)
+  let html = '<p class="mt-3 mb-2"><span class="q-section-label">🎬 Animation</span></p><div class="subs-row">'
+  if (!a) return html + '<span class="text-faint" style="font-size:var(--fs-xs)">None yet. Use the 🎬 button on the row to add one.</span></div>'
+  const x = '<span class="sub-pill-x" title="Remove animation" onclick="event.preventDefault();event.stopPropagation();removeAnimation(\'' + lcKey + '\')">✕</span>'
+  if (!_isSafeAnimationUrl(a.url)) return html + '<span class="sub-pill sub-pill-blocked" title="Blocked — not a Claude artifact link">🚫 Animation' + x + '</span></div>'
+  return html + '<a class="sub-pill" href="' + escHtml(a.url) + '" target="_blank" rel="noopener noreferrer" title="' + escHtml(a.url) + '">▶ Open animation' + x + '</a></div>'
+}
+function onAnimBtnClick(lcKey, btn) {
+  const key = lcKey + ':anim'
+  const wasOpenFor = document.getElementById('sub-menu')?.dataset.key === key
+  _closeSubMenu()
+  if (wasOpenFor) return
+  const a = getAnimation(lcKey)
+  if (a && _isSafeAnimationUrl(a.url)) {
+    window.open(a.url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  _openSubMenuAt(btn, key, () => _renderAnimMenu(lcKey))
+}
+function _renderAnimMenu(lcKey) {
+  const menu = document.getElementById('sub-menu')
+  if (!menu) return
+  menu.innerHTML = '<div class="sub-menu-title">Paste the link to your animation (a claude.ai/artifact/… link)</div>' +
+    '<input class="sub-input" id="sub-menu-input" placeholder="https://claude.ai/artifact/…"' +
+    ' onkeydown="if(event.key===\'Enter\')saveAnimationFromMenu(\'' + lcKey + '\')">' +
+    '<div class="sub-err" id="sub-menu-err"></div>' +
+    '<div class="sub-menu-actions"><button class="btn-note-cancel" onclick="_closeSubMenu()">Cancel</button>' +
+    '<button class="btn-note-save" onclick="saveAnimationFromMenu(\'' + lcKey + '\')">Save</button></div>'
+}
+function saveAnimationFromMenu(lcKey) {
+  const url = (document.getElementById('sub-menu-input')?.value || '').trim()
+  const err = document.getElementById('sub-menu-err')
+  if (!_isSafeAnimationUrl(url)) {
+    if (err) err.textContent = "That doesn't look like a Claude artifact link — expected https://claude.ai/artifact/…"
+    return
+  }
+  setAnimation(lcKey, url)
+  _refreshSubsRow(lcKey)   // updates the card's list (if rendered); also re-syncs the 🔗 button
+  _refreshAnimBtn(lcKey)
+  _closeSubMenu()
+}
+function removeAnimation(lcKey) {
+  if (!confirm('Remove the animation link?')) return
+  removeAnimationAt(lcKey)
+  _refreshSubsRow(lcKey)
+  _refreshAnimBtn(lcKey)
 }
 
 // ─── TOPIC TRACKER (always visible) ─────────────────────────────────────────
@@ -4490,6 +4572,7 @@ const BACKUP_KEYS = [
   'dsa-notes-v1',
   'dsa-topic-notes-v1',
   'dsa-submissions-v1',
+  'dsa-animations-v1',
   'dsa-pins-v1',   // legacy: pins UI was removed, kept so old pins survive export/import/sync
   'dsa-solve-counts-v1',
   'dsa-seen-v1',
