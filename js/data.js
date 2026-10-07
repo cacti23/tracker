@@ -126,12 +126,34 @@ function removeSubmissionAt(lcKey, i) {
   saveSubmissions(all);
 }
 
+// Per-question animation link: a Claude artifact that animates a hard question. One per question
+// (saving again replaces it). shape: { [lcKey]: { url, addedAt } }
+const ANIMATIONS_KEY = 'dsa-animations-v1';
+let _animationsCache = null;
+function loadAnimations() {
+  if (_animationsCache) return _animationsCache;
+  try { _animationsCache = JSON.parse(localStorage.getItem(ANIMATIONS_KEY) || '{}'); } catch { _animationsCache = {}; }
+  return _animationsCache;
+}
+function getAnimation(lcKey) { return loadAnimations()[lcKey] || null; }
+function setAnimation(lcKey, url) {
+  const all = loadAnimations();
+  all[lcKey] = { url, addedAt: Date.now() };
+  _animationsCache = all; localStorage.setItem(ANIMATIONS_KEY, JSON.stringify(all));
+}
+function removeAnimationAt(lcKey) {
+  const all = loadAnimations();
+  delete all[lcKey];
+  _animationsCache = all; localStorage.setItem(ANIMATIONS_KEY, JSON.stringify(all));
+}
+
 // Invalidate caches on cross-tab updates
 window.addEventListener('storage', (e) => {
   if (e.key === PROGRESS_KEY) _progressCache = null;
   if (e.key === NOTES_KEY) _notesCache = null;
   if (e.key === TOPIC_NOTES_KEY) _topicNotesCache = null;
   if (e.key === SUBMISSIONS_KEY) _submissionsCache = null;
+  if (e.key === ANIMATIONS_KEY) _animationsCache = null;
 });
 
 // Per-question pins were removed (Graded/recall grading replaced them). The stored 'dsa-pins-v1'

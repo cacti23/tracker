@@ -77,7 +77,7 @@ function loadApp() {
   const sandbox = {
     localStorage, document, window,
     console, Math, Date, JSON, Object, Array, String, Number, Boolean,
-    Set, Map, Promise, RegExp, Error,
+    Set, Map, Promise, RegExp, Error, URL,
     fetch: () => Promise.reject(new Error('network disabled in tests')),
     alert: noop, confirm: () => true, prompt: () => null,
     setTimeout, clearTimeout, setInterval, clearInterval,
@@ -144,7 +144,7 @@ function loadAppWithDom() {
   const sandbox = {
     localStorage, document, window,
     console, Math, Date, JSON, Object, Array, String, Number, Boolean,
-    Set, Map, Promise, RegExp, Error, URLSearchParams,
+    Set, Map, Promise, RegExp, Error, URL, URLSearchParams,
     fetch: () => Promise.reject(new Error('network disabled in tests')),
     alert: noop, confirm: () => true, prompt: () => null,
     setTimeout, clearTimeout, setInterval, clearInterval,
