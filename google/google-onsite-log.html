@@ -347,6 +347,22 @@
   .reading-list .why{ font-size:13.5px; color:var(--text-dim); margin:6px 0; }
   .reading-list .why b{ color:var(--text); }
   .reading-list .links{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:13.5px; }
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:8px; margin:0 0 12px; }
+  .tile{ display:grid; gap:2px; text-align:left; font:inherit; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:9px 11px; cursor:pointer; }
+  .tile b{ font-size:13.5px; }
+  .tile span{ font-size:20px; font-weight:700; color:var(--accent); }
+  .tile small{ font-size:11.5px; color:var(--text-dim); }
+  .tile.on{ border-color:var(--accent); background:var(--accent-soft); }
+  .reading-list details.how{ margin:0 0 10px; font-size:13.5px; color:var(--text-dim); }
+  .reading-list details.how p{ margin:6px 0; }
+  #tier-select{ font:600 13px "IBM Plex Sans",sans-serif; background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:999px; padding:6px 10px; }
+  .reading-list .row{ list-style:none; }
+  .reading-list ul{ list-style:none; margin-left:0; }
+  .reading-list .sc{ font-size:12px; font-weight:700; color:var(--accent); }
+  .reading-list .rn{ font-size:12px; color:var(--text-dim); }
+  .reading-list .row .pill{ margin:0 4px; }
+  .reading-list .tag.kind-loop{ background:var(--good-soft,var(--accent-soft)); }
+  .reading-list .tag.kind-oa, .reading-list .tag.kind-repeat{ background:var(--warn-soft); color:var(--warn); border-color:transparent; }
   .rl-legend{ font-size:13.5px; color:var(--text-dim); margin-bottom:10px; }
 </style>
 
@@ -362,478 +378,388 @@
   </header>
 
   <section class="summary reading-list" id="tiers">
-    <h2>🏅 Experiences by tier</h2>
-    <p class="rl-legend"><strong>Tier legend</strong> (read top &rarr; bottom). Recency comes from the LeetCode post ID: under 3,000,000 = 2022 or older &middot; about 4,100,000 and up = late 2023+ &middot; 8,000,000 and up = 2026. Outcome = Offer / Reject / Selected / Downlevel / Hiring Freeze. ✅ added = full card below, 📖 to add = link saved, not read yet.</p>
+    <div class="tiles" role="group" aria-label="Tiers">
+      <button type="button" class="tile on" data-tier="all"><b>All</b><span>97</span><small>✅ 16 added · 📖 81 to add</small></button>
+      <button type="button" class="tile" data-tier="plat"><b>💎 Platinum</b><span>17</span><small>✅ 1 added · 📖 16 to add</small></button>
+      <button type="button" class="tile" data-tier="gold"><b>🥇 Gold</b><span>11</span><small>✅ 0 added · 📖 11 to add</small></button>
+      <button type="button" class="tile" data-tier="silver"><b>🥈 Silver</b><span>11</span><small>✅ 0 added · 📖 11 to add</small></button>
+      <button type="button" class="tile" data-tier="bronze"><b>🥉 Bronze</b><span>31</span><small>✅ 1 added · 📖 30 to add</small></button>
+      <button type="button" class="tile" data-tier="iron"><b>⚙️ Iron</b><span>27</span><small>✅ 14 added · 📖 13 to add</small></button>
+    </div>
+    <details class="how">
+      <summary>How tiers and ranks work</summary>
+      <p><strong>Tier</strong> (read top &rarr; bottom): 💎 Platinum = India + recent + full onsite + outcome known &middot; 🥇 Gold = same, outside India &middot; 🥈 Silver = recent + full, outcome not stated &middot; 🥉 Bronze = recent but partial (phone screen, one sharp question, online assessment) &middot; ⚙️ Iron = mid-2023 or older. Recent = Aug 2023 or later (LeetCode post ID about 4,100,000 and up).</p>
+      <p><strong>Rank inside a tier</strong> = score out of 100: India +20 &middot; recency up to +20 &middot; full onsite +20 (one sharp question +8) &middot; outcome known +10 &middot; L3/L4 +10 (level unknown +3) &middot; Taro bonus up to +20 for depth (more questions), a custom Google-style problem (no exact LeetCode match) and a question reported more than once. Posts not read yet get no Taro bonus. Recency for unread posts is estimated from the LeetCode post ID.</p>
+      <p>✅ added = full card below &middot; 📖 to add = link saved, not read yet &middot; 🎯 cards come from Taro, with the questions and the outcome. <strong>*</strong> on a level = corrected because the title says SWE II (L3) or SWE III (L4).</p>
+    </details>
     <div class="fbar" role="toolbar" aria-label="Filter">
       <button type="button" class="chip" data-f="all" aria-pressed="true">All</button>
       <button type="button" class="chip" data-f="L3" aria-pressed="false">L3</button>
       <button type="button" class="chip" data-f="L4" aria-pressed="false">L4</button>
       <button type="button" class="chip" data-f="L5" aria-pressed="false">L5</button>
       <button type="button" class="chip" data-f="todo" aria-pressed="false">Not done</button>
-      <button type="button" class="chip" data-f="added" aria-pressed="false">Added</button>
+      <select id="tier-select" aria-label="Tier">
+        <option value="all">All tiers</option>
+        <option value="plat">💎 Platinum</option>
+        <option value="gold">🥇 Gold</option>
+        <option value="silver">🥈 Silver</option>
+        <option value="bronze">🥉 Bronze</option>
+        <option value="iron">⚙️ Iron</option>
+      </select>
       <span class="fcount" id="fcount"></span>
     </div>
-      <details class="rl">
-        <summary><strong>💎 Platinum</strong> <span class="rl-n">11</span> <span class="rl-c">1 added &middot; 10 to add</span><br><span class="rl-d">India (Bangalore/Hyderabad) &middot; recent &middot; full onsite &middot; outcome known. Your exact situation, read first.</span></summary>
+      <details class="rl" data-tier="plat">
+        <summary><strong>💎 Platinum</strong> <span class="rl-n">17</span> <span class="rl-c">✅ 1 added &middot; 📖 16 to add</span><br><span class="rl-d">India · recent · full onsite · outcome known. Your exact situation, read first.</span></summary>
         <ul>
-          <li class="row" data-kind="added" data-lvl="L3"><span class="st done">✅ added</span> <a href="#exp-3">EXP 03</a> &middot; India L3 &mdash; Offer</li>
-          <li class="row" data-kind="todo" data-lvl=""><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4892806/" target="_blank" rel="noopener">4892806</a> &middot; SDE2 India Selected</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4999647/" target="_blank" rel="noopener">4999647</a> &middot; L4 Bangalore Offer</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5063892/" target="_blank" rel="noopener">5063892</a> &middot; L3 India Reject</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5115779/" target="_blank" rel="noopener">5115779</a> &middot; L4 Bangalore Downlevel</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5117851/" target="_blank" rel="noopener">5117851</a> &middot; L4 Hyderabad Reject</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5120651/" target="_blank" rel="noopener">5120651</a> &middot; L3 India Offer</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5741664/" target="_blank" rel="noopener">5741664</a> &middot; L4 Backend Blr/Hyd Reject</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5807042/" target="_blank" rel="noopener">5807042</a> &middot; L4 India Rejected</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6115417/" target="_blank" rel="noopener">6115417</a> &middot; L3 India Reject</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6181697/" target="_blank" rel="noopener">6181697</a> &middot; L3 Bangalore Offer</li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754"><details class="pick" data-id="swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754">
+            <summary><input type="checkbox" data-s="swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754" aria-label="Mark done"><span class="pk-t">SWE 3: LIS with one free change + game tie-breakers</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L4</span><span class="tag">2025-09</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 86</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Longest increasing subsequence, then with one value allowed to change</li><li>Two-player game: pick winner by max values, ties by lower values; then by counts</li><li>ML system design: harmful-message detection with LLMs, plus metrics</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Recent L4 loop. Candidate&rsquo;s own lesson: handle tie-break edge cases quickly.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/longest-increasing-subsequence/" target="_blank" rel="noopener">LC 300 LIS</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-india-august-19-2025-no-offer-positive-68c95953"><details class="pick" data-id="software-engineer-india-august-19-2025-no-offer-positive-68c95953">
+            <summary><input type="checkbox" data-s="software-engineer-india-august-19-2025-no-offer-positive-68c95953" aria-label="Mark done"><span class="pk-t">Gold chain split + FCFS job scheduler with priority</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L4</span><span class="tag">2025-08</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 86</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Remove one hook so the rest splits into two equal-weight halves</li><li>Print FCFS job execution order; follow-up adds priority among ready jobs (heap)</li><li>Googleyness: tight deadline, infeasible feature</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Clear worked examples with tables. The priority follow-up is a common Google move.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-august-19-2025-no-offer-positive-68c95953/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/find-pivot-index/" target="_blank" rel="noopener">LC 724 Pivot Index</a><a class="lc" href="https://leetcode.com/problems/single-threaded-cpu/" target="_blank" rel="noopener">LC 1834 Single-Threaded CPU</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a"><details class="pick" data-id="software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a">
+            <summary><input type="checkbox" data-s="software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a" aria-label="Mark done"><span class="pk-t">SDE II: travel-or-rest power puzzle</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L4</span><span class="tag">2024-12</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 86</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Easy warm-up: reverse a linked list</li><li>Each day travel (needs power &ge; req, costs 1) or rest (+1 power). Minimum total days</li><li>Trie with prefix search</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Shows the easy-to-hard ramp across rounds. Round 2 is a nice greedy/math problem.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/implement-trie-prefix-tree/" target="_blank" rel="noopener">LC 208 Trie</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a"><details class="pick" data-id="software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a">
+            <summary><input type="checkbox" data-s="software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a" aria-label="Mark done"><span class="pk-t">4 rounds, 8 questions, every one with a constraint-change follow-up</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L4</span><span class="tag">2024-09</span><span class="tag">Gurgaon</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 82</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Strings + binary search; strings + 3D DP</li><li>Strings + sliding window; map-based design with changed constraints</li><li>DSU grouping similar items (islands-style), bigger constraints</li><li>Matrix O(n²) to O(n); DP on squares</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Solved everything and still got no offer. Shows the bar is speed and clean follow-ups, not only correctness.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/accounts-merge/" target="_blank" rel="noopener">LC 721 Accounts Merge (loose match)</a><a class="lc" href="https://leetcode.com/problems/maximal-square/" target="_blank" rel="noopener">LC 221 Maximal Square</a></div>
+          </details></li>
+          <li class="row" data-kind="added" data-lvl="L3"><span class="st done">✅ added</span> <a href="#exp-3">EXP 03</a> &middot; India L3 &mdash; Offer <span class="pill offer">L3 offer</span> <span class="rn">4 rounds</span> <span class="sc" title="Rank score">★ 80</span> <span class="rev-cell" data-rev="exp-3"></span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6115417/" target="_blank" rel="noopener">6115417</a> &middot; L3 India Reject <span class="sc" title="Rank score">★ 80</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6181697/" target="_blank" rel="noopener">6181697</a> &middot; L3 Bangalore Offer <span class="sc" title="Rank score">★ 80</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5063892/" target="_blank" rel="noopener">5063892</a> &middot; L3 India Reject <span class="sc" title="Rank score">★ 76</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5115779/" target="_blank" rel="noopener">5115779</a> &middot; L4 Bangalore Downlevel <span class="sc" title="Rank score">★ 76</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5117851/" target="_blank" rel="noopener">5117851</a> &middot; L4 Hyderabad Reject <span class="sc" title="Rank score">★ 76</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5120651/" target="_blank" rel="noopener">5120651</a> &middot; L3 India Offer <span class="sc" title="Rank score">★ 76</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5741664/" target="_blank" rel="noopener">5741664</a> &middot; L4 Backend Blr/Hyd Reject <span class="sc" title="Rank score">★ 76</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5807042/" target="_blank" rel="noopener">5807042</a> &middot; L4 India Rejected <span class="sc" title="Rank score">★ 76</span></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217"><details class="pick" data-id="software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217">
+            <summary><input type="checkbox" data-s="software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217" aria-label="Mark done"><span class="pk-t">CPU scheduling: 1 processor, then 4 processors</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L3</span><span class="tag">2023-08</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 76</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Can a new process fit without moving scheduled ones? Binary search, then rewrite with lower_bound, then find bugs</li><li>Follow-up: 4 processors. Coordinate compression + range max / segment tree</li><li>Count ways to split N objects into K non-empty groups</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Shows the interviewer&rsquo;s style live: bug hunting in your own code and pushing for library calls.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/my-calendar-i/" target="_blank" rel="noopener">LC 729 My Calendar I</a><a class="lc" href="https://leetcode.com/problems/my-calendar-iii/" target="_blank" rel="noopener">LC 732 My Calendar III</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be"><details class="pick" data-id="software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be">
+            <summary><input type="checkbox" data-s="software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be" aria-label="Mark done"><span class="pk-t">SWE III round map: heap, trees, DP, DSU</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L4*</span><span class="tag">2023-12</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 76</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Phone: priority queue</li><li>Trees</li><li>Coin change variant + hard follow-up</li><li>Graph with disjoint set</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Thin on detail but a clean topic map of an L4 loop.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/coin-change-ii/" target="_blank" rel="noopener">LC 518 Coin Change II (loose match)</a></div>
+          </details></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4999647/" target="_blank" rel="noopener">4999647</a> &middot; L4 Bangalore Offer <span class="sc" title="Rank score">★ 70</span></li>
+          <li class="row" data-kind="todo" data-lvl=""><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4892806/" target="_blank" rel="noopener">4892806</a> &middot; SDE2 India Selected <span class="sc" title="Rank score">★ 63</span></li>
         </ul>
       </details>
-      <details class="rl">
-        <summary><strong>🥇 Gold</strong> <span class="rl-n">10</span> <span class="rl-c">0 added &middot; 10 to add</span><br><span class="rl-d">recent &middot; full onsite &middot; outcome known &middot; outside India or location not stated. Just as reliable.</span></summary>
+      <details class="rl" data-tier="gold">
+        <summary><strong>🥇 Gold</strong> <span class="rl-n">11</span> <span class="rl-c">✅ 0 added &middot; 📖 11 to add</span><br><span class="rl-d">Recent · full onsite · outcome known · outside India. Just as reliable.</span></summary>
         <ul>
-          <li class="row" data-kind="todo" data-lvl="L3 L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4325990/" target="_blank" rel="noopener">4325990</a> &middot; L4 → L3 Downlevel</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4630516/" target="_blank" rel="noopener">4630516</a> &middot; L4 Seattle Hiring Freeze</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4788905/" target="_blank" rel="noopener">4788905</a> &middot; SDE-2 (L3) Reject</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5160156/" target="_blank" rel="noopener">5160156</a> &middot; L4 Apr '24 Offer</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5387760/" target="_blank" rel="noopener">5387760</a> &middot; L4 Offer</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5362987/" target="_blank" rel="noopener">5362987</a> &middot; L4 Selected</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5482171/" target="_blank" rel="noopener">5482171</a> &middot; L4 Rejected</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5484676/" target="_blank" rel="noopener">5484676</a> &middot; L3 Rejected</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5979952/" target="_blank" rel="noopener">5979952</a> &middot; L4 London Offer</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6084576/" target="_blank" rel="noopener">6084576</a> &middot; L3 Nov '24 Offer</li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a"><details class="pick" data-id="software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a">
+            <summary><input type="checkbox" data-s="software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a" aria-label="Mark done"><span class="pk-t">Full onsite with 4 escalating follow-ups in one round</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L4</span><span class="tag">2024-08</span><span class="tag">San Francisco</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 68</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Phone screen: DP + primes, follow-up needs caching earlier results</li><li>Coding 1: two-pointer array, then 4 follow-ups (sliding window, DP); the last combines earlier answers</li><li>Coding 2: points on a 2D plane, BFS + topological sort, DP follow-up</li><li>Design round: custom data-structure design with linked lists, then a modified version</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Best picture of an L4 loop. Questions are open-ended on purpose; asking clarifying questions is part of the score.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6084576/" target="_blank" rel="noopener">6084576</a> &middot; L3 Nov '24 Offer <span class="sc" title="Rank score">★ 60</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5160156/" target="_blank" rel="noopener">5160156</a> &middot; L4 Apr '24 Offer <span class="sc" title="Rank score">★ 56</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5387760/" target="_blank" rel="noopener">5387760</a> &middot; L4 Offer <span class="sc" title="Rank score">★ 56</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5362987/" target="_blank" rel="noopener">5362987</a> &middot; L4 Selected <span class="sc" title="Rank score">★ 56</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5482171/" target="_blank" rel="noopener">5482171</a> &middot; L4 Rejected <span class="sc" title="Rank score">★ 56</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5484676/" target="_blank" rel="noopener">5484676</a> &middot; L3 Rejected <span class="sc" title="Rank score">★ 56</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5979952/" target="_blank" rel="noopener">5979952</a> &middot; L4 London Offer <span class="sc" title="Rank score">★ 56</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3 L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4325990/" target="_blank" rel="noopener">4325990</a> &middot; L4 → L3 Downlevel <span class="sc" title="Rank score">★ 50</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4630516/" target="_blank" rel="noopener">4630516</a> &middot; L4 Seattle Hiring Freeze <span class="sc" title="Rank score">★ 50</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4788905/" target="_blank" rel="noopener">4788905</a> &middot; SDE-2 (L3) Reject <span class="sc" title="Rank score">★ 50</span></li>
         </ul>
       </details>
-      <details class="rl">
-        <summary><strong>🥈 Silver</strong> <span class="rl-n">11</span> <span class="rl-c">0 added &middot; 11 to add</span><br><span class="rl-d">recent &middot; full experience &middot; outcome not stated (any location). You can&rsquo;t tell what worked.</span></summary>
+      <details class="rl" data-tier="silver">
+        <summary><strong>🥈 Silver</strong> <span class="rl-n">11</span> <span class="rl-c">✅ 0 added &middot; 📖 11 to add</span><br><span class="rl-d">Recent · full experience · outcome not stated. You can’t tell what worked.</span></summary>
         <ul>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4544743/" target="_blank" rel="noopener">4544743</a> &middot; L3 India</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4778433/" target="_blank" rel="noopener">4778433</a> &middot; SDE-2 (L3) India</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4854843/" target="_blank" rel="noopener">4854843</a> &middot; L3 Bangalore</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5193138/" target="_blank" rel="noopener">5193138</a> &middot; L3 Phone + Onsite</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5231412/" target="_blank" rel="noopener">5231412</a> &middot; L3 Bangalore (2nd)</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5242146/" target="_blank" rel="noopener">5242146</a> &middot; L4 May '24</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5272684/" target="_blank" rel="noopener">5272684</a> &middot; L3 Onsite</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5720580/" target="_blank" rel="noopener">5720580</a> &middot; L3 Blr/Hyd Aug '24</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6033289/" target="_blank" rel="noopener">6033289</a> &middot; L3 Oct '24</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6084864/" target="_blank" rel="noopener">6084864</a> &middot; L4 Experience</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6251197/" target="_blank" rel="noopener">6251197</a> &middot; L4 Experience (Latest)</li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5231412/" target="_blank" rel="noopener">5231412</a> &middot; L3 Bangalore (2nd) <span class="sc" title="Rank score">★ 66</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5720580/" target="_blank" rel="noopener">5720580</a> &middot; L3 Blr/Hyd Aug '24 <span class="sc" title="Rank score">★ 66</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4544743/" target="_blank" rel="noopener">4544743</a> &middot; L3 India <span class="sc" title="Rank score">★ 60</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4778433/" target="_blank" rel="noopener">4778433</a> &middot; SDE-2 (L3) India <span class="sc" title="Rank score">★ 60</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4854843/" target="_blank" rel="noopener">4854843</a> &middot; L3 Bangalore <span class="sc" title="Rank score">★ 60</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6033289/" target="_blank" rel="noopener">6033289</a> &middot; L3 Oct '24 <span class="sc" title="Rank score">★ 50</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6084864/" target="_blank" rel="noopener">6084864</a> &middot; L4 Experience <span class="sc" title="Rank score">★ 50</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6251197/" target="_blank" rel="noopener">6251197</a> &middot; L4 Experience (Latest) <span class="sc" title="Rank score">★ 50</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5193138/" target="_blank" rel="noopener">5193138</a> &middot; L3 Phone + Onsite <span class="sc" title="Rank score">★ 46</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5242146/" target="_blank" rel="noopener">5242146</a> &middot; L4 May '24 <span class="sc" title="Rank score">★ 46</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5272684/" target="_blank" rel="noopener">5272684</a> &middot; L3 Onsite <span class="sc" title="Rank score">★ 46</span></li>
         </ul>
       </details>
-      <details class="rl">
-        <summary><strong>🥉 Bronze</strong> <span class="rl-n">8</span> <span class="rl-c">1 added &middot; 7 to add</span><br><span class="rl-d">recent but partial (phone screen only, &ldquo;chances?&rdquo; post, single question, level unclear). Little to learn.</span></summary>
+      <details class="rl" data-tier="bronze">
+        <summary><strong>🥉 Bronze</strong> <span class="rl-n">31</span> <span class="rl-c">✅ 1 added &middot; 📖 30 to add</span><br><span class="rl-d">Recent but partial: phone screen, one sharp question, “chances?” post, online assessment.</span></summary>
         <ul>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-4">EXP 04</a> &middot; L4 India &mdash; Screening</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4151431/" target="_blank" rel="noopener">4151431</a> &middot; L4 Phone 50/50</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5220080/" target="_blank" rel="noopener">5220080</a> &middot; Chances L4 Bangalore</li>
-          <li class="row" data-kind="todo" data-lvl=""><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5474046/" target="_blank" rel="noopener">5474046</a> &middot; SWE Core</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5499901/" target="_blank" rel="noopener">5499901</a> &middot; L3 Chances</li>
-          <li class="row" data-kind="todo" data-lvl=""><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5576685/" target="_blank" rel="noopener">5576685</a> &middot; SWE Bangalore</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5660936/" target="_blank" rel="noopener">5660936</a> &middot; L4 Bangalore Phonescreen</li>
-          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6138690/" target="_blank" rel="noopener">6138690</a> &middot; L3 Onsite Question</li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e"><details class="pick" data-id="software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e">
+            <summary><input type="checkbox" data-s="software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e" aria-label="Mark done"><span class="pk-t">Find all 1-bits using only query(L, R)</span><span class="pk-m"><span class="tag kind-repeat">Asked more than once</span><span class="tag lvl">L4</span><span class="tag">2024-04</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 80</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Sparse bit array behind an API that says if a range has any 1. Find every 1 with few calls</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Also asked to a 2025 Seattle new grad (link below). Divide and conquer on ranges.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-new-grad-seattle-wa-august-17-2025-no-offer-positive-27142ea4/" target="_blank" rel="noopener">Same question, Seattle 2025 &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-india-october-26-2025-no-offer-positive-c1fa6567"><details class="pick" data-id="software-engineer-india-october-26-2025-no-offer-positive-c1fa6567">
+            <summary><input type="checkbox" data-s="software-engineer-india-october-26-2025-no-offer-positive-c1fa6567" aria-label="Mark done"><span class="pk-t">Cut an A/B string so both halves balance</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2025-10</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 76</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Cut at one or two points so A and B frequencies match between two parts</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Very recent. Same kind of question as EXP 03 Alice &amp; Bob in this log.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-october-26-2025-no-offer-positive-c1fa6567/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde"><details class="pick" data-id="software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde">
+            <summary><input type="checkbox" data-s="software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde" aria-label="Mark done"><span class="pk-t">Fair log sampling across files</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2024-06</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 72</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Return at most max_log_messages logs, shared fairly across sources</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Real-world fairness problem (water-filling / binary search on the cap).</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c"><details class="pick" data-id="software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c">
+            <summary><input type="checkbox" data-s="software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c" aria-label="Mark done"><span class="pk-t">Largest concatenated number + return the index order</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3*</span><span class="tag">2025-09</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 72</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Largest number from digit strings, plus the index order</li><li>Design a simple game matchmaking system</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Classic with a twist, plus a light design round.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/largest-number/" target="_blank" rel="noopener">LC 179 Largest Number</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-india-july-1-2024-no-offer-positive-695bdf8f"><details class="pick" data-id="software-engineer-india-july-1-2024-no-offer-positive-695bdf8f">
+            <summary><input type="checkbox" data-s="software-engineer-india-july-1-2024-no-offer-positive-695bdf8f" aria-label="Mark done"><span class="pk-t">Place new network centres to minimise max distance</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2024-07</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 72</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Dijkstra + minimise the worst-case distance to old centres</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Binary search on the answer over a graph.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-july-1-2024-no-offer-positive-695bdf8f/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4"><details class="pick" data-id="software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4">
+            <summary><input type="checkbox" data-s="software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4" aria-label="Mark done"><span class="pk-t">Similar movies, top N by rating</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2024-10</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 72</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Similarity is transitive; return N highest-rated movies similar to a given one</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Graph traversal + heap. Common Google combo.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474"><details class="pick" data-id="software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474">
+            <summary><input type="checkbox" data-s="software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474" aria-label="Mark done"><span class="pk-t">Probabilistic map: random get-and-delete</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2025-06</span><span class="tag">Bengaluru</span><span class="tag off">Offer</span><span class="sc" title="Rank score">★ 70</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> Offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Key to list of values; get returns a random value and removes it</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Got the offer. O(1) random removal trick.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/insert-delete-getrandom-o1-duplicates-allowed/" target="_blank" rel="noopener">LC 381 GetRandom Duplicates</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31"><details class="pick" data-id="software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31">
+            <summary><input type="checkbox" data-s="software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31" aria-label="Mark done"><span class="pk-t">Alice and Bob share edges to reach D</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2025-08</span><span class="tag">India</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 70</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Shared edges count once; minimise total edges used</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Three BFS runs and pick the meeting node.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/minimum-weighted-subgraph-with-the-required-paths/" target="_blank" rel="noopener">LC 2203 Min Weighted Subgraph</a></div>
+          </details></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-4">EXP 04</a> &middot; L4 India &mdash; Screening <span class="pill reject">Rejected at screening</span> <span class="rn">3 rounds</span> <span class="sc" title="Rank score">★ 68</span> <span class="rev-cell" data-rev="exp-4"></span></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa"><details class="pick" data-id="software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa">
+            <summary><input type="checkbox" data-s="software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa" aria-label="Mark done"><span class="pk-t">Largest K-digit subsequence + zero-array range queries</span><span class="pk-m"><span class="tag kind-oa">Online assessment</span><span class="tag lvl">L3</span><span class="tag">2024-08</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 68</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Pick K digits in order to form the largest number</li><li>Can range decrements make the array all zero?</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Monotonic stack + difference array.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/remove-k-digits/" target="_blank" rel="noopener">LC 402 Remove K Digits (loose match)</a><a class="lc" href="https://leetcode.com/problems/zero-array-transformation-i/" target="_blank" rel="noopener">LC 3355 Zero Array I</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="" data-id="software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c"><details class="pick" data-id="software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c">
+            <summary><input type="checkbox" data-s="software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c" aria-label="Mark done"><span class="pk-t">Routers passing a signal on a plane</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag">level n/a</span><span class="tag">2024-06</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 65</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>K routers with coordinates and range; can the message reach the target?</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Long-running Google classic: build the implicit graph, then BFS.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c"><details class="pick" data-id="software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c">
+            <summary><input type="checkbox" data-s="software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c" aria-label="Mark done"><span class="pk-t">Longest common suffix, many queries</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2023-12</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 60</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Static list, q queries: which string shares the longest suffix with w?</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Reversed trie. Clean Google-style query problem.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/longest-common-suffix-queries/" target="_blank" rel="noopener">LC 3093 LC Suffix Queries</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b"><details class="pick" data-id="software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b">
+            <summary><input type="checkbox" data-s="software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b" aria-label="Mark done"><span class="pk-t">Grid planting + flowers visible past walls</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2025-04</span><span class="tag">United States</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 58</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Plant k vegetable types on a grid so each type stays clustered</li><li>Count flowers visible in a grid where walls block the view</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Two custom grid problems from one recent loop.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-california-md-august-17-2025-no-offer-positive-60239a89"><details class="pick" data-id="software-engineer-california-md-august-17-2025-no-offer-positive-60239a89">
+            <summary><input type="checkbox" data-s="software-engineer-california-md-august-17-2025-no-offer-positive-60239a89" aria-label="Mark done"><span class="pk-t">Restaurant waitlist with O(1) add / remove</span><span class="pk-m"><span class="tag kind-repeat">Asked more than once</span><span class="tag lvl">L4</span><span class="tag">2025-08</span><span class="tag">United States</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 58</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Guests join, leave from anywhere, get seated; every op O(1)</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Also asked in 2023. Doubly linked list + hash map, same core as LRU.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-california-md-august-17-2025-no-offer-positive-60239a89/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-states-november-2-2023-no-offer-positive-cabcbf4e/" target="_blank" rel="noopener">Same idea, 2023 &nearr;</a><a class="lc" href="https://leetcode.com/problems/lru-cache/" target="_blank" rel="noopener">LC 146 LRU Cache</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L5" data-id="senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd"><details class="pick" data-id="senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd">
+            <summary><input type="checkbox" data-s="senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd" aria-label="Mark done"><span class="pk-t">Stock price feed with corrections</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L5</span><span class="tag">2024-05</span><span class="tag">Pune</span><span class="tag off">Declined offer</span><span class="sc" title="Rank score">★ 56</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> Declined offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Track current / max / min price where past records can be corrected</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Classic Google OOD + heap/sorted-map problem.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/stock-price-fluctuation/" target="_blank" rel="noopener">LC 2034 Stock Price Fluctuation</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0"><details class="pick" data-id="software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0">
+            <summary><input type="checkbox" data-s="software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0" aria-label="Mark done"><span class="pk-t">Stream: emit groups of 3 within distance D</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2024-11</span><span class="tag">Waterloo</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 56</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Floats arrive one at a time; output any 3 within D of each other</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Known Google phone-screen question.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5220080/" target="_blank" rel="noopener">5220080</a> &middot; Chances L4 Bangalore <span class="sc" title="Rank score">★ 54</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5660936/" target="_blank" rel="noopener">5660936</a> &middot; L4 Bangalore Phonescreen <span class="sc" title="Rank score">★ 54</span></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4"><details class="pick" data-id="software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4">
+            <summary><input type="checkbox" data-s="software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4" aria-label="Mark done"><span class="pk-t">Moving average in O(1), then drop top-5 outliers</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3*</span><span class="tag">2025-09</span><span class="tag">United States</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 52</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Fixed-capacity stream mean in O(1)</li><li>Follow-up: exclude the 5 largest values from the mean</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Phone screen. The follow-up is where the level is decided.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/moving-average-from-data-stream/" target="_blank" rel="noopener">LC 346 Moving Average</a><a class="lc" href="https://leetcode.com/problems/finding-mk-average/" target="_blank" rel="noopener">LC 1825 MK Average</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed"><details class="pick" data-id="software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed">
+            <summary><input type="checkbox" data-s="software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed" aria-label="Mark done"><span class="pk-t">Code editor methods (open-ended)</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2024-12</span><span class="tag">United States</span><span class="tag off">Declined offer</span><span class="sc" title="Rank score">★ 52</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> Declined offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>BFS and sliding window mediums</li><li>Implement methods for a proposed code editor</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Third round is the interesting one.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/design-a-text-editor/" target="_blank" rel="noopener">LC 2296 Design Text Editor</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a"><details class="pick" data-id="software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a">
+            <summary><input type="checkbox" data-s="software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a" aria-label="Mark done"><span class="pk-t">Rebuild a password from 3 subsequences</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2024-11</span><span class="tag">Mountain View</span><span class="tag off">Declined offer</span><span class="sc" title="Rank score">★ 50</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> Declined offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>No repeated chars; rebuild the unique password or report ambiguity</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Topological sort with uniqueness check.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/sequence-reconstruction/" target="_blank" rel="noopener">LC 444 Sequence Reconstruction</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f"><details class="pick" data-id="software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f">
+            <summary><input type="checkbox" data-s="software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f" aria-label="Mark done"><span class="pk-t">Does any square exist in a point set?</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L4</span><span class="tag">2024-11</span><span class="tag">Waterloo</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 50</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Given (x,y) points, check whether any 4 form a square</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Hashing points + geometry. Good follow-up: count them.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/valid-square/" target="_blank" rel="noopener">LC 593 Valid Square</a><a class="lc" href="https://leetcode.com/problems/detect-squares/" target="_blank" rel="noopener">LC 2013 Detect Squares</a></div>
+          </details></li>
+          <li class="row" data-kind="todo" data-lvl=""><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5576685/" target="_blank" rel="noopener">5576685</a> &middot; SWE Bangalore <span class="sc" title="Rank score">★ 47</span></li>
+          <li class="row" data-kind="pick" data-lvl="L5" data-id="senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c"><details class="pick" data-id="senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c">
+            <summary><input type="checkbox" data-s="senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c" aria-label="Mark done"><span class="pk-t">Convert edge list to nested children tree</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L5</span><span class="tag">2025-01</span><span class="tag">San Francisco</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 46</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Nodes + edges in any order, build a root object with children arrays</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Tests clarifying questions about input order and roots.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4"><details class="pick" data-id="software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4">
+            <summary><input type="checkbox" data-s="software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4" aria-label="Mark done"><span class="pk-t">Camera angle that sees the most trees</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3*</span><span class="tag">2024-10</span><span class="tag">Tel Aviv</span><span class="tag off">Offer</span><span class="sc" title="Rank score">★ 46</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> Offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Points on a plane, camera with field-of-view &alpha;: which direction maximises trees in view?</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Got the offer. Angular sort + sliding window.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/maximum-number-of-visible-points/" target="_blank" rel="noopener">LC 1610 Visible Points</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L5" data-id="senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56"><details class="pick" data-id="senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56">
+            <summary><input type="checkbox" data-s="senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56" aria-label="Mark done"><span class="pk-t">Next-token predictor with train() and predict()</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L5</span><span class="tag">2025-01</span><span class="tag">S&atilde;o Paulo</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 46</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Train on token sequences, predict the most likely next token</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Bigram counting, very current topic. Write-up is in Portuguese.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65"><details class="pick" data-id="software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65">
+            <summary><input type="checkbox" data-s="software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65" aria-label="Mark done"><span class="pk-t">Numbers that change when rotated 180&deg;</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L4</span><span class="tag">2024-02</span><span class="tag">Mountain View</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 40</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Confusing numbers: count / generate valid rotations</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Known Google-tagged problem.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/confusing-number-ii/" target="_blank" rel="noopener">LC 1088 Confusing Number II</a></div>
+          </details></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/6138690/" target="_blank" rel="noopener">6138690</a> &middot; L3 Onsite Question <span class="sc" title="Rank score">★ 38</span></li>
+          <li class="row" data-kind="todo" data-lvl="L3"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5499901/" target="_blank" rel="noopener">5499901</a> &middot; L3 Chances <span class="sc" title="Rank score">★ 34</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/4151431/" target="_blank" rel="noopener">4151431</a> &middot; L4 Phone 50/50 <span class="sc" title="Rank score">★ 28</span></li>
+          <li class="row" data-kind="todo" data-lvl=""><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/5474046/" target="_blank" rel="noopener">5474046</a> &middot; SWE Core <span class="sc" title="Rank score">★ 27</span></li>
         </ul>
       </details>
-      <details class="rl">
-        <summary><strong>⚙️ Iron</strong> <span class="rl-n">19</span> <span class="rl-c">14 added &middot; 5 to add</span><br><span class="rl-d">2022 or older. Useful for question patterns only.</span></summary>
+      <details class="rl" data-tier="iron">
+        <summary><strong>⚙️ Iron</strong> <span class="rl-n">27</span> <span class="rl-c">✅ 14 added &middot; 📖 13 to add</span><br><span class="rl-d">Mid-2023 or older. Useful for question patterns only.</span></summary>
         <ul>
-          <li class="row" data-kind="added" data-lvl="L3 L4"><span class="st done">✅ added</span> <a href="#exp-1">EXP 01</a> &middot; L3/L4 &mdash; L3 passed</li>
-          <li class="row" data-kind="added" data-lvl="L3 L4"><span class="st done">✅ added</span> <a href="#exp-2">EXP 02</a> &middot; L3/L4 &mdash; Bangalore</li>
-          <li class="row" data-kind="added" data-lvl="L3"><span class="st done">✅ added</span> <a href="#exp-5">EXP 05</a> &middot; L3 Munich</li>
-          <li class="row" data-kind="added" data-lvl="L3 L4"><span class="st done">✅ added</span> <a href="#exp-6">EXP 06</a> &middot; L4 &rarr; L3 Bangalore &mdash; Offer</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-7">EXP 07</a> &middot; L4 India &mdash; onsite</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-8">EXP 08</a> &middot; L4 India &mdash; backend</li>
-          <li class="row" data-kind="added" data-lvl="L3"><span class="st done">✅ added</span> <a href="#exp-9">EXP 09</a> &middot; L3 Bangalore &mdash; 2022</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-10">EXP 10</a> &middot; L4 San Bruno</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-11">EXP 11</a> &middot; L4 India</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-12">EXP 12</a> &middot; L4 Bangalore &mdash; Offer</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-13">EXP 13</a> &middot; L4 California</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-14">EXP 14</a> &middot; L4 Warsaw</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-15">EXP 15</a> &middot; L4 India &mdash; 2022</li>
-          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-16">EXP 16</a> &middot; L4 India</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/1900084/" target="_blank" rel="noopener">1900084</a> &middot; L4 Bangalore Reject</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2543199/" target="_blank" rel="noopener">2543199</a> &middot; L4 Experience</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2626025/" target="_blank" rel="noopener">2626025</a> &middot; L4 Bad Experience</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2774774/" target="_blank" rel="noopener">2774774</a> &middot; L4 Oct '22</li>
-          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2785652/" target="_blank" rel="noopener">2785652</a> &middot; L4 Bangalore Oct '22 Offer</li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a"><details class="pick" data-id="software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a">
+            <summary><input type="checkbox" data-s="software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a" aria-label="Mark done"><span class="pk-t">SWE II Cloud: 3 custom coding rounds</span><span class="pk-m"><span class="tag kind-loop">Full loop</span><span class="tag lvl">L3*</span><span class="tag">2022-04</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 68</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Find strings in list B that are an anagram of a list-A string plus one extra letter</li><li>Grid paths bottom-left to bottom-right moving right / up-right / down-right</li><li>Group Android versions by the exact set of APKs that support them</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Three original problems, each a twist on a known pattern. Good test of spotting the base pattern fast.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/find-the-difference/" target="_blank" rel="noopener">LC 389 Find the Difference</a><a class="lc" href="https://leetcode.com/problems/unique-paths/" target="_blank" rel="noopener">LC 62 Unique Paths (loose match)</a></div>
+          </details></li>
+          <li class="row" data-kind="added" data-lvl="L3 L4"><span class="st done">✅ added</span> <a href="#exp-2">EXP 02</a> &middot; L3/L4 &mdash; Bangalore <span class="pill offer">L3 offer</span> <span class="rn">5 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-2"></span></li>
+          <li class="row" data-kind="added" data-lvl="L3 L4"><span class="st done">✅ added</span> <a href="#exp-6">EXP 06</a> &middot; L4 &rarr; L3 Bangalore &mdash; Offer <span class="pill mixed">L4 → L3 offer</span> <span class="rn">7 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-6"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-7">EXP 07</a> &middot; L4 India &mdash; onsite <span class="pill mixed">HC waitlist</span> <span class="rn">5 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-7"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-8">EXP 08</a> &middot; L4 India &mdash; backend <span class="pill reject">Rejected</span> <span class="rn">4 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-8"></span></li>
+          <li class="row" data-kind="added" data-lvl="L3"><span class="st done">✅ added</span> <a href="#exp-9">EXP 09</a> &middot; L3 Bangalore &mdash; 2022 <span class="pill reject">Rejected</span> <span class="rn">1 screen + 4 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-9"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-11">EXP 11</a> &middot; L4 India <span class="pill mixed">Pending (all positive)</span> <span class="rn">4 rounds + Googlyness</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-11"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-12">EXP 12</a> &middot; L4 Bangalore &mdash; Offer <span class="pill offer">Offer</span> <span class="rn">4 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-12"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-15">EXP 15</a> &middot; L4 India &mdash; 2022 <span class="pill mixed">Withdrew</span> <span class="rn">1 screen + 3 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-15"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-16">EXP 16</a> &middot; L4 India <span class="pill reject">Rejected</span> <span class="rn">4 rounds</span> <span class="sc" title="Rank score">★ 62</span> <span class="rev-cell" data-rev="exp-16"></span></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036"><details class="pick" data-id="software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036">
+            <summary><input type="checkbox" data-s="software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036" aria-label="Mark done"><span class="pk-t">Partition digits: even start, odd end, K parts</span><span class="pk-m"><span class="tag kind-oa">Online assessment</span><span class="tag lvl">L3</span><span class="tag">2023-01</span><span class="tag">Bengaluru</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 62</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Count ways to split S into K parts of length &ge; M, each even-start / odd-end, mod 1e9+7</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Reported 3 times (2023&ndash;2024). Partition DP with prefix sums.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-september-7-2023-accepted-offer-neutral-1a912d24/" target="_blank" rel="noopener">Same, Sep 2023 (offer) &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-india-february-11-2024-no-offer-positive-a0846400/" target="_blank" rel="noopener">Same, Feb 2024 &nearr;</a><a class="lc" href="https://leetcode.com/problems/number-of-beautiful-partitions/" target="_blank" rel="noopener">LC 2478 Beautiful Partitions</a></div>
+          </details></li>
+          <li class="row" data-kind="added" data-lvl="L3 L4"><span class="st done">✅ added</span> <a href="#exp-1">EXP 01</a> &middot; L3/L4 &mdash; L3 passed <span class="pill mixed">L4 → L3 downlevel</span> <span class="rn">4 rounds</span> <span class="sc" title="Rank score">★ 42</span> <span class="rev-cell" data-rev="exp-1"></span></li>
+          <li class="row" data-kind="added" data-lvl="L3"><span class="st done">✅ added</span> <a href="#exp-5">EXP 05</a> &middot; L3 Munich <span class="pill reject">Rejected</span> <span class="rn">6 rounds</span> <span class="sc" title="Rank score">★ 42</span> <span class="rev-cell" data-rev="exp-5"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-10">EXP 10</a> &middot; L4 San Bruno <span class="pill reject">Rejected</span> <span class="rn">5 rounds</span> <span class="sc" title="Rank score">★ 42</span> <span class="rev-cell" data-rev="exp-10"></span></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-13">EXP 13</a> &middot; L4 California <span class="pill reject">Rejected</span> <span class="rn">4 rounds</span> <span class="sc" title="Rank score">★ 42</span> <span class="rev-cell" data-rev="exp-13"></span></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75"><details class="pick" data-id="software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75">
+            <summary><input type="checkbox" data-s="software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75" aria-label="Mark done"><span class="pk-t">Drop duplicate logs inside a time window</span><span class="pk-m"><span class="tag kind-repeat">Asked more than once</span><span class="tag lvl">L4</span><span class="tag">2022-05</span><span class="tag">United States</span><span class="tag off">Declined offer</span><span class="sc" title="Rank score">★ 42</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> Declined offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>Robot logs repeat; print once per 30-second window</li><li>Car control command simulation</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Rate-limiter pattern shows up in several reports.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/logger-rate-limiter/" target="_blank" rel="noopener">LC 359 Logger Rate Limiter</a></div>
+          </details></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/1900084/" target="_blank" rel="noopener">1900084</a> &middot; L4 Bangalore Reject <span class="sc" title="Rank score">★ 40</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2785652/" target="_blank" rel="noopener">2785652</a> &middot; L4 Bangalore Oct '22 Offer <span class="sc" title="Rank score">★ 40</span></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749"><details class="pick" data-id="software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749">
+            <summary><input type="checkbox" data-s="software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749" aria-label="Mark done"><span class="pk-t">Generate a dino-game level with adjustable difficulty</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2023-03</span><span class="tag">UK</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 40</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Produce an obstacle array; follow-up: write a verifier that it&rsquo;s playable</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Very Google: open design + code + verification.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L4" data-id="software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96"><details class="pick" data-id="software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96">
+            <summary><input type="checkbox" data-s="software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96" aria-label="Mark done"><span class="pk-t">Plant trees around houses, no two 8-adjacent</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L4</span><span class="tag">2022-06</span><span class="tag">United States</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 34</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Triangle min path sum</li><li>Place trees around houses in an M&times;N grid with no two trees touching</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> SWE III. Second problem is backtracking with constraints.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/triangle/" target="_blank" rel="noopener">LC 120 Triangle</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9"><details class="pick" data-id="software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9">
+            <summary><input type="checkbox" data-s="software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9" aria-label="Mark done"><span class="pk-t">Timestamp store: nearest lookup + evict oldest</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2023-01</span><span class="tag">United States</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 34</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Find nearest timestamp to a query; evict oldest past a size limit</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Sorted map + queue design.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/time-based-key-value-store/" target="_blank" rel="noopener">LC 981 Time Based KV Store</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c"><details class="pick" data-id="software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c">
+            <summary><input type="checkbox" data-s="software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c" aria-label="Mark done"><span class="pk-t">Peak CPU load across overlapping jobs</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2022-06</span><span class="tag">United States</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 32</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt neutral about it</p>
+            <ul class="qs"><li>Jobs with start, end, load: max load at any instant</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Sweep line. Pairs well with the scheduling loop above.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/car-pooling/" target="_blank" rel="noopener">LC 1094 Car Pooling</a></div>
+          </details></li>
+          <li class="row" data-kind="pick" data-lvl="L3" data-id="software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe"><details class="pick" data-id="software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe">
+            <summary><input type="checkbox" data-s="software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe" aria-label="Mark done"><span class="pk-t">Build a hash map, requirements added mid-round</span><span class="pk-m"><span class="tag kind-single">High-impact question</span><span class="tag lvl">L3</span><span class="tag">2022-04</span><span class="tag">New York</span><span class="tag">No offer</span><span class="sc" title="Rank score">★ 32</span></span></summary>
+            <p class="why"><b>🏁 Outcome:</b> No offer &middot; candidate felt positive about it</p>
+            <ul class="qs"><li>OOP hash map with collisions; new features keep arriving</li></ul>
+            <p class="why"><b>Why it&rsquo;s here:</b> Shows Google&rsquo;s incremental-requirements style.</p>
+            <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/design-hashmap/" target="_blank" rel="noopener">LC 706 Design HashMap</a></div>
+          </details></li>
+          <li class="row" data-kind="added" data-lvl="L4"><span class="st done">✅ added</span> <a href="#exp-14">EXP 14</a> &middot; L4 Warsaw <span class="pill reject">Rejected</span> <span class="rn">1 round</span> <span class="sc" title="Rank score">★ 30</span> <span class="rev-cell" data-rev="exp-14"></span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2543199/" target="_blank" rel="noopener">2543199</a> &middot; L4 Experience <span class="sc" title="Rank score">★ 20</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2626025/" target="_blank" rel="noopener">2626025</a> &middot; L4 Bad Experience <span class="sc" title="Rank score">★ 20</span></li>
+          <li class="row" data-kind="todo" data-lvl="L4"><span class="st todo">📖 to add</span> <a href="https://leetcode.com/discuss/interview-experience/2774774/" target="_blank" rel="noopener">2774774</a> &middot; L4 Oct '22 <span class="sc" title="Rank score">★ 20</span></li>
         </ul>
-      </details>
-    <h3 class="rl-h" id="taro-picks">🎯 Taro picks (temporary)</h3>
-    <p class="rl-legend">38 hand-picked Google experiences from Taro, for L3/L4 practice. Tick a card when you&rsquo;ve solved its questions (saved in this browser). Levels follow Taro&rsquo;s tags; <strong>*</strong> = corrected because the title says SWE II (L3) or SWE III (L4). LeetCode links are the closest match, not always exact. Question summaries are paraphrased, so open each link for the full write-up.</p>
-      <details class="rl grp">
-        <summary><strong>📖 Full loops</strong> <span class="rl-n">8</span><br><span class="rl-d">Round-by-round write-ups. Read these first to calibrate what a whole onsite feels like.</span></summary>
-        <div class="picks">
-        <details class="pick" data-kind="pick" data-id="software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a" aria-label="Mark done"><span class="pk-t">Full onsite with 4 escalating follow-ups in one round</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2024-08</span><span class="tag">San Francisco</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Phone screen: DP + primes, follow-up needs caching earlier results</li><li>Coding 1: two-pointer array, then 4 follow-ups (sliding window, DP); the last combines earlier answers</li><li>Coding 2: points on a 2D plane, BFS + topological sort, DP follow-up</li><li>Design round: custom data-structure design with linked lists, then a modified version</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Best picture of an L4 loop. Questions are open-ended on purpose; asking clarifying questions is part of the score.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-san-francisco-ca-august-1-2024-no-offer-positive-8353304a/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a" aria-label="Mark done"><span class="pk-t">4 rounds, 8 questions, every one with a constraint-change follow-up</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2024-09</span><span class="tag">Gurgaon</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Strings + binary search; strings + 3D DP</li><li>Strings + sliding window; map-based design with changed constraints</li><li>DSU grouping similar items (islands-style), bigger constraints</li><li>Matrix O(n²) to O(n); DP on squares</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Solved everything and still got no offer. Shows the bar is speed and clean follow-ups, not only correctness.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-gurgaon-haryana-september-11-2024-no-offer-neutral-1788089a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/accounts-merge/" target="_blank" rel="noopener">LC 721 Accounts Merge (loose match)</a><a class="lc" href="https://leetcode.com/problems/maximal-square/" target="_blank" rel="noopener">LC 221 Maximal Square</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217" aria-label="Mark done"><span class="pk-t">CPU scheduling: 1 processor, then 4 processors</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2023-08</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Can a new process fit without moving scheduled ones? Binary search, then rewrite with lower_bound, then find bugs</li><li>Follow-up: 4 processors. Coordinate compression + range max / segment tree</li><li>Count ways to split N objects into K non-empty groups</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Shows the interviewer&rsquo;s style live: bug hunting in your own code and pushing for library calls.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-bengaluru-august-1-2023-no-offer-neutral-089cd217/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/my-calendar-i/" target="_blank" rel="noopener">LC 729 My Calendar I</a><a class="lc" href="https://leetcode.com/problems/my-calendar-iii/" target="_blank" rel="noopener">LC 732 My Calendar III</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a" aria-label="Mark done"><span class="pk-t">SWE II Cloud: 3 custom coding rounds</span><span class="pk-m"><span class="tag lvl">L3*</span><span class="tag">2022-04</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Find strings in list B that are an anagram of a list-A string plus one extra letter</li><li>Grid paths bottom-left to bottom-right moving right / up-right / down-right</li><li>Group Android versions by the exact set of APKs that support them</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Three original problems, each a twist on a known pattern. Good test of spotting the base pattern fast.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-ii-bengaluru-april-1-2022-no-offer-positive-a8f2252a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/find-the-difference/" target="_blank" rel="noopener">LC 389 Find the Difference</a><a class="lc" href="https://leetcode.com/problems/unique-paths/" target="_blank" rel="noopener">LC 62 Unique Paths (loose match)</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754" data-lvl="L4">
-          <summary><input type="checkbox" data-s="swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754" aria-label="Mark done"><span class="pk-t">SWE 3: LIS with one free change + game tie-breakers</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2025-09</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Longest increasing subsequence, then with one value allowed to change</li><li>Two-player game: pick winner by max values, ties by lower values; then by counts</li><li>ML system design: harmful-message detection with LLMs, plus metrics</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Recent L4 loop. Candidate&rsquo;s own lesson: handle tie-break edge cases quickly.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/swe-3-bengaluru-karnataka-september-1-2025-no-offer-positive-517de754/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/longest-increasing-subsequence/" target="_blank" rel="noopener">LC 300 LIS</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-india-august-19-2025-no-offer-positive-68c95953" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-india-august-19-2025-no-offer-positive-68c95953" aria-label="Mark done"><span class="pk-t">Gold chain split + FCFS job scheduler with priority</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2025-08</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Remove one hook so the rest splits into two equal-weight halves</li><li>Print FCFS job execution order; follow-up adds priority among ready jobs (heap)</li><li>Googleyness: tight deadline, infeasible feature</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Clear worked examples with tables. The priority follow-up is a common Google move.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-august-19-2025-no-offer-positive-68c95953/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/find-pivot-index/" target="_blank" rel="noopener">LC 724 Pivot Index</a><a class="lc" href="https://leetcode.com/problems/single-threaded-cpu/" target="_blank" rel="noopener">LC 1834 Single-Threaded CPU</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a" aria-label="Mark done"><span class="pk-t">SDE II: travel-or-rest power puzzle</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2024-12</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Easy warm-up: reverse a linked list</li><li>Each day travel (needs power &ge; req, costs 1) or rest (+1 power). Minimum total days</li><li>Trie with prefix search</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Shows the easy-to-hard ramp across rounds. Round 2 is a nice greedy/math problem.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-ii-bengaluru-december-1-2024-no-offer-positive-72ac144a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/implement-trie-prefix-tree/" target="_blank" rel="noopener">LC 208 Trie</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be" aria-label="Mark done"><span class="pk-t">SWE III round map: heap, trees, DP, DSU</span><span class="pk-m"><span class="tag lvl">L4*</span><span class="tag">2023-12</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Phone: priority queue</li><li>Trees</li><li>Coin change variant + hard follow-up</li><li>Graph with disjoint set</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Thin on detail but a clean topic map of an L4 loop.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-iii-bengaluru-december-1-2023-no-offer-positive-24da14be/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/coin-change-ii/" target="_blank" rel="noopener">LC 518 Coin Change II (loose match)</a></div>
-        </details>
-        </div>
-      </details>
-      <details class="rl grp">
-        <summary><strong>🎯 High-impact questions</strong> <span class="rl-n">25</span><br><span class="rl-d">One or two sharp, Google-style problems with follow-ups. Best for practice reps.</span></summary>
-        <div class="picks">
-        <details class="pick" data-kind="pick" data-id="senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd" data-lvl="L5">
-          <summary><input type="checkbox" data-s="senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd" aria-label="Mark done"><span class="pk-t">Stock price feed with corrections</span><span class="pk-m"><span class="tag lvl">L5</span><span class="tag">2024-05</span><span class="tag">Pune</span><span class="tag off">Declined offer</span></span></summary>
-          <ul class="qs"><li>Track current / max / min price where past records can be corrected</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Classic Google OOD + heap/sorted-map problem.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/senior-software-engineer-pune-may-10-2024-declined-offer-positive-efe866bd/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/stock-price-fluctuation/" target="_blank" rel="noopener">LC 2034 Stock Price Fluctuation</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4" aria-label="Mark done"><span class="pk-t">Moving average in O(1), then drop top-5 outliers</span><span class="pk-m"><span class="tag lvl">L3*</span><span class="tag">2025-09</span><span class="tag">United States</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Fixed-capacity stream mean in O(1)</li><li>Follow-up: exclude the 5 largest values from the mean</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Phone screen. The follow-up is where the level is decided.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-ii-united-states-september-13-2025-no-offer-positive-adf287c4/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/moving-average-from-data-stream/" target="_blank" rel="noopener">LC 346 Moving Average</a><a class="lc" href="https://leetcode.com/problems/finding-mk-average/" target="_blank" rel="noopener">LC 1825 MK Average</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde" aria-label="Mark done"><span class="pk-t">Fair log sampling across files</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-06</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Return at most max_log_messages logs, shared fairly across sources</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Real-world fairness problem (water-filling / binary search on the cap).</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-june-1-2024-no-offer-positive-ddc1bbde/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c" data-lvl="L5">
-          <summary><input type="checkbox" data-s="senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c" aria-label="Mark done"><span class="pk-t">Convert edge list to nested children tree</span><span class="pk-m"><span class="tag lvl">L5</span><span class="tag">2025-01</span><span class="tag">San Francisco</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Nodes + edges in any order, build a root object with children arrays</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Tests clarifying questions about input order and roots.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/senior-software-engineer-cloud-san-francisco-ca-january-1-2025-no-offer-positive-cec6c61c/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4" aria-label="Mark done"><span class="pk-t">Camera angle that sees the most trees</span><span class="pk-m"><span class="tag lvl">L3*</span><span class="tag">2024-10</span><span class="tag">Tel Aviv</span><span class="tag off">Offer</span></span></summary>
-          <ul class="qs"><li>Points on a plane, camera with field-of-view &alpha;: which direction maximises trees in view?</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Got the offer. Angular sort + sliding window.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-swe-ii-tel-aviv-yafo-october-24-2024-accepted-offer-positive-32a201c4/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/maximum-number-of-visible-points/" target="_blank" rel="noopener">LC 1610 Visible Points</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749" aria-label="Mark done"><span class="pk-t">Generate a dino-game level with adjustable difficulty</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2023-03</span><span class="tag">UK</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Produce an obstacle array; follow-up: write a verifier that it&rsquo;s playable</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Very Google: open design + code + verification.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-kingdom-march-8-2023-no-offer-neutral-90bfb749/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b" aria-label="Mark done"><span class="pk-t">Grid planting + flowers visible past walls</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2025-04</span><span class="tag">United States</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Plant k vegetable types on a grid so each type stays clustered</li><li>Count flowers visible in a grid where walls block the view</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Two custom grid problems from one recent loop.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-states-april-3-2025-no-offer-positive-aaa43a2b/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96" aria-label="Mark done"><span class="pk-t">Plant trees around houses, no two 8-adjacent</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2022-06</span><span class="tag">United States</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Triangle min path sum</li><li>Place trees around houses in an M&times;N grid with no two trees touching</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> SWE III. Second problem is backtracking with constraints.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-swe-iii-united-states-june-11-2022-no-offer-neutral-cd7c8f96/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/triangle/" target="_blank" rel="noopener">LC 120 Triangle</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a" aria-label="Mark done"><span class="pk-t">Rebuild a password from 3 subsequences</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-11</span><span class="tag">Mountain View</span><span class="tag off">Declined offer</span></span></summary>
-          <ul class="qs"><li>No repeated chars; rebuild the unique password or report ambiguity</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Topological sort with uniqueness check.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-mountain-view-ca-november-26-2024-declined-offer-positive-87242c2a/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/sequence-reconstruction/" target="_blank" rel="noopener">LC 444 Sequence Reconstruction</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c" data-lvl="">
-          <summary><input type="checkbox" data-s="software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c" aria-label="Mark done"><span class="pk-t">Routers passing a signal on a plane</span><span class="pk-m"><span class="tag">level n/a</span><span class="tag">2024-06</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>K routers with coordinates and range; can the message reach the target?</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Long-running Google classic: build the implicit graph, then BFS.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-june-1-2024-no-offer-positive-6e7aa14c/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0" aria-label="Mark done"><span class="pk-t">Stream: emit groups of 3 within distance D</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-11</span><span class="tag">Waterloo</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Floats arrive one at a time; output any 3 within D of each other</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Known Google phone-screen question.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-early-career-waterloo-on-november-1-2024-no-offer-positive-66d5b6d0/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474" aria-label="Mark done"><span class="pk-t">Probabilistic map: random get-and-delete</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2025-06</span><span class="tag">Bengaluru</span><span class="tag off">Offer</span></span></summary>
-          <ul class="qs"><li>Key to list of values; get returns a random value and removes it</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Got the offer. O(1) random removal trick.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-june-17-2025-accepted-offer-positive-34d7b474/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/insert-delete-getrandom-o1-duplicates-allowed/" target="_blank" rel="noopener">LC 381 GetRandom Duplicates</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c" aria-label="Mark done"><span class="pk-t">Largest concatenated number + return the index order</span><span class="pk-m"><span class="tag lvl">L3*</span><span class="tag">2025-09</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Largest number from digit strings, plus the index order</li><li>Design a simple game matchmaking system</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Classic with a twist, plus a light design round.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-swe-ii-india-september-23-2025-no-offer-neutral-b3916f3c/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/largest-number/" target="_blank" rel="noopener">LC 179 Largest Number</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31" aria-label="Mark done"><span class="pk-t">Alice and Bob share edges to reach D</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2025-08</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Shared edges count once; minimise total edges used</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Three BFS runs and pick the meeting node.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-university-graduate-india-august-1-2025-no-offer-positive-f15f4a31/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/minimum-weighted-subgraph-with-the-required-paths/" target="_blank" rel="noopener">LC 2203 Min Weighted Subgraph</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-india-october-26-2025-no-offer-positive-c1fa6567" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-india-october-26-2025-no-offer-positive-c1fa6567" aria-label="Mark done"><span class="pk-t">Cut an A/B string so both halves balance</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2025-10</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Cut at one or two points so A and B frequencies match between two parts</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Very recent. Same kind of question as EXP 03 Alice &amp; Bob in this log.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-october-26-2025-no-offer-positive-c1fa6567/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-india-july-1-2024-no-offer-positive-695bdf8f" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-india-july-1-2024-no-offer-positive-695bdf8f" aria-label="Mark done"><span class="pk-t">Place new network centres to minimise max distance</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-07</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Dijkstra + minimise the worst-case distance to old centres</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Binary search on the answer over a graph.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-july-1-2024-no-offer-positive-695bdf8f/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65" aria-label="Mark done"><span class="pk-t">Numbers that change when rotated 180&deg;</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2024-02</span><span class="tag">Mountain View</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Confusing numbers: count / generate valid rotations</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Known Google-tagged problem.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-mountain-view-ca-february-21-2024-no-offer-positive-060ddf65/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/confusing-number-ii/" target="_blank" rel="noopener">LC 1088 Confusing Number II</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f" aria-label="Mark done"><span class="pk-t">Does any square exist in a point set?</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2024-11</span><span class="tag">Waterloo</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Given (x,y) points, check whether any 4 form a square</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Hashing points + geometry. Good follow-up: count them.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-developer-waterloo-on-november-1-2024-no-offer-neutral-2ae4471f/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/valid-square/" target="_blank" rel="noopener">LC 593 Valid Square</a><a class="lc" href="https://leetcode.com/problems/detect-squares/" target="_blank" rel="noopener">LC 2013 Detect Squares</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c" aria-label="Mark done"><span class="pk-t">Longest common suffix, many queries</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2023-12</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Static list, q queries: which string shares the longest suffix with w?</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Reversed trie. Clean Google-style query problem.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-december-1-2023-no-offer-positive-132a577c/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/longest-common-suffix-queries/" target="_blank" rel="noopener">LC 3093 LC Suffix Queries</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c" aria-label="Mark done"><span class="pk-t">Peak CPU load across overlapping jobs</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2022-06</span><span class="tag">United States</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Jobs with start, end, load: max load at any instant</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Sweep line. Pairs well with the scheduling loop above.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-united-states-june-24-2022-no-offer-neutral-29b2103c/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/car-pooling/" target="_blank" rel="noopener">LC 1094 Car Pooling</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4" aria-label="Mark done"><span class="pk-t">Similar movies, top N by rating</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-10</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Similarity is transitive; return N highest-rated movies similar to a given one</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Graph traversal + heap. Common Google combo.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-october-5-2024-no-offer-positive-d0f3a1a4/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9" aria-label="Mark done"><span class="pk-t">Timestamp store: nearest lookup + evict oldest</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2023-01</span><span class="tag">United States</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Find nearest timestamp to a query; evict oldest past a size limit</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Sorted map + queue design.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-developer-united-states-january-5-2023-no-offer-neutral-9ed201e9/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/time-based-key-value-store/" target="_blank" rel="noopener">LC 981 Time Based KV Store</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56" data-lvl="L5">
-          <summary><input type="checkbox" data-s="senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56" aria-label="Mark done"><span class="pk-t">Next-token predictor with train() and predict()</span><span class="pk-m"><span class="tag lvl">L5</span><span class="tag">2025-01</span><span class="tag">S&atilde;o Paulo</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Train on token sequences, predict the most likely next token</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Bigram counting, very current topic. Write-up is in Portuguese.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/senior-software-engineer-sao-paulo-sao-paulo-january-1-2025-no-offer-positive-cc4f6d56/" target="_blank" rel="noopener">Read on Taro &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe" aria-label="Mark done"><span class="pk-t">Build a hash map, requirements added mid-round</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2022-04</span><span class="tag">New York</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>OOP hash map with collisions; new features keep arriving</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Shows Google&rsquo;s incremental-requirements style.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-new-york-ny-april-1-2022-no-offer-positive-d3befefe/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/design-hashmap/" target="_blank" rel="noopener">LC 706 Design HashMap</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed" aria-label="Mark done"><span class="pk-t">Code editor methods (open-ended)</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-12</span><span class="tag">United States</span><span class="tag off">Declined offer</span></span></summary>
-          <ul class="qs"><li>BFS and sliding window mediums</li><li>Implement methods for a proposed code editor</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Third round is the interesting one.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-states-december-1-2024-declined-offer-positive-22b190ed/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/design-a-text-editor/" target="_blank" rel="noopener">LC 2296 Design Text Editor</a></div>
-        </details>
-        </div>
-      </details>
-      <details class="rl grp">
-        <summary><strong>🔁 Asked more than once</strong> <span class="rl-n">3</span><br><span class="rl-d">Same problem reported by different candidates. Highest odds of showing up again.</span></summary>
-        <div class="picks">
-        <details class="pick" data-kind="pick" data-id="software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e" aria-label="Mark done"><span class="pk-t">Find all 1-bits using only query(L, R)</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2024-04</span><span class="tag">India</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Sparse bit array behind an API that says if a range has any 1. Find every 1 with few calls</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Also asked to a 2025 Seattle new grad (link below). Divide and conquer on ranges.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-3-india-april-1-2024-no-offer-neutral-2f47560e/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-new-grad-seattle-wa-august-17-2025-no-offer-positive-27142ea4/" target="_blank" rel="noopener">Same question, Seattle 2025 &nearr;</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-engineer-california-md-august-17-2025-no-offer-positive-60239a89" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-engineer-california-md-august-17-2025-no-offer-positive-60239a89" aria-label="Mark done"><span class="pk-t">Restaurant waitlist with O(1) add / remove</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2025-08</span><span class="tag">United States</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Guests join, leave from anywhere, get seated; every op O(1)</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Also asked in 2023. Doubly linked list + hash map, same core as LRU.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-california-md-august-17-2025-no-offer-positive-60239a89/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-united-states-november-2-2023-no-offer-positive-cabcbf4e/" target="_blank" rel="noopener">Same idea, 2023 &nearr;</a><a class="lc" href="https://leetcode.com/problems/lru-cache/" target="_blank" rel="noopener">LC 146 LRU Cache</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75" data-lvl="L4">
-          <summary><input type="checkbox" data-s="software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75" aria-label="Mark done"><span class="pk-t">Drop duplicate logs inside a time window</span><span class="pk-m"><span class="tag lvl">L4</span><span class="tag">2022-05</span><span class="tag">United States</span><span class="tag off">Declined offer</span></span></summary>
-          <ul class="qs"><li>Robot logs repeat; print once per 30-second window</li><li>Car control command simulation</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Got an offer. Rate-limiter pattern shows up in several reports.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-united-states-may-1-2022-declined-offer-positive-976dff75/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/logger-rate-limiter/" target="_blank" rel="noopener">LC 359 Logger Rate Limiter</a></div>
-        </details>
-        </div>
-      </details>
-      <details class="rl grp">
-        <summary><strong>🧪 Online assessment</strong> <span class="rl-n">2</span><br><span class="rl-d">OA-style problems, mostly early-career India hiring.</span></summary>
-        <div class="picks">
-        <details class="pick" data-kind="pick" data-id="software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036" aria-label="Mark done"><span class="pk-t">Partition digits: even start, odd end, K parts</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2023-01</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Count ways to split S into K parts of length &ge; M, each even-start / odd-end, mod 1e9+7</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Reported 3 times (2023&ndash;2024). Partition DP with prefix sums.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-bengaluru-january-1-2023-no-offer-positive-4f50a036/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-bengaluru-september-7-2023-accepted-offer-neutral-1a912d24/" target="_blank" rel="noopener">Same, Sep 2023 (offer) &nearr;</a><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-sde-india-february-11-2024-no-offer-positive-a0846400/" target="_blank" rel="noopener">Same, Feb 2024 &nearr;</a><a class="lc" href="https://leetcode.com/problems/number-of-beautiful-partitions/" target="_blank" rel="noopener">LC 2478 Beautiful Partitions</a></div>
-        </details>
-        <details class="pick" data-kind="pick" data-id="software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa" data-lvl="L3">
-          <summary><input type="checkbox" data-s="software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa" aria-label="Mark done"><span class="pk-t">Largest K-digit subsequence + zero-array range queries</span><span class="pk-m"><span class="tag lvl">L3</span><span class="tag">2024-08</span><span class="tag">Bengaluru</span><span class="tag">No offer</span></span></summary>
-          <ul class="qs"><li>Pick K digits in order to form the largest number</li><li>Can range decrements make the array all zero?</li></ul>
-          <p class="why"><b>Why it&rsquo;s here:</b> Monotonic stack + difference array.</p>
-          <div class="links"><a href="https://www.jointaro.com/interviews/companies/google/experiences/software-development-engineer-bangalore-rural-august-1-2024-no-offer-positive-ff0e5daa/" target="_blank" rel="noopener">Read on Taro &nearr;</a><a class="lc" href="https://leetcode.com/problems/remove-k-digits/" target="_blank" rel="noopener">LC 402 Remove K Digits (loose match)</a><a class="lc" href="https://leetcode.com/problems/zero-array-transformation-i/" target="_blank" rel="noopener">LC 3355 Zero Array I</a></div>
-        </details>
-        </div>
       </details>
   </section>
 
-
-  <section class="summary">
-    <h2>Experience log</h2>
-    <div class="tbl-scroll">
-      <table>
-        <thead>
-          <tr><th>#</th><th>Tier</th><th>Source</th><th>Outcome</th><th>Rounds</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-1">Google L3/L4 &mdash; L3 passed</a></td>
-            <td><span class="pill mixed">L4 → L3 downlevel</span></td>
-            <td>4 rounds</td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-2">Google L3/L4 &mdash; Bangalore, 2.8 YOE</a></td>
-            <td><span class="pill offer">L3 offer</span></td>
-            <td>5 rounds</td>
-          </tr>
-          <tr>
-            <td>3</td>
-            <td><span class="tier">💎 Platinum</span></td>
-            <td><a href="#exp-3">Google India L3 &mdash; Offer</a></td>
-            <td><span class="pill offer">L3 offer</span></td>
-            <td>4 rounds</td>
-          </tr>
-          <tr>
-            <td>4</td>
-            <td><span class="tier">🥉 Bronze</span></td>
-            <td><a href="#exp-4">Google L4 India &mdash; Screening</a></td>
-            <td><span class="pill reject">Rejected at screening</span></td>
-            <td>3 rounds</td>
-          </tr>
-          <tr>
-            <td>5</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-5">Google L3 Munich &mdash; Frontend</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>6 rounds</td>
-          </tr>
-          <tr>
-            <td>6</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-6">Google L4/L3 &mdash; Bangalore</a></td>
-            <td><span class="pill mixed">L4 → L3 offer</span></td>
-            <td>7 rounds</td>
-          </tr>
-          <tr>
-            <td>7</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-7">Google L4 India &mdash; onsite</a></td>
-            <td><span class="pill mixed">HC waitlist</span></td>
-            <td>5 rounds</td>
-          </tr>
-          <tr>
-            <td>8</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-8">Google L4 India &mdash; backend</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>4 rounds</td>
-          </tr>
-          <tr>
-            <td>9</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-9">Google L3 Bangalore &mdash; 2022</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>1 screen + 4 rounds</td>
-          </tr>
-          <tr>
-            <td>10</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-10">Google L4 San Bruno, CA &mdash; SWE III</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>5 rounds</td>
-          </tr>
-          <tr>
-            <td>11</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-11">Google L4 India &mdash; all rounds positive</a></td>
-            <td><span class="pill mixed">Pending (all positive)</span></td>
-            <td>4 rounds + Googlyness</td>
-          </tr>
-          <tr>
-            <td>12</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-12">Google L4 Bangalore &mdash; 4&times; Strong Hire</a></td>
-            <td><span class="pill offer">Offer</span></td>
-            <td>4 rounds</td>
-          </tr>
-          <tr>
-            <td>13</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-13">Google L4 California</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>4 rounds</td>
-          </tr>
-          <tr>
-            <td>14</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-14">Google L4 Warsaw &mdash; phone screen</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>1 round</td>
-          </tr>
-          <tr>
-            <td>15</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-15">Google L4 India &mdash; 2022</a></td>
-            <td><span class="pill mixed">Withdrew</span></td>
-            <td>1 screen + 3 rounds</td>
-          </tr>
-          <tr>
-            <td>16</td>
-            <td><span class="tier">⚙️ Iron</span></td>
-            <td><a href="#exp-16">Google L4 India</a></td>
-            <td><span class="pill reject">Rejected</span></td>
-            <td>4 rounds</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
 
   <!-- ===================== EXPERIENCE 1 ===================== -->
   <details class="exp" id="exp-1">
@@ -3391,22 +3317,26 @@ class XmlNode {
 (function(){
   var root = document.getElementById('tiers');
   if(!root) return;
-  var filter = 'all', done = {};
+  var lvl = 'all', tier = 'all', done = {};
   try{ done = JSON.parse(localStorage.getItem('taro-done') || '{}'); }catch(e){}
   var items = root.querySelectorAll('[data-kind]');
   var picks = root.querySelectorAll('details.pick');
+  var sel = document.getElementById('tier-select');
 
   function show(el){
-    var kind = el.getAttribute('data-kind');
-    if(filter === 'all') return true;
-    if(filter === 'added') return kind === 'added';
-    if(filter === 'todo') return kind === 'todo' || (kind === 'pick' && !done[el.getAttribute('data-id')]);
-    return (el.getAttribute('data-lvl') || '').split(' ').indexOf(filter) > -1;
+    if(lvl === 'todo') return el.getAttribute('data-kind') === 'todo' || (el.getAttribute('data-kind') === 'pick' && !done[el.getAttribute('data-id')]);
+    if(lvl === 'all') return true;
+    return (el.getAttribute('data-lvl') || '').split(' ').indexOf(lvl) > -1;
   }
   function paint(){
     var n = 0;
     items.forEach(function(el){ var ok = show(el); el.hidden = !ok; if(ok) n++; });
-    root.querySelectorAll('details.rl').forEach(function(d){ d.hidden = !d.querySelector('[data-kind]:not([hidden])'); });
+    root.querySelectorAll('details.rl').forEach(function(d){
+      d.hidden = (tier !== 'all' && d.getAttribute('data-tier') !== tier) || !d.querySelector('[data-kind]:not([hidden])');
+    });
+    root.querySelectorAll('.tile').forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tier') === tier); });
+    root.querySelectorAll('.chip').forEach(function(c){ c.setAttribute('aria-pressed', c.getAttribute('data-f') === lvl); });
+    sel.value = tier;
     var ticked = Object.keys(done).filter(function(k){ return done[k]; }).length;
     document.getElementById('fcount').textContent = n + ' shown \u00b7 ' + ticked + '/' + picks.length + ' picks done';
   }
@@ -3415,12 +3345,12 @@ class XmlNode {
     box.checked = !!done[id];
     p.classList.toggle('done', !!done[id]);
   });
-  root.querySelector('.fbar').addEventListener('click', function(e){
-    var b = e.target.closest('.chip'); if(!b) return;
-    filter = b.getAttribute('data-f');
-    root.querySelectorAll('.chip').forEach(function(c){ c.setAttribute('aria-pressed', c === b); });
-    paint();
+  root.addEventListener('click', function(e){
+    var c = e.target.closest('.chip'), t = e.target.closest('.tile');
+    if(c){ lvl = c.getAttribute('data-f'); paint(); }
+    else if(t){ tier = t.getAttribute('data-tier'); paint(); }
   });
+  sel.addEventListener('change', function(){ tier = sel.value; paint(); });
   root.addEventListener('change', function(e){
     var box = e.target; if(!box.matches('details.pick input')) return;
     var p = box.closest('details.pick'), id = p.getAttribute('data-id');
@@ -3492,18 +3422,7 @@ class XmlNode {
   }
 
   var cells = {};
-  var table = document.querySelector('table');
-  if(table){
-    var head = table.querySelector('thead tr, tr');
-    if(head){ var th = document.createElement('th'); th.textContent = 'Reviewed'; head.appendChild(th); }
-    table.querySelectorAll('tbody tr').forEach(function(tr){
-      var a = tr.querySelector('a[href^="#exp-"]');
-      var td = document.createElement('td');
-      td.className = 'rev-cell';
-      if(a) cells[a.getAttribute('href').slice(1)] = td;
-      tr.appendChild(td);
-    });
-  }
+  document.querySelectorAll('.rev-cell[data-rev]').forEach(function(td){ cells[td.getAttribute('data-rev')] = td; });
   function paintCell(id){
     if(cells[id]) cells[id].textContent = counts[id] ? counts[id] + '×' : '–';
   }
