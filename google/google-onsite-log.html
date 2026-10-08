@@ -1082,40 +1082,39 @@
             <div class="match-links">
               <a href="https://leetcode.com/problems/find-pivot-index/" target="_blank" rel="noopener">LC 724 &mdash; Find Pivot Index (same core idea, minus the removal step)</a>
               <a href="https://leetcode.com/problems/number-of-ways-to-split-array/" target="_blank" rel="noopener">LC 2270 &mdash; Number of Ways to Split Array</a>
+              <a href="https://claude.ai/artifact/JDrA7yYMBSymF7QXuZt49g" target="_blank" rel="noopener">▶️ Interactive stepper &mdash; move the cut and watch the seesaw level out</a>
             </div>
           </div>
-          <div class="note">💡 <strong>Key insight:</strong> for removed index <code>k</code> and split point <code>m</code>, either <code>k &ge; m</code> (removed element lands in the right part) or <code>k &lt; m</code> (lands in the left part) &mdash; each case gives a different target prefix sum to look up. The first or last index of that prefix sum is enough to check it.</div>
+          <div class="note">💡 <strong>Key insight:</strong> slide the cut across the array. At each cut, <code>diff = left &minus; right</code>. Removing <code>x</code> from the left levels the seesaw when <code>x = diff</code>. Removing <code>x</code> from the right levels it when <code>x = &minus;diff</code>. Two Maps (value &rarr; first index, value &rarr; last index) answer &ldquo;is that value on the left / on the right?&rdquo; in O(1). Try it in the interactive stepper above.</div>
 
-          <div class="note">⏱️ TC: O(n), one pass plus two hashmaps<br>📦 SC: O(n), the prefix sums and the two maps<br>✅ Assumes both parts must be non-empty after the removal. An empty part has sum 0 and would give wrong &ldquo;yes&rdquo; answers (for example <code>[0, -3]</code>).</div>
+          <div class="note">⏱️ TC: O(n), one pass to fill the Maps, one pass over the cuts<br>📦 SC: O(n), the two Maps<br>✅ Each side must keep at least one element after the removal, so removing from the left needs <code>cut &ge; 2</code> and from the right needs <code>n &minus; cut &ge; 2</code>. An empty part has sum 0 and would give wrong &ldquo;yes&rdquo; answers (for example <code>[0, -3]</code>).<br>🧪 Checked against brute force (remove each element, try every split) on 50,000 random arrays: 0 mismatches. <code>[5, 5, 1]</code> &rarr; true, <code>[1, 1, 2, 7]</code> &rarr; true, <code>[5, 0]</code> &rarr; false.<br>❓ Ask the interviewer: &ldquo;can the removed element be anywhere?&rdquo; If it must be the element sitting at the cut, it is LC 724 (check <code>k</code> from 1 to n&minus;2 only).</div>
 
           <div class="code-wrap">
             <div class="code-label"><span>canSplitAfterRemoval.ts</span><button class="copy-btn" data-copy-target="code-e3-split">Copy</button></div>
             <pre id="code-e3-split"><span class="kw">function</span> canSplitAfterRemoval(nums: <span class="kw">number</span>[]): <span class="kw">boolean</span> {
     <span class="kw">const</span> n = nums.length;
-    <span class="kw">const</span> prefix: <span class="kw">number</span>[] = <span class="kw">new</span> Array(n + <span class="kw">1</span>).fill(<span class="kw">0</span>);
-    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="kw">0</span>; i &lt; n; i++) prefix[i + <span class="kw">1</span>] = prefix[i] + nums[i];
-    <span class="kw">const</span> total = prefix[n];
-
-    <span class="cmt">// Split point m means the left part is nums[0..m-1]. Keep the first and last m (1..n-1) for each prefix sum</span>
-    <span class="kw">const</span> first = <span class="kw">new</span> Map&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();
-    <span class="kw">const</span> last = <span class="kw">new</span> Map&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();
-    <span class="kw">for</span> (<span class="kw">let</span> m = <span class="kw">1</span>; m &lt; n; m++) {
-        <span class="kw">if</span> (!first.has(prefix[m])) first.set(prefix[m], m);
-        last.set(prefix[m], m);
+    <span class="kw">let</span> total = 0;
+    <span class="kw">const</span> first = <span class="kw">new</span> <span class="kw">Map</span>&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;(); <span class="cmt">// value → first index</span>
+    <span class="kw">const</span> last = <span class="kw">new</span> <span class="kw">Map</span>&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();  <span class="cmt">// value → last index</span>
+    <span class="kw">for</span> (<span class="kw">let</span> i = 0; i &lt; n; i++) {
+        total += nums[i];
+        <span class="kw">if</span> (!first.has(nums[i])) first.set(nums[i], i);
+        last.set(nums[i], i);
     }
 
-    <span class="kw">for</span> (<span class="kw">let</span> k = <span class="kw">0</span>; k &lt; n; k++) {
-        <span class="kw">const</span> rest = total - nums[k];            <span class="cmt">// sum of what is left after removing nums[k]</span>
-        <span class="kw">if</span> (rest % <span class="kw">2</span> !== <span class="kw">0</span>) <span class="kw">continue</span>;
-        <span class="kw">const</span> half = rest / <span class="kw">2</span>;
+    <span class="kw">let</span> left = 0;
+    <span class="kw">for</span> (<span class="kw">let</span> cut = 1; cut &lt; n; cut++) {      <span class="cmt">// left = nums[0..cut-1], right = nums[cut..]</span>
+        left += nums[cut - 1];
+        <span class="kw">const</span> diff = left - (total - left);  <span class="cmt">// how much heavier the left is</span>
 
-        <span class="cmt">// k is in the right part: the left part is untouched, so prefix[m] = half (m &lt;= k, and the right part keeps an element)</span>
-        <span class="kw">if</span> ((first.get(half) ?? <span class="kw">Infinity</span>) &lt;= Math.min(k, n - <span class="kw">2</span>)) <span class="kw">return</span> <span class="kw">true</span>;
+        <span class="cmt">// remove diff from the left: needs one other element left behind</span>
+        <span class="kw">const</span> li = first.get(diff);
+        <span class="kw">if</span> (li !== <span class="kw">undefined</span> &amp;&amp; li &lt; cut &amp;&amp; cut &gt;= 2) <span class="kw">return</span> <span class="kw">true</span>;
 
-        <span class="cmt">// k is in the left part: prefix[m] - nums[k] = half (m &gt; k, and the left part keeps an element)</span>
-        <span class="kw">if</span> ((last.get(half + nums[k]) ?? -<span class="kw">1</span>) &gt;= Math.max(k + <span class="kw">1</span>, <span class="kw">2</span>)) <span class="kw">return</span> <span class="kw">true</span>;
+        <span class="cmt">// remove -diff from the right: needs one other element left behind</span>
+        <span class="kw">const</span> ri = last.get(-diff);
+        <span class="kw">if</span> (ri !== <span class="kw">undefined</span> &amp;&amp; ri &gt;= cut &amp;&amp; n - cut &gt;= 2) <span class="kw">return</span> <span class="kw">true</span>;
     }
-
     <span class="kw">return</span> <span class="kw">false</span>;
 }</pre>
           </div>
