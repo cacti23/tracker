@@ -70,6 +70,7 @@
   <a href="#j10"><b>10</b>Strings are immutable</a>
   <a href="#j11"><b>11</b>Integer math: % / and bits</a>
   <a href="#j12"><b>12</b>queue.shift() is slow</a>
+  <a href="#j13"><b>13</b>Object vs Map as a dictionary</a>
 </nav>
 
 <h2 id="j1">1 · 🗂️ Map</h2>
@@ -183,6 +184,15 @@ Math.trunc(-7 / 2);      // -3 — cuts the decimal (what Java/C++ `/` does)
 let head = 0;
 while (head &lt; q.length) { const x = q[head++]; }   // ✅ O(1) per pop, push() still works</code></pre>
 <div class="box key"><b class="tag">📌</b> Measured on Node 22: 200k <code>shift()</code> calls took ~3.5 s, the head pointer ~1 ms. Use <code>q[head++]</code> for BFS queues.</div>
+
+<h2 id="j13">13 · 🆚 Object vs Map as a Dictionary — Use Map for Counting</h2>
+<pre class="language-tsx"><code class="language-tsx">const o: any = {}, m = new Map()
+o[1] = 'a'; o['1'] = 'b'         // 1 key: both become "1"
+m.set(1, 'a'); m.set('1', 'b')   // 2 keys: types kept
+
+count['constructor'] = (count['constructor'] || 0) + 1   // ❌ starts from a function, not 0</code></pre>
+<p>📋 <b>Order:</b> a Map is strictly insertion order. An Object puts integer-like keys first, sorted: keys <code>b, a, 2, 1</code> come out as <code>1, 2, b, a</code>. (Map access is <a href="#j6">#6</a>.)</p>
+<div class="box key"><b class="tag">📌</b> Object keys are always strings and come with inherited names (<code>constructor</code>, <code>toString</code>). Map keeps types and insertion order. For counting, or any key you don't control, use Map.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
