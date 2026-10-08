@@ -397,7 +397,8 @@
       <button type="button" class="chip" data-f="L3" aria-pressed="false">L3</button>
       <button type="button" class="chip" data-f="L4" aria-pressed="false">L4</button>
       <button type="button" class="chip" data-f="L5" aria-pressed="false">L5</button>
-      <button type="button" class="chip" data-f="todo" aria-pressed="false">Not done</button>
+      <button type="button" class="chip" data-f="added" aria-pressed="false">Added</button>
+      <button type="button" class="chip" data-f="todo" aria-pressed="false">Not added</button>
       <select id="tier-select" aria-label="Tier">
         <option value="all">All tiers</option>
         <option value="plat">💎 Platinum</option>
@@ -4515,10 +4516,19 @@ class XmlNode {
   var sel = document.getElementById('tier-select');
 
   function show(el){
-    if(lvl === 'todo') return el.getAttribute('data-kind') === 'todo' || (el.getAttribute('data-kind') === 'pick' && !done[el.getAttribute('data-id')]);
+    var kind = el.getAttribute('data-kind');
+    if(lvl === 'todo') return kind === 'todo' || (kind === 'pick' && !done[el.getAttribute('data-id')]);
+    if(lvl === 'added') return kind === 'added';
     if(lvl === 'all') return true;
     return (el.getAttribute('data-lvl') || '').split(' ').indexOf(lvl) > -1;
   }
+  // Each EXP card follows its tier row, so the same filters hide cards too
+  var cards = [];
+  document.querySelectorAll('details.exp').forEach(function(card){
+    var row = root.querySelector('.row[data-kind="added"] a[href="#' + card.id + '"]');
+    row = row && row.closest('.row');
+    if(row) cards.push({ card: card, row: row, tier: row.closest('details.rl').getAttribute('data-tier') });
+  });
   function paint(){
     var n = 0;
     items.forEach(function(el){ var ok = show(el); el.hidden = !ok; if(ok) n++; });
@@ -4527,6 +4537,7 @@ class XmlNode {
     });
     root.querySelectorAll('.tile').forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-tier') === tier); });
     root.querySelectorAll('.chip').forEach(function(c){ c.setAttribute('aria-pressed', c.getAttribute('data-f') === lvl); });
+    cards.forEach(function(c){ c.card.hidden = c.row.hidden || (tier !== 'all' && c.tier !== tier); });
     sel.value = tier;
     var ticked = Object.keys(done).filter(function(k){ return done[k]; }).length;
     document.getElementById('fcount').textContent = n + ' shown \u00b7 ' + ticked + '/' + picks.length + ' picks done';
