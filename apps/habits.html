@@ -195,7 +195,6 @@
       <button type="button" id="dataSyncBtn" class="toggle-btn" onclick="DataSync.syncNow()" title="Sync your habits to/from the cloud across devices">☁ Sync</button>
       <button type="button" class="toggle-btn" onclick="DataSync.pullLatest()" title="Force-pull the cloud's current data onto THIS device, overwriting local — use this if Sync isn't bringing your progress in">⬇</button>
       <button type="button" id="dataTokenBtn" class="toggle-btn" onclick="DataSync.setToken()" title="Set or change the GitHub token used for cloud sync (stored only in this browser)">⚙</button>
-      <button type="button" class="toggle-btn" id="monToggle" onclick="toggleMons()" title="Show or hide the Pokémon">🎮</button>
       <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()">
         <span id="toggleIcon">☀️</span> <span id="toggleLabel">Light mode</span>
       </button>
@@ -275,8 +274,6 @@
     [['Mudkip', 258], ['Marshtomp', 259], ['Swampert', 260]]
   ];
   const EVOLVE_AT = [7, 21]; // total days done needed for stage 2 and stage 3
-  const monKey = 'habits_pokemon';
-  let monsOn = localStorage.getItem(monKey) !== 'off';
 
   function monLineFor(habit) {
     let idx = habit.mon;
@@ -408,7 +405,7 @@
     const after = monStage(totalCompletions(habitId));
     saveState();
     renderHabits();
-    if (!monsOn || !marking) return;
+    if (!marking) return;
     const evolved = after > before;
     const el = document.querySelector('.mon[data-id="' + habitId + '"]');
     if (el) el.classList.add(evolved ? 'evolve' : 'bounce');
@@ -716,15 +713,11 @@
       else if (view === '30') main.appendChild(buildDotsRow(habit, 30));
       else main.appendChild(buildMonthCal(habit));
 
-      if (monsOn) {
-        const body = document.createElement('div');
-        body.className = 'habit-body';
-        body.appendChild(main);
-        body.appendChild(buildMon(habit));
-        card.appendChild(body);
-      } else {
-        card.appendChild(main);
-      }
+      const body = document.createElement('div');
+      body.className = 'habit-body';
+      body.appendChild(main);
+      body.appendChild(buildMon(habit));
+      card.appendChild(body);
 
       return card;
     }
@@ -831,15 +824,6 @@
     document.getElementById('toggleIcon').textContent = isDark ? '☀️' : '🌙';
     document.getElementById('toggleLabel').textContent = isDark ? 'Light mode' : 'Dark mode';
   }
-  function applyMonToggle() {
-    document.getElementById('monToggle').style.opacity = monsOn ? '1' : '0.45';
-  }
-  window.toggleMons = function() {
-    monsOn = !monsOn;
-    localStorage.setItem(monKey, monsOn ? 'on' : 'off');
-    applyMonToggle();
-    renderHabits();
-  };
   window.toggleTheme = function() {
     isDark = !isDark;
     localStorage.setItem(themeKey, isDark ? 'dark' : 'light');
@@ -850,7 +834,7 @@
   if (window.DataSync) {
     DataSync.init({
       appId: 'habits',
-      keys: [STORAGE_KEY, themeKey, 'habits_view', monKey],
+      keys: [STORAGE_KEY, themeKey, 'habits_view'],
       versionLabel: 'habits-v1'
     });
     // Check the cloud on every open (not gated to sync.js's 24h autoSync
@@ -860,7 +844,6 @@
 
   function init() {
     applyTheme();
-    applyMonToggle();
     renderViewRow();
     renderHabits();
   }
