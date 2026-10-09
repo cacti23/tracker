@@ -632,10 +632,18 @@
     wrap.title = next ? total + '/' + next + ' days to evolve' : 'fully evolved';
     wrap.style.setProperty('--mon-color', habit.color);
     const img = document.createElement('img');
-    img.crossOrigin = 'anonymous';
     img.alt = line[stage][0];
-    img.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/' + line[stage][1] + '.png';
-    img.onerror = () => { wrap.style.display = 'none'; };
+    // Try GitHub raw first, then jsDelivr (some networks block one of them); if both
+    // fail show a ball instead of silently hiding, so a missing sprite is visible.
+    const file = 'sprites/pokemon/' + line[stage][1] + '.png';
+    const srcs = ['https://raw.githubusercontent.com/PokeAPI/sprites/master/' + file,
+                  'https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/' + file];
+    let tried = 0;
+    img.onerror = () => {
+      if (++tried < srcs.length) { img.src = srcs[tried]; return }
+      img.remove(); wrap.textContent = '⚪'; wrap.style.fontSize = '40px';
+    };
+    img.src = srcs[0];
     wrap.appendChild(img);
     return wrap;
   }
