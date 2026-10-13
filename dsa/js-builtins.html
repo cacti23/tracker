@@ -144,7 +144,13 @@ BigInt(a) + BigInt(b) === BigInt(c);   // ✅ LC 306 Additive Number check</code
 <li>A sum or product can grow past ~<code>9 × 10^15</code></li>
 <li><b>Can I use it on LeetCode (e.g. 306)?</b> Yes — LeetCode's JavaScript runs on Node, which supports <code>BigInt</code>.</li>
 </ul>
-<div class="box warn"><b class="tag">🚨 BigInt traps</b> <code>1n + 2</code> → TypeError (can't mix BigInt and Number — write <code>1n + 2n</code>) · <code>7n / 2n</code> → <code>3n</code> (drops the fraction) · <code>Math.max(1n, 2n)</code> → TypeError (<code>Math.*</code> doesn't take BigInt).</div>
+<div class="box warn"><b class="tag">🚨 BigInt traps</b> <code>1n + 2</code> → TypeError (can't mix BigInt and Number — write <code>1n + 2n</code>) · <code>7n / 2n</code> → <code>3n</code> (drops the fraction) · <code>Math.max(1n, 2n)</code> → TypeError (<code>Math.*</code> doesn't take BigInt) · <code>BigInt(1.5)</code> → RangeError · <code>1n / 0n</code> → RangeError · <code>JSON.stringify(1n)</code> → TypeError.</div>
+<p>🛠️ <b>Using it:</b></p>
+<pre class="language-tsx"><code class="language-tsx">const nums = strs.map(s =&gt; BigInt(s));           // convert once, up front
+arr.sort((a, b) =&gt; (a &lt; b ? -1 : a &gt; b ? 1 : 0)); // ❌ a - b throws TypeError
+new Map&lt;bigint, number&gt;();                        // keys match by value ✅
+x.toString();                                     // return huge answers as strings
+BigInt.asIntN(64, x);                             // imitate a 64-bit long</code></pre>
 <p class="hint">"Without BigInt?" → add the two strings digit by digit from the right, carrying 1 (LC 415).</p>
 <div class="box key"><b class="tag">📌</b> ≤ 15 digits → <code>Number</code> is fine. 16+ digits → <code>BigInt</code> (or string addition if BigInt isn't allowed). Never mix <code>n</code> numbers with plain numbers.</div>
 
