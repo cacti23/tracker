@@ -111,6 +111,7 @@
   <a href="#t51"><b>51</b>One-to-one: check both ways</a>
   <a href="#t52"><b>52</b>Window vs prefix sum + map</a>
   <a href="#t53"><b>53</b>Circular index: wrap with +n</a>
+  <a href="#t54"><b>54</b>Count subarrays via atMost()</a>
 </nav>
 
 <h2 id="t1">1 · 🧱 Grid Traversal — Blocked Start/Destination</h2>
@@ -1091,6 +1092,15 @@ rows[r] &amp;= ~bit</code></pre>
 <li>🧠 <code>% n</code> brings it into <code>-(n-1)…n-1</code>, <code>+ n</code> makes it non-negative, the last <code>% n</code> folds it back under <code>n</code>.</li>
 </ul>
 <div class="box key"><b class="tag">📌</b> Step can be negative? Use <code>((x % n) + n) % n</code>, never plain <code>x % n</code>. JS detail: <a href="js-builtins.html#j11">JS #11</a>.</div>
+
+<h2 id="t54">54 · 🧮 Count Subarrays: Turn Everything Into <code>atMost()</code></h2>
+<pre class="language-tsx"><code class="language-tsx">atMost(k)   // shrink while count &gt; k, then res += right - left + 1
+atLeast(k) = total - atMost(k - 1)   // total = n * (n + 1) / 2
+exactly(k) = atMost(k) - atMost(k - 1)</code></pre>
+<p>🔑 <b>Why:</b> every subarray is ≥ <code>k</code> or ≤ <code>k − 1</code>, never both, so <code>all = atLeast(k) + atMost(k − 1)</code>.</p>
+<p>🎓 5 students: 3 scored ≥ 60, 2 scored ≤ 59 → <code>atLeast(60) = 5 − 2 = 3</code>.</p>
+<div class="box warn"><b class="tag">⚠️</b> <code>atMost(-1)</code> must return 0 (matters when <code>k = 0</code>). Works only when the count can't drop as the window grows (odd numbers, distinct values). Negative numbers → prefix sum + map (<a href="#t52">#52</a>).</div>
+<div class="box key"><b class="tag">📌</b> Counting "exactly" or "at least"? Write <code>atMost</code> once and subtract.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
