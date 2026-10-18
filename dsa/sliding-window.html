@@ -355,8 +355,8 @@ function maxSlidingWindow(a: number[], k: number): number[] {
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
 <details class="fold" open>
-<summary>➕ Beyond the window — Subarray Sum = K (560) · Min Window Subsequence (727) · Contains Duplicate II (219)</summary>
-<div class="box"><b>560</b> is the "why sliding window fails" question: with negative numbers a longer window does not mean a bigger sum, so there is no shrink rule — use prefix sums + a hash map instead. <b>727</b> is a window where <i>order</i> matters (subsequence), and <b>219</b> is the fixed-window-with-a-set warm-up.</div>
+<summary>➕ Beyond the window — Subarray Sum = K (560) · Contains Duplicate II (219) · Min Window Subsequence (727)</summary>
+<div class="box"><b>560</b> is the "why sliding window fails" question: with negative numbers a longer window does not mean a bigger sum, so there is no shrink rule — use prefix sums + a hash map instead. <b>219</b> is the fixed-window-with-a-set warm-up. <b>727</b> looks like 76, but <i>order</i> matters (subsequence), so there is no count to shrink on: it is 2D string DP, see the <a href="dp.html">DP sheet</a>.</div>
 <pre class="language-tsx"><code class="language-tsx">// 560 Subarray Sum Equals K — NEGATIVES break the window → prefix sums + counts
 function subarraySum(nums: number[], k: number): number {
   const freq = new Map&lt;number, number&gt;([[0, 1]]);        // empty prefix, so subarrays starting at 0 count
@@ -369,23 +369,6 @@ function subarraySum(nums: number[], k: number): number {
   return count;
 }
 
-// 727 Minimum Window Subsequence — forward to fix the END, backward to tighten the START
-function minWindowSubseq(s: string, t: string): string {
-  let best = '', i = 0;
-  while (i &lt; s.length) {
-    let j = 0, k = i;
-    while (k &lt; s.length &amp;&amp; j &lt; t.length) { if (s[k] === t[j]) j++; k++; }
-    if (j &lt; t.length) break;                             // t is not a subsequence of what's left
-    const end = k;
-    j = t.length - 1; k = end - 1;
-    while (j &gt;= 0) { if (s[k] === t[j]) j--; k--; }      // walk back matching t in reverse
-    const start = k + 1;
-    if (best === '' || end - start &lt; best.length) best = s.slice(start, end);
-    i = start + 1;                                       // restart just after start, NOT after end
-  }
-  return best;
-}
-
 // 219 Contains Duplicate II — fixed window of the last k values
 function containsNearbyDuplicate(nums: number[], k: number): boolean {
   const win = new Set&lt;number&gt;();
@@ -396,7 +379,7 @@ function containsNearbyDuplicate(nums: number[], k: number): boolean {
   }
   return false;
 }</code></pre>
-<div class="box warn"><b class="tag">⚠️ Traps</b> <b>560:</b> seed the map with <code>{0: 1}</code> and look up <i>before</i> inserting the current prefix. <b>727:</b> restart at <code>start + 1</code>, not <code>end</code> — overlapping windows can be shorter. <b>219:</b> the window holds at most <code>k</code> elements.</div>
+<div class="box warn"><b class="tag">⚠️ Traps</b> <b>560:</b> seed the map with <code>{0: 1}</code> and look up <i>before</i> inserting the current prefix. <b>219:</b> the window holds at most <code>k</code> elements.</div>
 </details>
 
 <h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
@@ -405,7 +388,7 @@ function containsNearbyDuplicate(nums: number[], k: number): boolean {
 <tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
 <tr><td><a href="#p-fixed">Fixed window</a></td><td>643 Max Average · 567 Permutation in String · 438 Find All Anagrams · 219 Contains Duplicate II</td><td>Med</td></tr>
 <tr><td><a href="#p-long">Longest variable</a></td><td>3 Longest Substring No Repeat · 424 Char Replacement · 340 K Distinct</td><td>Med</td></tr>
-<tr><td><a href="#p-short">Shortest variable</a></td><td>209 Min Size Subarray Sum · <b>76 Minimum Window Substring</b> · <b>727 Min Window Subsequence</b></td><td>Med → <b>Hard</b></td></tr>
+<tr><td><a href="#p-short">Shortest variable</a></td><td>209 Min Size Subarray Sum · <b>76 Minimum Window Substring</b></td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-count">Exactly-K (atMost trick)</a></td><td>930 Binary Subarrays · <b>992 Subarrays w/ K Distinct</b> · 1248 · 560 Subarray Sum = K (negatives → prefix sums)</td><td>Med → <b>Hard</b></td></tr>
 <tr><td><a href="#p-deque">Monotonic deque</a></td><td><b>239 Sliding Window Maximum</b> · 1438 Limit ≤ abs diff</td><td>Med → <b>Hard</b></td></tr>
 </table>
