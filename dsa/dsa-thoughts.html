@@ -64,7 +64,7 @@
   <a href="#t4"><b>04</b>Kahn's cycle detection</a>
   <a href="#t5"><b>05</b>Hierholzer's</a>
   <a href="#t6"><b>06</b>Sieve of Eratosthenes</a>
-  <a href="#t7"><b>07</b>Dijkstra init</a>
+  <a href="#t7"><b>07</b>Seed the start: BFS + Dijkstra</a>
   <a href="#t8"><b>08</b>Grid as graph V+E</a>
   <a href="#t9"><b>09</b>Serialize tree → preorder</a>
   <a href="#t10"><b>10</b>BST → inorder</a>
@@ -142,11 +142,14 @@ Push node to result on the way OUT (post-order) → <b>reverse at the end</b>.</
 <h2 id="t6">6 · 🔢 Sieve of Eratosthenes</h2>
 <div class="box key"><b class="tag">📌 One-line</b> <code>TC = O(n log log n)</code> — sum of <code>n/p</code> over all primes <code>p ≤ n</code>.</div>
 
-<h2 id="t7">7 · 🎯 Dijkstra — Initialization</h2>
-<p>Weighted graph, non-negative weights → think Dijkstra.</p>
-<pre class="language-tsx"><code class="language-tsx">dist[node] = Infinity
-dist[source] = 0</code></pre>
-<div class="box key"><b class="tag">🔑 Mental swap</b> BFS → <code>visited[]</code>. Dijkstra → <code>dist[] = ∞</code>.</div>
+<h2 id="t7">7 · 🎯 Seed the Start Before the Loop (BFS + Dijkstra)</h2>
+<p>Unweighted → BFS. Weighted, non-negative weights → Dijkstra. Both need the start set up <b>before</b> the loop.</p>
+<pre class="language-tsx"><code class="language-tsx">// BFS
+queue = [start]; visited.add(start);   // mark when you push, not when you pop
+// Dijkstra
+dist.fill(Infinity); dist[src] = 0; pq.enqueue([0, src]);</code></pre>
+<div class="box warn"><b class="tag">⚠️</b> Forget to mark <code>start</code> visited → a neighbour pushes it again. Forget <code>dist[src] = 0</code> → every distance stays <code>Infinity</code>.</div>
+<div class="box key"><b class="tag">📌</b> Before the loop: start is in the queue, marked, with distance 0. Mental swap: BFS → <code>visited</code>, Dijkstra → <code>dist[] = ∞</code>.</div>
 
 <h2 id="t8">8 · 📐 Grid as Graph — V+E Complexity</h2>
 <pre class="language-tsx"><code class="language-tsx">V = M×N
