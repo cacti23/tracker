@@ -72,7 +72,7 @@
   <a href="#t12"><b>12</b>Tree parent map</a>
   <a href="#t13"><b>13</b>Dijkstra dist[] need</a>
   <a href="#t14"><b>14</b>Dijkstra complexity</a>
-  <a href="#t15"><b>15</b>Visited: required vs optional</a>
+  <a href="#t15"><b>15</b>visited vs parent</a>
   <a href="#t16"><b>16</b>Hierholzer's TC = O(E)</a>
   <a href="#t17"><b>17</b>V+E is a shortcut</a>
   <a href="#t18"><b>18</b>Sentinel-seeding safety</a>
@@ -203,17 +203,16 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 <p>📐 <b>Total:</b> <code>E × log E = O(E log E)</code> — V never appears.</p>
 <div class="box key"><b class="tag">📌</b> Complexity = (how many times can an edge relax) × (cost per relax). Dijkstra: <code>E × log E</code>. Same question for Bellman-Ford: every edge can relax up to <code>V−1</code> times → <code>O(V·E)</code>.</div>
 
-<h2 id="t15">15 · 🔁 When Visited Is REQUIRED vs Optional</h2>
-<p><b>🎯</b> Ask one question: <b>can I walk back to where I came from?</b></p>
-<pre class="language-none"><code class="language-none">What am I walking?                        visited?
-Binary tree (child pointers only)      →  NO        (no way back up)
-Tree as an edge list (undirected)      →  skip PARENT (or visited)
-Undirected graph / grid                →  YES       (edge u–v goes both ways = a tiny cycle)
-Directed graph WITH a cycle            →  YES
-DAG (no cycle)                         →  optional  (speed only)</code></pre>
-<div class="box warn"><b class="tag">🚨</b> "No cycle in the problem" doesn't save an undirected graph — every undirected edge is already a 2-step cycle (u→v→u).</div>
-<div class="box warn"><b class="tag">🔄 Cycle detection, undirected</b> Here <code>visited</code> alone is NOT enough. Always <code>visited</code> + <code>parent</code>: <code>visited</code> finds the cycle, <code>parent</code> stops the walk-back on <code>u–v</code> from looking like one. Details: <a href="#t21">#21</a>.</div>
-<div class="box key"><b class="tag">📌</b> Can walk back → visited required. Can't → optional. One catch: if the same node must appear in several valid paths (Word Ladder II reconstruction), visited can wrongly block the second one.</div>
+<h2 id="t15">15 · 🗺️ When Do I Need <code>visited</code> vs <code>parent</code>?</h2>
+<pre class="language-none"><code class="language-none">What am I doing?                         Need
+🌳 Tree (no loops)                     →  parent only      (the only way back is the road you came on)
+🌐 Graph, just traversing              →  visited only     (seen it? skip)
+   (BFS / DFS / components / reach)
+🔁 Undirected graph, detect a cycle     →  visited + parent (visited node that ISN'T parent → cycle)
+➡️ Directed graph, detect a cycle       →  3 colors: 0 new, 1 in progress, 2 done (hit a 1 → cycle)</code></pre>
+<p>🔁 Why undirected needs both: edge <code>u–v</code> is stored both ways, so you always "see" where you came from. <code>parent</code> = ignore the node I just came from (<a href="#t21">#21</a>).</p>
+<div class="box warn"><b class="tag">💥</b> Parent only on a graph with loops → infinite loop. <code>0 — 1 — 2 — 0</code>: parent blocks 1 step back, not 2, so it goes round forever.</div>
+<div class="box key"><b class="tag">📌</b> Parent stops one step back. Visited stops every step back. (Catch: if a node must appear in several valid paths, like Word Ladder II, visited can wrongly block the second one.)</div>
 
 <h2 id="t16">16 · ✈️ Hierholzer's DFS — TC = O(E), NOT V+E</h2>
 <p><b>🎯</b> Every edge is CONSUMED exactly once (<code>nei.pop()</code> permanently removes it).</p>
