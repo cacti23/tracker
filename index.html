@@ -280,7 +280,7 @@
     body.embed-view > .d-flex { height: 100vh; }
     body.embed-view #main-col { min-height: 0; height: 100vh; }
     body.embed-view main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-    body.embed-view #view-google, body.embed-view #view-papers { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .embed-frame { width: 100%; flex: 1 1 auto; min-height: 0; height: calc(100vh - 8rem);
       border: 1px solid var(--border, #2a2f3d); border-radius: 12px; background: transparent; }
 
@@ -996,6 +996,12 @@
         <span class="nav-topic-icon">📚</span>
         <span class="nav-topic-label">Paper Club</span>
       </button>
+
+      <p class="sidebar-section-label">Visuals</p>
+      <button type="button" id="nav-visuals" onclick="loadVisuals()" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
+        <span class="nav-topic-icon">🖼️</span>
+        <span class="nav-topic-label">Visuals</span>
+      </button>
     </nav>
 
     <a href="apps/gym-5day.html" class="sidebar-gym-link">
@@ -1110,6 +1116,11 @@
       <!-- ── VIEW: Papers ── rendered by loadPapers(). Embeds papers/paper-club.html in-pane, like Google. -->
       <div id="view-papers" class="d-none">
         <iframe id="papers-frame" class="embed-frame" title="Paper Club"></iframe>
+      </div>
+
+      <!-- ── VIEW: Visuals ── rendered by loadVisuals(). Embeds visuals/visuals.html in-pane, like Papers. -->
+      <div id="view-visuals" class="d-none">
+        <iframe id="visuals-frame" class="embed-frame" title="Visuals"></iframe>
       </div>
 
     </main>
@@ -1709,6 +1720,7 @@ function _restoreView() {
   try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
   if (saved === 'google') loadGoogle()
   else if (saved === 'papers') loadPapers()
+  else if (saved === 'visuals') loadVisuals()
   else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
   else loadDashboard()
 }
@@ -1755,6 +1767,23 @@ function loadPapers() {
   _saveCurrentView('papers')
   const frame = document.getElementById('papers-frame')
   if (frame.getAttribute('src') !== PAPERS_SRC) frame.setAttribute('src', PAPERS_SRC)
+}
+
+// ─── VISUALS (in-pane image cheat sheets, same pattern as Papers) ───
+const VISUALS_SRC = 'visuals/visuals.html'
+function loadVisuals() {
+  showView('view-visuals')
+  _stopTimer()
+  _qpStopTimer()
+  document.getElementById('page-title').textContent = '🖼️ Visuals'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const nav = document.getElementById('nav-visuals')
+  if (nav) nav.classList.add('active')
+  currentTopicKey = null
+  _saveCurrentView('visuals')
+  const frame = document.getElementById('visuals-frame')
+  if (frame.getAttribute('src') !== VISUALS_SRC) frame.setAttribute('src', VISUALS_SRC)
 }
 
 function loadDashboard() {
@@ -4528,11 +4557,11 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  const embed = id === 'view-google' || id === 'view-papers'
+  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals'
   document.body.classList.toggle('embed-view', embed)
   // html has smooth scrolling; a scrolled page would shift the locked frame
   if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
-  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers']
+  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals']
   views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
@@ -4553,6 +4582,8 @@ function clearActiveNav() {
   if (goog) goog.classList.remove('active')
   const papers = document.getElementById('nav-papers')
   if (papers) papers.classList.remove('active')
+  const visuals = document.getElementById('nav-visuals')
+  if (visuals) visuals.classList.remove('active')
 }
 
 function setActiveNav(key) {

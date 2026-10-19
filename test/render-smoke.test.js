@@ -98,3 +98,10 @@ test('Papers sidebar entry opens in-pane: loadPapers() shows #view-papers and em
   assert.equal(getElement('papers-frame').getAttribute('src') || evalIn(sandbox, 'PAPERS_SRC'), 'papers/paper-club.html')
   assert.equal(evalIn(sandbox, "localStorage.getItem('dsa-current-view-v1')"), 'papers')
 })
+
+test('Visuals sidebar entry opens in-pane: loadVisuals() shows #view-visuals and embeds visuals/visuals.html', () => {
+  const { sandbox, getElement } = loadAppWithDom()
+  evalIn(sandbox, 'loadVisuals()')
+  assert.equal(getElement('visuals-frame').getAttribute('src') || evalIn(sandbox, 'VISUALS_SRC'), 'visuals/visuals.html')
+  assert.equal(evalIn(sandbox, "localStorage.getItem('dsa-current-view-v1')"), 'visuals')
+})

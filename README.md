@@ -9,9 +9,10 @@ Personal tracker for DSA interview prep, plus a few small side apps. It's a plai
 | `index.html` | **DSA Notebook**, the main app. Dashboard, 16 topics, 600+ questions, practice sessions (Worked / Graded / Mock), spaced-repetition revision, daily question, streaks, notes, pins, search. |
 | `js/data.js` | Topic and question data, plus the localStorage helpers for progress, notes and revision state. |
 | `js/sync.js` | Cross-device sync through a private GitHub gist. Shared by every app. |
-| `js/back-button.js` | Floating "← Tracker" pill on every standalone page (`dsa/`, `apps/`, `google/`). |
+| `js/back-button.js` | Floating "← Tracker" pill on every standalone page (`dsa/`, `apps/`, `google/`, `visuals/`). |
 | `dsa/*.html` | One cheatsheet per topic, plus the master map, thoughts and JS built-ins pages. |
 | `google/*.html` | Google prep hub, interview sources and onsite log. They're shown inside the main app's Google view. |
+| `visuals/visuals.html` | Image cheat sheets (inline SVG cards, one picture per idea). Shown inside the main app's Visuals view. |
 | `apps/gym-5day.html` | 5-day PPL workout tracker. |
 | `apps/habits.html` | Habits tracker (its own PWA: `habits-manifest.json`, `habits-sw.js`). |
 | `docs/` | Prompts and personal notes (`docs/notes`). |
