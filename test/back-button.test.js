@@ -14,13 +14,13 @@ const SRC = fs.readFileSync(path.join(ROOT, 'js', 'back-button.js'), 'utf8')
 
 function standalonePages() {
   const out = []
-  for (const dir of ['dsa', 'apps', 'google', 'papers']) {
+  for (const dir of ['dsa', 'apps', 'google', 'papers', 'visuals']) {
     for (const f of fs.readdirSync(path.join(ROOT, dir))) if (f.endsWith('.html')) out.push(path.join(dir, f))
   }
   return out
 }
 
-test('every standalone page (dsa/, apps/, google/, papers/) loads ../js/back-button.js', () => {
+test('every standalone page (dsa/, apps/, google/, papers/, visuals/) loads ../js/back-button.js', () => {
   const missing = standalonePages().filter(f => !/<script src="\.\.\/js\/back-button\.js"><\/script>/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')))
   assert.deepEqual(missing, [], `pages with no back-to-tracker button: ${missing.join(', ')}`)
 })
