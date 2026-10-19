@@ -101,7 +101,7 @@
   <a href="#t41"><b>41</b>||/&amp;&amp; short-circuit bug</a>
   <a href="#t42"><b>42</b>Group + delete-once BFS</a>
   <a href="#t43"><b>43</b>1-indexed labels, the -1 trap</a>
-  <a href="#t44"><b>44</b>Valid tree — the two conditions</a>
+  <a href="#t44"><b>44</b>Valid tree: connected + no cycle</a>
   <a href="#t45"><b>45</b>Designing the state: read it twice</a>
   <a href="#t46"><b>46</b>Leaves vs total nodes</a>
   <a href="#t47"><b>47</b>k pieces = k−1 cuts</a>
@@ -880,25 +880,19 @@ pq.enqueue([0, nk]);
 dist[nk] = 0;</code></pre>
 <div class="box key"><b class="tag">📌</b> 1-indexed input → 0-indexed internal structures means converting ALL node references consistently — edges inside a loop are easy to remember, but a standalone source/target parameter sitting OUTSIDE that loop is exactly where this <code>-1</code> gets forgotten. Audit every place a raw input node label touches an array index.</div>
 
-<h2 id="t44">44 · 🌳 Valid Tree — The Two Conditions, Two Ways to Check Them</h2>
-<p><b>🎯</b> A graph is a valid tree exactly when it is CONNECTED and ACYCLIC. Same fact, two equivalent lenses depending on how you're looking at the graph.</p>
-
-<h3>➡️ Directed / parent-pointer view (each node points to its parent)</h3>
+<h2 id="t44">44 · 🌳 Valid Tree — Just Two Rules: Connected + No Cycle</h2>
+<p><b>🎯</b> Any tree (binary, ternary, any number of children) is valid when:</p>
+<ol>
+<li>🔗 <b>Connected</b>: one component, every node reachable</li>
+<li>🚫 <b>No cycle</b></li>
+</ol>
+<p>Binary vs ternary only limits children per node. It doesn't change what makes it a tree.</p>
+<p>🛠️ <b>How to check:</b></p>
 <ul>
-<li>Every node has <b>at most one parent</b></li>
-<li>Exactly <b>one node has zero parents</b> → that's the root</li>
-<li><b>No cycles</b> — a node can never be its own ancestor</li>
+<li>Undirected edges (LC 261): exactly <code>n − 1</code> edges + connected (no cycle follows from that)</li>
+<li>Parent pointers (LC 1361): each node has ≤ 1 parent, exactly one root (0 parents), all reachable from the root</li>
 </ul>
-
-<h3>🔗 Undirected / edge-count view (LC 261 Graph Valid Tree)</h3>
-<ul>
-<li>For <code>n</code> nodes, exactly <b><code>n-1</code> edges</b></li>
-<li>Graph is <b>fully connected</b> — one component</li>
-<li><b>No cycles</b></li>
-</ul>
-
-<div class="box warn"><b class="tag">🚨</b> "No two different edges between the same parent/child pair" is just the no-cycle rule in disguise — a duplicate edge between two already-connected nodes closes a 2-node cycle, same as any other cycle.</div>
-<div class="box key"><b class="tag">📌</b> Both views encode the same underlying fact — connected + acyclic — just counted differently: directed counts PARENTS PER NODE (max 1, exactly one with 0), undirected counts EDGES (exactly n-1) and checks connectivity directly. Pick whichever matches how the problem hands you the graph.</div>
+<div class="box key"><b class="tag">📌</b> Tree = connected + no cycle. Everything else is a way to count it.</div>
 
 <h2 id="t45">45 · 🧠 Recursion / DP — Designing the STATE: Read the Question Twice</h2>
 <p><b>🎯</b> Read the question TWICE before any recursion or DP:</p>
