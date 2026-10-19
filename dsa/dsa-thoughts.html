@@ -46,6 +46,8 @@
   .chips button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .grp h3{margin:1.2em 0 0;font-size:.95rem;color:var(--muted)}
   .grp .nav{margin-top:.4em}
+  .sum{border:1px solid var(--accent-line);border-radius:9px;padding:0 1em .4em;margin-top:1.4em;background:var(--accent-soft)}
+  .sum h2{border-top:0}
   [hidden]{display:none!important}
   @media print{
     .nav,.chips,.grp h3{display:none}
@@ -65,8 +67,8 @@
 <p class="sub">Quick-reference mental models and decision rules — not a full learning sheet, a "remember this the instant you see the shape" cheat sheet.</p>
 
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 54</button>
-  <button data-g="graph">🕸️ Graph · 24</button>
+  <button data-g="all" class="on">📚 All · 49</button>
+  <button data-g="graph">🕸️ Graph · 19</button>
   <button data-g="tree">🌳 Trees · 4</button>
   <button data-g="rec">🔀 Recursion &amp; Backtracking · 9</button>
   <button data-g="dp">🧩 Dynamic Programming · 9</button>
@@ -77,20 +79,15 @@
 </div>
 
 <div class="grp" data-g="graph">
-<h3>🕸️ Graph</h3>
+<h3>🕸️ Graph · <a href="#graph-sum" data-g="graph">🧠 must remember</a></h3>
 <nav class="nav">
   <a href="#t1"><b>01</b>Blocked start/dest</a>
-  <a href="#t3"><b>03</b>Direction array</a>
-  <a href="#t4"><b>04</b>Kahn's cycle detection</a>
   <a href="#t5"><b>05</b>Hierholzer's</a>
   <a href="#t7"><b>07</b>Seed the start: BFS + Dijkstra</a>
-  <a href="#t8"><b>08</b>Grid as graph V+E</a>
   <a href="#t11"><b>11</b>BFS vs backtracking (DFS)</a>
   <a href="#t12"><b>12</b>Tree parent map</a>
   <a href="#t13"><b>13</b>Dijkstra dist[] need</a>
-  <a href="#t14"><b>14</b>Dijkstra complexity</a>
   <a href="#t15"><b>15</b>visited vs parent</a>
-  <a href="#t16"><b>16</b>Hierholzer's TC = O(E)</a>
   <a href="#t17"><b>17</b>V+E is a shortcut</a>
   <a href="#t19"><b>19</b>BFS vs Dijkstra</a>
   <a href="#t21"><b>21</b>Cycle detection, all methods</a>
@@ -175,9 +172,31 @@
 </nav>
 </div>
 
+<section data-g="graph" class="sum" id="graph-sum">
+<h2>🧠 Graph — Must Remember</h2>
+<ul>
+<li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#t19">#19</a>)</li>
+<li>🎯 <b>Seed before the loop:</b> BFS marks visited on push · Dijkstra <code>dist[src] = 0</code> (<a href="#t7">#7</a>)</li>
+<li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → <code>O(E log E)</code> (<a href="#t13">#13</a>)</li>
+<li>🗺️ <b>visited vs parent:</b> tree → parent · graph → visited · undirected cycle → both · directed cycle → 3 colors (<a href="#t15">#15</a>)</li>
+<li>🔄 <b>Cycle:</b> undirected → visited + parent or Union-Find · directed → 0/1/2 DFS or Kahn's (<a href="#t21">#21</a>)</li>
+<li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#t44">#44</a>)</li>
+<li>🔦 <b>Path itself matters?</b> DFS + undo (backtracking). Only reach/count/min steps → BFS (<a href="#t11">#11</a>)</li>
+<li>⚖️ <b>V+E</b> only when work per node/edge is O(1) · grid → <code>O(MN)</code> (<a href="#t17">#17</a>, <a href="#t33">#33</a>)</li>
+<li>🚨 <b>Traps:</b> blocked start/end (<a href="#t1">#1</a>) · 1-indexed source <code>k − 1</code> (<a href="#t43">#43</a>)</li>
+</ul>
+</section>
+
 <section data-g="graph">
-<h2 id="t1">1 · 🧱 Grid Traversal — Blocked Start/Destination</h2>
-<p>Before starting, check if start OR destination is blocked (<code>-1</code>, thorn, obstacle). Handle immediately.</p>
+<h2 id="t1">1 · 🧱 Grid Basics — Blocked Start/End, Direction Array</h2>
+<p>🚧 Before starting, check if the start OR destination is blocked (<code>-1</code>, thorn, obstacle). Handle it immediately.</p>
+<p id="t3">🧭 <b>Directions, Top → Right → Down → Left:</b></p>
+<pre class="language-tsx"><code class="language-tsx">const dirs = [
+  [-1,  0],   // top
+  [ 0,  1],   // right
+  [ 1,  0],   // down
+  [ 0, -1],   // left
+]</code></pre>
 </section>
 
 <section data-g="rec">
@@ -190,24 +209,10 @@
 </section>
 
 <section data-g="graph">
-<h2 id="t3">3 · 🧭 Standard Direction Array</h2>
-<p><b>Top → Right → Down → Left</b></p>
-<pre class="language-tsx"><code class="language-tsx">[-1,  0]
-[ 0,  1]
-[ 1,  0]
-[ 0, -1]</code></pre>
-</section>
-
-<section data-g="graph">
-<h2 id="t4">4 · 🔁 Kahn's Algorithm — Cycle Detection (Directed)</h2>
-<p>Peel nodes with <code>indegree=0</code> repeatedly. Cycle nodes NEVER hit 0.</p>
-<div class="box key"><b class="tag">📌 One-line</b> <code>processedNodes &lt; totalNodes</code> → cycle exists.</div>
-</section>
-
-<section data-g="graph">
-<h2 id="t5">5 · ✈️ Hierholzer's Algorithm</h2>
-<p>For Eulerian paths — visit every <b>EDGE</b> once, not every node.
-Push node to result on the way OUT (post-order) → <b>reverse at the end</b>.</p>
+<h2 id="t5">5 · ✈️ Hierholzer's — Every Edge Once, TC = O(E)</h2>
+<p>🎯 Eulerian path = use every <b>EDGE</b> once, not every node. Push the node to the result on the way OUT (post-order), then <b>reverse at the end</b>.</p>
+<p id="t16">⏱️ <b>TC = <code>O(E)</code>, not V+E:</b> each edge is removed once (<code>graph[node].pop()</code>). A node is visited once per outgoing edge, so counting nodes separately adds nothing.</p>
+<div class="box key"><b class="tag">📌</b> DFS that consumes each edge once → <code>O(E)</code>. Build the result post-order, reverse at the end.</div>
 </section>
 
 <section data-g="math">
@@ -224,14 +229,6 @@ queue = [start]; visited.add(start);   // mark when you push, not when you pop
 dist.fill(Infinity); dist[src] = 0; pq.enqueue([0, src]);</code></pre>
 <div class="box warn"><b class="tag">⚠️</b> Forget to mark <code>start</code> visited → a neighbour pushes it again. Forget <code>dist[src] = 0</code> → every distance stays <code>Infinity</code>.</div>
 <div class="box key"><b class="tag">📌</b> Before the loop: start is in the queue, marked, with distance 0. Mental swap: BFS → <code>visited</code>, Dijkstra → <code>dist[] = ∞</code>.</div>
-</section>
-
-<section data-g="graph">
-<h2 id="t8">8 · 📐 Grid as Graph — V+E Complexity</h2>
-<pre class="language-tsx"><code class="language-tsx">V = M×N
-E &lt;= 4×M×N
-V+E = MN+4MN = 5MN = O(MN)</code></pre>
-<div class="box key"><b class="tag">🔑</b> Grid BFS/DFS → <code>O(MN)</code>, the constant 4 drops.</div>
 </section>
 
 <section data-g="tree">
@@ -275,21 +272,16 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 </section>
 
 <section data-g="graph">
-<h2 id="t13">13 · 🎯 Dijkstra — Why <code>dist[]</code> Is Always Needed</h2>
-<p><b>🎯</b> Only trust a path if it's the CHEAPEST way found SO FAR to a node.</p>
-<p><code>dist[node]</code> = best cost discovered so far.</p>
-<div class="box warn"><b class="tag">🚨</b> A node CAN be pushed to the queue multiple times (once per improving path). <code>dist[]</code> decides: is THIS entry still the best, or has something better already replaced it?</div>
-<pre class="language-tsx"><code class="language-tsx">if (currTime > dist[row][col]) continue;  // stale — a better path already won</code></pre>
-<div class="box key"><b class="tag">📌</b> <code>dist[]</code> guarantees you only ever ACT using a node's LOWEST known cost, never a stale worse one.</div>
-</section>
-
-<section data-g="graph">
-<h2 id="t14">14 · ⏱️ Dijkstra Complexity — How Many Times Can an Edge Relax? (NOT from V+E)</h2>
-<p><b>🎯 Relax</b> = an edge finds a smaller distance to a node → update <code>dist[]</code> and push.</p>
-<p><b>Q1. How many times can an edge relax?</b> Once each — an edge is only looked at when its source node is popped for real (not a stale entry). So at most <code>E</code> relaxations → at most <b><code>E</code> pushes</b>.</p>
-<p><b>Q2. Cost of one push/pop?</b> The heap holds up to <code>E</code> entries → <b><code>log E</code></b>.</p>
-<p>📐 <b>Total:</b> <code>E × log E = O(E log E)</code> — V never appears.</p>
-<div class="box key"><b class="tag">📌</b> Complexity = (how many times can an edge relax) × (cost per relax). Dijkstra: <code>E × log E</code>. Same question for Bellman-Ford: every edge can relax up to <code>V−1</code> times → <code>O(V·E)</code>.</div>
+<h2 id="t13">13 · 🎯 Dijkstra — Skip Stale Entries, TC = O(E log E)</h2>
+<p><code>dist[node]</code> = cheapest cost found so far. A node can sit in the heap several times (once per cheaper path found), so skip the old ones:</p>
+<pre class="language-tsx"><code class="language-tsx">if (currTime &gt; dist[node]) continue   // stale: a cheaper path already won</code></pre>
+<p id="t14">⏱️ <b>TC, counted from relaxations (not from V+E):</b></p>
+<ul>
+<li>A node is expanded for real only once, so each edge is checked once → at most <code>E</code> pushes.</li>
+<li>Heap holds up to <code>E</code> entries → each push/pop is <code>log E</code>.</li>
+<li>Total <code>O(E log E)</code>. Same as <code>O(E log V)</code>, since <code>E ≤ V²</code> makes <code>log E ≤ 2 log V</code>.</li>
+</ul>
+<div class="box key"><b class="tag">📌</b> Act only on a node's lowest known cost. TC = (how many times an edge can relax) × (cost per relax): Dijkstra <code>E × log E</code>, Bellman-Ford <code>V × E</code> (every edge, up to <code>V−1</code> rounds).</div>
 </section>
 
 <section data-g="graph">
@@ -306,23 +298,13 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 </section>
 
 <section data-g="graph">
-<h2 id="t16">16 · ✈️ Hierholzer's DFS — TC = O(E), NOT V+E</h2>
-<p><b>🎯</b> Every edge is CONSUMED exactly once (<code>nei.pop()</code> permanently removes it).</p>
-<div class="box warn"><b class="tag">🚨</b> A NODE can be visited MULTIPLE times (once per outgoing edge it has) — so "V node-visits" isn't a meaningful separate count here.</div>
-<div class="box key"><b class="tag">🔑</b> Total work = total edges popped = <code>O(E)</code> alone. No <code>+V</code> term needed — <code>E</code> already captures ALL the work.</div>
-<div class="box key"><b class="tag">📌</b> Whenever a DFS CONSUMES each edge exactly once (Hierholzer's / Eulerian path problems) → TC = O(E), not V+E.</div>
-</section>
-
-<section data-g="graph">
 <h2 id="t17">17 · ⚖️ V+E Is a Shortcut — Only Safe When Work Is O(1)</h2>
-<p><b>🎯</b> <code>V+E</code> secretly means <code>V×(work per node) + E×(work per edge)</code>.</p>
-<p>✅ When work per node/edge is O(1) (a comparison, a fixed neighbor check) → safely write just <code>V+E</code>.</p>
-<div class="box warn"><b class="tag">🚨</b> When work per node/edge is MORE than O(1) (building a string, computing a hash) → must EXPLICITLY multiply:</div>
-<pre class="language-tsx"><code class="language-tsx">Total = (V × work per node) + (E × work per edge)</code></pre>
-<p>📐 <b>Example — removeInvalidParentheses:</b> <code>V=2^n</code> states, <code>E=2^n·L</code> edges (L removal-choices per state), work per edge = <code>O(L)</code> (string slice).</p>
-<pre class="language-tsx"><code class="language-tsx">Total = 2^n×L (work per node, building L edges) + (2^n·L)×L (work per edge)
-      = O(2^n · L²)</code></pre>
-<div class="box key"><b class="tag">📌</b> Don't default to "V+E" blindly — check the cost of ONE unit of work first. If it's O(1), V+E is fine as-is. If it's O(k), multiply that k into both terms explicitly.</div>
+<p><b>🎯</b> <code>V+E</code> really means <code>V × (work per node) + E × (work per edge)</code>.</p>
+<p>✅ Work per node/edge is O(1) (a comparison, a neighbour check) → just write <code>V+E</code>.</p>
+<div class="box warn"><b class="tag">🚨</b> Work is more than O(1) (building a string, hashing it) → multiply it in.</div>
+<p>📐 <b>Example — removeInvalidParentheses</b> (<code>n</code> = string length): up to <code>2^n</code> states, each makes up to <code>n</code> children (edges), and each child is an <code>O(n)</code> string slice.</p>
+<pre class="language-tsx"><code class="language-tsx">Total = 2^n states × n children × O(n) slice = O(2^n · n²)</code></pre>
+<div class="box key"><b class="tag">📌</b> Check the cost of ONE unit of work first. O(1) → <code>V+E</code>. O(k) → multiply k in.</div>
 </section>
 
 <section data-g="rec">
@@ -347,12 +329,17 @@ V+E = MN+4MN = 5MN = O(MN)</code></pre>
 </section>
 
 <section data-g="graph">
-<h2 id="t19">19 · 🚦 Plain BFS vs Dijkstra — Which One to Use</h2>
-<p>✅ Edges all cost <code>1</code> → Plain BFS.</p>
-<div class="box warn"><b class="tag">🚨</b> Edges have DIFFERENT weights → Dijkstra.</div>
-<p><b>Why:</b> plain BFS assumes "visited first = reached via shortest path." That's ONLY true when every step costs the same — nothing can skip ahead of a shorter path.</p>
-<p>📐 <b>Concrete break:</b> <code>start→A</code> costs <code>10</code> directly. <code>start→B→A</code> costs <code>1+1=2</code>. If <code>A</code> gets visited FIRST via the expensive <code>10</code> edge, it's locked in with the WRONG distance — the cheaper path via <code>B</code> gets blocked.</p>
-<div class="box key"><b class="tag">📌</b> Weight-1 edges → BFS is safe. Any varying weights → Dijkstra (priority queue + <code>dist[]</code>), since "visited first" no longer means "shortest."</div>
+<h2 id="t19">19 · 🚦 Which Shortest-Path Tool?</h2>
+<table>
+<tr><th>Edges</th><th>Use</th></tr>
+<tr><td>All cost 1</td><td>🟢 BFS</td></tr>
+<tr><td>Different weights, all ≥ 0</td><td>🔵 Dijkstra (<a href="#t13">#13</a>)</td></tr>
+<tr><td>Negative weights, or "at most K stops"</td><td>🟠 Bellman-Ford (<a href="#t25">#25</a>)</td></tr>
+<tr><td>Every pair of nodes</td><td>🟣 Floyd-Warshall (<a href="#t26">#26</a>)</td></tr>
+<tr><td>Connect everyone cheapest (not a path)</td><td>🌲 Kruskal's MST (<a href="#t29">#29</a>)</td></tr>
+</table>
+<p><b>Why BFS breaks with weights:</b> BFS trusts "visited first = shortest". 📐 <code>start→A</code> costs <code>10</code>, <code>start→B→A</code> costs <code>1+1 = 2</code>. BFS reaches <code>A</code> first by the direct edge, locks in 10, and the cheaper path via <code>B</code> is blocked.</p>
+<div class="box key"><b class="tag">📌</b> Weight-1 edges → BFS. Any other weights → "visited first" no longer means shortest → Dijkstra.</div>
 </section>
 
 <section data-g="bs">
@@ -476,11 +463,11 @@ dfs(node):
     if state[nei]===1: CYCLE (back edge to node still exploring)
     if state[nei]===0: dfs(nei)
   state[node] = 2</code></pre>
-<p><b>2. Kahn's (BFS topological sort):</b></p>
+<p id="t4"><b>2. Kahn's (BFS topological sort):</b> keep peeling nodes with <code>indegree 0</code>. Nodes on a cycle never reach 0.</p>
 <pre class="language-tsx"><code class="language-tsx">queue = all nodes with indegree 0
 process queue, decrementing neighbors' indegree, adding new indegree-0 nodes
-if processedCount !== n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
-<div class="box key"><b class="tag">📌</b> Undirected → DFS/BFS parent-skip or Union-Find (3 valid ways). Directed → 0/1/2 DFS or Kahn's ONLY — Union-Find can't tell direction apart, so it can't detect directed cycles.</div>
+if processedCount &lt; n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
+<div class="box key"><b class="tag">📌</b> Undirected → DFS/BFS parent-skip or Union-Find. Directed → 0/1/2 DFS or Kahn's (<code>processed &lt; n</code> → cycle). Union-Find can't tell direction, so it can't detect directed cycles.</div>
 </section>
 
 <section data-g="graph">
@@ -511,38 +498,40 @@ else nextTime = neiTime</code></pre>
 
 <section data-g="graph bs">
 <h2 id="t24">24 · 🎯 Binary Search + BFS vs Binary Search + Dijkstra</h2>
-<p><b>🎯</b> "Can I reach X using only edges ≤ mid?" → BFS. "What's the CHEAPEST path?" → Dijkstra.</p>
-<div class="box key"><b class="tag">🔑</b> When binary search picks <code>mid</code> (max allowed weight) and FILTERS the graph to <code>weight ≤ mid</code>, the weight-reasoning is ALREADY done externally — the inner check just needs YES/NO connectivity.</div>
-<p>📐 <b>Example (LeetCode 3419):</b> minimize the max edge weight so every node reaches node 0. <code>check(mid)</code>: filter edges to <code>≤ mid</code>, then plain BFS — "does everyone reach node 0?" No distances needed, just reachability.</p>
-<div class="box key"><b class="tag">📌</b> Dijkstra finds the CHEAPEST path. BFS finds IF a path exists at all. Binary-search-on-threshold problems often only need the SECOND question — since binary search already handled "which weights count" outside the check.</div>
+<p>🎯 "Can I reach X using only edges ≤ <code>mid</code>?" → BFS. "What's the CHEAPEST path?" → Dijkstra.</p>
+<p>🔑 Binary search already picked the max allowed weight and filtered the graph, so the check only needs YES/NO reachability.</p>
+<p>📐 <b>LC 3419</b> (minimize the max edge weight so every node can reach node 0): <code>check(mid)</code> = keep edges ≤ <code>mid</code>, reverse them, BFS from 0, did it reach every node? No distances needed.</p>
+<div class="box key"><b class="tag">📌</b> Dijkstra finds the CHEAPEST path. BFS finds IF a path exists. Binary-search-on-threshold problems usually only need the second.</div>
 </section>
 
 <section data-g="graph">
-<h2 id="t25">25 · 🎯 Dijkstra vs Bellman-Ford — When to Reach for Which</h2>
-<p>✅ <b>Dijkstra:</b> only works with NON-NEGATIVE weights. Greedy — assumes "once finalized, always correct."</p>
-<div class="box warn"><b class="tag">🚨</b> Negative weights present → Bellman-Ford, not Dijkstra. Dijkstra's greedy assumption BREAKS with negatives (a later negative edge could invalidate an "already finalized" distance).</div>
-<div class="box key"><b class="tag">🔑 Bellman-Ford bonus</b> detects negative cycles too — run one EXTRA round past <code>V-1</code>; if anything STILL improves, a negative cycle exists.</div>
-<p><b>🎯 Second trigger for Bellman-Ford</b> (no negative weights needed): "at most K stops/edges" constraints. <code>K stops</code> maps directly to <code>K+1</code> bounded relaxation rounds — e.g., Cheapest Flights Within K Stops (787). Dijkstra can't express this cap without extending its state; Bellman-Ford's round-by-round structure handles it naturally.</p>
-<div class="box warn"><b class="tag">⚠️</b> Not "Bellman-Ford needs directed graphs" — the real rule: UNDIRECTED + NEGATIVE weight = automatic negative cycle. A single undirected negative edge <code>(u,v,-w)</code> lets you bounce <code>u→v→u</code> forever, decreasing cost each time — that alone IS a negative cycle.</div>
-<p>✅ Undirected + NON-NEGATIVE weights → safe to convert to directed (add both <code>u→v</code> and <code>v→u</code>, same weight) and run Bellman-Ford normally — same trick as building an adjacency list for BFS/DFS.</p>
+<h2 id="t25">25 · 🟠 Bellman-Ford — Negative Weights or K Stops</h2>
+<p>🚨 <b>Negative weights → Bellman-Ford, not Dijkstra.</b> Dijkstra is greedy ("once finalized, always correct"), and a later negative edge can break a finalized distance.</p>
+<p>🔁 <b>Negative cycle check:</b> run one extra round after <code>V−1</code>. Anything still improves → negative cycle.</p>
+<p>🎯 <b>"At most K stops"</b> (no negatives needed, LC 787): K stops = <code>K+1</code> rounds. Dijkstra can't cap the edge count without adding it to its state.</p>
+<pre class="language-tsx"><code class="language-tsx">for (let round = 0; round &lt;= k; round++) {
+  const prev = [...dist]                    // read last round only
+  for (const [u, v, w] of flights)
+    if (prev[u] + w &lt; dist[v]) dist[v] = prev[u] + w
+}</code></pre>
+<div class="box warn"><b class="tag">⚠️</b> Without the <code>prev</code> copy, one round can chain several edges and break the K limit. LC 787 example (k = 1): copy → 700 ✅, no copy → 400 ❌.</div>
+<p>🔗 <b>Undirected:</b> non-negative → add <code>u→v</code> and <code>v→u</code>, run as normal. One negative undirected edge = a negative cycle by itself (bounce <code>u→v→u</code> forever).</p>
+<div class="box key"><b class="tag">📌</b> Negatives or "at most K edges" → Bellman-Ford, <code>O(V·E)</code>. For K stops, relax from a copy each round.</div>
 </section>
 
 <section data-g="graph">
-<h2 id="t26">26 · 🌊 Floyd-Warshall — General Application</h2>
-<p><b>🎯</b> Shortest distance between EVERY PAIR of nodes, all at once — not just from one source.</p>
-<pre class="language-tsx"><code class="language-tsx">dist[i][i] = 0
-dist[u][v] = w for every direct edge (both directions if undirected)
+<h2 id="t26">26 · 🌊 Floyd-Warshall — Every Pair at Once</h2>
+<p><b>🎯</b> Shortest distance between EVERY pair of nodes, not just from one source.</p>
+<pre class="language-tsx"><code class="language-tsx">dist[i][i] = 0, everything else Infinity
+dist[u][v] = Math.min(dist[u][v], w)   // per edge; set dist[v][u] too if undirected
 
-for k in 0..n:        // MUST be outermost — try every "middle stop"
+for k in 0..n:        // MUST be outermost: try every "middle stop"
   for i in 0..n:
     for j in 0..n:
       if dist[i][k]+dist[k][j] &lt; dist[i][j]:
         dist[i][j] = dist[i][k]+dist[k][j]</code></pre>
-<p>📐 <b>Undirected graph:</b> just set <code>dist[u][v]</code> AND <code>dist[v][u]</code> during init — rest of the algorithm is identical.</p>
-<div class="box warn"><b class="tag">⚠️ <code>Math.min</code> during INIT</b> (not the main loop) — apply it whenever the input CAN have multiple edges between the same pair:</div>
-<pre class="language-tsx"><code class="language-tsx">dist[u][v] = Math.min(dist[u][v], w)</code></pre>
-<p>Safe to ALWAYS include (never wrong) — only STRICTLY required if duplicates are possible. The main triple-loop relaxation never needs this — its own <code>if</code> already keeps the smaller value.</p>
-<div class="box key"><b class="tag">📌</b> <code>k</code> outermost, always. Undirected = set both directions at init. <code>Math.min</code> at init = protect against duplicate edges — harmless habit, required only if duplicates can exist.</div>
+<p>⚠️ <code>Math.min</code> at init only matters when the input can repeat an edge between the same pair, but it is never wrong, so keep it as a habit. The main loop's <code>if</code> already keeps the smaller value.</p>
+<div class="box key"><b class="tag">📌</b> <code>k</code> outermost, always. Undirected = set both directions at init. <code>O(V³)</code>.</div>
 </section>
 
 <section data-g="dp">
@@ -599,10 +588,9 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 
 <section data-g="graph">
 <h2 id="t29">29 · 🕸️ Minimum Spanning Tree — Master Kruskal's, Skip Prim's</h2>
-<p><b>🎯</b> The question: connect ALL nodes together (directly or through others) using MINIMUM TOTAL edge cost. NOT "shortest path between two specific nodes" — that's Dijkstra's job, a DIFFERENT question entirely.</p>
-<div class="box warn"><b class="tag">🚨 Why Dijkstra doesn't fit</b> Dijkstra tracks "total DISTANCE from a source" (accumulated along a path). MST doesn't care about distance FROM anywhere — it just wants the CHEAPEST network connecting everyone.</div>
-<p class="hint">Problems: LC 1584 Min Cost to Connect All Points, LC 1135 Connecting Cities With Minimum Cost, general MST questions.</p>
-<div class="box key"><b class="tag">🔑</b> Kruskal's and Prim's both compute the IDENTICAL MST — just two different strategies for the same answer. Kruskal's is the ONE to master deeply: it reuses Union-Find (already practiced extensively — cycle detection, <code>removeStones</code>, <code>magnificentSets</code>), and "sort edges, greedily add cheapest ones that don't form a cycle" is simpler to explain out loud than Prim's tree-growing approach. Learning Prim's separately isn't needed — recognizing it exists (in case an interviewer asks to compare) is enough.</div>
+<p><b>🎯</b> Connect ALL nodes (directly or through others) with the MINIMUM TOTAL edge cost. Not "shortest path between two nodes": that's Dijkstra, a different question. Dijkstra adds up distance from a source; MST doesn't care about distance from anywhere.</p>
+<p class="hint">Problems: LC 1584 Min Cost to Connect All Points, LC 1135 Connecting Cities With Minimum Cost.</p>
+<div class="box key"><b class="tag">🔑</b> Kruskal's and Prim's give the same MST. Master Kruskal's: sort edges, add the cheapest one that doesn't make a cycle (Union-Find, same as cycle detection, <code>removeStones</code>, <code>magnificentSets</code>). Prim's: just know it exists.</div>
 <pre class="language-tsx"><code class="language-tsx">// general MST: n nodes, edges = [u, v, weight]
 function minCostToConnectAllNodes(n: number, edges: number[][]): number {
     const parent = Array.from({ length: n }, (_, i) => i);
@@ -642,8 +630,7 @@ function minCostToConnectAllNodes(n: number, edges: number[][]): number {
 
     return edgesUsed === n - 1 ? totalCost : -1; // -1 if graph can't be fully connected
 }</code></pre>
-<div class="box key"><b class="tag">🔑</b> Why Dijkstra doesn't fit here either: Kruskal's isn't tracking distance from anywhere — it's greedily picking GLOBALLY cheap edges while using Union-Find to AVOID cycles, a totally different mechanism from path-distance tracking.</div>
-<div class="box key"><b class="tag">📌</b> MST (Kruskal's) answers "cheapest way to connect EVERYONE." Dijkstra answers "cheapest way from ONE source to ONE target." Different questions — don't reach for Dijkstra when the problem is really asking for a spanning tree.</div>
+<div class="box key"><b class="tag">📌</b> MST (Kruskal's) = cheapest way to connect EVERYONE. Dijkstra = cheapest path from ONE source. Different questions.</div>
 </section>
 
 <section data-g="dp">
@@ -749,19 +736,14 @@ LC 291 Word Pattern II, LC 139 Word Break (brute) — branch = segment length, a
 </section>
 
 <section data-g="graph">
-<h2 id="t33">33 · 📊 Graph Edges (E) — Dense vs Sparse vs Tree</h2>
-<div class="box warn"><b class="tag">🚨</b> Sparse graph ≠ tree. A tree is a SPECIFIC TYPE of sparse graph.</div>
-<pre class="language-tsx"><code class="language-tsx">Dense graph:  E = O(V²)     ← max for a simple graph
-Sparse graph: E = O(V)      ← relatively few edges
-Tree:         E = V - 1     ← always sparse</code></pre>
-<p><b>🎯</b> Values BETWEEN <code>O(V)</code> and <code>O(V²)</code> exist (<code>V log V</code>, <code>V√V</code>, <code>2V</code>...) — but interviews only need the two bounds:</p>
-<pre class="language-tsx"><code class="language-tsx">Sparse → O(V)
-Dense  → O(V²)</code></pre>
-<p>📐 <b>Union-Find TC follows the same split:</b></p>
-<pre class="language-tsx"><code class="language-tsx">O(E · α(V))
-Sparse → O(V · α(V)) ≈ O(V)
-Dense  → O(V² · α(V)) ≈ O(V²)</code></pre>
-<div class="box key"><b class="tag">📌</b> Tree ⊂ Sparse Graph ⊂ Graph. Sparse = O(V) edges, Dense = O(V²) edges. Don't think "sparse = tree" — think "tree is always sparse."</div>
+<h2 id="t33">33 · 📊 How Many Edges? Grid, Dense, Sparse, Tree</h2>
+<pre class="language-tsx"><code class="language-tsx">Grid M×N:  V = MN, E ≤ 4MN  → V+E = O(MN)   (the 4 drops)
+Dense:     E = O(V²)        ← max for a simple graph
+Sparse:    E = O(V)
+Tree:      E = V − 1        ← always sparse</code></pre>
+<p id="t8">🎯 Values between <code>V</code> and <code>V²</code> exist (<code>V log V</code>, <code>V√V</code>), but interviews only need the two bounds. Union-Find follows the same split: <code>O(E · α(V))</code> → sparse ≈ <code>O(V)</code>, dense ≈ <code>O(V²)</code>.</p>
+<div class="box warn"><b class="tag">🚨</b> Sparse ≠ tree. A tree is one kind of sparse graph.</div>
+<div class="box key"><b class="tag">📌</b> Tree ⊂ Sparse ⊂ Graph. Grid BFS/DFS → <code>O(MN)</code>.</div>
 </section>
 
 <section data-g="rec">
@@ -983,48 +965,27 @@ if (usedByAlice || usedByBob) edgesUsed++;</code></pre>
 </section>
 
 <section data-g="graph">
-<h2 id="t42">42 · 🎯 "Group + Delete-Once" Kills Repeated O(n) Scans in BFS — and Why It's <code>log(maxVal)</code>, Not <code>n</code></h2>
-<p><b>🎯 Where this shows up:</b> a BFS where one node can jump to MANY other nodes sharing some property (same value, same prime factor, etc.) — the naive version re-scans the WHOLE array from every such node, giving <code>O(n²)</code>.</p>
-<p>📐 <b>Problem:</b> LC 2059-style "Minimum Jumps" — jump <code>i±1</code>, OR jump to any index whose value shares a PRIME FACTOR with <code>nums[i]</code> (when <code>nums[i]</code> is prime).</p>
-<div class="box warn"><b class="tag">🚨 Naive version (<code>O(n²)</code>)</b> for every prime-valued node dequeued, loop over ALL <code>n</code> elements checking <code>nextVal % currVal === 0</code>. If many nodes share the same prime value, this SAME scan repeats from scratch every time — wasted, since the relationships never change.</div>
-<p>✅ <b>Fix — precompute buckets ONCE, then DELETE each bucket the first time it's used:</b></p>
-<pre class="language-tsx"><code class="language-tsx">// prime -> [indices whose value has this prime factor]
-const primeToIdx = new Map&lt;number, number[]&gt;();
-// ...build once, before BFS...
-
-// inside BFS, when processing currIdx with prime value currVal:
-const nextIdxs = primeToIdx.get(currVal);
+<h2 id="t42">42 · 🎯 "Group + Delete-Once" Kills Repeated O(n) Scans in BFS</h2>
+<p><b>🎯 When:</b> in a BFS, one node can jump to MANY nodes that share a key (same value, same prime factor). Re-scanning the whole array from each such node is <code>O(n²)</code>.</p>
+<p>📐 <b>LC 3629</b> (Prime Teleportation): jump <code>i±1</code>, or, when <code>nums[i]</code> is a prime <code>p</code>, to any <code>j</code> with <code>nums[j] % p === 0</code>.</p>
+<p>✅ <b>Fix:</b> build the buckets once, and delete a bucket the first time you use it:</p>
+<pre class="language-tsx"><code class="language-tsx">// prime -> [indices whose value has this prime factor], built once before BFS
+const nextIdxs = primeToIdx.get(currVal)
 for (const idx of nextIdxs ?? []) { /* visit */ }
-primeToIdx.delete(currVal);   // this prime can NEVER be expanded again</code></pre>
-<div class="box key"><b class="tag">🔑 Why deleting is safe</b> once you've pushed every index sharing that prime factor into the queue, there's nothing new to gain from expanding that same prime a second time — every node it could reach is already visited (or about to be).</div>
-<p>📊 <b>Why the resulting TC is <code>O(n log maxVal)</code>, not <code>O(n²)</code>:</b></p>
-<ul>
-<li>Each bucket is now iterated exactly once, total, across the whole BFS (not once per matching node).</li>
-<li>Total work = sum of ALL bucket sizes = total <code>(index, prime)</code> entries across every bucket.</li>
-<li>Each number has at most <code>O(log maxVal)</code> DISTINCT prime factors — because if a number has <code>k</code> distinct primes, and every prime is <code>≥ 2</code>, then <code>number ≥ 2^k</code>, so <code>k ≤ log₂(number) ≤ log₂(maxVal)</code>.</li>
-<li>So: <code>n</code> numbers × <code>O(log maxVal)</code> buckets each = <b>O(n log maxVal) total entries</b> = total BFS expansion cost.</li>
-</ul>
-<div class="box key"><b class="tag">📌</b> Whenever many nodes share edges through a common GROUPING KEY (prime factor, value, etc.), precompute buckets by that key and DELETE each bucket after its first use — this caps total work at "sum of bucket sizes," not "nodes × scan-per-node." And when the key is "distinct prime factors," that count per item is capped at <code>O(log maxVal)</code>, since <code>k</code> distinct primes force the number to be <code>≥ 2^k</code>.</div>
+primeToIdx.delete(currVal)   // every index in it is already queued</code></pre>
+<p>📊 <b>Why <code>O(n log maxVal)</code>:</b> each bucket is read once in the whole BFS, so total work = sum of bucket sizes. A number with <code>k</code> distinct primes is <code>≥ 2^k</code>, so <code>k ≤ log₂(maxVal)</code> buckets per number.</p>
+<div class="box key"><b class="tag">📌</b> Many nodes linked by a shared key → bucket by key, delete after first use. Work = sum of bucket sizes, not nodes × scan.</div>
 </section>
 
 <section data-g="graph">
 <h2 id="t43">43 · 🚨 1-Indexed Node Labels → EVERY Reference Needs the Same <code>-1</code>, Including the Source</h2>
-<p><b>🎯</b> When a graph problem gives nodes labeled <code>1..n</code> but you build <code>graph[]</code>/<code>dist[]</code> as <code>0..n-1</code>, EVERY single node reference from the input must get the same <code>-1</code> conversion — not just the edges.</p>
-<div class="box warn"><b class="tag">🚨</b> Easy to miss: the source/start node (often a separate parameter like <code>k</code>) gets forgotten, because it's not sitting inside the edge-list loop where the <code>-1</code> conversion is already happening.</div>
-<pre class="language-tsx"><code class="language-tsx">for(const [u, v, w] of times) {
-    const nu = u - 1;   // converted
-    const nv = v - 1;   // converted
-    graph[nu].push([nv, w]);
-}
+<p><b>🎯</b> Nodes labeled <code>1..n</code> but arrays built <code>0..n-1</code> → every node from the input gets <code>-1</code>, not just the edges. The start node <code>k</code> is the one that gets forgotten, because it sits outside the edge loop.</p>
+<pre class="language-tsx"><code class="language-tsx">for (const [u, v, w] of times) graph[u - 1].push([v - 1, w])   // converted
 
-pq.enqueue([0, k]);   // ❌ k still 1-indexed! forgot the same -1 here
-dist[k] = 0;           // ❌ same bug — writes/reads the WRONG node entirely</code></pre>
-<p>📐 <b>Why this fails silently, not loudly:</b> if <code>k</code> happens to be the max label (<code>k === n</code>), <code>dist[k]</code> writes OUT OF BOUNDS (per <a href="#t23">#23</a> — JS never throws), creating a phantom extra slot nothing else reads. The REAL start node (<code>dist[k-1]</code>) never gets set to <code>0</code>, so Dijkstra never expands from it — often surfacing as a wrong <code>-1</code> ("unreachable") instead of a crash.</p>
-<p>✅ <b>Fix — convert it exactly like every other node reference:</b></p>
-<pre class="language-tsx"><code class="language-tsx">const nk = k - 1;
-pq.enqueue([0, nk]);
-dist[nk] = 0;</code></pre>
-<div class="box key"><b class="tag">📌</b> 1-indexed input → 0-indexed internal structures means converting ALL node references consistently — edges inside a loop are easy to remember, but a standalone source/target parameter sitting OUTSIDE that loop is exactly where this <code>-1</code> gets forgotten. Audit every place a raw input node label touches an array index.</div>
+pq.enqueue([0, k]); dist[k] = 0           // ❌ k still 1-indexed
+pq.enqueue([0, k - 1]); dist[k - 1] = 0   // ✅</code></pre>
+<p>📐 <b>Silent, not loud:</b> the wrong node gets distance 0, and when <code>k === n</code>, <code>dist[k]</code> is out of bounds and JS doesn't throw (<a href="#t23">#23</a>). You usually see a wrong <code>-1</code> ("unreachable"), not a crash.</p>
+<div class="box key"><b class="tag">📌</b> Convert EVERY input label the same way. Check the source/target parameters outside the edge loop.</div>
 </section>
 
 <section data-g="graph tree">
@@ -1277,7 +1238,7 @@ exactly(k) = atMost(k) - atMost(k - 1)</code></pre>
   function show(g) {
     if (!document.querySelector('#chips button[data-g="' + g + '"]')) g = 'all'
     chips.forEach(function (b) { b.classList.toggle('on', b.dataset.g === g) })
-    blocks.forEach(function (el) { el.hidden = g !== 'all' && el.dataset.g.split(' ').indexOf(g) < 0 })
+    blocks.forEach(function (el) { el.hidden = g === 'all' ? el.classList.contains('sum') : el.dataset.g.split(' ').indexOf(g) < 0 })
     var url = new URL(location.href)
     if (g === 'all') url.searchParams.delete('g'); else url.searchParams.set('g', g)
     history.replaceState(null, '', url)
@@ -1285,7 +1246,8 @@ exactly(k) = atMost(k) - atMost(k - 1)</code></pre>
   chips.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.g) }) })
   // A cross-link (#21) to an entry the filter hides switches back to All so the jump still lands.
   document.addEventListener('click', function (e) {
-    var a = e.target.closest('a[href^="#t"]')
+    var a = e.target.closest('a[href^="#"]')
+    if (a && a.dataset.g) return show(a.dataset.g)   // topic link, e.g. "must remember"
     var target = a && document.getElementById(a.getAttribute('href').slice(1))
     if (target && target.closest('section[hidden]')) show('all')
   })
