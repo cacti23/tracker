@@ -67,9 +67,9 @@
 <p class="sub">Quick-reference mental models and decision rules — not a full learning sheet, a "remember this the instant you see the shape" cheat sheet.</p>
 
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 49</button>
-  <button data-g="graph">🕸️ Graph · 19</button>
-  <button data-g="tree">🌳 Trees · 4</button>
+  <button data-g="all" class="on">📚 All · 50</button>
+  <button data-g="graph">🕸️ Graph · 20</button>
+  <button data-g="tree">🌳 Trees · 5</button>
   <button data-g="rec">🔀 Recursion &amp; Backtracking · 9</button>
   <button data-g="dp">🧩 Dynamic Programming · 9</button>
   <button data-g="bs">🎯 Binary Search · 2</button>
@@ -100,6 +100,7 @@
   <a href="#t42"><b>42</b>Group + delete-once BFS</a>
   <a href="#t43"><b>43</b>1-indexed labels, the -1 trap</a>
   <a href="#t44"><b>44</b>Valid tree: connected + no cycle</a>
+  <a href="#t55"><b>55</b>Tree collect: return has-item?</a>
 </nav>
 </div>
 <div class="grp" data-g="tree">
@@ -109,6 +110,7 @@
   <a href="#t10"><b>10</b>BST → inorder</a>
   <a href="#t12"><b>12</b>Tree parent map</a>
   <a href="#t44"><b>44</b>Valid tree: connected + no cycle</a>
+  <a href="#t55"><b>55</b>Tree collect: return has-item?</a>
 </nav>
 </div>
 <div class="grp" data-g="rec">
@@ -181,6 +183,7 @@
 <li>🗺️ <b>visited vs parent:</b> tree → parent · graph → visited · undirected cycle → both · directed cycle → 3 colors (<a href="#t15">#15</a>)</li>
 <li>🔄 <b>Cycle:</b> undirected → visited + parent or Union-Find · directed → 0/1/2 DFS or Kahn's (<a href="#t21">#21</a>)</li>
 <li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#t44">#44</a>)</li>
+<li>🍎 <b>Collect in a tree:</b> dfs returns "has item below?", <code>+2</code> per needed edge (<a href="#t55">#55</a>)</li>
 <li>🔦 <b>Path itself matters?</b> DFS + undo (backtracking). Only reach/count/min steps → BFS (<a href="#t11">#11</a>)</li>
 <li>⚖️ <b>V+E</b> only when work per node/edge is O(1) · grid → <code>O(MN)</code> (<a href="#t17">#17</a>, <a href="#t33">#33</a>)</li>
 <li>🚨 <b>Traps:</b> blocked start/end (<a href="#t1">#1</a>) · 1-indexed source <code>k − 1</code> (<a href="#t43">#43</a>)</li>
@@ -1226,6 +1229,21 @@ exactly(k) = atMost(k) - atMost(k - 1)</code></pre>
 <p>🎓 5 students: 3 scored ≥ 60, 2 scored ≤ 59 → <code>atLeast(60) = 5 − 2 = 3</code>.</p>
 <div class="box warn"><b class="tag">⚠️</b> <code>atMost(-1)</code> must return 0 (matters when <code>k = 0</code>). Works only when the count can't drop as the window grows (odd numbers, distinct values). Negative numbers → prefix sum + map (<a href="#t52">#52</a>).</div>
 <div class="box key"><b class="tag">📌</b> Counting "exactly" or "at least"? Write <code>atMost</code> once and subtract.</div>
+</section>
+
+<section data-g="graph tree">
+<h2 id="t55">55 · 🍎 Collect Items in a Tree — dfs Returns "Has Item?", Not Time</h2>
+<p><b>🎯</b> Don't make <code>dfs</code> return "time to reach here". Return <b>does this subtree have an apple?</b> A child says yes → you must walk that edge down and back → <code>totalTime += 2</code> (LC 1443).</p>
+<pre class="language-tsx"><code class="language-tsx">// dfs(node, parent) -&gt; tell if subtree has apple or not
+let currTreeHasApple = hasApple[node]
+for (const nei of graph[node]) {
+    if (nei === parent) continue
+    if (dfs(nei, node)) { totalTime += 2; currTreeHasApple = true }
+}
+return currTreeHasApple</code></pre>
+<div class="box warn"><b class="tag">⚠️</b> A subtree with no apple costs 0, you never walk into it. Returning "time" pushes you to add paths you don't need.</div>
+<p>⏱️ TC <code>O(n)</code>: each node once (parent guard), edges scanned once in total, <code>E = n − 1</code>. SC <code>O(n)</code>: adjacency list + recursion stack (path-shaped tree).</p>
+<div class="box key"><b class="tag">📌</b> Collect things in a tree and come back → dfs returns "is anything needed below?", each needed edge costs 2.</div>
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
