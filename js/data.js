@@ -159,6 +159,22 @@ window.addEventListener('storage', (e) => {
 // Per-question pins were removed (Graded/recall grading replaced them). The stored 'dsa-pins-v1'
 // array is deliberately left alone and still exported/synced (see BACKUP_KEYS), so nothing is lost.
 
+// Question pins, back with a new meaning (2026-10-19): a bookmark for "look at this one again".
+// They only fill the topic's 📌 Pinned list — no practice pool, grade, cooldown or stat reads them.
+// New key, so old 'dsa-pins-v1' pins ("always include in practice") don't come back as bookmarks.
+// shape: { [lcKey]: pinnedAt ms }
+const QUESTION_PINS_KEY = 'dsa-question-pins-v1'
+function getQuestionPins() {
+  try { return JSON.parse(localStorage.getItem(QUESTION_PINS_KEY) || '{}') || {} } catch { return {} }
+}
+function isQuestionPinned(lcKey) { return !!getQuestionPins()[lcKey] }
+function toggleQuestionPin(lcKey) {
+  const pins = getQuestionPins()
+  if (pins[lcKey]) delete pins[lcKey]; else pins[lcKey] = Date.now()
+  localStorage.setItem(QUESTION_PINS_KEY, JSON.stringify(pins))
+  return !!pins[lcKey]
+}
+
 // Per-question practice solve counts (persisted in localStorage)
 // shape: { [lcKey]: number }
 const SOLVE_COUNT_KEY = 'dsa-solve-counts-v1'
