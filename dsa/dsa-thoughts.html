@@ -187,6 +187,7 @@
 <li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#graph-13">#13</a>)</li>
 <li>🍎 <b>Collect in a tree:</b> dfs returns "has item below?", <code>+2</code> per needed edge (<a href="#tree-4">Trees #4</a>)</li>
 <li>🔦 <b>Path itself matters?</b> DFS + undo (backtracking). Only reach/count/min steps → BFS (<a href="#graph-4">#4</a>)</li>
+<li>✈️ <b>Euler path (every edge once):</b> add a node only when it's stuck (post-order), reverse at the end (<a href="#graph-14">#14</a>)</li>
 <li>⚖️ <b>V+E</b> only when work per node/edge is O(1) · grid → <code>O(MN)</code> (<a href="#graph-15">#15</a>, <a href="#graph-16">#16</a>)</li>
 <li>🚨 <b>Traps:</b> blocked start/end (<a href="#graph-17">#17</a>) · 1-indexed source <code>k − 1</code> (<a href="#graph-18">#18</a>)</li>
 </ul>
@@ -435,7 +436,20 @@ if processedCount &lt; n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
 <h2 id="graph-14">14 · ✈️ Hierholzer's — Every Edge Once, TC = O(E)</h2>
 <p>🎯 Eulerian path = use every <b>EDGE</b> once, not every node. Push the node to the result on the way OUT (post-order), then <b>reverse at the end</b>.</p>
 <p id="t16">⏱️ <b>TC = <code>O(E)</code>, not V+E:</b> each edge is removed once (<code>graph[node].pop()</code>). A node is visited once per outgoing edge, so counting nodes separately adds nothing.</p>
-<div class="box key"><b class="tag">📌</b> DFS that consumes each edge once → <code>O(E)</code>. Build the result post-order, reverse at the end.</div>
+<h3>🚨 Why post-order? (LC 332 Reconstruct Itinerary)</h3>
+<p>➡️ Add an airport to <code>res</code> ONLY after all its tickets are used. The <b>first</b> time you get stuck, you are at the <b>final stop</b>, so the stuck node goes in first. <code>res</code> builds the trip backwards → reverse at the end.</p>
+<pre class="language-none"><code class="language-none">tickets: JFK→A, JFK→B, B→JFK
+(smallest first: A before B)
+
+❌ pre-order (add on arrival)
+   JFK → A → B → JFK
+   no ticket A→B! A written too early
+
+✅ post-order
+   res = [A, JFK, B, JFK]
+   reverse → JFK → B → JFK → A</code></pre>
+<div class="box warn"><b class="tag">⚠️</b> Pre-order passes both LC 332 examples (no dead ends there). It fails when the smallest choice leads to a dead end before all tickets are used, like A above.</div>
+<div class="box key"><b class="tag">📌</b> DFS that consumes each edge once → <code>O(E)</code>. 🧠 Dead end = finish line → write it first, read it backwards.</div>
 </section>
 
 <section data-g="graph">
