@@ -180,37 +180,22 @@
 
 <section data-g="graph" class="sum" id="graph-sum">
 <h2>🧠 Graph — Must Remember</h2>
-<h3>🧭 Solve Flow: Nodes → Ask 4 → Goal → State → Guard</h3>
-<ol>
-<li>🔍 <b>Nodes + edges.</b> Name them: grid cell, word, course, account, <code>(cell, keys)</code>. Can't name them? Not a graph.</li>
-<li>❓ <b>Ask 4:</b> directed? weighted (0 or negative)? cycles? disconnected?</li>
-<li>🎯 <b>Goal:</b> what does it ask? Pick the tool from the table.</li>
-<li>🎒 <b>State:</b> more than a position (keys held, walls left, nodes seen)? → BFS on <code>(node, extra)</code>.</li>
-<li>🛡️ <b>Guard:</b> visited rule (<a href="#graph-3">#3</a>) · empty / 1 node / disconnected · TC (<a href="#graph-15">#15</a>).</li>
-</ol>
+<h3>🧭 Graph Flow: ask top-down, stop at the first yes</h3>
+<p>🔍 <b>First:</b> name the nodes and edges (cells, words, courses, accounts). Can't? Not a graph.</p>
 <table>
-<tr><th>It asks…</th><th>Tool</th><th>LC</th></tr>
-<tr><td>fewest steps, every move costs the same</td><td>BFS · many starts → multi-source</td><td>127, 994</td></tr>
-<tr><td>count / fill regions, can I reach?</td><td>DFS or BFS + visited</td><td>200, 133</td></tr>
-<tr><td>"A before B", order, can you finish?</td><td>Topo sort (Kahn's)</td><td>207, 210</td></tr>
-<tr><td>same group? groups keep merging</td><td>Union-Find</td><td>684, 721</td></tr>
-<tr><td>min cost, weights ≥ 0</td><td>Dijkstra · ≤ K stops → Bellman-Ford</td><td>743, 787</td></tr>
-<tr><td>two groups, no conflict</td><td>2-colour BFS</td><td>785</td></tr>
-<tr><td>connect everyone cheapest</td><td>MST (Kruskal)</td><td>1584</td></tr>
-<tr><td>every path / the path itself</td><td>DFS + backtrack</td><td>797</td></tr>
-<tr><td>use every edge once</td><td>Hierholzer (<a href="#graph-14">#14</a>)</td><td>332</td></tr>
+<tr><th>Ask</th><th>Use</th><th>LC</th></tr>
+<tr><td>1️⃣ <b>Order?</b> "A before B", can you finish?</td><td>Topo sort (Kahn's)</td><td>207, 210</td></tr>
+<tr><td>2️⃣ <b>Groups?</b> same group, merge, extra edge</td><td>Union-Find (or DFS)</td><td>547, 684, 721</td></tr>
+<tr><td>3️⃣ <b>Shortest?</b> every step costs the same</td><td>BFS · many starts → multi-source</td><td>127, 994</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;weights ≥ 0</td><td>Dijkstra</td><td>743, 1631</td></tr>
+<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;≤ K stops or negative</td><td>Bellman-Ford</td><td>787</td></tr>
+<tr><td>4️⃣ <b>Explore?</b> fill, count islands, reach, copy</td><td>DFS (or BFS) + visited</td><td>200, 133</td></tr>
+<tr><td>5️⃣ <b>Every path?</b> the path itself matters</td><td>DFS + backtrack</td><td>797</td></tr>
 </table>
-<p>📊 How often (Tech Interview Handbook): 🟢 BFS / DFS common · 🟡 topo sort, Dijkstra uncommon · 🔴 Bellman-Ford, Floyd-Warshall, Prim, Kruskal almost never.</p>
-<h3>🤔 BFS/DFS or Union-Find?</h3>
-<p>Fixed graph, just count groups (LC 200, 547)? <b>Both work.</b> BFS/DFS is a fine answer there, so missing Union-Find is not a mistake.</p>
-<p>Union-Find <b>wins</b> when:</p>
-<ul>
-<li>🔁 edges arrive one by one and you answer after each (LC 305 🔒, 1970)</li>
-<li>🧲 groups come from a shared thing, with no edge list given (721 same email, 947 same row/col, 990 <code>a==b</code>)</li>
-<li>✂️ you need the first edge that closes a cycle (684)</li>
-</ul>
-<p>BFS/DFS <b>wins</b> when you need a distance, a path, or an order. Union-Find only answers "same group?".</p>
-<div class="box key"><b class="tag">🧠</b> Path or distance → BFS/DFS. "Same group?" while edges keep coming → Union-Find.</div>
+<p>🧩 <b>Special shapes:</b> two groups, no conflict → 2-colour (785) · connect all, cheapest → MST (1584) · every edge once → Hierholzer (332)</p>
+<p>🎒 <b>State bigger than a node</b> (keys held, walls left, nodes seen)? Same tool, on <code>(node, extra)</code> (864, 1293)</p>
+<p>🛡️ <b>Before code:</b> directed? weighted? cycles → visited (<a href="#graph-3">#3</a>) · disconnected → loop over every node</p>
+<div class="box key"><b class="tag">🧠</b> Order → Groups → Shortest → Explore → Every path</div>
 <h3>📌 Rules</h3>
 <ul>
 <li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#graph-1">#1</a>)</li>
