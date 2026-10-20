@@ -48,6 +48,13 @@
   .grp .nav{margin-top:.4em}
   .sum{border:1px solid var(--accent-line);border-radius:9px;padding:0 1em .4em;margin-top:1.4em;background:var(--accent-soft)}
   .sum h2{border-top:0}
+  .flow .st{background:#fff;border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:9px;padding:.55em .85em}
+  .flow .st > b:first-child{display:block;font-size:1rem}
+  .flow .see{color:var(--muted);font-size:.86rem;margin:.2em 0}
+  .flow .yes{margin:.25em 0}
+  .flow .lc{color:var(--muted);font-size:.8rem}
+  .flow ul{margin:.25em 0;padding-left:1.1em} .flow li{margin:.15em 0;font-size:.92rem}
+  .flow .no{text-align:center;color:var(--muted);font-size:.8rem;margin:.1em 0;line-height:1.3}
   [hidden]{display:none!important}
   @media print{
     .nav,.chips,.grp h3{display:none}
@@ -180,22 +187,76 @@
 
 <section data-g="graph" class="sum" id="graph-sum">
 <h2>🧠 Graph — Must Remember</h2>
-<h3>🧭 Graph Flow: ask top-down, stop at the first yes</h3>
-<p>🔍 <b>First:</b> name the nodes and edges (cells, words, courses, accounts). Can't? Not a graph.</p>
-<table>
-<tr><th>Ask</th><th>Use</th><th>LC</th></tr>
-<tr><td>1️⃣ <b>Order?</b> "A before B", can you finish?</td><td>Topo sort (Kahn's)</td><td>207, 210</td></tr>
-<tr><td>2️⃣ <b>Groups?</b> same group, merge, extra edge</td><td>Union-Find (or DFS)</td><td>547, 684, 721</td></tr>
-<tr><td>3️⃣ <b>Shortest?</b> every step costs the same</td><td>BFS · many starts → multi-source</td><td>127, 994</td></tr>
-<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;weights ≥ 0</td><td>Dijkstra</td><td>743, 1631</td></tr>
-<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;≤ K stops or negative</td><td>Bellman-Ford</td><td>787</td></tr>
-<tr><td>4️⃣ <b>Explore?</b> fill, count islands, reach, copy</td><td>DFS (or BFS) + visited</td><td>200, 133</td></tr>
-<tr><td>5️⃣ <b>Every path?</b> the path itself matters</td><td>DFS + backtrack</td><td>797</td></tr>
-</table>
-<p>🧩 <b>Special shapes:</b> two groups, no conflict → 2-colour (785) · connect all, cheapest → MST (1584) · every edge once → Hierholzer (332)</p>
-<p>🎒 <b>State bigger than a node</b> (keys held, walls left, nodes seen)? Same tool, on <code>(node, extra)</code> (864, 1293)</p>
-<p>🛡️ <b>Before code:</b> directed? weighted? cycles → visited (<a href="#graph-3">#3</a>) · disconnected → loop over every node</p>
-<div class="box key"><b class="tag">🧠</b> Order → Groups → Shortest → Explore → Every path</div>
+<h3>🧭 Graph Flow: ask in order, stop at the first yes</h3>
+<p class="hint">Cheap checks → strong words → groups → plain visit → brute force. Ask the specific questions first, because "visit" fits almost everything.</p>
+<div class="flow">
+<div class="st"><b>0 · 🔍 What is a node? What is an edge?</b>
+<div class="see">cells, words, courses, accounts, bus routes</div>
+<div class="yes">🎒 A move changes more than your position (keys held, walls left, time, nodes seen)? → node = <code>(position, extra)</code></div>
+<div class="lc">LC 127 word · 815 route · 847 (node, mask)</div></div>
+<div class="no">↓</div>
+<div class="st"><b>1 · 🔢 Is the answer just degrees?</b>
+<div class="see">"how many roads touch it", "who has no incoming edge"</div>
+<div class="yes">✅ Count in/out degree. No traversal.</div>
+<div class="lc">LC 1557, 1615, 2924</div></div>
+<div class="no">↓ no</div>
+<div class="st"><b>2 · 🌳 Is it a tree?</b>
+<div class="see">n − 1 edges and connected, or "given a tree"</div>
+<div class="yes">✅ DFS from the root, carry <code>parent</code>, return info up (<a href="#tree-4">Trees #4</a>). Centre of the tree → trim leaves (310).</div>
+<div class="lc">LC 834, 1443, 2246</div></div>
+<div class="no">↓ no</div>
+<div class="st"><b>3 · 📋 Order, or a cycle in a directed graph?</b>
+<div class="see">"before", prerequisites, "can you finish", build order, "safe" nodes</div>
+<div class="yes">✅ Kahn's topo sort (queue of in-degree 0). Nodes left over → cycle.</div>
+<div class="lc">LC 207, 210, 269, 802</div></div>
+<div class="no">↓ no</div>
+<div class="st"><b>4 · 📏 Shortest, fewest, cheapest path?</b>
+<div class="see">minimum steps, minimum time, fewest moves, cheapest</div>
+<div class="yes">✅ Pick by what an edge costs:</div>
+<ul>
+<li>every step costs 1 → <b>BFS</b> (many starts → multi-source) · <span class="lc">127, 994</span></li>
+<li>costs ≥ 0 (0/1 too) → <b>Dijkstra</b> · <span class="lc">743, 1368</span></li>
+<li>minimise the biggest step → <b>Dijkstra with max</b> · <span class="lc">1631, 778</span></li>
+<li>≤ K stops, or negative → <b>Bellman-Ford</b> · <span class="lc">787</span></li>
+<li>every pair, n ≤ 500 → <b>Floyd-Warshall</b> · <span class="lc">1334, 2976</span></li>
+</ul></div>
+<div class="no">↓ no</div>
+<div class="st"><b>5 · 🔗 Connect everything, cheapest total?</b>
+<div class="see">"connect all points", "minimum cost to connect"</div>
+<div class="yes">✅ MST: Kruskal (sort edges + Union-Find). Not Dijkstra: MST = cheapest network, Dijkstra = cheapest route A → B.</div>
+<div class="lc">LC 1584</div></div>
+<div class="no">↓ no</div>
+<div class="st"><b>6 · 🧩 Groups?</b>
+<div class="see">"same group?", connected, provinces, islands, merge, redundant edge</div>
+<div class="yes">✅ Pick by how the edges come:</div>
+<ul>
+<li>graph given up front → <b>DFS/BFS</b> from each unvisited node, count the starts · <span class="lc">200, 547</span></li>
+<li>edges arrive over time, sorted, "after each" → <b>Union-Find</b> · <span class="lc">305, 1697, 2092</span></li>
+<li>joined by a shared key (email, row, col) → <b>Union-Find</b> · <span class="lc">721, 947</span></li>
+<li>first edge that closes a cycle → <b>Union-Find</b> · <span class="lc">684</span></li>
+<li>two groups, no conflict → <b>2-colour BFS</b> · <span class="lc">785, 886</span></li>
+<li>edge whose removal splits a group → <b>bridges</b> (stretch) · <span class="lc">1192</span></li>
+</ul></div>
+<div class="no">↓ no</div>
+<div class="st"><b>7 · 🗺️ Reach, fill, copy, check every cell?</b>
+<div class="see">"can you reach", flood fill, clone, "cells that can flow to"</div>
+<div class="yes">✅ DFS (or BFS) + visited. Stuck? Start from the target or the border instead.</div>
+<div class="lc">LC 133, 841 · border/target first: 130, 417</div></div>
+<div class="no">↓ no</div>
+<div class="st"><b>8 · 🔀 Every path, or n is tiny?</b>
+<div class="see">"all paths", "all ways", n ≤ 10–15</div>
+<div class="yes">✅ Backtracking, or try every subset. Every <b>edge</b> once → Hierholzer (<a href="#graph-14">#14</a>).</div>
+<div class="lc">LC 797, 2959 · 332</div></div>
+</div>
+<div class="box key"><b class="tag">🧠</b> 🔢 Degrees → 🌳 Tree → 📋 Order → 📏 Shortest → 🔗 Connect all → 🧩 Groups → 🗺️ Visit → 🔀 Every path</div>
+<h3>🛡️ Before you code (any branch)</h3>
+<ul>
+<li>Directed? Weights 0 or negative?</li>
+<li>Cycles → <code>visited</code> (<a href="#graph-3">#3</a>) · disconnected → loop over every node</li>
+<li>Empty graph, 1 node, 1-indexed labels (<a href="#graph-18">#18</a>)</li>
+<li>🎤 Say it: "Nodes are …, edges are …, so I'll use … because …"</li>
+</ul>
+<p class="hint">📊 Tech Interview Handbook: BFS / DFS are common · topo sort and Dijkstra uncommon · Bellman-Ford, Floyd-Warshall, MST almost never. Master them in that order.</p>
 <h3>📌 Rules</h3>
 <ul>
 <li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#graph-1">#1</a>)</li>
