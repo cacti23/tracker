@@ -182,7 +182,7 @@
 <li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#graph-1">#1</a>)</li>
 <li>🎯 <b>Seed before the loop:</b> BFS marks visited on push · Dijkstra <code>dist[src] = 0</code> (<a href="#graph-2">#2</a>)</li>
 <li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → <code>O(E log E)</code> (<a href="#graph-5">#5</a>)</li>
-<li>🗺️ <b>visited vs parent:</b> tree → parent · graph → visited · undirected cycle → both · directed cycle → 3 colors (<a href="#graph-3">#3</a>)</li>
+<li>🗺️ <b>visited vs parent:</b> tree → parent · graph → visited · undirected cycle → both · directed cycle → 3 colors · DAG still needs visited 💎 (<a href="#graph-3">#3</a>)</li>
 <li>🔄 <b>Cycle:</b> undirected → visited + parent or Union-Find · directed → 0/1/2 DFS or Kahn's (<a href="#graph-12">#12</a>)</li>
 <li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#graph-13">#13</a>)</li>
 <li>🍎 <b>Collect in a tree:</b> dfs returns "has item below?", <code>+2</code> per needed edge (<a href="#tree-4">Trees #4</a>)</li>
@@ -223,15 +223,26 @@ dist.fill(Infinity); dist[src] = 0; pq.enqueue([0, src]);</code></pre>
 <section data-g="graph">
 <span id="t15"></span>
 <h2 id="graph-3">3 · 🗺️ When Do I Need <code>visited</code> vs <code>parent</code>?</h2>
-<pre class="language-none"><code class="language-none">What am I doing?                         Need
-🌳 Tree (no loops)                     →  parent only      (the only way back is the road you came on)
-🌐 Graph, just traversing              →  visited only     (seen it? skip)
-   (BFS / DFS / components / reach)
-🔁 Undirected graph, detect a cycle     →  visited + parent (visited node that ISN'T parent → cycle)
-➡️ Directed graph, detect a cycle       →  3 colors: 0 new, 1 in progress, 2 done (hit a 1 → cycle)</code></pre>
+<table>
+<tr><th>What am I doing?</th><th>Need</th><th>Why</th></tr>
+<tr><td>🌳 Tree (no loops)</td><td><code>parent</code> only</td><td>the only way back is the road you came on</td></tr>
+<tr><td>🌲🌲 Forest (several trees)</td><td><code>parent</code> inside one tree, <code>visited</code> for the outer <code>for</code> loop</td><td>to know which trees are already done</td></tr>
+<tr><td>🌐 Graph, just traversing (BFS / DFS / components / reach)</td><td><code>visited</code> only</td><td>seen it? skip</td></tr>
+<tr><td>➡️ DAG (directed, no cycle)</td><td><code>visited</code></td><td>a node can be reached by two paths 💎</td></tr>
+<tr><td>🔁 Undirected, detect a cycle</td><td><code>visited</code> + <code>parent</code></td><td>visited node that ISN'T parent → cycle</td></tr>
+<tr><td>➡️ Directed, detect a cycle</td><td>3 colors</td><td>0 new, 1 in progress, 2 done · hit a 1 → cycle</td></tr>
+</table>
 <p>🔁 Why undirected needs both: edge <code>u–v</code> is stored both ways, so you always "see" where you came from. <code>parent</code> = ignore the node I just came from (<a href="#graph-12">#12</a>).</p>
 <div class="box warn"><b class="tag">💥</b> Parent only on a graph with loops → infinite loop. <code>0 — 1 — 2 — 0</code>: parent blocks 1 step back, not 2, so it goes round forever.</div>
-<div class="box key"><b class="tag">📌</b> Parent stops one step back. Visited stops every step back. (Catch: if a node must appear in several valid paths, like Word Ladder II, visited can wrongly block the second one.)</div>
+<h3>💎 DAG trap: "no cycle" ≠ "no revisit"</h3>
+<pre class="language-none"><code class="language-none">    0
+   / \
+  1   2
+   \ /
+    3   ← from 1 AND 2 → visited twice</code></pre>
+<p>Chain several diamonds and the repeats <b>double each time</b>, so the work is exponential 💥 Checked in Node: 20 diamonds in a row (61 nodes) → 4,194,301 DFS calls without <code>visited</code>, 61 with it.</p>
+<div class="box warn"><b class="tag">⚠️</b> Exception: when you want <b>every path</b> (LC 797 All Paths From Source to Target), skip <code>visited</code> on purpose. The answer itself is exponential.</div>
+<div class="box key"><b class="tag">📌</b> Problem says <b>tree</b> → <code>parent</code>. Anything else → <code>visited</code> (safe default). Parent stops one step back. Visited stops every step back. (Catch: if a node must appear in several valid paths, like Word Ladder II, visited can wrongly block the second one.)</div>
 </section>
 
 <section data-g="graph rec">
