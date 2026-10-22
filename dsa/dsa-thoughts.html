@@ -106,7 +106,7 @@
 <h4>🛣️ Shortest Path</h4>
 <nav class="nav">
   <a href="#graph-8"><b>08</b>Which shortest-path tool?</a>
-  <a href="#graph-9"><b>09</b>Dijkstra: skip stale entries</a>
+  <a href="#graph-9"><b>09</b>Dijkstra: skip stale, TC + SC</a>
   <a href="#graph-10"><b>10</b>2577 vs 3341/3342</a>
   <a href="#graph-11"><b>11</b>Binary search + BFS vs Dijkstra</a>
   <a href="#graph-12"><b>12</b>Bellman-Ford: negatives, K stops</a>
@@ -213,7 +213,7 @@
 <li>🔦 <b>Path itself matters?</b> DFS + undo (backtracking). Only reach/count/min steps → BFS (<a href="#graph-5">#5</a>)</li>
 <li>🗂️ <b>Many queries, small fixed graph:</b> precompute <code>reach[u][v]</code> once (BFS from every node), each query <code>O(1)</code> · huge graph → BFS per query (<a href="#graph-7">#7</a>)</li>
 <li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#graph-8">#8</a>)</li>
-<li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → <code>O(E log E)</code> (<a href="#graph-9">#9</a>)</li>
+<li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → TC <code>O(E log E)</code> · SC <code>O(V + E)</code> (<a href="#graph-9">#9</a>)</li>
 <li>🔗 <b>Union-Find:</b> first ask "what is a node?" · share a row/column → rows + columns (947) · touch → cell id <code>r * cols + c</code> (305) · new node <code>count++</code>, real union <code>count--</code> (<a href="#graph-14">#14</a>)</li>
 <li>🔄 <b>Cycle:</b> undirected → visited + parent or Union-Find · directed → 0/1/2 DFS or Kahn's (<a href="#graph-16">#16</a>)</li>
 <li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#graph-17">#17</a>)</li>
@@ -352,7 +352,7 @@ return queries.map(([u, v]) =&gt; reach[u][v])</code></pre>
 
 <section data-g="graph">
 <span id="t13"></span>
-<h2 id="graph-9">9 · 🎯 Dijkstra — Skip Stale Entries, TC = O(E log E)</h2>
+<h2 id="graph-9">9 · 🎯 Dijkstra — Skip Stale Entries, TC = O(E log E), SC = O(V + E)</h2>
 <p><code>dist[node]</code> = cheapest cost found so far. A node can sit in the heap several times (once per cheaper path found), so skip the old ones:</p>
 <pre class="language-tsx"><code class="language-tsx">if (currTime &gt; dist[node]) continue   // stale: a cheaper path already won</code></pre>
 <p id="t14">⏱️ <b>TC, counted from relaxations (not from V+E):</b></p>
@@ -360,6 +360,12 @@ return queries.map(([u, v]) =&gt; reach[u][v])</code></pre>
 <li>A node is expanded for real only once, so each edge is checked once → at most <code>E</code> pushes.</li>
 <li>Heap holds up to <code>E</code> entries → each push/pop is <code>log E</code>.</li>
 <li>Total <code>O(E log E)</code>. Same as <code>O(E log V)</code>, since <code>E ≤ V²</code> makes <code>log E ≤ 2 log V</code>.</li>
+</ul>
+<p>💾 <b>SC = <code>O(V + E)</code>:</b></p>
+<ul>
+<li>Adjacency list → <code>O(V + E)</code></li>
+<li><code>dist[]</code> → <code>O(V)</code></li>
+<li>Heap → up to <code>E</code> entries, because stale ones stay until popped → <code>O(E)</code></li>
 </ul>
 <div class="box key"><b class="tag">📌</b> Act only on a node's lowest known cost. TC = (how many times an edge can relax) × (cost per relax): Dijkstra <code>E × log E</code>, Bellman-Ford <code>V × E</code> (every edge, up to <code>V−1</code> rounds).</div>
 </section>
