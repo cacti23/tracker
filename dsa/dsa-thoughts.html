@@ -111,7 +111,7 @@
   <a href="#graph-10"><b>10</b>2577 vs 3341/3342</a>
   <a href="#graph-11"><b>11</b>Binary search + BFS vs Dijkstra</a>
   <a href="#graph-12"><b>12</b>Bellman-Ford: K stops, why prev</a>
-  <a href="#graph-13"><b>13</b>Floyd-Warshall</a>
+  <a href="#graph-13"><b>13</b>Floyd-Warshall: init + via outermost</a>
 </nav>
 <h4>🔗 Union-Find</h4>
 <nav class="nav">
@@ -215,6 +215,7 @@
 <li>🗂️ <b>Many queries, same graph</b> → precompute once, <code>O(1)</code> per query (<a href="#graph-7">#7</a>)</li>
 <li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#graph-8">#8</a>)</li>
 <li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → TC <code>O(E log E)</code> · SC <code>O(V + E)</code> (<a href="#graph-9">#9</a>)</li>
+<li>🌊 <b>Floyd-Warshall:</b> diagonal 0 · rest "no path" · edges <code>Math.min</code> · <code>via</code> outermost (<a href="#graph-13">#13</a>)</li>
 <li>🔗 <b>Union-Find:</b> first ask "what is a node?" · share a row/column → rows + columns (947) · touch → cell id <code>r * cols + c</code> (305) · new node <code>count++</code>, real union <code>count--</code> (<a href="#graph-14">#14</a>)</li>
 <li>🔄 <b>Cycle:</b> undirected → visited + parent or Union-Find · directed → 0/1/2 DFS or Kahn's (<a href="#graph-16">#16</a>)</li>
 <li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#graph-17">#17</a>)</li>
@@ -410,18 +411,37 @@ edges: 0→1 100, 1→2 100,
 
 <section data-g="graph">
 <span id="t26"></span>
-<h2 id="graph-13">13 · 🌊 Floyd-Warshall — Every Pair at Once</h2>
-<p><b>🎯</b> Shortest distance between EVERY pair of nodes, not just from one source.</p>
-<pre class="language-tsx"><code class="language-tsx">dist[i][i] = 0, everything else Infinity
-dist[u][v] = Math.min(dist[u][v], w)   // per edge; set dist[v][u] too if undirected
+<h2 id="graph-13">13 · 🌊 Floyd-Warshall — Diagonal 0, Edges with <code>Math.min</code>, <code>via</code> Outermost</h2>
+<p><b>🎯</b> Shortest distance between EVERY pair of nodes, <code>O(V³)</code>.</p>
+<h3>1️⃣ 🧱 Build <code>dist</code> (n × n)</h3>
+<ul>
+<li>↘️ <b>Diagonal = 0:</b> <code>dist[i][i] = 0</code> (top-left → bottom-right). The distance from a node to itself is 0.</li>
+<li>♾️ <b>Everything else = "no path yet"</b> (<code>Number.MAX_SAFE_INTEGER</code> or <code>Infinity</code>).</li>
+<li>🔗 <b>Edges <code>[u, v, c]</code> → keep the cheaper:</b> <code>dist[u][v] = Math.min(dist[u][v], c)</code>. The same <code>u → v</code> can come twice with different costs. Undirected → set <code>dist[v][u]</code> too.</li>
+<li>🔤 <b>Nodes are letters or names?</b> Same rules. Map each one to an index first: letter → <code>ch.charCodeAt(0) - 97</code>, name → a <code>Map</code> of name → index.</li>
+</ul>
+<h3>2️⃣ 🔁 Relax through every middle stop (<code>via</code> outermost)</h3>
+<p>📐 Your LC 2976 (Minimum Cost to Convert String I), with letters as nodes:</p>
+<pre class="language-tsx"><code class="language-tsx">const dist = Array.from({length: 26}, () =&gt; Array(26).fill(Number.MAX_SAFE_INTEGER));
+for (let i = 0; i &lt; 26; i++) dist[i][i] = 0;               // diagonal
 
-for k in 0..n:        // MUST be outermost: try every "middle stop"
-  for i in 0..n:
-    for j in 0..n:
-      if dist[i][k]+dist[k][j] &lt; dist[i][j]:
-        dist[i][j] = dist[i][k]+dist[k][j]</code></pre>
-<p>⚠️ <code>Math.min</code> at init only matters when the input can repeat an edge between the same pair, but it is never wrong, so keep it as a habit. The main loop's <code>if</code> already keeps the smaller value.</p>
-<div class="box key"><b class="tag">📌</b> <code>k</code> outermost, always. Undirected = set both directions at init. <code>O(V³)</code>.</div>
+for (let i = 0; i &lt; m; i++) {
+    const u = ori[i].charCodeAt(0) - 97;                     // letter → index
+    const v = ch[i].charCodeAt(0) - 97;
+    dist[u][v] = Math.min(dist[u][v], cost[i]);              // keep the cheaper edge
+}
+
+for (let via = 0; via &lt; 26; via++)                           // MUST be outermost
+    for (let s = 0; s &lt; 26; s++)
+        for (let d = 0; d &lt; 26; d++)
+            if (dist[s][via] !== Number.MAX_SAFE_INTEGER &amp;&amp; dist[via][d] !== Number.MAX_SAFE_INTEGER)
+                dist[s][d] = Math.min(dist[s][d], dist[s][via] + dist[via][d]);
+
+// answer: sum dist[src[i]][tar[i]], any MAX_SAFE_INTEGER → return -1</code></pre>
+<p>🛡️ <b>Why the <code>!==</code> guard:</b> <code>MAX_SAFE_INTEGER + anything</code> is past the safe range. With <code>Infinity</code> you can drop the guard, because <code>Infinity + x</code> stays <code>Infinity</code>.</p>
+<div class="box warn"><b class="tag">⚠️</b> No <code>Math.min</code> on edges → a later, costlier duplicate overwrites the cheaper one: <code>a→b 2</code>, then <code>a→b 5</code> → keeps 5 ❌. No 0 on the diagonal → "<code>a</code> to <code>a</code>" stays "no path".</div>
+<p class="hint">Checked in Node: your code gives the LC 2976 answers 28, 12, −1 ✅. The duplicate above gives 2 with <code>Math.min</code> and 5 without.</p>
+<div class="box key"><b class="tag">📌</b> Diagonal 0 · rest "no path" · edges with <code>Math.min</code> (both ways if undirected) · <code>via</code> (middle stop) outermost.</div>
 </section>
 
 <section data-g="graph" class="subt"><div><small>Graph section · #14–15</small>🔗 Union-Find</div></section>
