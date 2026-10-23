@@ -343,11 +343,12 @@ primeToIdx.delete(currVal)   // every index in it is already queued</code></pre>
 <span id="t13"></span>
 <h2 id="graph-9">9 · 🎯 Dijkstra — TC &amp; SC, and Skipping Stale Entries</h2>
 <h3>1️⃣ ⏱️ TC = <code>O(E log E)</code> · 💾 SC = <code>O(V + E)</code></h3>
-<p id="t14"><b>TC</b>, counted from relaxations (not from V+E):</p>
+<p id="t14"><b>TC</b>, counted from edges:</p>
 <ul>
-<li>Each node is expanded for real only once, so each edge is checked once → at most <code>E</code> pushes.</li>
-<li>The heap holds up to <code>E</code> entries → each push/pop is <code>log E</code>.</li>
-<li>Total <code>O(E log E)</code>. Same as <code>O(E log V)</code>, since <code>E ≤ V²</code> makes <code>log E ≤ 2 log V</code>.</li>
+<li>🔁 A node can enter the heap <b>many times</b>, once per cheaper path found. The extra copies are popped and skipped as stale (2️⃣ below).</li>
+<li>➡️ But each node is <b>processed once</b> (at its cheapest cost), so <b>each edge is processed once</b> → at most <code>E</code> pushes.</li>
+<li>🪜 Every push/pop on a heap of up to <code>E</code> entries costs <code>log E</code> → <code>E × log E</code>.</li>
+<li>Same as <code>O(E log V)</code>, since <code>E ≤ V²</code> makes <code>log E ≤ 2 log V</code>.</li>
 </ul>
 <p><b>SC:</b> adjacency list <code>O(V + E)</code> + <code>dist[]</code> <code>O(V)</code> + heap up to <code>E</code> entries → <code>O(V + E)</code>.</p>
 <h3>2️⃣ ⏭️ Skip stale entries</h3>
