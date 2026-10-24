@@ -116,7 +116,7 @@
 <h4>🔗 Union-Find</h4>
 <nav class="nav">
   <a href="#graph-14"><b>14</b>What is a node? 947 vs 305</a>
-  <a href="#graph-15"><b>15</b>MST — Kruskal's</a>
+  <a href="#graph-15"><b>15</b>MST: Kruskal = sort + Union-Find</a>
 </nav>
 <h4>🔄 Cycles &amp; Trees</h4>
 <nav class="nav">
@@ -217,6 +217,7 @@
 <li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → TC <code>O(E log E)</code> · SC <code>O(V + E)</code> (<a href="#graph-9">#9</a>)</li>
 <li>🌊 <b>Floyd-Warshall:</b> diagonal 0 · rest "no path" · edges <code>Math.min</code> · <code>via</code> outermost (<a href="#graph-13">#13</a>)</li>
 <li>🔗 <b>Union-Find:</b> first ask "what is a node?" · share a row/column → rows + columns (947) · touch → cell id <code>r * cols + c</code> (305) · new node <code>count++</code>, real union <code>count--</code> (<a href="#graph-14">#14</a>)</li>
+<li>🕸️ <b>MST / "smallest max":</b> sort edges + Union-Find (Kruskal) · failed union = cycle = skip (<a href="#graph-15">#15</a>)</li>
 <li>🔄 <b>Cycle:</b> undirected → visited + parent or Union-Find · directed → 0/1/2 DFS or Kahn's (<a href="#graph-16">#16</a>)</li>
 <li>🌳 <b>Valid tree</b> = connected + no cycle → <code>n − 1</code> edges + connected (<a href="#graph-17">#17</a>)</li>
 <li>🍎 <b>Collect in a tree:</b> dfs returns "has item below?", <code>+2</code> per needed edge (<a href="#tree-4">Trees #4</a>)</li>
@@ -470,7 +471,7 @@ const id = r * cols + c</code></pre>
 
 <section data-g="graph">
 <span id="t29"></span>
-<h2 id="graph-15">15 · 🕸️ Minimum Spanning Tree — Master Kruskal's, Skip Prim's</h2>
+<h2 id="graph-15">15 · 🕸️ MST — Kruskal's = Sort Edges + Union-Find (Skip Prim's)</h2>
 <p><b>🎯</b> Connect ALL nodes (directly or through others) with the MINIMUM TOTAL edge cost. Not "shortest path between two nodes": that's Dijkstra, a different question. Dijkstra adds up distance from a source; MST doesn't care about distance from anywhere.</p>
 <p class="hint">Problems: LC 1584 Min Cost to Connect All Points, LC 1135 Connecting Cities With Minimum Cost 🔒.</p>
 <div class="box key"><b class="tag">🔑</b> Kruskal's and Prim's give the same MST. Master Kruskal's: sort edges, add the cheapest one that doesn't make a cycle (Union-Find, same as cycle detection, <code>removeStones</code>, <code>magnificentSets</code>). Prim's: just know it exists.</div>
@@ -513,7 +514,20 @@ function minCostToConnectAllNodes(n: number, edges: number[][]): number {
 
     return edgesUsed === n - 1 ? totalCost : -1; // -1 if graph can't be fully connected
 }</code></pre>
-<div class="box key"><b class="tag">📌</b> MST (Kruskal's) = cheapest way to connect EVERYONE. Dijkstra = cheapest path from ONE source. Different questions.</div>
+<h3>🧩 The Kruskal family — why Union-Find keeps showing up</h3>
+<p>Kruskal's skips any edge that would make a cycle. "Would it make a cycle?" = "are <code>u</code> and <code>v</code> already in the same group?" → <code>union(u, v)</code> returns false. So every Kruskal-style question is <b>sort, then union in order</b>.</p>
+<table>
+<tr><th>Question</th><th>Kruskal twist</th></tr>
+<tr><td>LC 1584 Min Cost to Connect All Points</td><td>plain MST over all point pairs</td></tr>
+<tr><td>LintCode 629 Minimum Spanning Tree</td><td>plain MST, city names → index first</td></tr>
+<tr><td>LC 1579 Remove Max Edges to Keep Graph Fully Traversable</td><td>2 Union-Finds (Alice, Bob), shared type-3 edges first · failed union = removable edge</td></tr>
+<tr><td>LC 1489 Critical &amp; Pseudo-Critical Edges in MST</td><td>rerun Kruskal per edge: skip it → cost goes up = critical · force it in → same cost = pseudo-critical</td></tr>
+<tr><td>LC 3600 Maximize Spanning Tree Stability</td><td>maximize the weakest edge → required edges first, then strongest first · upgrade the <code>k</code> weakest chosen edges</td></tr>
+<tr><td>LC 778 Swim in Rising Water</td><td>sort cells by height, union land neighbours, stop when start and end connect → that height</td></tr>
+</table>
+<div class="box warn"><b class="tag">⚠️</b> LC 778 is not a spanning tree. It's a <b>minimax path</b> (minimize the biggest step). Union in sorted order and stop the moment start and end join. Dijkstra or binary search + BFS also work (<a href="#graph-11">#11</a>).</div>
+<p class="hint">Checked in Node: all 6 Kruskal versions give the LC example answers (1584 → 20 · 1579 → 2, 0, −1 · 1489 → [[0,1],[2,3,4,5]] · 3600 → 2, 6, −1 · 778 → 3, 16).</p>
+<div class="box key"><b class="tag">📌</b> Connect everyone cheaply, or "smallest max / largest min" over connections → sort + Union-Find. Dijkstra = cheapest path from ONE source, a different question.</div>
 </section>
 
 <section data-g="graph" class="subt"><div><small>Graph section · #16–17</small>🔄 Cycles &amp; Trees</div></section>
