@@ -2,28 +2,26 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Two Pointers — Learning Sheet</title>
+<title>Two Pointers — Cheat Sheet</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" integrity="sha384-rCCjoCPCsizaAAYVoz1Q0CmCTvnctK0JkfCSjx7IIxexTBg+uCKtFYycedUjMyA2" crossorigin="anonymous"/>
 <style>
-  :root{ --accent:#0d9488; --accent-soft:#0d948814; --accent-line:#0d948840; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; --good:#0d9488; }
+  :root{ --accent:#0d9488; --accent-soft:#0d948812; --accent-line:#0d948840; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f7f9; --warn:#c2410c; }
   *{box-sizing:border-box}
   html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
     font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
   h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
   .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
-  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;
-    padding-top:.5em;border-top:1px solid var(--rule)}
-  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
+  h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
+  h3{font-size:1.13rem;font-weight:700;margin:1.6em 0 .15em}
+  h3 .cx{font-size:.8rem;font-weight:600;color:var(--muted);margin-left:.4em;white-space:nowrap}
   p{margin:.55em 0}
+  p.trick{margin:.2em 0 .4em;color:var(--ink)}
   ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
-  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;
-    font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
-  a{color:var(--accent);text-decoration:none}
-  a:hover{text-decoration:underline}
-  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
-  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);
-    border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
+  code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
   .nav a:hover{background:var(--accent-soft);text-decoration:none}
   .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
   .box{border-radius:9px;padding:.7em 1em;margin:1em 0;border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft)}
@@ -32,19 +30,15 @@
   .box.iv{border-left-color:#2563eb;background:#2563eb0d}
   .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
   .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
-  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.6em 0 .9em;line-height:1.5;overflow-x:auto}
+  details{margin:.8em 0} details summary{cursor:pointer;font-weight:600}
+  @media (max-width:600px){table{display:block;overflow-x:auto}}
   table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
   th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
-  th{background:var(--code-bg);font-weight:700}
-  td code{white-space:nowrap}
-  figure{margin:1.2em 0;text-align:center}
-  figure svg{max-width:100%;height:auto}
-  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
-  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer}
-  .qa td.a:hover,.qa td.a:active{filter:none}
+  th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
+  .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
   .hint{color:var(--muted);font-size:.86rem}
-  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);
-    border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
+  .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
   @media print{
     .nav{display:none}
     body{margin:0;max-width:100%;padding:0;font-size:12px;line-height:1.4}
@@ -52,494 +46,734 @@
     h2{font-size:1.15rem;margin-top:1em;page-break-after:avoid}
     h3{font-size:1rem;page-break-after:avoid}
     pre[class*=language]{font-size:.7rem;line-height:1.35}
-    figure,tr,.box{page-break-inside:avoid}
+    tr,.box,pre{page-break-inside:avoid}
     .qa td.a{filter:none}
+    details{display:block} details>*{display:block}
     @page{size:A4;margin:8mm}
   }
-  /* collapsible (fold) sections */
-  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
-  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
-  details.fold>summary::-webkit-details-marker{display:none}
-  details.fold>summary::before{content:"▸  ";font-weight:700}
-  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
-  details.fold[open]>summary::before{content:"▾  "}
-  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
-  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
 </style>
 </head>
 <body>
 
 <h1 class="title">👉 Two Pointers</h1>
-<p class="sub">A learning sheet — build the mental model, recognize it cold, derive it from scratch under pressure.</p>
+<p class="sub">The night-before sheet: spot the pattern, write it the way you already wrote it, say why it's safe.</p>
 
 <nav class="nav">
-  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
-  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
-  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
-  <a href="#patterns"><b>04 · CORE</b>The 4 patterns</a>
-  <a href="#complexity"><b>05 · COST</b>Complexity</a>
-  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
-  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+  <a href="#spot"><b>01 · SPOT IT</b>Signal → pattern</a>
+  <a href="#p-conv"><b>02 · CONVERGING</b>Both ends, move inward</a>
+  <a href="#p-ksum"><b>03 · K-SUM</b>Fix one, then 2Sum</a>
+  <a href="#p-fast"><b>04 · FAST &amp; SLOW</b>Linked lists</a>
+  <a href="#p-rw"><b>05 · WRITE POINTER</b>In place, two arrays</a>
+  <a href="#p-3way"><b>06 · THREE-WAY</b>0s, 1s, 2s</a>
+  <a href="#tricks"><b>07 · ARRAY TRICKS</b>189, 31, 238</a>
+  <a href="#must"><b>08 · MUST-KNOW</b>One line each</a>
+  <a href="#traps"><b>09 · TRAPS</b>Bugs + the input that shows them</a>
+  <a href="#selfcheck"><b>10 · TEST</b>Self-check</a>
 </nav>
 
 <!-- ───────────────────────── 1 ───────────────────────── -->
-<h2 id="think">🧠 1 · How to think (and invent it)</h2>
+<h2 id="spot">🧭 1 · Spot it</h2>
 
-<p><b>The one idea:</b> instead of checking every pair with two nested loops (<code>O(n²)</code>),
-keep <b>two indices</b> that each move in <b>one direction only</b>, never backtracking.
-Each pointer crosses the array at most once, so the whole scan is <code>O(n)</code>.</p>
+<p class="tldr">Two nested loops check every pair: O(n²). Two pointers that only move forward and never go back: O(n).</p>
+<p>The whole skill is the <b>move rule</b>: which pointer moves, and why that can never skip the answer.</p>
 
-<p>The craft is choosing a <b>rule for which pointer to move</b> such that you <i>provably never skip a valid answer</i>.
-That rule is always justified by an <b>invariant</b> — a fact that stays true on every step. Learn to <i>name the invariant</i> and the code falls out.</p>
-
-<figure>
-<svg viewBox="0 0 640 175" role="img" aria-label="Brute force pairs vs two-pointer sweep">
-  <text x="10" y="20" font-size="13" font-weight="700" fill="#c2410c">Brute force · O(n²)</text>
-  <text x="10" y="38" font-size="11" fill="#6b675e">test every pair</text>
-  <g font-size="12" text-anchor="middle">
-    <g transform="translate(20,50)">
-      <rect width="150" height="90" fill="#c2410c10" stroke="#c2410c40" rx="6"/>
-      <path d="M0 0 L150 90 M30 0 L150 60 M60 0 L150 30 M0 30 L120 90 M0 60 L60 90" stroke="#c2410c55" fill="none"/>
-      <text x="75" y="108" fill="#c2410c">n·(n−1)/2 pairs</text>
-    </g>
-  </g>
-  <text x="360" y="20" font-size="13" font-weight="700" fill="#0d9488">Two pointers · O(n)</text>
-  <text x="360" y="38" font-size="11" fill="#6b675e">one sweep inward</text>
-  <g transform="translate(360,55)" font-size="13" text-anchor="middle">
-    <g>
-      <rect x="0"   width="36" height="34" fill="#fff" stroke="#0d9488" rx="5"/><text x="18" y="22">2</text>
-      <rect x="40"  width="36" height="34" fill="#fff" stroke="#0d9488" rx="5"/><text x="58" y="22">7</text>
-      <rect x="80"  width="36" height="34" fill="#fff" stroke="#0d9488" rx="5"/><text x="98" y="22">11</text>
-      <rect x="120" width="36" height="34" fill="#fff" stroke="#0d9488" rx="5"/><text x="138" y="22">15</text>
-      <rect x="160" width="36" height="34" fill="#fff" stroke="#0d9488" rx="5"/><text x="178" y="22">19</text>
-    </g>
-    <text x="18"  y="58" fill="#0d9488" font-weight="700">L →</text>
-    <text x="178" y="58" fill="#0d9488" font-weight="700">← R</text>
-    <path d="M18 62 q80 26 160 0" stroke="#0d948870" fill="none" marker-end="url(#ah)"/>
-  </g>
-  <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#0d9488"/></marker></defs>
-</svg>
-<figcaption>Two pointers replace the quadratic pair-grid with a single linear pass.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">Mental checklist</b> Before coding, answer three things:
-<b>(1)</b> where do the pointers <b>start</b>? <b>(2)</b> what <b>moves</b> each one (the rule)?
-<b>(3)</b> when do you <b>stop</b>? If you can state the invariant that makes the move-rule safe, you're done thinking.</div>
-
-<h3>Watch it get invented — Two Sum II</h3>
-<p>Sorted array, find two values summing to <code>target</code>. Don't memorize the trick — <i>derive</i> it, because that's the skill that transfers.</p>
-<ol>
-<li><b>Start brute.</b> Try every pair → <code>O(n²)</code>. On <code>[2,7,11,15]</code>, target 18: test (2,7), (2,11), (2,15), (7,11)…</li>
-<li><b>Spot the waste.</b> Testing <code>(2, 15) = 17 &lt; 18</code> tells you something huge: 2 paired with the <i>largest value available</i> is still too small — so 2 can't reach 18 with <i>anything</i>. <b>2 is dead.</b> Brute force ignores that and keeps re-testing it.</li>
-<li><b>The leap.</b> Put one pointer at each end. Now the sum names the culprit for you: too small ⇒ the <i>left</i> value is the ceiling on this pair, advance it; too big ⇒ the <i>right</i> value is the floor, retreat it.</li>
-<li><b>Payoff.</b> Every step permanently eliminates one element ⇒ ≤ n steps ⇒ <code>O(n)</code>, <code>O(1)</code> space.</li>
-</ol>
-<p>Trace it once by hand and it's yours forever:</p>
 <table>
-<tr><th>step</th><th>L</th><th>R</th><th>a[L] + a[R]</th><th>vs 18</th><th>action</th></tr>
-<tr><td>1</td><td>0</td><td>3</td><td>2 + 15 = 17</td><td>&lt;</td><td><code>L++</code> — need bigger</td></tr>
-<tr><td>2</td><td>1</td><td>3</td><td>7 + 15 = 22</td><td>&gt;</td><td><code>R--</code> — need smaller</td></tr>
-<tr><td>3</td><td>1</td><td>2</td><td>7 + 11 = 18</td><td>=</td><td>✅ found — indices (1, 2)</td></tr>
+<tr><th>The problem says…</th><th>Pattern</th><th>Picture it as</th><th>LC</th></tr>
+<tr><td>sorted array + pair hitting a target, palindrome, container, rain water</td><td><a href="#p-conv">Converging</a></td><td>🚶‍♂️→ ←🚶 two people walking toward each other from both ends</td><td>167, 11, 42, 680, 977, 881</td></tr>
+<tr><td>3 or 4 numbers summing to a target, closest sum, count triplets</td><td><a href="#p-ksum">k-Sum</a></td><td>📌 pin one number, 2Sum the rest</td><td>15, 16, 18, 259</td></tr>
+<tr><td>linked list: cycle, middle, n-th from end, palindrome, reorder</td><td><a href="#p-fast">Fast &amp; Slow</a></td><td>🐢🐇 two runners on a track: the fast one laps the slow one</td><td>141, 142, 876, 19, 234, 143, 160</td></tr>
+<tr><td>in place, O(1) space: remove, move zeroes, dedupe · or two sorted arrays</td><td><a href="#p-rw">Write pointer</a></td><td>📚 a scanner hands books over, a shelver keeps only the good ones</td><td>283, 26, 80, 88, 392, 350, 844</td></tr>
+<tr><td>sort 0/1/2, partition around a pivot in one pass</td><td><a href="#p-3way">Three-way partition</a></td><td>🗑️🗑️🗑️ three bins: 0s left, 2s right, 1s stay in the middle</td><td>75, 2161</td></tr>
 </table>
+
+<div class="box key"><b class="tag">Before coding, answer 3 things</b> <b>1.</b> Where do the pointers start? <b>2.</b> What moves each one? <b>3.</b> When do they stop? If you can say <b>why the move never skips an answer</b>, the code writes itself.</div>
+
+<div class="box warn"><b class="tag">⚠️ Wrong tool when…</b> you need the <b>original indices</b> of an unsorted array (sorting loses them → hash map, LC 1) · the data can't be sorted and order matters (→ sliding window or a map) · moving a pointer doesn't reliably move you toward the answer.</div>
+
+<div class="box iv"><b class="tag">🎤 Say this before coding</b> "The array is sorted, so I'll put one pointer at each end. If the sum is too small, the left value can't be in any answer, so I move left. Each step throws one element away, so it's O(n) time and O(1) space."</div>
 
 <!-- ───────────────────────── 2 ───────────────────────── -->
-<h2 id="plan">🎯 2 · Attack plan</h2>
+<h2 id="p-conv">🚶 2 · Converging: both ends, move inward</h2>
+<p class="tldr">"Squeeze from both ends; drop the one that can't help."</p>
 
-<p>The moment you suspect two pointers, walk this:</p>
+<div class="box key"><b class="tag">🔑 Why it's safe</b> In 167, if <code>nums[i] + nums[j]</code> is too small, then <code>nums[i]</code> with the <b>biggest</b> partner left is still too small. So <code>nums[i]</code> is in no answer: drop it (<code>i++</code>). Same for <code>j</code> when the sum is too big. Every step throws away one element and never a good one.</div>
+
+<h3>167 · Two Sum II (the template) <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Sum too big → <code>j--</code>. Too small → <code>i++</code>. Equal → done.</p>
+<pre class="language-tsx"><code class="language-tsx">function twoSum(nums: number[], target: number): number[] {
+    let i = 0;
+    let j = nums.length - 1;
+
+    while(i &lt; j) {
+        const sum = nums[i] + nums[j];
+
+        if(sum &gt; target) j--;        // too big → only j can make it smaller
+        else if(sum &lt; target) i++;   // too small → only i can make it bigger
+        else return [i + 1, j + 1];
+    }
+
+    return [];
+};</code></pre>
 
 <table>
-<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
-<tr><td>Array is <b>sorted</b> (or can be) and you want a <b>pair/triple</b> hitting a target?</td><td>start at both ends, move inward</td><td><b><a href="#p-conv">Converging</a></b> (§4.1)</td></tr>
-<tr><td>Working on a <b>linked list</b> — cycle? middle? n-th from end?</td><td>two speeds</td><td><b><a href="#p-fast">Fast &amp; Slow</a></b> (§4.2)</td></tr>
-<tr><td>Modify an array <b>in place</b> — remove / move / partition, <code>O(1)</code> space?</td><td>a <b>write</b> index trails a <b>read</b> index</td><td><b><a href="#p-rw">Read/Write</a></b> (§4.3)</td></tr>
-<tr><td>Combine <b>two sorted sequences</b> (merge, intersect, compare)?</td><td>one pointer per sequence</td><td><b><a href="#p-seq">Two-sequence</a></b> (§4.4)</td></tr>
+<tr><th>step</th><th>i</th><th>j</th><th>sum ([2,7,11,15], target 18)</th><th>move</th></tr>
+<tr><td>1</td><td>0</td><td>3</td><td>2 + 15 = 17 &lt; 18</td><td>i++</td></tr>
+<tr><td>2</td><td>1</td><td>3</td><td>7 + 15 = 22 &gt; 18</td><td>j--</td></tr>
+<tr><td>3</td><td>1</td><td>2</td><td>7 + 11 = 18 ✅</td><td>return [2, 3]</td></tr>
 </table>
 
-<div class="box warn"><b class="tag">First reflex</b> If the prompt screams "pairs that sum/compare" and order doesn't matter,
-<b>sort first</b> (<code>O(n log n)</code>) — sorting is what <i>unlocks</i> the converging rule. Only skip it if you need original indices (then a hash map beats it).</div>
+<h3>11 · Container With Most Water <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Area = shorter wall × width. Move the <b>shorter</b> wall: it caps the water, so keeping it can only give less.</p>
+<pre class="language-tsx"><code class="language-tsx">function maxArea(height: number[]): number {
+    let i = 0;
+    let j = height.length - 1;
+    let maxArea = 0;
 
-<div class="box warn"><b class="tag">When two pointers is the WRONG tool</b>
-<b>·</b> You need the <b>original indices</b> of an <i>unsorted</i> array — sorting destroys them; use a one-pass <b>hash map</b>.<br/>
-<b>·</b> You must <b>count every</b> qualifying pair, not just find one — the converging sweep skips pairs by design, so it undercounts.<br/>
-<b>·</b> The compare-and-move decision <b>isn't monotonic</b> (moving a pointer doesn't reliably head toward the answer) — the safety proof collapses.<br/>
-<b>·</b> The data <b>can't be sorted</b> and order carries meaning — usually that's a sliding window or a map, not this.</div>
+    while(i &lt; j) {
+        const minHei = Math.min(height[i], height[j]);
+        const width = j - i;
+        maxArea = Math.max(maxArea, minHei * width);
+
+        // move the SHORTER wall: it caps the water, and moving the taller one can't help
+        if(height[i] &lt; height[j]) i++;
+        else j--;
+    }
+
+    return maxArea;
+};</code></pre>
+
+<h3>42 · Trapping Rain Water <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Water above a bar = <code>min(leftMax, rightMax) − height</code>. Move the side with the <b>smaller max</b>: that max is the bottleneck, so its water is already known.</p>
+<pre class="language-tsx"><code class="language-tsx">function trap(height: number[]): number {
+    const n = height.length;
+    let left = 0;
+    let right = n - 1;
+    let leftMaxHei = height[0];
+    let rightMaxHei = height[n - 1];
+    let res = 0;
+
+    while(left &lt; right) {
+        // the side with the smaller max is the bottleneck, so its water is known
+        if(leftMaxHei &lt; rightMaxHei) {
+            left++;
+            leftMaxHei = Math.max(leftMaxHei, height[left]);
+            res += leftMaxHei - height[left];
+        } else {
+            right--;
+            rightMaxHei = Math.max(rightMaxHei, height[right]);
+            res += rightMaxHei - height[right];
+        }
+    }
+
+    return res;
+};</code></pre>
+
+<h3>680 · Valid Palindrome II <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Normal palindrome check. On the first mismatch you get <b>one</b> delete: try skipping the left char or the right char.</p>
+<pre class="language-tsx"><code class="language-tsx">function validPalindrome(s: string): boolean {
+    function isPalin(i: number, j: number): boolean {
+        while(i &lt; j) {
+            if(s[i] !== s[j]) return false;
+            i++;
+            j--;
+        }
+        return true;
+    }
+
+    let i = 0;
+    let j = s.length - 1;
+
+    while(i &lt; j) {
+        if(s[i] !== s[j]) {
+            // one delete allowed: skip the left char OR the right char
+            return isPalin(i + 1, j) || isPalin(i, j - 1);
+        }
+        i++;
+        j--;
+    }
+
+    return true;
+};</code></pre>
+
+<h3>977 · Squares of a Sorted Array <span class="cx">⏱️ O(n) · 📦 O(n) output</span></h3>
+<p class="trick">💡 Negatives make the biggest square sit at <b>one of the two ends</b>. Compare the ends and fill the result from the back.</p>
+<pre class="language-tsx"><code class="language-tsx">function sortedSquares(nums: number[]): number[] {
+    const n = nums.length;
+    const res: number[] = Array(n).fill(0);
+    let i = 0;
+    let j = n - 1;
+    let k = n - 1;              // fill from the BACK: the biggest square is at an end
+
+    while(i &lt; j) {
+        const sq1 = nums[i] ** 2;
+        const sq2 = nums[j] ** 2;
+
+        if(sq1 &lt;= sq2) {
+            res[k--] = sq2;
+            j--;
+        } else {
+            res[k--] = sq1;
+            i++;
+        }
+    }
+
+    res[0] = nums[i] ** 2;      // i === j: the last one is the smallest
+    return res;
+};</code></pre>
+
+<h3>881 · Boats to Save People <span class="cx">⏱️ O(n log n) · 📦 O(n) sorted copy</span></h3>
+<p class="trick">💡 Sort. The heaviest always leaves now; take the lightest along if they fit together.</p>
+<pre class="language-tsx"><code class="language-tsx">function numRescueBoats(people: number[], limit: number): number {
+    const sorted = [...people].sort((a, b) =&gt; b - a);   // heaviest first
+    let boats = 0;
+    let i = 0;                  // heaviest left
+    let j = sorted.length - 1;  // lightest left
+
+    while(i &lt; j) {
+        if(sorted[i] + sorted[j] &lt;= limit) j--;   // lightest fits with the heaviest
+        boats++;                                  // the heaviest always leaves
+        i++;
+    }
+
+    if(i === j) boats++;        // one person left over
+    return boats;
+};</code></pre>
+
+<div class="box"><b class="tag">➕ Counting pairs</b> Converging can also <b>count</b>. Sorted, <code>sum &lt; target</code> → every <code>j'</code> in <code>(i, j]</code> also works, so <code>count += j - i; i++</code>. That's LC 259 3Sum Smaller and the idea behind 923.</div>
+
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why moving a pointer never skips an answer; "what if it's not sorted?" (sort O(n log n) vs hash map O(n), which keeps indices). <b>Escalation:</b> 2Sum → 3Sum → 4Sum; closest sum; count pairs.</div>
 
 <!-- ───────────────────────── 3 ───────────────────────── -->
-<h2 id="recognize">🔎 3 · Recognition map</h2>
+<h2 id="p-ksum">📌 3 · k-Sum: fix one, then 2Sum the rest</h2>
+<p class="tldr">"3Sum = a for-loop around 2Sum."</p>
+
+<h3>15 · 3Sum <span class="cx">⏱️ O(n²) · 📦 O(n) sorted copy</span></h3>
+<p class="trick">💡 Sort. For each <code>i</code>, run the 167 squeeze on the right part. Skip equal values (for <code>i</code>, and for <code>left</code>/<code>right</code> after a hit) so no triplet repeats.</p>
+<pre class="language-tsx"><code class="language-tsx">function threeSum(nums: number[]): number[][] {
+    const n = nums.length;
+    const sorted = [...nums].sort((a, b) =&gt; a - b);
+    const res: number[][] = [];
+
+    for(let i = 0; i &lt; n; i++) {
+        // same value as before → its triplets are already found
+        if(i &gt; 0 &amp;&amp; sorted[i] === sorted[i - 1]) continue;
+
+        let left = i + 1;
+        let right = n - 1;
+
+        while(left &lt; right) {
+            const sum = sorted[i] + sorted[left] + sorted[right];
+
+            if(sum &lt; 0) {
+                left++;
+            } else if(sum &gt; 0) {
+                right--;
+            } else {
+                res.push([sorted[i], sorted[left], sorted[right]]);
+
+                while(left &lt; right &amp;&amp; sorted[left] === sorted[left + 1]) left++;
+                while(left &lt; right &amp;&amp; sorted[right] === sorted[right - 1]) right--;
+
+                left++;
+                right--;
+            }
+        }
+    }
+
+    return res;
+};</code></pre>
 
 <table>
-<tr><th>Words in the prompt</th><th>Reach for</th></tr>
-<tr><td>"sorted array", "pair/two/three numbers that sum to", "closest to target"</td><td><a href="#p-conv">Converging §4.1</a></td></tr>
-<tr><td>"palindrome", "reverse in place", "container / most water", "trapping rain"</td><td><a href="#p-conv">Converging §4.1</a></td></tr>
-<tr><td>"linked list", "cycle", "loop", "middle node", "n-th from the end"</td><td><a href="#p-fast">Fast &amp; Slow §4.2</a></td></tr>
-<tr><td>"remove duplicates / element", "move zeroes", "in place", "partition", "sort colors / 0-1-2"</td><td><a href="#p-rw">Read/Write §4.3</a></td></tr>
-<tr><td>"merge two sorted", "intersection of two arrays", "is subsequence"</td><td><a href="#p-seq">Two-sequence §4.4</a></td></tr>
+<tr><th>Variant</th><th>Change from 3Sum</th></tr>
+<tr><td>16 3Sum Closest</td><td>No dedupe needed; keep the sum with the smallest <code>|sum − target|</code>, move like 167.</td></tr>
+<tr><td>18 4Sum</td><td>Two outer loops (fix two numbers), same squeeze inside, skip duplicates at both levels. O(n³).</td></tr>
+<tr><td>259 3Sum Smaller</td><td>Count, don't list: <code>sum &lt; target → count += right - left; left++</code>.</td></tr>
+<tr><td>923 3Sum With Multiplicity</td><td>Count with duplicates: on a hit, count the run of equal values (or use a value-count map).</td></tr>
 </table>
 
 <!-- ───────────────────────── 4 ───────────────────────── -->
-<h2 id="patterns">🧩 4 · The four core patterns</h2>
-<p class="hint">Each pattern below = a one-line mental model, a 🔑 invariant (the proof it's correct), a template, a picture, and a 🎤 interview lens (what's probed + the next escalation).</p>
+<h2 id="p-fast">🐢🐇 4 · Fast &amp; Slow: linked lists</h2>
+<p class="tldr">"Slow moves 1, fast moves 2. If there's a loop, the hare laps the tortoise."</p>
 
-<!-- 4.1 -->
-<h3 id="p-conv">4.1 · Converging — opposite ends, move inward</h3>
-<p class="tldr">“Squeeze from both ends; drop the loser.”</p>
-<p><b>Setup:</b> sorted array, <code>L=0</code>, <code>R=n-1</code>. Compare the pair, then move the
-<b>one pointer that can possibly improve the result</b>.</p>
+<div class="box key"><b class="tag">🔑 Why they must meet</b> Inside a loop, fast gains exactly 1 step on slow each move, so the gap shrinks 1 at a time and hits 0. No loop → fast reaches <code>null</code>. Both take O(n) steps, O(1) space.</div>
 
-<figure>
-<svg viewBox="0 0 620 150" role="img" aria-label="Converging decision on a sorted array">
-  <g font-size="14" text-anchor="middle">
-    <g transform="translate(40,30)">
-      <rect x="0"   width="44" height="40" fill="#fff" stroke="#0d9488" rx="6"/><text x="22" y="26">2</text>
-      <rect x="48"  width="44" height="40" fill="#fff" stroke="#0d9488" rx="6"/><text x="70" y="26">7</text>
-      <rect x="96"  width="44" height="40" fill="#fff" stroke="#cbd5d1" rx="6"/><text x="118" y="26">11</text>
-      <rect x="144" width="44" height="40" fill="#fff" stroke="#cbd5d1" rx="6"/><text x="166" y="26">15</text>
-      <rect x="192" width="44" height="40" fill="#fff" stroke="#0d9488" rx="6"/><text x="214" y="26">19</text>
-      <text x="22"  y="58" fill="#0d9488" font-weight="700">L</text>
-      <text x="214" y="58" fill="#0d9488" font-weight="700">R</text>
-      <text x="118" y="-12" font-size="12" fill="#6b675e">sorted · target = 21</text>
-    </g>
-  </g>
-  <g font-size="13" transform="translate(330,28)">
-    <text x="0" y="0" font-weight="700" fill="#37352f">sum = a[L]+a[R]</text>
-    <text x="0" y="26" fill="#0d9488">sum &lt; target → <tspan font-weight="700">L++</tspan> (need bigger)</text>
-    <text x="0" y="48" fill="#c2410c">sum &gt; target → <tspan font-weight="700">R--</tspan> (need smaller)</text>
-    <text x="0" y="70" fill="#7c3aed">sum = target → <tspan font-weight="700">found</tspan></text>
-    <text x="0" y="98" font-size="11" fill="#6b675e">Each comparison rules out a whole row/column of pairs.</text>
-  </g>
-</svg>
-<figcaption>One comparison eliminates many pairs at once — that's why it's linear.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Every pair that uses an index <i>outside</i> <code>[L, R]</code> has already been ruled out. So if an answer exists, it lies within <code>[L, R]</code>. When <code>sum &lt; target</code>, <code>a[L]</code> with anything ≤ <code>a[R]</code> is also too small ⇒ <code>a[L]</code> is in no answer ⇒ <code>L++</code> discards nothing. Symmetric for <code>R--</code>. The invariant survives every move.</div>
-
-<pre class="language-tsx"><code class="language-tsx">// Two Sum II — sorted input, return 1-based indices
-function twoSumSorted(a: number[], target: number): [number, number] {
-  let L = 0, R = a.length - 1;
-  while (L &lt; R) {
-    const sum = a[L] + a[R];
-    if (sum === target) return [L + 1, R + 1];
-    if (sum &lt; target) L++;   // only L can raise the sum
-    else R--;                // only R can lower it
-  }
-  return [-1, -1];
-}</code></pre>
-
-<div class="box"><b class="tag">Same skeleton, different jobs</b>
-<b>Valid palindrome:</b> compare <code>a[L]</code> vs <code>a[R]</code>, both move inward.
-<b>Container with most water:</b> area = <code>min(h[L],h[R])·(R−L)</code>; move the <b>shorter</b> wall — it's the bottleneck, and widening can't help the taller side.</div>
-
-<pre class="language-tsx"><code class="language-tsx">// Container With Most Water — move the shorter wall
-function maxArea(h: number[]): number {
-  let L = 0, R = h.length - 1, best = 0;
-  while (L &lt; R) {
-    best = Math.max(best, Math.min(h[L], h[R]) * (R - L));
-    if (h[L] &lt; h[R]) L++; else R--;
-  }
-  return best;
-}</code></pre>
-
-<h4 style="margin:1.2em 0 .2em;font-size:1.02rem">The generalization ladder: 2Sum → 3Sum → kSum</h4>
-<p>This is the <i>deep</i> structure — learn it once, never re-learn 3Sum/4Sum. <b>2Sum</b> (sorted) is one converging sweep. <b>3Sum</b> = fix index <code>i</code>, run 2Sum on the suffix. <b>4Sum</b> = fix two. The general <b>kSum</b> peels one index via recursion down to the 2-pointer base case:</p>
-
-<pre class="language-tsx"><code class="language-tsx">// kSum — sort `a` first, then call kSum(a, target, k, 0). 3Sum = kSum(a, 0, 3, 0).
-function kSum(a: number[], target: number, k: number, start: number): number[][] {
-  const res: number[][] = [];
-  if (k === 2) {                                   // base case: converging 2-pointer
-    let L = start, R = a.length - 1;
-    while (L &lt; R) {
-      const s = a[L] + a[R];
-      if (s === target) {
-        res.push([a[L], a[R]]); L++; R--;
-        while (L &lt; R &amp;&amp; a[L] === a[L - 1]) L++;     // skip duplicate lefts
-        while (L &lt; R &amp;&amp; a[R] === a[R + 1]) R--;     // skip duplicate rights
-      } else if (s &lt; target) L++; else R--;
-    }
-    return res;
-  }
-  for (let i = start; i &lt; a.length - k + 1; i++) { // peel one index
-    if (i &gt; start &amp;&amp; a[i] === a[i - 1]) continue;   // skip duplicate picks
-    for (const rest of kSum(a, target - a[i], k - 1, i + 1)) res.push([a[i], ...rest]);
-  }
-  return res;
-}</code></pre>
-<p class="hint">Notice the recursion bottoms out in the converging sweep — two pointers <i>is</i> the engine; the loops just fix the extra indices.</p>
-
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> can you <i>justify</i> why moving a pointer never skips an answer (state the invariant), and "what if it's <i>not</i> sorted?" (sort vs. hash-map trade-off). <b>· Escalation:</b> 2Sum → 3Sum → kSum; "return <i>all unique</i> triples" (dedup); "closest sum" (track best, not exact).</div>
-
-<!-- 4.2 -->
-<h3 id="p-fast">4.2 · Fast &amp; Slow — Floyd's tortoise &amp; hare</h3>
-<p class="tldr">“If there's a loop, the hare laps the tortoise.”</p>
-<p><b>Setup:</b> one pointer hops <b>1</b> step, the other <b>2</b>. Used when you can't index a linked list and need a structural fact in <code>O(1)</code> space.</p>
-
-<figure>
-<svg viewBox="0 0 600 170" role="img" aria-label="Fast and slow pointer on a list with a cycle">
-  <g font-size="13" text-anchor="middle">
-    <g transform="translate(20,40)">
-      <circle cx="20"  cy="20" r="18" fill="#fff" stroke="#0d9488"/><text x="20" y="25">1</text>
-      <circle cx="90"  cy="20" r="18" fill="#fff" stroke="#0d9488"/><text x="90" y="25">2</text>
-      <circle cx="160" cy="20" r="18" fill="#fff" stroke="#0d9488"/><text x="160" y="25">3</text>
-      <circle cx="230" cy="20" r="18" fill="#fff" stroke="#0d9488"/><text x="230" y="25">4</text>
-      <circle cx="300" cy="60" r="18" fill="#fff" stroke="#0d9488"/><text x="300" y="65">5</text>
-      <circle cx="230" cy="100" r="18" fill="#fff" stroke="#0d9488"/><text x="230" y="105">6</text>
-      <path d="M38 20 H72 M108 20 H142 M178 20 H212 M248 28 L284 52 M286 74 L246 96 M212 100 Q170 80 212 38"
-            stroke="#94a3a0" fill="none" marker-end="url(#a2)"/>
-      <text x="120" y="150" fill="#6b675e" font-size="11">slow +1, fast +2 → they must meet inside the loop</text>
-    </g>
-  </g>
-  <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill="#94a3a0"/></marker></defs>
-</svg>
-<figcaption>The gap (fast − slow) grows by 1 each step; inside a loop it wraps, so it must hit 0 — a meeting.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> Per step, <code>fast</code> gains exactly 1 on <code>slow</code>. With no cycle, <code>fast</code> runs off the end (<code>null</code>) → terminates. With a cycle of length <code>c</code>, the gap is taken mod <code>c</code> and decreases to 0 in finite steps → guaranteed meeting. Both outcomes are bounded by <code>O(n)</code> steps.</div>
-
+<h3>141 · Linked List Cycle <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 <code>while(fast &amp;&amp; fast.next)</code>; meet → cycle, fast hits null → no cycle.</p>
 <pre class="language-tsx"><code class="language-tsx">function hasCycle(head: ListNode | null): boolean {
-  let slow = head, fast = head;
-  while (fast &amp;&amp; fast.next) {
-    slow = slow!.next;        // +1
-    fast = fast.next.next;    // +2
-    if (slow === fast) return true;   // hare laps tortoise
-  }
-  return false;               // hare reached null → no cycle
-}
+    let slow = head;
+    let fast = head;
 
-// Find the cycle's START: after they meet, reset one to head; advance both by 1.
-function detectCycle(head: ListNode | null): ListNode | null {
-  let slow = head, fast = head;
-  while (fast &amp;&amp; fast.next) {
-    slow = slow!.next; fast = fast.next.next;
-    if (slow === fast) {                 // meeting point
-      let p = head;
-      while (p !== slow) { p = p!.next; slow = slow!.next; }
-      return p;                          // == entry of the loop
+    while(fast &amp;&amp; fast.next) {
+        fast = fast.next.next;
+        slow = slow.next;
+
+        if(slow === fast) return true;
     }
-  }
-  return null;
-}</code></pre>
-<div class="box"><b class="tag">Why the reset trick works</b> Let the entry be <code>μ</code> steps from head and the meet be <code>k</code> steps into the loop. "Fast went twice as far" forces: distance head→entry ≡ distance meet→entry. So two walkers at speed 1 — one from head, one from the meet — collide exactly at the entry.</div>
-<p><b>Same engine, other uses:</b> <b>middle node</b> → return <code>slow</code> when <code>fast</code> hits the end;
-<b>n-th from end</b> → give <code>fast</code> an <code>n</code>-step head start, then move both until <code>fast</code> ends.</p>
 
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> prove it's <code>O(1)</code> space and argue <i>why</i> the two must meet; then derive the cycle-start reset on the spot. <b>· Escalation:</b> detect cycle → return its <i>start</i> → its <i>length</i>; then "Find the Duplicate Number" (treat the array as a linked list and reuse this verbatim).</div>
+    return false;
+};</code></pre>
 
-<!-- 4.3 -->
-<h3 id="p-rw">4.3 · Read/Write — same direction, in place</h3>
-<p class="tldr">“Write trails read; everything left of write is done.”</p>
-<p><b>Setup:</b> a <b>slow "write"</b> index marks where the next kept element goes; a <b>fast "read"</b> index scans everything.</p>
+<h3>142 · Linked List Cycle II (where does it start?) <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 After they meet, send one pointer back to head; move both 1 step at a time; they meet at the cycle start.</p>
+<p class="hint">Why: head → start is the same distance as meeting point → start (going round the loop). So two walkers at speed 1 arrive together.</p><pre class="language-tsx"><code class="language-tsx">function detectCycle(head: ListNode | null): ListNode | null {
+    let slow = head;
+    let fast = head;
 
-<figure>
-<svg viewBox="0 0 600 150" role="img" aria-label="Read write compaction for move zeroes">
-  <g font-size="14" text-anchor="middle">
-    <g transform="translate(30,40)">
-      <rect x="0"   width="44" height="40" fill="#0d948820" stroke="#0d9488" rx="6"/><text x="22" y="26">1</text>
-      <rect x="48"  width="44" height="40" fill="#0d948820" stroke="#0d9488" rx="6"/><text x="70" y="26">3</text>
-      <rect x="96"  width="44" height="40" fill="#fff" stroke="#cbd5d1" rx="6"/><text x="118" y="26">0</text>
-      <rect x="144" width="44" height="40" fill="#fff" stroke="#cbd5d1" rx="6"/><text x="166" y="26">12</text>
-      <rect x="192" width="44" height="40" fill="#fff" stroke="#cbd5d1" rx="6"/><text x="214" y="26">0</text>
-      <text x="118" y="58" fill="#0d9488" font-weight="700">write</text>
-      <text x="166" y="58" fill="#c2410c" font-weight="700">read →</text>
-      <text x="44" y="-12" font-size="11" fill="#6b675e">left of "write" = already compacted</text>
-    </g>
-  </g>
-</svg>
-<figcaption>Read scans ahead; whenever it finds a keeper, it's placed at <code>write</code>, which then advances.</figcaption>
-</figure>
+    while(fast &amp;&amp; fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> After every step, <code>a[0 .. write)</code> is the finished, compacted answer and <code>a[write .. read)</code> is junk to be overwritten. Because <code>write ≤ read</code> always, you never clobber an element you haven't read yet.</div>
+        if(slow === fast) {
+            fast = head;                 // restart one from head, both at speed 1
+            while(slow !== fast) {
+                fast = fast.next;
+                slow = slow.next;
+            }
+            return slow;                 // they meet at the cycle start
+        }
+    }
 
-<pre class="language-tsx"><code class="language-tsx">// Move Zeroes — keep order, push all 0s to the end, O(1) space
-function moveZeroes(a: number[]): void {
-  let write = 0;
-  for (let read = 0; read &lt; a.length; read++) {
-    if (a[read] !== 0) { [a[write], a[read]] = [a[read], a[write]]; write++; }
-  }
-}
+    return null;
+};</code></pre>
 
-// Remove Duplicates from Sorted Array — return new length
-function removeDuplicates(a: number[]): number {
-  if (a.length === 0) return 0;
-  let write = 1;                          // a[0] always kept
-  for (let read = 1; read &lt; a.length; read++) {
-    if (a[read] !== a[write - 1]) a[write++] = a[read];
-  }
-  return write;
-}</code></pre>
+<h3>876 · Middle of the Linked List <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 When fast reaches the end, slow is in the middle.</p>
+<pre class="language-tsx"><code class="language-tsx">function middleNode(head: ListNode | null): ListNode | null {
+    let slow = head;
+    let fast = head;
 
-<div class="box"><b class="tag">Three-way variant: Dutch National Flag</b> Sort 0/1/2 in one pass with <b>three</b> pointers. Invariant: <code>[0,low)</code> all 0s, <code>[low,mid)</code> all 1s, <code>(high,end]</code> all 2s, and <code>[mid,high]</code> is unexplored.</div>
+    while(fast &amp;&amp; fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
 
-<pre class="language-tsx"><code class="language-tsx">// Sort Colors (0,1,2) — one pass, O(1) space
-function sortColors(a: number[]): void {
-  let low = 0, mid = 0, high = a.length - 1;
-  while (mid &lt;= high) {
-    if (a[mid] === 0)      { [a[low], a[mid]] = [a[mid], a[low]]; low++; mid++; }
-    else if (a[mid] === 1) { mid++; }
-    else                   { [a[mid], a[high]] = [a[high], a[mid]]; high--; } // DON'T mid++: re-check swapped-in value
-  }
-}</code></pre>
+    return slow;    // even length → the SECOND middle
+};</code></pre>
 
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> truly in place, <code>O(1)</code> extra, and you never overwrite an unread slot (the <code>write ≤ read</code> invariant); is order preserved? <b>· Escalation:</b> remove dups → "allow at most <i>2</i> copies" → Dutch-flag 3-way partition in one pass.</div>
+<h3>160 · Intersection of Two Linked Lists <span class="cx">⏱️ O(m + n) · 📦 O(1)</span></h3>
+<p class="trick">💡 When a pointer runs off its list, jump it to the <b>other</b> list’s head. Both walk A + B, so they meet at the join, or both reach null.</p>
+<pre class="language-tsx"><code class="language-tsx">function getIntersectionNode(headA: ListNode | null, headB: ListNode | null): ListNode | null {
+    let l1 = headA;
+    let l2 = headB;
 
-<!-- 4.4 -->
-<h3 id="p-seq">4.4 · Two-sequence — one pointer per array</h3>
-<p class="tldr">“Two queues, one output; take the smaller head.”</p>
-<p><b>Setup:</b> two sorted inputs, a pointer in each, advance whichever is "behind." This is the merge step of merge-sort and the backbone of intersection / subsequence checks.</p>
+    // each walks A + B; same total length, so they line up at the join (or both hit null)
+    while(l1 !== l2) {
+        l1 = l1 ? l1.next : headB;
+        l2 = l2 ? l2.next : headA;
+    }
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>out</code> holds the correctly-sorted merge of the consumed prefixes <code>a[0..i)</code> and <code>b[0..j)</code>. Taking the smaller of the two current heads keeps <code>out</code> sorted and never strands a smaller element.</div>
+    return l1;
+};</code></pre>
 
-<pre class="language-tsx"><code class="language-tsx">// Merge two sorted arrays into a fresh result
-function mergeSorted(a: number[], b: number[]): number[] {
-  const out: number[] = [];
-  let i = 0, j = 0;
-  while (i &lt; a.length &amp;&amp; j &lt; b.length) {
-    if (a[i] &lt;= b[j]) out.push(a[i++]);
-    else out.push(b[j++]);
-  }
-  while (i &lt; a.length) out.push(a[i++]);   // drain leftovers
-  while (j &lt; b.length) out.push(b[j++]);
-  return out;
-}
+<div class="box"><b class="tag">🧩 The combo: middle → reverse → use</b> 234 and 143 are the same three steps: find the middle (876), reverse the second half, then <b>compare</b> (234) or <b>zip</b> (143).</div>
 
-// Is Subsequence — does s appear in t in order?
-function isSubsequence(s: string, t: string): boolean {
-  let i = 0;
-  for (let j = 0; i &lt; s.length &amp;&amp; j &lt; t.length; j++) {
-    if (s[i] === t[j]) i++;        // advance s only on a match
-  }
-  return i === s.length;
-}</code></pre>
+<h3>234 · Palindrome Linked List <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Middle → reverse the second half → compare the halves node by node.</p>
+<pre class="language-tsx"><code class="language-tsx">function isPalindrome(head: ListNode | null): boolean {
+    // 1 find the middle
+    let slow = head;
+    let fast = head;
+    while(fast &amp;&amp; fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
 
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> what if one input is far larger or <i>streamed</i>? can you merge in place into a fixed buffer? <b>· Escalation:</b> merge two → "Merge Sorted Array" in place (fill from the <i>back</i>) → merge <i>k</i> lists (→ a heap; see the Heap sheet).</div>
+    // 2 reverse from the middle to the end
+    let prev = null;
+    let curr = slow;
+    while(curr) {
+        const next = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = next;
+    }
+
+    // 3 compare the two halves
+    let first = head;
+    let second = prev;
+    while(first &amp;&amp; second) {
+        if(first.val !== second.val) return false;
+        first = first.next;
+        second = second.next;
+    }
+
+    return true;
+};</code></pre>
+
+<h3>143 · Reorder List <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Middle → cut and reverse the second half → zip: one from the front, one from the back.</p>
+<pre class="language-tsx"><code class="language-tsx">function reorderList(head: ListNode | null): void {
+    if(head === null || head.next === null) return;
+
+    // 1 find the middle
+    let slow = head;
+    let fast = head;
+    while(fast &amp;&amp; fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    // 2 reverse from mid to end (and cut the list in two)
+    let prev = null;
+    let curr = slow.next;
+    slow.next = null;
+    while(curr) {
+        const nextNode = curr.next;
+        curr.next = prev;
+        prev = curr;
+        curr = nextNode;
+    }
+
+    // 3 zip the two halves
+    let first = head;
+    let second = prev;
+    while(second !== null) {
+        const firstNext = first.next;
+        const secondNext = second.next;
+        first.next = second;
+        second.next = firstNext;
+        first = firstNext;
+        second = secondNext;
+    }
+};</code></pre>
+
+<h3>19 · Remove Nth Node From End <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Your version: count the length, then stop on the node <b>before</b> the one to delete. <code>len === n</code> means delete the head.</p>
+<div class="box iv"><b class="tag">🎤 Likely follow-up: "one pass?"</b> Give <code>fast</code> an n-step head start, then move both until <code>fast.next</code> is null; <code>slow</code> is now just before the node to delete. A dummy node before head removes the "delete the head" special case.</div><pre class="language-tsx"><code class="language-tsx">function removeNthFromEnd(head: ListNode | null, n: number): ListNode | null {
+    let len = 0;
+    let curr = head;
+    while(curr) {
+        len++;
+        curr = curr.next;
+    }
+
+    if(len === n) return head.next;      // removing the head itself
+
+    let steps = len - n - 1;             // stop on the node BEFORE the one to delete
+    curr = head;
+    while(steps--) curr = curr.next;
+
+    curr.next = curr.next.next;
+    return head;
+};</code></pre>
+
+<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why they must meet, and deriving the 142 reset. <b>Escalation:</b> cycle → its start → 287 Find the Duplicate Number (the array is a linked list: <code>i → nums[i]</code>, reuse 142).</div>
 
 <!-- ───────────────────────── 5 ───────────────────────── -->
-<h2 id="complexity">⏱️ 5 · Complexity</h2>
-<table>
-<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Note</th></tr>
-<tr><td>Converging (already sorted)</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>+<code>O(n log n)</code> if you must sort first</td></tr>
-<tr><td>Converging — kSum</td><td><code>O(n^(k−1))</code></td><td><code>O(k)</code> rec.</td><td>k−1 fixed loops over an O(n) sweep; 3Sum = <code>O(n²)</code></td></tr>
-<tr><td>Fast &amp; slow</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>each pointer travels ≤ ~2n</td></tr>
-<tr><td>Read/write &amp; Dutch flag</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>single pass, in place</td></tr>
-<tr><td>Two-sequence merge</td><td><code>O(n+m)</code></td><td><code>O(n+m)</code> / <code>O(1)</code></td><td>O(1) if you can merge into a given buffer</td></tr>
-</table>
-<div class="box"><b class="tag">The amortized argument</b> Every pointer only moves <i>forward</i> and never resets. Total work ≤ total distance the pointers can travel, which is linear in input size. That single observation is the proof for all four patterns — don't hand-wave it, <i>state</i> it.</div>
+<h2 id="p-rw">📚 5 · Write pointer: same direction, in place</h2>
+<p class="tldr">"Read scans everything; write marks where the next keeper goes. Everything left of write is done."</p>
+
+<div class="box key"><b class="tag">🔑 Why it's safe</b> <code>nums[0..write)</code> is the finished answer and <code>write ≤ read</code> always, so you never overwrite something you haven't read yet.</div>
+
+<h3>283 · Move Zeroes <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Non-zero → swap it to <code>write</code>, <code>write++</code>. Zeroes end up at the back, order kept.</p>
+<pre class="language-tsx"><code class="language-tsx">function moveZeroes(nums: number[]): void {
+    let write = 0;
+
+    for(let read = 0; read &lt; nums.length; read++) {
+        if(nums[read] !== 0) {
+            [nums[read], nums[write]] = [nums[write], nums[read]];
+            write++;
+        }
+    }
+};</code></pre>
+
+<h3>26 · Remove Duplicates from Sorted Array <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Keep a value if it differs from the last <b>kept</b> one (<code>nums[write - 1]</code>). Return <code>write</code>, the count.</p>
+<p class="hint">80 (keep at most 2): compare with <code>nums[write - 2]</code> instead.</p><pre class="language-tsx"><code class="language-tsx">function removeDuplicates(nums: number[]): number {
+    let write = 1;   // the next slot to fill; nums[0] is always kept
+
+    for(let read = 1; read &lt; nums.length; read++) {
+        if(nums[read] !== nums[write - 1]) {
+            [nums[read], nums[write]] = [nums[write], nums[read]];
+            write++;
+        }
+    }
+
+    return write;
+};</code></pre>
+
+<h3 id="p-seq" style="margin-top:2em">🔀 Two arrays, one pointer each</h3>
+<p>Two sorted inputs, a pointer in each, move the one that's behind. This is the merge step of merge sort.</p>
+
+<h3>88 · Merge Sorted Array <span class="cx">⏱️ O(m + n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Fill <code>nums1</code> from the <b>back</b>: those slots are empty, so nothing gets overwritten. Leftover <code>nums1</code> is already in place.</p>
+<pre class="language-tsx"><code class="language-tsx">function merge(nums1: number[], m: number, nums2: number[], n: number): void {
+    let i = m - 1;
+    let j = n - 1;
+    let k = m + n - 1;     // fill from the BACK: those slots are empty, nothing gets overwritten
+
+    while(i &gt;= 0 &amp;&amp; j &gt;= 0) {
+        if(nums1[i] &gt;= nums2[j]) nums1[k--] = nums1[i--];
+        else nums1[k--] = nums2[j--];
+    }
+
+    while(j &gt;= 0) nums1[k--] = nums2[j--];   // leftover nums1 is already in place
+};</code></pre>
+
+<h3>392 · Is Subsequence <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Walk <code>t</code>; move <code>s</code>’s pointer only on a match. All of <code>s</code> matched → true.</p>
+<pre class="language-tsx"><code class="language-tsx">function isSubsequence(s: string, t: string): boolean {
+    let sIdx = 0;
+
+    for(let tIdx = 0; tIdx &lt; t.length &amp;&amp; sIdx &lt; s.length; tIdx++) {
+        if(t[tIdx] !== s[sIdx]) continue;
+        sIdx++;
+    }
+
+    return sIdx === s.length;
+};</code></pre>
+
+<h3>350 · Intersection of Two Arrays II <span class="cx">⏱️ O(m log m + n log n) · 📦 O(m + n)</span></h3>
+<p class="trick">💡 Sort both. Smaller value moves; equal → take it and move <b>both</b>.</p>
+<pre class="language-tsx"><code class="language-tsx">function intersect(nums1: number[], nums2: number[]): number[] {
+    const sorted1 = [...nums1].sort((a, b) =&gt; a - b);
+    const sorted2 = [...nums2].sort((a, b) =&gt; a - b);
+    const res: number[] = [];
+    let i = 0;
+    let j = 0;
+
+    while(i &lt; sorted1.length &amp;&amp; j &lt; sorted2.length) {
+        if(sorted1[i] &lt; sorted2[j]) i++;
+        else if(sorted1[i] &gt; sorted2[j]) j++;
+        else {
+            res.push(sorted1[i]);    // match → take it, move BOTH
+            i++;
+            j++;
+        }
+    }
+
+    return res;
+};</code></pre>
+
+<h3>844 · Backspace String Compare <span class="cx">⏱️ O(m + n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Walk both strings from the <b>end</b>, skipping chars erased by <code>#</code>; compare the survivors one by one.</p>
+<pre class="language-tsx"><code class="language-tsx">function backspaceCompare(s: string, t: string): boolean {
+    let i = s.length - 1;
+    let j = t.length - 1;
+
+    // walk back to the next char that survives the backspaces
+    function nextValid(s: string, idx: number): number {
+        let backspace = 0;
+        while(idx &gt;= 0) {
+            if(s[idx] === '#') backspace++;
+            else if(backspace &gt; 0) backspace--;
+            else return idx;
+            idx--;
+        }
+        return idx;
+    }
+
+    while(i &gt;= 0 || j &gt;= 0) {
+        i = nextValid(s, i);
+        j = nextValid(t, j);
+
+        if(i &lt; 0 &amp;&amp; j &lt; 0) return true;
+        if(i &lt; 0 || j &lt; 0) return false;
+        if(s[i] !== t[j]) return false;
+
+        i--;
+        j--;
+    }
+
+    return true;
+};</code></pre>
 
 <!-- ───────────────────────── 6 ───────────────────────── -->
-<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
-<table>
-<tr><th>Bug</th><th>The input that exposes it</th></tr>
-<tr><td>Loop bound <code>&lt;=</code> instead of <code>&lt;</code> — pairs an element with itself / double-counts.</td><td><code>[3,3]</code>, target 6 → returns the same index twice.</td></tr>
-<tr><td>Running converging on <b>unsorted</b> data.</td><td><code>[4,1,3]</code>, target 4 → sweeps 4+3, 4+1, stops; misses the real pair (1,3).</td></tr>
-<tr><td>3Sum/kSum emitting <b>duplicate</b> triples (missing skip-dup guards).</td><td><code>[0,0,0,0]</code>, target 0 → emits <code>[0,0,0]</code> repeatedly.</td></tr>
-<tr><td>Dutch flag: incrementing <code>mid</code> after a <b>high-swap</b>.</td><td><code>[2,0,1]</code> → the value swapped in from <code>high</code> is never re-checked → mis-sorted.</td></tr>
-<tr><td>Fast/slow null deref (no <code>fast &amp;&amp; fast.next</code> guard).</td><td><code>[]</code> or even-length <code>[1,2]</code> → crash on <code>fast.next.next</code>.</td></tr>
-<tr><td>Returning the <b>meeting point</b> as the cycle start (skipping the reset).</td><td><code>1→2→3→4→2</code> (cycle to node 2) → meet ≠ node 2.</td></tr>
-<tr><td>Off-by-one: returning <code>write − 1</code> as the length.</td><td>all-distinct <code>[1,2,3]</code> → <code>write</code> ends at 3 (the count); subtracting gives 2.</td></tr>
-</table>
+<h2 id="p-3way">🗑️ 6 · Three-way partition</h2>
+<p class="tldr">"Three bins: 0s go left, 2s go right, 1s stay in the middle."</p>
 
-<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
-<b><a href="sliding-window.html">Sliding window</a></b> is a same-direction two-pointer (the read/write cousin) where "write" becomes a window-left that <i>shrinks on a rule</i>.
-<b><a href="binary-search.html">Binary search</a></b> is a converging pointer on the <i>answer space</i>, not the array — same "discard half, safely" logic.
-<b>Floyd's fast/slow</b> generalizes to any functional graph: "Find the Duplicate Number" treats the array as a <a href="linked-list.html#p-fast">linked list</a> and reuses <code>detectCycle</code> verbatim.
-<b>Merge (4.4)</b> is the heart of merge sort and of merging k lists with a heap.</div>
+<div class="box key"><b class="tag">🔑 Picture</b> <code>[0, left)</code> = 0s · <code>[left, mid)</code> = 1s · <code>[mid, right]</code> = not checked yet · <code>(right, end]</code> = 2s.</div>
+
+<h3>75 · Sort Colors (Dutch flag) <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 0 → swap left, move left and mid. 1 → mid++. 2 → swap right, right-- and <b>don’t</b> move mid.</p>
+<pre class="language-tsx"><code class="language-tsx">function sortColors(nums: number[]): void {
+    let left = 0;               // next slot for a 0
+    let mid = 0;                // the scanner
+    let right = nums.length - 1; // next slot for a 2
+
+    while(mid &lt;= right) {
+        if(nums[mid] === 0) {
+            [nums[left], nums[mid]] = [nums[mid], nums[left]];
+            left++;
+            mid++;              // what came from left is already checked (a 0 or a 1)
+        } else if(nums[mid] === 1) {
+            mid++;
+        } else {
+            [nums[right], nums[mid]] = [nums[mid], nums[right]];
+            right--;            // NO mid++: the value from the right is unchecked
+        }
+    }
+};</code></pre>
+
+<p class="hint">2161 Partition Around a Pivot keeps the original order, so it's a stable 3-pass (less, equal, greater) rather than swaps.</p>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
-<details class="fold" open>
-<summary>➕ More two-pointer shapes — Rotate Array (189) · Next Permutation (31) · Backspace Compare (844) · Product Except Self (238) · Intersection II (350)</summary>
-<div class="box"><b>Two Sum (1)</b> is the hash-map answer; the moment the array is <i>sorted</i> the same question becomes converging pointers with O(1) space (167). The variants below are the in-place / two-pass tricks Google likes as follow-ups.</div>
-<pre class="language-tsx"><code class="language-tsx">// 189 Rotate Array — three reversals, O(1) space
-function rotate(nums: number[], k: number): void {
-  const n = nums.length; k %= n;                       // k can exceed n
-  const rev = (l: number, r: number) =&gt; { while (l &lt; r) { [nums[l], nums[r]] = [nums[r], nums[l]]; l++; r--; } };
-  rev(0, n - 1); rev(0, k - 1); rev(k, n - 1);
-}
+<h2 id="tricks">🧰 7 · Array tricks (in the tracker next to two pointers)</h2>
+<p>Not really two-pointer patterns, but asked in the same rounds. Know the one line.</p>
 
-// 31 Next Permutation — pivot from the right, swap, reverse the suffix
-function nextPermutation(nums: number[]): void {
-  let i = nums.length - 2;
-  while (i &gt;= 0 &amp;&amp; nums[i] &gt;= nums[i + 1]) i--;                 // first drop from the right
-  if (i &gt;= 0) {
-    let j = nums.length - 1;
-    while (nums[j] &lt;= nums[i]) j--;                              // rightmost value larger than the pivot
-    [nums[i], nums[j]] = [nums[j], nums[i]];
-  }
-  for (let l = i + 1, r = nums.length - 1; l &lt; r; l++, r--) [nums[l], nums[r]] = [nums[r], nums[l]];  // suffix was non-increasing → reverse = smallest
-}
+<h3>189 · Rotate Array <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 <code>k %= n</code>, then reverse all, reverse the first k, reverse the rest.</p>
+<pre class="language-tsx"><code class="language-tsx">function rotate(nums: number[], k: number): void {
+    const n = nums.length;
+    k = k % n;
 
-// 844 Backspace String Compare — from the END with a skip counter, O(1) space
-function backspaceCompare(s: string, t: string): boolean {
-  const next = (str: string, i: number): number =&gt; {
-    let skip = 0;
-    while (i &gt;= 0) {
-      if (str[i] === '#') { skip++; i--; }
-      else if (skip &gt; 0) { skip--; i--; }
-      else break;
+    function reverse(start: number, end: number) {
+        while(start &lt; end) {
+            [nums[start], nums[end]] = [nums[end], nums[start]];
+            start++;
+            end--;
+        }
     }
-    return i;
-  };
-  let i = s.length - 1, j = t.length - 1;
-  while (true) {
-    i = next(s, i); j = next(t, j);
-    if (i &lt; 0 || j &lt; 0) return i &lt; 0 &amp;&amp; j &lt; 0;                   // both exhausted together?
-    if (s[i] !== t[j]) return false;
-    i--; j--;
-  }
-}
 
-// 238 Product of Array Except Self — prefix pass, then suffix pass
-function productExceptSelf(nums: number[]): number[] {
-  const n = nums.length, res: number[] = new Array(n).fill(1);
-  let prefix = 1; for (let i = 0; i &lt; n; i++) { res[i] = prefix; prefix *= nums[i]; }        // product of everything LEFT of i
-  let suffix = 1; for (let i = n - 1; i &gt;= 0; i--) { res[i] *= suffix; suffix *= nums[i]; }  // times everything RIGHT of i
-  return res;
-}
+    reverse(0, n - 1);   // [1..7] → [7..1]
+    reverse(0, k - 1);   // first k back in order
+    reverse(k, n - 1);   // the rest back in order
+};</code></pre>
 
-// 350 Intersection of Two Arrays II — sort + merge (multiset: advance BOTH on a match)
-function intersect(a: number[], b: number[]): number[] {
-  a = [...a].sort((x, y) =&gt; x - y); b = [...b].sort((x, y) =&gt; x - y);
-  const res: number[] = []; let i = 0, j = 0;
-  while (i &lt; a.length &amp;&amp; j &lt; b.length) {
-    if (a[i] &lt; b[j]) i++;
-    else if (a[i] &gt; b[j]) j++;
-    else { res.push(a[i]); i++; j++; }
-  }
-  return res;
-}</code></pre>
-<div class="box warn"><b class="tag">⚠️ Traps</b> <b>189:</b> <code>k %= n</code> first. <b>31:</b> <code>&gt;=</code> for the pivot, <code>&lt;=</code> for the swap partner (duplicates); reverse the suffix, don't sort it. <b>844:</b> loop until <i>both</i> pointers are exhausted. <b>238:</b> write <code>res[i]</code> <i>before</i> multiplying <code>prefix</code> by <code>nums[i]</code>. <b>350:</b> advance both on a match; LC 349 (set version) dedupes instead.</div>
-</details>
+<h3>31 · Next Permutation <span class="cx">⏱️ O(n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Find the pivot from the right (first <code>nums[i] &lt; nums[i + 1]</code>), swap it with the rightmost bigger value, reverse the suffix.</p>
+<pre class="language-tsx"><code class="language-tsx">function nextPermutation(nums: number[]): void {
+    const n = nums.length;
 
-<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
-<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+    function reverse(s: number, e: number): void {
+        while(s &lt; e) {
+            [nums[s], nums[e]] = [nums[e], nums[s]];
+            s++;
+            e--;
+        }
+    }
+
+    // 1 pivot: first nums[i] &lt; nums[i + 1] from the right
+    let pivot = -1;
+    for(let i = n - 2; i &gt;= 0; i--) {
+        if(nums[i] &lt; nums[i + 1]) {
+            pivot = i;
+            break;
+        }
+    }
+
+    if(pivot === -1) {        // fully descending → wrap to the smallest
+        reverse(0, n - 1);
+        return;
+    }
+
+    // 2 swap with the rightmost value bigger than the pivot
+    for(let i = n - 1; i &gt; pivot; i--) {
+        if(nums[pivot] &lt; nums[i]) {
+            [nums[pivot], nums[i]] = [nums[i], nums[pivot]];
+            break;
+        }
+    }
+
+    // 3 the suffix is descending → reverse it to make it the smallest
+    reverse(pivot + 1, n - 1);
+};</code></pre>
+
+<h3>238 · Product of Array Except Self <span class="cx">⏱️ O(n) · 📦 O(n) suffix array</span></h3>
+<p class="trick">💡 Left pass stores the product of everything to the left; right pass multiplies in everything to the right. No division.</p>
+<div class="box warn"><b class="tag">⚠️ Your note says O(1)</b> This code keeps a <code>suffix</code> array, so the extra space is O(n). For O(1) extra, swap the array for one running variable: <code>let suffix = 1; for (i = n - 1 → 0) { ans[i] *= suffix; suffix *= nums[i] }</code>.</div><pre class="language-tsx"><code class="language-tsx">function productExceptSelf(nums: number[]): number[] {
+    const n = nums.length;
+    const suffix = Array(n + 1).fill(1);
+    const ans = Array(n).fill(1);
+
+    // ans[i] = product of everything LEFT of i
+    for(let i = 1; i &lt; n; i++) {
+        ans[i] = ans[i - 1] * nums[i - 1];
+    }
+
+    // × product of everything RIGHT of i
+    for(let i = n - 1; i &gt;= 0; i--) {
+        suffix[i] = suffix[i + 1] * nums[i];
+        ans[i] = ans[i] * suffix[i + 1];
+    }
+
+    return ans;
+};</code></pre>
+
+<!-- ───────────────────────── 8 ───────────────────────── -->
+<h2 id="must">⭐ 8 · Must-know, one line each</h2>
+<p class="hint">If you can say the trick for each in one sentence, you're ready.</p>
 <table>
-<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-conv">Converging</a></td><td>1 Two Sum (hash vs pointers) · 167 Two Sum II · 15 3Sum · 11 Container With Most Water · 844 Backspace Compare (from the end) · <b>42 Trapping Rain Water</b></td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-fast">Fast &amp; slow</a></td><td>141/142 Linked List Cycle · 287 Find the Duplicate · 876 Middle of List</td><td>Easy → Med</td></tr>
-<tr><td><a href="#p-rw">Read / write</a></td><td>26/80 Remove Duplicates · 283 Move Zeroes · 75 Sort Colors · 189 Rotate Array · 31 Next Permutation · 238 Product Except Self</td><td>Easy → Med</td></tr>
-<tr><td><a href="#p-seq">Sequential / merge</a></td><td>88 Merge Sorted Array · 977 Squares of a Sorted Array · 350 Intersection</td><td>Easy → Med</td></tr>
+<tr><th>#</th><th>Problem</th><th>Pattern</th><th>The trick</th></tr>
+<tr><td>167</td><td>Two Sum II</td><td>Converging</td><td>Too big → j--, too small → i++.</td></tr>
+<tr><td>1</td><td>Two Sum (unsorted)</td><td>Hash map</td><td>Need indices → map value → index; not two pointers.</td></tr>
+<tr><td>11</td><td>Container With Most Water</td><td>Converging</td><td>Move the shorter wall.</td></tr>
+<tr><td>42</td><td>Trapping Rain Water</td><td>Converging</td><td>Move the side with the smaller max; water = max − height.</td></tr>
+<tr><td>680</td><td>Valid Palindrome II</td><td>Converging</td><td>On the first mismatch, try skipping left or right once.</td></tr>
+<tr><td>977</td><td>Squares of a Sorted Array</td><td>Converging</td><td>Biggest square is at an end; fill from the back.</td></tr>
+<tr><td>881</td><td>Boats to Save People</td><td>Converging</td><td>Heaviest leaves; lightest joins if it fits.</td></tr>
+<tr><td>15</td><td>3Sum</td><td>k-Sum</td><td>Sort, fix i, squeeze the rest, skip duplicates.</td></tr>
+<tr><td>16</td><td>3Sum Closest</td><td>k-Sum</td><td>Same squeeze, track the closest sum.</td></tr>
+<tr><td>259</td><td>3Sum Smaller</td><td>k-Sum</td><td><code>count += right - left</code>.</td></tr>
+<tr><td>141 / 142</td><td>Linked List Cycle I / II</td><td>Fast &amp; Slow</td><td>Meet → cycle; reset one to head → they meet at the start.</td></tr>
+<tr><td>876</td><td>Middle of the List</td><td>Fast &amp; Slow</td><td>Fast at the end → slow in the middle.</td></tr>
+<tr><td>19</td><td>Remove Nth From End</td><td>Fast &amp; Slow</td><td>Stop on the node before; one pass = n-step head start.</td></tr>
+<tr><td>160</td><td>Intersection of Two Lists</td><td>Fast &amp; Slow</td><td>At the end, switch to the other head.</td></tr>
+<tr><td>234 / 143</td><td>Palindrome List / Reorder List</td><td>Fast &amp; Slow</td><td>Middle → reverse second half → compare / zip.</td></tr>
+<tr><td>287</td><td>Find the Duplicate Number</td><td>Fast &amp; Slow</td><td>Index → value is a linked list with a cycle; run 142.</td></tr>
+<tr><td>283</td><td>Move Zeroes</td><td>Write pointer</td><td>Swap non-zeros to write.</td></tr>
+<tr><td>26 / 80</td><td>Remove Duplicates I / II</td><td>Write pointer</td><td>Compare with <code>nums[write - 1]</code> / <code>nums[write - 2]</code>.</td></tr>
+<tr><td>88</td><td>Merge Sorted Array</td><td>Two arrays</td><td>Fill from the back.</td></tr>
+<tr><td>392</td><td>Is Subsequence</td><td>Two arrays</td><td>Move s only on a match.</td></tr>
+<tr><td>844</td><td>Backspace String Compare</td><td>Two arrays</td><td>Walk from the end, skip what <code>#</code> erases.</td></tr>
+<tr><td>75</td><td>Sort Colors</td><td>Three-way</td><td>After swapping with right, don't move mid.</td></tr>
 </table>
-<h2 id="selfcheck">✅ 7 · Self-check</h2>
-<p class="hint">Cover the right column (it's blurred — hover/tap to reveal). Say your answer out loud first.</p>
+
+<!-- ───────────────────────── 9 ───────────────────────── -->
+<h2 id="traps">⚠️ 9 · Traps, and the input that shows each one</h2>
+<table>
+<tr><th>Bug</th><th>Input that exposes it</th></tr>
+<tr><td><code>while(i &lt;= j)</code> instead of <code>&lt;</code>: pairs an element with itself</td><td><code>[3,4]</code>, target 6 → returns index 0 twice (3 + 3)</td></tr>
+<tr><td>Converging on unsorted data</td><td><code>[4,1,3]</code>, target 4 → tries 4+3, 4+1, stops; misses 1+3</td></tr>
+<tr><td>3Sum without the duplicate skips</td><td><code>[0,0,0,0]</code> → <code>[0,0,0]</code> listed more than once</td></tr>
+<tr><td>Sort Colors: <code>mid++</code> after swapping with right</td><td><code>[1,2,0]</code> → gives <code>[1,0,2]</code> (the 0 from the right is never checked)</td></tr>
+<tr><td>Fast/slow without <code>fast &amp;&amp; fast.next</code></td><td><code>[1,2]</code> → crash on <code>fast.next.next</code></td></tr>
+<tr><td>Returning the meeting point as the cycle start</td><td>1→2→3→4→2 → they meet at 4, the start is 2</td></tr>
+<tr><td>Remove Nth: forgetting the "delete the head" case</td><td><code>[1]</code>, n = 1 → <code>steps</code> is −1 and the walk crashes on null; return <code>head.next</code> first</td></tr>
+<tr><td>Rotate: forgetting <code>k %= n</code></td><td><code>[1,2]</code>, k = 3 → reverse indexes out of range</td></tr>
+<tr><td>Merge Sorted Array filled from the front</td><td><code>[4,5,6,0,0,0]</code> + <code>[1,2,3]</code> → overwrites 4, 5, 6 before they're used</td></tr>
+</table>
+
+<h3>Complexity</h3>
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th></tr>
+<tr><td>Converging (already sorted)</td><td>O(n)</td><td>O(1) · add O(n log n) if you sort first</td></tr>
+<tr><td>3Sum / 4Sum</td><td>O(n²) / O(n³)</td><td>O(1) besides the sort</td></tr>
+<tr><td>Fast &amp; slow</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>Write pointer, three-way</td><td>O(n)</td><td>O(1)</td></tr>
+<tr><td>Two arrays</td><td>O(m + n)</td><td>O(1) in place, O(m + n) for a new array</td></tr>
+</table>
+<p class="hint">Why it's linear: each pointer only moves forward and never resets, so total work ≤ total distance the pointers can travel.</p>
+
+<!-- ───────────────────────── 10 ───────────────────────── -->
+<h2 id="selfcheck">✅ 10 · Self-check</h2>
+<p class="hint">Cover the right column (it's blurred; hover or tap to reveal). Say the answer out loud first.</p>
 <table class="qa">
-<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
-<tr><td>State the converging <b>invariant</b> in one sentence.</td><td class="a">Every pair using an index outside <code>[L,R]</code> is already ruled out, so the answer (if any) lies within <code>[L,R]</code>; each move preserves this.</td></tr>
-<tr><td>In Two Sum II, <code>sum &lt; target</code> — which pointer moves, and what does that prove about <code>a[L]</code>?</td><td class="a"><code>L++</code>. <code>a[L]</code> with the largest available partner is still too small, so it's in no answer — safe to discard.</td></tr>
-<tr><td>Give one situation where two pointers is the <b>wrong</b> tool.</td><td class="a">Unsorted array where you need the original indices → sorting destroys them; use a hash map. (Or: you must count <i>all</i> pairs, not find one.)</td></tr>
-<tr><td>How does 3Sum reduce to 2Sum, and where does kSum bottom out?</td><td class="a">Fix index <code>i</code>, run a converging 2-pointer on the suffix. kSum recursively peels one index until <code>k = 2</code> — the 2-pointer base case.</td></tr>
-<tr><td>How do you find the <i>start</i> of a linked-list cycle?</td><td class="a">After slow/fast meet, reset one pointer to head; advance both by 1; they collide at the entry.</td></tr>
-<tr><td>Sort Colors: when do you <b>not</b> advance <code>mid</code>?</td><td class="a">After swapping with <code>high</code> — the incoming value is un-inspected, so re-check it.</td></tr>
-<tr><td>Why is every two-pointer scan <code>O(n)</code> despite "two passes"?</td><td class="a">Each pointer only moves forward and never resets; total work ≤ total forward distance = linear.</td></tr>
-<tr><td>Rotate Array in O(1) space — the trick?</td><td class="a">Reverse the whole array, then the first <code>k</code>, then the rest (after <code>k %= n</code>).</td></tr>
-<tr><td>Next Permutation — the three steps?</td><td class="a">Find the pivot (first <code>a[i] &lt; a[i+1]</code> from the right); swap it with the rightmost larger value; <b>reverse</b> the suffix (it was non-increasing, so reversed = smallest).</td></tr>
-<tr><td>Backspace Compare in O(1) space?</td><td class="a">Walk both strings from the <b>end</b> with a skip counter (<code>#</code> → skip++, real char with skip &gt; 0 → erased); compare the surviving characters pairwise.</td></tr>
+<tr><th style="width:50%">Prompt</th><th>Answer</th></tr>
+<tr><td>167: sum too small. Which pointer moves, and why is it safe?</td><td class="a">i++. nums[i] with the biggest partner left is still too small, so it's in no answer.</td></tr>
+<tr><td>11: which wall moves?</td><td class="a">The shorter one. It caps the area; moving the taller wall only shrinks the width.</td></tr>
+<tr><td>42: which side moves?</td><td class="a">The side with the smaller max; that max decides its water.</td></tr>
+<tr><td>Unsorted array, need indices of a pair summing to target?</td><td class="a">Hash map (LC 1). Sorting would lose the indices.</td></tr>
+<tr><td>How does 3Sum become 2Sum?</td><td class="a">Sort, fix i, squeeze left/right on the rest; skip equal values.</td></tr>
+<tr><td>Can two pointers count pairs?</td><td class="a">Yes. Sorted, sum &lt; target → count += right − left, then left++.</td></tr>
+<tr><td>Find where a linked-list cycle starts?</td><td class="a">After they meet, one goes back to head; both move 1; they meet at the start.</td></tr>
+<tr><td>Palindrome linked list in O(1) space?</td><td class="a">Middle → reverse the second half → compare.</td></tr>
+<tr><td>Intersection of two lists in O(1) space?</td><td class="a">At the end of a list, jump to the other head; they meet at the join.</td></tr>
+<tr><td>Merge Sorted Array in place: from which end?</td><td class="a">The back. Those slots are empty.</td></tr>
+<tr><td>Sort Colors: when don't you move mid?</td><td class="a">After swapping with right: the value that came in is unchecked.</td></tr>
+<tr><td>Rotate Array in O(1) space?</td><td class="a">k %= n; reverse all, reverse first k, reverse the rest.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>
 <ul>
-<li><span class="pill">converging</span> <code>twoSumSorted</code>, <code>maxArea</code>, and <code>kSum</code> (the generalization)</li>
-<li><span class="pill">fast/slow</span> <code>hasCycle</code> + <code>detectCycle</code> (entry)</li>
-<li><span class="pill">read/write</span> <code>moveZeroes</code>, <code>removeDuplicates</code>, <code>sortColors</code> (Dutch flag)</li>
-<li><span class="pill">two-seq</span> <code>mergeSorted</code> and <code>isSubsequence</code></li>
+<li><span class="pill">Converging</span> 167, 11, 42</li>
+<li><span class="pill">k-Sum</span> 15</li>
+<li><span class="pill">Fast &amp; Slow</span> 141, 142, 143</li>
+<li><span class="pill">Write pointer</span> 283, 26, 88</li>
+<li><span class="pill">Three-way</span> 75</li>
 </ul>
-<p class="hint">For each: write the invariant as a comment <i>first</i>, then the loop. If the invariant is right, the code is right.</p>
+<p class="hint">The code on this page is your own accepted LeetCode code, trimmed (brute-force blocks, header comments and edge cases the constraints rule out are removed) and re-tested on the LeetCode examples.</p>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
