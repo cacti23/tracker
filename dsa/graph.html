@@ -117,128 +117,177 @@
 <!-- ───────────────────────── 2 ───────────────────────── -->
 <h2 id="build">🧱 2 · Setup</h2>
 <p>Use an <b>adjacency list</b>: <code>graph[u]</code> = the neighbours of <code>u</code>. It takes O(V + E) space. Use a matrix only when you need an O(1) "is there an edge?" check on a small, dense graph.</p>
-<pre class="language-tsx"><code class="language-tsx">const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // down, up, right, left
+<pre class="language-tsx"><code class="language-tsx">// Paste inside each grid function
+const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]]; // up, right, down, left
 
 // Edge list → adjacency list. Create every node first so isolated nodes exist.
-function buildGraph(n: number, edges: number[][], directed: boolean): number[][] {
-  const graph: number[][] = Array.from({ length: n }, () =&gt; []);
-  for (const [u, v] of edges) {
+const graph: number[][] = Array.from({length: n}, () =&gt; []);
+
+for(const [u, v] of edges) {
     graph[u].push(v);
-    if (!directed) graph[v].push(u);   // undirected = add both ways
-  }
-  return graph;
+    graph[v].push(u); // undirected = add both ways; directed = drop this line
 }
 // Weighted: graph[u].push([v, w])</code></pre>
 
 <div class="box warn"><b class="tag">⚠️ Edge direction</b> "To take course 1 you must first take 0" means <code>[1, 0]</code>, and the edge goes <b>0 → 1</b>. Draw two nodes before you code; getting the direction wrong gives silent wrong answers.</div>
 
 <h3>A heap for Dijkstra and Kruskal</h3>
-<p>JavaScript has no built-in heap. LeetCode's JS runtime has <code>MinPriorityQueue</code>, but an interview doc does not, so be able to type this in 3 minutes.</p>
-<pre class="language-tsx"><code class="language-tsx">// Min-heap of arrays, ordered by item[0]. push / pop are O(log n).
-class MinHeap {
-  private items: number[][] = [];
+<p>JavaScript has no built-in heap. On LeetCode use the built-in <code>MinPriorityQueue</code> (that's what your solutions call). An interview doc has none, so be able to type the class below in 3 minutes: it has the <b>same API</b>, so your Dijkstra code runs unchanged.</p>
+<pre class="language-tsx"><code class="language-tsx">// On LeetCode (built in)
+const pq = new MinPriorityQueue&lt;number[]&gt;(x =&gt; x[0]); // ordered by x[0]
+pq.enqueue([0, src]);
+const [d, node] = pq.dequeue();
+while(!pq.isEmpty()) { /* ... */ }</code></pre>
+<pre class="language-tsx"><code class="language-tsx">// Interview doc (no built-in): same API as above
+class MinPriorityQueue&lt;T&gt; {
+    private items: T[] = [];
+    constructor(private key: (x: T) =&gt; number) {}
 
-  get size(): number { return this.items.length; }
+    isEmpty(): boolean { return this.items.length === 0; }
 
-  push(item: number[]): void {
-    const a = this.items;
-    a.push(item);
-    let i = a.length - 1;
-    while (i &gt; 0) {                          // bubble up while smaller than parent
-      const parent = Math.floor((i - 1) / 2);
-      if (a[parent][0] &lt;= a[i][0]) break;
-      [a[parent], a[i]] = [a[i], a[parent]];
-      i = parent;
+    enqueue(item: T): void {
+        const a = this.items;
+        a.push(item);
+        let i = a.length - 1;
+
+        while(i &gt; 0) { // bubble up while smaller than the parent
+            const parent = Math.floor((i - 1) / 2);
+            if(this.key(a[parent]) &lt;= this.key(a[i])) break;
+            [a[parent], a[i]] = [a[i], a[parent]];
+            i = parent;
+        }
     }
-  }
 
-  pop(): number[] {
-    const a = this.items;
-    const top = a[0];
-    const last = a.pop()!;
-    if (a.length &gt; 0) {
-      a[0] = last;                           // move last to root, then sink it
-      let i = 0;
-      while (true) {
-        const left = 2 * i + 1, right = 2 * i + 2;
-        let smallest = i;
-        if (left &lt; a.length &amp;&amp; a[left][0] &lt; a[smallest][0]) smallest = left;
-        if (right &lt; a.length &amp;&amp; a[right][0] &lt; a[smallest][0]) smallest = right;
-        if (smallest === i) break;
-        [a[smallest], a[i]] = [a[i], a[smallest]];
-        i = smallest;
-      }
+    dequeue(): T {
+        const a = this.items;
+        const top = a[0];
+        const last = a.pop()!;
+
+        if(a.length &gt; 0) {
+            a[0] = last; // move the last item to the root, then sink it
+            let i = 0;
+
+            while(true) {
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+                let smallest = i;
+
+                if(left &lt; a.length &amp;&amp; this.key(a[left]) &lt; this.key(a[smallest])) smallest = left;
+                if(right &lt; a.length &amp;&amp; this.key(a[right]) &lt; this.key(a[smallest])) smallest = right;
+                if(smallest === i) break;
+
+                [a[smallest], a[i]] = [a[i], a[smallest]];
+                i = smallest;
+            }
+        }
+
+        return top;
     }
-    return top;
-  }
 }</code></pre>
 
 <!-- ───────────────────────── 3 ───────────────────────── -->
 <h2 id="bfs">🌊 3 · BFS: fewest steps</h2>
 <p class="tldr">"Explore in rings. The first time you reach a node is the shortest way there."</p>
-<p>Only true when every edge costs the same. Process the graph <b>one level at a time</b>: build a <code>next</code> list from the current <code>queue</code>, then swap. The level number is the distance. This avoids <code>queue.shift()</code>, which is O(n).</p>
+<p>Only true when every edge costs the same. Process the graph <b>one level at a time</b>: keep one <code>queue</code> array and a <code>front</code> index. At the start of each level take <code>size = queue.length - front</code> and process exactly that many. The level number is the distance. This avoids <code>queue.shift()</code>, which is O(n).</p>
 
-<pre class="language-tsx"><code class="language-tsx">// 994 Rotting Oranges — multi-source BFS. One level = one minute.
+<pre class="language-tsx"><code class="language-tsx">// 🍊 ROTTING ORANGES (multi-source BFS)
 function orangesRotting(grid: number[][]): number {
-  const rows = grid.length, cols = grid[0].length;
-  let queue: number[][] = [];
-  let fresh = 0;
-  for (let r = 0; r &lt; rows; r++) {
-    for (let c = 0; c &lt; cols; c++) {
-      if (grid[r][c] === 2) queue.push([r, c]);   // ALL sources start together
-      if (grid[r][c] === 1) fresh++;
-    }
-  }
+    const m = grid.length;
+    const n = grid[0].length;
 
-  let minutes = 0;
-  while (queue.length &gt; 0 &amp;&amp; fresh &gt; 0) {
-    const next: number[][] = [];                   // the next level
-    for (const [r, c] of queue) {
-      for (const [dr, dc] of DIRS) {
-        const nr = r + dr, nc = c + dc;
-        if (nr &lt; 0 || nc &lt; 0 || nr &gt;= rows || nc &gt;= cols) continue;
-        if (grid[nr][nc] !== 1) continue;
-        grid[nr][nc] = 2;                          // mark when ADDED, not when popped
-        fresh--;
-        next.push([nr, nc]);
-      }
-    }
-    queue = next;
-    minutes++;
-  }
-  return fresh === 0 ? minutes : -1;
-}</code></pre>
+    let fresh = 0;
+    let queue: number[][] = [];
 
-<div class="box key"><b class="tag">🔑 Mark when you ADD</b> Mark a node visited when you push it, not when you pop it. Otherwise the same node gets pushed by many neighbours and the queue blows up.</div>
+    for(let i = 0; i &lt; m; i++) {
+        for(let j = 0; j &lt; n; j++) {
+            if(grid[i][j] === 1) fresh++;
+            else if(grid[i][j] === 2) queue.push([i, j]); // ALL sources start together
+        }
+    }
+
+    if(fresh === 0) return 0;
+    if(queue.length === 0) return -1;
+
+    let front = 0;
+    let time = -1; // the first pass is the starting level, so it brings time to 0
+
+    const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+    let visitedFresh = 0;
+
+    while(front &lt; queue.length) {
+        let size = queue.length - front; // this level only
+        time++;
+
+        while(size--) {
+            const [row, col] = queue[front++];
+
+            for(const [dr, dc] of DIRS) {
+                const nr = dr + row;
+                const nc = dc + col;
+
+                if(nr &gt;= 0 &amp;&amp; nr &lt; m &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; n) {
+                    if(grid[nr][nc] === 1) {
+                        grid[nr][nc] = 2; // mark when ADDED, not when popped
+                        visitedFresh++;
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+        }
+    }
+
+    return visitedFresh === fresh ? time : -1;
+};</code></pre>
+
+<div class="box key"><b class="tag">🔑 Mark when you ADD</b> Mark a node visited when you push it, not when you pop it (<code>grid[nr][nc] = 2</code> before <code>push</code>). Otherwise the same node gets pushed by many neighbours and the queue blows up.</div>
+<p class="hint"><code>time = -1</code> is safe only because the two early returns run first: with no fresh oranges, or no rotten ones, the loop would give the wrong answer.</p>
 
 <h3>Implicit graph: generate the neighbours</h3>
-<pre class="language-tsx"><code class="language-tsx">// 127 Word Ladder — BFS over words. Neighbours are generated, not stored.
+<pre class="language-tsx"><code class="language-tsx">// 🪜 WORD LADDER (front/back bidirectional BFS)
 function ladderLength(beginWord: string, endWord: string, wordList: string[]): number {
-  const words = new Set(wordList);
-  if (!words.has(endWord)) return 0;
+    if(beginWord === endWord) return 0;
+    const wordSet = new Set(wordList);
 
-  const seen = new Set([beginWord]);
-  let queue = [beginWord];
-  let length = 1;                                  // counts words, not edges
-  while (queue.length &gt; 0) {
-    const next: string[] = [];
-    for (const word of queue) {
-      if (word === endWord) return length;
-      for (let i = 0; i &lt; word.length; i++) {
-        for (const ch of 'abcdefghijklmnopqrstuvwxyz') {
-          const candidate = word.slice(0, i) + ch + word.slice(i + 1);
-          if (words.has(candidate) &amp;&amp; !seen.has(candidate)) {
-            seen.add(candidate);
-            next.push(candidate);
-          }
+    if(!wordSet.has(endWord)) return 0;
+
+    let front = new Set&lt;string&gt;([beginWord]);
+    let back = new Set&lt;string&gt;([endWord]);
+    let level = 1; // counts words, not edges
+
+    while(front.size &gt; 0) {
+        if(front.size &gt; back.size) {
+            [front, back] = [back, front]; // always expand the smaller side
         }
-      }
+
+        const nextLevel = new Set&lt;string&gt;();
+        level++;
+
+        for(const word of front) {
+            for(let i = 0; i &lt; word.length; i++) {
+                const originCh = word[i];
+
+                for(let c = 0; c &lt; 26; c++) {
+                    const newCh = String.fromCharCode(c + 97);
+
+                    if(newCh === originCh) continue;
+
+                    const newWord = word.slice(0, i) + newCh + word.slice(i + 1);
+
+                    if(back.has(newWord)) return level; // the two sides met
+
+                    if(wordSet.has(newWord)) {
+                        wordSet.delete(newWord); // delete = mark visited
+                        nextLevel.add(newWord);
+                    }
+                }
+            }
+        }
+
+        front = nextLevel;
     }
-    queue = next;
-    length++;
-  }
-  return 0;
-}</code></pre>
+
+    return 0;
+};</code></pre>
 
 <table>
 <tr><th>Variation</th><th>What changes</th></tr>
@@ -247,7 +296,7 @@ function ladderLength(beginWord: string, endWord: string, wordList: string[]): n
 <tr><td>752 Open the Lock</td><td>Node = 4-digit string, 8 neighbours (each wheel ±1). Dead ends start in <code>seen</code>.</td></tr>
 <tr><td>815 Bus Routes</td><td>BFS over <b>routes</b>, not stops. Map stop → routes; each bus taken = one level.</td></tr>
 <tr><td>Edge weights are only 0 or 1 (1368)</td><td>"0-1 BFS": a 0-edge goes to the front of a deque, a 1-edge to the back. In JS, plain Dijkstra is simpler and fine.</td></tr>
-<tr><td>Huge graph, known start and end</td><td>Bidirectional BFS: grow from both ends and stop when they meet. Mention it as an optimisation.</td></tr>
+<tr><td>Huge graph, known start and end</td><td>Bidirectional BFS: that's the 127 version above. In the interview say plain BFS first (one queue + <code>front</code>, like 994), then offer bidirectional as the optimisation.</td></tr>
 </table>
 
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why BFS gives the shortest path (rings), why you mark on push, and multi-source = put every source in the first level. <b>Escalation:</b> grid BFS → multi-source → BFS with extra state → weights appear → Dijkstra.</div>
@@ -257,32 +306,45 @@ function ladderLength(beginWord: string, endWord: string, wordList: string[]): n
 <p class="tldr">"Go as deep as you can, then back up."</p>
 <p>Use it for anything about <b>structure</b>: components, copying, cycles, colouring, and searching all paths. Recursion is the cleanest; switch to an explicit stack only if depth can pass about 10,000.</p>
 
-<pre class="language-tsx"><code class="language-tsx">// 200 Number of Islands — outer loop counts, DFS sinks the whole island.
+<pre class="language-tsx"><code class="language-tsx">// 🏝️ NUMBER OF ISLANDS (DFS flood fill)
 function numIslands(grid: string[][]): number {
-  const rows = grid.length, cols = grid[0].length;
+    const m = grid.length;
+    const n = grid[0].length;
+    let isLands = 0;
 
-  function sink(r: number, c: number): void {
-    if (r &lt; 0 || c &lt; 0 || r &gt;= rows || c &gt;= cols || grid[r][c] !== '1') return;
-    grid[r][c] = '0';                              // mark visited in place
-    for (const [dr, dc] of DIRS) sink(r + dr, c + dc);
-  }
+    const DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
-  let islands = 0;
-  for (let r = 0; r &lt; rows; r++) {
-    for (let c = 0; c &lt; cols; c++) {
-      if (grid[r][c] === '1') {
-        islands++;                                 // new island found
-        sink(r, c);
-      }
+    function dfs(row: number, col: number): void {
+        grid[row][col] = '0'; // mark visited in place
+
+        for(const [dr, dc] of DIRS) {
+            const nr = dr + row;
+            const nc = dc + col;
+
+            if(nr &gt;= 0 &amp;&amp; nr &lt; m &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; n &amp;&amp; grid[nr][nc] === '1') {
+                dfs(nr, nc);
+            }
+        }
     }
-  }
-  return islands;
-}</code></pre>
+
+    for(let i = 0; i &lt; m; i++) {
+        for(let j = 0; j &lt; n; j++) {
+            if(grid[i][j] === '1') {
+                isLands++; // new island found
+                dfs(i, j);
+            }
+        }
+    }
+
+    return isLands;
+};</code></pre>
+
+<p class="hint">You check bounds and <code>'1'</code> <b>before</b> recursing, so <code>dfs</code> marks on entry and needs no early-return line.</p>
 
 <h3>The grid family</h3>
 <table>
 <tr><th>Problem</th><th>The twist</th></tr>
-<tr><td>695 Max Area of Island</td><td><code>sink</code> returns <code>1 + sum of the 4 calls</code>; keep the max.</td></tr>
+<tr><td>695 Max Area of Island</td><td><code>dfs</code> returns <code>1 + sum of the 4 calls</code>; keep the max.</td></tr>
 <tr><td>130 Surrounded Regions · 417 Pacific Atlantic</td><td>Start from the <b>border</b> and mark what's reachable; everything else is the answer.</td></tr>
 <tr><td>934 Shortest Bridge</td><td>DFS to mark the first island, then multi-source BFS from all of it to the second.</td></tr>
 <tr><td>827 Making a Large Island</td><td>Label each island with an id and store its size. For each <code>0</code>, add up the sizes of the <b>distinct</b> ids around it, plus 1.</td></tr>
@@ -290,92 +352,159 @@ function numIslands(grid: string[][]): number {
 </table>
 
 <h3>Clone a graph</h3>
-<pre class="language-tsx"><code class="language-tsx">// 133 Clone Graph — map old node → copy. The map is also the visited set.
+<pre class="language-tsx"><code class="language-tsx">// 🧬 CLONE GRAPH (DFS + map)
 function cloneGraph(node: _Node | null): _Node | null {
-  const copies = new Map&lt;_Node, _Node&gt;();
+    if(!node) return node;
 
-  function clone(original: _Node): _Node {
-    if (copies.has(original)) return copies.get(original)!;
-    const copy = new _Node(original.val);
-    copies.set(original, copy);                    // save BEFORE recursing (cycles!)
-    for (const nb of original.neighbors) copy.neighbors.push(clone(nb));
-    return copy;
-  }
+    const cloned = new Map&lt;_Node, _Node&gt;(); // old node → copy; also the visited set
 
-  return node ? clone(node) : null;
-}</code></pre>
+    function dfs(original: _Node): _Node {
+        if(cloned.has(original)) return cloned.get(original)!;
+
+        const copy = new _Node(original.val);
+        cloned.set(original, copy); // save BEFORE recursing (cycles!)
+
+        for(const nei of original.neighbors) {
+            copy.neighbors.push(dfs(nei));
+        }
+
+        return copy;
+    }
+
+    return dfs(node);
+};</code></pre>
 
 <h3>Cycle in a directed graph</h3>
-<pre class="language-tsx"><code class="language-tsx">// Directed cycle — 3 states. Meeting a node that is still "in progress" = cycle.
-function hasCycle(graph: number[][]): boolean {
-  const state = new Array(graph.length).fill(0);   // 0 new · 1 in progress · 2 done
+<pre class="language-tsx"><code class="language-tsx">// 🔁 DIRECTED CYCLE (3-state DFS)
+function hasCycle(n: number, graph: number[][]): boolean {
+    // 0 = not visited, 1 = on the current path, 2 = fully explored
+    const state: number[] = new Array(n).fill(0);
 
-  function dfs(node: number): boolean {
-    state[node] = 1;
-    for (const next of graph[node]) {
-      if (state[next] === 1) return true;          // back to our own path
-      if (state[next] === 0 &amp;&amp; dfs(next)) return true;
+    function dfs(node: number): boolean { // true = no cycle through this node
+        state[node] = 1;
+
+        for(const next of graph[node]) {
+            if(state[next] === 1) return false; // back to our own path = cycle
+            if(state[next] === 0 &amp;&amp; !dfs(next)) return false;
+        }
+
+        state[node] = 2;
+        return true;
     }
-    state[node] = 2;                               // fully explored, no cycle through it
-    return false;
-  }
 
-  for (let i = 0; i &lt; graph.length; i++) {
-    if (state[i] === 0 &amp;&amp; dfs(i)) return true;
-  }
-  return false;
+    for(let i = 0; i &lt; n; i++) {
+        if(state[i] === 0 &amp;&amp; !dfs(i)) return true;
+    }
+
+    return false;
 }</code></pre>
 <div class="box warn"><b class="tag">⚠️ Why not one visited set?</b> In a directed graph, A→B, A→C, B→D, C→D reaches D twice with <b>no</b> cycle. A plain <code>visited</code> check would wrongly report one. Only a node that is still <i>in progress</i> (on the current path) proves a cycle.</div>
 <p><b>Undirected cycle:</b> use Union-Find (<a href="#uf">§6</a>): an edge whose two ends are already connected closes a cycle. <b>261 Valid Tree🔒:</b> exactly <code>n − 1</code> edges <b>and</b> everything connected.</p>
 
 <h3>Two groups: bipartite</h3>
-<pre class="language-tsx"><code class="language-tsx">// 785 Is Graph Bipartite — paint neighbours the opposite colour.
+<pre class="language-tsx"><code class="language-tsx">// 🎨 IS GRAPH BIPARTITE (DFS and BFS colouring)
 function isBipartite(graph: number[][]): boolean {
-  const color = new Array(graph.length).fill(-1);  // -1 = not painted
+    const n = graph.length;
 
-  function paint(node: number, c: number): boolean {
-    color[node] = c;
-    for (const next of graph[node]) {
-      if (color[next] === c) return false;         // same colour on both ends
-      if (color[next] === -1 &amp;&amp; !paint(next, 1 - c)) return false;
+    const color = Array(n).fill(-1); // -1 = not painted
+
+    function dfs(node: number, col: number): boolean {
+        color[node] = col;
+
+        for(const nei of graph[node]) {
+            if(color[nei] === -1) {
+                if(!dfs(nei, 1 - col)) return false;
+            } else if(color[nei] === col) return false; // same colour on both ends
+        }
+
+        return true;
     }
+
+    function bfs(node: number, col: number): boolean {
+        color[node] = col;
+        const queue = [node];
+        let front = 0;
+
+        while(front &lt; queue.length) {
+            const curr = queue[front++];
+
+            for(const nei of graph[curr]) {
+                if(color[nei] === -1) {
+                    color[nei] = 1 - color[curr];
+                    queue.push(nei);
+                } else if(color[nei] === color[curr]) return false;
+            }
+        }
+
+        return true;
+    }
+
+    for(let i = 0; i &lt; n; i++) { // graph may be disconnected
+        if(color[i] === -1) {
+            // if(!dfs(i, 0)) return false;
+            if(!bfs(i, 0)) return false;
+        }
+    }
+
     return true;
-  }
+};</code></pre>
+<p class="hint">Your accepted submission uses <code>bfs</code>; <code>dfs</code> is the same check with recursion. 886 Possible Bipartition is the same code after building the graph from the "dislikes" pairs. A graph is bipartite exactly when it has no odd-length cycle.</p>
 
-  for (let i = 0; i &lt; graph.length; i++) {         // graph may be disconnected
-    if (color[i] === -1 &amp;&amp; !paint(i, 0)) return false;
-  }
-  return true;
-}</code></pre>
-<p class="hint">886 Possible Bipartition is the same code after building the graph from the "dislikes" pairs. A graph is bipartite exactly when it has no odd-length cycle.</p>
+<h3>Weighted BFS: Evaluate Division</h3>
+<pre class="language-tsx"><code class="language-tsx">// ➗ EVALUATE DIVISION (graph + BFS, carry the product)
+// a/b = 2 means edge a→b (2) and b→a (1/2).
+function calcEquation(eq: string[][], vals: number[], que: string[][]): number[] {
+    const graph = new Map&lt;string, [string, number][]&gt;();
+    const eLen = eq.length;
 
-<h3>Weighted DFS: Evaluate Division</h3>
-<pre class="language-tsx"><code class="language-tsx">// 399 Evaluate Division — a/b = 2 means edge a→b (2) and b→a (1/2).
-function calcEquation(equations: string[][], values: number[], queries: string[][]): number[] {
-  const graph = new Map&lt;string, [string, number][]&gt;();
-  function addEdge(from: string, to: string, weight: number): void {
-    if (!graph.has(from)) graph.set(from, []);
-    graph.get(from)!.push([to, weight]);
-  }
-  equations.forEach(([a, b], i) =&gt; {
-    addEdge(a, b, values[i]);
-    addEdge(b, a, 1 / values[i]);
-  });
+    for(let i = 0; i &lt; eLen; i++) {
+        const [u, v] = eq[i];
+        const val = vals[i];
 
-  // Multiply weights along any path from node to target.
-  function dfs(node: string, target: string, seen: Set&lt;string&gt;): number {
-    if (node === target) return 1;
-    seen.add(node);
-    for (const [next, weight] of graph.get(node)!) {
-      if (seen.has(next)) continue;
-      const rest = dfs(next, target, seen);
-      if (rest !== -1) return weight * rest;
+        if(!graph.has(u)) graph.set(u, []);
+        if(!graph.has(v)) graph.set(v, []);
+
+        graph.get(u)!.push([v, val]);
+        graph.get(v)!.push([u, 1 / val]);
     }
-    return -1;
-  }
 
-  return queries.map(([a, b]) =&gt; (graph.has(a) &amp;&amp; graph.has(b) ? dfs(a, b, new Set()) : -1));
-}</code></pre>
+    function bfs(source: string, target: string): number {
+        const visited = new Set&lt;string&gt;();
+        visited.add(source);
+
+        const queue: [string, number][] = [[source, 1]];
+        let front = 0;
+
+        while(front &lt; queue.length) {
+            const [node, currProd] = queue[front++];
+
+            if(node === target) return currProd;
+
+            for(const [nei, neiVal] of graph.get(node) ?? []) {
+                if(!visited.has(nei)) {
+                    const newProd = neiVal * currProd;
+                    visited.add(nei);
+                    queue.push([nei, newProd]);
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    const qLen = que.length;
+    const ans: number[] = [];
+
+    for(let i = 0; i &lt; qLen; i++) {
+        const [u, v] = que[i];
+
+        if(!graph.has(u) || !graph.has(v)) ans.push(-1);
+        else if(u === v) ans.push(1);
+        else ans.push(bfs(u, v));
+    }
+
+    return ans;
+};</code></pre>
 
 <div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> recursion depth on a 300×300 grid (90,000 calls, so mention an explicit stack), and modifying the input grid (ask first, or use a <code>seen</code> set). <b>Escalation:</b> count islands → largest island → islands added one at a time (305🔒, Union-Find) → change one 0 to 1 (827).</div>
 
@@ -384,63 +513,119 @@ function calcEquation(equations: string[][], values: number[], queries: string[]
 <p class="tldr">"Repeatedly take a task that nothing is waiting on."</p>
 <p>Count each node's incoming edges (<b>indegree</b>). Start with every node at 0. Taking a node lowers its neighbours' counts, and any that reach 0 join the queue. If you finish with fewer than <code>n</code> nodes, the rest are stuck in a <b>cycle</b>. That one check also answers 207 "can you finish?"</p>
 
-<pre class="language-tsx"><code class="language-tsx">// 210 Course Schedule II — Kahn's: keep taking nodes with no incoming edges.
+<pre class="language-tsx"><code class="language-tsx">// 📚 COURSE SCHEDULE II (Kahn's BFS topological sort)
 function findOrder(numCourses: number, prerequisites: number[][]): number[] {
-  const graph: number[][] = Array.from({ length: numCourses }, () =&gt; []);
-  const indegree = new Array(numCourses).fill(0);
-  for (const [course, pre] of prerequisites) {
-    graph[pre].push(course);                       // pre → course
-    indegree[course]++;
-  }
+    const adj: number[][] = Array.from({ length: numCourses }, () =&gt; []);
+    const indegree: number[] = new Array(numCourses).fill(0);
 
-  const order: number[] = [];                      // also used as the queue
-  for (let i = 0; i &lt; numCourses; i++) {
-    if (indegree[i] === 0) order.push(i);
-  }
-  for (let i = 0; i &lt; order.length; i++) {         // order grows as we read it
-    for (const next of graph[order[i]]) {
-      indegree[next]--;
-      if (indegree[next] === 0) order.push(next);
+    for (const [course, prereq] of prerequisites) {
+        adj[prereq].push(course); // taking prereq unlocks course
+        indegree[course]++;       // course has one more prerequisite to satisfy
     }
-  }
-  return order.length === numCourses ? order : []; // stuck before n → cycle
-}</code></pre>
 
-<pre class="language-tsx"><code class="language-tsx">// 269 Alien Dictionary — compare neighbours, first different letter = one edge.
-function alienOrder(words: string[]): string {
-  const graph = new Map&lt;string, Set&lt;string&gt;&gt;();
-  const indegree = new Map&lt;string, number&gt;();
-  for (const word of words) {                      // every letter is a node
-    for (const ch of word) {
-      graph.set(ch, graph.get(ch) ?? new Set());
-      indegree.set(ch, indegree.get(ch) ?? 0);
+    const queue: number[] = [];
+    for (let i = 0; i &lt; numCourses; i++) {
+        if (indegree[i] === 0) queue.push(i);
     }
-  }
 
-  for (let i = 0; i + 1 &lt; words.length; i++) {
-    const a = words[i], b = words[i + 1];
-    if (a.length &gt; b.length &amp;&amp; a.startsWith(b)) return '';   // "abc" before "ab" = invalid
-    for (let j = 0; j &lt; Math.min(a.length, b.length); j++) {
-      if (a[j] !== b[j]) {
-        if (!graph.get(a[j])!.has(b[j])) {         // skip duplicate edges
-          graph.get(a[j])!.add(b[j]);
-          indegree.set(b[j], indegree.get(b[j])! + 1);
+    let front = 0;
+    let order = [];
+
+    while (front &lt; queue.length) {
+        const course = queue[front++];
+        order.push(course);
+
+        for (const next of adj[course]) {
+            indegree[next]--;
+            if (indegree[next] === 0) queue.push(next);
         }
-        break;                                     // only the FIRST difference counts
-      }
     }
-  }
 
-  const order: string[] = [];                      // Kahn's, same as 210
-  for (const [ch, deg] of indegree) if (deg === 0) order.push(ch);
-  for (let i = 0; i &lt; order.length; i++) {
-    for (const next of graph.get(order[i])!) {
-      indegree.set(next, indegree.get(next)! - 1);
-      if (indegree.get(next) === 0) order.push(next);
+    return order.length === numCourses ? order : []; // stuck before n → cycle
+};</code></pre>
+<p class="hint">Same answer with DFS (your accepted submission): post-order, then reverse.</p>
+<pre class="language-tsx"><code class="language-tsx">// DFS version: post-order, then reverse
+function findOrder(numCourses: number, prerequisites: number[][]): number[] {
+    const adj: number[][] = Array.from({ length: numCourses }, () =&gt; []);
+    for (const [course, prereq] of prerequisites) {
+        adj[prereq].push(course);
     }
-  }
-  return order.length === indegree.size ? order.join('') : '';
-}</code></pre>
+
+    let order = [];
+
+    // 0 = not visited, 1 = on the active path, 2 = fully explored
+    const state: number[] = new Array(numCourses).fill(0);
+
+    function dfs(node: number): boolean {
+        state[node] = 1;
+
+        for (const next of adj[node]) {
+            if (state[next] === 1) return false;
+            if (state[next] === 0 &amp;&amp; !dfs(next)) return false;
+        }
+
+        state[node] = 2;
+        order.push(node);
+        return true;
+    }
+
+    for (let i = 0; i &lt; numCourses; i++) {
+        if (state[i] === 0 &amp;&amp; !dfs(i)) return [];
+    }
+
+    return order.reverse();
+};</code></pre>
+
+<p class="hint">Restyled to match 210, not copied from your code (your NeetCode solution wasn't readable).</p>
+<pre class="language-tsx"><code class="language-tsx">// 👽 ALIEN DICTIONARY (Kahn's on letters)
+function alienOrder(words: string[]): string {
+    const adj = new Map&lt;string, Set&lt;string&gt;&gt;();
+    const indegree = new Map&lt;string, number&gt;();
+
+    for(const word of words) { // every letter is a node
+        for(const ch of word) {
+            if(!adj.has(ch)) adj.set(ch, new Set());
+            if(!indegree.has(ch)) indegree.set(ch, 0);
+        }
+    }
+
+    for(let i = 0; i &lt; words.length - 1; i++) {
+        const w1 = words[i];
+        const w2 = words[i + 1];
+
+        if(w1.length &gt; w2.length &amp;&amp; w1.startsWith(w2)) return ''; // "abc" before "ab" = invalid
+
+        for(let j = 0; j &lt; Math.min(w1.length, w2.length); j++) {
+            if(w1[j] !== w2[j]) {
+                if(!adj.get(w1[j])!.has(w2[j])) { // skip duplicate edges
+                    adj.get(w1[j])!.add(w2[j]);
+                    indegree.set(w2[j], indegree.get(w2[j])! + 1);
+                }
+                break; // only the FIRST difference counts
+            }
+        }
+    }
+
+    const queue: string[] = [];
+    for(const [ch, deg] of indegree) {
+        if(deg === 0) queue.push(ch);
+    }
+
+    let front = 0;
+    let order = '';
+
+    while(front &lt; queue.length) {
+        const ch = queue[front++];
+        order += ch;
+
+        for(const next of adj.get(ch)!) {
+            indegree.set(next, indegree.get(next)! - 1);
+            if(indegree.get(next) === 0) queue.push(next);
+        }
+    }
+
+    return order.length === indegree.size ? order : ''; // stuck → cycle
+};</code></pre>
 
 <table>
 <tr><th>Variation</th><th>What changes</th></tr>
@@ -456,68 +641,129 @@ function alienOrder(words: string[]): string {
 <!-- ───────────────────────── 6 ───────────────────────── -->
 <h2 id="uf">🔗 6 · Union-Find: who is in which group</h2>
 <p class="tldr">"Every group has a root. Two nodes are connected if they have the same root."</p>
-<p>Best when edges arrive <b>one at a time</b> and you keep asking "connected yet?" With path compression and union by size, each operation is nearly O(1). It works on <b>undirected</b> graphs only.</p>
+<p>Best when edges arrive <b>one at a time</b> and you keep asking "connected yet?" With path compression and union by <b>rank</b>, each operation is nearly O(1). It works on <b>undirected</b> graphs only.</p>
 
-<pre class="language-tsx"><code class="language-tsx">class UnionFind {
-  parent: number[];
-  size: number[];
-  count: number;                                   // number of separate groups
-
-  constructor(n: number) {
-    this.parent = Array.from({ length: n }, (_, i) =&gt; i);   // everyone is their own root
-    this.size = new Array(n).fill(1);
-    this.count = n;
-  }
-
-  find(x: number): number {
-    if (this.parent[x] !== x) this.parent[x] = this.find(this.parent[x]);  // path compression
-    return this.parent[x];
-  }
-
-  // Returns false if a and b were already connected (this edge would make a cycle).
-  union(a: number, b: number): boolean {
-    let rootA = this.find(a), rootB = this.find(b);
-    if (rootA === rootB) return false;
-    if (this.size[rootA] &lt; this.size[rootB]) [rootA, rootB] = [rootB, rootA];
-    this.parent[rootB] = rootA;                    // hang the smaller tree under the bigger
-    this.size[rootA] += this.size[rootB];
-    this.count--;
-    return true;
-  }
-}</code></pre>
-
-<pre class="language-tsx"><code class="language-tsx">// 684 Redundant Connection — the first edge whose ends are already connected.
+<pre class="language-tsx"><code class="language-tsx">// 🔗 REDUNDANT CONNECTION (Union-Find, rank + path compression)
 function findRedundantConnection(edges: number[][]): number[] {
-  const uf = new UnionFind(edges.length + 1);
-  for (const [a, b] of edges) {
-    if (!uf.union(a, b)) return [a, b];
-  }
-  return [];
-}</code></pre>
+    const n = edges.length;
 
-<pre class="language-tsx"><code class="language-tsx">// 721 Accounts Merge — accounts are nodes; a shared email joins them.
-function accountsMerge(accounts: string[][]): string[][] {
-  const uf = new UnionFind(accounts.length);
-  const owner = new Map&lt;string, number&gt;();         // email → first account that had it
-  accounts.forEach((account, i) =&gt; {
-    for (const email of account.slice(1)) {
-      if (owner.has(email)) uf.union(i, owner.get(email)!);
-      else owner.set(email, i);
+    const parent = Array.from({length: n + 1}, (_, i) =&gt; i); // nodes are 1..n
+    const rank = Array(n + 1).fill(0);
+    // let count = n;  // for "count components": uncomment, and do count-- before return true
+
+    function find(x: number): number {
+        let root = x;
+
+        while(parent[root] !== root) {
+            root = parent[root];
+        }
+
+        while(parent[x] !== root) { // path compression
+            const next = parent[x];
+            parent[x] = root;
+            x = next;
+        }
+
+        return root;
     }
-  });
 
-  const groups = new Map&lt;number, string[]&gt;();      // root account → all its emails
-  for (const [email, i] of owner) {
-    const root = uf.find(i);
-    if (!groups.has(root)) groups.set(root, []);
-    groups.get(root)!.push(email);
-  }
-  return [...groups].map(([root, emails]) =&gt; [accounts[root][0], ...emails.sort()]);
-}</code></pre>
+    function union(x: number, y: number): boolean {
+        const px = find(x);
+        const py = find(y);
+
+        if(px === py) return false; // already connected, this edge makes a cycle
+
+        if(rank[px] &lt; rank[py]) parent[px] = py;
+        else if(rank[px] &gt; rank[py]) parent[py] = px;
+        else {
+            parent[px] = py;
+            rank[py]++;
+        }
+
+        return true;
+    }
+
+    for(const [u, v] of edges) {
+        if(!union(u, v)) return [u, v];
+    }
+
+    return [];
+};</code></pre>
+
+
+<pre class="language-tsx"><code class="language-tsx">// 📧 ACCOUNTS MERGE (Union-Find on emails)
+function accountsMerge(accounts: string[][]): string[][] {
+    const parent = new Map&lt;string, string&gt;();
+    const rank = new Map&lt;string, number&gt;();
+    const owner = new Map&lt;string, string&gt;(); // email -&gt; account name
+
+    function find(x: string): string {
+        let root = x;
+
+        while(parent.get(root) !== root) {
+            root = parent.get(root)!;
+        }
+
+        while(parent.get(x) !== root) {
+            const next = parent.get(x)!;
+            parent.set(x, root);
+            x = next;
+        }
+
+        return root;
+    }
+
+    function union(x: string, y: string): void {
+        const px = find(x);
+        const py = find(y);
+
+        if(px === py) return;
+
+        const rankX = rank.get(px)!;
+        const rankY = rank.get(py)!;
+
+        if(rankX &lt; rankY) {
+            parent.set(px, py);
+        } else if(rankX &gt; rankY) {
+            parent.set(py, px);
+        } else {
+            parent.set(px, py);
+            rank.set(py, rankY + 1); // bump the new ROOT (py), not px
+        }
+    }
+
+    for(const [name, ...emails] of accounts) {
+        for(const email of emails) {
+            if(!parent.has(email)) {
+                parent.set(email, email);
+                rank.set(email, 0);
+                owner.set(email, name);
+            }
+
+            union(emails[0], email); // join every email to the account's first one
+        }
+    }
+
+    const groups = new Map&lt;string, string[]&gt;();
+    for(const email of parent.keys()) {
+        const root = find(email);
+        if(!groups.has(root)) groups.set(root, []);
+        groups.get(root)!.push(email);
+    }
+
+    const res: string[][] = [];
+
+    for(const [root, emails] of groups) {
+        emails.sort();
+        res.push([owner.get(root)!, ...emails]);
+    }
+
+    return res;
+};</code></pre>
 
 <table>
 <tr><th>Problem</th><th>Trick</th></tr>
-<tr><td>323🔒 / 547 count components</td><td>Union every edge, return <code>uf.count</code>.</td></tr>
+<tr><td>323🔒 / 547 count components</td><td>Start <code>count = n</code>, do <code>count--</code> on every union that returns <code>true</code>, return <code>count</code>.</td></tr>
 <tr><td>305🔒 Number of Islands II</td><td>New land: <code>count++</code>. Each union with a land neighbour that returns <code>true</code>: <code>count--</code>. Ignore repeated positions.</td></tr>
 <tr><td>947 Most Stones Removed</td><td>Union stones that share a row or column. Answer = stones − groups.</td></tr>
 <tr><td>1697 Edge-Length-Limited Paths</td><td>Offline: sort the queries and the edges by limit, then add edges as the limit grows.</td></tr>
@@ -530,60 +776,90 @@ function accountsMerge(accounts: string[][]): string[][] {
 <p class="tldr">"BFS, but always expand the cheapest node next."</p>
 <p>Dijkstra works when every weight is <b>≥ 0</b>. JS heaps can't lower a key in place, so push a new entry and <b>skip stale ones</b> when they pop. Time is O(E log V).</p>
 
-<pre class="language-tsx"><code class="language-tsx">// 743 Network Delay Time — Dijkstra: always expand the closest node next.
+<pre class="language-tsx"><code class="language-tsx">// 📡 NETWORK DELAY TIME (Dijkstra)
 function networkDelayTime(times: number[][], n: number, k: number): number {
-  const graph: number[][][] = Array.from({ length: n + 1 }, () =&gt; []);
-  for (const [u, v, w] of times) graph[u].push([v, w]);
+    const graph: number[][][] = Array.from({length: n}, () =&gt; []);
 
-  const dist = new Array(n + 1).fill(Infinity);
-  dist[k] = 0;
-  const heap = new MinHeap();
-  heap.push([0, k]);                               // [distance, node]
-
-  while (heap.size &gt; 0) {
-    const [d, node] = heap.pop();
-    if (d &gt; dist[node]) continue;                  // stale: a shorter path already won
-    for (const [next, w] of graph[node]) {
-      if (d + w &lt; dist[next]) {
-        dist[next] = d + w;
-        heap.push([dist[next], next]);
-      }
+    for(const [u, v, w] of times) {
+        const nu = u - 1; // nodes are 1..n, graph is 0-indexed
+        const nv = v - 1;
+        graph[nu].push([nv, w]);
     }
-  }
 
-  const slowest = Math.max(...dist.slice(1));      // nodes are 1..n
-  return slowest === Infinity ? -1 : slowest;
-}</code></pre>
+    const pq = new MinPriorityQueue&lt;number[]&gt;(x =&gt; x[0]); // [distance, node]
+    pq.enqueue([0, k - 1]);
+    const dist = Array(n).fill(Number.MAX_SAFE_INTEGER);
+    dist[k - 1] = 0;
+
+    while(!pq.isEmpty()) {
+        const [currDist, node] = pq.dequeue();
+
+        if(currDist &gt; dist[node]) continue; // stale: a shorter path already won
+
+        for(const [nei, w] of graph[node]) {
+            const nextDist = w + currDist;
+
+            if(nextDist &lt; dist[nei]) {
+                dist[nei] = nextDist;
+                pq.enqueue([nextDist, nei]);
+            }
+        }
+    }
+
+    let maxVal = 0;
+
+    for(let i = 0; i &lt; n; i++) {
+        if(dist[i] === Number.MAX_SAFE_INTEGER) return -1;
+        maxVal = Math.max(dist[i], maxVal);
+    }
+
+    return maxVal;
+};</code></pre>
 
 <h3>The variation interviewers love: cost is a max, not a sum</h3>
-<pre class="language-tsx"><code class="language-tsx">// 1631 Path With Minimum Effort — grid Dijkstra where path cost = the MAX step.
+<p class="hint">Not in your tracker, so this is built from your 2290 Minimum Obstacle Removal shape with <code>Math.max</code> swapped in.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🧗 PATH WITH MINIMUM EFFORT (grid Dijkstra, cost = largest step)
 function minimumEffortPath(heights: number[][]): number {
-  const rows = heights.length, cols = heights[0].length;
-  const effort = Array.from({ length: rows }, () =&gt; new Array(cols).fill(Infinity));
-  effort[0][0] = 0;
-  const heap = new MinHeap();
-  heap.push([0, 0, 0]);                            // [effort, row, col]
+    const m = heights.length;
+    const n = heights[0].length;
 
-  while (heap.size &gt; 0) {
-    const [e, r, c] = heap.pop();
-    if (r === rows - 1 &amp;&amp; c === cols - 1) return e;  // first time target pops = answer
-    if (e &gt; effort[r][c]) continue;
-    for (const [dr, dc] of DIRS) {
-      const nr = r + dr, nc = c + dc;
-      if (nr &lt; 0 || nc &lt; 0 || nr &gt;= rows || nc &gt;= cols) continue;
-      const next = Math.max(e, Math.abs(heights[nr][nc] - heights[r][c]));  // ⭐ max, not +
-      if (next &lt; effort[nr][nc]) {
-        effort[nr][nc] = next;
-        heap.push([next, nr, nc]);
-      }
+    const dist = Array.from({length: m}, () =&gt; Array(n).fill(Number.MAX_SAFE_INTEGER));
+    const pq = new MinPriorityQueue&lt;number[]&gt;(x =&gt; x[2]); // [row, col, effort]
+
+    dist[0][0] = 0;
+    pq.enqueue([0, 0, 0]);
+
+    const DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+
+    while(!pq.isEmpty()) {
+        const [row, col, d] = pq.dequeue();
+
+        if(row === m - 1 &amp;&amp; col === n - 1) return d; // first time target pops = answer
+
+        if(d &gt; dist[row][col]) continue;
+
+        for(const [dr, dc] of DIRS) {
+            const nr = row + dr;
+            const nc = col + dc;
+
+            if(nr &gt;= 0 &amp;&amp; nr &lt; m &amp;&amp; nc &gt;= 0 &amp;&amp; nc &lt; n) {
+                const newDist = Math.max(d, Math.abs(heights[nr][nc] - heights[row][col])); // ⭐ max, not +
+
+                if(newDist &lt; dist[nr][nc]) {
+                    dist[nr][nc] = newDist;
+                    pq.enqueue([nr, nc, newDist]);
+                }
+            }
+        }
     }
-  }
-  return 0;
-}</code></pre>
+
+    return 0;
+};</code></pre>
 
 <table>
 <tr><th>Variant</th><th>The one change</th></tr>
-<tr><td>1631 Min Effort · 778 Swim in Rising Water</td><td><code>next = Math.max(cost, edge)</code> instead of <code>cost + edge</code>. (Binary search on the answer + BFS also works.)</td></tr>
+<tr><td>1631 Min Effort · 778 Swim in Rising Water</td><td><code>next = Math.max(cost, edge)</code> instead of <code>cost + edge</code>.</td></tr>
+<tr><td>778 Swim in Rising Water (your version)</td><td>Binary search on the answer + BFS: <code>lo = 0</code>, <code>hi = n * n</code>; <code>canFinish(maxEle)</code> runs BFS through cells <code>&lt;= maxEle</code>; <code>if(canFinish(mid)) hi = mid; else lo = mid + 1</code>.</td></tr>
 <tr><td>1514 Max Probability</td><td>Multiply instead of add, and pop the <b>largest</b> first (push <code>-prob</code>).</td></tr>
 <tr><td>1976 Number of Ways to Arrive</td><td>Keep <code>ways[]</code>. Strictly shorter: <code>ways[next] = ways[node]</code>. Equal: <code>ways[next] += ways[node]</code>.</td></tr>
 <tr><td>1928 Cost within a time limit · 787 with a heap</td><td>The node becomes <code>(city, timeOrStopsLeft)</code>, so <code>dist</code> becomes 2-D.</td></tr>
@@ -592,19 +868,31 @@ function minimumEffortPath(heights: number[][]): number {
 </table>
 
 <h3>At most K stops: Bellman-Ford</h3>
-<pre class="language-tsx"><code class="language-tsx">// 787 Cheapest Flights Within K Stops — Bellman-Ford, one round per edge used.
-function findCheapestPrice(n: number, flights: number[][], src: number, dst: number, k: number): number {
-  let cost = new Array(n).fill(Infinity);
-  cost[src] = 0;
-  for (let round = 0; round &lt;= k; round++) {       // k stops = k + 1 flights
-    const next = [...cost];                        // copy: read last round, write this one
-    for (const [from, to, price] of flights) {
-      if (cost[from] + price &lt; next[to]) next[to] = cost[from] + price;
+<pre class="language-tsx"><code class="language-tsx">// ✈️ CHEAPEST FLIGHTS WITHIN K STOPS (Bellman-Ford, one round per flight)
+function findCheapestPrice(n: number, edges: number[][], src: number, dst: number, k: number): number {
+    let dist = Array(n).fill(Number.MAX_SAFE_INTEGER);
+    dist[src] = 0;
+
+    for(let f = 0; f &lt; k + 1; f++) { // k stops = k + 1 flights
+        const nextDist = [...dist];  // copy: read last round, write this one
+        let changed = false;
+
+        for(const [u, v, p] of edges) {
+            if(dist[u] + p &lt; nextDist[v]) {
+                nextDist[v] = dist[u] + p;
+                changed = true;
+            }
+        }
+
+        dist = nextDist;
+
+        if(!changed) break; // nothing improved: later rounds can't either
     }
-    cost = next;
-  }
-  return cost[dst] === Infinity ? -1 : cost[dst];
-}</code></pre>
+
+    return dist[dst] === Number.MAX_SAFE_INTEGER ? -1 : dist[dst];
+};</code></pre>
+
+<p class="hint"><code>Number.MAX_SAFE_INTEGER + p</code> is never smaller than a real cost, so the unreached check stays safe. Don't switch to <code>Infinity</code> without re-checking the comparisons.</p>
 
 <div class="box warn"><b class="tag">⚠️ Negative weights</b> Dijkstra assumes a popped node is final, and a negative edge can break that later. With negative weights use Bellman-Ford: relax every edge <code>V − 1</code> times, O(V·E). If a <code>V</code>-th pass still improves something, there's a negative cycle.</div>
 
@@ -615,27 +903,73 @@ function findCheapestPrice(n: number, flights: number[][], src: number, dst: num
 <!-- ───────────────────────── 8 ───────────────────────── -->
 <h2 id="mst">🌳 8 · Minimum spanning tree</h2>
 <p class="tldr">"Take the cheapest edge that doesn't make a cycle. Repeat."</p>
-<p>That's <b>Kruskal</b>: sort the edges, then use Union-Find to skip any edge that joins two nodes already connected. A tree on <code>n</code> nodes has <code>n − 1</code> edges, so stop once everything is connected.</p>
-<pre class="language-tsx"><code class="language-tsx">// 1584 Min Cost to Connect All Points — Kruskal: cheapest edges first, skip cycles.
+<p>That's <b>Kruskal</b>: sort the edges, then use Union-Find to skip any edge that joins two nodes already connected. A tree on <code>n</code> nodes has <code>n − 1</code> edges, so <code>edgesUsed === n - 1</code> means everything is connected. You can <code>break</code> there to skip the remaining edges.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🌳 MIN COST TO CONNECT ALL POINTS (Kruskal + Union-Find)
 function minCostConnectPoints(points: number[][]): number {
-  const n = points.length;
-  const edges: number[][] = [];
-  for (let i = 0; i &lt; n; i++) {
-    for (let j = i + 1; j &lt; n; j++) {
-      const dist = Math.abs(points[i][0] - points[j][0]) + Math.abs(points[i][1] - points[j][1]);
-      edges.push([dist, i, j]);
-    }
-  }
-  edges.sort((a, b) =&gt; a[0] - b[0]);
+    const n = points.length;
+    const parent = Array.from({length: n}, (_, i) =&gt; i);
+    const rank = Array(n).fill(0);
 
-  const uf = new UnionFind(n);
-  let total = 0;
-  for (const [dist, i, j] of edges) {
-    if (uf.union(i, j)) total += dist;             // joins two groups → keep the edge
-    if (uf.count === 1) break;                     // everything connected
-  }
-  return total;
-}</code></pre>
+    function find(x: number): number {
+        let root = x;
+
+        while(parent[root] !== root) {
+            root = parent[root];
+        }
+
+        while(parent[x] !== root) {
+            const next = parent[x];
+            parent[x] = root;
+            x = next;
+        }
+
+        return root;
+    }
+
+    function union(x: number, y: number): boolean {
+        const px = find(x);
+        const py = find(y);
+
+        if(px === py) return false;
+
+        if(rank[px] &lt; rank[py]) parent[px] = py;
+        else if(rank[px] &gt; rank[py]) parent[py] = px;
+        else {
+            parent[px] = py;
+            rank[py]++;
+        }
+
+        return true;
+    }
+
+    const edges: number[][] = []; // [i, j, cost]
+
+    for(let i = 0; i &lt; n; i++) {
+        for(let j = i + 1; j &lt; n; j++) {
+            const [xi, yi] = points[i];
+            const [xj, yj] = points[j];
+
+            const cost = Math.abs(xi - xj) + Math.abs(yi - yj);
+            edges.push([i, j, cost]);
+        }
+    }
+
+    edges.sort((a, b) =&gt; a[2] - b[2]);
+    const eLen = edges.length;
+    let edgesUsed = 0;
+    let totalCost = 0;
+
+    for(let i = 0; i &lt; eLen; i++) {
+        const [u, v, w] = edges[i];
+
+        if(union(u, v)) { // joins two groups → keep the edge
+            edgesUsed++;
+            totalCost += w;
+        }
+    }
+
+    return edgesUsed === n - 1 ? totalCost : -1; // -1 if graph can't be fully connected
+};</code></pre>
 <ul>
 <li><b>Prim</b> grows one tree from a node, always taking the cheapest edge leaving it. It's Dijkstra's code with <code>w</code> in place of <code>d + w</code>. On 1584 (every pair is an edge) an array-based Prim is O(n²) and beats sorting n² edges.</li>
 <li><b>1168🔒 Optimize Water Distribution:</b> add a fake node 0 and give each house an edge to it costing its well price. Now it's a plain MST.</li>
@@ -646,83 +980,121 @@ function minCostConnectPoints(points: number[][]): number {
 <p class="hint">Know these if you have time. They show up in harder rounds, rarely in a typical L3/L4 loop.</p>
 
 <h3>Use every edge once: Hierholzer</h3>
-<pre class="language-tsx"><code class="language-tsx">// 332 Reconstruct Itinerary — Hierholzer: add an airport only when it has no tickets left.
+<pre class="language-tsx"><code class="language-tsx">// 🛫 RECONSTRUCT ITINERARY (Hierholzer, post-order)
 function findItinerary(tickets: string[][]): string[] {
-  const graph = new Map&lt;string, string[]&gt;();
-  for (const [from, to] of tickets) {
-    if (!graph.has(from)) graph.set(from, []);
-    graph.get(from)!.push(to);
-  }
-  for (const dests of graph.values()) dests.sort().reverse();  // pop() gives the smallest
+    const graph = new Map&lt;string, string[]&gt;();
+    const res: string[] = [];
 
-  const route: string[] = [];
-  function dfs(airport: string): void {
-    const dests = graph.get(airport) ?? [];
-    while (dests.length &gt; 0) dfs(dests.pop()!);    // use each ticket once
-    route.push(airport);                           // post-order
-  }
-  dfs('JFK');
-  return route.reverse();
-}</code></pre>
+    for(const [u, v] of tickets) {
+        if(!graph.has(u)) graph.set(u, []);
+        graph.get(u)!.push(v);
+    }
+
+    for(const values of graph.values()) {
+        values.sort().reverse(); // pop() then gives the smallest
+    }
+
+    function dfs(node: string) {
+        const nei = graph.get(node) ?? [];
+
+        while(nei.length &gt; 0) {
+            const nextNode = nei.pop()!; // use each ticket once
+            dfs(nextNode);
+        }
+
+        res.push(node); // post-order: add only after every ticket is used
+    }
+
+    dfs('JFK');
+    return res.reverse();
+};</code></pre>
+<div class="box key"><b class="tag">🧠 Why post-order</b> Pre-order breaks: tickets JFK→A, JFK→B, B→JFK. Pre-order gives JFK A B JFK (there's no ticket A→B). Post-order gives [A, JFK, B, JFK]; reversed, JFK B JFK A. The dead end is the finish line: write it first, read it backwards.</div>
 <p class="hint">Visiting every <b>edge</b> once (Euler) is O(E). Visiting every <b>node</b> once (Hamiltonian) is NP-hard, so don't try to code it. In a directed graph, a path exists if every node has in = out, except possibly one start (out = in + 1) and one end.</p>
 
 <h3>Bridges: critical connections</h3>
-<pre class="language-tsx"><code class="language-tsx">// 1192 Critical Connections — an edge is a bridge if the far side can't climb back above it.
+<pre class="language-tsx"><code class="language-tsx">// 🌉 CRITICAL CONNECTIONS (bridges, disc/low)
 function criticalConnections(n: number, connections: number[][]): number[][] {
-  const graph = buildGraph(n, connections, false);
-  const disc = new Array(n).fill(-1);              // when we first reached the node
-  const low = new Array(n).fill(0);                // earliest disc reachable from its subtree
-  const bridges: number[][] = [];
-  let time = 0;
+    const graph: number[][] = Array.from({length: n}, () =&gt; []);
 
-  function dfs(node: number, parent: number): void {
-    disc[node] = low[node] = time++;
-    for (const next of graph[node]) {
-      if (next === parent) continue;
-      if (disc[next] === -1) {
-        dfs(next, node);
-        low[node] = Math.min(low[node], low[next]);
-        if (low[next] &gt; disc[node]) bridges.push([node, next]);
-      } else {
-        low[node] = Math.min(low[node], disc[next]);  // back edge
-      }
+    for(const [u, v] of connections) {
+        graph[u].push(v);
+        graph[v].push(u);
     }
-  }
-  dfs(0, -1);
-  return bridges;
-}</code></pre>
+
+    // disc[node] = arrival timestamp, FIXED once set
+    const disc: number[] = Array(n).fill(-1);
+    // low[node] = earliest timestamp reachable from the node's subtree via a back edge
+    const low: number[] = Array(n).fill(-1);
+
+    const bridges: number[][] = [];
+    let timer = 0;
+
+    function dfs(node: number, par: number): void {
+        disc[node] = low[node] = timer++;
+
+        for(const nei of graph[node]) {
+            if(nei === par) continue; // skip the edge we just walked in on
+
+            if(disc[nei] === -1) {
+                dfs(nei, node);
+                low[node] = Math.min(low[node], low[nei]); // nei's low is final now
+                if(low[nei] &gt; disc[node]) { // nei cannot reach back above node
+                    bridges.push([node, nei]);
+                }
+            } else {
+                low[node] = Math.min(low[node], disc[nei]); // back edge: use disc[nei]
+            }
+        }
+    }
+
+    dfs(0, -1);
+
+    return bridges;
+};</code></pre>
 <p class="hint">Articulation points (critical <i>nodes</i>) use the same code with <code>low[next] &gt;= disc[node]</code>, plus a rule that the DFS root counts only if it has 2 or more children.</p>
 
 <h3>Visit all nodes: BFS over (node, bitmask)</h3>
-<pre class="language-tsx"><code class="language-tsx">// 847 Shortest Path Visiting All Nodes — BFS where a state is (node, set of visited nodes).
+<pre class="language-tsx"><code class="language-tsx">// 🧭 SHORTEST PATH VISITING ALL NODES (BFS over node + bitmask)
 function shortestPathLength(graph: number[][]): number {
-  const n = graph.length;
-  const all = (1 &lt;&lt; n) - 1;                        // every bit set = every node visited
-  const seen = Array.from({ length: n }, () =&gt; new Array(1 &lt;&lt; n).fill(false));
-  let queue: number[][] = [];
-  for (let i = 0; i &lt; n; i++) {                    // may start anywhere
-    queue.push([i, 1 &lt;&lt; i]);
-    seen[i][1 &lt;&lt; i] = true;
-  }
+    const n = graph.length;
 
-  let steps = 0;
-  while (queue.length &gt; 0) {
-    const next: number[][] = [];
-    for (const [node, mask] of queue) {
-      if (mask === all) return steps;
-      for (const nb of graph[node]) {
-        const nextMask = mask | (1 &lt;&lt; nb);
-        if (!seen[nb][nextMask]) {
-          seen[nb][nextMask] = true;
-          next.push([nb, nextMask]);
-        }
-      }
+    const target = (1 &lt;&lt; n) - 1; // every bit set = every node visited
+    const visited = Array.from({length: n}, () =&gt; Array(target + 1).fill(false));
+    const queue: number[][] = [];
+
+    for(let i = 0; i &lt; n; i++) { // may start anywhere
+        const mask = 1 &lt;&lt; i;
+        visited[i][mask] = true;
+        queue.push([i, mask]);
     }
-    queue = next;
-    steps++;
-  }
-  return -1;
-}</code></pre>
+
+    let front = 0;
+    let count = 0;
+
+    while(front &lt; queue.length) {
+        let size = queue.length - front;
+
+        while(size--) {
+            const [node, mask] = queue[front++];
+
+            if(mask === target) return count;
+
+            for(const nei of graph[node]) {
+                const neiMask = 1 &lt;&lt; nei;
+                const nextMask = mask | neiMask;
+
+                if(!visited[nei][nextMask]) {
+                    visited[nei][nextMask] = true;
+                    queue.push([nei, nextMask]);
+                }
+            }
+        }
+
+        count++;
+    }
+
+    return -1;
+};</code></pre>
 
 <h3>Name-drop only</h3>
 <table>
@@ -740,18 +1112,18 @@ function shortestPathLength(graph: number[][]): number {
 <table>
 <tr><th>#</th><th>Problem</th><th>Pattern</th><th>The trick, in one line</th></tr>
 <tr><td>200</td><td>Number of Islands</td><td>DFS sweep</td><td>Count when you find a 1, then sink the whole island.</td></tr>
-<tr><td>695</td><td>Max Area of Island</td><td>DFS sweep</td><td>The sink function returns the size.</td></tr>
+<tr><td>695</td><td>Max Area of Island</td><td>DFS sweep</td><td><code>dfs</code> returns the size.</td></tr>
 <tr><td>133</td><td>Clone Graph</td><td>DFS + map</td><td>Put the copy in the map <b>before</b> visiting neighbours.</td></tr>
 <tr><td>994</td><td>Rotting Oranges</td><td>Multi-source BFS</td><td>All rotten oranges in level 0; levels = minutes; check that no fresh ones are left.</td></tr>
 <tr><td>417</td><td>Pacific Atlantic</td><td>Reverse search</td><td>Flow uphill from each ocean's border; answer = cells reached by both.</td></tr>
 <tr><td>130</td><td>Surrounded Regions</td><td>Reverse search</td><td>Mark the O's connected to the border; flip all the others.</td></tr>
-<tr><td>127</td><td>Word Ladder</td><td>BFS, generated neighbours</td><td>Try every letter at every position; answer counts words.</td></tr>
+<tr><td>127</td><td>Word Ladder</td><td>Bidirectional BFS</td><td>Swap so the smaller side expands; meeting = <code>back.has(newWord)</code>.</td></tr>
 <tr><td>207 / 210</td><td>Course Schedule I / II</td><td>Kahn's</td><td>Edge <code>pre → course</code>; fewer than n taken = cycle.</td></tr>
 <tr><td>269🔒</td><td>Alien Dictionary</td><td>Kahn's on letters</td><td>First different letter of neighbouring words = one edge; watch the prefix case.</td></tr>
 <tr><td>785</td><td>Is Graph Bipartite</td><td>2-colouring</td><td>Neighbour has my colour → false. Loop over every component.</td></tr>
-<tr><td>399</td><td>Evaluate Division</td><td>Weighted DFS</td><td><code>a/b = v</code> → edges <code>v</code> and <code>1/v</code>; multiply along the path.</td></tr>
+<tr><td>399</td><td>Evaluate Division</td><td>Weighted BFS</td><td><code>a/b = v</code> → edges <code>v</code> and <code>1/v</code>; carry the running product in the queue: <code>[node, prod]</code>.</td></tr>
 <tr><td>684</td><td>Redundant Connection</td><td>Union-Find</td><td>The first edge whose ends already share a root.</td></tr>
-<tr><td>721</td><td>Accounts Merge</td><td>Union-Find</td><td>Union accounts that share an email; group emails by root.</td></tr>
+<tr><td>721</td><td>Accounts Merge</td><td>Union-Find</td><td>Union every email with its account's first email; group emails by root.</td></tr>
 <tr><td>743</td><td>Network Delay Time</td><td>Dijkstra</td><td>Answer = the max of all shortest distances, or −1 if any is unreachable.</td></tr>
 <tr><td>1631</td><td>Path With Minimum Effort</td><td>Dijkstra with max</td><td>Path cost = its largest step: <code>max</code> instead of <code>+</code>.</td></tr>
 <tr><td>787</td><td>Cheapest Flights Within K Stops</td><td>Bellman-Ford</td><td>K + 1 rounds, copying the array each round.</td></tr>
@@ -771,7 +1143,7 @@ function shortestPathLength(graph: number[][]): number {
 <tr><td>Dijkstra without the stale check</td><td><code>if (d &gt; dist[node]) continue</code></td></tr>
 <tr><td>Arrays as Set keys: <code>seen.has([r, c])</code> is always false</td><td>Use <code>r * cols + c</code> or <code>`${r},${c}`</code> (with the comma: "1,23" ≠ "12,3").</td></tr>
 <tr><td><code>new Array(n).fill([])</code> shares one array</td><td><code>Array.from({ length: n }, () =&gt; [])</code></td></tr>
-<tr><td><code>queue.shift()</code> is O(n)</td><td>Level-by-level arrays, or a head index.</td></tr>
+<tr><td><code>queue.shift()</code> is O(n)</td><td>Use one array and a <code>front</code> index.</td></tr>
 <tr><td>Union-Find on a directed graph</td><td>Use Kahn's or 3-state DFS instead.</td></tr>
 <tr><td>Returning <code>Infinity</code> for unreachable</td><td>Convert to <code>-1</code> (or whatever the problem asks).</td></tr>
 </table>
@@ -816,8 +1188,8 @@ function shortestPathLength(graph: number[][]): number {
 <li><span class="pill">DFS</span> 200 Number of Islands</li>
 <li><span class="pill">BFS</span> 994 Rotting Oranges</li>
 <li><span class="pill">Topo</span> 210 Course Schedule II</li>
-<li><span class="pill">Union-Find</span> the class + 684</li>
-<li><span class="pill">Dijkstra</span> the heap + 743</li>
+<li><span class="pill">Union-Find</span> <code>find</code> + <code>union</code> + 684</li>
+<li><span class="pill">Dijkstra</span> the heap + 743 (LeetCode has <code>MinPriorityQueue</code>; in an interview doc you write the heap yourself, see <a href="#build">§2</a>)</li>
 </ul>
 <p class="hint">Time yourself: each one should take under 10 minutes, heap included.</p>
 
