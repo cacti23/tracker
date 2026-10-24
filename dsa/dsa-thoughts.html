@@ -127,7 +127,7 @@
 </nav>
 <h4>✈️ Euler Path</h4>
 <nav class="nav">
-  <a href="#graph-18"><b>18</b>Hierholzer's</a>
+  <a href="#graph-18"><b>18</b>Hierholzer's: post-order, reverse</a>
 </nav>
 <h4>⏱️ Complexity</h4>
 <nav class="nav">
@@ -211,7 +211,7 @@
 <li>🚨 <b>Traps:</b> wall/thorn on start or end → return early (<a href="#graph-1">#1</a>) · labels 1..n → <code>-1</code> on edges AND source/target (<a href="#graph-2">#2</a>)</li>
 <li>🎯 <b>Mark the start before the loop:</b> BFS <code>visited.add(start)</code> · Dijkstra <code>dist[src] = 0</code> (<a href="#graph-3">#3</a>)</li>
 <li>🗺️ <b>visited vs parent:</b> tree → parent · anything else → visited · undirected cycle → + parent · directed cycle → 3 states or Kahn's (<a href="#graph-4">#4</a>)</li>
-<li>🔦 <b>Shortest path → BFS</b> · the path itself matters → backtracking (<a href="#graph-5">#5</a>)</li>
+<li>🔦 <b>Fewest steps → BFS</b> (+ <code>parent[]</code> to rebuild the path) · choices on the path change the next move → backtracking (<a href="#graph-5">#5</a>)</li>
 <li>🗂️ <b>Many queries, same graph</b> → precompute once, <code>O(1)</code> per query (<a href="#graph-7">#7</a>)</li>
 <li>🚦 <b>Pick the tool:</b> all edges 1 → BFS · weights ≥ 0 → Dijkstra · negative or ≤ K stops → Bellman-Ford · every pair → Floyd-Warshall · connect everyone → Kruskal (<a href="#graph-8">#8</a>)</li>
 <li>⏭️ <b>Dijkstra:</b> skip stale entries <code>if (d &gt; dist[u]) continue</code> → TC <code>O(E log E)</code> · SC <code>O(V + E)</code> (<a href="#graph-9">#9</a>)</li>
@@ -289,13 +289,14 @@ dist.fill(Infinity); dist[src] = 0; pq.enqueue([0, src])</code></pre>
 
 <section data-g="graph rec">
 <span id="t11"></span>
-<h2 id="graph-5">5 · 🔦 BFS or Backtracking? — Shortest Path vs the Path Itself</h2>
+<h2 id="graph-5">5 · 🔦 BFS or Backtracking? — Fewest Steps vs Choices That Change the Next Move</h2>
 <table>
 <tr><th>The question asks for</th><th>Use</th><th>Examples</th></tr>
-<tr><td>🟢 Shortest path from source to target (min steps, reachable, count)</td><td>BFS, mark visited forever</td><td>Rotting Oranges, Number of Islands</td></tr>
-<tr><td>🔙 The path itself matters: where you came from changes what you can do next</td><td>Backtracking = DFS + undo: mark → explore → <b>unmark</b></td><td>Word Search, Max Gold, Unique Paths III</td></tr>
+<tr><td>🟢 Fewest steps from source to target (unweighted)</td><td>BFS, mark visited on push · need the path too? store <code>parent[next] = cur</code> and walk back</td><td>Rotting Oranges, Word Ladder</td></tr>
+<tr><td>🌐 Visit everything / count groups (components)</td><td>BFS or DFS, mark visited forever</td><td>Number of Islands</td></tr>
+<tr><td>🔙 Choices on the current path change what you can do next (a cell can't be reused on this path), or you list every valid path</td><td>Backtracking = DFS + undo: mark → explore → <b>unmark</b></td><td>Word Search, Max Gold, Unique Paths III</td></tr>
 </table>
-<div class="box key"><b class="tag">📌</b> Shortest → BFS. The path itself matters → backtracking. BFS holds many paths at once in its queue, so it can't undo one.</div>
+<div class="box key"><b class="tag">📌</b> Fewest steps → BFS (+ <code>parent[]</code> if you need the path). Choices on the path change the next move → backtracking. BFS holds many paths at once in its queue, so it can't undo one.</div>
 </section>
 
 <section data-g="graph">
@@ -337,7 +338,7 @@ primeToIdx.delete(currVal)   // every index in it is already queued</code></pre>
 <tr><td>Connect everyone cheapest (not a path)</td><td>🌲 Kruskal's MST (<a href="#graph-15">#15</a>)</td></tr>
 </table>
 <p><b>Why BFS breaks with weights:</b> BFS trusts "visited first = shortest". 📐 <code>start→A</code> costs <code>10</code>, <code>start→B→A</code> costs <code>1+1 = 2</code>. BFS reaches <code>A</code> first by the direct edge, locks in 10, and the cheaper path via <code>B</code> is blocked.</p>
-<div class="box key"><b class="tag">📌</b> Weight-1 edges → BFS. Any other weights → "visited first" no longer means shortest → Dijkstra.</div>
+<div class="box key"><b class="tag">📌</b> Weight-1 edges → BFS. Weights ≥ 0 → Dijkstra ("visited first" no longer means shortest). Negative weights → Bellman-Ford, never plain Dijkstra.</div>
 </section>
 
 <section data-g="graph">
@@ -349,7 +350,7 @@ primeToIdx.delete(currVal)   // every index in it is already queued</code></pre>
 <li>🔁 A node can enter the heap <b>many times</b>, once per cheaper path found. The extra copies are popped and skipped as stale (2️⃣ below).</li>
 <li>➡️ But each node is <b>processed once</b> (at its cheapest cost), so <b>each edge is processed once</b> → at most <code>E</code> pushes.</li>
 <li>🪜 Every push/pop on a heap of up to <code>E</code> entries costs <code>log E</code> → <code>E × log E</code>.</li>
-<li>Same as <code>O(E log V)</code>, since <code>E ≤ V²</code> makes <code>log E ≤ 2 log V</code>.</li>
+<li>Plus <code>O(V)</code> to set up <code>dist</code> → strictly <code>O(V + E log E)</code>. Usually written <code>O(E log E)</code> = <code>O(E log V)</code> (since <code>E ≤ V²</code> makes <code>log E ≤ 2 log V</code>). The <code>V</code> only matters with many isolated nodes.</li>
 </ul>
 <p><b>SC:</b> adjacency list <code>O(V + E)</code> + <code>dist[]</code> <code>O(V)</code> + heap up to <code>E</code> entries → <code>O(V + E)</code>.</p>
 <h3>2️⃣ ⏭️ Skip stale entries</h3>
@@ -386,7 +387,7 @@ else nextTime = neiTime</code></pre>
 <section data-g="graph">
 <span id="t25"></span>
 <h2 id="graph-12">12 · 🟠 Bellman-Ford — Negative Weights or At Most K Stops</h2>
-<p>🚨 <b>Negative weights → Bellman-Ford.</b> Dijkstra treats a popped node as final, and a negative edge found later can break that. Relax every edge for <code>V−1</code> rounds, <code>O(V·E)</code>. If an extra round still improves something → negative cycle.</p>
+<p>🚨 <b>Negative weights → Bellman-Ford.</b> Dijkstra treats a popped node as final, and a negative edge found later can break that. Relax every edge for <code>V−1</code> rounds, <code>O(V·E)</code>. If an extra round still improves something → a negative cycle <b>reachable from the source</b>.</p>
 <p>🎯 <b>At most K stops</b> (LC 787): K stops = <code>K+1</code> edges = <code>K+1</code> rounds.</p>
 <pre class="language-tsx"><code class="language-tsx">for (let round = 0; round &lt;= k; round++) {
   const prev = [...dist]                    // read last round only
@@ -394,7 +395,7 @@ else nextTime = neiTime</code></pre>
     if (prev[u] + w &lt; dist[v]) dist[v] = prev[u] + w
 }</code></pre>
 <h3>❓ Why <code>prev</code>?</h3>
-<p>Each round must add exactly <b>one</b> more edge. Read from <code>dist</code> while you update it, and a value set earlier in the <b>same</b> round is used again, so one round walks several edges.</p>
+<p>Each round allows <b>at most one</b> more edge. Read from <code>dist</code> while you update it, and a value set earlier in the <b>same</b> round is used again, so one round walks several edges.</p>
 <pre class="language-none"><code class="language-none">LC 787, k = 1
 edges: 0→1 100, 1→2 100,
        2→3 200, 1→3 600
@@ -546,10 +547,10 @@ dfs(node):
     if state[nei]===1: CYCLE (back edge to node still exploring)
     if state[nei]===0: dfs(nei)
   state[node] = 2</code></pre>
-<p id="t4"><b>2. Kahn's (BFS topological sort):</b> keep peeling nodes with <code>indegree 0</code>. Nodes on a cycle never reach 0.</p>
+<p id="t4"><b>2. Kahn's (BFS topological sort):</b> keep peeling nodes with <code>indegree 0</code>. Nodes on a cycle, and nodes that come after one, never reach 0.</p>
 <pre class="language-tsx"><code class="language-tsx">queue = all nodes with indegree 0
 process queue, decrementing neighbors' indegree, adding new indegree-0 nodes
-if processedCount &lt; n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
+if processedCount &lt; n: CYCLE (leftovers = on a cycle or after one)</code></pre>
 <div class="box key"><b class="tag">📌</b> Undirected → DFS/BFS parent-skip or Union-Find. Directed → 0/1/2 DFS or Kahn's (<code>processed &lt; n</code> → cycle). Union-Find can't tell direction, so it can't detect directed cycles.</div>
 </section>
 
@@ -574,9 +575,9 @@ if processedCount &lt; n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
 
 <section data-g="graph">
 <span id="t5"></span>
-<h2 id="graph-18">18 · ✈️ Hierholzer's — Every Edge Once, TC = O(E)</h2>
+<h2 id="graph-18">18 · ✈️ Hierholzer's — Every Edge Once, Post-Order, Reverse</h2>
 <p>🎯 Eulerian path = use every <b>EDGE</b> once, not every node. Push the node to the result on the way OUT (post-order), then <b>reverse at the end</b>.</p>
-<p id="t16">⏱️ <b>TC = <code>O(E)</code>, not V+E:</b> each edge is removed once (<code>graph[node].pop()</code>). A node is visited once per outgoing edge, so counting nodes separately adds nothing.</p>
+<p id="t16">⏱️ <b>TC:</b> the walk itself is <code>O(E)</code>, because each edge is removed once (<code>graph[node].pop()</code>) and a node is visited once per outgoing edge. LC 332 also sorts each airport's tickets first → <b><code>O(E log E)</code> end to end</b>.</p>
 <h3>🚨 Why post-order? (LC 332 Reconstruct Itinerary)</h3>
 <p>➡️ Add an airport to <code>res</code> ONLY after all its tickets are used. The <b>first</b> time you get stuck, you are at the <b>final stop</b>, so the stuck node goes in first. <code>res</code> builds the trip backwards → reverse at the end.</p>
 <pre class="language-none"><code class="language-none">tickets: JFK→A, JFK→B, B→JFK
@@ -590,7 +591,7 @@ if processedCount &lt; n: CYCLE (leftover nodes stuck in a cycle)</code></pre>
    res = [A, JFK, B, JFK]
    reverse → JFK → B → JFK → A</code></pre>
 <div class="box warn"><b class="tag">⚠️</b> Pre-order passes both LC 332 examples (no dead ends there). It fails when the smallest choice leads to a dead end before all tickets are used, like A above.</div>
-<div class="box key"><b class="tag">📌</b> DFS that consumes each edge once → <code>O(E)</code>. 🧠 Dead end = finish line → write it first, read it backwards.</div>
+<div class="box key"><b class="tag">📌</b> DFS that consumes each edge once → <code>O(E)</code> (LC 332 sorts first → <code>O(E log E)</code>). 🧠 Dead end = finish line → write it first, read it backwards.</div>
 </section>
 
 <section data-g="graph" class="subt"><div><small>Graph section · #19–20</small>⏱️ Complexity</div></section>
