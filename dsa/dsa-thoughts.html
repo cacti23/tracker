@@ -1495,7 +1495,7 @@ for (let i = n - 1; i &gt;= 0; i--) right[i] = Math.max(h[i], i &lt; n - 1 ? rig
 <ul>
 <li>🔢 <b>Sieve:</b> <code>O(n log log n)</code> (<a href="#math-1">#1</a>)</li>
 <li>🍕 <b><code>A % B</code> with A &lt; B</b> → just A (<a href="#math-2">#2</a>)</li>
-<li>🧮 <b>Count them:</b> pairs <code>n(n−1)/2</code> · subarrays <code>n(n+1)/2</code> · subsets <code>2ⁿ</code> (<a href="#math-3">#3</a>)</li>
+<li>🧮 <b>Count them:</b> pairs <code>nC2 = n(n−1)/2</code> · subarrays <code>n(n+1)/2</code> · every <code>(i, j)</code> <code>n²</code> · subsets <code>2ⁿ</code> (<a href="#math-3">#3</a>)</li>
 </ul>
 </section>
 
@@ -1518,17 +1518,19 @@ for (let i = n - 1; i &gt;= 0; i--) right[i] = Math.max(h[i], i &lt; n - 1 ? rig
 <h2 id="math-3">3 · 🧮 Pairs vs Subarrays vs Subsets — How Many?</h2>
 <table>
 <tr><th>What</th><th>Count</th><th>Loop</th></tr>
-<tr><td>🤝 Pairs (2 different items)</td><td><code>n(n−1)/2</code></td><td><code>j</code> from <code>i+1</code></td></tr>
-<tr><td>✉️ Ordered pairs (A→B ≠ B→A)</td><td><code>n(n−1)</code> = 2× pairs</td><td><code>j</code> from <code>0</code>, skip <code>i === j</code></td></tr>
-<tr><td>🧩 Subarrays (<code>j</code> can equal <code>i</code>)</td><td><code>n(n+1)/2</code></td><td><code>j</code> from <code>i</code></td></tr>
-<tr><td>🎒 Subsets (any size)</td><td><code>2ⁿ</code></td><td>each item in or out</td></tr>
+<tr><td>🤝 Pairs (2 different items)</td><td><code>nC2 = n(n−1)/2</code></td><td><code>i: 0 → n−1</code> · <code>j: i+1 → n−1</code></td></tr>
+<tr><td>✉️ Ordered pairs (A→B ≠ B→A)</td><td><code>n(n−1)</code> = 2× pairs</td><td><code>i: 0 → n−1</code> · <code>j: 0 → n−1</code>, skip <code>i === j</code></td></tr>
+<tr><td>🧩 Subarrays (<code>j</code> can equal <code>i</code>)</td><td><code>n(n+1)/2</code></td><td><code>i: 0 → n−1</code> · <code>j: i → n−1</code></td></tr>
+<tr><td>🔁 Every <code>(i, j)</code>, self too</td><td><code>n²</code></td><td><code>i: 0 → n−1</code> · <code>j: 0 → n−1</code></td></tr>
+<tr><td>🎒 Subsets (any size)</td><td><code>2ⁿ</code></td><td>not a double loop: each item in or out</td></tr>
 </table>
 <pre class="language-none"><code class="language-none">n = 3
-pairs:     (0,1) (0,2) (1,2)        = 3
-subarrays: 3 pairs + (0,0)(1,1)(2,2) = 6</code></pre>
-<p>➖ Pairs: you can't pair with yourself. ➕ Subarrays: singles count too, so it is <code>1 + 2 + … + n</code>. That is the <code>total</code> in <code>atLeast(k) = total − atMost(k−1)</code> (<a href="#arr-3">Arrays #3</a>).</p>
+pairs:        (0,1) (0,2) (1,2)         = 3
+subarrays:    3 pairs + (0,0)(1,1)(2,2) = 6
+every (i, j): 3 × 3                     = 9
+subsets:      2 × 2 × 2                 = 8</code></pre>
 <div class="box warn"><b class="tag">⚠️</b> <code>2ⁿ</code> includes the empty subset. Non-empty only → <code>2ⁿ − 1</code>.</div>
-<div class="box key"><b class="tag">📌</b> 🧠 minus → pairs · plus → subarrays · power → subsets</div>
+<div class="box key"><b class="tag">📌</b> Where <code>j</code> starts picks the count: <code>i+1</code> → <code>nC2</code> · <code>i</code> → <code>n(n+1)/2</code> · <code>0</code> → <code>n²</code>.</div>
 </section>
 
 <section data-g="js" class="sum" id="js-sum">
