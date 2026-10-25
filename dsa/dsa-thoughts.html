@@ -78,13 +78,13 @@
      a line to the topic's "Must Remember" box if it's a rule worth recalling. Cross-links: "#3" in the same topic,
      "DP #3" across topics. Old #tN anchors stay so earlier links still land. -->
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 50</button>
+  <button data-g="all" class="on">📚 All · 51</button>
   <button data-g="graph">🕸️ Graph · 22</button>
   <button data-g="tree">🌳 Trees · 5</button>
   <button data-g="rec">🔀 Recursion &amp; Backtracking · 8</button>
   <button data-g="dp">🧩 Dynamic Programming · 7</button>
   <button data-g="bs">🎯 Binary Search · 2</button>
-  <button data-g="arr">🪟 Arrays &amp; Strings · 7</button>
+  <button data-g="arr">🪟 Arrays &amp; Strings · 8</button>
   <button data-g="math">🔢 Math · 3</button>
   <button data-g="js">🚨 JS Gotchas · 2</button>
 </div>
@@ -186,6 +186,7 @@
   <a href="#arr-4"><b>04</b>Circular index: wrap with +n</a>
   <a href="#arr-5"><b>05</b>One-to-one: check both ways</a>
   <a href="#arr-6"><b>06</b>k pieces = k−1 cuts</a>
+  <a href="#arr-7"><b>07</b>Left + right of each index: precompute</a>
   <a href="#math-3"><b>Math · 03</b>Pairs vs subarrays vs subsets</a>
 </nav>
 </div>
@@ -1339,6 +1340,7 @@ return ans</code></pre>
 <li>🔄 <b>Negative step on a circle</b> → <code>((x % n) + n) % n</code> (<a href="#arr-4">#4</a>)</li>
 <li>🔗 <b>One-to-one</b> → check both directions (<a href="#arr-5">#5</a>)</li>
 <li>✂️ <b>k pieces</b> = k − 1 cuts, each cut leaves room for the rest (<a href="#arr-6">#6</a>)</li>
+<li>🔁 <b>Each index needs its left + right</b> → fill <code>left[]</code> and <code>right[]</code> once, not a scan per index (<a href="#arr-7">#7</a>)</li>
 </ul>
 </section>
 
@@ -1438,6 +1440,27 @@ for (let i = 0; i &lt; n - 2; i++)           // array ends
 <p>🔒 <b>Why the limits stop early:</b> every piece after a cut needs at least 1 character. The 3rd piece needs 1 → <code>j</code> stops 1 early. The 2nd and 3rd need 2 → <code>i</code> stops 2 early. The array version is just the slice version shifted by 1.</p>
 <div class="box warn"><b class="tag">🚨</b> Array version: <code>j</code> starts at <code>i + 1</code> (not 0) and stops at <code>n − 2</code> (not <code>n − 1</code>). Running <code>j</code> up to <code>n</code> and then writing <code>if (j === n) break</code> gives the same splits — that guard IS the "3rd piece can't be empty" rule — but putting the limit in the loop bounds is cleaner (LC 306 Additive Number).</div>
 <div class="box key"><b class="tag">📌</b> <b>k pieces = k − 1 cuts. Each cut leaves room for the pieces after it.</b> Slice → cuts in <code>1..n−1</code>. Array → piece ends in <code>0..n−2</code>. Number of splits = <code>C(n−1, k−1)</code> (n = 5, 3 pieces → 6).</div>
+</section>
+
+<section data-g="arr">
+<h2 id="arr-7">7 · 🔁 Each Index Needs Its Left + Right → Precompute Both, Don't Rescan</h2>
+<p>🐢 <b>Brute force:</b> for each <code>i</code>, loop left to get the max, loop right to get the max → <code>n × n = O(n²)</code>.</p>
+<p>💡 <b>Spot the waste:</b> every <code>i</code> rescans the same cells. The max up to <code>i</code> is just the max up to <code>i − 1</code>, plus <code>h[i]</code>. So one pass each way → <code>O(n)</code>.</p>
+<p>🌧️ <b>LC 42 Trapping Rain Water</b>, <code>h = [4,2,0,3,2,5]</code>: water at <code>i</code> = <code>min(leftMax, rightMax) − h[i]</code></p>
+<table>
+<tr><th>i</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+<tr><th>h</th><td>4</td><td>2</td><td>0</td><td>3</td><td>2</td><td>5</td></tr>
+<tr><th>➡️ leftMax</th><td>4</td><td>4</td><td>4</td><td>4</td><td>4</td><td>5</td></tr>
+<tr><th>⬅️ rightMax</th><td>5</td><td>5</td><td>5</td><td>5</td><td>5</td><td>5</td></tr>
+<tr><th>💧 water</th><td>0</td><td>2</td><td>4</td><td>1</td><td>2</td><td>0</td></tr>
+</table>
+<p>Total = <b>9</b>.</p>
+<pre class="language-tsx"><code class="language-tsx">for (let i = 0; i &lt; n; i++)      left[i]  = Math.max(h[i], i &gt; 0 ? left[i - 1] : 0)
+for (let i = n - 1; i &gt;= 0; i--) right[i] = Math.max(h[i], i &lt; n - 1 ? right[i + 1] : 0)</code></pre>
+<p>🧱 Include <code>h[i]</code> in both maxes, so the water is never negative.</p>
+<p>✖️ <b>Same shape, other operations:</b> LC 238 Product Except Self = product before <code>i</code> × product after <code>i</code>. Range sums are <a href="#arr-1">#1</a>.</p>
+<p class="hint">Checked in Node: brute force and left/right arrays both give 6 and 9 on the LC 42 examples, and agree on 2,000 random arrays.</p>
+<div class="box key"><b class="tag">📌</b> "For each index I need something from its left and its right" → two passes fill <code>left[]</code> and <code>right[]</code>, then one loop uses them. <code>O(n²)</code> → <code>O(n)</code>.</div>
 </section>
 
 <section data-g="math" class="sum" id="math-sum">
