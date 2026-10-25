@@ -78,13 +78,13 @@
      a line to the topic's "Must Remember" box if it's a rule worth recalling. Cross-links: "#3" in the same topic,
      "DP #3" across topics. Old #tN anchors stay so earlier links still land. -->
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 51</button>
+  <button data-g="all" class="on">📚 All · 52</button>
   <button data-g="graph">🕸️ Graph · 22</button>
   <button data-g="tree">🌳 Trees · 5</button>
   <button data-g="rec">🔀 Recursion &amp; Backtracking · 8</button>
   <button data-g="dp">🧩 Dynamic Programming · 7</button>
   <button data-g="bs">🎯 Binary Search · 2</button>
-  <button data-g="arr">🪟 Arrays &amp; Strings · 8</button>
+  <button data-g="arr">🪟 Arrays &amp; Strings · 9</button>
   <button data-g="math">🔢 Math · 3</button>
   <button data-g="js">🚨 JS Gotchas · 2</button>
 </div>
@@ -187,6 +187,7 @@
   <a href="#arr-5"><b>05</b>One-to-one: check both ways</a>
   <a href="#arr-6"><b>06</b>k pieces = k−1 cuts</a>
   <a href="#arr-7"><b>07</b>Left + right of each index: precompute</a>
+  <a href="#arr-8"><b>08</b>Intervals: sort key, overlap, touching</a>
   <a href="#math-3"><b>Math · 03</b>Pairs vs subarrays vs subsets</a>
 </nav>
 </div>
@@ -1341,6 +1342,7 @@ return ans</code></pre>
 <li>🔗 <b>One-to-one</b> → check both directions (<a href="#arr-5">#5</a>)</li>
 <li>✂️ <b>k pieces</b> = k − 1 cuts, each cut leaves room for the rest (<a href="#arr-6">#6</a>)</li>
 <li>🔁 <b>Each index needs its left + right</b> → fill <code>left[]</code> and <code>right[]</code> once, not a scan per index (<a href="#arr-7">#7</a>)</li>
+<li>📏 <b>Overlap</b> = latest start ≤ earliest end · touching? the problem picks <code>≤</code> or <code>&lt;</code> (<a href="#arr-8">#8</a>)</li>
 </ul>
 </section>
 
@@ -1461,6 +1463,31 @@ for (let i = n - 1; i &gt;= 0; i--) right[i] = Math.max(h[i], i &lt; n - 1 ? rig
 <p>✖️ <b>Same shape, other operations:</b> LC 238 Product Except Self = product before <code>i</code> × product after <code>i</code>. Range sums are <a href="#arr-1">#1</a>.</p>
 <p class="hint">Checked in Node: brute force and left/right arrays both give 6 and 9 on the LC 42 examples, and agree on 2,000 random arrays.</p>
 <div class="box key"><b class="tag">📌</b> "For each index I need something from its left and its right" → two passes fill <code>left[]</code> and <code>right[]</code>, then one loop uses them. <code>O(n²)</code> → <code>O(n)</code>.</div>
+</section>
+
+<section data-g="arr">
+<h2 id="arr-8">8 · 📏 Intervals — Sort by Start or End, Overlap = Latest Start ≤ Earliest End</h2>
+<h3>1️⃣ Sort first: by start or by end?</h3>
+<table>
+<tr><th>Goal</th><th>Sort by</th><th>LC</th></tr>
+<tr><td>🔗 Merge / insert / meeting rooms</td><td><b>start</b></td><td>56, 57, 253</td></tr>
+<tr><td>🏁 Keep the most non-overlapping / min arrows</td><td><b>end</b>: finish early = room for more</td><td>435, 452</td></tr>
+</table>
+<h3>2️⃣ Overlap check</h3>
+<ul>
+<li>📈 Sorted by start: just <code>s2 ≤ e1</code> (does the next one start before this one ends?)</li>
+<li>🔀 Unsorted: <code>max(s1, s2) ≤ min(e1, e2)</code></li>
+</ul>
+<h3>3️⃣ Touching edges ⚠️ <code>[1,2]</code> &amp; <code>[2,3]</code></h3>
+<table>
+<tr><th>Problem</th><th>Overlap if</th><th>Touching →</th></tr>
+<tr><td>56 Merge</td><td><code>≤</code></td><td>merge → <code>[1,3]</code></td></tr>
+<tr><td>452 Arrows</td><td><code>≤</code></td><td>one arrow at 2 hits both</td></tr>
+<tr><td>435 Remove</td><td><code>&lt;</code></td><td>both stay, remove 0</td></tr>
+<tr><td>253 Rooms</td><td><code>&lt;</code></td><td>1 room (one ends 2pm, next starts 2pm)</td></tr>
+</table>
+<p class="hint">Checked in Node: the overlap formula matches a brute-force point check on 5,000 random pairs, and 56, 435, 452, 253 give the LC example answers plus the touching results above. Full patterns: <a href="intervals.html">Intervals cheat sheet</a>.</p>
+<div class="box key"><b class="tag">📌</b> <b>Overlap = latest start ≤ earliest end.</b> Merge → sort by start. Keep the most → sort by end. Touching? Read the problem: <code>≤</code> or <code>&lt;</code>.</div>
 </section>
 
 <section data-g="math" class="sum" id="math-sum">
