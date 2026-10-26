@@ -2,22 +2,25 @@
 <html lang="en"><head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Binary Search — Learning Sheet</title>
+<title>Binary Search — Cheat Sheet</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" integrity="sha384-rCCjoCPCsizaAAYVoz1Q0CmCTvnctK0JkfCSjx7IIxexTBg+uCKtFYycedUjMyA2" crossorigin="anonymous"/>
 <style>
-  :root{ --accent:#e11d48; --accent-soft:#e11d4814; --accent-line:#e11d4840; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --warn:#c2410c; }
+  :root{ --accent:#e11d48; --accent-soft:#e11d4810; --accent-line:#e11d4840; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f7f9; --warn:#c2410c; }
   *{box-sizing:border-box}
   html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;}
   h1.title{font-size:2.5rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
   .sub{color:var(--muted);font-size:1.05rem;margin:0 0 1.4em}
   h2{font-size:1.5rem;font-weight:700;margin:2.2em 0 .2em;letter-spacing:-.01em;padding-top:.5em;border-top:1px solid var(--rule)}
-  h3{font-size:1.13rem;font-weight:700;margin:1.4em 0 .15em}
-  h4{margin:1.2em 0 .2em;font-size:1.02rem}
-  p{margin:.55em 0} ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
+  h3{font-size:1.13rem;font-weight:700;margin:1.6em 0 .15em}
+  h3 .cx{font-size:.8rem;font-weight:600;color:var(--muted);margin-left:.4em;white-space:nowrap}
+  p{margin:.55em 0}
+  p.trick{margin:.2em 0 .4em;color:var(--ink)}
+  ol,ul{margin:.5em 0;padding-left:1.3em} li{margin:.3em 0}
   code:not([class*=language]){background:var(--code-bg);padding:.08em .38em;border-radius:5px;font-size:.88em;font-family:"SF Mono",SFMono-Regular,Consolas,monospace}
   a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
-  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:1.4em 0 0}
+  .nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:1.4em 0 0}
   .nav a{display:block;padding:9px 12px;border:1px solid var(--rule);border-left:3px solid var(--accent);border-radius:7px;color:var(--ink);font-size:.92rem;background:#fff;transition:.12s}
   .nav a:hover{background:var(--accent-soft);text-decoration:none}
   .nav a b{display:block;font-size:.7rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
@@ -27,356 +30,577 @@
   .box.iv{border-left-color:#2563eb;background:#2563eb0d}
   .box b.tag{display:inline-block;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.4em}
   .tldr{font-style:italic;color:var(--accent);font-weight:600;font-size:1.04rem;margin:.1em 0 .7em}
-  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.9em 0;line-height:1.5}
+  pre[class*=language]{border:1px solid var(--rule);border-radius:9px;font-size:.86rem;margin:.6em 0 .9em;line-height:1.5;overflow-x:auto}
+  details{margin:.8em 0} details summary{cursor:pointer;font-weight:600}
+  @media (max-width:600px){table{display:block;overflow-x:auto}}
   table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92rem}
   th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
   th{background:var(--code-bg);font-weight:700} td code{white-space:nowrap}
-  figure{margin:1.2em 0;text-align:center} figure svg{max-width:100%;height:auto}
-  figcaption{color:var(--muted);font-size:.84rem;margin-top:.4em}
   .qa td.a{filter:blur(4.5px);transition:filter .1s;cursor:pointer} .qa td.a:hover,.qa td.a:active{filter:none}
   .hint{color:var(--muted);font-size:.86rem}
+  .box.thought{border-left-color:#0d9488;background:#0d94880f}
+  .box.idea{border-left-color:#d97706;background:#f59e0b12}
+  figure.diag .panes{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  figure.diag .pane{flex:1 1 230px;max-width:300px}
+  .box.thought ul{margin:.25em 0 0;padding-left:1.1em} .box.thought li{margin:.15em 0}
+  figure.diag{margin:1em 0;padding:.8em .6em;border:1px solid var(--rule);border-radius:9px;background:#fff}
+  figure.diag svg{display:block;width:100%;height:auto;margin:0 auto}
+  figure.diag figcaption{color:var(--muted);font-size:.86rem;margin-top:.5em;text-align:center}
   .pill{display:inline-block;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent);border-radius:20px;padding:.05em .6em;font-size:.78rem;font-weight:600;margin:.1em .15em}
-  @media print{.nav{display:none}body{margin:0}}
-  /* collapsible (fold) sections */
-  details.fold{margin:1em 0;border:1px solid var(--rule);border-radius:9px;overflow:hidden}
-  details.fold>summary{cursor:pointer;list-style:none;font-weight:600;color:var(--accent);padding:.55em .85em;background:var(--accent-soft)}
-  details.fold>summary::-webkit-details-marker{display:none}
-  details.fold>summary::before{content:"▸  ";font-weight:700}
-  details.fold[open]>summary{border-bottom:1px solid var(--rule)}
-  details.fold[open]>summary::before{content:"▾  "}
-  details.fold>*:not(summary){margin-left:.9em;margin-right:.9em}
-  details.fold .box{border:0;background:none;padding-left:0;padding-right:0}
+  @media print{
+    .nav{display:none}
+    body{margin:0;max-width:100%;padding:0;font-size:12px;line-height:1.4}
+    h1.title{font-size:1.6rem}
+    h2{font-size:1.15rem;margin-top:1em;page-break-after:avoid}
+    h3{font-size:1rem;page-break-after:avoid}
+    pre[class*=language]{font-size:.7rem;line-height:1.35}
+    tr,.box,pre,figure.diag{page-break-inside:avoid}
+    .qa td.a{filter:none}
+    details{display:block} details>*{display:block}
+    @page{size:A4;margin:8mm}
+  }
 </style>
 </head>
 <body>
 
 <h1 class="title">🔍 Binary Search</h1>
-<p class="sub">A learning sheet — it was never about sorted arrays. It's about finding the boundary of a monotonic predicate in O(log n).</p>
+<p class="sub">The night-before sheet: find the yes/no check, pick first or last, write your Style A.</p>
+<p class="hint">💭 Your own rules: <a href="dsa-thoughts.html#bs-sum">DSA thoughts → Binary Search, Must Remember</a>. Each section below links the ones that apply.</p>
+<p class="hint">✍️ The code follows your Style A from <a href="dsa-thoughts.html#bs-1">BS #1</a>, but it isn't your own LeetCode code yet. As you solve each problem, send your solution and it replaces the one here.</p>
 
 <nav class="nav">
-  <a href="#think"><b>01 · MINDSET</b>How to think &amp; invent it</a>
-  <a href="#plan"><b>02 · DECIDE</b>Attack plan &amp; anti-patterns</a>
-  <a href="#recognize"><b>03 · SPOT IT</b>Recognition map</a>
-  <a href="#patterns"><b>04 · CORE</b>The 5 patterns</a>
-  <a href="#complexity"><b>05 · COST</b>Complexity</a>
-  <a href="#pitfalls"><b>06 · BUGS</b>Pitfalls + the test that catches each</a>
-  <a href="#selfcheck"><b>07 · TEST</b>Self-check</a>
+  <a href="#think"><b>00 · THINK</b>Halve it, the yes/no row</a>
+  <a href="#spot"><b>01 · SPOT IT</b>Signal → pattern</a>
+  <a href="#tmpl"><b>02 · TEMPLATES</b>Exact, first, last</a>
+  <a href="#p-bound"><b>03 · BOUNDARY</b>First/last, peak</a>
+  <a href="#p-rot"><b>04 · ROTATED</b>Two sorted runs</a>
+  <a href="#p-answer"><b>05 · ON THE ANSWER</b>Guess it, check it</a>
+  <a href="#p-2d"><b>06 · 2D MATRIX</b>Flatten or staircase</a>
+  <a href="#p-part"><b>07 · STRETCH</b>Median of two arrays</a>
+  <a href="#must"><b>08 · MUST-KNOW</b>One line each</a>
+  <a href="#traps"><b>09 · TRAPS</b>Bugs + the input that shows them</a>
+  <a href="#selfcheck"><b>10 · TEST</b>Self-check</a>
 </nav>
 
+<!-- ───────────────────────── 0 ───────────────────────── -->
+<h2 id="think">🧠 0 · How to think</h2>
+<p class="tldr">"Guess the middle. The answer tells you which half to throw away."</p>
+<figure class="diag"><svg viewBox="0 0 360 170" role="img" aria-label="Find 11 in 1 to 16 by halving" style="max-width:360px"><defs><marker id="b0a-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b0a-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b0a-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b0a-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b0a-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><rect x="6" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="14.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">1</text><rect x="23" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="31.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">2</text><rect x="40" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="48.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">3</text><rect x="57" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="65.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">4</text><rect x="74" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="82.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">5</text><rect x="91" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="99.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">6</text><rect x="108" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="116.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">7</text><rect x="125" y="8" width="16" height="26" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="133.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">8</text><rect x="142" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="150.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">9</text><rect x="159" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="167.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">10</text><rect x="176" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="184.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">11</text><rect x="193" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="201.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">12</text><rect x="210" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="218.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">13</text><rect x="227" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="235.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">14</text><rect x="244" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="252.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">15</text><rect x="261" y="8" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="269.0" y="24.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">16</text><text x="284" y="25" font-size="11" fill="#d97706" text-anchor="start" font-weight="700">8 ➡ right</text><rect x="6" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="14.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">1</text><rect x="23" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="31.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">2</text><rect x="40" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="48.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">3</text><rect x="57" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="65.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">4</text><rect x="74" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="82.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">5</text><rect x="91" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="99.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">6</text><rect x="108" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="116.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">7</text><rect x="125" y="46" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="133.0" y="62.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">8</text><rect x="142" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="150.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">9</text><rect x="159" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="167.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">10</text><rect x="176" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="184.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">11</text><rect x="193" y="46" width="16" height="26" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="201.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">12</text><rect x="210" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="218.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">13</text><rect x="227" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="235.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">14</text><rect x="244" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="252.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">15</text><rect x="261" y="46" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="269.0" y="62.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">16</text><text x="284" y="63" font-size="11" fill="#d97706" text-anchor="start" font-weight="700">12 ⬅ left</text><rect x="6" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="14.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">1</text><rect x="23" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="31.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">2</text><rect x="40" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="48.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">3</text><rect x="57" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="65.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">4</text><rect x="74" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="82.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">5</text><rect x="91" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="99.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">6</text><rect x="108" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="116.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">7</text><rect x="125" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="133.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">8</text><rect x="142" y="84" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="150.0" y="100.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">9</text><rect x="159" y="84" width="16" height="26" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="167.0" y="100.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">10</text><rect x="176" y="84" width="16" height="26" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="184.0" y="100.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">11</text><rect x="193" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="201.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">12</text><rect x="210" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="218.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">13</text><rect x="227" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="235.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">14</text><rect x="244" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="252.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">15</text><rect x="261" y="84" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="269.0" y="100.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">16</text><text x="284" y="101" font-size="11" fill="#d97706" text-anchor="start" font-weight="700">10 ➡ right</text><rect x="6" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="14.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">1</text><rect x="23" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="31.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">2</text><rect x="40" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="48.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">3</text><rect x="57" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="65.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">4</text><rect x="74" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="82.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">5</text><rect x="91" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="99.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">6</text><rect x="108" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="116.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">7</text><rect x="125" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="133.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">8</text><rect x="142" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="150.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">9</text><rect x="159" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="167.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">10</text><rect x="176" y="122" width="16" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="184.0" y="138.24" font-size="9" fill="#37352f" text-anchor="middle" font-weight="700">11</text><rect x="193" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="201.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">12</text><rect x="210" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="218.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">13</text><rect x="227" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="235.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">14</text><rect x="244" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="252.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">15</text><rect x="261" y="122" width="16" height="26" rx="4" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1.5"/><text x="269.0" y="138.24" font-size="9" fill="#cbd5e1" text-anchor="middle" font-weight="700">16</text><text x="284" y="139" font-size="11" fill="#16a34a" text-anchor="start" font-weight="700">✅ found</text><text x="180" y="164" font-size="12" fill="#6b675e" text-anchor="middle" font-weight="700">16 numbers → 4 guesses · 10⁹ numbers → about 30</text></svg><figcaption>Guess the middle, hear "higher" or "lower", throw away half. Halving 10⁹ takes about 30 steps (2³⁰ ≈ 10⁹), so binary search is O(log n).</figcaption></figure>
+<p>Binary search is not really about sorted arrays. It works whenever you can ask a <b>yes/no question</b> about a position (or a value) and the answer <b>flips only once</b>: all ✗ then all ✓, or all ✓ then all ✗.</p>
+<figure class="diag"><div class="panes"><div class="pane"><svg viewBox="0 0 260 110" role="img" aria-label="⬅️ first that works" style="max-width:260px"><defs><marker id="b0b-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b0b-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b0b-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b0b-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b0b-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="130" y="16" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">⬅️ first that works</text><rect x="22" y="30" width="33" height="30" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="38.5" y="50.4" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><rect x="59" y="30" width="33" height="30" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="75.5" y="50.4" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><rect x="96" y="30" width="33" height="30" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="112.5" y="50.4" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><rect x="133" y="30" width="33" height="30" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="149.5" y="50.4" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><rect x="170" y="30" width="33" height="30" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="186.5" y="50.4" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><rect x="207" y="30" width="33" height="30" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="223.5" y="50.4" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><line x1="149.0" y1="98.0" x2="149.0" y2="64.0" stroke="#4f46e5" stroke-width="2" marker-end="url(#b0b-4f46e5)"/><text x="137" y="96" font-size="12" fill="#4f46e5" text-anchor="end" font-weight="700">the answer</text></svg></div><div class="pane"><svg viewBox="0 0 260 110" role="img" aria-label="➡️ last that works" style="max-width:260px"><defs><marker id="b0c-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b0c-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b0c-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b0c-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b0c-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="130" y="16" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">➡️ last that works</text><rect x="22" y="30" width="33" height="30" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="38.5" y="50.4" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><rect x="59" y="30" width="33" height="30" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="75.5" y="50.4" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><rect x="96" y="30" width="33" height="30" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="112.5" y="50.4" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><rect x="133" y="30" width="33" height="30" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="149.5" y="50.4" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><rect x="170" y="30" width="33" height="30" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="186.5" y="50.4" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><rect x="207" y="30" width="33" height="30" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="223.5" y="50.4" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><line x1="112.0" y1="98.0" x2="112.0" y2="64.0" stroke="#4f46e5" stroke-width="2" marker-end="url(#b0c-4f46e5)"/><text x="124" y="96" font-size="12" fill="#4f46e5" text-anchor="start" font-weight="700">the answer</text></svg></div></div><figcaption>Every boundary problem is one of these two rows. The check flips <b>once</b>, so mid tells you which side the flip is on.</figcaption></figure>
+<div class="box key"><b class="tag">🎯 Every binary search = 3 questions</b> <b>1. What am I searching?</b> Indices of an array, or possible answers (a speed, a capacity, a gap)? That gives <code>low</code> and <code>high</code>. <b>2. What's the check?</b> Write <code>cond(mid)</code> and make sure it flips only once. <b>3. First ✓ or last ✓?</b> That picks the template.</div>
+
 <!-- ───────────────────────── 1 ───────────────────────── -->
-<h2 id="think">🧠 1 · How to think (and invent it)</h2>
-
-<p><b>The one idea, restated bigger than the textbook:</b> binary search works on any space where a yes/no test is <b>monotonic</b> — <code>false, false, …, false, true, true, …</code>. Each probe of the middle lets you throw away <b>half</b> the remaining space, because the answer can only be on one side. Sorted arrays are just the most common such space.</p>
-
-<p>So stop memorizing the array version. Learn to ask: <b>"what's my monotonic predicate, and what's the first <code>x</code> where it turns true?"</b> Get that, and the loop is the same every time.</p>
-
-<figure>
-<svg viewBox="0 0 640 150" role="img" aria-label="First bad version monotonic predicate">
-  <g font-size="13" text-anchor="middle">
-    <g transform="translate(40,45)">
-      <rect x="0" width="46" height="34" fill="#22c55e22" stroke="#16a34a" rx="5"/><text x="23" y="22">✓</text>
-      <rect x="50" width="46" height="34" fill="#22c55e22" stroke="#16a34a" rx="5"/><text x="73" y="22">✓</text>
-      <rect x="100" width="46" height="34" fill="#22c55e22" stroke="#16a34a" rx="5"/><text x="123" y="22">✓</text>
-      <rect x="150" width="46" height="34" fill="#22c55e22" stroke="#16a34a" rx="5"/><text x="173" y="22">✓</text>
-      <rect x="200" width="46" height="34" fill="#e11d4822" stroke="#e11d48" rx="5"/><text x="223" y="22">✗</text>
-      <rect x="250" width="46" height="34" fill="#e11d4822" stroke="#e11d48" rx="5"/><text x="273" y="22">✗</text>
-      <rect x="300" width="46" height="34" fill="#e11d4822" stroke="#e11d48" rx="5"/><text x="323" y="22">✗</text>
-      <text x="173" y="-10" fill="#16a34a" font-size="11">good</text>
-      <text x="273" y="-10" fill="#e11d48" font-size="11">bad</text>
-      <path d="M223 44 V58" stroke="#e11d48" stroke-width="2"/>
-      <text x="223" y="72" fill="#e11d48" font-weight="700" font-size="12">first TRUE — the boundary</text>
-    </g>
-  </g>
-</svg>
-<figcaption>Every binary-search problem is this picture: find where the predicate flips. Probe the middle, keep the half that still contains the flip.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">Mental checklist</b> <b>(1)</b> what's the <b>search space</b> (array indices? a range of answers?) <b>(2)</b> what's the <b>monotonic predicate</b> over it? <b>(3)</b> when <code>pred(mid)</code> is true, is <code>mid</code> a possible answer (keep it: <code>hi = mid</code>) or already past it? If you can't articulate the predicate, you don't yet have a binary search.</div>
-
-<h3>Watch it get invented — First Bad Version</h3>
-<p>Versions <code>1..n</code> are good then bad (once bad, always bad). One API call <code>isBad(v)</code>. Find the first bad version with the fewest calls.</p>
-<ol>
-<li><b>Start brute.</b> Call <code>isBad(1), isBad(2), …</code> → <code>O(n)</code> calls.</li>
-<li><b>Spot the structure.</b> "Once bad, always bad" = monotonic. So <code>isBad(mid)</code> answers a half-space question: bad ⇒ the first bad is <code>mid</code> <i>or earlier</i>; good ⇒ it's <i>strictly after</i> <code>mid</code>.</li>
-<li><b>The leap.</b> Keep <code>[lo, hi]</code> = the range still containing the first bad. <b>Invariant:</b> the answer is always inside <code>[lo, hi]</code>. Bad ⇒ <code>hi = mid</code> (mid might be it); good ⇒ <code>lo = mid + 1</code> (mid is ruled out). Halve until <code>lo == hi</code>.</li>
-<li><b>Payoff.</b> The range halves each step ⇒ <code>O(log n)</code> calls.</li>
-</ol>
+<h2 id="spot">🧭 1 · Spot it</h2>
 <table>
-<tr><th>lo</th><th>hi</th><th>mid</th><th>isBad(mid)</th><th>new range</th></tr>
-<tr><td>1</td><td>8</td><td>4</td><td>good</td><td><code>lo = 5</code> → [5, 8]</td></tr>
-<tr><td>5</td><td>8</td><td>6</td><td>bad</td><td><code>hi = 6</code> → [5, 6]</td></tr>
-<tr><td>5</td><td>6</td><td>5</td><td>bad</td><td><code>hi = 5</code> → [5, 5]</td></tr>
+<tr><th>The problem says…</th><th>Pattern</th><th>Picture it as</th><th>LC</th></tr>
+<tr><td>sorted array, find x exactly</td><td><a href="#p-exact">Exact</a></td><td>🔍 guess the number: higher or lower?</td><td>704, 374, 702🔒</td></tr>
+<tr><td>first / last position, insert position, first ≥ x, count &lt; x</td><td><a href="#p-bound">Boundary</a></td><td>🚧 a row of ✗ then ✓: find the wall</td><td>35, 34, 278, 744, 2529</td></tr>
+<tr><td>peak, mountain array</td><td><a href="#p-peak">Boundary on the slope</a></td><td>⛰️ walk uphill, you always reach a top</td><td>162, 852, 1095</td></tr>
+<tr><td>sorted, then rotated</td><td><a href="#p-rot">Rotated</a></td><td>🔄 a cut deck: two sorted runs</td><td>153, 33, 81</td></tr>
+<tr><td>minimum speed / capacity / days so that it still works</td><td><a href="#p-answer">On the answer, first ✓</a></td><td>🎚️ a dial: turn it down until it breaks</td><td>875, 1011, 410, 1482</td></tr>
+<tr><td>maximize the minimum (gap, candies, removals)</td><td><a href="#p-answer">On the answer, last ✓</a></td><td>📏 stretch the gap until it no longer fits</td><td>1552, 2226, 1898</td></tr>
+<tr><td>k-th smallest pair distance / matrix value / fraction</td><td><a href="#p-answer">On the answer + count</a></td><td>🔢 "how many are ≤ mid?"</td><td>378, 719, 786</td></tr>
+<tr><td>sorted matrix</td><td><a href="#p-2d">2D</a></td><td>🧮 one long sorted list, or a staircase</td><td>74, 240, 1351</td></tr>
+<tr><td>median of two sorted arrays</td><td><a href="#p-part">Partition</a></td><td>✂️ one cut through both arrays</td><td>4</td></tr>
+<tr><td>reach / connect using only edges ≤ mid</td><td><a href="#p-answer">On the answer + BFS</a></td><td>🕸️ filter the graph, then ask "reachable?"</td><td>3419, 778</td></tr>
 </table>
-<p class="hint">n = 8, first bad = 5. When <code>lo == hi</code>, that's the boundary — done in 3 probes, not 5.</p>
+<p class="hint">🧭 Size hint: answers up to 10⁹ and an O(n) check → about 30 checks, O(n log 10⁹). That's usually what the constraints are pointing at.</p>
+
+<div class="box warn"><b class="tag">⚠️ Wrong tool when…</b> the yes/no answer flips <b>more than once</b> (no single wall to find) · the array is unsorted and you need original indices (→ hash map) · n is tiny and a plain scan is clearer.</div>
+
+<div class="box iv"><b class="tag">🎤 Say this before coding</b> "The answer is between 1 and max(piles). If speed k works, every faster speed works too, so the check flips once. I'll binary-search the first speed that works: about log(max) checks, each O(n)."</div>
 
 <!-- ───────────────────────── 2 ───────────────────────── -->
-<h2 id="plan">🎯 2 · Attack plan</h2>
+<h2 id="tmpl">📐 2 · The three templates</h2>
+<p class="tldr">"Exact: low &lt;= high. First that works: high = mid. Last that works: low = mid, round up."</p>
+<div class="box idea"><b class="tag">🧩 The idea</b> 🚪 Think of the extra slot as a "none" door at the end you walk <b>away</b> from. If nothing works, low walks out through it, and landing there is how you know there's no answer. When the answer is guaranteed inside (exact match), there's no door: <code>high = n − 1</code>.</div>
+
+<h3 id="p-exact">🔍 704 · Binary Search (exact match) <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 <code>while(low &lt;= high)</code>, and <code>mid ± 1</code> on both sides because mid was already checked.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🔍 BINARY SEARCH (exact match)
+function search(nums: number[], target: number): number {
+    let low = 0;
+    let high = nums.length - 1; // the answer must be inside, so n - 1
+
+    while(low &lt;= high) {
+        const mid = (low + high) &gt;&gt; 1;
+
+        if(nums[mid] === target) return mid;
+        else if(nums[mid] &lt; target) low = mid + 1;
+        else high = mid - 1;
+    }
+
+    return -1;
+};</code></pre>
 <table>
-<tr><th>Ask</th><th>If yes →</th><th>Pattern</th></tr>
-<tr><td>Sorted array, find an <b>exact</b> value / its presence?</td><td>classic, or reframe as boundary</td><td><b><a href="#p-exact">Exact</a></b> (§4.1)</td></tr>
-<tr><td>Want <b>first/last</b> occurrence, insertion point, "first ≥ / > x"?</td><td>the one true template — find first true</td><td><b><a href="#p-bound">Boundary</a></b> (§4.2)</td></tr>
-<tr><td>"Minimize the max / maximize the min / smallest X that's feasible"?</td><td>binary-search the <b>answer</b>, not the array</td><td><b><a href="#p-answer">On the answer</a></b> (§4.3)</td></tr>
-<tr><td>Array is <b>rotated</b> sorted?</td><td>find which half is sorted, then decide</td><td><b><a href="#p-rot">Rotated</a></b> (§4.4)</td></tr>
-<tr><td>No target, but a <b>local slope</b> points to the goal (peak)?</td><td>walk uphill by halving</td><td><b><a href="#p-peak">Peak</a></b> (§4.5)</td></tr>
+<tr><th>#</th><th>Problem</th><th>The trick</th></tr>
+<tr><td>374</td><td>Guess Number Higher or Lower</td><td>Same code: <code>guess(mid)</code> is −1 / 1 / 0 instead of comparing.</td></tr>
+<tr><td>702🔒</td><td>Search in a Sorted Array of Unknown Size</td><td>Double <code>high</code> (1, 2, 4, …) until <code>reader.get(high) ≥ target</code>, then exact search.</td></tr>
 </table>
 
-<div class="box warn"><b class="tag">When binary search is the WRONG tool</b>
-<b>·</b> The predicate <b>isn't monotonic</b> — if <code>feasible</code> flips true→false→true as <code>x</code> grows, halving is unsound. Binary search needs one clean flip.<br/>
-<b>·</b> Unsorted data with no monotonic structure and you need an exact element → it's linear scan or a hash set.<br/>
-<b>·</b> "k-th smallest in an unsorted array" → that's quickselect — <i>unless</i> you binary-search on the value range with a counting predicate.</div>
+<h3>⬅️ 35 · Search Insert Position (first that works) <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 First index with <code>nums[i] ≥ target</code>. If every value is smaller, low lands on the extra slot n, which is exactly the insert position.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🚧 SEARCH INSERT POSITION (LEFT: first index with nums[i] &gt;= target)
+function searchInsert(nums: number[], target: number): number {
+    let low = 0;
+    let high = nums.length; // extra slot: bigger than everything → n
+
+    while(low &lt; high) {
+        const mid = (low + high) &gt;&gt; 1; // round DOWN
+
+        if(nums[mid] &gt;= target) high = mid; // works → answer is mid or left of it
+        else low = mid + 1;
+    }
+
+    return low; // low === high === the answer
+};</code></pre>
+<table>
+<tr><th>step</th><th>low</th><th>high</th><th>mid</th><th>nums[mid] ≥ 5? ([1,3,5,6])</th><th>move</th></tr>
+<tr><td>1</td><td>0</td><td>4</td><td>2</td><td>5 ✓</td><td>high = 2</td></tr>
+<tr><td>2</td><td>0</td><td>2</td><td>1</td><td>3 ✗</td><td>low = 2</td></tr>
+<tr><td>3</td><td>2</td><td>2</td><td></td><td>low === high</td><td>return 2</td></tr>
+</table>
+
+<h3>➡️ 69 · Sqrt(x) (last that works) <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Last x with <code>x * x ≤ n</code>. <code>low = mid</code>, so mid must round <b>up</b>: with two left, round down picks low again and the loop never ends.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🚧 SQRT(x) (RIGHT: last x with x * x &lt;= n)
+function mySqrt(x: number): number {
+    let low = 0; // 0 * 0 &lt;= x always works, so no -1 slot needed
+    let high = x;
+
+    while(low &lt; high) {
+        // round UP. x can be 2³¹ − 1, so low + high + 1 passes 2³¹ and "&gt;&gt; 1" turns negative
+        const mid = Math.floor((low + high + 1) / 2);
+
+        if(mid * mid &lt;= x) low = mid; // works → answer is mid or right of it
+        else high = mid - 1;
+    }
+
+    return low;
+};</code></pre>
+<figure class="diag"><div class="panes"><div class="pane"><svg viewBox="0 0 260 132" role="img" aria-label="⬅️ LEFT: high = n" style="max-width:260px"><defs><marker id="b2a-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b2a-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b2a-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b2a-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b2a-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="130" y="16" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">⬅️ LEFT: high = n</text><text x="44" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">0</text><rect x="25" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="44.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">1</text><text x="44.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="87" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">1</text><rect x="68" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="87.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">3</text><text x="87.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="130" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">2</text><rect x="111" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="130.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="130.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="173" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">3</text><rect x="154" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="173.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">6</text><text x="173.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="216" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">4</text><rect x="197" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="4 3"/><text x="216.0" y="64.96" font-size="11" fill="#4f46e5" text-anchor="middle" font-weight="700">none</text><text x="130" y="124" font-size="12" fill="#4f46e5" text-anchor="middle" font-weight="700">first ≥ 7? all ✗ → low = 4 = none</text></svg></div><div class="pane"><svg viewBox="0 0 260 132" role="img" aria-label="➡️ RIGHT: low = −1" style="max-width:260px"><defs><marker id="b2b-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b2b-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b2b-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b2b-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b2b-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="130" y="16" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">➡️ RIGHT: low = −1</text><text x="44" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">−1</text><rect x="25" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="4 3"/><text x="44.0" y="64.96" font-size="11" fill="#4f46e5" text-anchor="middle" font-weight="700">none</text><text x="87" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">0</text><rect x="68" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="87.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">1</text><text x="87.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="130" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">1</text><rect x="111" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="130.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">3</text><text x="130.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="173" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">2</text><rect x="154" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="173.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="173.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="216" y="40" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">3</text><rect x="197" y="46" width="38" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="216.0" y="66.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">6</text><text x="216.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="130" y="124" font-size="12" fill="#4f46e5" text-anchor="middle" font-weight="700">last ≤ 0? all ✗ → low = −1 = none</text></svg></div></div><figcaption>The extra slot sits on the side you move <b>away</b> from. If nothing works, low walks onto it, and that index means "no answer".</figcaption></figure>
+
+<div class="box key"><b class="tag">🔑 When there's no extra slot</b> If an answer always exists (a peak, the minimum of a rotated array, a speed that finishes in time), there is no "none" to report. The range is just the real candidates: <code>high = n − 1</code> or <code>high = max(piles)</code>. Same reason exact search uses n − 1.</div>
+<p class="hint">Style B (<code>ans = mid</code> inside the loop, <code>low &lt;= high</code>) gives the same answers. Your BS #1 keeps it only for reading other people's code; write Style A.</p>
+
+<div class="box thought"><b class="tag">💭 Your thoughts</b><ul><li><a href="dsa-thoughts.html#bs-1">BS #1</a> Exact → <code>low &lt;= high</code>, <code>high = n − 1</code> (the answer must be inside).</li><li><a href="dsa-thoughts.html#bs-1">BS #1</a> First that works → <code>high = n</code>, round down. Last that works → <code>low = −1</code>, round up (required).</li><li><a href="dsa-thoughts.html#bs-1">BS #1</a> Same rule for indices and value ranges. Land on the extra slot = nothing works.</li></ul></div>
 
 <!-- ───────────────────────── 3 ───────────────────────── -->
-<h2 id="recognize">🔎 3 · Recognition map</h2>
+<h2 id="p-bound">🚧 3 · Boundary: first / last, insert, peak</h2>
+<p class="tldr">"Not 'where is x?' but 'where does ✗ turn into ✓?'"</p>
+<div class="box idea"><b class="tag">🧩 The idea</b> 🚧 Walk along a row of ✗ ✗ ✗ ✓ ✓ ✓. Every check at mid tells you which side of the wall you're on, so you keep only the side that still contains the wall. Different problems only change what ✓ means.</div>
+
+<h3>🚧 34 · First and Last Position <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 One LEFT search (first ≥ target) and one RIGHT search (last ≤ target). After the first one, check you really found the target.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🚧 FIRST AND LAST POSITION (one LEFT search + one RIGHT search)
+function searchRange(nums: number[], target: number): number[] {
+    const n = nums.length;
+
+    // first index with nums[i] &gt;= target
+    let low = 0;
+    let high = n;
+    while(low &lt; high) {
+        const mid = (low + high) &gt;&gt; 1;
+        if(nums[mid] &gt;= target) high = mid;
+        else low = mid + 1;
+    }
+    if(low === n || nums[low] !== target) return [-1, -1]; // landed on the extra slot, or not the target
+    const first = low;
+
+    // last index with nums[i] &lt;= target
+    low = -1;
+    high = n - 1;
+    while(low &lt; high) {
+        const mid = (low + high + 1) &gt;&gt; 1; // round UP
+        if(nums[mid] &lt;= target) low = mid;
+        else high = mid - 1;
+    }
+
+    return [first, low];
+};</code></pre>
+
+<h3 id="p-peak">⛰️ 162 · Find Peak Element <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 ✓ = "the next value is smaller" (going downhill). Find the first ✓. Compare with <code>mid + 1</code>: round-down mid is always &lt; high, so it exists.</p>
+<figure class="diag"><svg viewBox="0 0 320 196" role="img" aria-label="Find a peak by walking uphill" style="max-width:320px"><defs><marker id="b3-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b3-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b3-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b3-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b3-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><rect x="22" y="138" width="32" height="18" rx="3" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1.5"/><text x="38" y="132" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">1</text><text x="38" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">0</text><rect x="62" y="120" width="32" height="36" rx="3" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1.5"/><text x="78" y="114" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">2</text><text x="78" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">1</text><rect x="102" y="138" width="32" height="18" rx="3" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1.5"/><text x="118" y="132" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">1</text><text x="118" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">2</text><rect x="142" y="102" width="32" height="54" rx="3" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="158" y="96" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">3</text><text x="158" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">3</text><rect x="182" y="66" width="32" height="90" rx="3" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2.5"/><text x="198" y="60" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="198" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">4</text><rect x="222" y="48" width="32" height="108" rx="3" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="238" y="42" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">6</text><text x="238" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">5</text><rect x="262" y="84" width="32" height="72" rx="3" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1.5"/><text x="278" y="78" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">4</text><text x="278" y="172" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">6</text><text x="160" y="18" font-size="12" fill="#4f46e5" text-anchor="middle" font-weight="700">mid = 3 (amber): next (5) is bigger → go right</text><text x="160" y="190" font-size="12" fill="#16a34a" text-anchor="middle" font-weight="700">mid 3 ⬆ · mid 5 ⬇ · mid 4 ⬆ → peak at index 5</text></svg><figcaption>162 on [1,2,1,3,5,6,4]. If the next value is bigger you are on an uphill, and an uphill always ends in a top (the edges count as −∞). So keep the uphill side.</figcaption></figure>
+<pre class="language-tsx"><code class="language-tsx">// ⛰️ FIND PEAK ELEMENT (walk uphill)
+function findPeakElement(nums: number[]): number {
+    let low = 0;
+    let high = nums.length - 1; // a peak always exists, so no extra slot
+
+    while(low &lt; high) {
+        const mid = (low + high) &gt;&gt; 1; // mid &lt; high, so nums[mid + 1] exists
+
+        if(nums[mid] &gt; nums[mid + 1]) high = mid; // going down → a peak is at mid or left
+        else low = mid + 1;                        // going up → a peak is to the right
+    }
+
+    return low;
+};</code></pre>
+
 <table>
-<tr><th>Words in the prompt</th><th>Reach for</th></tr>
-<tr><td>"sorted array", "find target", "search for x"</td><td><a href="#p-exact">Exact §4.1</a></td></tr>
-<tr><td>"first/last position of", "insertion point", "smallest index with a[i] ≥ x", "count of x"</td><td><a href="#p-bound">Boundary §4.2</a></td></tr>
-<tr><td>"minimum/maximum capacity/speed/size such that…", "split into k parts minimizing the largest"</td><td><a href="#p-answer">On the answer §4.3</a></td></tr>
-<tr><td>"rotated sorted array", "find minimum in rotated"</td><td><a href="#p-rot">Rotated §4.4</a></td></tr>
-<tr><td>"peak element", "mountain array", "local maximum"</td><td><a href="#p-peak">Peak §4.5</a></td></tr>
+<tr><th>#</th><th>Problem</th><th>The trick</th></tr>
+<tr><td>278</td><td>First Bad Version</td><td>First ✓ with <code>isBadVersion(mid)</code>; low = 1, high = n (a bad version exists).</td></tr>
+<tr><td>744</td><td>Smallest Letter Greater Than Target</td><td>First letter &gt; target; on the extra slot n, wrap to <code>letters[0]</code>.</td></tr>
+<tr><td>2529</td><td>Max Count of Positive and Negative</td><td>negatives = first index ≥ 0, positives = n − first index &gt; 0. Two LEFT searches.</td></tr>
+<tr><td>1539</td><td>Kth Missing Positive Number</td><td>Missing before i = <code>arr[i] − (i + 1)</code>. First i with missing ≥ k → answer <code>i + k</code>.</td></tr>
+<tr><td>1060🔒</td><td>Missing Element in Sorted Array</td><td>Same idea: missing before i = <code>nums[i] − nums[0] − i</code>.</td></tr>
+<tr><td>540</td><td>Single Element in a Sorted Array</td><td>Pairs sit at (even, odd). First i with <code>nums[i] !== nums[i ^ 1]</code> is the single one.</td></tr>
+<tr><td>658</td><td>Find K Closest Elements</td><td>Search the window start in 0 … n − k: first start with <code>x − arr[mid] ≤ arr[mid + k] − x</code>.</td></tr>
+<tr><td>2300</td><td>Successful Pairs of Spells and Potions</td><td>Sort potions; per spell, first potion with <code>spell × p ≥ success</code>; count = m − index.</td></tr>
+<tr><td>528</td><td>Random Pick with Weight</td><td>Prefix sums; first prefix &gt; <code>random × total</code>.</td></tr>
+<tr><td>852</td><td>Peak Index in a Mountain Array</td><td>Exactly 162.</td></tr>
+<tr><td>300 / 354</td><td>LIS (tails) / Russian Doll Envelopes</td><td>First tail ≥ x: replace it, or push if low lands on the extra slot.</td></tr>
 </table>
+
+<div class="box thought"><b class="tag">💭 Your thoughts</b><ul><li><a href="dsa-thoughts.html#bs-1">BS #1</a> LIS tails lower bound is just Style A LEFT with <code>tails[mid] &gt;= x</code>; your worked example is 354.</li></ul></div>
 
 <!-- ───────────────────────── 4 ───────────────────────── -->
-<h2 id="patterns">🧩 4 · The five core patterns</h2>
-<p class="hint">§4.2 is the keystone — learn that <b>one</b> template and 80% of binary search becomes a choice of predicate. Each pattern: a one-line model, a 🔑 invariant, a template, and a 🎤 interview lens.</p>
+<h2 id="p-rot">🔄 4 · Rotated sorted array</h2>
+<p class="tldr">"A rotated array is two sorted runs. Compare with the last value to know which run you're in."</p>
+<div class="box idea"><b class="tag">🧩 The idea</b> 🔄 Cut a sorted deck and put the bottom half on top: you get a high run, then a low run. Every value in the low run is ≤ the last card; every value in the high run is bigger. That's a ✗ ✗ ✗ ✓ ✓ row again.</div>
+<figure class="diag"><svg viewBox="0 0 320 132" role="img" aria-label="Rotated array: two sorted runs" style="max-width:320px"><defs><marker id="b4-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b4-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b4-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b4-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b4-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="160" y="16" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">is it ≤ the last value (2)?</text><text x="40" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">0</text><rect x="22" y="44" width="36" height="30" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="40.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">4</text><text x="40.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="80" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">1</text><rect x="62" y="44" width="36" height="30" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="80.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="80.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="120" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">2</text><rect x="102" y="44" width="36" height="30" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="120.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">6</text><text x="120.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="160" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">3</text><rect x="142" y="44" width="36" height="30" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="160.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">7</text><text x="160.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="200" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">4</text><rect x="182" y="44" width="36" height="30" rx="4" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/><text x="200.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">0</text><text x="200.0" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="240" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">5</text><rect x="222" y="44" width="36" height="30" rx="4" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/><text x="240.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">1</text><text x="240.0" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="280" y="38" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">6</text><rect x="262" y="44" width="36" height="30" rx="4" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/><text x="280.0" y="64.04" font-size="14" fill="#37352f" text-anchor="middle" font-weight="700">2</text><text x="280.0" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><line x1="200.0" y1="126.0" x2="200.0" y2="106.0" stroke="#4f46e5" stroke-width="2" marker-end="url(#b4-4f46e5)"/><text x="188" y="124" font-size="12" fill="#4f46e5" text-anchor="end" font-weight="700">first ✓ = the minimum</text></svg><figcaption>153 on [4,5,6,7,0,1,2]: an amber high run, then a blue low run. "≤ the last value" is ✗ for the high run and ✓ for the low run, so the minimum is the first ✓.</figcaption></figure>
 
-<!-- 4.1 -->
-<h3 id="p-exact">4.1 · Classic — exact match</h3>
-<p class="tldr">“Probe the middle; keep the half that could hold the target.”</p>
-<p><b>Setup:</b> sorted array, find <code>target</code> or <code>-1</code>. The textbook version uses a <i>closed</i> range <code>[lo, hi]</code> and <code>while (lo &lt;= hi)</code>.</p>
+<h3>🔄 153 · Find Minimum in Rotated Sorted Array <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 First index with <code>nums[i] ≤ nums[n − 1]</code>. Compare with the <b>last</b> value, not the first: an unrotated array would fool <code>nums[0]</code>.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🔄 FIND MINIMUM IN ROTATED SORTED ARRAY (LEFT: first value &lt;= the last value)
+function findMin(nums: number[]): number {
+    const n = nums.length;
+    let low = 0;
+    let high = n - 1; // the minimum always exists
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The target, if present, is always within the closed range <code>[lo, hi]</code>. Each comparison removes <code>mid</code> and the proven-wrong half, shrinking the range while preserving the invariant. The range empties (<code>lo &gt; hi</code>) only when the target isn't there.</div>
+    while(low &lt; high) {
+        const mid = (low + high) &gt;&gt; 1;
 
-<pre class="language-tsx"><code class="language-tsx">// Classic exact search — returns index or -1
-function binarySearch(a: number[], target: number): number {
-  let lo = 0, hi = a.length - 1;          // CLOSED range [lo, hi]
-  while (lo &lt;= hi) {
-    const mid = lo + ((hi - lo) &gt;&gt; 1);    // floor, overflow-safe
-    if (a[mid] === target) return mid;
-    if (a[mid] &lt; target) lo = mid + 1;    // discard left half + mid
-    else hi = mid - 1;                    // discard right half + mid
-  }
-  return -1;
-}</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> the exact loop condition (<code>&lt;=</code>) and both updates (<code>mid±1</code>); prove it terminates. <b>· Escalation:</b> exact → first/last occurrence (§4.2) → "count occurrences of x" (= upperBound − lowerBound).</div>
-
-<!-- 4.2 -->
-<h3 id="p-bound">4.2 · Boundary — find the first true (the master template)</h3>
-<p class="tldr">“Find the leftmost x where predicate(x) flips to true.”</p>
-<p><b>Setup:</b> a <i>half-open</i> range <code>[lo, hi]</code> with <code>while (lo &lt; hi)</code>. When <code>pred(mid)</code> is true, <code>mid</code> might be the answer, so keep it (<code>hi = mid</code>); otherwise discard it (<code>lo = mid + 1</code>). At the end <code>lo == hi ==</code> the boundary.</p>
-
-<figure>
-<svg viewBox="0 0 600 120" role="img" aria-label="Boundary search keeps mid when predicate true">
-  <g font-size="13" text-anchor="start">
-    <text x="20" y="28" fill="#e11d48" font-weight="700">pred(mid) true</text><text x="160" y="28" fill="#6b675e">→ hi = mid &nbsp;(mid could be the answer — keep it)</text>
-    <text x="20" y="56" fill="#16a34a" font-weight="700">pred(mid) false</text><text x="160" y="56" fill="#6b675e">→ lo = mid + 1 (mid is ruled out — drop it)</text>
-    <text x="20" y="90" fill="#7c3aed" font-weight="700">loop while lo &lt; hi</text><text x="180" y="90" fill="#6b675e">→ ends at lo == hi == first true</text>
-  </g>
-</svg>
-<figcaption>Asymmetric updates (<code>hi = mid</code> vs <code>lo = mid + 1</code>) are what make it terminate <i>and</i> land exactly on the boundary.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> <code>pred</code> is false for everything below <code>lo</code> and (the answer aside) true at/above the boundary. The boundary always stays in <code>[lo, hi]</code>. Keeping <code>mid</code> on true and dropping it on false guarantees the range collapses onto the <i>first</i> true.</div>
-
-<pre class="language-tsx"><code class="language-tsx">// THE template. lowerBound, upperBound, first-bad-version are all just a choice of `pred`.
-function firstTrue(lo: number, hi: number, pred: (x: number) =&gt; boolean): number {
-  while (lo &lt; hi) {
-    const mid = lo + ((hi - lo) &gt;&gt; 1);
-    if (pred(mid)) hi = mid;     // keep mid — it might be the boundary
-    else lo = mid + 1;           // drop mid — it's below the boundary
-  }
-  return lo;                     // == hi == first x with pred(x) true (or hi+1 if none in range)
-}
-
-// lowerBound: first index with a[i] >= target   |   upperBound: first with a[i] > target
-const lowerBound = (a: number[], t: number) =&gt; firstTrue(0, a.length, i =&gt; a[i] &gt;= t);
-const upperBound = (a: number[], t: number) =&gt; firstTrue(0, a.length, i =&gt; a[i] &gt;  t);
-// count of t == upperBound - lowerBound ; exact search: i = lowerBound; present iff i&lt;n && a[i]===t</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> derive lowerBound vs upperBound from <i>one</i> template by changing only the predicate (<code>≥</code> vs <code>&gt;</code>); handle "not found" (returns <code>n</code>). <b>· Escalation:</b> insertion point → "Search Insert Position" → "Find First and Last Position" → range counting.</div>
-
-<!-- 4.3 -->
-<h3 id="p-answer">4.3 · On the answer — binary-search a feasibility predicate</h3>
-<p class="tldr">“The array isn't sorted — but the answer space is. Search that.”</p>
-<p><b>Setup:</b> the input list isn't what you bisect. You bisect a <b>range of candidate answers</b> <code>[lo, hi]</code> using a monotonic <code>feasible(x)</code>. "Smallest feasible x" = first true → reuse §4.2.</p>
-
-<figure>
-<svg viewBox="0 0 600 110" role="img" aria-label="Feasibility predicate over the answer space">
-  <g font-size="13" text-anchor="middle">
-    <g transform="translate(60,40)">
-      <line x1="0" y1="20" x2="460" y2="20" stroke="#cbd5d1" stroke-width="2"/>
-      <text x="60" y="10" fill="#e11d48">infeasible (too slow/small)</text>
-      <text x="330" y="10" fill="#16a34a">feasible</text>
-      <circle cx="230" cy="20" r="6" fill="#e11d48"/>
-      <text x="230" y="48" fill="#e11d48" font-weight="700" font-size="12">smallest feasible answer</text>
-      <text x="0" y="40" fill="#6b675e" font-size="11">lo = min possible</text>
-      <text x="430" y="40" fill="#6b675e" font-size="11">hi = max possible</text>
-    </g>
-  </g>
-</svg>
-<figcaption>Define the answer's bounds, prove <code>feasible</code> is monotonic, then it's just §4.2.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">🔑 Invariant — the reframe</b> If a capacity/speed/size <code>x</code> works, every larger <code>x</code> also works ⇒ <code>feasible</code> is <code>false…false,true…true</code> ⇒ the optimum is the first true. The "proof" you must give in an interview is exactly this monotonicity.</div>
-
-<pre class="language-tsx"><code class="language-tsx">// Koko Eating Bananas — min speed to finish all piles within h hours
-function minEatingSpeed(piles: number[], h: number): number {
-  const hoursAt = (k: number) =&gt; piles.reduce((s, p) =&gt; s + Math.ceil(p / k), 0);
-  let lo = 1, hi = Math.max(...piles);          // answer space: speed in [1, maxPile]
-  while (lo &lt; hi) {
-    const mid = lo + ((hi - lo) &gt;&gt; 1);
-    if (hoursAt(mid) &lt;= h) hi = mid;             // feasible → try slower
-    else lo = mid + 1;                           // too slow → must go faster
-  }
-  return lo;
-}</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> name the answer-space bounds and <i>argue</i> <code>feasible</code> is monotonic before coding. <b>· Escalation:</b> Koko → "Capacity to Ship Packages in D Days" / "Split Array Largest Sum" (same shape) → "Min days to make m bouquets."</div>
-
-<!-- 4.4 -->
-<h3 id="p-rot">4.4 · Rotated sorted array</h3>
-<p class="tldr">“One half is always sorted — find it, then decide where the target lives.”</p>
-<p><b>Setup:</b> a sorted array rotated at an unknown pivot. At every step, exactly one side of <code>mid</code> is properly sorted; check whether the target falls inside that sorted side.</p>
-
-<figure>
-<svg viewBox="0 0 560 110" role="img" aria-label="Rotated sorted array with two sorted runs">
-  <g font-size="13" text-anchor="middle">
-    <g transform="translate(40,40)">
-      <rect x="0" width="44" height="34" fill="#e11d4818" stroke="#e11d48" rx="5"/><text x="22" y="22">4</text>
-      <rect x="48" width="44" height="34" fill="#e11d4818" stroke="#e11d48" rx="5"/><text x="70" y="22">5</text>
-      <rect x="96" width="44" height="34" fill="#e11d4818" stroke="#e11d48" rx="5"/><text x="118" y="22">6</text>
-      <rect x="144" width="44" height="34" fill="#e11d4818" stroke="#e11d48" rx="5"/><text x="166" y="22">7</text>
-      <rect x="192" width="44" height="34" fill="#0891b218" stroke="#0891b2" rx="5"/><text x="214" y="22">0</text>
-      <rect x="240" width="44" height="34" fill="#0891b218" stroke="#0891b2" rx="5"/><text x="262" y="22">1</text>
-      <rect x="288" width="44" height="34" fill="#0891b218" stroke="#0891b2" rx="5"/><text x="310" y="22">2</text>
-      <text x="84" y="-8" fill="#e11d48" font-size="11">sorted run A</text>
-      <text x="262" y="-8" fill="#0891b2" font-size="11">sorted run B</text>
-      <text x="166" y="56" fill="#6b675e" font-size="11">pivot between</text>
-    </g>
-  </g>
-</svg>
-<figcaption><code>a[lo] &lt;= a[mid]</code> ⇒ the left half is the clean sorted run; otherwise the right half is.</figcaption>
-</figure>
-
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> The target, if present, stays in <code>[lo, hi]</code>. Because one half around <code>mid</code> is fully sorted, a simple range check tells you definitively whether the target is in that half — so you can always discard the other half safely.</div>
-
-<pre class="language-tsx"><code class="language-tsx">// Search in Rotated Sorted Array — distinct values
-function searchRotated(a: number[], target: number): number {
-  let lo = 0, hi = a.length - 1;
-  while (lo &lt;= hi) {
-    const mid = lo + ((hi - lo) &gt;&gt; 1);
-    if (a[mid] === target) return mid;
-    if (a[lo] &lt;= a[mid]) {                          // LEFT half is sorted
-      if (a[lo] &lt;= target &amp;&amp; target &lt; a[mid]) hi = mid - 1;
-      else lo = mid + 1;
-    } else {                                        // RIGHT half is sorted
-      if (a[mid] &lt; target &amp;&amp; target &lt;= a[hi]) lo = mid + 1;
-      else hi = mid - 1;
+        if(nums[mid] &lt;= nums[n - 1]) high = mid; // in the low run → min is mid or left
+        else low = mid + 1;                       // in the high run → min is to the right
     }
-  }
-  return -1;
-}</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> which half is sorted, and the boundary <code>&lt;=</code> in <code>a[lo] &lt;= a[mid]</code>. <b>· Escalation:</b> search → "Find Minimum in Rotated Sorted Array" → with <b>duplicates</b> (LC 81: worst case degrades to <code>O(n)</code> — explain why).</div>
 
-<!-- 4.5 -->
-<h3 id="p-peak">4.5 · Peak — binary search with no target</h3>
-<p class="tldr">“No target, no sort — just walk toward the higher neighbor.”</p>
-<p><b>Setup:</b> "Find Peak Element": <code>a[i] != a[i+1]</code>, return any index that's larger than both neighbors (treat off-array ends as <code>−∞</code>). There's no value to match — you steer by the <i>local slope</i>.</p>
+    return nums[low];
+};</code></pre>
 
-<div class="box key"><b class="tag">🔑 Invariant — why it's safe</b> If <code>a[mid] &lt; a[mid+1]</code>, the rising slope guarantees a peak somewhere to the <i>right</i>, so <code>lo = mid + 1</code> still contains one. Otherwise a peak is at <code>mid</code> or left, so <code>hi = mid</code>. A peak always lives in <code>[lo, hi]</code>. (And <code>mid+1</code> is safe: <code>lo &lt; hi</code> ⇒ <code>mid &lt; hi</code>.)</div>
+<h3>🔄 33 · Search in Rotated Sorted Array <span class="cx">⏱️ O(log n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Around mid, one half is always sorted. If the target is inside that sorted half, go there; otherwise go to the other half.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🔄 SEARCH IN ROTATED SORTED ARRAY (exact match + "which half is sorted?")
+function search(nums: number[], target: number): number {
+    let low = 0;
+    let high = nums.length - 1;
 
-<pre class="language-tsx"><code class="language-tsx">// Find Peak Element — O(log n), array not sorted
-function findPeak(a: number[]): number {
-  let lo = 0, hi = a.length - 1;
-  while (lo &lt; hi) {
-    const mid = lo + ((hi - lo) &gt;&gt; 1);
-    if (a[mid] &lt; a[mid + 1]) lo = mid + 1;   // uphill to the right → peak is right
-    else hi = mid;                           // downhill (or flat-down) → peak is here/left
-  }
-  return lo;                                  // lo == hi == a peak
-}</code></pre>
-<div class="box iv"><b class="tag">🎤 Interview lens</b> <b>Probed:</b> why moving toward the higher neighbor always keeps a peak in range, and why it's <code>O(log n)</code> with no sorted input. <b>· Escalation:</b> 1D peak → "Peak in a 2D grid" (binary-search columns) → "Find in Mountain Array."</div>
+    while(low &lt;= high) {
+        const mid = (low + high) &gt;&gt; 1;
+
+        if(nums[mid] === target) return mid;
+
+        if(nums[low] &lt;= nums[mid]) { // left half is sorted
+            if(nums[low] &lt;= target &amp;&amp; target &lt; nums[mid]) high = mid - 1;
+            else low = mid + 1;
+        } else { // right half is sorted
+            if(nums[mid] &lt; target &amp;&amp; target &lt;= nums[high]) low = mid + 1;
+            else high = mid - 1;
+        }
+    }
+
+    return -1;
+};</code></pre>
+
+<table>
+<tr><th>#</th><th>Problem</th><th>The trick</th></tr>
+<tr><td>81</td><td>Search in Rotated Array II (duplicates)</td><td>When <code>nums[low] === nums[mid] === nums[high]</code> you can't tell the sorted half: <code>low++</code>, <code>high--</code>. Worst case O(n).</td></tr>
+<tr><td>154</td><td>Find Minimum II (duplicates)</td><td>When <code>nums[mid] === nums[high]</code>, just <code>high--</code>. Worst case O(n).</td></tr>
+<tr><td>1095</td><td>Find in Mountain Array</td><td>Find the peak (162), then a LEFT search on the way up, then on the way down with the check flipped.</td></tr>
+</table>
 
 <!-- ───────────────────────── 5 ───────────────────────── -->
-<h2 id="complexity">⏱️ 5 · Complexity</h2>
+<h2 id="p-answer">🎚️ 5 · Binary search on the answer</h2>
+<p class="tldr">"Don't search the array. Guess the answer, check it in O(n), keep the half that can still win."</p>
+<div class="box idea"><b class="tag">🧩 The idea</b> 🎚️ A volume dial: you want the lowest setting that still works. If 7 works, 8 works too, so the dial is a ✗ ✗ ✓ ✓ row. Binary search the dial; the check is a simple greedy pass over the input.</div>
+<figure class="diag"><svg viewBox="0 0 330 136" role="img" aria-label="Koko: hours for each speed" style="max-width:330px"><defs><marker id="b5-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b5-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b5-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b5-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b5-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="4" y="34" font-size="11" fill="#6b675e" text-anchor="start" font-weight="400">speed</text><text x="4" y="64" font-size="11" fill="#6b675e" text-anchor="start" font-weight="400">hours</text><text x="4" y="92" font-size="11" fill="#6b675e" text-anchor="start" font-weight="400">≤ 8?</text><text x="56" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">1</text><rect x="44" y="46" width="23" height="26" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="55.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">27</text><text x="55.5" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="82" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">2</text><rect x="70" y="46" width="23" height="26" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="81.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">15</text><text x="81.5" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="108" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">3</text><rect x="96" y="46" width="23" height="26" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="107.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">10</text><text x="107.5" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="134" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">4</text><rect x="122" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="133.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">8</text><text x="133.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="160" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">5</text><rect x="148" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="159.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">8</text><text x="159.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="186" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">6</text><rect x="174" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="185.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">6</text><text x="185.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="212" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">7</text><rect x="200" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="211.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="211.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="238" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">8</text><rect x="226" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="237.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="237.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="264" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">9</text><rect x="252" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="263.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="263.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="290" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">10</text><rect x="278" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="289.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="289.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="316" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">11</text><rect x="304" y="46" width="23" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="315.5" y="62.96" font-size="11" fill="#37352f" text-anchor="middle" font-weight="700">4</text><text x="315.5" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><line x1="134.0" y1="128.0" x2="134.0" y2="106.0" stroke="#4f46e5" stroke-width="2" marker-end="url(#b5-4f46e5)"/><text x="146" y="126" font-size="12" fill="#4f46e5" text-anchor="start" font-weight="700">slowest speed that works = 4</text></svg><figcaption>875, piles [3,6,7,11], h = 8. A faster speed never takes more hours, so once it's ✓ it stays ✓. Binary search the speed, not the piles.</figcaption></figure>
+
+<h3>🎚️ 875 · Koko Eating Bananas (first that works) <span class="cx">⏱️ O(n log max) · 📦 O(1)</span></h3>
+<p class="trick">💡 Hours at speed k = Σ <code>ceil(pile / k)</code>. Range 1 … max(pile); the max always works, so no extra slot.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🎚️ KOKO EATING BANANAS (LEFT on the answer: slowest speed that works)
+function minEatingSpeed(piles: number[], h: number): number {
+    function canFinish(speed: number): boolean {
+        let hours = 0;
+        for(const p of piles) hours += Math.ceil(p / speed);
+        return hours &lt;= h;
+    }
+
+    let low = 1;
+    let high = Math.max(...piles); // the biggest pile per hour always works, so no extra slot
+
+    while(low &lt; high) {
+        const mid = (low + high) &gt;&gt; 1;
+
+        if(canFinish(mid)) high = mid; // works → try slower
+        else low = mid + 1;
+    }
+
+    return low;
+};</code></pre>
 <table>
-<tr><th>Pattern</th><th>Time</th><th>Space</th><th>Note</th></tr>
-<tr><td>Exact / Boundary / Rotated / Peak</td><td><code>O(log n)</code></td><td><code>O(1)</code></td><td>iterative; recursive adds <code>O(log n)</code> stack</td></tr>
-<tr><td>On the answer</td><td><code>O(log(range) · C)</code></td><td><code>O(1)</code></td><td><code>C</code> = cost of one <code>feasible</code> check (often <code>O(n)</code>)</td></tr>
-<tr><td>Rotated <b>with duplicates</b></td><td><code>O(n)</code> worst</td><td><code>O(1)</code></td><td>duplicates can hide which half is sorted</td></tr>
+<tr><th>step</th><th>low</th><th>high</th><th>mid</th><th>hours ≤ 8?</th><th>move</th></tr>
+<tr><td>1</td><td>1</td><td>11</td><td>6</td><td>6 ✓</td><td>high = 6</td></tr>
+<tr><td>2</td><td>1</td><td>6</td><td>3</td><td>10 ✗</td><td>low = 4</td></tr>
+<tr><td>3</td><td>4</td><td>6</td><td>5</td><td>8 ✓</td><td>high = 5</td></tr>
+<tr><td>4</td><td>4</td><td>5</td><td>4</td><td>8 ✓</td><td>high = 4 → return 4</td></tr>
 </table>
-<div class="box"><b class="tag">The halving argument</b> Each step discards ≥ half the remaining space, so the range of size <code>N</code> is gone in <code>⌈log₂ N⌉</code> steps. For "on the answer," <code>N</code> is the <i>value range</i>, not the array length — so bounds like <code>[1, 10⁹]</code> still finish in ~30 probes.</div>
+
+<h3>🎚️ 1011 · Capacity To Ship Packages Within D Days <span class="cx">⏱️ O(n log Σw) · 📦 O(1)</span></h3>
+<p class="trick">💡 Same shape as 875. Pick low and high as the smallest and largest answers that could ever be right: <code>low = max(weights)</code>, <code>high = sum(weights)</code>.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🎚️ CAPACITY TO SHIP PACKAGES WITHIN D DAYS (same shape as 875)
+function shipWithinDays(weights: number[], days: number): number {
+    function canShip(cap: number): boolean {
+        let need = 1;
+        let load = 0;
+        for(const w of weights) {
+            if(load + w &gt; cap) { // doesn't fit → start a new day
+                need++;
+                load = 0;
+            }
+            load += w;
+        }
+        return need &lt;= days;
+    }
+
+    let low = Math.max(...weights);                // must fit the heaviest package
+    let high = weights.reduce((a, b) =&gt; a + b, 0); // one day ships everything
+
+    while(low &lt; high) {
+        const mid = (low + high) &gt;&gt; 1;
+
+        if(canShip(mid)) high = mid;
+        else low = mid + 1;
+    }
+
+    return low;
+};</code></pre>
+
+<h3>📏 1552 · Magnetic Force Between Two Balls (last that works) <span class="cx">⏱️ O(n log n + n log range) · 📦 O(1)</span></h3>
+<p class="trick">💡 "Maximize the minimum gap" → last gap that still fits m balls. RIGHT search, round up.</p>
+<figure class="diag"><svg viewBox="0 0 260 136" role="img" aria-label="Magnetic force: balls placed per gap" style="max-width:260px"><defs><marker id="b6-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b6-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b6-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b6-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b6-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="4" y="34" font-size="11" fill="#6b675e" text-anchor="start" font-weight="400">gap</text><text x="4" y="64" font-size="11" fill="#6b675e" text-anchor="start" font-weight="400">balls</text><text x="4" y="92" font-size="11" fill="#6b675e" text-anchor="start" font-weight="400">≥ 3?</text><text x="59" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">1</text><rect x="44" y="46" width="30" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="59.0" y="63.32" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="59.0" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="93" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">2</text><rect x="78" y="46" width="30" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="93.0" y="63.32" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">3</text><text x="93.0" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="127" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">3</text><rect x="112" y="46" width="30" height="26" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/><text x="127.0" y="63.32" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">3</text><text x="127.0" y="94" font-size="15" fill="#16a34a" text-anchor="middle" font-weight="700">✓</text><text x="161" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">4</text><rect x="146" y="46" width="30" height="26" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="161.0" y="63.32" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">2</text><text x="161.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="195" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">5</text><rect x="180" y="46" width="30" height="26" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="195.0" y="63.32" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">2</text><text x="195.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><text x="229" y="34" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">6</text><rect x="214" y="46" width="30" height="26" rx="4" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/><text x="229.0" y="63.32" font-size="12" fill="#37352f" text-anchor="middle" font-weight="700">2</text><text x="229.0" y="94" font-size="15" fill="#dc2626" text-anchor="middle" font-weight="700">✗</text><line x1="127.0" y1="128.0" x2="127.0" y2="106.0" stroke="#4f46e5" stroke-width="2" marker-end="url(#b6-4f46e5)"/><text x="139" y="126" font-size="12" fill="#4f46e5" text-anchor="start" font-weight="700">biggest gap = 3</text></svg><figcaption>1552, positions [1,2,3,4,7], m = 3. A bigger gap fits fewer balls, so the row is ✓ then ✗: find the <b>last</b> ✓ (RIGHT search, round up).</figcaption></figure>
+<pre class="language-tsx"><code class="language-tsx">// 📏 MAGNETIC FORCE BETWEEN TWO BALLS (RIGHT on the answer: biggest gap that works)
+function maxDistance(position: number[], m: number): number {
+    position.sort((a, b) =&gt; a - b);
+    const n = position.length;
+
+    function canPlace(gap: number): boolean {
+        let balls = 1;
+        let last = position[0];
+        for(let i = 1; i &lt; n; i++) {
+            if(position[i] - last &gt;= gap) {
+                balls++;
+                last = position[i];
+            }
+        }
+        return balls &gt;= m;
+    }
+
+    let low = 1; // positions are distinct, so gap 1 always works
+    let high = position[n - 1] - position[0];
+
+    while(low &lt; high) {
+        const mid = (low + high + 1) &gt;&gt; 1; // round UP
+
+        if(canPlace(mid)) low = mid; // works → try a bigger gap
+        else high = mid - 1;
+    }
+
+    return low;
+};</code></pre>
+
+<table>
+<tr><th>#</th><th>Problem</th><th>First / last ✓</th><th>The check</th></tr>
+<tr><td>410</td><td>Split Array Largest Sum</td><td>🎚️ first</td><td>Same as 1011: greedy pieces with sum ≤ mid, count ≤ k. Range max … sum.</td></tr>
+<tr><td>1482</td><td>Min Days to Make m Bouquets</td><td>🎚️ first</td><td>Count runs of k bloomed flowers ≥ m. If m × k &gt; n, return −1 first.</td></tr>
+<tr><td>1283</td><td>Smallest Divisor Given a Threshold</td><td>🎚️ first</td><td>Σ <code>ceil(x / d)</code> ≤ threshold. Koko again.</td></tr>
+<tr><td>2187</td><td>Minimum Time to Complete Trips</td><td>🎚️ first</td><td>Σ <code>floor(t / time[i])</code> ≥ totalTrips; high = min(time) × totalTrips.</td></tr>
+<tr><td>2226</td><td>Maximum Candies Allocated to K Children</td><td>📏 last</td><td>Σ <code>floor(c / x)</code> ≥ k. Answer can be 0, so <code>low = 0</code> is the extra slot (round up keeps mid ≥ 1).</td></tr>
+<tr><td>1898</td><td>Maximum Number of Removable Characters</td><td>📏 last</td><td>Remove the first mid indices; is p still a subsequence of s? (two pointers)</td></tr>
+<tr><td>69 / 367</td><td>Sqrt(x) / Valid Perfect Square</td><td>📏 last</td><td>Last x with x × x ≤ n; 367 checks x × x === n.</td></tr>
+<tr><td>719</td><td>K-th Smallest Pair Distance</td><td>🔢 first</td><td>Sort; count pairs with diff ≤ mid (sliding window) ≥ k.</td></tr>
+<tr><td>1044</td><td>Longest Duplicate Substring</td><td>📏 last</td><td>Does some substring of length mid appear twice? (rolling hash)</td></tr>
+<tr><td>774🔒</td><td>Minimize Max Distance to Gas Station</td><td>🎚️ first</td><td>Real numbers: loop ~100 times or <code>while(high − low &gt; 1e-6)</code>; stations needed = Σ <code>ceil(gap / d) − 1</code> ≤ k.</td></tr>
+<tr><td>3419 / 778</td><td>Min Max Edge Weight / Swim in Rising Water</td><td>🎚️ first</td><td>Keep edges (or cells) ≤ mid, BFS: can you reach everything?</td></tr>
+</table>
+
+<div class="box thought"><b class="tag">💭 Your thoughts</b><ul><li><a href="dsa-thoughts.html#graph-11">Graph #11</a> "Can I reach X using only edges ≤ mid?" → plain BFS as the check. Binary search already picked the limit, so no Dijkstra needed (LC 3419).</li></ul></div>
 
 <!-- ───────────────────────── 6 ───────────────────────── -->
-<h2 id="pitfalls">⚠️ 6 · Pitfalls — and the test that catches each</h2>
-<table>
-<tr><th>Bug</th><th>The input that exposes it</th></tr>
-<tr><td><code>mid = (lo + hi) / 2</code> overflows in fixed-int languages (Java/C++).</td><td>Huge indices near <code>INT_MAX</code> → use <code>lo + (hi − lo) / 2</code>.</td></tr>
-<tr><td>Infinite loop: <code>lo = mid</code> on the "keep" branch (should be <code>hi = mid</code>).</td><td>Any 2-element range where <code>mid == lo</code> → <code>lo</code> never advances.</td></tr>
-<tr><td>Mixing the two templates: closed <code>[lo,hi]</code> + <code>while(lo&lt;hi)</code>, or half-open + <code>mid−1</code>.</td><td>Single-element array → off-by-one or skips the only candidate.</td></tr>
-<tr><td>Forgetting the "not found" check after <code>lowerBound</code>.</td><td>Target larger than all → returns <code>n</code>; indexing <code>a[n]</code> is out of bounds.</td></tr>
-<tr><td>Rotated: <code>a[lo] &lt; a[mid]</code> instead of <code>&lt;=</code>.</td><td>2-element rotations like <code>[3,1]</code> → wrong half chosen.</td></tr>
-<tr><td>On-the-answer: <code>hi</code> initialized too small to contain the optimum.</td><td>Koko with one giant pile → optimum = that pile; a smaller <code>hi</code> misses it.</td></tr>
-<tr><td>Predicate isn't actually monotonic.</td><td>Any non-monotone <code>feasible</code> → the boundary is undefined; binary search returns garbage.</td></tr>
-</table>
+<h2 id="p-2d">🧮 6 · 2D matrix</h2>
+<p class="tldr">"Fully sorted → flatten it. Rows and columns sorted → staircase from the top-right."</p>
+<div class="box idea"><b class="tag">🧩 The idea</b> 🧮 In 74 every row starts after the last one ends, so reading row by row gives one sorted list of m·n numbers. In 240 that isn't true, but the top-right corner is the biggest in its row and the smallest in its column, so each comparison deletes a whole row or column.</div>
+<figure class="diag"><svg viewBox="0 0 300 176" role="img" aria-label="Matrix read row by row is one sorted list" style="max-width:300px"><defs><marker id="b7-94a3b8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker><marker id="b7-4f46e5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"/></marker><marker id="b7-16a34a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker><marker id="b7-dc2626" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker><marker id="b7-d97706" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker></defs><text x="14" y="30" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">r0</text><rect x="30" y="10" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="53.0" y="29.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">1</text><text x="53" y="52" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">0</text><rect x="80" y="10" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="103.0" y="29.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">3</text><text x="103" y="52" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">1</text><rect x="130" y="10" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="153.0" y="29.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">5</text><text x="153" y="52" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">2</text><rect x="180" y="10" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="203.0" y="29.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">7</text><text x="203" y="52" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">3</text><text x="14" y="76" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">r1</text><rect x="30" y="56" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="53.0" y="75.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">10</text><text x="53" y="98" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">4</text><rect x="80" y="56" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="103.0" y="75.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">11</text><text x="103" y="98" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">5</text><rect x="130" y="56" width="46" height="30" rx="4" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/><text x="153.0" y="75.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">16</text><text x="153" y="98" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">6</text><rect x="180" y="56" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="203.0" y="75.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">20</text><text x="203" y="98" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">7</text><text x="14" y="122" font-size="11" fill="#6b675e" text-anchor="middle" font-weight="400">r2</text><rect x="30" y="102" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="53.0" y="121.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">23</text><text x="53" y="144" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">8</text><rect x="80" y="102" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="103.0" y="121.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">30</text><text x="103" y="144" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">9</text><rect x="130" y="102" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="153.0" y="121.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">34</text><text x="153" y="144" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">10</text><rect x="180" y="102" width="46" height="30" rx="4" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/><text x="203.0" y="121.68" font-size="13" fill="#37352f" text-anchor="middle" font-weight="700">60</text><text x="203" y="144" font-size="10" fill="#6b675e" text-anchor="middle" font-weight="400">11</text><text x="150" y="168" font-size="12" fill="#d97706" text-anchor="middle" font-weight="700">mid 6 → row 6 / 4 = 1, col 6 % 4 = 2 → 16</text></svg><figcaption>74: the small grey number is the index in the flattened list. Search 0 … m·n − 1 like a normal array and turn mid into (row, col).</figcaption></figure>
 
-<div class="box"><b class="tag">🔗 This pattern, elsewhere</b>
-<b>Binary search is the converging pointer on the answer space</b> — the same "discard half, safely" invariant as the converging two-pointer in <a href="two-pointers.html#p-conv">two-pointers.html</a>, but the space is values/answers, not array ends.
-<b>The boundary template</b> is <code>bisect</code> (Python) / <code>lower_bound</code> (C++).
-<b>"On the answer"</b> turns optimization into a yes/no decision — the seed of parametric search and several DP/greedy speed-ups.
-<b>Rotated search</b> is a cousin of finding the pivot / minimum in a rotated array.</div>
+<h3>🧮 74 · Search a 2D Matrix <span class="cx">⏱️ O(log(m·n)) · 📦 O(1)</span></h3>
+<p class="trick">💡 Exact search on 0 … m·n − 1, with <code>row = floor(mid / n)</code>, <code>col = mid % n</code> (n = number of columns).</p>
+<pre class="language-tsx"><code class="language-tsx">// 🧮 SEARCH A 2D MATRIX (one sorted list, read row by row)
+function searchMatrix(matrix: number[][], target: number): boolean {
+    const m = matrix.length;
+    const n = matrix[0].length;
+    let low = 0;
+    let high = m * n - 1;
+
+    while(low &lt;= high) {
+        const mid = (low + high) &gt;&gt; 1;
+        const val = matrix[Math.floor(mid / n)][mid % n]; // index → (row, col)
+
+        if(val === target) return true;
+        else if(val &lt; target) low = mid + 1;
+        else high = mid - 1;
+    }
+
+    return false;
+};</code></pre>
+
+<h3>🧮 240 · Search a 2D Matrix II <span class="cx">⏱️ O(m + n) · 📦 O(1)</span></h3>
+<p class="trick">💡 Start top-right. Too big → move left (that column is out). Too small → move down (that row is out).</p>
+<pre class="language-tsx"><code class="language-tsx">// 🧮 SEARCH A 2D MATRIX II (staircase from the top-right, O(m + n))
+function searchMatrix(matrix: number[][], target: number): boolean {
+    let row = 0;
+    let col = matrix[0].length - 1;
+
+    while(row &lt; matrix.length &amp;&amp; col &gt;= 0) {
+        if(matrix[row][col] === target) return true;
+        else if(matrix[row][col] &gt; target) col--; // too big → this whole column is out
+        else row++;                                // too small → this whole row is out
+    }
+
+    return false;
+};</code></pre>
+
+<table>
+<tr><th>#</th><th>Problem</th><th>The trick</th></tr>
+<tr><td>1351</td><td>Count Negative Numbers in a Sorted Matrix</td><td>Staircase from the top-right (or a LEFT search per row for the first negative).</td></tr>
+<tr><td>378</td><td>Kth Smallest Element in a Sorted Matrix</td><td>🔢 Search the value: count cells ≤ mid with the staircase; first mid with count ≥ k.</td></tr>
+<tr><td>1428🔒</td><td>Leftmost Column with at Least a One</td><td>Staircase from the top-right: 1 → move left, 0 → move down.</td></tr>
+<tr><td>1901</td><td>Find a Peak Element II</td><td>Search the rows: take the max of the mid row, compare with the cell below, keep the uphill half.</td></tr>
+</table>
 
 <!-- ───────────────────────── 7 ───────────────────────── -->
-<details class="fold" open>
-<summary>➕ Binary search on a real number — Minimize Max Distance to Gas Station (774)</summary>
-<div class="box">Same "binary search on the answer" template as Koko / Ship Packages, but the answer is <b>continuous</b>: search a floating-point <code>D</code> and stop on an epsilon instead of <code>lo == hi</code>.</div>
-<pre class="language-tsx"><code class="language-tsx">// 774 — smallest possible max gap after adding k stations
-function minmaxGasDist(stations: number[], k: number): number {
-  let lo = 0, hi = 0;
-  for (let i = 1; i &lt; stations.length; i++) hi = Math.max(hi, stations[i] - stations[i - 1]);
-  while (hi - lo &gt; 1e-6) {                               // epsilon, never lo === hi
-    const mid = (lo + hi) / 2;
-    let need = 0;                                        // stations required so every piece is &lt;= mid
-    for (let i = 1; i &lt; stations.length; i++) need += Math.ceil((stations[i] - stations[i - 1]) / mid) - 1;
-    if (need &lt;= k) hi = mid;                             // feasible → try a smaller D
-    else lo = mid;                                       // no ±1: the space is continuous
-  }
-  return hi;
-}</code></pre>
-<div class="box warn"><b class="tag">⚠️ Traps</b> Move <code>hi = mid</code> when feasible and <code>lo = mid</code> otherwise — no <code>±1</code> in a continuous space. Terminate on <code>hi − lo &gt; 1e-6</code> (or a fixed ~100 iterations), and the feasibility count is <code>ceil(gap / D) − 1</code>.</div>
-</details>
+<h2 id="p-part">✂️ 7 · Stretch: partition search</h2>
+<p class="tldr">"Binary search where to cut the shorter array; the cut in the other array follows."</p>
+<div class="box idea"><b class="tag">🧩 The idea</b> ✂️ Cut both arrays so the left side holds half of all values. If every left value ≤ every right value, the median is at the cut. Choosing i values from the short array forces <code>half − i</code> from the other, so you only search i.</div>
 
-<h2 id="coverage">📊 Coverage — pattern → LeetCode (medium &amp; hard)</h2>
-<p class="hint">Own each pattern and these are in range. <b>Bold</b> = Hard tier.</p>
+<h3>✂️ 4 · Median of Two Sorted Arrays <span class="cx">⏱️ O(log min(m, n)) · 📦 O(1)</span></h3>
+<p class="trick">💡 Use ±Infinity for an empty side of a cut. <code>l1 &gt; r2</code> → took too many from nums1.</p>
+<pre class="language-tsx"><code class="language-tsx">// ✂️ MEDIAN OF TWO SORTED ARRAYS (binary search the cut in the shorter array)
+function findMedianSortedArrays(nums1: number[], nums2: number[]): number {
+    if(nums1.length &gt; nums2.length) return findMedianSortedArrays(nums2, nums1);
+
+    const m = nums1.length;
+    const n = nums2.length;
+    const half = (m + n + 1) &gt;&gt; 1; // size of the left side
+
+    let low = 0;
+    let high = m; // take 0..m values from nums1
+
+    while(low &lt;= high) {
+        const i = (low + high) &gt;&gt; 1; // values taken from nums1
+        const j = half - i;          // the rest come from nums2
+
+        const l1 = i === 0 ? -Infinity : nums1[i - 1];
+        const r1 = i === m ? Infinity : nums1[i];
+        const l2 = j === 0 ? -Infinity : nums2[j - 1];
+        const r2 = j === n ? Infinity : nums2[j];
+
+        if(l1 &lt;= r2 &amp;&amp; l2 &lt;= r1) { // every left value &lt;= every right value
+            if((m + n) % 2) return Math.max(l1, l2);
+            return (Math.max(l1, l2) + Math.min(r1, r2)) / 2;
+        }
+
+        if(l1 &gt; r2) high = i - 1; // took too many from nums1
+        else low = i + 1;         // took too few
+    }
+
+    return -1;
+};</code></pre>
 <table>
-<tr><th>Pattern</th><th>Representative LeetCode</th><th>Tier</th></tr>
-<tr><td><a href="#p-exact">Exact</a></td><td>704 Binary Search · 35 Search Insert Position</td><td>Easy</td></tr>
-<tr><td><a href="#p-bound">Boundary (firstTrue)</a></td><td>34 First &amp; Last Position · 278 First Bad Version</td><td>Med</td></tr>
-<tr><td><a href="#p-answer">Binary search on answer</a></td><td>875 Koko · 1011 Ship Within D Days · <b>410 Split Array</b> · <b>774 Gas Station (real-valued)</b> · <b>4 Median of Two Arrays</b></td><td>Med → <b>Hard</b></td></tr>
-<tr><td><a href="#p-rot">Rotated array</a></td><td>33 Search in Rotated · 81 (with dups) · 153 Find Minimum</td><td>Med</td></tr>
-<tr><td><a href="#p-peak">Peak / partition</a></td><td>162 Find Peak Element · 852 Peak in Mountain Array</td><td>Med</td></tr>
+<tr><th>#</th><th>Problem</th><th>The trick</th></tr>
+<tr><td>786</td><td>K-th Smallest Prime Fraction</td><td>🔢 Search the value v in (0, 1): count fractions ≤ v with two pointers, stop when the count is k. (A heap works too.)</td></tr>
 </table>
-<h2 id="selfcheck">✅ 7 · Self-check</h2>
-<p class="hint">Cover the right column (blurred — hover/tap to reveal). Say your answer out loud first.</p>
+
+<!-- ───────────────────────── 8 ───────────────────────── -->
+<h2 id="must">⭐ 8 · Must-know, one line each</h2>
+<p class="hint">If you can say the trick for each in one sentence, you're ready.</p>
+<table>
+<tr><th>#</th><th>Problem</th><th>Pattern</th><th>The trick</th></tr>
+<tr><td>704</td><td>Binary Search</td><td>🔍 Exact</td><td><code>low &lt;= high</code>, high = n − 1, mid ± 1.</td></tr>
+<tr><td>35</td><td>Search Insert Position</td><td>🚧 First ✓</td><td>First ≥ target; high = n is the insert-at-end slot.</td></tr>
+<tr><td>34</td><td>First and Last Position</td><td>🚧 First + last</td><td>Two searches; check the first one found the target.</td></tr>
+<tr><td>278</td><td>First Bad Version</td><td>🚧 First ✓</td><td>First <code>isBadVersion</code>.</td></tr>
+<tr><td>69</td><td>Sqrt(x)</td><td>📏 Last ✓</td><td>Last x with x² ≤ n; round up.</td></tr>
+<tr><td>162</td><td>Find Peak Element</td><td>⛰️ Slope</td><td>Next is bigger → go right.</td></tr>
+<tr><td>153</td><td>Find Minimum in Rotated</td><td>🔄 Rotated</td><td>First value ≤ the last value.</td></tr>
+<tr><td>33</td><td>Search in Rotated</td><td>🔄 Rotated</td><td>One half is sorted: is the target in it?</td></tr>
+<tr><td>875</td><td>Koko Eating Bananas</td><td>🎚️ First ✓</td><td>Slowest speed with Σ ceil ≤ h.</td></tr>
+<tr><td>1011</td><td>Ship Within D Days</td><td>🎚️ First ✓</td><td>low = max weight, high = sum; greedy days.</td></tr>
+<tr><td>410</td><td>Split Array Largest Sum</td><td>🎚️ First ✓</td><td>1011 with k pieces.</td></tr>
+<tr><td>1552</td><td>Magnetic Force</td><td>📏 Last ✓</td><td>Biggest gap that fits m balls.</td></tr>
+<tr><td>378</td><td>Kth Smallest in Sorted Matrix</td><td>🔢 Count</td><td>Count ≤ mid with the staircase.</td></tr>
+<tr><td>74</td><td>Search a 2D Matrix</td><td>🧮 Flatten</td><td>mid → (mid / n, mid % n).</td></tr>
+<tr><td>240</td><td>Search a 2D Matrix II</td><td>🧮 Staircase</td><td>Top-right: too big ←, too small ↓.</td></tr>
+<tr><td>4</td><td>Median of Two Sorted Arrays</td><td>✂️ Partition</td><td>Search the cut in the shorter array.</td></tr>
+</table>
+
+<!-- ───────────────────────── 9 ───────────────────────── -->
+<h2 id="traps">⚠️ 9 · Traps, and the input that shows each one</h2>
+<table>
+<tr><th>Bug</th><th>Input that exposes it</th></tr>
+<tr><td>Last-that-works search with round <b>down</b> (<code>low = mid</code>)</td><td><code>[5,7]</code>, last ≤ 7 → low = 0 and mid = 0 forever: infinite loop</td></tr>
+<tr><td><code>high = n − 1</code> when the answer may not exist</td><td>35: <code>[1,3]</code>, target 5 → returns 1, should be 2</td></tr>
+<tr><td><code>(low + high + 1) &gt;&gt; 1</code> on huge values</td><td>69: x = 2147483647 → <code>(x + 1) &gt;&gt; 1</code> is −1073741824 and the answer comes out 0. <code>&gt;&gt;</code> works on 32-bit ints, so use <code>Math.floor(… / 2)</code> once low + high can reach 2³¹</td></tr>
+<tr><td>33: <code>nums[low] &lt; nums[mid]</code> instead of <code>&lt;=</code></td><td><code>[3,1]</code>, target 1 → −1. When low === mid the left half is one value, and it counts as sorted</td></tr>
+<tr><td>153: comparing with <code>nums[0]</code> instead of the last value</td><td><code>[1,2,3]</code> (not rotated) → returns 3</td></tr>
+<tr><td>1011: <code>low = 1</code> instead of <code>max(weights)</code></td><td><code>[10]</code>, days 2 → returns 1; a 10 never fits in capacity 1</td></tr>
+<tr><td>875: <code>Math.floor</code> instead of <code>Math.ceil</code> for hours</td><td><code>[3]</code>, h = 1 → returns 2; at speed 2 the pile takes 2 hours</td></tr>
+<tr><td>34: no "is it really the target?" check</td><td><code>[5,7]</code>, target 6 → <code>[1, 0]</code> instead of <code>[−1, −1]</code></td></tr>
+<tr><td>162: comparing with <code>nums[mid − 1]</code></td><td><code>[1,2]</code> → 0. At mid = 0, <code>nums[−1]</code> is undefined and the compare is just false</td></tr>
+</table>
+
+<div class="box thought"><b class="tag">💭 Your thoughts</b><ul><li><a href="dsa-thoughts.html#js-1">JS #1</a> JS never throws on out-of-bounds access: <code>arr[-1]</code> is <code>undefined</code>, so an index bug gives a wrong answer, not a crash.</li></ul></div>
+
+<h3>Complexity</h3>
+<table>
+<tr><th>Pattern</th><th>Time</th><th>Space</th></tr>
+<tr><td>Exact, boundary, peak, rotated</td><td>O(log n)</td><td>O(1)</td></tr>
+<tr><td>Rotated with duplicates (81, 154)</td><td>O(n) worst case (<code>[1,1,1,…]</code>)</td><td>O(1)</td></tr>
+<tr><td>On the answer</td><td>O(n · log range)</td><td>O(1) besides the check</td></tr>
+<tr><td>74 flatten / 240 staircase</td><td>O(log(m·n)) / O(m + n)</td><td>O(1)</td></tr>
+<tr><td>378, 719 (count ≤ mid)</td><td>O(n · log range) (+ sort for 719)</td><td>O(1)</td></tr>
+<tr><td>4 median</td><td>O(log min(m, n))</td><td>O(1)</td></tr>
+</table>
+<p class="hint">Why log: each step halves the range, and 2³⁰ ≈ 10⁹, so even a range of a billion takes about 30 steps.</p>
+
+<!-- ───────────────────────── 10 ───────────────────────── -->
+<h2 id="selfcheck">✅ 10 · Self-check</h2>
+<p class="hint">Cover the right column (it's blurred; hover or tap to reveal). Say the answer out loud first.</p>
 <table class="qa">
-<tr><th style="width:52%">Prompt</th><th>Answer</th></tr>
-<tr><td>Binary search needs <i>what</i> property of the space — and it's not "sorted"?</td><td class="a">A <b>monotonic predicate</b>: false…false, true…true. Sorted arrays are one instance; the real requirement is one clean flip.</td></tr>
-<tr><td>In the boundary template, why <code>hi = mid</code> but <code>lo = mid + 1</code>?</td><td class="a">On true, <code>mid</code> might be the boundary (keep it); on false it's ruled out (drop it). The asymmetry makes it terminate <i>and</i> land on the first true.</td></tr>
-<tr><td>How do you get lowerBound vs upperBound from one template?</td><td class="a">Change only the predicate: <code>a[i] ≥ t</code> for lowerBound, <code>a[i] &gt; t</code> for upperBound.</td></tr>
-<tr><td>"Minimize the maximum X" — what do you binary-search?</td><td class="a">The <b>answer space</b> with a monotonic <code>feasible(x)</code>, returning the smallest feasible x — not the array.</td></tr>
-<tr><td>Rotated array: how do you pick a half?</td><td class="a">One side of <code>mid</code> is sorted (<code>a[lo] ≤ a[mid]</code> ⇒ left). Range-check whether the target lies in that sorted side; else take the other.</td></tr>
-<tr><td>Find Peak: which way do you move and why?</td><td class="a">Toward the higher neighbor — a rising slope guarantees a peak ahead; the range always keeps one.</td></tr>
-<tr><td>Complexity of "on the answer" with bounds <code>[1, 10⁹]</code> and an <code>O(n)</code> check?</td><td class="a"><code>O(n · log(10⁹))</code> ≈ <code>O(30n)</code> — log of the value range, not the array.</td></tr>
-<tr><td>How does binary search on the answer change when the answer is a real number?</td><td class="a">Loop on <code>hi − lo &gt; ε</code> (or fixed iterations), and move <code>hi = mid</code> / <code>lo = mid</code> with no <code>±1</code>.</td></tr>
+<tr><th style="width:50%">Prompt</th><th>Answer</th></tr>
+<tr><td>Exact search: loop condition and high?</td><td class="a"><code>low &lt;= high</code>, high = n − 1.</td></tr>
+<tr><td>First that works: where's the extra slot, which way does mid round?</td><td class="a">high = n (right side), round down, <code>high = mid</code>.</td></tr>
+<tr><td>Last that works: where's the extra slot, which way does mid round?</td><td class="a">low = −1 (left side), round up, <code>low = mid</code>.</td></tr>
+<tr><td>Why must "last that works" round up?</td><td class="a">With two left, round down gives mid = low; <code>low = mid</code> changes nothing → infinite loop.</td></tr>
+<tr><td>What does landing on the extra slot mean?</td><td class="a">Nothing works: no answer (or insert at the end).</td></tr>
+<tr><td>When can you skip the extra slot?</td><td class="a">When an answer always exists (peak, rotated minimum, Koko's max speed).</td></tr>
+<tr><td>162: compare mid with which neighbour, and why is it safe?</td><td class="a"><code>mid + 1</code>. Round-down mid &lt; high, so it exists.</td></tr>
+<tr><td>153: compare with which value?</td><td class="a">The last one. ≤ last → low run → go left.</td></tr>
+<tr><td>How do you spot "binary search on the answer"?</td><td class="a">"Minimum X such that…" or "maximize the minimum", and if X works then every bigger (or smaller) X works too.</td></tr>
+<tr><td>1011: low and high?</td><td class="a">max(weights) and sum(weights).</td></tr>
+<tr><td>Maximize the minimum gap: first or last ✓?</td><td class="a">Last ✓, RIGHT search, round up.</td></tr>
+<tr><td>Sorted matrix, rows and columns only: where do you start?</td><td class="a">Top-right (or bottom-left). Each step deletes a row or a column: O(m + n).</td></tr>
+<tr><td>When does <code>&gt;&gt; 1</code> break?</td><td class="a">When low + high reaches 2³¹ (it works on 32-bit ints). Use <code>Math.floor(… / 2)</code>.</td></tr>
 </table>
 
 <h3>Write these cold (no peeking)</h3>
 <ul>
-<li><span class="pill">boundary</span> <code>firstTrue</code> + derive <code>lowerBound</code> / <code>upperBound</code> from it</li>
-<li><span class="pill">exact</span> classic <code>binarySearch</code> (closed range)</li>
-<li><span class="pill">on-answer</span> <code>minEatingSpeed</code> (state the predicate + bounds first)</li>
-<li><span class="pill">rotated</span> <code>searchRotated</code></li>
-<li><span class="pill">peak</span> <code>findPeak</code></li>
+<li><span class="pill">🔍 Exact</span> 704</li>
+<li><span class="pill">🚧 Boundary</span> 35, 34, 162</li>
+<li><span class="pill">🔄 Rotated</span> 153, 33</li>
+<li><span class="pill">🎚️ On the answer</span> 875, 1011, 1552</li>
+<li><span class="pill">🧮 2D</span> 74</li>
 </ul>
-<p class="hint">For each: write the predicate and the invariant ("answer ∈ [lo,hi]") as a comment <i>before</i> the loop.</p>
+<p class="hint">The code on this page is written in your Style A (BS #1) and tested on the LeetCode examples plus random inputs checked against brute force. It isn't your own LeetCode code yet; it gets swapped for yours as you solve each problem.</p>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
