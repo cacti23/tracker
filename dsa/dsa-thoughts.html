@@ -173,7 +173,7 @@
 <div class="grp" data-g="bs">
 <h3>🎯 Binary Search · <a href="#bs-sum" data-g="bs">🧠 must remember</a></h3>
 <nav class="nav">
-  <a href="#bs-1"><b>01</b>One template: low, high, ans</a>
+  <a href="#bs-1"><b>01</b>One pattern: inclusive range + ans</a>
   <a href="#graph-11"><b>Graph · 11</b>Binary search + BFS vs Dijkstra</a>
   <a href="#js-3"><b>JS · 03</b>Safe mid: &gt;&gt; 1 vs Math.floor</a>
 </nav>
@@ -1240,8 +1240,8 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 <section data-g="bs" class="sum" id="bs-sum">
 <h2>🧠 Binary Search — Must Remember</h2>
 <ul>
-<li>🎯 <b>One template:</b> <code>low</code> = first candidate, <code>high</code> = last, <code>low &lt;= high</code> (<a href="#bs-1">#1</a>)</li>
-<li>⬅️➡️ <b>It works</b> → <code>ans = mid</code>, go left for the first, right for the last (<a href="#bs-1">#1</a>)</li>
+<li>📦 <b>Inclusive range, nothing extra:</b> indices <code>0 … n − 1</code>, values lowest … highest, <code>low &lt;= high</code> (<a href="#bs-1">#1</a>)</li>
+<li>✅ <b>It works</b> → <code>ans = mid</code>, move <code>high</code> to search left, <code>low</code> to search right (<a href="#bs-1">#1</a>)</li>
 <li>🎯 <b>Binary search on a threshold</b> + plain BFS as the check (<a href="#graph-11">Graph #11</a>)</li>
 <li>➗ <b>Values past 10⁹</b> → <code>Math.floor((lo + hi) / 2)</code>, not <code>&gt;&gt; 1</code> (<a href="#js-3">JS #3</a>)</li>
 </ul>
@@ -1249,60 +1249,38 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 
 <section data-g="bs">
 <span id="t20"></span>
-<h2 id="bs-1">1 · 🎯 Binary Search — One Template: <code>low</code> = First, <code>high</code> = Last, Keep <code>ans</code></h2>
-<p>🎯 <b>Rule:</b> <code>low</code> = first candidate, <code>high</code> = last candidate (the real range). <code>while (low &lt;= high)</code>, normal mid. Same for exact search and boundary search.</p>
-<pre class="language-tsx"><code class="language-tsx">low = first, high = last, ans = -1      // ans stays -1 if nothing works
+<h2 id="bs-1">1 · 🎯 Binary Search — One Pattern: Inclusive Range + <code>ans</code></h2>
+<ol>
+<li>📦 <b><code>low</code>, <code>high</code> = the real range, inclusive.</b> Indices → <code>0 … n − 1</code>. Values → lowest … highest. Nothing extra.</li>
+<li>🔁 <code>while (low &lt;= high)</code>, <code>mid = Math.floor((low + high) / 2)</code>.</li>
+<li>✅ Condition true → it could be the answer → <code>ans = mid</code>. Search left → <code>high = mid − 1</code>. Search right → <code>low = mid + 1</code>.</li>
+<li>❌ Else → move the other way.</li>
+</ol>
+<pre class="language-tsx"><code class="language-tsx">let low = 0, high = n - 1, ans = -1
 while (low &lt;= high) {
-    mid = Math.floor((low + high) / 2)
-    if (condition(mid)) { ans = mid; high = mid - 1 }   // first that works → go LEFT
+    const mid = Math.floor((low + high) / 2)
+    if (condition(mid)) { ans = mid; high = mid - 1 }   // search LEFT
     else low = mid + 1
 }
 return ans</code></pre>
-<table>
-<tr><th>Search</th><th>When it matches</th><th>Else</th></tr>
-<tr><td>🔍 Exact</td><td><code>arr[mid] === target</code> → <code>return mid</code></td><td><code>arr[mid] &lt; target</code> → <code>low = mid + 1</code>, else <code>high = mid − 1</code></td></tr>
-<tr><td>⬅️ First that works</td><td><code>ans = mid</code>, <code>high = mid − 1</code></td><td><code>low = mid + 1</code></td></tr>
-<tr><td>➡️ Last that works</td><td><code>ans = mid</code>, <code>low = mid + 1</code></td><td><code>high = mid − 1</code></td></tr>
-</table>
-<h3>🔍 Exact — LC 704: <code>[-1,0,3,5,9,12]</code>, target 9 → 4</h3>
-<pre class="language-tsx"><code class="language-tsx">let low = 0, high = arr.length - 1
-while (low &lt;= high) {
-    const mid = Math.floor((low + high) / 2)
-    if (arr[mid] === target) return mid
-    if (arr[mid] &lt; target) low = mid + 1
-    else high = mid - 1
-}
-return -1</code></pre>
-<h3>⬅️ First that works — LC 35 Search Insert: <code>[1,3,5,6]</code>, target 2 → 1</h3>
-<p>First index with <code>arr[i] &gt;= target</code>. None → insert at the end, so <code>ans</code> starts at <code>n</code>.</p>
-<pre class="language-tsx"><code class="language-tsx">let low = 0, high = arr.length - 1, ans = arr.length
-while (low &lt;= high) {
-    const mid = Math.floor((low + high) / 2)
-    if (arr[mid] &gt;= target) { ans = mid; high = mid - 1 }   // works → go LEFT
-    else low = mid + 1
-}
-return ans</code></pre>
-<h3>➡️ Last that works — LC 69 Sqrt(x): x = 8 → 2</h3>
-<p>Value space, not indices: last <code>k</code> with <code>k * k &lt;= x</code>, range <code>0 … x</code>.</p>
-<pre class="language-tsx"><code class="language-tsx">let low = 0, high = x, ans = 0
-while (low &lt;= high) {
-    const mid = Math.floor((low + high) / 2)
-    if (mid * mid &lt;= x) { ans = mid; low = mid + 1 }        // works → go RIGHT
-    else high = mid - 1
-}
-return ans</code></pre>
-<h3>📦 How to set <code>low</code>, <code>high</code> and <code>ans</code></h3>
-<table>
-<tr><th>Searching</th><th><code>low</code></th><th><code>high</code></th><th><code>ans</code> starts as ("none")</th></tr>
-<tr><td>🔢 Array indices</td><td><code>0</code></td><td><code>n − 1</code></td><td><code>−1</code> (or <code>n</code> for an insert position, LC 35)</td></tr>
-<tr><td>📏 A value range</td><td>smallest possible answer</td><td>biggest possible answer</td><td>a value outside it, or <code>high</code> if an answer always exists</td></tr>
-<tr><td>&nbsp;&nbsp;e.g. LC 69 Sqrt</td><td><code>0</code></td><td><code>x</code></td><td><code>0</code></td></tr>
-<tr><td>&nbsp;&nbsp;e.g. LC 875 Koko</td><td><code>1</code></td><td><code>max(piles)</code></td><td><code>max(piles)</code></td></tr>
-</table>
-<p>✅ <b>Never +1 or −1 on the range.</b> <code>low</code> and <code>high</code> are real candidates. "Nothing works" lives in the starting <code>ans</code>, not in the range. No round-up mid, no endless loop.</p>
-<p>🧩 <b>LIS <code>tails</code> (LC 354):</b> first index with <code>tails[mid] &gt;= h</code>. Start <code>ans = tails.length</code>, so "none" means append. Then <code>tails[ans] = h</code>.</p>
-<p class="hint">Checked in Node: first/last match brute force on 20,000 random arrays · LC 704 → 4 and −1 · LC 35 → 2, 1, 4 · LC 69 → 2, 2, 0, 1, 46340 and matches <code>Math.floor(Math.sqrt(x))</code> for x &lt; 5000 · LC 875 → 4, 30, 23 · LC 354 → 3 and 1.</p>
-<div class="box key"><b class="tag">📌</b> <code>low</code> = first candidate, <code>high</code> = last, <code>low &lt;= high</code>. It works → <code>ans = mid</code>, then go left for the first, right for the last.</div>
+<p>🧪 <b>Examples</b> (only the start and the <code>if</code> change):</p>
+<pre class="language-tsx"><code class="language-tsx">// 🔍 Exact — LC 704: [-1,0,3,5,9,12], 9 → 4
+low = 0, high = n - 1
+if (arr[mid] === target) return mid
+else if (arr[mid] &lt; target) low = mid + 1
+else high = mid - 1
+
+// ⬅️ First that works — LC 35: [1,3,5,6], 2 → 1
+low = 0, high = n - 1, ans = n
+if (arr[mid] &gt;= target) { ans = mid; high = mid - 1 }
+else low = mid + 1
+
+// ➡️ Last that works — LC 69 Sqrt: 8 → 2 (values, not indices)
+low = 0, high = x, ans = 0
+if (mid * mid &lt;= x) { ans = mid; low = mid + 1 }
+else high = mid - 1</code></pre>
+<p class="hint">Checked in Node: LC 704 → 4, −1 · LC 35 → 2, 1, 4 · LC 69 → 2, 2, 0, 1, 46340 · first/last match brute force on 20,000 random arrays.</p>
+<div class="box key"><b class="tag">📌</b> Inclusive range, nothing extra. It works → <code>ans = mid</code>, move <code>high</code> to search left, move <code>low</code> to search right.</div>
 </section>
 
 <section data-g="arr" class="sum" id="arr-sum">
