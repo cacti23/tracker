@@ -1578,11 +1578,12 @@ if (usedByAlice || usedByBob) edgesUsed++;</code></pre>
 <section data-g="js bs">
 <h2 id="js-3">3 · ➗ Binary Search Mid — <code>&gt;&gt; 1</code> Breaks Past 2.1B, <code>Math.floor</code> Is the Safe Default</h2>
 <p>⚠️ Bitwise ops (<code>&gt;&gt;</code>, <code>|</code>, <code>&amp;</code>) turn numbers into <b>32-bit signed ints</b>: <code>−2³¹ … 2³¹ − 1</code> (≈ ±2.1 billion). Past that they wrap <b>negative</b> 💥</p>
+<p>🥤 <b>Each fits, the sum doesn't:</b> <code>lo</code> and <code>hi</code> each fit, but <code>lo + hi</code> may not. <code>1.5B + 2B = 3.5B</code> → <code>&gt;&gt; 1</code> gives <code>−397483648</code> → mid goes negative → the loop never ends (TLE). Each glass fits, but pour two into the jug → overflow.</p>
 <table>
 <tr><th>Mid</th><th>Safe while</th></tr>
 <tr><td><code>(lo + hi) &gt;&gt; 1</code></td><td><code>lo + hi ≤ 2.1B</code> (values ≤ ~10⁹)</td></tr>
 <tr><td><code>(lo + hi) &gt;&gt;&gt; 1</code></td><td><code>lo + hi ≤ 4.29B</code> (unsigned, no negatives)</td></tr>
-<tr><td><code>lo + ((hi − lo) &gt;&gt; 1)</code></td><td><code>hi − lo ≤ 2.1B</code> (small gap, even with big values)</td></tr>
+<tr><td><code>lo + ((hi − lo) &gt;&gt; 1)</code></td><td><code>hi − lo ≤ 2.1B</code>: uses the <b>gap</b>, not the sum → always fits when <code>0 ≤ lo ≤ hi ≤ 2³¹ − 1</code></td></tr>
 <tr><td>⭐ <code>Math.floor((lo + hi) / 2)</code></td><td><code>lo + hi ≤ 2⁵³</code> ≈ 9 × 10¹⁵</td></tr>
 </table>
 <pre class="language-tsx"><code class="language-tsx">lo = 2**31 - 2, hi = 2**31 - 1   // LC 278 / 374: n ≤ 2³¹ − 1
@@ -1590,7 +1591,7 @@ if (usedByAlice || usedByBob) edgesUsed++;</code></pre>
 Math.floor((lo + hi) / 2)        // 2147483646 ✅</code></pre>
 <p>🐛 <b>Typos:</b> <code>lo + (lo − hi) / 2</code> goes <b>below</b> <code>lo</code>, it must be <code>(hi − lo)</code>. <code>| 0</code> to drop decimals has the same 32-bit trap as <code>&gt;&gt;</code>.</p>
 <p>⬆️ Round-up mid (<a href="#bs-1">Binary Search #1</a>): same rule, <code>Math.floor((lo + hi + 1) / 2)</code>.</p>
-<p class="hint">Checked in Node: the example above gives −2 and 2147483646. At <code>lo + hi</code> ≈ 6 × 10⁹, <code>&gt;&gt;&gt; 1</code> also breaks while <code>Math.floor</code> stays right.</p>
+<p class="hint">Checked in Node: the example above gives −2 and 2147483646. A search on <code>[0, 2B]</code> with <code>&gt;&gt; 1</code> was still looping after 200 steps; with <code>Math.floor</code> it finishes. At <code>lo + hi</code> ≈ 6 × 10⁹, <code>&gt;&gt;&gt; 1</code> also breaks while <code>Math.floor</code> stays right.</p>
 <div class="box key"><b class="tag">📌</b> Values can pass 10⁹ (e.g. <code>n ≤ 2³¹ − 1</code>) → <code>Math.floor((lo + hi) / 2)</code>. Small values (array indices ≤ 10⁵) → <code>&gt;&gt; 1</code> is fine.</div>
 </section>
 
