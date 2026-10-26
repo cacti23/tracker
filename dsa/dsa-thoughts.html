@@ -173,7 +173,7 @@
 <div class="grp" data-g="bs">
 <h3>🎯 Binary Search · <a href="#bs-sum" data-g="bs">🧠 must remember</a></h3>
 <nav class="nav">
-  <a href="#bs-1"><b>01</b>Binary search master summary</a>
+  <a href="#bs-1"><b>01</b>One template: low, high, ans</a>
   <a href="#graph-11"><b>Graph · 11</b>Binary search + BFS vs Dijkstra</a>
   <a href="#js-3"><b>JS · 03</b>Safe mid: &gt;&gt; 1 vs Math.floor</a>
 </nav>
@@ -1240,8 +1240,8 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 <section data-g="bs" class="sum" id="bs-sum">
 <h2>🧠 Binary Search — Must Remember</h2>
 <ul>
-<li>🔍 <b>Exact match:</b> <code>low &lt;= high</code>, <code>high = n − 1</code> (<a href="#bs-1">#1</a>)</li>
-<li>📐 <b>First that works:</b> <code>high = n</code>, round down · <b>last that works:</b> <code>low = −1</code>, round up (<a href="#bs-1">#1</a>)</li>
+<li>🎯 <b>One template:</b> <code>low</code> = first candidate, <code>high</code> = last, <code>low &lt;= high</code> (<a href="#bs-1">#1</a>)</li>
+<li>⬅️➡️ <b>It works</b> → <code>ans = mid</code>, go left for the first, right for the last (<a href="#bs-1">#1</a>)</li>
 <li>🎯 <b>Binary search on a threshold</b> + plain BFS as the check (<a href="#graph-11">Graph #11</a>)</li>
 <li>➗ <b>Values past 10⁹</b> → <code>Math.floor((lo + hi) / 2)</code>, not <code>&gt;&gt; 1</code> (<a href="#js-3">JS #3</a>)</li>
 </ul>
@@ -1249,90 +1249,26 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 
 <section data-g="bs">
 <span id="t20"></span>
-<h2 id="bs-1">1 · 🎯 Binary Search — Master Summary</h2>
-
-<h3>🔍 Normal (find exact element)</h3>
-<div class="box key"><b class="tag">🔑</b> <code>low</code>/<code>high</code> are ARRAY INDICES — you navigate by index, but compare the ELEMENT'S VALUE at that position.</div>
-<pre class="language-tsx"><code class="language-tsx">low = 0, high = n-1
+<h2 id="bs-1">1 · 🎯 Binary Search — One Template: <code>low</code> = First, <code>high</code> = Last, Keep <code>ans</code></h2>
+<p>🎯 <b>Rule:</b> <code>low</code> = first candidate, <code>high</code> = last candidate (the real range). <code>while (low &lt;= high)</code>, normal mid. Same for exact search and boundary search.</p>
+<pre class="language-tsx"><code class="language-tsx">low = first, high = last, ans = -1      // ans stays -1 if nothing works
 while (low &lt;= high) {
-    mid = (low+high) >> 1
-    if (arr[mid] === target) return mid
-    else if (arr[mid] &lt; target) low = mid + 1
-    else high = mid - 1
-}
-return -1</code></pre>
-
-<h3>📐 Boundary search (find a threshold, not an exact element)</h3>
-<p><b>🎯 THE ONE THING TO THINK ABOUT:</b> the answer might not exist, so the range gets ONE extra slot for "none". It goes on the side you move AWAY from:</p>
-<ul>
-<li>⬅️ Searching LEFT (first one that works) → extra slot on the right: <code>high = n</code> (or max value + 1)</li>
-<li>➡️ Searching RIGHT (last one that works) → extra slot on the left: <code>low = -1</code> (or min value − 1)</li>
-</ul>
-<div class="box key"><b class="tag">🔑</b> Same rule for value spaces and array indices. Normal search uses <code>n-1</code> because the answer MUST exist inside. Land on the extra slot = nothing works.</div>
-
-<p><b>Style A, searching LEFT (shrink toward smaller):</b></p>
-<pre class="language-tsx"><code class="language-tsx">low = 0, high = n
-while (low &lt; high) {
-    mid = (low+high) >> 1        // round DOWN
-    if (condition(mid)) high = mid
-    else low = mid + 1
-}
-return low   // low === high === the answer</code></pre>
-
-<p><b>Style A, searching RIGHT (grow toward bigger):</b></p>
-<pre class="language-tsx"><code class="language-tsx">low = -1, high = n - 1          // -1 = "nothing works"
-while (low &lt; high) {
-    mid = (low+high+1) >> 1      // round UP — REQUIRED
-    if (condition(mid)) low = mid
-    else high = mid - 1
-}
-return low   // low === high === the answer</code></pre>
-
-<p>🧩 <b>LIS <code>tails</code> lower bound</b> is just Style A LEFT with <code>condition = arr[mid] >= target</code>. <code>lo</code> is where to insert or replace.</p>
-
-<p>📐 <b>Concrete worked example — Russian Doll Envelopes (354),</b> sort by width ASC / height DESC on ties, then LIS on heights:</p>
-<pre class="language-tsx"><code class="language-tsx">function maxEnvelopes(env: number[][]): number {
-    env.sort((a, b) => {
-        if (a[0] === b[0]) return b[1] - a[1];
-        return a[0] - b[0];
-    });
-
-    const hei = env.map(a => a[1]);
-    const tails: number[] = [];
-
-    for (const h of hei) {
-        let lo = 0, hi = tails.length;
-        while (lo &lt; hi) {
-            const mid = (lo + hi) >> 1;
-            if (tails[mid] >= h) hi = mid;
-            else lo = mid + 1;
-        }
-        if (lo === tails.length) tails.push(h);
-        else tails[lo] = h;
-    }
-
-    return tails.length;
-}</code></pre>
-
-<p><b>Style B (kept for reference):</b></p>
-<pre class="language-tsx"><code class="language-tsx">low = 0, high = n - 1, ans = -1   // ans stays -1 if nothing works
-while (low &lt;= high) {
-    mid = (low+high) >> 1
-    if (condition(mid)) { ans = mid; high = mid - 1 }  // searching LEFT
+    mid = Math.floor((low + high) / 2)
+    if (condition(mid)) { ans = mid; high = mid - 1 }   // first that works → go LEFT
     else low = mid + 1
 }
 return ans</code></pre>
-
-<div class="box key"><b class="tag">🎯 Recommendation</b> Default to Style A for all boundary search: no extra <code>ans</code> variable, <code>low</code>/<code>high</code> meet at the answer. Know Style B only to read other people's solutions.</div>
-
-<h3>🗺️ Quick decision</h3>
 <table>
-<tr><th>Situation</th><th>Approach</th></tr>
-<tr><td>Exact value exists in array?</td><td>Normal binary search (low/high = indices, high=n-1)</td></tr>
-<tr><td>Threshold/optimal value?</td><td>Boundary search, Style A</td></tr>
-<tr><td>&nbsp;&nbsp;Searching LEFT (first that works)?</td><td><code>high = n</code>, high=mid, round DOWN</td></tr>
-<tr><td>&nbsp;&nbsp;Searching RIGHT (last that works)?</td><td><code>low = -1</code>, low=mid, round UP — REQUIRED</td></tr>
+<tr><th>Search</th><th>When it matches</th><th>Else</th></tr>
+<tr><td>🔍 Exact</td><td><code>arr[mid] === target</code> → <code>return mid</code></td><td><code>arr[mid] &lt; target</code> → <code>low = mid + 1</code>, else <code>high = mid − 1</code></td></tr>
+<tr><td>⬅️ First that works</td><td><code>ans = mid</code>, <code>high = mid − 1</code></td><td><code>low = mid + 1</code></td></tr>
+<tr><td>➡️ Last that works</td><td><code>ans = mid</code>, <code>low = mid + 1</code></td><td><code>high = mid − 1</code></td></tr>
 </table>
+<p>📦 <b>The range:</b> indices → <code>0 … n − 1</code>. Value space → smallest to biggest possible answer (sqrt(x): <code>0 … x</code>, Koko: <code>1 … max pile</code>).</p>
+<p>✅ No extra slot, no round-up mid, no endless loop. Just keep <code>ans</code>.</p>
+<p>🧩 <b>LIS <code>tails</code> (LC 354):</b> first index with <code>tails[mid] &gt;= h</code>. Start <code>ans = tails.length</code>, so "none" means append. Then <code>tails[ans] = h</code>.</p>
+<p class="hint">Checked in Node: first/last match brute force on 20,000 random arrays · exact finds 9 at index 4 and returns −1 for 2 · sqrt gives 2, 4, 0, 46340 · LC 354 gives 3 and 1.</p>
+<div class="box key"><b class="tag">📌</b> <code>low</code> = first candidate, <code>high</code> = last, <code>low &lt;= high</code>. It works → <code>ans = mid</code>, then go left for the first, right for the last.</div>
 </section>
 
 <section data-g="arr" class="sum" id="arr-sum">
