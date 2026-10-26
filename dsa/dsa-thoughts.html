@@ -1264,10 +1264,37 @@ return ans</code></pre>
 <tr><td>⬅️ First that works</td><td><code>ans = mid</code>, <code>high = mid − 1</code></td><td><code>low = mid + 1</code></td></tr>
 <tr><td>➡️ Last that works</td><td><code>ans = mid</code>, <code>low = mid + 1</code></td><td><code>high = mid − 1</code></td></tr>
 </table>
+<h3>🔍 Exact — LC 704: <code>[-1,0,3,5,9,12]</code>, target 9 → 4</h3>
+<pre class="language-tsx"><code class="language-tsx">let low = 0, high = arr.length - 1
+while (low &lt;= high) {
+    const mid = Math.floor((low + high) / 2)
+    if (arr[mid] === target) return mid
+    if (arr[mid] &lt; target) low = mid + 1
+    else high = mid - 1
+}
+return -1</code></pre>
+<h3>⬅️ First that works — LC 35 Search Insert: <code>[1,3,5,6]</code>, target 2 → 1</h3>
+<p>First index with <code>arr[i] &gt;= target</code>. None → insert at the end, so <code>ans</code> starts at <code>n</code>.</p>
+<pre class="language-tsx"><code class="language-tsx">let low = 0, high = arr.length - 1, ans = arr.length
+while (low &lt;= high) {
+    const mid = Math.floor((low + high) / 2)
+    if (arr[mid] &gt;= target) { ans = mid; high = mid - 1 }   // works → go LEFT
+    else low = mid + 1
+}
+return ans</code></pre>
+<h3>➡️ Last that works — LC 69 Sqrt(x): x = 8 → 2</h3>
+<p>Value space, not indices: last <code>k</code> with <code>k * k &lt;= x</code>, range <code>0 … x</code>.</p>
+<pre class="language-tsx"><code class="language-tsx">let low = 0, high = x, ans = 0
+while (low &lt;= high) {
+    const mid = Math.floor((low + high) / 2)
+    if (mid * mid &lt;= x) { ans = mid; low = mid + 1 }        // works → go RIGHT
+    else high = mid - 1
+}
+return ans</code></pre>
 <p>📦 <b>The range:</b> indices → <code>0 … n − 1</code>. Value space → smallest to biggest possible answer (sqrt(x): <code>0 … x</code>, Koko: <code>1 … max pile</code>).</p>
 <p>✅ No extra slot, no round-up mid, no endless loop. Just keep <code>ans</code>.</p>
 <p>🧩 <b>LIS <code>tails</code> (LC 354):</b> first index with <code>tails[mid] &gt;= h</code>. Start <code>ans = tails.length</code>, so "none" means append. Then <code>tails[ans] = h</code>.</p>
-<p class="hint">Checked in Node: first/last match brute force on 20,000 random arrays · exact finds 9 at index 4 and returns −1 for 2 · sqrt gives 2, 4, 0, 46340 · LC 354 gives 3 and 1.</p>
+<p class="hint">Checked in Node: first/last match brute force on 20,000 random arrays · LC 704 → 4 and −1 · LC 35 → 2, 1, 4 · LC 69 → 2, 2, 0, 1, 46340 and matches <code>Math.floor(Math.sqrt(x))</code> for x &lt; 5000 · LC 354 → 3 and 1.</p>
 <div class="box key"><b class="tag">📌</b> <code>low</code> = first candidate, <code>high</code> = last, <code>low &lt;= high</code>. It works → <code>ans = mid</code>, then go left for the first, right for the last.</div>
 </section>
 
