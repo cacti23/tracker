@@ -78,11 +78,11 @@
      a line to the topic's "Must Remember" box if it's a rule worth recalling. Cross-links: "#3" in the same topic,
      "DP #3" across topics. Old #tN anchors stay so earlier links still land. -->
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 53</button>
+  <button data-g="all" class="on">📚 All · 54</button>
   <button data-g="graph">🕸️ Graph · 22</button>
   <button data-g="tree">🌳 Trees · 5</button>
-  <button data-g="rec">🔀 Recursion &amp; Backtracking · 8</button>
-  <button data-g="dp">🧩 Dynamic Programming · 7</button>
+  <button data-g="rec">🔀 Recursion &amp; Backtracking · 9</button>
+  <button data-g="dp">🧩 Dynamic Programming · 8</button>
   <button data-g="bs">🎯 Binary Search · 3</button>
   <button data-g="arr">🪟 Arrays &amp; Strings · 9</button>
   <button data-g="math">🔢 Math · 3</button>
@@ -156,6 +156,7 @@
   <a href="#rec-6"><b>06</b>Recursion TC: 3 questions</a>
   <a href="#rec-7"><b>07</b>Leaves vs total nodes</a>
   <a href="#graph-5"><b>Graph · 05</b>BFS or backtracking?</a>
+  <a href="#dp-8"><b>DP · 08</b>Don't pick a winner too early</a>
 </nav>
 </div>
 <div class="grp" data-g="dp">
@@ -168,6 +169,7 @@
   <a href="#dp-5"><b>05</b>Palindrome min cuts</a>
   <a href="#dp-6"><b>06</b>Dungeon Game: need ahead − cell</a>
   <a href="#dp-7"><b>07</b>Stone Game family shapes</a>
+  <a href="#dp-8"><b>08</b>Don't pick a winner too early</a>
 </nav>
 </div>
 <div class="grp" data-g="bs">
@@ -955,6 +957,7 @@ permutations: leaves n!,   nodes ≈ e·n!         → still O(n!)</code></pre>
 <li>✂️ <b>Min cuts</b> = min pieces − 1 (<a href="#dp-5">#5</a>)</li>
 <li>🗡️ <b>Dungeon:</b> need here = <code>max(1, need ahead − cell)</code> (<a href="#dp-6">#6</a>)</li>
 <li>🎲 <b>Stone games:</b> copy the move rule, not the code (<a href="#dp-7">#7</a>)</li>
+<li>🏁 <b>Can a loser become a winner later?</b> No → return only the best · XOR → carry it down · × negatives → keep min and max (<a href="#dp-8">#8</a>)</li>
 </ul>
 </section>
 
@@ -1236,6 +1239,23 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 <div class="box key"><b class="tag">🎯 When prefix/suffix?</b> Only when a move's value is a RANGE. SG2 takes a chunk, SG7 scores the stretch that's left. SG1 takes one pile, so there is nothing to sum.</div>
 <div class="box key"><b class="tag">📌</b> The MOVE RULE decides the shape — copy the move rule, not the code.</div>
 </section>
+
+<section data-g="dp rec">
+<h2 id="dp-8">8 · 🏁 Don't Pick a Winner Too Early — Can a Loser Become a Winner Later?</h2>
+<p>❓ <b>Before writing the recursion, ask:</b> can a loser now become a winner later?</p>
+<ul>
+<li>➕ <b>No</b> (<code>+</code>, <code>max</code>, <code>min</code>) → small stays small → return only the best ⬆️ (LC 64 Min Path Sum)</li>
+<li>🔄 <b>Yes, XOR</b> → <code>1 ^ 2 = 3</code> (got worse), <code>3 ^ 2 = 1</code> (got better) → carry the value down ⬇️, compare only at the end (LC 3882)</li>
+<li>➖ <b>Yes, × with negatives</b> → most negative × (−1) = biggest → keep both min AND max (LC 152 Max Product)</li>
+</ul>
+<pre class="language-tsx"><code class="language-tsx">// ⬆️ +  : dfs(i, j) = grid[i][j] + Math.min(dfs(i + 1, j), dfs(i, j + 1))
+// ⬇️ XOR: dfs(i, j, x)   x = XOR so far, memo on (i, j, x), pick the min at the end</code></pre>
+<p>🧪 <b>Why:</b> <code>[[2,7,1],[4,5,3]]</code>. Keeping only the smallest XOR at each cell gives 3. The real answer is 0 (2 → 4 → 5 → 3). Keeping min + max isn't enough for XOR either.</p>
+<p>🏃 <b>Race:</b> in a normal race last place stays last, so drop them early. In a twist race (XOR) one step can flip the order, so keep everyone till the finish.</p>
+<p class="hint">Checked in Node: 1 ^ 2 = 3, 3 ^ 2 = 1 · on 20,000 random grids, keeping the min fails about 45% of the time and min + max about 18%, while carrying the XOR down never fails. Push down vs return up: <a href="#rec-1">Recursion #1</a>.</p>
+<div class="box key"><b class="tag">📌</b> Crown the winner only when the race can't change anymore.</div>
+</section>
+
 
 <section data-g="bs" class="sum" id="bs-sum">
 <h2>🧠 Binary Search — Must Remember</h2>
