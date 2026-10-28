@@ -6573,8 +6573,16 @@ class XmlNode {
     var c = e.target.closest('.chip'), t = e.target.closest('.tile');
     if(c){ lvl = c.getAttribute('data-f'); paint(true); }
     else if(t){ tier = t.getAttribute('data-tier'); paint(true); }
+    try{ localStorage.setItem(KEY, JSON.stringify({ tier: tier, lvl: lvl })); }catch(err){ /* storage blocked: filter just resets on reload */ }
   });
-  paint(false);
+  // Restore the last picked tier and filter so a reload lands on the same view
+  var KEY = 'gLogFilter';
+  try{
+    var saved = JSON.parse(localStorage.getItem(KEY)) || {};
+    if(saved.tier && root.querySelector('.tile[data-tier="' + saved.tier + '"]')) tier = saved.tier;
+    if(saved.lvl && root.querySelector('.chip[data-f="' + saved.lvl + '"]')) lvl = saved.lvl;
+  }catch(err){}
+  paint(tier !== 'all');
 })();
 
 (function(){
