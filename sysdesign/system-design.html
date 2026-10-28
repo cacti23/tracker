@@ -51,24 +51,43 @@ section.card[hidden] { display: none; }
 .card ul { margin: 0; padding-left: 20px; }
 .card li { margin: 2px 0; }
 .empty { color: var(--muted); font-size: 14px; }
+.views { display: inline-flex; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.views button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--card); color: var(--muted); cursor: pointer; }
+.views button.on { background: var(--accent); color: #fff; }
+.tag.course { background: var(--purple-bg); color: var(--purple-fg); }
+.lesson { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
   <h1>🏛️ System Design</h1>
-  <p>Notes from our discussions. Short, one idea per card.</p>
+  <p>Notes from our discussions. One idea per card, shown by topic or by course.</p>
 </header>
 
+<div class="views" id="views">
+  <button type="button" data-view="topics">📚 Topics</button>
+  <button type="button" data-view="courses">🎓 Courses</button>
+</div>
 <div class="chips" id="chips"></div>
 
-<!-- One <section class="card" id="sd-…" data-tag="…"> per note. data-tag drives the chips automatically. -->
+<!--
+  One <section class="card"> per note, written ONCE. It shows in both views:
+    📚 Topics  → grouped by data-topic (chips are built automatically)
+    🎓 Courses → only cards with data-course, grouped by data-lesson, sorted by data-order
+  Example:
+    <section class="card" id="sd-caching" data-topic="Caching"
+             data-course="hi-sd" data-lesson="Core Concepts" data-order="3.2">
+  data-course is a key of COURSES in the script below. A note that isn't from a course just leaves the course attributes out.
+-->
+<div id="list">
 
-<section class="card" id="sd-start" data-tag="Start">
-  <h2 class="cap"><b>👋 Start here</b><span class="tag">Start</span></h2>
+<section class="card" id="sd-start" data-topic="Start">
+  <h2 class="cap"><b>👋 Start here</b></h2>
   <p class="empty">No notes yet. Each topic we discuss lands here as its own card.</p>
 </section>
 
+</div>
 </div>
 
 <script>
@@ -78,21 +97,77 @@ try {
   if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t
 } catch (e) {}
 
-const cards = [...document.querySelectorAll('section.card')]
-const chips = document.getElementById('chips')
-const tags = ['All', ...new Set(cards.map(c => c.dataset.tag))]
-function filter(tag) {
-  cards.forEach(c => { c.hidden = tag !== 'All' && c.dataset.tag !== tag })
-  chips.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.textContent === tag))
+// Courses Adi is following; a card points at one with data-course="<key>".
+const COURSES = {
+  'hi-sd': '🎓 HelloInterview · System Design',
 }
-tags.forEach(tag => {
-  const b = document.createElement('button')
-  b.type = 'button'
-  b.textContent = tag
-  b.onclick = () => filter(tag)
-  chips.appendChild(b)
+
+const list = document.getElementById('list')
+const cards = [...list.querySelectorAll('section.card')]
+const chips = document.getElementById('chips')
+const VIEW_KEY = 'sd-view-v1'
+
+// Each card carries its topic and course as tags, so you can see both in either view
+cards.forEach(c => {
+  const cap = c.querySelector('.cap')
+  if (c.dataset.topic && c.dataset.topic !== 'Start') cap.insertAdjacentHTML('beforeend', `<span class="tag">${c.dataset.topic}</span>`)
+  if (COURSES[c.dataset.course]) cap.insertAdjacentHTML('beforeend', `<span class="tag course">${COURSES[c.dataset.course].split(' · ')[0]}${c.dataset.lesson ? ' · ' + c.dataset.lesson : ''}</span>`)
 })
-filter('All')
+
+function setChips(names, onPick, current) {
+  chips.innerHTML = ''
+  names.forEach(([key, label]) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = label
+    b.classList.toggle('on', key === current)
+    b.onclick = () => onPick(key)
+    chips.appendChild(b)
+  })
+}
+
+function showTopics(topic = 'All') {
+  list.querySelectorAll('.lesson, .lesson-empty').forEach(h => h.remove())
+  cards.forEach(c => list.appendChild(c)) // back to page order
+  cards.forEach(c => { c.hidden = topic !== 'All' && c.dataset.topic !== topic })
+  const topics = [...new Set(cards.map(c => c.dataset.topic))]
+  setChips([['All', 'All'], ...topics.map(t => [t, t])], showTopics, topic)
+}
+
+function showCourse(course = Object.keys(COURSES)[0]) {
+  list.querySelectorAll('.lesson, .lesson-empty').forEach(h => h.remove())
+  const mine = cards.filter(c => c.dataset.course === course)
+    .sort((a, b) => parseFloat(a.dataset.order || 0) - parseFloat(b.dataset.order || 0))
+  cards.forEach(c => { c.hidden = !mine.includes(c) })
+  let lesson = null
+  mine.forEach(c => {
+    if (c.dataset.lesson && c.dataset.lesson !== lesson) {
+      lesson = c.dataset.lesson
+      const h = document.createElement('h3')
+      h.className = 'lesson'
+      h.textContent = lesson
+      list.appendChild(h)
+    }
+    list.appendChild(c)
+  })
+  if (!mine.length) {
+    const h = document.createElement('p')
+    h.className = 'lesson-empty empty'
+    h.textContent = 'No notes from this course yet.'
+    list.appendChild(h)
+  }
+  setChips(Object.entries(COURSES), showCourse, course)
+}
+
+function setView(view) {
+  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.view === view))
+  view === 'courses' ? showCourse() : showTopics()
+  try { localStorage.setItem(VIEW_KEY, view) } catch (e) {}
+}
+document.querySelectorAll('#views button').forEach(b => { b.onclick = () => setView(b.dataset.view) })
+let startView = 'topics'
+try { startView = localStorage.getItem(VIEW_KEY) || 'topics' } catch (e) {}
+setView(startView)
 </script>
 <script src="../js/back-button.js"></script>
 </body>
