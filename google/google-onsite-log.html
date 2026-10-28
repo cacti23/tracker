@@ -1078,7 +1078,17 @@
             </div>
           </div>
 
-          <div class="note">🪟 <strong>The key idea:</strong> 2 cuts &rarr; 3 pieces <code>L | M | R</code>. However you hand them out, one person always holds <strong>one unbroken window</strong> (M, L+M or M+R).<br>🎯 So just find <strong>one window</strong> with <strong>half the a&rsquo;s + half the b&rsquo;s</strong>. It doesn&rsquo;t matter if it&rsquo;s Alice&rsquo;s or Bob&rsquo;s.<br>⚖️ The rest is then automatically half + half too (total &minus; half = half) ✅<br>🔎 How to find it: window = <code>prefix(end) &minus; prefix(start)</code>, so at each <code>end</code> look up <code>prefix(end) &minus; half</code> in the Map.<br>🔪 The window&rsquo;s <code>start</code> and <code>end</code> are the cuts (0 or n = no cut there).<br>📏 <code>end</code> is a cut <em>between</em> characters, not an index: <code>prefix(end)</code> counts <code>s[0..end-1]</code>, so moving the cut to <code>end</code> adds <code>s[end - 1]</code>.</div>
+          <div class="note">🪟 <strong>The key idea</strong><br>
+✂️ 2 cuts &rarr; 3 pieces <code>L | M | R</code><br>
+👤 However you hand them out, one person always gets <strong>one unbroken window</strong> (M, L+M or M+R)<br>
+🎯 So find <strong>one window</strong> with half the a&rsquo;s + half the b&rsquo;s. Alice&rsquo;s or Bob&rsquo;s, doesn&rsquo;t matter<br>
+⚖️ The rest is then half + half too (total &minus; half = half) ✅<br><br>
+🔎 <strong>How to find it</strong><br>
+➖ window = <code>prefix(end) &minus; prefix(start)</code><br>
+🔄 want window = half &rarr; <code>prefix(start) = prefix(end) &minus; half</code><br>
+🗺️ Map stores every prefix seen (first index). At each <code>end</code>, look up <code>prefix(end) &minus; half</code><br>
+🔪 Found? <code>start</code> and <code>end</code> are the cuts (0 or n = no cut there)<br><br>
+📏 <code>end</code> is a cut <em>between</em> characters: <code>prefix(end)</code> counts <code>s[0..end-1]</code>, so stepping to <code>end</code> adds <code>s[end - 1]</code></div>
           <div class="note">🧪 Checked against brute force on 20,000 random strings (every way to hand out the pieces): 0 mismatches.</div>
           <div class="code-wrap">
             <div class="code-label"><span>splitAliceBob.ts</span><button class="copy-btn" data-copy-target="code-e3-cuts">Copy</button></div>
@@ -1143,7 +1153,16 @@
               <a href="https://claude.ai/artifact/JDrA7yYMBSymF7QXuZt49g" target="_blank" rel="noopener">▶️ Interactive stepper &mdash; move the cut and watch the seesaw level out</a>
             </div>
           </div>
-          <div class="note">💡 <strong>Key insight:</strong> slide the cut across the array. At each cut, <code>diff = left &minus; right</code>. Removing <code>x</code> from the left levels the seesaw when <code>x = diff</code>. Removing <code>x</code> from the right levels it when <code>x = &minus;diff</code>. Two Maps (value &rarr; first index, value &rarr; last index) answer &ldquo;is that value on the left / on the right?&rdquo; in O(1). Try it in the interactive stepper above.</div>
+          <div class="note">💡 <strong>Key insight: the seesaw</strong><br>
+↔️ Slide the cut across the array. At each cut, <code>diff = left &minus; right</code> (how much heavier the left is)<br><br>
+⬅️ <strong>Remove x from the LEFT</strong>: <code>left &minus; x = right</code> &rarr; <code>x = diff</code><br>
+➡️ <strong>Remove x from the RIGHT</strong>: <code>left = right &minus; x</code> &rarr; <code>x = &minus;diff</code><br>
+🧠 Same amount either way, the sign flips only because diff is measured as left &minus; right<br><br>
+🗺️ <code>first</code> map: is that value on the left (index &lt; cut)? <code>last</code> map: is it on the right (index &ge; cut)?<br>
+🔢 <code>[1, 1, 2, 7]</code>, cut after <code>[1,1]</code>: diff = 2 &minus; 9 = &minus;7 &rarr; a 7 on the right? ✅ remove it &rarr; <code>[1,1] | [2]</code><br><br>🧱 <strong>Guards</strong>: two checks per side<br>
+📍 Where: <code>li &lt; cut</code> (left is <code>0..cut-1</code>, so strictly less) &middot; <code>ri &ge; cut</code><br>
+🔢 How many: the side needs <strong>&ge; 2</strong> elements, so after removing one it still has 1 &rarr; <code>cut &ge; 2</code> &middot; <code>n &minus; cut &ge; 2</code><br>
+💥 Without it: <code>[5, 0]</code>, cut 1, remove the 5 &rarr; left is empty (0) = right (0) &rarr; fake &ldquo;yes&rdquo; ❌</div>
 
           <div class="note">⏱️ TC: O(n), one pass to fill the Maps, one pass over the cuts<br>📦 SC: O(n), the two Maps<br>✅ Each side must keep at least one element after the removal, so removing from the left needs <code>cut &ge; 2</code> and from the right needs <code>n &minus; cut &ge; 2</code>. An empty part has sum 0 and would give wrong &ldquo;yes&rdquo; answers (for example <code>[0, -3]</code>).<br>🧪 Checked against brute force (remove each element, try every split) on 50,000 random arrays: 0 mismatches. <code>[5, 5, 1]</code> &rarr; true, <code>[1, 1, 2, 7]</code> &rarr; true, <code>[5, 0]</code> &rarr; false.<br>❓ Ask the interviewer: &ldquo;can the removed element be anywhere?&rdquo; If it must be the element sitting at the cut, it is LC 724 (check <code>k</code> from 1 to n&minus;2 only).</div>
 
@@ -6585,6 +6604,23 @@ class XmlNode {
     if(saved.lvl && root.querySelector('.chip[data-f="' + saved.lvl + '"]')) lvl = saved.lvl;
   }catch(err){}
   paint(tier !== 'all');
+})();
+
+(function(){
+  // Keep whichever EXP cards were open when the page is reloaded
+  var KEY = 'gLogOpen';
+  var cards = document.querySelectorAll('details.exp');
+  try{
+    var saved = JSON.parse(localStorage.getItem(KEY));
+    if(Array.isArray(saved)) cards.forEach(function(c){ c.open = saved.indexOf(c.id) > -1; });
+  }catch(err){}
+  cards.forEach(function(c){
+    c.addEventListener('toggle', function(){
+      var ids = [];
+      cards.forEach(function(d){ if(d.open) ids.push(d.id); });
+      try{ localStorage.setItem(KEY, JSON.stringify(ids)); }catch(err){ /* storage blocked */ }
+    });
+  });
 })();
 
 (function(){
