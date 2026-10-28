@@ -64,17 +64,6 @@
     figure,tr,.box{page-break-inside:avoid}
     @page{size:A4;margin:8mm}
   }
-  figure.calls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:1em 0}
-  figure.calls svg{width:100%;max-width:280px;height:auto;border:1px solid var(--rule);border-radius:9px;background:#fff}
-  figure.calls rect{fill:var(--code-bg);stroke:var(--accent-line);stroke-width:1.5}
-  figure.calls rect.win{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
-  figure.calls line{stroke:var(--accent);stroke-width:1.8}
-  figure.calls .ah{fill:var(--accent)}
-  figure.calls text{text-anchor:middle;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;fill:var(--ink)}
-  figure.calls text.tt{font-family:inherit;font-size:14px;font-weight:700}
-  figure.calls text.c{font-size:11px;fill:var(--muted)}
-  figure.calls text.ok{font-weight:700;fill:var(--accent)}
-  figure.calls text.bad{font-weight:700;fill:var(--warn)}
 </style>
 </head>
 <body>
@@ -727,16 +716,13 @@ return currTreeHasApple</code></pre>
 <span id="t48"></span>
 <h2 id="rec-1">1 · ↕️ Return Up vs Push Down — Where Does the Answer Travel?</h2>
 <p><b>🎯</b> Recursion has two ways to get an answer out, and many problems work with either. 🔙 <b>Return up:</b> <code>dfs</code> returns the answer "from here" and the parent combines it. ⬇️ <b>Push down:</b> <code>dfs</code> returns nothing, carries state in its parameters, and records the answer at the base case. (DP #1's "Read 1 = what I RETURN" is the return-up style.)</p>
-<p>🖼️ <b>Same grid, three ways:</b> <code>[[1, 3], [2, 1]]</code>, top-left → bottom-right, move right or down. The two paths are 1 → 3 → 1 and 1 → 2 → 1.</p>
-<figure class="calls"><svg viewBox="0 0 300 300" role="img" aria-label="🔙 + · ask children"><defs><marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">🔙 + · ask children</text><line x1="75" y1="125" x2="150" y2="83" marker-end="url(#ra)"/><line x1="225" y1="125" x2="150" y2="83" marker-end="url(#ra)"/><line x1="75" y1="209" x2="75" y2="167" marker-end="url(#ra)"/><line x1="225" y1="209" x2="225" y2="167" marker-end="url(#ra)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">1 + min(4, 3) = 4</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↑ 3 + 1 = 4</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↑ 2 + 1 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">↑ 1</text><rect x="165.0" y="210" width="120" height="40" rx="8"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">↑ 1</text><text x="150" y="284" class="ok">✅ 4 (1 → 2 → 1)</text></svg><svg viewBox="0 0 300 300" role="img" aria-label="🔙 XOR · ask children"><defs><marker id="rb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">🔙 XOR · ask children</text><line x1="75" y1="125" x2="150" y2="83" marker-end="url(#rb)"/><line x1="225" y1="125" x2="150" y2="83" marker-end="url(#rb)"/><line x1="75" y1="209" x2="75" y2="167" marker-end="url(#rb)"/><line x1="225" y1="209" x2="225" y2="167" marker-end="url(#rb)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">1 ^ min(2, 3) = 3</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↑ 3 ^ 1 = 2</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↑ 2 ^ 1 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">↑ 1</text><rect x="165.0" y="210" width="120" height="40" rx="8"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">↑ 1</text><text x="150" y="284" class="bad">❌ 3, real answer is 2</text></svg><svg viewBox="0 0 300 300" role="img" aria-label="⬇️ XOR · pass x down"><defs><marker id="rc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">⬇️ XOR · pass x down</text><line x1="150" y1="83" x2="75" y2="125" marker-end="url(#rc)"/><line x1="150" y1="83" x2="225" y2="125" marker-end="url(#rc)"/><line x1="75" y1="167" x2="75" y2="209" marker-end="url(#rc)"/><line x1="225" y1="167" x2="225" y2="209" marker-end="url(#rc)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">↓ x = 1</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↓ x = 1 ^ 3 = 2</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↓ x = 1 ^ 2 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">x = 2 ^ 1 = 3</text><rect x="165.0" y="210" width="120" height="40" rx="8" class="win"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">x = 3 ^ 1 = 2</text><text x="150" y="284" class="ok">✅ min(3, 2) = 2 at the end</text></svg></figure>
-<p>🔍 <b>What broke in the middle one:</b> the child with 3 → 1 looked better (2 &lt; 3), so the parent took it. But the parent's own step is <code>1 ^</code>, and that flips the order: <code>1 ^ 2 = 3</code>, <code>1 ^ 3 = 2</code>. With <code>+</code> the parent adds the same 1 to both, so the order can't flip. <b>Ask children only when the parent's step keeps the order.</b> Otherwise pass the value down and compare finished paths (<a href="#dp-8">DP #8</a>).</p>
 <table>
 <tr><th></th><th>🔙 Return up</th><th>⬇️ Push down</th></tr>
 <tr><td><b>Function returns</b></td><td>a value (max, sum, count)</td><td><code>void</code></td></tr>
 <tr><td><b>Answer lives in</b></td><td>the top call's return value</td><td>an outer variable (<code>best</code>, <code>count++</code>, <code>res.push</code>)</td></tr>
 <tr><td><b>Natural for</b></td><td>one number: max / min / count / yes-no. Memoizes easily (the subproblem is just the arguments)</td><td>every path, or a rule like "visited all zero cells"</td></tr>
 <tr><td><b>Params hold</b></td><td>only what's LEFT to decide (<code>row, prevCol</code>)</td><td>the past too (<code>currSum</code>, <code>path</code>)</td></tr>
-<tr><td><b>Memo works?</b></td><td>✅ yes → DP</td><td>❌ usually not. ✅ Only if the carried value is small: memo on <code>(i, j, x)</code> (<a href="#dp-8">DP #8</a>)</td></tr>
+<tr><td><b>Memo works?</b></td><td>✅ yes → DP</td><td>❌ no → stays brute force</td></tr>
 </table>
 <pre class="language-tsx"><code class="language-tsx">// Gold (LC 1219) as PUSH DOWN: carry the sum, update an outer variable
 sum += grid[r][c];
@@ -1266,7 +1252,7 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 // ⬇️ XOR: dfs(i, j, x)   x = XOR so far, memo on (i, j, x), pick the min at the end</code></pre>
 <p>🧪 <b>Why:</b> <code>[[2,7,1],[4,5,3]]</code>. Keeping only the smallest XOR at each cell gives 3. The real answer is 0 (2 → 4 → 5 → 3). Keeping min + max isn't enough for XOR either.</p>
 <p>🏃 <b>Race:</b> in a normal race last place stays last, so drop them early. In a twist race (XOR) one step can flip the order, so keep everyone till the finish.</p>
-<p class="hint">Checked in Node: 1 ^ 2 = 3, 3 ^ 2 = 1 · on 20,000 random grids, keeping the min fails about 45% of the time and min + max about 18%, while carrying the XOR down never fails. Push down vs return up, with a diagram: <a href="#rec-1">Recursion #1</a>.</p>
+<p class="hint">Checked in Node: 1 ^ 2 = 3, 3 ^ 2 = 1 · on 20,000 random grids, keeping the min fails about 45% of the time and min + max about 18%, while carrying the XOR down never fails. Push down vs return up: <a href="#rec-1">Recursion #1</a>.</p>
 <div class="box key"><b class="tag">📌</b> Crown the winner only when the race can't change anymore.</div>
 </section>
 
