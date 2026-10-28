@@ -78,14 +78,14 @@
      a line to the topic's "Must Remember" box if it's a rule worth recalling. Cross-links: "#3" in the same topic,
      "DP #3" across topics. Old #tN anchors stay so earlier links still land. -->
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 53</button>
+  <button data-g="all" class="on">📚 All · 54</button>
   <button data-g="graph">🕸️ Graph · 22</button>
   <button data-g="tree">🌳 Trees · 5</button>
   <button data-g="rec">🔀 Recursion &amp; Backtracking · 8</button>
-  <button data-g="dp">🧩 Dynamic Programming · 7</button>
+  <button data-g="dp">🧩 Dynamic Programming · 8</button>
   <button data-g="bs">🎯 Binary Search · 3</button>
   <button data-g="arr">🪟 Arrays &amp; Strings · 9</button>
-  <button data-g="math">🔢 Math · 3</button>
+  <button data-g="math">🔢 Math · 4</button>
   <button data-g="js">🚨 JS Gotchas · 3</button>
 </div>
 
@@ -168,6 +168,7 @@
   <a href="#dp-5"><b>05</b>Palindrome min cuts</a>
   <a href="#dp-6"><b>06</b>Dungeon Game: need ahead − cell</a>
   <a href="#dp-7"><b>07</b>Stone Game family shapes</a>
+  <a href="#math-4"><b>Math · 04</b>XOR range = memo size</a>
 </nav>
 </div>
 <div class="grp" data-g="bs">
@@ -198,6 +199,7 @@
   <a href="#math-1"><b>01</b>Sieve of Eratosthenes</a>
   <a href="#math-2"><b>02</b>A % B when A &lt; B</a>
   <a href="#math-3"><b>03</b>Pairs vs subarrays vs subsets</a>
+  <a href="#math-4"><b>04</b>XOR range = memo size</a>
 </nav>
 </div>
 <div class="grp" data-g="js">
@@ -1447,6 +1449,7 @@ for (let i = n - 1; i &gt;= 0; i--) right[i] = Math.max(h[i], i &lt; n - 1 ? rig
 <li>🔢 <b>Sieve:</b> <code>O(n log log n)</code> (<a href="#math-1">#1</a>)</li>
 <li>🍕 <b><code>A % B</code> with A &lt; B</b> → just A (<a href="#math-2">#2</a>)</li>
 <li>🧮 <b>Count them:</b> pairs <code>nC2 = n(n−1)/2</code> · subarrays <code>n(n+1)/2</code> · every <code>(i, j)</code> <code>n²</code> · subsets <code>2ⁿ</code> (<a href="#math-3">#3</a>)</li>
+<li>⚡ <b>XOR / OR stay inside the max value's bits</b> → range <code>0 … 2ᵇ − 1</code> = memo size (<a href="#math-4">#4</a>)</li>
 </ul>
 </section>
 
@@ -1482,6 +1485,27 @@ every (i, j): 3 × 3                     = 9
 subsets:      2 × 2 × 2                 = 8</code></pre>
 <div class="box warn"><b class="tag">⚠️</b> <code>2ⁿ</code> includes the empty subset. Non-empty only → <code>2ⁿ − 1</code>.</div>
 <div class="box key"><b class="tag">📌</b> Where <code>j</code> starts picks the count: <code>i+1</code> → <code>nC2</code> · <code>i</code> → <code>n(n+1)/2</code> · <code>0</code> → <code>n²</code>.</div>
+</section>
+
+<section data-g="math dp">
+<h2 id="math-4">4 · ⚡ XOR Stays Inside the Bits → Range <code>0 … 2ᵇ − 1</code> = Your Memo Size</h2>
+<p>🧠 <b>Rule:</b> max value → how many bits (<code>b</code>) → XOR stays inside those bits → range <code>0 … 2ᵇ − 1</code> → that's your memo / array size.</p>
+<table>
+<tr><th>constraint</th><th>bits</th><th>XOR range</th><th>size</th></tr>
+<tr><td>values &lt; 1024</td><td>10</td><td>0 … 1023</td><td>1024</td></tr>
+<tr><td>values ≤ 1000</td><td>10</td><td>0 … 1023</td><td>1024</td></tr>
+<tr><td>values ≤ 10⁵</td><td>17</td><td>0 … 131071</td><td>131072</td></tr>
+</table>
+<p>💡 <b>Other ops:</b></p>
+<ul>
+<li>✅ <b>OR <code>|</code></b> → only turns bits <b>on</b>, never adds a new bit → same range</li>
+<li>✅ <b>AND <code>&amp;</code></b> → only turns bits <b>off</b> → ≤ the smallest value</li>
+<li>❌ <b>Sum <code>+</code></b> → carries <b>add new bits</b> (<code>1023 + 1 = 1024</code>)</li>
+</ul>
+<pre class="language-tsx"><code class="language-tsx">const b = 32 - Math.clz32(maxVal) // 1000 → 10
+const size = 1 << b               // 1024 slots</code></pre>
+<p class="hint">Where it's used: LC 3882 Min XOR Path, memo on <code>(i, j, x)</code>. Checked in Node: XOR / OR of 200,000 random sets never left <code>0 … 2ᵇ − 1</code>, AND never passed the smallest value.</p>
+<div class="box key"><b class="tag">📌</b> <b>Bit operations stay inside the bits you start with. Only arithmetic can grow them.</b></div>
 </section>
 
 <section data-g="js" class="sum" id="js-sum">
