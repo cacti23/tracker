@@ -108,6 +108,7 @@ test('index.html links out to every moved sub-app with the correct folder prefix
     'dsa/dsa-master-map.html',
     'dsa/dsa-thoughts.html',
     'dsa/js-builtins.html',
+    'sysdesign/system-design.html',
     'apps/gym-5day.html',
     'apps/habits.html',
   ]
@@ -212,7 +213,7 @@ test('every inline <script> block in every .html file is syntactically valid Jav
 })
 
 test('top-level folder layout matches the reorg contract', () => {
-  const expectedDirs = ['js', 'dsa', 'apps', 'google', 'papers', 'visuals', 'docs', 'icons', 'test']
+  const expectedDirs = ['js', 'dsa', 'apps', 'google', 'papers', 'visuals', 'sysdesign', 'docs', 'icons', 'test']
   for (const d of expectedDirs) {
     assert.ok(fs.statSync(path.join(ROOT, d)).isDirectory(), `expected top-level directory "${d}" to exist`)
   }
