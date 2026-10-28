@@ -712,7 +712,7 @@ return currTreeHasApple</code></pre>
 <section data-g="rec" class="sum" id="rec-sum">
 <h2>🧠 Recursion &amp; Backtracking — Must Remember</h2>
 <ul>
-<li>↕️ <b>Only a number?</b> Return up (memo → DP). Every path? Push down (<a href="#rec-1">#1</a>)</li>
+<li>↕️ <b>One number?</b> Ask the child (return up → memo → DP). Every path? Tell the child (push down) (<a href="#rec-1">#1</a>)</li>
 <li>🎯 <b>No explicit base case?</b> The seed IS the base answer (<a href="#rec-2">#2</a>)</li>
 <li>🔀 <b>Backtracking loop:</b> Order → Reuse → Duplicates (<a href="#rec-3">#3</a>)</li>
 <li>🔢 <b>Small-integer Set</b> → one bitmask integer (<a href="#rec-4">#4</a>)</li>
@@ -725,35 +725,24 @@ return currTreeHasApple</code></pre>
 
 <section data-g="rec">
 <span id="t48"></span>
-<h2 id="rec-1">1 · ↕️ Return Up vs Push Down — Where Does the Answer Travel?</h2>
-<p><b>🎯</b> Recursion has two ways to get an answer out, and many problems work with either. 🔙 <b>Return up:</b> <code>dfs</code> returns the answer "from here" and the parent combines it. ⬇️ <b>Push down:</b> <code>dfs</code> returns nothing, carries state in its parameters, and records the answer at the base case. (DP #1's "Read 1 = what I RETURN" is the return-up style.)</p>
-<p>🖼️ <b>Same problem, both ways:</b> min path sum on <code>[[1, 3], [2, 1]]</code>, top-left → bottom-right, move right or down. Both give 4.</p>
-<figure class="calls"><svg viewBox="0 0 300 300" role="img" aria-label="🔙 Return up · ask children"><defs><marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">🔙 Return up · ask children</text><line x1="75" y1="125" x2="150" y2="83" marker-end="url(#ra)"/><line x1="225" y1="125" x2="150" y2="83" marker-end="url(#ra)"/><line x1="75" y1="209" x2="75" y2="167" marker-end="url(#ra)"/><line x1="225" y1="209" x2="225" y2="167" marker-end="url(#ra)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">1 + min(4, 3) = 4</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↑ 3 + 1 = 4</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↑ 2 + 1 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">↑ 1</text><rect x="165.0" y="210" width="120" height="40" rx="8"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">↑ 1</text><text x="150" y="284" class="ok">✅ root returns 4</text></svg><svg viewBox="0 0 300 300" role="img" aria-label="⬇️ Push down · pass sum"><defs><marker id="rc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">⬇️ Push down · pass sum</text><line x1="150" y1="83" x2="75" y2="125" marker-end="url(#rc)"/><line x1="150" y1="83" x2="225" y2="125" marker-end="url(#rc)"/><line x1="75" y1="167" x2="75" y2="209" marker-end="url(#rc)"/><line x1="225" y1="167" x2="225" y2="209" marker-end="url(#rc)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">↓ sum = 1</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↓ 1 + 3 = 4</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↓ 1 + 2 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">4 + 1 = 5</text><rect x="165.0" y="210" width="120" height="40" rx="8" class="win"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">3 + 1 = 4</text><text x="150" y="284" class="ok">✅ best = min(5, 4) = 4</text></svg></figure>
-<p>👀 <b>Read the arrows:</b> 🔙 each child answers "best from here", and the parent adds its own cell. ⬇️ each call hands its sum so far to the child, and the last cell records it in <code>best</code>.</p>
-<table>
-<tr><th></th><th>🔙 Return up</th><th>⬇️ Push down</th></tr>
-<tr><td><b>Function returns</b></td><td>a value (max, sum, count)</td><td><code>void</code></td></tr>
-<tr><td><b>Answer lives in</b></td><td>the top call's return value</td><td>an outer variable (<code>best</code>, <code>count++</code>, <code>res.push</code>)</td></tr>
-<tr><td><b>Natural for</b></td><td>one number: max / min / count / yes-no. Memoizes easily (the subproblem is just the arguments)</td><td>every path, or a rule like "visited all zero cells"</td></tr>
-<tr><td><b>Params hold</b></td><td>only what's LEFT to decide (<code>row, prevCol</code>)</td><td>the past too (<code>currSum</code>, <code>path</code>)</td></tr>
-<tr><td><b>Memo works?</b></td><td>✅ yes → DP</td><td>❌ no → stays brute force</td></tr>
-</table>
-<pre class="language-tsx"><code class="language-tsx">// Gold (LC 1219) as PUSH DOWN: carry the sum, update an outer variable
-sum += grid[r][c];
-best = Math.max(best, sum);                                // answer collected on the way down
-
-// Paths III (LC 980) as RETURN UP: base case returns 1 or 0, parent adds
-if (grid[r][c] === 2) return zeroCount === 0 ? 1 : 0;</code></pre>
-<p>🧪 <b>Parameter test:</b> before adding a parameter, ask "does the FUTURE need this to decide?" Yes (<code>row</code>, <code>prevCol</code>) → it's state, keep it. No, it only records the past (<code>currSum</code>) → drop it and return the answer instead. Two paths reach the same <code>(row, prevCol)</code> with different sums, so with <code>currSum</code> in the params nothing repeats and a memo never hits. (Same idea as <a href="#dp-1">DP #1</a>: small carry → memoize.)</p>
-<pre class="language-tsx"><code class="language-tsx">// Falling Path Sum II (LC 1289)
-// ⬇️ push down: currSum is the past → no memo
-dfs(row + 1, col, currSum + grid[row][col]);
-
-// 🔙 return up: state = (row, prevCol) → memo → O(m·n²)
-best = Math.min(best, grid[row][col] + dfs(row + 1, col));</code></pre>
-<p>❓ <b>Pick with one question:</b> "What does <code>dfs(state)</code> mean?" → "the answer for the subproblem from here" = <b>return up</b>. "I'm here with this path so far, report when you arrive" = <b>push down</b>.</p>
-<p>♻️ <b>Same rule in both:</b> if you mutate a shared grid, undo before you return.</p>
-<div class="box key"><b class="tag">📌</b> <b>Return = answers climb UP the stack 🪜. Push = state walks DOWN the stack 🚶.</b> Params = what's LEFT to decide, not what already happened. Only need a number → return up (memo → DP). Need every path → push down (backtracking).</div>
+<h2 id="rec-1">1 · ↕️ Return Up vs Push Down — Ask the Child, or Tell the Child?</h2>
+<ul>
+<li>🔙 <b>Return up = ASK the child:</b> "what's the best from you?" The child returns a value, and the parent adds its own part.</li>
+<li>⬇️ <b>Push down = TELL the child:</b> "here's what I have so far." It goes in a parameter, and the last call records the answer.</li>
+</ul>
+<p>🖼️ <b>Min path sum on <code>[[1, 3], [2, 1]]</code></b> (move right or down). Both ways give 4.</p>
+<figure class="calls"><svg viewBox="0 0 300 300" role="img" aria-label="🔙 Return up · ask the child"><defs><marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">🔙 Return up · ask the child</text><line x1="75" y1="125" x2="150" y2="83" marker-end="url(#ra)"/><line x1="225" y1="125" x2="150" y2="83" marker-end="url(#ra)"/><line x1="75" y1="209" x2="75" y2="167" marker-end="url(#ra)"/><line x1="225" y1="209" x2="225" y2="167" marker-end="url(#ra)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">1 + min(4, 3) = 4</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↑ 3 + 1 = 4</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↑ 2 + 1 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">↑ 1</text><rect x="165.0" y="210" width="120" height="40" rx="8"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">↑ 1</text><text x="150" y="284" class="ok">✅ root returns 4</text></svg><svg viewBox="0 0 300 300" role="img" aria-label="⬇️ Push down · tell the child"><defs><marker id="rc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker></defs><text x="150" y="20" class="tt">⬇️ Push down · tell the child</text><line x1="150" y1="83" x2="75" y2="125" marker-end="url(#rc)"/><line x1="150" y1="83" x2="225" y2="125" marker-end="url(#rc)"/><line x1="75" y1="167" x2="75" y2="209" marker-end="url(#rc)"/><line x1="225" y1="167" x2="225" y2="209" marker-end="url(#rc)"/><rect x="65.0" y="42" width="170" height="40" rx="8"/><text x="150" y="58" class="c">cell 1</text><text x="150" y="74" class="n">↓ sum = 1</text><rect x="15.0" y="126" width="120" height="40" rx="8"/><text x="75" y="142" class="c">cell 3</text><text x="75" y="158" class="n">↓ 1 + 3 = 4</text><rect x="165.0" y="126" width="120" height="40" rx="8"/><text x="225" y="142" class="c">cell 2</text><text x="225" y="158" class="n">↓ 1 + 2 = 3</text><rect x="15.0" y="210" width="120" height="40" rx="8"/><text x="75" y="226" class="c">cell 1</text><text x="75" y="242" class="n">4 + 1 = 5</text><rect x="165.0" y="210" width="120" height="40" rx="8" class="win"/><text x="225" y="226" class="c">cell 1</text><text x="225" y="242" class="n">3 + 1 = 4</text><text x="150" y="284" class="ok">✅ best = min(5, 4) = 4</text></svg></figure>
+<p>🤔 <b>Which one?</b></p>
+<ul>
+<li>🔢 <b>Need one number</b> (min, max, count, yes/no) → 🔙 return up → memo → DP</li>
+<li>🧵 <b>Need every path</b>, or the path itself → ⬇️ push down → backtracking</li>
+</ul>
+<p>🧪 <b>Param test:</b> "does the FUTURE need this to decide?"</p>
+<ul>
+<li>✅ Yes (<code>row</code>, <code>prevCol</code>) → keep it, that's the state</li>
+<li>❌ No, it's only the past (<code>currSum</code>) → drop it and return instead. With the past in the params, nothing repeats and the memo never hits.</li>
+</ul>
+<div class="box key"><b class="tag">📌</b> <b>🔙 Ask the child → answers climb UP. ⬇️ Tell the child → state walks DOWN.</b> One number → ask. Every path → tell.</div>
 </section>
 
 <section data-g="rec">
