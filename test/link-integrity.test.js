@@ -111,6 +111,7 @@ test('index.html links out to every moved sub-app with the correct folder prefix
     'sysdesign/system-design.html',
     'apps/gym-5day.html',
     'apps/habits.html',
+    'apps/todo.html',
   ]
   for (const link of expectedLinks) {
     assert.match(html, new RegExp(`href="${link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`), `index.html should link to ${link}`)

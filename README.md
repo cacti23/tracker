@@ -15,6 +15,7 @@ Personal tracker for DSA interview prep, plus a few small side apps. It's a plai
 | `visuals/visuals.html` | Image cheat sheets (inline SVG cards, one picture per idea). Shown inside the main app's Visuals view. |
 | `sysdesign/system-design.html` | System design notes, one card per topic. Linked from the sidebar bottom. |
 | `apps/gym-5day.html` | 5-day PPL workout tracker. |
+| `apps/todo.html` | Daily to-do: one-off tasks (unfinished ones carry over to today) and repeating tasks (every day, Mon–Fri, or picked days). Logic in `js/todo.js`, synced as `todo`. |
 | `apps/habits.html` | Habits tracker (its own PWA: `habits-manifest.json`, `habits-sw.js`). |
 | `docs/` | Prompts and personal notes (`docs/notes`). |
 | `sw.js`, `manifest.json` | Service worker and manifest for the main PWA (works offline). |
