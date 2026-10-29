@@ -1210,12 +1210,36 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
   <p class="bridge">Senior candidates often get "what happens when this service goes down?" Sometimes "fail and retry until it's back" is fine. But picture a database that went down cold and has to boot one instance at a time. A firehose of retries and angry users can pin each instance before it starts: a <b>thundering herd</b>. You can't get the first one up, so the whole DB never comes back. Stuck!</p>
   <p class="ana">🛍️ <b>Thundering herd</b> = a Black Friday crowd at the doors: open one door and the crush knocks the first clerk over, so the shop never manages to open. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> Anyone who's done oncall has war stories about <b>cascading failures</b>: one failure creating new ones (it travels from a <button type="button" class="gl-link" data-g="updown">downstream</button> service to its callers). It usually goes unnoticed "until it bites you at 3am", which makes it a great interview question and a screen for experience. Prepare by learning to spot these cascades and how to stop them.</div>
+  <p class="bridge">What does a cascade look like in real life? Usually it starts with something <b>slow</b>, not something dead. 👇 <span class="add">➕ example not in the article</span></p>
+  <div class="seq" data-seq="cascade"></div>
+  <p class="ana">🚗 A traffic jam: one lane is blocked, cars back up into the junction, and soon streets that never used that lane are stuck too. <span class="add">➕ analogy not in the article</span></p>
+  <p class="bridge">The first tool that stops it is the circuit breaker:</p>
   <div class="seq" data-seq="breaker"></div>
   <p class="figcap">Inspired by electrical circuit breakers: it stops cascading failures and gives failing services time to recover.</p>
   <p class="ana">🔌 The <b>fuse</b> in your house: a fault trips it, and power to that circuit stops at once (fail fast) instead of burning the wiring. After a while you try flipping it back (a few test requests); if it holds, power is back. <span class="add">➕ analogy not in the article</span></p>
   <div class="pills"><span>⚡ Fail fast, no waiting for timeouts</span><span>🪶 Less load on a struggling service</span><span>🩹 Self-healing: tests recovery without full traffic</span><span>😊 Fast fallbacks, no hanging UI</span><span>🧱 One failure doesn't take down the system</span></div>
   <p>🎤 Bring them up when the interviewer digs into reliability, failure modes or disaster recovery. That knowledge is usually "won at 3:00am battling a hardware failure when the system Just. Won't. Come. Back. Up." Put them on:</p>
   <div class="pills"><span>🌍 third-party API calls</span><span>🗄️ DB connections and queries</span><span>🧩 service-to-service calls</span><span>🏋️ heavy operations that may time out</span><span>📡 any network call that could fail or slow down</span></div>
+
+  <h4>🛡️ The cascade toolkit</h4>
+  <p class="bridge">A breaker alone isn't the whole answer. Each tool fixes one step of the cascade above. <span class="add">➕ bulkhead, shedding, queue: not in the article</span></p>
+  <ul class="lines">
+    <li>⏱️ <b>Timeout</b> <span class="figcap">· fixes ① Threads wait forever</span><br>Give up after ~2 s, not 30. Hang up instead of holding the phone all day.</li>
+    <li>🔁 <b>Backoff + jitter</b>, retry limit <span class="figcap">· fixes ④ Retries pile on</span><br>Retry a few times, waiting longer and a little randomly. Never retry forever.</li>
+    <li>🔑 <b>Idempotency key</b> <span class="figcap">· fixes ④ Retry charges twice</span><br>Same order number → the bank charges once.</li>
+    <li>🔌 <b>Circuit breaker</b> <span class="figcap">· fixes ② Still calling a broken service</span><br>Stop calling after N failures, test again later. The house fuse.</li>
+    <li>🚢 <b>Bulkhead</b> <span class="figcap">· fixes ⑤ One dependency eats every thread</span><br>A separate, capped pool per dependency. A ship's watertight rooms: one floods, the ship floats.</li>
+    <li>🚦 <b>Load shedding</b> / rate limit <span class="figcap">· fixes Too much traffic arriving</span><br>Turn away extra requests early (fast 503) so the ones inside finish. A bouncer at a full club.</li>
+    <li>🪂 <b>Fallback</b> <span class="figcap">· fixes User gets nothing</span><br>Give a lesser answer: "Order placed, payment confirming", cached results, a default list.</li>
+    <li>📬 <b>Queue it</b> <span class="figcap">· fixes Slow work blocks the user</span><br>Accept the order now, charge from a queue. The bank's slowness no longer holds a user thread.</li>
+  </ul>
+  <div class="take"><p><b>🎤 When they ask "what if Payment goes down?"</b> <span class="add">➕ not in the article</span></p>
+    <p>1️⃣ <b>Blast radius:</b> "Who calls Payment? Only checkout should break, not browse or login."</p>
+    <p>2️⃣ <b>Don't wait:</b> "Timeouts on every call, retries with exponential backoff and jitter, and an idempotency key so a retry can't double-charge."</p>
+    <p>3️⃣ <b>Don't hammer:</b> "A circuit breaker on the Payment call, with a fallback: accept the order and confirm payment later."</p>
+    <p>4️⃣ <b>Contain it:</b> "A bulkhead (separate pool) for Payment calls, so the rest of the site keeps its threads."</p>
+    <p>5️⃣ <b>Decouple:</b> "If payment can be async, put it on a queue and charge when the bank recovers."</p>
+    <p>👀 Saying them <b>in the order the cascade happens</b> shows you've seen one, which is exactly what this question is screening for.</p></div>
 
   <h4>🏁 The whole lesson in four steps</h4>
   <div class="flow"><span>1️⃣ Basics: IP, DNS, TCP/IP</span><i>→</i><span>2️⃣ Protocols: TCP vs UDP, HTTP/S, WebSockets, gRPC</span><i>→</i><span>3️⃣ Load balancing: client-side + dedicated</span><i>→</i><span>4️⃣ Reality: regions + failures</span></div>
@@ -1539,6 +1563,20 @@ const SEQS = {
       { f: 0, t: 1, m: 'retry · same 🔑', k: 'http', cap: 'The client retries with the <b>same key</b>.' },
       { f: 1, t: 2, m: 'seen 🔑? yes ✋', k: 'lb', bi: 1, cap: 'Key seen → don\'t charge again.' },
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
+    ],
+  },
+  'cascade': {
+    lanes: ['👤 Users', '🛒 Checkout', '💳 Payment', '🏦 Bank API'],
+    key: [['tcp', 'ok'], ['lb', 'waiting'], ['err', 'failing']],
+    frames: [
+      { cap: 'A shop on sale day. Checkout calls Payment, Payment calls an outside bank API. Each service has a pool of <b>200 worker threads</b>: one per request in flight.' },
+      { r: [{ f: 0, t: 1, m: 'buy', k: 'tcp' }, { f: 1, t: 2, m: 'pay', k: 'tcp' }, { f: 2, t: 3, m: 'charge', k: 'tcp' }], cap: '🟢 Normal day: the bank answers in 50 ms, a thread is busy for 50 ms, then free again.' },
+      { at: 3, m: '🐢 answers in 30 s', k: 'err', cap: '① The bank gets slow (not down, just slow). Payment has <b>no timeout</b>, so each call now holds a thread for 30 s.' },
+      { at: 2, m: '🧵 200/200 waiting', k: 'lb', cap: '② Within seconds all 200 Payment threads are stuck waiting on the bank. New payment requests queue up.' },
+      { at: 1, m: '🧵 200/200 waiting', k: 'lb', cap: '③ Checkout\'s calls to Payment now hang too, so <b>its</b> threads fill up. The slowness has climbed one level <b>up</b>.' },
+      { f: 0, t: 1, m: '🔄 refresh · retry ×3', k: 'err', cap: '④ Users see a spinner and hit refresh. Services retry. Load <b>triples</b> exactly when everything is already full.' },
+      { at: 1, m: '❌ cart · browse · login down', k: 'err', cap: '⑤ Pages that never touch payment (cart, browse) also fail: Checkout has no free threads for them. 💥 One slow bank → whole site down. That\'s a <b>cascading failure</b>.' },
+      { at: 2, m: '⏱️ 2 s timeout · 🔌 breaker · 🚢 own pool', k: 'tcp', cap: '🛡️ The fix: a <b>timeout</b> frees threads fast, a <b>circuit breaker</b> stops calling the bank once it\'s clearly broken, and a <b>separate pool</b> for bank calls (bulkhead) keeps the rest of the site alive. The toolkit is below 👇' },
     ],
   },
   'breaker': {
