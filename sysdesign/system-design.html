@@ -95,6 +95,9 @@ details.more li { margin: 2px 0; }
 .steps .bar { grid-column: 2 / -1; height: 4px; border-radius: 2px; background: var(--teal-fg); opacity: .6; }
 .steps .body { padding: 2px 12px 10px; font-size: 14px; }
 .steps .body p { margin: 6px 0; }
+.steps .sub { margin: 16px 0 6px; padding: 6px 10px; border-radius: 8px; font-weight: 700; font-size: 15px; border-left: 4px solid; }
+.steps .sub.fr { background: var(--blue-bg); border-color: var(--blue-fg); } .steps .sub.nfr { background: var(--amber-bg); border-color: var(--amber-fg); }
+.tbl b.big { color: var(--accent); font-size: 15px; margin-right: 2px; }
 .goal { font-size: 12px; font-weight: 600; margin: 10px 0 2px; color: var(--muted); }
 .goal b { color: var(--text); }
 .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; margin: 6px 0; }
@@ -391,23 +394,40 @@ One Markdown document, in the **exact order the content appears on the page**:
     <p class="goal">Steps 1–5 · make it <b>work</b> (functional requirements)</p>
     <details><summary><span class="num">1</span><span>📋 Requirements</span><span class="tm">~5 min</span><span class="bar" style="width:30%"></span></summary>
       <div class="body">
-        <p class="bridge">Everything after this is measured against your requirements, so this is where you start. Ask two questions: what must it <b>do</b>, and how <b>well</b> must it do it?</p>
-        <p>🎯 <b>Functional</b>: "Users should be able to…" Ask like a PM: "does it need X?", "what if Y?". Then keep only the <b>top 3</b>.</p>
-        <div class="pills"><span>🐦 post tweets</span><span>➕ follow users</span><span>📰 see tweets of people they follow</span></div>
-        <p>⚠️ Twitter has hundreds of features. A long list hurts, and top FAANG companies grade you on choosing what matters.</p>
-        <p class="bridge">Features don't shape the architecture. <b>Qualities</b> do. "100M users, feed in 200ms" is what forces caches and sharding later.</p>
-        <p>⚙️ <b>Non-functional</b>: "The system should be…" Pick the <b>top 3–5</b>. Put them in context and use numbers.</p>
+        <p class="bridge">Everything after this is measured against your requirements, so this is where you start. Requirements come in <b>two kinds</b>, and you need both:</p>
+        <div class="vs"><div class="good">🎯 <b>Functional</b>: what the system must <b>do</b></div><div class="good">⚙️ <b>Non-functional</b>: how <b>well</b> it must do it</div></div>
+
+        <p class="sub fr">🎯 A. Functional requirements: what it does</p>
+        <p>✍️ Write each one as <b>"Users should be able to…"</b>. For an infra system with no end users (e.g. a rate limiter), the caller is a service: <b>"Clients should be able to…"</b>.</p>
+        <p>🔎 <b>How to find them</b> <span class="cm">💬</span>: go through the actors and ask three things:</p>
+        <div class="flow"><span>👤 <b>Who</b> sends it?</span><i>→</i><span>📦 <b>What</b> do they send?</span><i>→</i><span>🎯 What <b>outcome</b> do they want?</span></div>
+        <p>🗣️ Then ask the interviewer like a PM: "does it need X?", "what if Y?".</p>
+        <p>✂️ Keep only the <b>top 3</b>. Twitter has hundreds of features. A long list hurts, and top FAANG companies grade you on choosing what matters.</p>
+        <div class="pills"><span>🐦 Users should be able to post tweets</span><span>➕ …follow users</span><span>📰 …see tweets of people they follow</span></div>
+
+        <p class="bridge">Now the twist. Picture two Twitters with exactly those 3 features. One has 100 users: a single server and one database are enough. The other has 100M users who expect their feed in 200ms: now you need caches, sharding, many servers. <b>Same features, completely different design.</b> What made the difference is how <b>well</b> it must work, and that's the second kind of requirement.</p>
+
+        <p class="sub nfr">⚙️ B. Non-functional requirements: how well it does it</p>
+        <p>✍️ Write each one as <b>"The system should be…"</b>. Pick the <b>top 3–5</b>, put each in context and give it a number.</p>
         <div class="vs"><div class="bad">❌ "low latency" (every system wants that)</div><div class="good">✅ "search &lt; 500ms" (which part, and the target)</div></div>
         <div class="pills"><span>🐦 availability &gt; consistency</span><span>100M+ DAU</span><span>feed &lt; 200ms</span></div>
-        <p>🧠 Checklist so you don't blank. Remember it as <b>FCC + SLEDS</b> (from the comments):</p>
-        <div class="pills"><span><b class="big">F</b>ault tolerance</span><span><b class="big">C</b>AP</span><span><b class="big">C</b>ompliance</span><span><b class="big">S</b>calability</span><span><b class="big">L</b>atency</span><span><b class="big">E</b>nvironment</span><span><b class="big">D</b>urability</span><span><b class="big">S</b>ecurity</span></div>
+        <p>🔎 <b>How to find them</b>: walk this checklist, so you don't blank. Remember it as <b>FCC + SLEDS</b> <span class="cm">💬</span>. For each letter, ask its question; keep the 3–5 that really matter for <b>this</b> system.</p>
         <table class="tbl">
-          <tr><td>🔀 CAP</td><td>Consistency or availability? (Partition tolerance is a given.)</td></tr>
-          <tr><td>📈 Scale</td><td>Bursty traffic, events, holidays? Read-heavy or write-heavy?</td></tr>
-          <tr><td>⚡ Latency</td><td>The heavy requests, e.g. Yelp search</td></tr>
-          <tr><td>💾 Durability</td><td>A social feed can lose some data. A bank can't.</td></tr>
-          <tr><td>📱 Environment</td><td>Battery, memory, bandwidth (video on 3G)</td></tr>
+          <tr><td><b class="big">F</b> 🛡️ Fault tolerance</td><td>A server or region dies: must it keep working?</td></tr>
+          <tr><td><b class="big">C</b> 🔀 CAP</td><td>When the network splits, stay <b>consistent</b> or stay <b>available</b>? (Partition tolerance is a given.)</td></tr>
+          <tr><td><b class="big">C</b> 📜 Compliance</td><td>Any legal or industry rules on the data? (e.g. payments, personal data)</td></tr>
+          <tr><td><b class="big">S</b> 📈 Scalability</td><td>How many users and requests? Bursty (events, holidays)? Read-heavy or write-heavy?</td></tr>
+          <tr><td><b class="big">L</b> ⚡ Latency</td><td>Which requests must be fast, and how fast? Focus on the heavy ones (e.g. Yelp search)</td></tr>
+          <tr><td><b class="big">E</b> 📱 Environment</td><td>Client limits: battery, memory, bandwidth (video on 3G)</td></tr>
+          <tr><td><b class="big">D</b> 💾 Durability</td><td>Can we ever lose data? A social feed can lose some. A bank can't.</td></tr>
+          <tr><td><b class="big">S</b> 🔐 Security</td><td>Who may see or change what? How is the data protected?</td></tr>
         </table>
+        <p>💬 Tips from the comments:</p>
+        <ul class="lines">
+          <li>🗺️ "Highly available" alone isn't enough. Say <b>where, why and how</b>. 🟢 Availability = <b>fail open</b> (most systems; quantify the eventual consistency, e.g. "&lt; 1 min"). 🔒 Consistency = <b>fail closed</b> (money, double booking, 1 ride ↔ 1 driver). Still say "CAP": interviewers expect the term.</li>
+          <li>⏱️ Guess latency targets from the <b>client's</b> point of view. For LLM chat, it's time-to-first-token.</li>
+          <li>➕ Two more checks: 🔔 how <b>real-time</b> must updates be (ticket reserved, new bid)? ✨ What's <b>unique</b> here (LeetCode judge → isolate user code)?</li>
+        </ul>
         <p class="bridge">Many guides tell you to do the math now. Don't, unless the answer changes a decision.</p>
         <div class="vs"><div class="bad">❌ DAU, QPS, storage → "ok, it's a lot". It only shows you can do arithmetic.</div><div class="good">✅ TopK trending: number of topics → one min-heap or sharded?</div></div>
         <p>🎤 Say: "I'll skip estimates and do the math when it changes the design."</p>
@@ -476,13 +496,6 @@ GET  /v1/feed        → Tweet[]</pre>
   <p class="bridge">That's the loop: the first five steps get you a simple system that works. The last step makes it fast, scalable and reliable. Never the other way round.</p>
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
-    <h5>📋 Requirements</h5>
-    <ul>
-      <li>Stuck on features? Ask: 👤 <b>who</b> sends it · 📦 <b>what</b> do they send · 🎯 what <b>outcome</b> do they want.</li>
-      <li>Saying "highly available" isn't enough. Say <b>where, why and how</b>. 🟢 Availability = <b>fail open</b> (most systems, with eventual consistency quantified, e.g. "&lt; 1 min"). 🔒 Consistency = <b>fail closed</b> (money, double booking, 1 ride ↔ 1 driver). Still name CAP: interviewers expect the term.</li>
-      <li>Two more checks: 🔔 how <b>real-time</b> must updates be (ticket reserved, new bid)? ✨ What's <b>unique</b> here (LeetCode judge → isolate user code)?</li>
-      <li>Latency targets: guess from the <b>client's</b> point of view. For LLM chat, it's time-to-first-token.</li>
-    </ul>
     <h5>🔢 Math (from the course admin)</h5>
     <ul><li>Only for a real decision: in-memory vs disk, 10 vs 10,000 machines. Time is zero-sum, so useless math costs you deep dives.</li></ul>
     <h5>🔐 API (from the course admin)</h5>
