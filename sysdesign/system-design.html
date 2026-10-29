@@ -808,9 +808,16 @@ GET  /v1/feed        → Tweet[]</pre>
   <div class="rem"><b>✅ Remember</b> Headers show how to design an interface for unknown future uses. Content negotiation is the case study:
     <div class="flow"><span>💻 <code>Accept-Encoding: gzip, br</code></span><i>→</i><span>🖥️ <code>Content-Encoding: br</code></span></div>
     <p>The client says what it can handle. The server picks the most efficient one (<button type="button" class="term" data-p="Brotli, a compression format from Google. It usually gets smaller than gzip.">br</button>). Old clients still work: backward compatible, degrades gracefully. 🔎 The article writes "Accepts-Encoding"; the real header is <code>Accept-Encoding</code>.</p></div>
-  <p>🔒 <b>HTTPS</b> = HTTP + TLS/SSL encryption, against <button type="button" class="term" data-p="someone on the network secretly reading the traffic between two devices.">eavesdropping</button> and <button type="button" class="term" data-p="an attacker sits between client and server, relaying and possibly changing the messages while both think they talk directly.">man-in-the-middle</button> attacks. A public website uses HTTPS, without exception.</p>
+  <p>🔒 <b>HTTPS</b> = HTTP + TLS/SSL encryption, against <button type="button" class="gl-link" data-g="eavesdrop">eavesdropping</button> and <button type="button" class="gl-link" data-g="mitm">man-in-the-middle</button> attacks. A public website uses HTTPS, without exception.</p>
   <div class="warn"><b>⚠️ Watch out</b> Encrypted doesn't mean the request came from <b>your</b> client. Never trust the body without validating it.
     <div class="vs"><div class="bad">❌ <code>{ "userId": 42 }</code> in the body → DB query. An attacker edits it and reads anyone's data. Ouch!</div><div class="good">✅ IDs in requests are fine if the server validates them. Never ask for anything you can't trust.</div></div></div>
+  <div class="take"><p><b>🤔 Why never trust the body?</b> <span class="add">➕ not in the article</span></p>
+    <p>✉️ HTTPS is a <b>sealed envelope</b>: it proves nobody opened it on the way. It does <b>not</b> prove the letter inside is honest. The sender can be the attacker: they control their own browser, curl or Postman, and can type anything into the body, e.g. change <code>42</code> to <code>43</code>.</p></div>
+  <div class="take"><p><b>🪪 So who is the user? Ask the token, not the body.</b></p>
+    <div class="flow"><span>🔑 log in</span><i>→</i><span>🖥️ server issues a signed <button type="button" class="gl-link" data-g="auth">token</button></span><i>→</i><span>📨 every request: <code>Authorization: Bearer …</code></span><i>→</i><span>✅ server verifies it → userId = 42</span></div>
+    <p>✉️ Like a staff badge the receptionist scans, vs someone just saying "I'm the manager". The body says what you <b>want</b>; the verified token says who you <b>are</b>.</p>
+    <p>🏷️ Why a header? It rides on every request (even GET, which has no body), stays apart from the data, and one middleware checks it before any handler runs. A header can be faked too: what makes it safe is the server's <b>signature check</b>, not the header itself.</p>
+    <p>🔐 Then check permission: "does user 42 own order 99?" before returning it.</p></div>
 
   <h4>🧩 REST: simple and flexible</h4>
   <p class="bridge">HTTP alone builds <i>websites</i>. Designs are about <i>services</i> talking through APIs, and there are three main paradigms: REST, GraphQL, gRPC. ⭐ REST is the most common.</p>
@@ -1669,7 +1676,16 @@ const GLOSSARY = [
     b: '<p>Client sends a method + path + headers (<code>GET /search</code>); server answers with a status code + headers + body (<code>200 OK</code>). Stateless: each request carries what it needs.</p><p>1.0 closed the connection after each request; 1.1 keeps it open (keep-alive); 2 sends many at once on one connection.</p>', see: ['tls', 'keepalive'] },
   { id: 'tls', t: 'HTTPS / TLS', aka: 'ssl encryption certificate', s: 'HTTP inside an encrypted, verified tunnel.',
     an: 'Sealing the letter in a locked envelope that only the receiver can open.',
-    b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp'] },
+    b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp', 'mitm', 'auth'] },
+  { id: 'eavesdrop', t: 'Eavesdropping', aka: 'sniffing snooping wiretap', s: 'Someone on the network secretly reads your traffic.',
+    an: 'Reading postcards in the sorting office: anything not in an envelope is visible.',
+    b: '<p>Anyone on the path (public Wi-Fi, a router, your ISP) can capture packets. Without encryption they see passwords, cookies and data in plain text. HTTPS (TLS) encrypts it so they only see scrambled bytes and which server you talk to.</p>', see: ['tls', 'mitm'] },
+  { id: 'mitm', t: 'Man-in-the-middle', aka: 'mitm attack interception', s: 'An attacker sits between you and the server, reading and changing messages.',
+    an: 'A fake postman who opens your letter, edits it, reseals it and delivers it.',
+    b: '<p>Both sides think they talk directly, but every message passes through the attacker (e.g. a fake Wi-Fi hotspot). TLS stops it with <b>certificates</b>: the server proves it really is google.com, so a middleman can\'t pretend to be it.</p>', see: ['tls', 'eavesdrop'] },
+  { id: 'auth', t: 'Authentication vs authorization', aka: 'authn authz token jwt bearer session cookie login', s: 'Who are you? vs What are you allowed to do?',
+    an: 'Authentication = the badge scan at the door. Authorization = which rooms that badge opens.',
+    b: '<ul><li>🪪 <b>Authentication</b>: at login the server issues a token (a signed JWT, or a session ID it stores). The client sends it on every request in the <code>Authorization</code> header or a cookie. The server verifies the signature, so it can\'t be forged.</li><li>🔐 <b>Authorization</b>: with the verified user, check the action: "can user 42 read order 99?"</li></ul><p>Never take "who am I" from the request body: the client can type anything there.</p>', see: ['tls', 'http'] },
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
