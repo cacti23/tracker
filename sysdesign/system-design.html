@@ -221,7 +221,17 @@ details.more li { margin: 2px 0; }
 .osi.big i { font-style: normal; font-weight: 500; color: var(--accent); margin-left: 4px; }
 .osi.big small { font-weight: 400; font-size: 13px; color: var(--text); margin-top: 3px; }
 .osi.big small.art { font-size: 12px; color: var(--muted); }
-.osi.big small.fix { font-size: 12px; color: var(--amber-fg); }
+.osi.big small.an { font-size: 12.5px; color: var(--amber-fg); }
+.osi.big .grp { margin: 10px 0 2px; font-size: 13px; font-weight: 700; }
+.osi.big .grp small { font-weight: 400; color: var(--muted); }
+.osi.big .grp:first-child { margin-top: 0; }
+.m74 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 6px; margin: 6px 0 10px; font-size: 12.5px; }
+.m74 span { grid-column: 1; padding: 4px 8px; border-radius: 6px; border: 1px dashed var(--line); color: var(--muted); }
+.m74 span.h { border: 0; padding: 0 2px; font-weight: 700; color: var(--text); }
+.m74 b { grid-column: 2; display: flex; flex-direction: column; justify-content: center; padding: 4px 10px; border-radius: 8px; border: 1.5px solid var(--c); background: var(--bg2, var(--card)); }
+.m74 b small { font-weight: 400; font-size: 11px; color: var(--muted); }
+.g-app { --c: var(--blue-fg); } .g-tcp { --c: var(--green-fg); } .g-ip { --c: var(--red-fg); } .g-link { --c: var(--muted); }
+.osi.big .grp.g-app, .osi.big .grp.g-tcp, .osi.big .grp.g-ip, .osi.big .grp.g-link { color: var(--c); }
 .take { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
 .take p { margin: 4px 0; }
 .take a { color: var(--accent); }
@@ -559,31 +569,48 @@ GET  /v1/feed        → Tweet[]</pre>
   <div class="mnem" role="img" aria-label="Mnemonic, layer 7 down to 1: All People Seem To Need Data Processing">
     <span><b>A</b>ll<small>7 App</small></span><span><b>P</b>eople<small>6 Pres</small></span><span><b>S</b>eem<small>5 Sess</small></span><span><b>T</b>o<small>4 Trans</small></span><span><b>N</b>eed<small>3 Net</small></span><span><b>D</b>ata<small>2 Link</small></span><span><b>P</b>rocessing<small>1 Phys</small></span>
   </div>
-  <p class="figcap">🧠 Top to bottom, 7 → 1. Each layer gets a nickname, its job and an everyday example <span class="add">➕ Adi's notes, not in the article</span>, with ✏️ checks on them. ⭐ = the 3 the article says matter.</p>
-  <div class="osi big" role="img" aria-label="OSI layers 7 to 1, each with a nickname, job and example; Application 7, Transport 4 and Network 3 highlighted">
+  <p class="figcap">🧠 The OSI model, top to bottom, 7 → 1.</p>
+  <p class="bridge">OSI is the textbook's 7 layers. The real internet runs on <b>TCP/IP</b>, which squeezes them into <b>4</b>. <span class="add">➕ not in the article</span></p>
+  <div class="m74" role="img" aria-label="OSI 7, 6 and 5 are TCP/IP Application; OSI 4 is Transport; OSI 3 is Internet; OSI 2 and 1 are Network access">
+    <span class="h">📚 OSI (textbook)</span><span class="h" style="grid-column: 2; grid-row: 1">🌐 TCP/IP (real internet)</span>
+    <span>7 Application</span><b class="g-app" style="grid-row: 2 / 5">Application<small>your app does all three</small></b>
+    <span>6 Presentation</span>
+    <span>5 Session</span>
+    <span>4 Transport</span><b class="g-tcp" style="grid-row: 5">Transport</b>
+    <span>3 Network</span><b class="g-ip" style="grid-row: 6">Internet</b>
+    <span>2 Data Link</span><b class="g-link" style="grid-row: 7 / 9">Network access<small>Wi-Fi / Ethernet card + cable</small></b>
+    <span>1 Physical</span>
+  </div>
+  <p class="bridge">One analogy for the whole stack: <b>sending a letter</b> ✉️. Each layer does one job, top to bottom on the sender, bottom to top on the receiver. <span class="add">➕ Adi's notes, checked; not in the article</span></p>
+  <div class="osi big" role="img" aria-label="Each layer with its nickname, job and letter analogy, grouped into the 4 TCP/IP layers">
+    <p class="grp g-app">🟦 Application <small>= OSI 7 · 6 · 5, all inside your app</small></p>
     <div class="hot l7"><b>7</b><span>⭐ Application <i>📱 where your app lives</i>
-      <small>Browser, email client… Click Gmail → this layer uses <b>DNS · HTTP · SMTP · FTP</b> to handle the request.</small>
+      <small>The language apps speak: <b>HTTP</b> (web), <b>DNS</b> (names → IPs), <b>SMTP</b> (email), <b>FTP</b> (files). Click Gmail → it talks SMTP and HTTP.</small>
+      <small class="an">✉️ Like: <b>what the letter says</b>, in a language both sides understand.</small>
       <small class="art">📘 Article: DNS · HTTP · WebSockets · WebRTC. Built on TCP (on UDP for WebRTC)</small></span></div>
     <div class="hot"><b>6</b><span>Presentation <i>🈯 the translator</i>
-      <small>Encrypts, compresses or formats data so apps can understand it. e.g. <b>TLS / SSL</b> (the S in HTTPS) turns your data into secret code so hackers can't read it.</small>
-      <small class="fix">✏️ Real internet: there's no separate layer 6. TLS runs inside the app, between HTTP and TCP, and formats (JSON, UTF-8, gzip) are handled by the app too. The "translator" job is right; it just lives in layer 7 in practice.</small></span></div>
+      <small>Gets the data into a shape both sides can read: <b>format</b> it (JSON, UTF-8), <b>shrink</b> it (gzip), <b>lock</b> it (TLS, the S in HTTPS, so hackers can't read it).</small>
+      <small class="an">✉️ Like: translating the letter, folding it small, and sealing it in a locked envelope.</small></span></div>
     <div class="hot"><b>5</b><span>Session <i>🗣️ the conversation manager</i>
-      <small>Starts, manages and ends connections between devices.</small>
-      <small class="fix">✏️ Swap the example: Netflix resuming is the <b>app</b> remembering where you stopped (it saves your position on its servers). Session layer's textbook version: a long file transfer keeps checkpoints, so a drop resumes from the last one. Like layer 6, the real internet has no separate layer 5: TCP and the app share its job.</small></span></div>
+      <small>Starts, keeps track of and ends one conversation. e.g. your <b>login session</b>: a cookie keeps you signed in across many requests.</small>
+      <small class="an">✉️ Like: a pen-pal thread: "Re: our chat", so each letter belongs to the same conversation.</small></span></div>
+    <p class="grp g-tcp">🟩 Transport <small>= OSI 4</small></p>
     <div class="hot l4"><b>4</b><span>⭐ Transport <i>📦 the delivery guarantee</i>
-      <small>Splits data into chunks and makes sure they arrive. Like mailing a book page by page and checking every page arrived.</small>
-      <small class="fix">✏️ "Guarantee" is <b>TCP</b>. UDP is also layer 4 and skips the checking, for speed. Layer 4 also picks the <b>port</b>: which app on the machine gets the data.</small>
+      <small>Splits data into numbered chunks and hands them to the right app by <b>port</b>. <b>TCP</b> checks every chunk arrived, in order, and resends lost ones. <b>UDP</b> skips the checks to be fast.</small>
+      <small class="an">✉️ Like: mailing a book page by page with page numbers and a receipt for each (TCP), vs dropping flyers in mailboxes (UDP). The port is the <b>flat number</b>; the IP is the building.</small>
       <small class="art">📘 Article: TCP · UDP · QUIC. Reliability, ordering, flow control on top of IP</small></span></div>
+    <p class="grp g-ip">🟥 Internet <small>= OSI 3</small></p>
     <div class="hot l3"><b>3</b><span>⭐ Network <i>🧭 the GPS</i>
-      <small>Uses IP addresses to route data across the internet. e.g. finds a path for your Netflix stream to reach you.</small>
-      <small class="fix">✏️ Small fix: each router just passes the packet one hop closer to the destination IP. It's a good path, not always the fastest.</small>
+      <small>Writes the <b>IP address</b> on every packet. Routers pass it hop by hop, each one closer to that address: that's how your Netflix stream reaches you. No promises: packets can get lost, and TCP above fixes that.</small>
+      <small class="an">✉️ Like: the address on the envelope, and sorting offices passing it city to city.</small>
       <small class="art">📘 Article: IP: routing + addressing, splits data into packets, <button type="button" class="term" data-p="the network tries its best but promises nothing: packets can be lost, duplicated or arrive out of order.">best-effort delivery</button>. (InfiniBand too, for massive ML training)</small></span></div>
+    <p class="grp g-link">⬛ Network access <small>= OSI 2 + 1</small></p>
     <div class="hot"><b>2</b><span>Data Link <i>📮 the local postman</i>
-      <small>Sends data between devices on the <b>same</b> network.</small>
-      <small class="fix">✏️ ✅ Correct. Add: it uses <b>MAC addresses</b>, e.g. your laptop → your Wi-Fi router over Wi-Fi or Ethernet.</small></span></div>
+      <small>Moves data between devices on the <b>same</b> network, using <b>MAC addresses</b> (each network card's hardware ID). e.g. laptop → your Wi-Fi router.</small>
+      <small class="an">✉️ Like: the postman on your street: knows every house here, nothing about other cities.</small></span></div>
     <div class="hot"><b>1</b><span>Physical <i>🔌 the hardware</i>
-      <small>Sends raw data as electrical signals over the wire.</small>
-      <small class="fix">✏️ ✅ Correct. Add: electrical signals on copper, light in fiber, radio waves for Wi-Fi.</small></span></div>
+      <small>Sends raw bits (0s and 1s) as signals: electricity in copper, light in fiber, radio waves in Wi-Fi.</small>
+      <small class="an">✉️ Like: the road and the van that physically carry the letter.</small></span></div>
   </div>
   <p class="figcap">"The important ones": 3, 4, 7.</p>
 
