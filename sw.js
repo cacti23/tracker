@@ -1,5 +1,5 @@
 const CACHE = 'tracker-cache-v1';
-const ASSETS = ['index.html', 'manifest.json', 'js/data.js', 'js/sync.js', 'js/back-button.js', 'visuals/visuals.html', 'icons/icon-192.png', 'icons/icon-512.png'];
+const ASSETS = ['index.html', 'manifest.json', 'js/data.js', 'js/sync.js', 'js/back-button.js', 'js/todo.js', 'apps/todo.html', 'visuals/visuals.html', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
