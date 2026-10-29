@@ -208,6 +208,28 @@ details.more li { margin: 2px 0; }
 .seq-key i { font-style: normal; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .c-dns { --c: var(--purple-fg); } .c-tcp { --c: var(--green-fg); } .c-http { --c: var(--blue-fg); } .c-ws { --c: var(--teal-fg); }
 .c-err { --c: var(--red-fg); } .c-lb { --c: var(--amber-fg); } .c-gray { --c: var(--muted); } .c-udp { --c: var(--coral-fg); }
+/* 📦 nested envelopes */
+.env div { border: 1.5px solid var(--c); border-radius: 8px; padding: 4px 6px 6px; margin-top: 4px; background: var(--bg); }
+.env span { display: block; font-size: 12.5px; font-weight: 600; color: var(--c); }
+.env span i { font-style: normal; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.env .e2 { --c: var(--gray-fg); margin: 6px 0 10px; } .env .e3 { --c: var(--red-fg); } .env .e4 { --c: var(--green-fg); } .env .e7 { --c: var(--blue-fg); }
+/* 📖 Glossary: floating button + side panel; any [data-g] opens its entry */
+.gl-link { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-bottom: 1.5px solid var(--accent); }
+.gl-fab { position: fixed; right: 16px; bottom: 16px; z-index: 40; font: inherit; font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
+.gl { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); z-index: 2147483100; /* above the ← Tracker pill */ display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,.3); }
+.gl[hidden] { display: none; }
+.gl-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
+.gl-head b { font-size: 16px; flex: 1; }
+.gl-head button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+.gl input { margin: 0 14px 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.gl-body { overflow-y: auto; padding: 0 14px 20px; flex: 1; }
+.gl-item { display: block; width: 100%; text-align: left; font: inherit; color: var(--text); background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 2px; cursor: pointer; }
+.gl-item small { display: block; color: var(--muted); font-size: 12.5px; }
+.gl-note h3 { margin: 6px 0 4px; font-size: 18px; }
+.gl-note .an { padding: 6px 10px; border-radius: 8px; background: var(--amber-bg); color: var(--amber-fg); font-size: 14px; }
+.gl-note p, .gl-note li { font-size: 14px; }
+.gl-empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
+@media (min-width: 1000px) { .gl, .gl-fab { zoom: 1.15; } }
 /* OSI stack */
 .osi { margin: 6px 0 10px; font-size: 13px; }
 .osi div { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 6px; margin: 3px auto; padding: 4px 8px; border-radius: 8px; border: 1.5px dashed var(--line); color: var(--muted); }
@@ -613,6 +635,31 @@ GET  /v1/feed        → Tweet[]</pre>
       <small class="an">✉️ Like: the road and the van that physically carry the letter.</small></span></div>
   </div>
   <p class="figcap">"The important ones": 3, 4, 7.</p>
+
+  <h4>📦 Inside a packet: MAC, IP, port</h4>
+  <p class="bridge">Each layer has one job, and it does it by writing a label on the data. On the way down, every layer wraps the data in its <b>own envelope</b>; the receiver opens them in reverse. <span class="add">➕ not in the article</span></p>
+  <div class="env" role="img" aria-label="Nested envelopes: MAC frame holds an IP packet, which holds a TCP segment, which holds the HTTP data">
+    <div class="e2"><span>✉️ L2 · <button type="button" class="gl-link" data-g="mac">MAC</button>: phone → router <i>rewritten every hop</i></span>
+      <div class="e3"><span>✉️ L3 · <button type="button" class="gl-link" data-g="ip">IP</button>: 192.168.1.23 → 142.250.x.x <i>end to end</i></span>
+        <div class="e4"><span>✉️ L4 · TCP: <button type="button" class="gl-link" data-g="port">port</button> 51234 → 443, seq #7 <i>which app + order</i></span>
+          <div class="e7"><span>📄 L7 · HTTP: GET /search?q=… <i>your data</i></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p>📏 One <button type="button" class="gl-link" data-g="packet">packet</button> carries about <b>1,500 bytes</b>, and the TCP + IP labels take ~40 of them. A 1 MB image ≈ 700 packets, which is why TCP numbers them (seq #) to put them back in order.</p>
+  <table class="tbl">
+    <tr><td></td><td><b>Says</b></td><td><b>✉️ Like</b></td></tr>
+    <tr><td>🏷️ <b>MAC</b></td><td>which network card, on <b>this</b> network. Burned in at the factory.</td><td>your name: the next hand to pass it to</td></tr>
+    <tr><td>📍 <b>IP</b></td><td>which machine, anywhere. Given by the network you join (<button type="button" class="gl-link" data-g="dhcp">DHCP</button>).</td><td>the postal address on the envelope</td></tr>
+    <tr><td>🚪 <b>Port</b></td><td>which app on that machine. 0–65535; 443 = HTTPS, 53 = DNS.</td><td>the flat number in the building</td></tr>
+  </table>
+  <ul class="lines">
+    <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP for its public one on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
+    <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
+  </ul>
+  <p class="bridge">So the IP says <b>who it's finally for</b>, the MAC says <b>who gets it next</b>, the port says <b>which app</b>. Now watch those packets move.</p>
+
 
   <h4>🎞️ One web request, packet by packet</h4>
   <p class="bridge">Now watch the three layers work together. DNS finds the server, TCP builds a connection over IP, HTTP asks for the page, and TCP tears it all down. Tap the diagram to step.</p>
@@ -1141,6 +1188,12 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 </div>
 </div>
 
+<button type="button" class="gl-fab" id="gl-open" aria-label="Open glossary">📖 Glossary</button>
+<aside class="gl" id="gl" hidden aria-label="Glossary">
+  <div class="gl-head"><button type="button" id="gl-back" hidden>←</button><b>📖 Glossary</b><button type="button" id="gl-close" aria-label="Close glossary">✕</button></div>
+  <input id="gl-q" type="search" placeholder="Search a term… (IP, port, NAT)" autocomplete="off">
+  <div class="gl-body" id="gl-body"></div>
+</aside>
 <script>
 // Follow the tracker's theme ('dsa-theme', same origin); default dark like the tracker.
 try {
@@ -1563,6 +1616,97 @@ document.querySelectorAll('.term').forEach(t => {
     host.after(box)
   }
 })
+
+// 📖 Glossary: everyday networking terms, one short note each (what · ✉️ analogy · example).
+// Written by us, not the course, so each note is marked ➕.
+const GLOSSARY = [
+  { id: 'ip', t: 'IP address', aka: 'ipv4 ipv6 address', s: 'Which machine, anywhere on the internet.',
+    an: 'The postal address on the envelope.',
+    b: '<p>A number like <code>192.168.1.23</code> (IPv4) given to each network connection. The network you join hands it out (<b>DHCP</b>), so it changes when you move from home Wi-Fi to mobile data.</p><p>It stays the same for the whole trip: routers read it to pass the packet closer, hop by hop.</p>', see: ['private', 'mac', 'dhcp'] },
+  { id: 'private', t: 'Public vs private IP', aka: 'public private 192.168 10. nat', s: 'Private works only inside your network; public works on the internet.',
+    an: 'Private = "Flat 3" (only means something inside the building). Public = the building\'s street address.',
+    b: '<ul><li>🏠 Private ranges: <code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>. Every home reuses them.</li><li>🌍 Public: unique worldwide, given by your ISP (and to big companies by an RIR). Your router holds one.</li></ul><p>The router swaps private ↔ public as traffic leaves and returns: <b>NAT</b>.</p>', see: ['nat', 'router'] },
+  { id: 'mac', t: 'MAC address', aka: 'hardware address ethernet wifi card', s: 'Which network card, on this local network only.',
+    an: 'Your name: tells the next hand who to pass it to.',
+    b: '<p>An ID burned into every network card at the factory, e.g. <code>a4:83:e7:2b:10:9c</code>. A laptop with Wi-Fi and Ethernet has two.</p><p>Only used on the local network (layer 2), so it is <b>rewritten at every hop</b>: phone → router, router → ISP router, and so on. The IP inside stays the same.</p>', see: ['arp', 'ip'] },
+  { id: 'port', t: 'Port', aka: '443 80 53 ephemeral socket', s: 'Which app on the machine gets the data.',
+    an: 'The flat number. IP gets it to the building, the port to the right flat.',
+    b: '<p>A number 0–65535 in the TCP/UDP label. Servers listen on well-known ones: <b>80</b> HTTP · <b>443</b> HTTPS · <b>53</b> DNS · <b>22</b> SSH · <b>5432</b> Postgres · <b>6379</b> Redis.</p><p>Your side gets a random temporary port (e.g. 51234), so the reply finds the right tab.</p>', see: ['tuple', 'tcp'] },
+  { id: 'packet', t: 'Packet', aka: 'segment frame mtu encapsulation', s: 'One small chunk of data with its labels; ~1,500 bytes.',
+    an: 'Envelopes inside envelopes: each layer adds its own label on the way down.',
+    b: '<p>Your data is cut into chunks. Each one gets a TCP label (ports, sequence #), then an IP label (from/to IP), then a link label (from/to MAC). The receiver opens them in reverse.</p><p>~1,500 bytes each, ~40 of them labels. 1 MB ≈ 700 packets.</p>', see: ['tcp', 'ip', 'mac'] },
+  { id: 'router', t: 'Router', aka: 'gateway hop', s: 'A box that joins networks and passes packets one hop closer.',
+    an: 'A sorting office: reads the address, sends it to the next office closer to the city.',
+    b: '<p>Your home router joins your home network to your ISP. It has a <b>private</b> IP inside (192.168.1.1) and a <b>public</b> IP outside, and does <b>NAT</b> between them. Usually it also runs <b>DHCP</b>.</p><p>Internet routers only look at the destination IP and pick the next hop; nobody plans the whole route.</p>', see: ['nat', 'dhcp'] },
+  { id: 'dhcp', t: 'DHCP', aka: 'dynamic host configuration ip assignment', s: 'Hands out an IP when a device joins a network.',
+    an: 'The front desk giving you a room number when you check in.',
+    b: '<p>When your phone joins Wi-Fi it asks "can I have an address?", and the DHCP server (usually your router) replies with an IP, the router\'s address and which DNS to use. Nobody types it in by hand.</p>', see: ['ip', 'router'] },
+  { id: 'dns', t: 'DNS', aka: 'domain name system lookup resolve', s: 'Turns a name like google.com into an IP.',
+    an: 'The phone book: name in, number out.',
+    b: '<p>Your device asks a DNS server "what is the IP of hellointerview.com?" and caches the answer for a while (its <b>TTL</b>). Runs on port 53, usually over UDP.</p>', see: ['ip', 'udp'] },
+  { id: 'nat', t: 'NAT', aka: 'network address translation', s: 'The router swaps private IPs for its one public IP.',
+    an: 'The building reception: posts every flat\'s letters under the building address, and hands replies back to the right flat.',
+    b: '<p>All devices at home share one public IP. Going out, the router rewrites the source to its public IP + a port it picks, and remembers the mapping. Replies come back to that port and get sent to the right device.</p><p>Side effect: outsiders can\'t start a connection to you, which is why video calls need STUN/TURN.</p>', see: ['private', 'router'] },
+  { id: 'arp', t: 'ARP', aka: 'address resolution protocol', s: 'Finds the MAC address that owns an IP on your network.',
+    an: 'Shouting in the hallway: "who is Flat 1?", and only Flat 1 answers.',
+    b: '<p>Your phone knows the router\'s IP (192.168.1.1) but needs its MAC to send the frame. It broadcasts "who has 192.168.1.1?" and the router replies with its MAC. The answer is cached.</p>', see: ['mac', 'ip'] },
+  { id: 'tcp', t: 'TCP', aka: 'transmission control protocol reliable', s: 'Reliable, in-order delivery over a connection.',
+    an: 'Mailing a book page by page, with page numbers and a receipt for each page.',
+    b: '<p>Starts with a 3-step handshake (SYN, SYN-ACK, ACK), numbers every chunk, resends lost ones, and puts them back in order. Ends with FIN/ACK from both sides.</p><p>Default for almost everything: HTTP/1.1, HTTP/2, databases.</p>', see: ['udp', 'handshake'] },
+  { id: 'udp', t: 'UDP', aka: 'user datagram protocol', s: 'Just sends: no connection, no checks, fast.',
+    an: 'Dropping flyers in mailboxes: quick, but some get lost and nobody checks.',
+    b: '<p>No handshake, no resend, no ordering. Used where speed beats completeness: DNS lookups, video calls, games, and QUIC (HTTP/3), which adds its own reliability on top.</p>', see: ['tcp', 'dns'] },
+  { id: 'http', t: 'HTTP', aka: 'hypertext transfer protocol request response get post', s: 'The request/response language of the web.',
+    an: 'The letter itself: "please send me /search" and the reply.',
+    b: '<p>Client sends a method + path + headers (<code>GET /search</code>); server answers with a status code + headers + body (<code>200 OK</code>). Stateless: each request carries what it needs.</p><p>1.0 closed the connection after each request; 1.1 keeps it open (keep-alive); 2 sends many at once on one connection.</p>', see: ['tls', 'keepalive'] },
+  { id: 'tls', t: 'HTTPS / TLS', aka: 'ssl encryption certificate', s: 'HTTP inside an encrypted, verified tunnel.',
+    an: 'Sealing the letter in a locked envelope that only the receiver can open.',
+    b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp'] },
+  { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
+    an: 'The postal company that picks up from your street.',
+    b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
+  { id: 'tuple', t: '5-tuple', aka: 'connection identity socket pair', s: 'The 5 values that identify one connection.',
+    an: 'Sender address + flat, receiver address + flat, and the delivery service.',
+    b: '<p>Source IP · source port · destination IP · destination port · protocol (TCP/UDP). L4 load balancers use it to keep a connection on one server.</p>', see: ['port', 'tcp'] },
+  { id: 'handshake', t: 'Handshake', aka: 'syn ack three-way', s: 'The setup messages before data can flow.',
+    an: '"Can you hear me?" "Yes, can you hear me?" "Yes." Then the call starts.',
+    b: '<p>TCP: SYN → SYN-ACK → ACK (one round trip before any data). HTTPS adds a TLS handshake on top. Every new connection pays this, which is why connections get reused.</p>', see: ['tcp', 'keepalive'] },
+  { id: 'keepalive', t: 'Keep-alive', aka: 'persistent connection reuse', s: 'Reuse one open connection for many requests.',
+    an: 'Staying on the phone for your next question instead of hanging up and redialling.',
+    b: '<p>Default in HTTP/1.1. The connection closes on <code>Connection: close</code>, an idle timeout (seconds to ~a minute), or a network drop. Requests still go one at a time per connection; HTTP/2 sends many at once.</p>', see: ['http', 'handshake'] },
+  { id: 'latency', t: 'Latency', aka: 'delay rtt round trip', s: 'How long one trip takes.',
+    an: 'How long the letter takes to arrive (not how many letters fit in the van).',
+    b: '<p>Usually measured as <b>round-trip time</b> (there and back). Nearby server &lt; 1 ms; New York ↔ London ≥ ~56 ms just from the speed of light in fiber. Every extra message (handshakes, retries) adds trips.</p>', see: ['handshake'] },
+]
+;(() => {
+  const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
+  const back = document.getElementById('gl-back')
+  const byId = Object.fromEntries(GLOSSARY.map(g => [g.id, g]))
+  const list = () => {
+    back.hidden = true; q.hidden = false
+    const words = q.value.toLowerCase().trim()
+    const hits = GLOSSARY.filter(g => !words || (g.t + ' ' + g.aka + ' ' + g.s).toLowerCase().includes(words))
+      .sort((a, b) => a.t.localeCompare(b.t))
+    body.innerHTML = ''
+    if (!hits.length) body.appendChild(el('p', 'gl-empty', 'No term yet. Ask in the thread and it gets added.'))
+    hits.forEach(g => { const b = el('button', 'gl-item', g.t); b.type = 'button'; b.appendChild(el('small', '', g.s)); b.onclick = () => show(g.id); body.appendChild(b) })
+  }
+  const show = id => {
+    const g = byId[id]; if (!g) return list()
+    back.hidden = false; q.hidden = true
+    body.innerHTML = `<div class="gl-note"><h3>${g.t}</h3><p><b>${g.s}</b></p><p class="an">✉️ ${g.an}</p>${g.b}`
+      + `<p>🔗 ${g.see.map(s => `<button type="button" class="gl-link" data-g="${s}">${byId[s].t}</button>`).join(' · ')}</p>`
+      + `<p><span class="add">➕ not in the article</span></p></div>`
+    body.scrollTop = 0
+  }
+  const open = id => { panel.hidden = false; id ? show(id) : (list(), q.focus()) }
+  document.getElementById('gl-open').onclick = () => open()
+  document.getElementById('gl-close').onclick = () => { panel.hidden = true }
+  back.onclick = list
+  q.oninput = list
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') panel.hidden = true })
+  document.addEventListener('click', e => { const t = e.target.closest('[data-g]'); if (t) { e.preventDefault(); open(t.dataset.g) } })
+})()
 
 let startView = 'topics'
 try { startView = localStorage.getItem(VIEW_KEY) || 'topics' } catch (e) {}
