@@ -210,6 +210,16 @@ details.more li { margin: 2px 0; }
 .osi .hot { border-style: solid; color: var(--text); }
 .osi .hot small { display: block; font-size: 11px; color: var(--muted); }
 .osi .l7 { background: var(--blue-bg); border-color: var(--blue-fg); } .osi .l4 { background: var(--green-bg); border-color: var(--green-fg); } .osi .l3 { background: var(--red-bg); border-color: var(--red-fg); }
+.osi.big div { grid-template-columns: 30px 1fr; align-items: start; padding: 7px 10px; }
+.osi.big div > b { font-size: 16px; padding-top: 1px; }
+.osi.big span { font-weight: 600; }
+.osi.big i { font-style: normal; font-weight: 500; color: var(--accent); margin-left: 4px; }
+.osi.big small { font-weight: 400; font-size: 13px; color: var(--text); margin-top: 3px; }
+.osi.big small.art { font-size: 12px; color: var(--muted); }
+.mnem { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.mnem span { flex: 1 1 0; min-width: 62px; text-align: center; padding: 5px 2px; border-radius: 8px; background: var(--chip); font-size: 13px; }
+.mnem b { color: var(--accent); font-size: 16px; }
+.mnem small { display: block; font-size: 10px; color: var(--muted); }
 /* Labelled blocks (HTTP anatomy) */
 .anat { margin: 6px 0 10px; display: grid; gap: 6px; }
 .anat div { border-left: 4px solid var(--c); background: var(--card); border-radius: 6px; padding: 4px 8px; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
@@ -537,16 +547,30 @@ GET  /v1/feed        → Tweet[]</pre>
 
   <h4>🧱 7 layers, 3 that matter</h4>
   <p class="bridge">Layers are abstractions. You don't need to know which voltage means <code>1</code> on the wire, only how to use the layer below. Like calling <code>open</code> instead of telling the disk how to read bytes.</p>
-  <div class="osi" role="img" aria-label="OSI layers 1 to 7, with Network 3, Transport 4 and Application 7 highlighted">
-    <div class="hot l7"><b>7</b><span>⭐ Application<small>DNS · HTTP · WebSockets · WebRTC. Built on TCP (on UDP for WebRTC)</small></span></div>
-    <div><b>6</b><span>Presentation</span></div>
-    <div><b>5</b><span>Session</span></div>
-    <div class="hot l4"><b>4</b><span>⭐ Transport<small>TCP · UDP · QUIC. Reliability, ordering, flow control on top of IP</small></span></div>
-    <div class="hot l3"><b>3</b><span>⭐ Network<small>IP: routing + addressing, splits data into packets, <button type="button" class="term" data-p="the network tries its best but promises nothing: packets can be lost, duplicated or arrive out of order.">best-effort delivery</button>. (InfiniBand too, for massive ML training)</small></span></div>
-    <div><b>2</b><span>Data Link</span></div>
-    <div><b>1</b><span>Physical</span></div>
+  <div class="mnem" role="img" aria-label="Mnemonic, layer 7 down to 1: All People Seem To Need Data Processing">
+    <span><b>A</b>ll<small>7 App</small></span><span><b>P</b>eople<small>6 Pres</small></span><span><b>S</b>eem<small>5 Sess</small></span><span><b>T</b>o<small>4 Trans</small></span><span><b>N</b>eed<small>3 Net</small></span><span><b>D</b>ata<small>2 Link</small></span><span><b>P</b>rocessing<small>1 Phys</small></span>
   </div>
-  <p class="figcap">"The important ones": 3, 4, 7. <span class="cm">💬</span> Top to bottom: <b>A</b>ll <b>P</b>eople <b>S</b>eem <b>T</b>o <b>N</b>eed <b>D</b>ata <b>P</b>rocessing.</p>
+  <p class="figcap">🧠 Top to bottom, 7 → 1. Each layer gets a nickname, its job and an everyday example <span class="add">➕ Adi's notes, not in the article</span>. ⭐ = the 3 the article says matter.</p>
+  <div class="osi big" role="img" aria-label="OSI layers 7 to 1, each with a nickname, job and example; Application 7, Transport 4 and Network 3 highlighted">
+    <div class="hot l7"><b>7</b><span>⭐ Application <i>📱 where your app lives</i>
+      <small>Browser, email client… Click Gmail → this layer uses <b>DNS · HTTP · SMTP · FTP</b> to handle the request.</small>
+      <small class="art">📘 Article: DNS · HTTP · WebSockets · WebRTC. Built on TCP (on UDP for WebRTC)</small></span></div>
+    <div class="hot"><b>6</b><span>Presentation <i>🈯 the translator</i>
+      <small>Encrypts, compresses or formats data so apps can understand it. e.g. <b>TLS / SSL</b> (the S in HTTPS) turns your data into secret code so hackers can't read it.</small></span></div>
+    <div class="hot"><b>5</b><span>Session <i>🗣️ the conversation manager</i>
+      <small>Starts, manages and ends connections between devices. e.g. Netflix drops → helps resume without starting over.</small></span></div>
+    <div class="hot l4"><b>4</b><span>⭐ Transport <i>📦 the delivery guarantee</i>
+      <small>Splits data into chunks and makes sure they arrive. Like mailing a book page by page and checking every page arrived.</small>
+      <small class="art">📘 Article: TCP · UDP · QUIC. Reliability, ordering, flow control on top of IP</small></span></div>
+    <div class="hot l3"><b>3</b><span>⭐ Network <i>🧭 the GPS</i>
+      <small>Uses IP addresses to route data across the internet. e.g. finds a fast path for your Netflix stream to reach you.</small>
+      <small class="art">📘 Article: IP: routing + addressing, splits data into packets, <button type="button" class="term" data-p="the network tries its best but promises nothing: packets can be lost, duplicated or arrive out of order.">best-effort delivery</button>. (InfiniBand too, for massive ML training)</small></span></div>
+    <div class="hot"><b>2</b><span>Data Link <i>📮 the local postman</i>
+      <small>Sends data between devices on the <b>same</b> network.</small></span></div>
+    <div class="hot"><b>1</b><span>Physical <i>🔌 the hardware</i>
+      <small>Sends raw data as electrical signals over the wire.</small></span></div>
+  </div>
+  <p class="figcap">"The important ones": 3, 4, 7.</p>
 
   <h4>🎞️ One web request, packet by packet</h4>
   <p class="bridge">Now watch the three layers work together. DNS finds the server, TCP builds a connection over IP, HTTP asks for the page, and TCP tears it all down. Tap the diagram to step.</p>
