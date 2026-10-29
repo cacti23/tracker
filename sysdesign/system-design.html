@@ -51,24 +51,100 @@ section.card[hidden] { display: none; }
 .card ul { margin: 0; padding-left: 20px; }
 .card li { margin: 2px 0; }
 .empty { color: var(--muted); font-size: 14px; }
+/* CSS diagrams: real text, so they stay readable at phone width (SVG text shrinks with the drawing) */
+.types { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; margin: 6px 0 10px; font-size: 14px; }
+.types span { padding: 8px 6px; border-radius: 99px; border: 2px dashed var(--line); color: var(--muted); }
+.types .on { border: 2px solid var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
+.types .note { grid-column: 1 / -1; border: 0; padding: 0; color: var(--text); font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 10px; }
+.grid2 > div { border: 2px solid; border-radius: 12px; padding: 10px; font-size: 13px; }
+.grid2 b { display: block; margin-bottom: 4px; font-size: 14px; }
+.grid2 ul { list-style: none; padding: 0; margin: 0; }
+.grid2 li { margin: 3px 0; }
+.grid2 li::before { content: "✗ "; color: var(--muted); }
+.k-green { background: var(--green-bg); border-color: var(--green-fg) !important; } .k-green b { color: var(--green-fg); }
+.k-blue  { background: var(--blue-bg);  border-color: var(--blue-fg) !important; }  .k-blue b  { color: var(--blue-fg); }
+.k-amber { background: var(--amber-bg); border-color: var(--amber-fg) !important; } .k-amber b { color: var(--amber-fg); }
+.k-red   { background: var(--red-bg);   border-color: var(--red-fg) !important; }   .k-red b   { color: var(--red-fg); }
+.figcap { margin: -4px 0 8px; font-size: 12px; color: var(--muted); }
+.card h4 { margin: 14px 0 2px; font-size: 15px; }
+.card .lines { list-style: none; padding-left: 0; }
+.card .lines li { margin: 4px 0; }
+.views { display: inline-flex; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.views button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--card); color: var(--muted); cursor: pointer; }
+.views button.on { background: var(--accent); color: #fff; }
+.tag.course { background: var(--purple-bg); color: var(--purple-fg); }
+.index { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 14px; }
+.index summary { cursor: pointer; font-weight: 600; }
+.index .part { margin: 12px 0 4px; font-weight: 600; }
+.index .sec { margin: 6px 0 2px; }
+.index .sec .n { display: inline-block; width: 26px; color: var(--muted); font-size: 12px; }
+.index ul { list-style: none; margin: 0; padding-left: 26px; }
+.index li { margin: 2px 0; }
+.index a { color: var(--accent); text-decoration: none; }
+.index .todo { color: var(--muted); }
+.index .cnt { font-size: 12px; color: var(--muted); }
+.lesson { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
   <h1>🏛️ System Design</h1>
-  <p>Notes from our discussions. Short, one idea per card.</p>
+  <p>Notes from our discussions. One idea per card, shown by topic or by course.</p>
 </header>
 
+<div class="views" id="views">
+  <button type="button" data-view="topics">📚 Topics</button>
+  <button type="button" data-view="courses">🎓 Courses</button>
+</div>
 <div class="chips" id="chips"></div>
 
-<!-- One <section class="card" id="sd-…" data-tag="…"> per note. data-tag drives the chips automatically. -->
+<!--
+  One <section class="card"> per note, written ONCE. It shows in both views:
+    📚 Topics  → grouped by data-topic (chips + index are built automatically)
+    🎓 Courses → cards with data-course, placed under data-lesson in the course's own order (COURSES below)
+  Example:
+    <section class="card" id="sd-cache-aside" data-topic="Caching" data-course="hi-sd" data-lesson="caching">
+  data-lesson is a lesson id from COURSES (or a section id when the section has no lessons listed yet).
+  A note that isn't from a course leaves data-course and data-lesson out.
+-->
+<details class="index" id="index" open><summary>🗂️ Index</summary><div id="index-body"></div></details>
 
-<section class="card" id="sd-start" data-tag="Start">
-  <h2 class="cap"><b>👋 Start here</b><span class="tag">Start</span></h2>
-  <p class="empty">No notes yet. Each topic we discuss lands here as its own card.</p>
+<div id="list">
+
+<section class="card" id="sd-what-sd-tests" data-topic="Interview Basics" data-course="hi-sd" data-lesson="introduction">
+  <h2 class="cap"><b>🧭 What a System Design Interview Tests</b></h2>
+  <ul class="lines">
+    <li>🧠 Vague, big problem → break it into infra pieces (services, load balancers, DBs).</li>
+    <li>🎯 Many right answers. They judge how you <b>navigate</b>, weigh <b>trade-offs</b>, and <b>communicate</b>.</li>
+    <li>📈 Rare at entry level · common at mid · the norm at senior, where it weighs heavily.</li>
+    <li>⚖️ Mid-level: cover the basics well. Senior: basics fast, then show depth in deep dives.</li>
+  </ul>
+  <h4>🗺️ 6 interview types</h4>
+  <div class="types" role="img" aria-label="Six design interview types: product and infrastructure design are in this course">
+    <span>Applied ML System</span><span>ML Infra</span>
+    <span class="on">🛍️ Product</span><span class="on">🏗️ Infrastructure</span>
+    <span class="note">✅ This course (most interviews)</span>
+    <span>Low-level (OOP)</span><span>Frontend</span>
+  </div>
+  <p class="figcap">Dashed = other guides, not this course.</p>
+  <h4>📋 Interviewer rubric</h4>
+  <p class="figcap">How candidates fail each area</p>
+  <div class="grid2">
+    <div class="k-green"><b>🧭 Problem Navigation</b><ul><li>Skip requirements</li><li>Polish trivial parts</li><li>Get stuck</li><li>No working system</li></ul></div>
+    <div class="k-blue"><b>🧩 Solution Design</b><ul><li>Weak core concepts</li><li>Ignore scale</li><li>Spaghetti design</li></ul></div>
+    <div class="k-amber"><b>⚙️ Technical Excellence</b><ul><li>Don't know the tech</li><li>Think it's still 2015</li><li>Miss common patterns</li></ul></div>
+    <div class="k-red"><b>🗣️ Communication</b><ul><li>Unclear explanations</li><li>Defensive on feedback</li><li>Lost in the weeds</li></ul></div>
+  </div>
+  <ul class="lines">
+    <li>🎤 #1 failure = no structure → follow the Delivery Framework.</li>
+    <li>🤔 "Why not X?" → answer with trade-offs, don't defend. They probe to catch memorised answers.</li>
+    <li>⏱️ Course ≈ 28 h over 2–4 months. Practice beats just reading.</li>
+  </ul>
 </section>
 
+</div>
 </div>
 
 <script>
@@ -78,21 +154,143 @@ try {
   if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t
 } catch (e) {}
 
-const cards = [...document.querySelectorAll('section.card')]
-const chips = document.getElementById('chips')
-const tags = ['All', ...new Set(cards.map(c => c.dataset.tag))]
-function filter(tag) {
-  cards.forEach(c => { c.hidden = tag !== 'All' && c.dataset.tag !== tag })
-  chips.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.textContent === tag))
+// Courses Adi is following, in the course's own order. A card points at a lesson with
+// data-course="<key>" data-lesson="<id>". Quizzes are left out: they don't produce notes.
+// Part 2 and 3 lessons get listed as Adi reaches them; until then notes hang off the section id.
+const COURSES = {
+  'hi-sd': {
+    name: '🎓 HelloInterview · System Design',
+    parts: [
+      { title: 'Part 1 · Fundamentals', sections: [
+        { n: '01', id: 'orientation', title: 'Orientation', lessons: [
+          ['introduction', 'Introduction'], ['delivery-framework', 'Delivery Framework']] },
+        { n: '02', id: 'foundations', title: 'Foundations', lessons: [
+          ['networking-essentials', 'Networking Essentials'], ['api-design', 'API Design'],
+          ['data-modeling', 'Data Modeling'], ['database-indexing', 'Database Indexing']] },
+        { n: '03', id: 'thinking-in-scale', title: 'Thinking in Scale', lessons: [
+          ['caching', 'Caching'], ['sharding', 'Sharding'], ['consistent-hashing', 'Consistent Hashing'],
+          ['cap-theorem', 'CAP Theorem'], ['numbers-to-know', 'Numbers to Know']] },
+      ] },
+      { title: 'Part 2 · The Patterns', sections: [
+        { n: '', id: 'common-patterns', title: 'Common Patterns' },
+        { n: '04', id: 'scaling-reads', title: 'Scaling Reads' },
+        { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
+        { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
+        { n: '07', id: 'dealing-with-contention', title: 'Dealing with Contention' },
+        { n: '08', id: 'multi-step-processes', title: 'Multi-step Processes' },
+        { n: '09', id: 'handling-large-blobs', title: 'Handling Large Blobs' },
+        { n: '10', id: 'managing-long-running-tasks', title: 'Managing Long Running Tasks' },
+        { n: '11', id: 'proximity-based-services', title: 'Proximity-Based Services' },
+      ] },
+      { title: 'Part 3 · Put It All Together', sections: [
+        { n: '12', id: 'final-designs', title: 'Final Designs' },
+      ] },
+    ],
+  },
 }
-tags.forEach(tag => {
-  const b = document.createElement('button')
-  b.type = 'button'
-  b.textContent = tag
-  b.onclick = () => filter(tag)
-  chips.appendChild(b)
+
+// Flatten a course into its index order: one node per lesson, or per section that has no lessons listed
+function courseNodes(course) {
+  const out = []
+  COURSES[course].parts.forEach(part => part.sections.forEach(sec => {
+    if (!sec.lessons) out.push({ id: sec.id, title: sec.title, part: part.title, sec })
+    else sec.lessons.forEach(([id, title]) => out.push({ id, title, part: part.title, sec }))
+  }))
+  return out
+}
+
+const list = document.getElementById('list')
+const cards = [...list.querySelectorAll('section.card')]
+const chips = document.getElementById('chips')
+const VIEW_KEY = 'sd-view-v1'
+
+const indexBody = document.getElementById('index-body')
+const cardTitle = c => c.querySelector('.cap b').textContent
+
+// Each card carries its topic and course lesson as tags, so you can see both in either view
+cards.forEach(c => {
+  const cap = c.querySelector('.cap')
+  const tag = (text, cls) => { const t = document.createElement('span'); t.className = 'tag' + (cls ? ' ' + cls : ''); t.textContent = text; cap.appendChild(t) }
+  if (c.dataset.topic && c.dataset.topic !== 'Start') tag(c.dataset.topic)
+  const node = COURSES[c.dataset.course] && courseNodes(c.dataset.course).find(n => n.id === c.dataset.lesson)
+  if (node) tag(`🎓 ${node.sec.n ? node.sec.n + ' · ' : ''}${node.title}`, 'course')
 })
-filter('All')
+
+function link(href, text) { const a = document.createElement('a'); a.href = href; a.textContent = text; return a }
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e }
+
+function setChips(names, onPick, current) {
+  chips.innerHTML = ''
+  names.forEach(([key, label]) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = label
+    b.classList.toggle('on', key === current)
+    b.onclick = () => onPick(key)
+    chips.appendChild(b)
+  })
+}
+
+function clearGenerated() { list.querySelectorAll('.lesson, .lesson-empty').forEach(h => h.remove()) }
+
+function showTopics(topic = 'All') {
+  clearGenerated()
+  cards.forEach(c => list.appendChild(c)) // back to page order
+  cards.forEach(c => { c.hidden = topic !== 'All' && c.dataset.topic !== topic })
+  const topics = [...new Set(cards.map(c => c.dataset.topic))]
+  setChips([['All', 'All'], ...topics.map(t => [t, t])], showTopics, topic)
+  // Index: topic → its notes
+  indexBody.innerHTML = ''
+  topics.filter(t => topic === 'All' || t === topic).forEach(t => {
+    indexBody.appendChild(el('div', 'part', t))
+    const ul = el('ul')
+    cards.filter(c => c.dataset.topic === t).forEach(c => { const li = el('li'); li.appendChild(link('#' + c.id, cardTitle(c))); ul.appendChild(li) })
+    indexBody.appendChild(ul)
+  })
+}
+
+function showCourse(course = Object.keys(COURSES)[0]) {
+  clearGenerated()
+  const mine = cards.filter(c => c.dataset.course === course)
+  cards.forEach(c => { c.hidden = !mine.includes(c) })
+  indexBody.innerHTML = ''
+  let part = null, sec = null, ul = null
+  courseNodes(course).forEach(node => {
+    const notes = mine.filter(c => c.dataset.lesson === node.id)
+    if (node.part !== part) { part = node.part; indexBody.appendChild(el('div', 'part', part)) }
+    if (node.sec !== sec) {
+      sec = node.sec
+      const row = el('div', 'sec')
+      row.appendChild(el('span', 'n', sec.n))
+      if (sec.lessons) { row.appendChild(document.createTextNode(sec.title)); ul = el('ul'); indexBody.appendChild(row); indexBody.appendChild(ul) }
+      else { ul = null; indexBody.appendChild(row) }
+    }
+    // Lesson (or lesson-less section) row: a link once it has notes, grey until then
+    const target = ul ? el('li') : indexBody.lastChild
+    if (notes.length) { target.appendChild(link('#L-' + node.id, (ul ? '✅ ' : '') + node.title)); target.appendChild(el('span', 'cnt', ` · ${notes.length}`)) }
+    else target.appendChild(el('span', 'todo', node.title))
+    if (ul) ul.appendChild(target)
+    // Body: a heading per lesson that has notes, then its notes in page order
+    if (notes.length) {
+      const h = el('h3', 'lesson', `${node.sec.n ? node.sec.n + ' · ' : ''}${node.sec.lessons ? node.sec.title + ' › ' : ''}${node.title}`)
+      h.id = 'L-' + node.id
+      list.appendChild(h)
+      notes.forEach(c => list.appendChild(c))
+    }
+  })
+  if (!mine.length) list.appendChild(el('p', 'lesson-empty empty', 'No notes from this course yet. Lessons light up in the index as notes come in.'))
+  setChips(Object.entries(COURSES).map(([k, v]) => [k, v.name]), showCourse, course)
+}
+
+function setView(view) {
+  document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.view === view))
+  view === 'courses' ? showCourse() : showTopics()
+  try { localStorage.setItem(VIEW_KEY, view) } catch (e) {}
+}
+document.querySelectorAll('#views button').forEach(b => { b.onclick = () => setView(b.dataset.view) })
+let startView = 'topics'
+try { startView = localStorage.getItem(VIEW_KEY) || 'topics' } catch (e) {}
+setView(startView)
 </script>
 <script src="../js/back-button.js"></script>
 </body>
