@@ -855,6 +855,14 @@ GET  /users/{id}/posts  → [Post] (nested =
   <p class="figcap">Trimmed from the article's query: you just list the fields and nested objects you want.</p>
   <div class="vs"><div class="good">✅ Frontend iterates fast · less data (great for mobile) · sweet spot: complex clients, many teams querying overlapping data</div><div class="bad">💸 Running the queries adds backend latency and complexity, sometimes the same bespoke code we tried to avoid</div></div>
   <p>🎤 In interviews its benefits are "murky": requirements are fixed, and the interviewer wants to see you optimise specific queries, where GraphQL "is frequently just in the way". ⭐ Bring it up when the problem is about <b>flexibility</b> (adapting apps fast to changing requirements) or the requirements are deliberately uncertain.</p>
+  <div class="take"><p><b>🤔 Why "murky" in an interview?</b> <span class="add">➕ not in the article</span></p>
+    <p>GraphQL's superpower is coping with <b>unknown future screens</b>. An interview is the opposite: a fixed list of features, decided in the first 5 minutes. For a known screen you design the exact REST endpoint and tune its query, so GraphQL adds a layer and buys nothing. ✉️ Like hiring a personal shopper when you already have the shopping list.</p>
+    <p>➡️ Mention it only when the prompt says many clients / many teams / screens that keep changing.</p></div>
+  <div class="take"><p><b>📱 Why "great for mobile" and less for web?</b> <span class="add">➕ not in the article</span></p>
+    <p>📶 <b>Slow, flaky network</b>: each round trip on 4G costs far more than on office Wi-Fi, and every extra call is one more chance to fail. One query instead of 5 calls → faster, and fewer half-loaded screens.</p>
+    <p>📦 <b>Data and battery</b>: no over-fetching, so fewer bytes on a metered plan.</p>
+    <p>🗓️ <b>Old app versions live for months</b>: a website updates on refresh, but users skip app updates. Each app version asks for just the fields it knows, so the backend can change without breaking old apps.</p>
+    <p>➡️ Web gets the same benefits, just smaller: fast network, always the latest code.</p></div>
 
   <h4>⚡ gRPC: efficient service-to-service calls</h4>
   <p class="bridge">REST and GraphQL ship JSON text. When your own services call each other constantly, text gets expensive. gRPC is Google's (the "g") <b>RPC</b> framework: HTTP/2 + <b>Protocol Buffers</b>.</p>
@@ -1685,7 +1693,16 @@ const GLOSSARY = [
     b: '<p>Both sides think they talk directly, but every message passes through the attacker (e.g. a fake Wi-Fi hotspot). TLS stops it with <b>certificates</b>: the server proves it really is google.com, so a middleman can\'t pretend to be it.</p>', see: ['tls', 'eavesdrop'] },
   { id: 'auth', t: 'Authentication vs authorization', aka: 'authn authz token jwt bearer session cookie login', s: 'Who are you? vs What are you allowed to do?',
     an: 'Authentication = the badge scan at the door. Authorization = which rooms that badge opens.',
-    b: '<ul><li>🪪 <b>Authentication</b>: at login the server issues a token (a signed JWT, or a session ID it stores). The client sends it on every request in the <code>Authorization</code> header or a cookie. The server verifies the signature, so it can\'t be forged.</li><li>🔐 <b>Authorization</b>: with the verified user, check the action: "can user 42 read order 99?"</li></ul><p>Never take "who am I" from the request body: the client can type anything there.</p>', see: ['tls', 'http'] },
+    b: '<ul><li>🪪 <b>Authentication</b>: at login the server issues a token (a signed JWT, or a session ID it stores). The client sends it on every request in the <code>Authorization</code> header or a cookie. The server verifies the signature, so it can\'t be forged.</li><li>🔐 <b>Authorization</b>: with the verified user, check the action: "can user 42 read order 99?"</li></ul><p>Never take "who am I" from the request body: the client can type anything there.</p>', see: ['jwt', 'session', 'jwtvs', 'tls'] },
+  { id: 'jwt', t: 'JWT', aka: 'json web token bearer signed token', s: 'A signed token the client carries to prove who it is.',
+    an: 'A banknote: anyone can read "₹500" on it, only the mint can print a valid one.',
+    b: '<p>Three parts: <code>header.payload.signature</code>. The payload (<code>{"userId": 42, "exp": …}</code>) is only base64, so <b>anyone can read it</b>: never put secrets in it.</p><p>The signature is made from header + payload with a <b>secret key only the server has</b>. Change 42 → 43 and the signature no longer matches, so the server rejects it. Readable, not editable.</p><p>⚠️ Bearer token: whoever holds it <i>is</i> you until it expires. HTTPS only, short expiry, store it in an HttpOnly cookie.</p>', see: ['session', 'jwtvs', 'auth'] },
+  { id: 'session', t: 'Session ID', aka: 'session cookie sid', s: 'A random string; the server looks it up to find who you are.',
+    an: 'A coat-check ticket: the number means nothing alone; the counter looks up whose coat it is.',
+    b: '<p>At login the server makes a random ID (<code>a8f3…</code>), stores <code>a8f3 → user 42</code> in Redis or the DB, and sets it as a cookie. Every request sends the cookie, and the server looks it up.</p><p>Nothing to read or forge inside it. Logging out = delete the row, effective instantly.</p>', see: ['jwt', 'jwtvs', 'auth'] },
+  { id: 'jwtvs', t: 'JWT vs session ID', aka: 'stateless stateful token comparison logout revoke', s: 'No lookup but hard to cancel vs one lookup but instant logout.',
+    an: 'Banknote (valid anywhere, can\'t be cancelled) vs coat-check ticket (the counter can cancel it any time).',
+    b: '<ul><li>🪙 <b>JWT</b>: server checks the signature, no DB lookup → easy to scale across many servers. But you can\'t revoke it before it expires (unless you add a blocklist, which is a lookup again).</li><li>🎟️ <b>Session ID</b>: one lookup per request (Redis, ~1 ms). Instant logout, ban, "log out all devices".</li></ul><p>➡️ Common mix: short-lived JWT (minutes) + a refresh token stored server-side.</p>', see: ['jwt', 'session'] },
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
