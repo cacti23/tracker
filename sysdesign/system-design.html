@@ -228,6 +228,9 @@ details.more li { margin: 2px 0; }
 .gl-note h3 { margin: 6px 0 4px; font-size: 18px; }
 .gl-note .an { padding: 6px 10px; border-radius: 8px; background: var(--amber-bg); color: var(--amber-fg); font-size: 14px; }
 .gl-note p, .gl-note li { font-size: 14px; }
+/* context chip: the same word can mean different things (stub in gRPC vs in testing) */
+.gl-ctx { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; background: var(--chip); color: var(--accent); font-size: 11px; font-weight: 600; vertical-align: 2px; }
+.gl-note pre { font-size: 12px; overflow-x: auto; }
 .gl-empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
 @media (min-width: 1000px) { .gl, .gl-fab { zoom: 1.15; } }
 /* OSI stack */
@@ -884,7 +887,7 @@ GET  /users/{id}/posts  → [Post] (nested =
     returns (GetUserResponse);
 }</pre>
   <ul class="lines">
-    <li>🛠️ Definitions compile into client and server <button type="button" class="term" data-p="generated code that looks like a local function; calling it sends the request over the network for you.">stubs</button> for many languages.</li>
+    <li>🛠️ Definitions compile into client and server <button type="button" class="gl-link" data-g="stub-rpc">stubs</button> for many languages.</li>
     <li>🧰 Built for microservices at scale: streaming, deadlines, client-side load balancing.</li>
     <li>⭐ The key fact: it's <b>binary</b>, faster and more efficient than JSON over HTTP. Strong typing catches errors at compile time. Some benchmarks show <b>10x</b> throughput.</li>
     <li>🔒 Use it for <b>internal</b> calls, when performance is critical or latency is dominated by the network, not the server's work.</li>
@@ -1694,6 +1697,9 @@ const GLOSSARY = [
   { id: 'auth', t: 'Authentication vs authorization', aka: 'authn authz token jwt bearer session cookie login', s: 'Who are you? vs What are you allowed to do?',
     an: 'Authentication = the badge scan at the door. Authorization = which rooms that badge opens.',
     b: '<ul><li>🪪 <b>Authentication</b>: at login the server issues a token (a signed JWT, or a session ID it stores). The client sends it on every request in the <code>Authorization</code> header or a cookie. The server verifies the signature, so it can\'t be forged.</li><li>🔐 <b>Authorization</b>: with the verified user, check the action: "can user 42 read order 99?"</li></ul><p>Never take "who am I" from the request body: the client can type anything there.</p>', see: ['jwt', 'session', 'jwtvs', 'tls'] },
+  { id: 'stub-rpc', t: 'Stub', ctx: 'gRPC / RPC', aka: 'client stub server stub skeleton protoc generated code', s: 'Generated code that makes a network call look like a normal function call.',
+    an: 'A TV remote: you press "Volume +", it handles the infrared signal. You never deal with the wire.',
+    b: '<p>You write the contract once in a <code>.proto</code> file:</p><pre>service UserService {\n  rpc GetUser(GetUserRequest) returns (User);\n}</pre><p>The compiler (<code>protoc</code>) generates code for each language (Go, Java, JS…):</p><ul><li>📤 <b>Client stub</b>: you call <code>client.getUser({id: 42})</code> like a local function. It packs the args into Protobuf bytes, sends them over HTTP/2, waits, and unpacks the reply.</li><li>📥 <b>Server stub</b>: receives the bytes, unpacks them, calls <b>your</b> <code>getUser</code> code, packs the result and sends it back.</li></ul><p>Both sides come from the same file, so they always agree on the shape, even across languages.</p><p>🆚 Same word, other context: in <b>testing</b>, a stub is a fake that returns canned answers (e.g. a fake payment API that always says "paid").</p>', see: ['http', 'tcp'] },
   { id: 'jwt', t: 'JWT', aka: 'json web token bearer signed token', s: 'A signed token the client carries to prove who it is.',
     an: 'A banknote: anyone can read "₹500" on it, only the mint can print a valid one.',
     b: '<p>Three parts: <code>header.payload.signature</code>. The payload (<code>{"userId": 42, "exp": …}</code>) is only base64, so <b>anyone can read it</b>: never put secrets in it.</p><p>The signature is made from header + payload with a <b>secret key only the server has</b>. Change 42 → 43 and the signature no longer matches, so the server rejects it. Readable, not editable.</p><p>⚠️ Bearer token: whoever holds it <i>is</i> you until it expires. HTTPS only, short expiry, store it in an HttpOnly cookie.</p>', see: ['session', 'jwtvs', 'auth'] },
@@ -1726,16 +1732,16 @@ const GLOSSARY = [
   const list = () => {
     back.hidden = true; q.hidden = false
     const words = q.value.toLowerCase().trim()
-    const hits = GLOSSARY.filter(g => !words || (g.t + ' ' + g.aka + ' ' + g.s).toLowerCase().includes(words))
+    const hits = GLOSSARY.filter(g => !words || (g.t + ' ' + (g.ctx || '') + ' ' + g.aka + ' ' + g.s).toLowerCase().includes(words))
       .sort((a, b) => a.t.localeCompare(b.t))
     body.innerHTML = ''
     if (!hits.length) body.appendChild(el('p', 'gl-empty', 'No term yet. Ask in the thread and it gets added.'))
-    hits.forEach(g => { const b = el('button', 'gl-item', g.t); b.type = 'button'; b.appendChild(el('small', '', g.s)); b.onclick = () => show(g.id); body.appendChild(b) })
+    hits.forEach(g => { const b = el('button', 'gl-item', g.t); b.type = 'button'; if (g.ctx) b.appendChild(el('span', 'gl-ctx', g.ctx)); b.appendChild(el('small', '', g.s)); b.onclick = () => show(g.id); body.appendChild(b) })
   }
   const show = id => {
     const g = byId[id]; if (!g) return list()
     back.hidden = false; q.hidden = true
-    body.innerHTML = `<div class="gl-note"><h3>${g.t}</h3><p><b>${g.s}</b></p><p class="an">✉️ ${g.an}</p>${g.b}`
+    body.innerHTML = `<div class="gl-note"><h3>${g.t}${g.ctx ? ` <span class="gl-ctx">${g.ctx}</span>` : ''}</h3><p><b>${g.s}</b></p><p class="an">✉️ ${g.an}</p>${g.b}`
       + `<p>🔗 ${g.see.map(s => `<button type="button" class="gl-link" data-g="${s}">${byId[s].t}</button>`).join(' · ')}</p>`
       + `<p><span class="add">➕ not in the article</span></p></div>`
     body.scrollTop = 0
