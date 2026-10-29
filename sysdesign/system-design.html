@@ -177,17 +177,22 @@ details.more li { margin: 2px 0; }
 /* 🎞️ Sequence player: lanes = actors, rows = messages, a packet travels along the newest row */
 .seq { border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 10px; margin: 6px 0 10px; background: var(--bg); }
 .seq-title { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
-.seq-lanes { display: grid; text-align: center; font-size: 11px; font-weight: 600; gap: 2px; }
+.seq-lanes { display: grid; text-align: center; font-size: 11px; font-weight: 600; gap: 2px; align-items: end; }
 .seq-lanes span { padding: 4px 2px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); line-height: 1.25; }
 .seq-body { position: relative; margin-top: 2px; cursor: pointer; }
+/* a layer lane: one solid coloured lifeline per layer (App, TCP, IP) inside a machine's stack */
+.seq-life.layer { border-left: 3px solid var(--c); margin-left: -1px; opacity: .75; }
+.seq-lanes span.band { font-size: 10px; padding: 3px 0; border-style: dashed; }
+.b-app { --c: var(--blue-fg); background: var(--blue-bg); color: var(--blue-fg); } .b-tcp { --c: var(--green-fg); background: var(--green-bg); color: var(--green-fg); } .b-ip { --c: var(--red-fg); background: var(--red-bg); color: var(--red-fg); }
 .seq-life { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line); }
 .seq-row { position: relative; height: 30px; transition: opacity .25s; }
 .seq-row.future { opacity: 0; }
-.seq-row.past { opacity: .65; }
-.seq-msg { position: absolute; top: 19px; height: 0; border-top: 2px solid var(--c, var(--accent)); }
-.seq-msg::after { content: ""; position: absolute; top: -6px; right: -2px; border: 5px solid transparent; border-left: 7px solid var(--c, var(--accent)); }
-.seq-msg.rtl::after { right: auto; left: -2px; border-left-color: transparent; border-right: 7px solid var(--c, var(--accent)); }
-.seq-msg.bi::before { content: ""; position: absolute; top: -6px; left: -2px; border: 5px solid transparent; border-right: 7px solid var(--c, var(--accent)); }
+/* past rows fade their ink, not the whole row, so lifelines never show through a label's background */
+.seq-row.past .seq-msg { opacity: .65; }
+.seq-row.past .seq-lbl, .seq-row.past .seq-self, .seq-row.past .seq-note span { color: color-mix(in srgb, var(--c, var(--muted)) 65%, var(--bg)); border-color: color-mix(in srgb, var(--c, var(--line)) 65%, var(--bg)); }
+.seq-msg { position: absolute; z-index: 2; top: 19px; height: 0; border-top: 2px solid var(--c, var(--accent)); }
+.seq-msg::after, .seq-msg.bi::before { content: ""; position: absolute; top: -7px; right: -1px; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 9px solid var(--c, var(--accent)); }
+.seq-msg.rtl::after, .seq-msg.bi::before { right: auto; left: -1px; border-left: 0; border-right: 9px solid var(--c, var(--accent)); }
 .seq-msg.dash { border-top-style: dashed; }
 .seq-lbl { position: absolute; top: 1px; transform: translateX(-50%); font-size: 12px; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--c, var(--text)); font-weight: 600; z-index: 1; }
 .seq-self { position: absolute; top: 4px; transform: translateX(-50%); font-size: 11px; white-space: nowrap; padding: 2px 8px; border-radius: 99px; border: 1.5px solid var(--c, var(--accent)); background: var(--card); color: var(--c, var(--text)); font-weight: 600; z-index: 1; }
@@ -210,6 +215,30 @@ details.more li { margin: 2px 0; }
 .osi .hot { border-style: solid; color: var(--text); }
 .osi .hot small { display: block; font-size: 11px; color: var(--muted); }
 .osi .l7 { background: var(--blue-bg); border-color: var(--blue-fg); } .osi .l4 { background: var(--green-bg); border-color: var(--green-fg); } .osi .l3 { background: var(--red-bg); border-color: var(--red-fg); }
+.osi.big div { grid-template-columns: 30px 1fr; align-items: start; padding: 7px 10px; }
+.osi.big div > b { font-size: 16px; padding-top: 1px; }
+.osi.big span { font-weight: 600; }
+.osi.big i { font-style: normal; font-weight: 500; color: var(--accent); margin-left: 4px; }
+.osi.big small { font-weight: 400; font-size: 13px; color: var(--text); margin-top: 3px; }
+.osi.big small.art { font-size: 12px; color: var(--muted); }
+.osi.big small.an { font-size: 12.5px; color: var(--amber-fg); }
+.osi.big .grp { margin: 10px 0 2px; font-size: 13px; font-weight: 700; }
+.osi.big .grp small { font-weight: 400; color: var(--muted); }
+.osi.big .grp:first-child { margin-top: 0; }
+.m74 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 6px; margin: 6px 0 10px; font-size: 12.5px; }
+.m74 span { grid-column: 1; padding: 4px 8px; border-radius: 6px; border: 1px dashed var(--line); color: var(--muted); }
+.m74 span.h { border: 0; padding: 0 2px; font-weight: 700; color: var(--text); }
+.m74 b { grid-column: 2; display: flex; flex-direction: column; justify-content: center; padding: 4px 10px; border-radius: 8px; border: 1.5px solid var(--c); background: var(--bg2, var(--card)); }
+.m74 b small { font-weight: 400; font-size: 11px; color: var(--muted); }
+.g-app { --c: var(--blue-fg); } .g-tcp { --c: var(--green-fg); } .g-ip { --c: var(--red-fg); } .g-link { --c: var(--muted); }
+.osi.big .grp.g-app, .osi.big .grp.g-tcp, .osi.big .grp.g-ip, .osi.big .grp.g-link { color: var(--c); }
+.take { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
+.take p { margin: 4px 0; }
+.take a { color: var(--accent); }
+.mnem { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.mnem span { flex: 1 1 0; min-width: 62px; text-align: center; padding: 5px 2px; border-radius: 8px; background: var(--chip); font-size: 13px; }
+.mnem b { color: var(--accent); font-size: 16px; }
+.mnem small { display: block; font-size: 10px; color: var(--muted); }
 /* Labelled blocks (HTTP anatomy) */
 .anat { margin: 6px 0 10px; display: grid; gap: 6px; }
 .anat div { border-left: 4px solid var(--c); background: var(--card); border-radius: 6px; padding: 4px 8px; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
@@ -537,16 +566,53 @@ GET  /v1/feed        → Tweet[]</pre>
 
   <h4>🧱 7 layers, 3 that matter</h4>
   <p class="bridge">Layers are abstractions. You don't need to know which voltage means <code>1</code> on the wire, only how to use the layer below. Like calling <code>open</code> instead of telling the disk how to read bytes.</p>
-  <div class="osi" role="img" aria-label="OSI layers 1 to 7, with Network 3, Transport 4 and Application 7 highlighted">
-    <div class="hot l7"><b>7</b><span>⭐ Application<small>DNS · HTTP · WebSockets · WebRTC. Built on TCP (on UDP for WebRTC)</small></span></div>
-    <div><b>6</b><span>Presentation</span></div>
-    <div><b>5</b><span>Session</span></div>
-    <div class="hot l4"><b>4</b><span>⭐ Transport<small>TCP · UDP · QUIC. Reliability, ordering, flow control on top of IP</small></span></div>
-    <div class="hot l3"><b>3</b><span>⭐ Network<small>IP: routing + addressing, splits data into packets, <button type="button" class="term" data-p="the network tries its best but promises nothing: packets can be lost, duplicated or arrive out of order.">best-effort delivery</button>. (InfiniBand too, for massive ML training)</small></span></div>
-    <div><b>2</b><span>Data Link</span></div>
-    <div><b>1</b><span>Physical</span></div>
+  <div class="mnem" role="img" aria-label="Mnemonic, layer 7 down to 1: All People Seem To Need Data Processing">
+    <span><b>A</b>ll<small>7 App</small></span><span><b>P</b>eople<small>6 Pres</small></span><span><b>S</b>eem<small>5 Sess</small></span><span><b>T</b>o<small>4 Trans</small></span><span><b>N</b>eed<small>3 Net</small></span><span><b>D</b>ata<small>2 Link</small></span><span><b>P</b>rocessing<small>1 Phys</small></span>
   </div>
-  <p class="figcap">"The important ones": 3, 4, 7. <span class="cm">💬</span> Top to bottom: <b>A</b>ll <b>P</b>eople <b>S</b>eem <b>T</b>o <b>N</b>eed <b>D</b>ata <b>P</b>rocessing.</p>
+  <p class="figcap">🧠 The OSI model, top to bottom, 7 → 1.</p>
+  <p class="bridge">OSI is the textbook's 7 layers. The real internet runs on <b>TCP/IP</b>, which squeezes them into <b>4</b>. <span class="add">➕ not in the article</span></p>
+  <div class="m74" role="img" aria-label="OSI 7, 6 and 5 are TCP/IP Application; OSI 4 is Transport; OSI 3 is Internet; OSI 2 and 1 are Network access">
+    <span class="h">📚 OSI (textbook)</span><span class="h" style="grid-column: 2; grid-row: 1">🌐 TCP/IP (real internet)</span>
+    <span>7 Application</span><b class="g-app" style="grid-row: 2 / 5">Application<small>your app does all three</small></b>
+    <span>6 Presentation</span>
+    <span>5 Session</span>
+    <span>4 Transport</span><b class="g-tcp" style="grid-row: 5">Transport</b>
+    <span>3 Network</span><b class="g-ip" style="grid-row: 6">Internet</b>
+    <span>2 Data Link</span><b class="g-link" style="grid-row: 7 / 9">Network access<small>Wi-Fi / Ethernet card + cable</small></b>
+    <span>1 Physical</span>
+  </div>
+  <p class="bridge">One analogy for the whole stack: <b>sending a letter</b> ✉️. Each layer does one job, top to bottom on the sender, bottom to top on the receiver. <span class="add">➕ Adi's notes, checked; not in the article</span></p>
+  <div class="osi big" role="img" aria-label="Each layer with its nickname, job and letter analogy, grouped into the 4 TCP/IP layers">
+    <p class="grp g-app">🟦 Application <small>= OSI 7 · 6 · 5, all inside your app</small></p>
+    <div class="hot l7"><b>7</b><span>⭐ Application <i>📱 where your app lives</i>
+      <small>The language apps speak: <b>HTTP</b> (web), <b>DNS</b> (names → IPs), <b>SMTP</b> (email), <b>FTP</b> (files). Click Gmail → it talks SMTP and HTTP.</small>
+      <small class="an">✉️ Like: <b>what the letter says</b>, in a language both sides understand.</small>
+      <small class="art">📘 Article: DNS · HTTP · WebSockets · WebRTC. Built on TCP (on UDP for WebRTC)</small></span></div>
+    <div class="hot"><b>6</b><span>Presentation <i>🈯 the translator</i>
+      <small>Gets the data into a shape both sides can read: <b>format</b> it (JSON, UTF-8), <b>shrink</b> it (gzip), <b>lock</b> it (TLS, the S in HTTPS, so hackers can't read it).</small>
+      <small class="an">✉️ Like: translating the letter, folding it small, and sealing it in a locked envelope.</small></span></div>
+    <div class="hot"><b>5</b><span>Session <i>🗣️ the conversation manager</i>
+      <small>Starts, keeps track of and ends one conversation. e.g. your <b>login session</b>: a cookie keeps you signed in across many requests.</small>
+      <small class="an">✉️ Like: a pen-pal thread: "Re: our chat", so each letter belongs to the same conversation.</small></span></div>
+    <p class="grp g-tcp">🟩 Transport <small>= OSI 4</small></p>
+    <div class="hot l4"><b>4</b><span>⭐ Transport <i>📦 the delivery guarantee</i>
+      <small>Splits data into numbered chunks and hands them to the right app by <b>port</b>. <b>TCP</b> checks every chunk arrived, in order, and resends lost ones. <b>UDP</b> skips the checks to be fast.</small>
+      <small class="an">✉️ Like: mailing a book page by page with page numbers and a receipt for each (TCP), vs dropping flyers in mailboxes (UDP). The port is the <b>flat number</b>; the IP is the building.</small>
+      <small class="art">📘 Article: TCP · UDP · QUIC. Reliability, ordering, flow control on top of IP</small></span></div>
+    <p class="grp g-ip">🟥 Internet <small>= OSI 3</small></p>
+    <div class="hot l3"><b>3</b><span>⭐ Network <i>🧭 the GPS</i>
+      <small>Writes the <b>IP address</b> on every packet. Routers pass it hop by hop, each one closer to that address: that's how your Netflix stream reaches you. No promises: packets can get lost, and TCP above fixes that.</small>
+      <small class="an">✉️ Like: the address on the envelope, and sorting offices passing it city to city.</small>
+      <small class="art">📘 Article: IP: routing + addressing, splits data into packets, <button type="button" class="term" data-p="the network tries its best but promises nothing: packets can be lost, duplicated or arrive out of order.">best-effort delivery</button>. (InfiniBand too, for massive ML training)</small></span></div>
+    <p class="grp g-link">⬛ Network access <small>= OSI 2 + 1</small></p>
+    <div class="hot"><b>2</b><span>Data Link <i>📮 the local postman</i>
+      <small>Moves data between devices on the <b>same</b> network, using <b>MAC addresses</b> (each network card's hardware ID). e.g. laptop → your Wi-Fi router.</small>
+      <small class="an">✉️ Like: the postman on your street: knows every house here, nothing about other cities.</small></span></div>
+    <div class="hot"><b>1</b><span>Physical <i>🔌 the hardware</i>
+      <small>Sends raw bits (0s and 1s) as signals: electricity in copper, light in fiber, radio waves in Wi-Fi.</small>
+      <small class="an">✉️ Like: the road and the van that physically carry the letter.</small></span></div>
+  </div>
+  <p class="figcap">"The important ones": 3, 4, 7.</p>
 
   <h4>🎞️ One web request, packet by packet</h4>
   <p class="bridge">Now watch the three layers work together. DNS finds the server, TCP builds a connection over IP, HTTP asks for the page, and TCP tears it all down. Tap the diagram to step.</p>
@@ -554,12 +620,22 @@ GET  /v1/feed        → Tweet[]</pre>
   <div class="info"><b>ℹ️ Note</b> "What happens when you type <code>hellointerview.com</code> into your browser and press enter?" used to be a popular interview question (less so in BigTech now). It's rarely part of system design, but it may save you headaches on the job.</div>
 
   <h4>🔭 3 things to take from it</h4>
-  <p class="bridge">The handshake details look esoteric, but three ideas from this one request come back all through the course.</p>
-  <ul class="lines">
-    <li>🧘 <b>Simple mental model.</b> TCP delivers data reliably and in order, and tells the app if it doesn't arrive. DNS looks up the IP, then IP and the hardware in between (your <button type="button" class="term" data-p="Internet Service Provider: the company that connects you to the internet, like your broadband or mobile carrier.">ISP</button>, backbone providers) route it. You never drive electrons to a server yourself.</li>
-    <li>⏱️ <b>Many packets = latency.</b> One request and one response, but many packets. You can ignore that… until you can't. ⭐ The <b>higher</b> in the stack, the more latency and processing. This matters for <a href="#sd-net-lb">load balancers</a>.</li>
-    <li>🧷 <b>A connection is state</b> that both sides keep. Without <button type="button" class="term" data-p="reuse one open TCP connection for many HTTP requests, instead of a new handshake each time.">HTTP keep-alive</button> or <button type="button" class="term" data-p="sending many requests and responses at the same time, interleaved over one TCP connection.">HTTP/2 multiplexing</button>, every request repeats the setup. This matters for persistent connections (🔗 Realtime Updates).</li>
-  </ul>
+  <p class="bridge">You just watched 11 messages fly for one page. Three lessons come out of that animation, and the rest of the course keeps using them.</p>
+  <div class="take">
+    <p><b>1️⃣ 🧘 You only work at the top.</b></p>
+    <p>👀 In the animation, the app said one thing: "GET the page". TCP did the handshake and the teardown on its own, and IP carried every message.</p>
+    <p>➡️ So your mental model is simple: <b>DNS</b> finds the IP, <b>TCP</b> delivers your data reliably and in order (or tells you it failed), and <b>IP</b> plus the networks in between (your <button type="button" class="term" data-p="Internet Service Provider: the company that connects you to the internet, like your broadband or mobile carrier.">ISP</button>, the backbone) route it. You never drive packets yourself.</p>
+  </div>
+  <div class="take">
+    <p><b>2️⃣ ⏱️ Every message costs time.</b></p>
+    <p>👀 One "request" was really 11 messages, and each one is a trip across the network.</p>
+    <p>➡️ You can ignore that… until you can't. ⭐ The <b>higher</b> the layer, the more work per message: reading HTTP costs more than passing bytes. That's why an L4 load balancer beats an L7 one on speed (🔗 <a href="#sd-net-lb">Load Balancing</a>).</p>
+  </div>
+  <div class="take">
+    <p><b>3️⃣ 🧷 An open connection is memory on both sides.</b></p>
+    <p>👀 Between the ACK and the FIN, both TCP layers kept a note: "this connection is open".</p>
+    <p>➡️ A new connection per request = the 3-message handshake every time. <button type="button" class="term" data-p="reuse one open TCP connection for many HTTP requests, instead of a new handshake each time.">HTTP keep-alive</button> and <button type="button" class="term" data-p="sending many requests and responses at the same time, interleaved over one TCP connection.">HTTP/2 multiplexing</button> reuse the open one instead. Flip side: a connection kept open for hours (WebSockets) is memory the server holds for hours (🔗 <a href="#sd-net-realtime">Real-time</a>).</p>
+  </div>
 
   <h4>📍 Layer 3: where IPs come from</h4>
   <p class="bridge">IP routes to addresses. So who hands them out?</p>
@@ -1247,22 +1323,26 @@ document.getElementById('copy-extractor').onclick = async e => {
 // k picks the colour (c-<k> classes). Frame 0 is the intro: caption only.
 const SEQS = {
   'web-request': {
-    lanes: ['💻 Client', '📖 DNS', '🖥️ Server'],
-    key: [['dns', 'DNS'], ['tcp', 'TCP'], ['http', 'HTTP']], keyNote: 'all of it rides on IP (layer 3)',
+    // each machine is a stack: app on the outside, then TCP, then IP next to the wire
+    lanes: ['App', 'TCP', 'IP', '📖 DNS', 'IP', 'TCP', 'App'],
+    w: [.75, .55, .55, 1.1, .55, .55, .75],
+    bands: { 0: 'app', 1: 'tcp', 2: 'ip', 4: 'ip', 5: 'tcp', 6: 'app' },
+    groups: [['💻 Client', 0, 2], ['🖥️ Server', 4, 6]],
+    key: [['dns', 'DNS'], ['tcp', 'TCP'], ['http', 'HTTP']], keyNote: 'every message goes down the sender\'s stack (app → TCP → IP) and up the receiver\'s (IP → TCP → app)',
     frames: [
-      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇' },
-      { f: 0, t: 1, m: 'hellointerview.com?', k: 'dns', cap: '① <b>DNS resolution</b>: turn the human-readable name into an IP address.' },
-      { f: 1, t: 0, m: '32.42.52.62', k: 'dns', cap: 'DNS answers with an IP address like <b>32.42.52.62</b>. Now the client knows where to go.' },
-      { f: 0, t: 2, m: 'SYN', k: 'tcp', cap: '② <b>TCP handshake</b>, 3 steps. <b>SYN</b> (synchronize): the client asks the server for a connection.' },
-      { f: 2, t: 0, m: 'SYN-ACK', k: 'tcp', cap: '<b>SYN-ACK</b> (synchronize-acknowledge): the server acknowledges the request.' },
-      { f: 0, t: 2, m: 'ACK', k: 'tcp', note: '✅ TCP connection now established', cap: '<b>ACK</b> (acknowledge): the connection is established. That\'s 5 messages so far, and not one byte of the page yet.' },
-      { f: 0, t: 2, m: 'HTTP GET', k: 'http', cap: '③ <b>HTTP request</b>: over that connection, the client sends a GET for the web page.' },
-      { at: 2, m: '⚙️ processing', k: 'http', cap: '④ <b>Server processing</b>: find the page and prepare the response. ⭐ "This is usually the only latency most SWE\'s think about and control!"' },
-      { f: 2, t: 0, m: 'HTTP Response', k: 'http', cap: '⑤ <b>HTTP response</b>: the page content comes back.' },
-      { f: 0, t: 2, m: 'FIN', k: 'tcp', cap: '⑥ <b>TCP teardown</b>, 4 steps. <b>FIN</b> (finish): the client wants to close.' },
-      { f: 2, t: 0, m: 'ACK', k: 'tcp', cap: 'The server acknowledges the client\'s FIN with an <b>ACK</b>.' },
-      { f: 2, t: 0, m: 'FIN', k: 'tcp', cap: 'The server sends its own <b>FIN</b> to close its side of the connection.' },
-      { f: 0, t: 2, m: 'ACK', k: 'tcp', note: '🔚 Connection is terminated', cap: 'The client ACKs. Done: one conceptual request took <b>11 messages</b> (2 DNS · 3 setup · 2 HTTP · 4 teardown). Each one adds latency.' },
+      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇 Both machines are stacks: the <b>app</b> (layer 7, HTTP lives here), then <b>TCP</b> (layer 4), then <b>IP</b> (layer 3) next to the wire. <span class="add">➕ layer lines not in the article</span>' },
+      { f: 0, t: 3, m: 'hellointerview.com?', k: 'dns', cap: '① <b>DNS resolution</b>: turn the human-readable name into an IP address.' },
+      { f: 3, t: 0, m: '32.42.52.62', k: 'dns', cap: 'DNS answers with an IP address like <b>32.42.52.62</b>. Now the client knows where to go.' },
+      { f: 1, t: 5, m: 'SYN', k: 'tcp', cap: '② <b>TCP handshake</b>, 3 steps, between the two <b>TCP layers</b> (the app waits). <b>SYN</b> (synchronize): the client asks the server for a connection.' },
+      { f: 5, t: 1, m: 'SYN-ACK', k: 'tcp', cap: '<b>SYN-ACK</b> (synchronize-acknowledge): the server acknowledges the request.' },
+      { f: 1, t: 5, m: 'ACK', k: 'tcp', note: '✅ TCP connection now established', cap: '<b>ACK</b> (acknowledge): the connection is established. That\'s 5 messages so far, and not one byte of the page yet.' },
+      { f: 0, t: 6, m: 'HTTP GET', k: 'http', cap: '③ <b>HTTP request</b>: now the <b>apps</b> talk. The GET goes down the client\'s stack (TCP → IP), across, and up the server\'s (IP → TCP).' },
+      { at: 6, m: '⚙️ processing', k: 'http', cap: '④ <b>Server processing</b>: find the page and prepare the response. ⭐ "This is usually the only latency most SWE\'s think about and control!"' },
+      { f: 6, t: 0, m: 'HTTP Response', k: 'http', cap: '⑤ <b>HTTP response</b>: the page content comes back, the same way in reverse.' },
+      { f: 1, t: 5, m: 'FIN', k: 'tcp', cap: '⑥ <b>TCP teardown</b>, 4 steps, TCP layer to TCP layer again. <b>FIN</b> (finish): the client wants to close.' },
+      { f: 5, t: 1, m: 'ACK', k: 'tcp', cap: 'The server acknowledges the client\'s FIN with an <b>ACK</b>.' },
+      { f: 5, t: 1, m: 'FIN', k: 'tcp', cap: 'The server sends its own <b>FIN</b> to close its side of the connection.' },
+      { f: 1, t: 5, m: 'ACK', k: 'tcp', note: '🔚 Connection is terminated', cap: 'The client ACKs. Done: one conceptual request took <b>11 messages</b> (2 DNS · 3 setup · 2 HTTP · 4 teardown). Each one adds latency.' },
     ],
   },
   'sse': {
@@ -1381,19 +1461,40 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
 function buildSeq(box) {
   const d = SEQS[box.dataset.seq]
   const n = d.lanes.length, last = d.frames.length - 1
-  const x = i => (i + 0.5) / n * 100
+  // w = relative lane widths (narrow lanes for layer bands); x(i) = centre of lane i in %
+  const w = d.w || d.lanes.map(() => 1), tot = w.reduce((a, b) => a + b, 0)
+  const start0 = i => w.slice(0, i).reduce((a, b) => a + b, 0) / tot * 100
+  const x = i => start0(i) + w[i] / tot * 50
+  const bands = d.bands || {}
   const lanes = el('div', 'seq-lanes')
-  lanes.style.gridTemplateColumns = `repeat(${n}, 1fr)`
-  d.lanes.forEach(l => lanes.appendChild(el('span', '', l)))
+  lanes.style.gridTemplateColumns = w.map(v => v + 'fr').join(' ')
+  // groups put one machine name over its layer bands; lanes outside a group take both header rows
+  const groups = d.groups || [], inGroup = i => groups.some(([, a, b]) => i >= a && i <= b)
+  groups.forEach(([t, a, b]) => { const g = el('span', '', t); g.style.gridColumn = `${a + 1} / ${b + 2}`; g.style.gridRow = '1'; lanes.appendChild(g) })
+  d.lanes.forEach((l, i) => {
+    const sp = el('span', bands[i] ? 'band b-' + bands[i] : '', l)
+    sp.style.gridColumn = String(i + 1)
+    if (groups.length) sp.style.gridRow = inGroup(i) ? '2' : '1 / 3'
+    lanes.appendChild(sp)
+  })
   const body = el('div', 'seq-body')
-  d.lanes.forEach((_, i) => { const v = el('div', 'seq-life'); v.style.left = x(i) + '%'; body.appendChild(v) })
+  d.lanes.forEach((_, i) => {
+    const v = el('div', bands[i] ? 'seq-life layer b-' + bands[i] : 'seq-life'); v.style.left = x(i) + '%'
+    if (bands[i]) v.style.background = 'none'
+    body.appendChild(v)
+  })
   const rows = []
   d.frames.forEach((fr, i) => {
     const segs = fr.r || ((fr.f != null || fr.at != null) ? [fr] : [])
     if (segs.length) {
       const row = el('div', 'seq-row'); row.dataset.i = i
       segs.forEach(s => {
-        if (s.at != null) { const b = el('span', 'seq-self c-' + s.k, s.m); b.style.left = x(s.at) + '%'; row.appendChild(b); return }
+        if (s.at != null) {
+          const b = el('span', 'seq-self c-' + s.k, s.m)
+          // pin boxes on the edge lanes to the edge so they can't spill out of the player
+          if (s.at === n - 1) Object.assign(b.style, { right: 0, transform: 'none' }); else if (s.at === 0) Object.assign(b.style, { left: 0, transform: 'none' }); else b.style.left = x(s.at) + '%'
+          row.appendChild(b); return
+        }
         const a = Math.min(s.f, s.t), b = Math.max(s.f, s.t)
         const line = el('div', `seq-msg c-${s.k}${s.t < s.f ? ' rtl' : ''}${s.bi ? ' bi' : ''}${s.dash ? ' dash' : ''}`)
         line.style.left = x(a) + '%'; line.style.width = (x(b) - x(a)) + '%'
