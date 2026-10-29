@@ -225,6 +225,7 @@ details.more li { margin: 2px 0; }
 .gl-head button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
 .gl input { margin: 0 14px 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
 .gl-body { overflow-y: auto; padding: 0 14px 20px; flex: 1; }
+section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .gl-t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
 .gl-t th, .gl-t td { border: 1px solid var(--line); padding: 5px 6px; text-align: left; vertical-align: top; }
 .gl-t th { background: var(--chip); }
@@ -1776,6 +1777,47 @@ const GLOSSARY = [
 let startView = 'topics'
 try { startView = localStorage.getItem(VIEW_KEY) || 'topics' } catch (e) {}
 setView(startView)
+
+// The URL follows the section you're reading, so a refresh or a shared link lands on the same spot.
+// Section headings get ids from their text (card id + slug), so links survive edits elsewhere on the page.
+;(() => {
+  const used = new Set([...document.querySelectorAll('[id]')].map(e => e.id))
+  cards.forEach(c => c.querySelectorAll('h4').forEach(h => {
+    if (h.id) return
+    const slug = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'part'
+    let id = `${c.id}--${slug}`, n = 2
+    while (used.has(id)) id = `${c.id}--${slug}-${n++}`
+    used.add(id); h.id = id
+  }))
+  const marks = () => [...list.querySelectorAll('section.card, section.card h4, h3.lesson')]
+    .filter(e => !e.closest('[hidden]') && e.getClientRects().length && e.getBoundingClientRect().height)
+
+  // On load: open whatever hides the target, then jump to it once layout has settled
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+  const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
+  if (target) {
+    if (target.closest('section.card')?.hidden) setView('topics')
+    for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) d.open = true
+    const jump = () => target.scrollIntoView({ block: 'start' })
+    jump(); requestAnimationFrame(jump); window.addEventListener('load', jump, { once: true })
+  }
+
+  let last = location.hash, ticking = false
+  const update = () => {
+    ticking = false
+    const line = 90 // px from the top: the heading you're reading under
+    let cur = null
+    for (const e of marks()) { if (e.getBoundingClientRect().top <= line) cur = e; else break }
+    const hash = cur ? '#' + cur.id : ''
+    if (hash === last) return
+    last = hash
+    history.replaceState(history.state, '', location.pathname + location.search + hash)
+  }
+  // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
+  let armed = false
+  for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) window.addEventListener(ev, () => { armed = true }, { once: true, passive: true })
+  window.addEventListener('scroll', () => { if (armed && !ticking) { ticking = true; requestAnimationFrame(update) } }, { passive: true })
+})()
 </script>
 <script src="../js/back-button.js"></script>
 </body>
