@@ -620,22 +620,13 @@ GET  /v1/feed        → Tweet[]</pre>
   <div class="info"><b>ℹ️ Note</b> "What happens when you type <code>hellointerview.com</code> into your browser and press enter?" used to be a popular interview question (less so in BigTech now). It's rarely part of system design, but it may save you headaches on the job.</div>
 
   <h4>🔭 3 things to take from it</h4>
-  <p class="bridge">You just watched 11 messages fly for one page. Three lessons come out of that animation, and the rest of the course keeps using them.</p>
-  <div class="take">
-    <p><b>1️⃣ 🧘 You only work at the top.</b></p>
-    <p>👀 In the animation, the app said one thing: "GET the page". TCP did the handshake and the teardown on its own, and IP carried every message.</p>
-    <p>➡️ So your mental model is simple: <b>DNS</b> finds the IP, <b>TCP</b> delivers your data reliably and in order (or tells you it failed), and <b>IP</b> plus the networks in between (your <button type="button" class="term" data-p="Internet Service Provider: the company that connects you to the internet, like your broadband or mobile carrier.">ISP</button>, the backbone) route it. You never drive packets yourself.</p>
-  </div>
-  <div class="take">
-    <p><b>2️⃣ ⏱️ Every message costs time.</b></p>
-    <p>👀 One "request" was really 11 messages, and each one is a trip across the network.</p>
-    <p>➡️ You can ignore that… until you can't. ⭐ The <b>higher</b> the layer, the more work per message: reading HTTP costs more than passing bytes. That's why an L4 load balancer beats an L7 one on speed (🔗 <a href="#sd-net-lb">Load Balancing</a>).</p>
-  </div>
-  <div class="take">
-    <p><b>3️⃣ 🧷 An open connection is memory on both sides.</b></p>
-    <p>👀 Between the ACK and the FIN, both TCP layers kept a note: "this connection is open".</p>
-    <p>➡️ A new connection per request = the 3-message handshake every time. <button type="button" class="term" data-p="reuse one open TCP connection for many HTTP requests, instead of a new handshake each time.">HTTP keep-alive</button> and <button type="button" class="term" data-p="sending many requests and responses at the same time, interleaved over one TCP connection.">HTTP/2 multiplexing</button> reuse the open one instead. Flip side: a connection kept open for hours (WebSockets) is memory the server holds for hours (🔗 <a href="#sd-net-realtime">Real-time</a>).</p>
-  </div>
+  <p class="bridge">What the animation just showed you:</p>
+  <div class="take"><p><b>1️⃣ 🧘 You only work at the top</b></p>
+    <p>👀 The app only said "GET". ➡️ DNS finds the IP, TCP delivers in order, IP (+ your <button type="button" class="term" data-p="Internet Service Provider: the company that connects you to the internet, like your broadband or mobile carrier.">ISP</button>) routes. You never touch packets.</p></div>
+  <div class="take"><p><b>2️⃣ ⏱️ Every message costs time</b></p>
+    <p>👀 1 request = 11 trips. ➡️ ⭐ Higher layer = more work per message, so an L4 load balancer beats L7 on speed (🔗 <a href="#sd-net-lb">Load Balancing</a>).</p></div>
+  <div class="take"><p><b>3️⃣ 🧷 An open connection is memory on both sides</b></p>
+    <p>👀 Between ACK and FIN, both sides remember it. ➡️ Reuse it (<button type="button" class="term" data-p="reuse one open TCP connection for many HTTP requests, instead of a new handshake each time.">keep-alive</button>, <button type="button" class="term" data-p="sending many requests and responses at the same time, interleaved over one TCP connection.">HTTP/2</button>) to skip the handshake. Hold it for hours (WebSockets) = memory for hours (🔗 <a href="#sd-net-realtime">Real-time</a>).</p></div>
 
   <h4>📍 Layer 3: where IPs come from</h4>
   <p class="bridge">IP routes to addresses. So who hands them out?</p>
