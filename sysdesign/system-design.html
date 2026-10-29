@@ -793,11 +793,11 @@ GET  /v1/feed        → Tweet[]</pre>
   <p class="figcap">You can type this by hand: open a TCP connection with <button type="button" class="term" data-p="nc on the command line. It opens a raw TCP connection, so you can type an HTTP request and see the raw response (the course admin explained this in the comments).">netcat</button> and send it.</p>
   <p class="bridge">Methods and status codes are standard, like enums. Know the common ones. Interviewers rarely dig in unless you're designing a RESTful API.</p>
   <table class="tbl">
-    <tr><td>GET</td><td>Request data. ⭐ Idempotent, no body</td></tr>
+    <tr><td>GET</td><td>Request data. ⭐ <button type="button" class="gl-link" data-g="idem">Idempotent</button>, no body</td></tr>
     <tr><td>POST</td><td>Send data</td></tr>
     <tr><td>PUT</td><td>Update data</td></tr>
     <tr><td>PATCH</td><td>Update a resource partially</td></tr>
-    <tr><td>DELETE</td><td>Delete data. ⭐ Idempotent</td></tr>
+    <tr><td>DELETE</td><td>Delete data. ⭐ <button type="button" class="gl-link" data-g="idem">Idempotent</button></td></tr>
   </table>
   <table class="tbl">
     <tr><td>✅ 2xx</td><td>200 OK · 201 Created (new resource)</td></tr>
@@ -908,9 +908,9 @@ GET  /users/{id}/posts  → [Post] (nested =
     <table class="tbl">
       <tr><td>GET</td><td>Safe + idempotent. No body, so parameters go in the URL: <code>GET /config?config_id=123</code></td></tr>
       <tr><td>POST</td><td>Not idempotent</td></tr>
-      <tr><td>PUT</td><td><b>Replaces</b> the whole resource. Idempotent</td></tr>
+      <tr><td>PUT</td><td><b>Replaces</b> the whole resource. <button type="button" class="gl-link" data-g="idem">Idempotent</button></td></tr>
       <tr><td>PATCH</td><td>Partial update. Not guaranteed idempotent</td></tr>
-      <tr><td>DELETE</td><td>Idempotent</td></tr>
+      <tr><td>DELETE</td><td><button type="button" class="gl-link" data-g="idem">Idempotent</button></td></tr>
     </table>
     <ul><li>So the article's "PUT to update a user" fits when you send the whole user. For a partial change, use PATCH.</li>
       <li>URLs that name a command (<code>updateUser</code>) are RPC-style, not REST.</li></ul>
@@ -1709,6 +1709,9 @@ const GLOSSARY = [
   { id: 'jwtvs', t: 'JWT vs session ID', aka: 'stateless stateful token comparison logout revoke', s: 'No lookup but hard to cancel vs one lookup but instant logout.',
     an: 'Banknote (valid anywhere, can\'t be cancelled) vs coat-check ticket (the counter can cancel it any time).',
     b: '<ul><li>🪙 <b>JWT</b>: server checks the signature, no DB lookup → easy to scale across many servers. But you can\'t revoke it before it expires (unless you add a blocklist, which is a lookup again).</li><li>🎟️ <b>Session ID</b>: one lookup per request (Redis, ~1 ms). Instant logout, ban, "log out all devices".</li></ul><p>➡️ Common mix: short-lived JWT (minutes) + a refresh token stored server-side.</p>', see: ['jwt', 'session'] },
+  { id: 'idem', t: 'Idempotent', aka: 'idempotency retry safe repeat get put delete post', s: 'Doing it once or 10 times leaves the same end result.',
+    an: 'A lift button: press it once or 10 times, the lift still comes once. A "buy" button pressed twice = two orders: not idempotent.',
+    b: '<ul><li>✅ <b>GET</b> /order/7: reading changes nothing.</li><li>✅ <b>PUT</b> balance = 100: set it twice, still 100.</li><li>✅ <b>DELETE</b> /order/7: gone stays gone (the 2nd reply may be 404, but the end state is the same).</li><li>❌ <b>POST</b> /orders: each call creates a new order → duplicates.</li><li>❌ "add 100 to balance": twice = +200.</li></ul><p>🔁 <b>Why it matters: retries.</b> A request times out and you don\'t know if it worked. Idempotent → just retry. Not idempotent (payments) → send an <b>idempotency key</b> so the server spots the repeat and returns the first result.</p>', see: ['http', 'latency'] },
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
