@@ -263,6 +263,8 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .m74 b small { font-weight: 400; font-size: 11px; color: var(--muted); }
 .g-app { --c: var(--blue-fg); } .g-tcp { --c: var(--green-fg); } .g-ip { --c: var(--red-fg); } .g-link { --c: var(--muted); }
 .osi.big .grp.g-app, .osi.big .grp.g-tcp, .osi.big .grp.g-ip, .osi.big .grp.g-link { color: var(--c); }
+.ana { margin: 6px 0 10px; padding: 7px 11px; border-radius: 10px; background: var(--amber-bg); color: var(--amber-fg); font-size: 14px; }
+.ana .add { color: inherit; opacity: .8; }
 .take { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
 .take p { margin: 4px 0; }
 .take a { color: var(--accent); }
@@ -1004,6 +1006,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 <section class="card" id="sd-net-lb" data-topic="Networking" data-course="hi-sd" data-lesson="networking-essentials">
   <h2 class="cap"><b>⚖️ Load Balancing</b></h2>
   <p class="hook">We know how one client talks to one server. But one server won't hold, so we scale. The moment there are three servers, every client has the same question: <b>which one do I talk to?</b></p>
+  <p class="ana">🍽️ <b>Think of a busy restaurant.</b> One chef can't cook for the whole street, so you hire more chefs. Now every diner walking in asks: <b>which chef cooks for me?</b> This whole card is that question. <span class="add">➕ analogy not in the article</span></p>
   <p class="tldr">💡 Horizontal scaling needs load balancing. Internal services: <b>client-side</b> (built into gRPC). Everything else: a <b>dedicated LB</b>. ⭐ <b>L4</b> for WebSockets, <b>L7</b> for HTTP.</p>
 
   <h4>📈 Bigger servers or more servers</h4>
@@ -1012,15 +1015,18 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <div class="r"><span class="lbl">➡️ Horizontal scaling</span><span class="bx">Server</span><span class="ar">→ Scale To →</span><span class="stack"><span class="bx">Server 1</span><span class="bx">Server 2</span><span class="bx">Server 3</span></span></div>
   </div>
   <p>🧑‍🏫 The author scales <b>vertically</b> wherever possible: modern hardware is incredibly powerful, and the days of thousands of tiny servers are over (🔗 Numbers to Know). ⭐ But in <b>interviews</b>, horizontal scaling is the most common pattern.</p>
+  <p class="ana">🍽️ <b>Vertical</b> = give your one chef a bigger stove. <b>Horizontal</b> = hire more chefs. A bigger stove has a ceiling, and if that chef gets sick, nobody eats. <span class="add">➕ analogy not in the article</span></p>
   <p class="bridge">Adding boxes to the whiteboard doesn't help if clients don't know which one to call.</p>
   <div class="dg"><div class="r"><span class="bx">💻 Client</span><span class="ar">→ ❓</span><span class="stack"><span class="bx">Server1</span><span class="bx">Server2</span><span class="bx">Server3</span></span></div></div>
   <p>Spread the load by deciding which server handles each request. Two ways: decide on the <b>client side</b>, or on the <b>server side</b> with a dedicated load balancer.</p>
 
   <h4>🧭 Client-side: the client picks</h4>
   <p class="bridge">The client asks a service registry (directory) for the list of servers, then calls one directly. It polls, or gets pushed updates when servers are added or removed.</p>
+  <p class="ana">🍽️ Diners look at a <b>board of free chefs</b> by the door (the registry) and walk straight to one. No one stands in the way, so it's fast. But if the board is old, a diner may walk to a chef who just went home. <span class="add">➕ analogy not in the article</span></p>
   <p>⚡ Very fast: no extra network hop on every request, just a periodic sync of the server list. Two examples:</p>
   <div class="seq" data-seq="redis"></div>
   <p>📖 <b>DNS</b> is client-side load balancing too. Each lookup of <code>example.com</code> returns a rotated list of IPs (a different order, or even a different set), so different clients hit different servers.</p>
+  <p class="ana">📖 DNS is a <b>phone book</b> that lists the restaurant's numbers in a different order for each caller, so calls spread out. The catch: people keep the old page for a while (the TTL). <span class="add">➕ analogy not in the article</span></p>
   <div class="info"><b>ℹ️ Note</b> DNS rotation is also how you avoid a single point of failure in the load balancer itself: run <b>two</b> LBs (in different data centers or regions, to be safe) and rotate between them in DNS. If one goes down, clients start trying the other.</div>
   <p class="bridge">So when does client-side work? It depends on how many clients must hear about changes, and how fast.</p>
   <div class="tree" role="img" aria-label="Decision tree for client-side load balancing">
@@ -1039,6 +1045,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 
   <h4>🚦 Dedicated load balancers</h4>
   <p class="bridge">For everything else: clients you don't control, clients that must see changes quickly, or clients that shouldn't even know there are many servers. Put a server or hardware device in the middle.</p>
+  <p class="ana">🍽️ A <b>host at the door</b>. Every diner stops there first (the extra hop), and the host seats them. Diners never see the kitchen, and the host knows right away when a chef leaves or joins. <span class="add">➕ analogy not in the article</span></p>
   <div class="dg"><div class="r"><span class="bx">💻 Client</span><span class="ar">→</span><span class="bx">⚖️ Load Balancer</span><span class="ar" style="--c: var(--accent)">→</span><span class="stack"><span class="bx">Server1</span><span class="bx">Server2</span><span class="bx" style="border-color: var(--accent)">Server3 ✓</span></span></div></div>
   <p class="figcap">"Load balancer decides which server to route to."</p>
   <div class="vs"><div class="bad">💸 One extra hop on every request</div><div class="good">✅ Very fast updates to the server list + fine-grained routing control</div></div>
@@ -1052,6 +1059,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <li>🙈 Can't route on application data.</li>
     <li>🎯 Used when raw performance is the priority, and for WebSockets and anything that needs a <b>persistent connection</b>. "If you're using websockets in your interview, you probably want an L4 load balancer."</li>
   </ul>
+  <p class="ana">☎️ L4 is a <b>phone switchboard</b>: it connects your call to one line and steps away. It never listens to what you say, so it can't route on it, but it's fast. A WebSocket is a <b>long phone call</b>: connect once, then talk for hours. That's exactly what a switchboard is for. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>7️⃣ Layer 7: reads every request</h4>
   <div class="seq" data-seq="l7"></div>
@@ -1062,6 +1070,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <li>🧰 More flexibility and features. Best for HTTP traffic: every protocol here <b>except WebSockets</b>.</li>
     <li>⚠️ It hides TCP details, but for persistent connections to the <b>same</b> server you still can't ignore the connection.</li>
   </ul>
+  <p class="ana">📨 L7 is a <b>receptionist who opens every letter</b>: "billing? → desk 3, support? → desk 5". Smart routing by what's inside, but reading costs time (CPU). For a long phone call there's nothing to read, so the receptionist just holds two lines open for hours. <span class="add">➕ analogy not in the article</span></p>
   <table class="tbl">
     <tr><td></td><td><b>4️⃣ L4</b></td><td><b>7️⃣ L7</b></td></tr>
     <tr><td>Looks at</td><td>IP + port</td><td>URL, headers, cookies</td></tr>
@@ -1071,12 +1080,14 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <tr><td>AWS</td><td>NLB</td><td>ALB</td></tr>
   </table>
   <div class="info"><b>ℹ️ Note</b> L4 vs L7 often comes up when discussing <b>real-time</b> features. Some L7 LBs explicitly support WebSockets, but generally L4 is better for WebSocket connections, while L7 offers more flexibility for HTTP-based solutions like long polling.</div>
+  <div class="take"><p><b>☎️ So: switchboard or receptionist?</b> <span class="add">➕ not in the article</span></p><p>👀 Ask: does the LB need to <b>read</b> the request to decide? ➡️ No (WebSockets, raw speed) → <b>L4</b>. Yes (route by path, header, cookie) → <b>L7</b>.</p></div>
 
   <h4>🩺 Health checks: route around failures</h4>
   <p class="bridge">Balancing is half the job. The LB also watches its servers, and that automatic failover is what makes LBs essential for <b>high availability</b>, with no human needed.</p>
   <div class="flow"><span>⚖️ LB checks each server on an interval</span><i>→</i><span class="ok">✅ healthy: keep routing</span></div>
   <div class="flow"><span>💥 lost power / crashed</span><i>→</i><span class="no">❌ stop routing until it recovers</span></div>
   <div class="vs"><div class="good">🔌 <b>TCP check</b>: is it accepting new connections? Simple and efficient.</div><div class="good">🌐 <b>L7 check</b>: HTTP request → 200 = healthy. 500 = internal failure, no response = crash.</div></div>
+  <p class="ana">🍽️ The host <b>peeks into each kitchen</b> every few seconds. <b>TCP check</b> = "is the kitchen door open?" <b>L7 check</b> = "can you actually cook a dish?" Chef down → stop seating diners there until they're back. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🎲 Algorithms</h4>
   <p class="bridge">A dedicated LB also lets you choose how traffic is spread.</p>
@@ -1087,6 +1098,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <tr><td>⏱️ Least Response Time</td><td>Server with the fastest response time</td></tr>
     <tr><td>#️⃣ IP Hash</td><td>Client IP picks the server (session persistence)</td></tr>
   </table>
+  <p class="ana">🃏 <b>Round robin</b> = dealing cards: one each, in turn. <b>Least connections</b> = joining the <b>shortest checkout queue</b> at the supermarket. <b>IP hash</b> = your <b>regular waiter</b>: same face every visit. <span class="add">➕ analogy not in the article</span></p>
   <ul class="lines">
     <li>⭐ Round robin or random suit <b>stateless</b> apps where no server is more popular. A new server starts getting traffic with no special config.</li>
     <li>⭐ Persistent connections (SSE, WebSockets) → <b>Least Connections</b>, so one server doesn't slowly collect all the active connections.</li>
@@ -1104,6 +1116,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
     <h5>🔌 Why L4 for WebSockets? The big thread (course admin)</h5>
+    <p class="ana">☎️ Not "because it's TCP": HTTP runs on TCP too, and HTTP goes to L7. The reason: a WebSocket is <b>one long phone call</b>, not many letters. The switchboard (L4) connects it once and steps away. A receptionist (L7) would have nothing to read, yet hold two lines open for hours. <span class="add">➕ analogy not in the article</span></p>
     <ul>
       <li>"Think about load balancers from a hardware perspective." L4 reads fixed offsets in a packet → higher throughput, and it keeps <b>1:1</b> client ↔ server connections.</li>
       <li>A WebSocket is a thin layer over TCP. You only need the <b>connections</b> balanced, so there's no reason to touch the app layer and pay for it.</li>
