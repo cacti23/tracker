@@ -180,14 +180,16 @@ details.more li { margin: 2px 0; }
 .seq-lanes { display: grid; text-align: center; font-size: 11px; font-weight: 600; gap: 2px; align-items: end; }
 .seq-lanes span { padding: 4px 2px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); line-height: 1.25; }
 .seq-body { position: relative; margin-top: 2px; cursor: pointer; }
-/* a layer band: the tinted column of one layer (TCP, IP) inside a machine's stack */
-.seq-band { position: absolute; top: 0; bottom: 0; border: 1px dashed var(--line); border-top: 0; border-bottom: 0; }
+/* a layer lane: one solid coloured lifeline per layer (App, TCP, IP) inside a machine's stack */
+.seq-life.layer { border-left: 3px solid var(--c); margin-left: -1px; opacity: .75; }
 .seq-lanes span.band { font-size: 10px; padding: 3px 0; border-style: dashed; }
-.b-app { background: var(--blue-bg); color: var(--blue-fg); } .b-tcp { background: var(--green-bg); color: var(--green-fg); } .b-ip { background: var(--red-bg); color: var(--red-fg); }
+.b-app { --c: var(--blue-fg); background: var(--blue-bg); color: var(--blue-fg); } .b-tcp { --c: var(--green-fg); background: var(--green-bg); color: var(--green-fg); } .b-ip { --c: var(--red-fg); background: var(--red-bg); color: var(--red-fg); }
 .seq-life { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line); }
 .seq-row { position: relative; height: 30px; transition: opacity .25s; }
 .seq-row.future { opacity: 0; }
-.seq-row.past { opacity: .65; }
+/* past rows fade their ink, not the whole row, so lifelines never show through a label's background */
+.seq-row.past .seq-msg { opacity: .65; }
+.seq-row.past .seq-lbl, .seq-row.past .seq-self, .seq-row.past .seq-note span { color: color-mix(in srgb, var(--c, var(--muted)) 65%, var(--bg)); border-color: color-mix(in srgb, var(--c, var(--line)) 65%, var(--bg)); }
 .seq-msg { position: absolute; z-index: 2; top: 19px; height: 0; border-top: 2px solid var(--c, var(--accent)); }
 .seq-msg::after, .seq-msg.bi::before { content: ""; position: absolute; top: -7px; right: -1px; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 9px solid var(--c, var(--accent)); }
 .seq-msg.rtl::after, .seq-msg.bi::before { right: auto; left: -1px; border-left: 0; border-right: 9px solid var(--c, var(--accent)); }
@@ -1296,12 +1298,12 @@ const SEQS = {
   'web-request': {
     // each machine is a stack: app on the outside, then TCP, then IP next to the wire
     lanes: ['App', 'TCP', 'IP', '📖 DNS', 'IP', 'TCP', 'App'],
-    w: [.9, .55, .55, 1.1, .55, .55, .9],
+    w: [.75, .55, .55, 1.1, .55, .55, .75],
     bands: { 0: 'app', 1: 'tcp', 2: 'ip', 4: 'ip', 5: 'tcp', 6: 'app' },
     groups: [['💻 Client', 0, 2], ['🖥️ Server', 4, 6]],
     key: [['dns', 'DNS'], ['tcp', 'TCP'], ['http', 'HTTP']], keyNote: 'every message goes down the sender\'s stack (app → TCP → IP) and up the receiver\'s (IP → TCP → app)',
     frames: [
-      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇 Both machines are stacks: the <b>app</b> (layer 7, HTTP lives here), then <b>TCP</b> (layer 4), then <b>IP</b> (layer 3) next to the wire. <span class="add">➕ layer bands not in the article</span>' },
+      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇 Both machines are stacks: the <b>app</b> (layer 7, HTTP lives here), then <b>TCP</b> (layer 4), then <b>IP</b> (layer 3) next to the wire. <span class="add">➕ layer lines not in the article</span>' },
       { f: 0, t: 3, m: 'hellointerview.com?', k: 'dns', cap: '① <b>DNS resolution</b>: turn the human-readable name into an IP address.' },
       { f: 3, t: 0, m: '32.42.52.62', k: 'dns', cap: 'DNS answers with an IP address like <b>32.42.52.62</b>. Now the client knows where to go.' },
       { f: 1, t: 5, m: 'SYN', k: 'tcp', cap: '② <b>TCP handshake</b>, 3 steps, between the two <b>TCP layers</b> (the app waits). <b>SYN</b> (synchronize): the client asks the server for a connection.' },
@@ -1450,8 +1452,9 @@ function buildSeq(box) {
   })
   const body = el('div', 'seq-body')
   d.lanes.forEach((_, i) => {
-    if (bands[i]) { const bd = el('div', 'seq-band b-' + bands[i]); bd.style.left = start0(i) + '%'; bd.style.width = w[i] / tot * 100 + '%'; body.appendChild(bd); return }
-    const v = el('div', 'seq-life'); v.style.left = x(i) + '%'; body.appendChild(v)
+    const v = el('div', bands[i] ? 'seq-life layer b-' + bands[i] : 'seq-life'); v.style.left = x(i) + '%'
+    if (bands[i]) v.style.background = 'none'
+    body.appendChild(v)
   })
   const rows = []
   d.frames.forEach((fr, i) => {
