@@ -177,17 +177,20 @@ details.more li { margin: 2px 0; }
 /* 🎞️ Sequence player: lanes = actors, rows = messages, a packet travels along the newest row */
 .seq { border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 10px; margin: 6px 0 10px; background: var(--bg); }
 .seq-title { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
-.seq-lanes { display: grid; text-align: center; font-size: 11px; font-weight: 600; gap: 2px; }
+.seq-lanes { display: grid; text-align: center; font-size: 11px; font-weight: 600; gap: 2px; align-items: end; }
 .seq-lanes span { padding: 4px 2px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); line-height: 1.25; }
 .seq-body { position: relative; margin-top: 2px; cursor: pointer; }
+/* a layer band: the tinted column of one layer (TCP, IP) inside a machine's stack */
+.seq-band { position: absolute; top: 0; bottom: 0; border: 1px dashed var(--line); border-top: 0; border-bottom: 0; }
+.seq-lanes span.band { font-size: 10px; padding: 3px 0; border-style: dashed; }
+.b-tcp { background: var(--green-bg); color: var(--green-fg); } .b-ip { background: var(--red-bg); color: var(--red-fg); }
 .seq-life { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line); }
 .seq-row { position: relative; height: 30px; transition: opacity .25s; }
 .seq-row.future { opacity: 0; }
 .seq-row.past { opacity: .65; }
-.seq-msg { position: absolute; top: 19px; height: 0; border-top: 2px solid var(--c, var(--accent)); }
-.seq-msg::after { content: ""; position: absolute; top: -6px; right: -2px; border: 5px solid transparent; border-left: 7px solid var(--c, var(--accent)); }
-.seq-msg.rtl::after { right: auto; left: -2px; border-left-color: transparent; border-right: 7px solid var(--c, var(--accent)); }
-.seq-msg.bi::before { content: ""; position: absolute; top: -6px; left: -2px; border: 5px solid transparent; border-right: 7px solid var(--c, var(--accent)); }
+.seq-msg { position: absolute; z-index: 2; top: 19px; height: 0; border-top: 2px solid var(--c, var(--accent)); }
+.seq-msg::after, .seq-msg.bi::before { content: ""; position: absolute; top: -7px; right: -1px; width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 9px solid var(--c, var(--accent)); }
+.seq-msg.rtl::after, .seq-msg.bi::before { right: auto; left: -1px; border-left: 0; border-right: 9px solid var(--c, var(--accent)); }
 .seq-msg.dash { border-top-style: dashed; }
 .seq-lbl { position: absolute; top: 1px; transform: translateX(-50%); font-size: 12px; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--c, var(--text)); font-weight: 600; z-index: 1; }
 .seq-self { position: absolute; top: 4px; transform: translateX(-50%); font-size: 11px; white-space: nowrap; padding: 2px 8px; border-radius: 99px; border: 1.5px solid var(--c, var(--accent)); background: var(--card); color: var(--c, var(--text)); font-weight: 600; z-index: 1; }
@@ -1271,22 +1274,25 @@ document.getElementById('copy-extractor').onclick = async e => {
 // k picks the colour (c-<k> classes). Frame 0 is the intro: caption only.
 const SEQS = {
   'web-request': {
-    lanes: ['💻 Client', '📖 DNS', '🖥️ Server'],
-    key: [['dns', 'DNS'], ['tcp', 'TCP'], ['http', 'HTTP']], keyNote: 'all of it rides on IP (layer 3)',
+    // each machine is a stack: app on the outside, then TCP, then IP next to the wire
+    lanes: ['💻 Client app', 'TCP', 'IP', '📖 DNS', 'IP', 'TCP', '🖥️ Server app'],
+    w: [1.35, .55, .55, 1.1, .55, .55, 1.35],
+    bands: { 1: 'tcp', 2: 'ip', 4: 'ip', 5: 'tcp' },
+    key: [['dns', 'DNS'], ['tcp', 'TCP'], ['http', 'HTTP']], keyNote: 'every message goes down the sender\'s stack (app → TCP → IP) and up the receiver\'s (IP → TCP → app)',
     frames: [
-      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇' },
-      { f: 0, t: 1, m: 'hellointerview.com?', k: 'dns', cap: '① <b>DNS resolution</b>: turn the human-readable name into an IP address.' },
-      { f: 1, t: 0, m: '32.42.52.62', k: 'dns', cap: 'DNS answers with an IP address like <b>32.42.52.62</b>. Now the client knows where to go.' },
-      { f: 0, t: 2, m: 'SYN', k: 'tcp', cap: '② <b>TCP handshake</b>, 3 steps. <b>SYN</b> (synchronize): the client asks the server for a connection.' },
-      { f: 2, t: 0, m: 'SYN-ACK', k: 'tcp', cap: '<b>SYN-ACK</b> (synchronize-acknowledge): the server acknowledges the request.' },
-      { f: 0, t: 2, m: 'ACK', k: 'tcp', note: '✅ TCP connection now established', cap: '<b>ACK</b> (acknowledge): the connection is established. That\'s 5 messages so far, and not one byte of the page yet.' },
-      { f: 0, t: 2, m: 'HTTP GET', k: 'http', cap: '③ <b>HTTP request</b>: over that connection, the client sends a GET for the web page.' },
-      { at: 2, m: '⚙️ processing', k: 'http', cap: '④ <b>Server processing</b>: find the page and prepare the response. ⭐ "This is usually the only latency most SWE\'s think about and control!"' },
-      { f: 2, t: 0, m: 'HTTP Response', k: 'http', cap: '⑤ <b>HTTP response</b>: the page content comes back.' },
-      { f: 0, t: 2, m: 'FIN', k: 'tcp', cap: '⑥ <b>TCP teardown</b>, 4 steps. <b>FIN</b> (finish): the client wants to close.' },
-      { f: 2, t: 0, m: 'ACK', k: 'tcp', cap: 'The server acknowledges the client\'s FIN with an <b>ACK</b>.' },
-      { f: 2, t: 0, m: 'FIN', k: 'tcp', cap: 'The server sends its own <b>FIN</b> to close its side of the connection.' },
-      { f: 0, t: 2, m: 'ACK', k: 'tcp', note: '🔚 Connection is terminated', cap: 'The client ACKs. Done: one conceptual request took <b>11 messages</b> (2 DNS · 3 setup · 2 HTTP · 4 teardown). Each one adds latency.' },
+      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇 Both machines are stacks: the app on top, then <b>TCP</b> (layer 4), then <b>IP</b> (layer 3) next to the wire. <span class="add">➕ layer bands not in the article</span>' },
+      { f: 0, t: 3, m: 'hellointerview.com?', k: 'dns', cap: '① <b>DNS resolution</b>: turn the human-readable name into an IP address.' },
+      { f: 3, t: 0, m: '32.42.52.62', k: 'dns', cap: 'DNS answers with an IP address like <b>32.42.52.62</b>. Now the client knows where to go.' },
+      { f: 1, t: 5, m: 'SYN', k: 'tcp', cap: '② <b>TCP handshake</b>, 3 steps, between the two <b>TCP layers</b> (the app waits). <b>SYN</b> (synchronize): the client asks the server for a connection.' },
+      { f: 5, t: 1, m: 'SYN-ACK', k: 'tcp', cap: '<b>SYN-ACK</b> (synchronize-acknowledge): the server acknowledges the request.' },
+      { f: 1, t: 5, m: 'ACK', k: 'tcp', note: '✅ TCP connection now established', cap: '<b>ACK</b> (acknowledge): the connection is established. That\'s 5 messages so far, and not one byte of the page yet.' },
+      { f: 0, t: 6, m: 'HTTP GET', k: 'http', cap: '③ <b>HTTP request</b>: now the <b>apps</b> talk. The GET goes down the client\'s stack (TCP → IP), across, and up the server\'s (IP → TCP).' },
+      { at: 6, m: '⚙️ processing', k: 'http', cap: '④ <b>Server processing</b>: find the page and prepare the response. ⭐ "This is usually the only latency most SWE\'s think about and control!"' },
+      { f: 6, t: 0, m: 'HTTP Response', k: 'http', cap: '⑤ <b>HTTP response</b>: the page content comes back, the same way in reverse.' },
+      { f: 1, t: 5, m: 'FIN', k: 'tcp', cap: '⑥ <b>TCP teardown</b>, 4 steps, TCP layer to TCP layer again. <b>FIN</b> (finish): the client wants to close.' },
+      { f: 5, t: 1, m: 'ACK', k: 'tcp', cap: 'The server acknowledges the client\'s FIN with an <b>ACK</b>.' },
+      { f: 5, t: 1, m: 'FIN', k: 'tcp', cap: 'The server sends its own <b>FIN</b> to close its side of the connection.' },
+      { f: 1, t: 5, m: 'ACK', k: 'tcp', note: '🔚 Connection is terminated', cap: 'The client ACKs. Done: one conceptual request took <b>11 messages</b> (2 DNS · 3 setup · 2 HTTP · 4 teardown). Each one adds latency.' },
     ],
   },
   'sse': {
@@ -1405,19 +1411,31 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
 function buildSeq(box) {
   const d = SEQS[box.dataset.seq]
   const n = d.lanes.length, last = d.frames.length - 1
-  const x = i => (i + 0.5) / n * 100
+  // w = relative lane widths (narrow lanes for layer bands); x(i) = centre of lane i in %
+  const w = d.w || d.lanes.map(() => 1), tot = w.reduce((a, b) => a + b, 0)
+  const start0 = i => w.slice(0, i).reduce((a, b) => a + b, 0) / tot * 100
+  const x = i => start0(i) + w[i] / tot * 50
+  const bands = d.bands || {}
   const lanes = el('div', 'seq-lanes')
-  lanes.style.gridTemplateColumns = `repeat(${n}, 1fr)`
-  d.lanes.forEach(l => lanes.appendChild(el('span', '', l)))
+  lanes.style.gridTemplateColumns = w.map(v => v + 'fr').join(' ')
+  d.lanes.forEach((l, i) => lanes.appendChild(el('span', bands[i] ? 'band b-' + bands[i] : '', l)))
   const body = el('div', 'seq-body')
-  d.lanes.forEach((_, i) => { const v = el('div', 'seq-life'); v.style.left = x(i) + '%'; body.appendChild(v) })
+  d.lanes.forEach((_, i) => {
+    if (bands[i]) { const bd = el('div', 'seq-band b-' + bands[i]); bd.style.left = start0(i) + '%'; bd.style.width = w[i] / tot * 100 + '%'; body.appendChild(bd); return }
+    const v = el('div', 'seq-life'); v.style.left = x(i) + '%'; body.appendChild(v)
+  })
   const rows = []
   d.frames.forEach((fr, i) => {
     const segs = fr.r || ((fr.f != null || fr.at != null) ? [fr] : [])
     if (segs.length) {
       const row = el('div', 'seq-row'); row.dataset.i = i
       segs.forEach(s => {
-        if (s.at != null) { const b = el('span', 'seq-self c-' + s.k, s.m); b.style.left = x(s.at) + '%'; row.appendChild(b); return }
+        if (s.at != null) {
+          const b = el('span', 'seq-self c-' + s.k, s.m)
+          // pin boxes on the edge lanes to the edge so they can't spill out of the player
+          if (s.at === n - 1) Object.assign(b.style, { right: 0, transform: 'none' }); else if (s.at === 0) Object.assign(b.style, { left: 0, transform: 'none' }); else b.style.left = x(s.at) + '%'
+          row.appendChild(b); return
+        }
         const a = Math.min(s.f, s.t), b = Math.max(s.f, s.t)
         const line = el('div', `seq-msg c-${s.k}${s.t < s.f ? ' rtl' : ''}${s.bi ? ' bi' : ''}${s.dash ? ' dash' : ''}`)
         line.style.left = x(a) + '%'; line.style.width = (x(b) - x(a)) + '%'
