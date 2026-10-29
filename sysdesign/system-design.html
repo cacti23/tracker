@@ -183,7 +183,7 @@ details.more li { margin: 2px 0; }
 /* a layer band: the tinted column of one layer (TCP, IP) inside a machine's stack */
 .seq-band { position: absolute; top: 0; bottom: 0; border: 1px dashed var(--line); border-top: 0; border-bottom: 0; }
 .seq-lanes span.band { font-size: 10px; padding: 3px 0; border-style: dashed; }
-.b-tcp { background: var(--green-bg); color: var(--green-fg); } .b-ip { background: var(--red-bg); color: var(--red-fg); }
+.b-app { background: var(--blue-bg); color: var(--blue-fg); } .b-tcp { background: var(--green-bg); color: var(--green-fg); } .b-ip { background: var(--red-bg); color: var(--red-fg); }
 .seq-life { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--line); }
 .seq-row { position: relative; height: 30px; transition: opacity .25s; }
 .seq-row.future { opacity: 0; }
@@ -1282,12 +1282,13 @@ document.getElementById('copy-extractor').onclick = async e => {
 const SEQS = {
   'web-request': {
     // each machine is a stack: app on the outside, then TCP, then IP next to the wire
-    lanes: ['💻 Client app', 'TCP', 'IP', '📖 DNS', 'IP', 'TCP', '🖥️ Server app'],
-    w: [1.35, .55, .55, 1.1, .55, .55, 1.35],
-    bands: { 1: 'tcp', 2: 'ip', 4: 'ip', 5: 'tcp' },
+    lanes: ['App', 'TCP', 'IP', '📖 DNS', 'IP', 'TCP', 'App'],
+    w: [.9, .55, .55, 1.1, .55, .55, .9],
+    bands: { 0: 'app', 1: 'tcp', 2: 'ip', 4: 'ip', 5: 'tcp', 6: 'app' },
+    groups: [['💻 Client', 0, 2], ['🖥️ Server', 4, 6]],
     key: [['dns', 'DNS'], ['tcp', 'TCP'], ['http', 'HTTP']], keyNote: 'every message goes down the sender\'s stack (app → TCP → IP) and up the receiver\'s (IP → TCP → app)',
     frames: [
-      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇 Both machines are stacks: the app on top, then <b>TCP</b> (layer 4), then <b>IP</b> (layer 3) next to the wire. <span class="add">➕ layer bands not in the article</span>' },
+      { cap: 'You type <b>hellointerview.com</b> and press enter. One page, one "request". Now count the packets 👇 Both machines are stacks: the <b>app</b> (layer 7, HTTP lives here), then <b>TCP</b> (layer 4), then <b>IP</b> (layer 3) next to the wire. <span class="add">➕ layer bands not in the article</span>' },
       { f: 0, t: 3, m: 'hellointerview.com?', k: 'dns', cap: '① <b>DNS resolution</b>: turn the human-readable name into an IP address.' },
       { f: 3, t: 0, m: '32.42.52.62', k: 'dns', cap: 'DNS answers with an IP address like <b>32.42.52.62</b>. Now the client knows where to go.' },
       { f: 1, t: 5, m: 'SYN', k: 'tcp', cap: '② <b>TCP handshake</b>, 3 steps, between the two <b>TCP layers</b> (the app waits). <b>SYN</b> (synchronize): the client asks the server for a connection.' },
@@ -1425,7 +1426,15 @@ function buildSeq(box) {
   const bands = d.bands || {}
   const lanes = el('div', 'seq-lanes')
   lanes.style.gridTemplateColumns = w.map(v => v + 'fr').join(' ')
-  d.lanes.forEach((l, i) => lanes.appendChild(el('span', bands[i] ? 'band b-' + bands[i] : '', l)))
+  // groups put one machine name over its layer bands; lanes outside a group take both header rows
+  const groups = d.groups || [], inGroup = i => groups.some(([, a, b]) => i >= a && i <= b)
+  groups.forEach(([t, a, b]) => { const g = el('span', '', t); g.style.gridColumn = `${a + 1} / ${b + 2}`; g.style.gridRow = '1'; lanes.appendChild(g) })
+  d.lanes.forEach((l, i) => {
+    const sp = el('span', bands[i] ? 'band b-' + bands[i] : '', l)
+    sp.style.gridColumn = String(i + 1)
+    if (groups.length) sp.style.gridRow = inGroup(i) ? '2' : '1 / 3'
+    lanes.appendChild(sp)
+  })
   const body = el('div', 'seq-body')
   d.lanes.forEach((_, i) => {
     if (bands[i]) { const bd = el('div', 'seq-band b-' + bands[i]); bd.style.left = start0(i) + '%'; bd.style.width = w[i] / tot * 100 + '%'; body.appendChild(bd); return }
