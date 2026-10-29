@@ -722,8 +722,8 @@ GET  /v1/feed        → Tweet[]</pre>
     <div class="k-green"><b>🐴 TCP: reliable, overhead</b><div class="star">"The workhorse of the internet"</div>
       <div class="chk">🤝 Connection-oriented: 3-way handshake first</div>
       <div class="chk">✅ Reliable: in order, no errors (ACK, else retransmit)</div>
-      <div class="chk">🚰 Flow control: don't overwhelm the receiver</div>
-      <div class="chk">🚦 Congestion control: adapt so the network doesn't collapse</div>
+      <div class="chk">🚰 <button type="button" class="gl-link" data-g="flow">Flow control</button>: don't overwhelm the receiver</div>
+      <div class="chk">🚦 <button type="button" class="gl-link" data-g="congestion">Congestion control</button>: adapt so the network doesn't collapse</div>
       <q>The connection is a stateful "stream": two messages sent in the same stream arrive in the same order.</q></div>
   </div>
 
@@ -803,6 +803,8 @@ GET  /v1/feed        → Tweet[]</pre>
     <tr><td>🔥 5xx</td><td>500 Server Error · 502 Bad Gateway (invalid response from upstream)</td></tr>
   </table>
   <p class="bridge">Headers are the flexible part: free-form key/value pairs. That pragmatism is a lesson in itself.</p>
+  <div class="take"><p><b>🏷️ Headers = an open slot for the future</b></p>
+    <p>✉️ Like sticky notes on the envelope: anyone can add a new one, and a post office that doesn't understand a note just ignores it. ➡️ New feature = new header; old clients skip what they don't know, so nothing breaks. <span class="add">➕ analogy not in the article</span></p></div>
   <div class="rem"><b>✅ Remember</b> Headers show how to design an interface for unknown future uses. Content negotiation is the case study:
     <div class="flow"><span>💻 <code>Accept-Encoding: gzip, br</code></span><i>→</i><span>🖥️ <code>Content-Encoding: br</code></span></div>
     <p>The client says what it can handle. The server picks the most efficient one (<button type="button" class="term" data-p="Brotli, a compression format from Google. It usually gets smaller than gzip.">br</button>). Old clients still work: backward compatible, degrades gracefully. 🔎 The article writes "Accepts-Encoding"; the real header is <code>Accept-Encoding</code>.</p></div>
@@ -1652,7 +1654,13 @@ const GLOSSARY = [
     b: '<p>Your phone knows the router\'s IP (192.168.1.1) but needs its MAC to send the frame. It broadcasts "who has 192.168.1.1?" and the router replies with its MAC. The answer is cached.</p>', see: ['mac', 'ip'] },
   { id: 'tcp', t: 'TCP', aka: 'transmission control protocol reliable', s: 'Reliable, in-order delivery over a connection.',
     an: 'Mailing a book page by page, with page numbers and a receipt for each page.',
-    b: '<p>Starts with a 3-step handshake (SYN, SYN-ACK, ACK), numbers every chunk, resends lost ones, and puts them back in order. Ends with FIN/ACK from both sides.</p><p>Default for almost everything: HTTP/1.1, HTTP/2, databases.</p>', see: ['udp', 'handshake'] },
+    b: '<p>Starts with a 3-step handshake (SYN, SYN-ACK, ACK), numbers every chunk, resends lost ones, and puts them back in order. Ends with FIN/ACK from both sides.</p><p>Default for almost everything: HTTP/1.1, HTTP/2, databases.</p>', see: ['udp', 'handshake', 'flow', 'congestion'] },
+  { id: 'flow', t: 'Flow control', aka: 'tcp receive window sliding window buffer receiver', s: 'TCP protects the receiver: never send more than it can hold.',
+    an: 'Dictating to a friend who writes it down: "slow down, my page is full", then "go on".',
+    b: '<p>The receiver tells the sender, in every ACK, how much free buffer space it has (its <b>window</b>). The sender never has more unconfirmed data in flight than that. As the receiver reads data out, the window slides forward and opens up again: a <b>sliding window</b>.</p><p>e.g. a fast server sending to a slow phone: the phone\'s buffer fills, the window drops to 0, the server pauses until it opens.</p><p>🆚 Flow control = don\'t drown the <b>receiver</b>. Congestion control = don\'t jam the <b>road</b>.</p>', see: ['congestion', 'tcp'] },
+  { id: 'congestion', t: 'Congestion control', aka: 'tcp slow start cwnd backoff network', s: 'TCP protects the network: probe how much the road can take, back off on loss.',
+    an: 'Merging onto a highway: speed up gradually, brake hard when you see brake lights.',
+    b: '<p>The sender can\'t see how busy the routers in between are, so it guesses:</p><ul><li>🐢 Start small, <b>double</b> each round trip while ACKs come back (slow start).</li><li>📈 Then grow gently, +1 chunk per round trip.</li><li>💥 A lost packet = the road is full → <b>halve</b> and resend.</li></ul><p>Without it, everyone resends at full speed when things get busy, and the network collapses (it happened to the early internet in 1986).</p><p>🆚 Real sending rate = the <b>smaller</b> of the flow-control window (receiver) and the congestion window (network).</p>', see: ['flow', 'tcp', 'latency'] },
   { id: 'udp', t: 'UDP', aka: 'user datagram protocol', s: 'Just sends: no connection, no checks, fast.',
     an: 'Dropping flyers in mailboxes: quick, but some get lost and nobody checks.',
     b: '<p>No handshake, no resend, no ordering. Used where speed beats completeness: DNS lookups, video calls, games, and QUIC (HTTP/3), which adds its own reliability on top.</p>', see: ['tcp', 'dns'] },
