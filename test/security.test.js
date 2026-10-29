@@ -80,7 +80,8 @@ test('the app makes no network calls that the CSP would block (only sync.js talk
   const files = htmlFiles().concat([path.join(ROOT, 'js', 'data.js'), path.join(ROOT, 'js', 'back-button.js')])
   for (const f of files) {
     const src = fs.readFileSync(f, 'utf8')
-    if (/\b(fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource)\b/.test(src)) offenders.push(path.relative(ROOT, f))
+    // Constructor calls only: the System Design notes name WebSocket and EventSource in prose
+    if (/\bfetch\(|\bXMLHttpRequest\b|\bsendBeacon\b|\bnew\s+(WebSocket|EventSource)\s*\(/.test(src)) offenders.push(path.relative(ROOT, f))
   }
   assert.deepEqual(offenders, [], 'new network call found — if intentional, allow its host in vercel.json connect-src and update this test')
 })
