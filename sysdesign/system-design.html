@@ -1142,7 +1142,15 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 <section class="card" id="sd-net-latency-failures" data-topic="Networking" data-course="hi-sd" data-lesson="networking-essentials">
   <h2 class="cap"><b>🌍 Latency and Failures: Distance, Retries, Circuit Breakers</b></h2>
   <p class="hook">Protocols ✓, load balancing ✓, persistent connections ✓, high availability ✓. Two deep-dive favourites are left, and both come from the real world: <b>physics</b> makes distance slow, and <b>networks break</b>.</p>
-  <p class="tldr">💡 Beat distance with <b>data locality</b>: CDNs and regional partitioning. Beat failures with timeouts + <b>retry with exponential backoff</b> (+ jitter), <b>idempotency keys</b>, and <b>circuit breakers</b>.</p>
+  <p class="tldr">💡 Two real-world problems, and the tools for each. Every tool is explained further down 👇</p>
+  <div class="take"><p><b>🌍 1. Distance is slow</b> <span class="add">➕ plain words + analogies, not in the article</span></p>
+    <p>Data needs time to travel. Fix: keep it <b>near the user</b> (that's <i>data locality</i>).</p>
+    <p>📦 <b>CDN</b>: a corner shop with copies of popular items, so you don't drive to the far warehouse.</p>
+    <p>🗺️ <b>Regional partitioning</b>: each region gets its own branch with its own records.</p></div>
+  <div class="take"><p><b>💥 2. Networks fail</b></p>
+    <p>⏱️ <b>Timeout + retry with backoff</b>: no answer? Call back later, waiting longer each time. <b>Jitter</b>: not everyone calls back on the same second.</p>
+    <p>🔑 <b>Idempotency key</b>: an order number, so a repeated order isn't made twice.</p>
+    <p>🔌 <b>Circuit breaker</b>: the fuse in your house. It trips so one fault doesn't spread, then tests again later.</p></div>
 
   <h4>🌐 Regionalization: physics wins</h4>
   <p class="bridge">Global services put servers around the world: several data centers in one region (Amazon's "availability zones", so a broken pipe in one building doesn't take you down), repeated in cities across the globe. "A great victory for humanity", but now distance costs time.</p>
@@ -1154,6 +1162,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <div class="flow"><span>2 × 5,600 km</span><i>÷</i><span>200,000 km/s</span><i>=</i><span>⭐ ≈ 56 ms round trip</span></div>
     <p>That's the theoretical minimum, before any processing. This is why geographic distribution is essential for low latency.</p></div>
   <p class="bridge">The fix, everywhere in computing: <b>data locality</b>. Performance is best when the data sits as close as possible to the computation.</p>
+  <p class="ana">📚 <b>Data locality</b> = keep the books you need <b>on your desk</b>, not in a library across town. Every trip to the library costs time, however fast you read. <span class="add">➕ analogy not in the article</span></p>
   <ul class="lines">
     <li>📍 Keep the data a query needs (a) close <b>together</b> and (b) close to the <b>user</b>.</li>
     <li>🐢 User data in Los Angeles, web servers in New York → every DB query pays tens of ms, before processing.</li>
@@ -1167,6 +1176,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <li>🧊 It only works because of <b>caching</b>: data that doesn't change much or often. Best for static content: images, videos, assets.</li>
     <li>🎤 Use one when data is very cacheable and queried from across the globe. e.g. caching Facebook search results → lower latency <b>and</b> less load on the backend.</li>
   </ul>
+  <p class="ana">🏪 A <b>corner shop</b> stocks copies of the popular items from the big warehouse. Milk and bread: grab it up the road. Something rare or fresh off the line: still the long drive. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🗺️ Regional partitioning: mirror the geography</h4>
   <p class="bridge">Uber's key insight: a rider in Miami never wants a driver who's in New York. Millions of riders and drivers a day, but only a few thousand in any one city. So the architecture can mirror that.</p>
@@ -1175,6 +1185,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <div class="k-amber"><b>🌵 "Southwest US"</b><div class="chk">nearby cities bundled</div><div class="chk">🧩 services → fast</div><div class="chk">🗄️ local DB (e.g. Los Angeles) → very fast</div></div>
   </div>
   <p>Each region has its own database in that geography, with request servers co-located next to it. Booking a ride or checking status stays inside the region. "Nice and optimal!"</p>
+  <p class="ana">🏦 Like a bank with <b>city branches</b>: your account lives at your branch, so everyday visits never call head office in another country. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>💥 Failures: plan for them</h4>
   <p class="bridge">The other frequent deep dive. Servers crash, solar flares flip bits, power gets cut. The network fails too: cables get cut, routers fail, packets get dropped.</p>
@@ -1183,6 +1194,7 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
   <h4>🔁 Timeouts and retries with backoff</h4>
   <p class="bridge">The most elementary hygiene: expect a call to take X, set a timeout, give up and try again. A temporarily slow server will likely answer the retry. But retries are double-edged: retrying requests that keep failing makes things <b>worse</b>.</p>
   <p>⏳ <b>Backoff</b>: don't retry immediately. Wait a little, and longer after each failure, so the system can recover. 🎲 <b>Jitter</b>: add randomness, so clients don't all retry at the same moment "like a jackhammer".</p>
+  <p class="ana">📞 Calling a busy friend: no answer → wait 1 min, then 2, then 4 (<b>backoff</b>). If 1,000 people all redial on the exact same second, the line jams again; each waiting a slightly random time (<b>jitter</b>) spreads the calls out. <span class="add">➕ analogy not in the article</span></p>
   <div class="dots" role="img" aria-label="Without jitter all clients retry at the same moments; with jitter retries spread out">
     <span>🔨 no jitter</span><div class="axis" style="--c: var(--red-fg)"><b style="left: 12.5%"></b><b style="left: 25%"></b><b style="left: 50%"></b><b style="left: 100%"></b><span style="position: absolute; left: 14%; top: -2px; font-size: 10px; color: var(--muted)">×1000 at once</span></div>
     <span>🎲 jitter</span><div class="axis" style="--c: var(--green-fg)"><b style="left: 9%"></b><b style="left: 14%"></b><b style="left: 21%"></b><b style="left: 30%"></b><b style="left: 37%"></b><b style="left: 46%"></b><b style="left: 57%"></b><b style="left: 66%"></b><b style="left: 83%"></b><b style="left: 95%"></b></div>
@@ -1196,9 +1208,11 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 
   <h4>🔌 Circuit breakers: stop the cascade</h4>
   <p class="bridge">Senior candidates often get "what happens when this service goes down?" Sometimes "fail and retry until it's back" is fine. But picture a database that went down cold and has to boot one instance at a time. A firehose of retries and angry users can pin each instance before it starts: a <b>thundering herd</b>. You can't get the first one up, so the whole DB never comes back. Stuck!</p>
+  <p class="ana">🛍️ <b>Thundering herd</b> = a Black Friday crowd at the doors: open one door and the crush knocks the first clerk over, so the shop never manages to open. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> Anyone who's done oncall has war stories about <b>cascading failures</b>: one failure creating new ones. It usually goes unnoticed "until it bites you at 3am", which makes it a great interview question and a screen for experience. Prepare by learning to spot these cascades and how to stop them.</div>
   <div class="seq" data-seq="breaker"></div>
   <p class="figcap">Inspired by electrical circuit breakers: it stops cascading failures and gives failing services time to recover.</p>
+  <p class="ana">🔌 The <b>fuse</b> in your house: a fault trips it, and power to that circuit stops at once (fail fast) instead of burning the wiring. After a while you try flipping it back (a few test requests); if it holds, power is back. <span class="add">➕ analogy not in the article</span></p>
   <div class="pills"><span>⚡ Fail fast, no waiting for timeouts</span><span>🪶 Less load on a struggling service</span><span>🩹 Self-healing: tests recovery without full traffic</span><span>😊 Fast fallbacks, no hanging UI</span><span>🧱 One failure doesn't take down the system</span></div>
   <p>🎤 Bring them up when the interviewer digs into reliability, failure modes or disaster recovery. That knowledge is usually "won at 3:00am battling a hardware failure when the system Just. Won't. Come. Back. Up." Put them on:</p>
   <div class="pills"><span>🌍 third-party API calls</span><span>🗄️ DB connections and queries</span><span>🧩 service-to-service calls</span><span>🏋️ heavy operations that may time out</span><span>📡 any network call that could fail or slow down</span></div>
