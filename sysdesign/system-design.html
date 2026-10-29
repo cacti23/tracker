@@ -218,6 +218,8 @@ details.more li { margin: 2px 0; }
 .gl-fab { position: fixed; right: 16px; bottom: 16px; z-index: 40; font: inherit; font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
 .gl { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); z-index: 2147483100; /* above the ← Tracker pill */ display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,.3); }
 .gl[hidden] { display: none; }
+.gl-fab kbd { font: inherit; font-size: 11px; padding: 0 5px; margin-left: 4px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+@media (hover: none) { .gl-fab kbd { display: none; } }
 .gl-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
 .gl-head b { font-size: 16px; flex: 1; }
 .gl-head button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
@@ -1208,10 +1210,10 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 </div>
 </div>
 
-<button type="button" class="gl-fab" id="gl-open" aria-label="Open glossary">📖 Glossary</button>
+<button type="button" class="gl-fab" id="gl-open" aria-label="Open glossary (shortcut: / or ⌘K)" title="Shortcut: / or ⌘K / Ctrl+K">📖 Glossary <kbd>/</kbd></button>
 <aside class="gl" id="gl" hidden aria-label="Glossary">
   <div class="gl-head"><button type="button" id="gl-back" hidden>←</button><b>📖 Glossary</b><button type="button" id="gl-close" aria-label="Close glossary">✕</button></div>
-  <input id="gl-q" type="search" placeholder="Search a term… (IP, port, NAT)" autocomplete="off">
+  <input id="gl-q" type="search" placeholder="Search a term… (IP, port, NAT) · Esc to close" autocomplete="off">
   <div class="gl-body" id="gl-body"></div>
 </aside>
 <script>
@@ -1754,7 +1756,17 @@ const GLOSSARY = [
   document.getElementById('gl-close').onclick = () => { panel.hidden = true }
   back.onclick = list
   q.oninput = list
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') panel.hidden = true })
+  // Shortcuts: "/" or "g" (when not typing) or Ctrl/⌘+K open the glossary with the search focused; Esc closes it
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { panel.hidden = true; return }
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable
+    const mod = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'
+    if (mod || (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === '/' || e.key === 'g'))) {
+      e.preventDefault()
+      if (!panel.hidden && !mod) return
+      open(); q.select()
+    }
+  })
   document.addEventListener('click', e => { const t = e.target.closest('[data-g]'); if (t) { e.preventDefault(); open(t.dataset.g) } })
 })()
 
