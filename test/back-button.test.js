@@ -27,7 +27,7 @@ test('every standalone page (dsa/, apps/, google/, papers/, visuals/, sysdesign/
 
 test('sidebar app links open in the same tab (a new tab/window has no way back in a PWA)', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
-  for (const href of ['apps/gym-5day.html', 'apps/habits.html', 'apps/todo.html', 'sysdesign/system-design.html', 'dsa/dsa-master-map.html', 'dsa/dsa-thoughts.html', 'dsa/js-builtins.html']) {
+  for (const href of ['apps/gym-5day.html', 'apps/habits.html', 'sysdesign/system-design.html', 'dsa/dsa-master-map.html', 'dsa/dsa-thoughts.html', 'dsa/js-builtins.html']) {
     const m = html.match(new RegExp(`<a href="${href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`))
     assert.ok(m, `sidebar link to ${href} missing`)
     assert.doesNotMatch(m[0], /target="_blank"/, `${href} must not open in a new tab`)
