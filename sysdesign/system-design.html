@@ -208,6 +208,37 @@ details.more li { margin: 2px 0; }
 .seq-key i { font-style: normal; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 .c-dns { --c: var(--purple-fg); } .c-tcp { --c: var(--green-fg); } .c-http { --c: var(--blue-fg); } .c-ws { --c: var(--teal-fg); }
 .c-err { --c: var(--red-fg); } .c-lb { --c: var(--amber-fg); } .c-gray { --c: var(--muted); } .c-udp { --c: var(--coral-fg); }
+/* 📦 nested envelopes */
+.env div { border: 1.5px solid var(--c); border-radius: 8px; padding: 4px 6px 6px; margin-top: 4px; background: var(--bg); }
+.env span { display: block; font-size: 12.5px; font-weight: 600; color: var(--c); }
+.env span i { font-style: normal; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.env .e2 { --c: var(--gray-fg); margin: 6px 0 10px; } .env .e3 { --c: var(--red-fg); } .env .e4 { --c: var(--green-fg); } .env .e7 { --c: var(--blue-fg); }
+/* 📖 Glossary: floating button + side panel; any [data-g] opens its entry */
+.gl-link { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; border-bottom: 1.5px solid var(--accent); }
+.gl-fab { position: fixed; right: 16px; bottom: 16px; z-index: 40; font: inherit; font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; }
+.gl { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); z-index: 2147483100; /* above the ← Tracker pill */ display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,.3); }
+.gl[hidden] { display: none; }
+.gl-fab kbd { font: inherit; font-size: 11px; padding: 0 5px; margin-left: 4px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+@media (hover: none) { .gl-fab kbd { display: none; } }
+.gl-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px 8px; }
+.gl-head b { font-size: 16px; flex: 1; }
+.gl-head button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+.gl input { margin: 0 14px 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.gl-body { overflow-y: auto; padding: 0 14px 20px; flex: 1; }
+section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
+.gl-t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+.gl-t th, .gl-t td { border: 1px solid var(--line); padding: 5px 6px; text-align: left; vertical-align: top; }
+.gl-t th { background: var(--chip); }
+.gl-item { display: block; width: 100%; text-align: left; font: inherit; color: var(--text); background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 2px; cursor: pointer; }
+.gl-item small { display: block; color: var(--muted); font-size: 12.5px; }
+.gl-note h3 { margin: 6px 0 4px; font-size: 18px; }
+.gl-note .an { padding: 6px 10px; border-radius: 8px; background: var(--amber-bg); color: var(--amber-fg); font-size: 14px; }
+.gl-note p, .gl-note li { font-size: 14px; }
+/* context chip: the same word can mean different things (stub in gRPC vs in testing) */
+.gl-ctx { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; background: var(--chip); color: var(--accent); font-size: 11px; font-weight: 600; vertical-align: 2px; }
+.gl-note pre { font-size: 12px; overflow-x: auto; }
+.gl-empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
+@media (min-width: 1000px) { .gl, .gl-fab { zoom: 1.15; } }
 /* OSI stack */
 .osi { margin: 6px 0 10px; font-size: 13px; }
 .osi div { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 6px; margin: 3px auto; padding: 4px 8px; border-radius: 8px; border: 1.5px dashed var(--line); color: var(--muted); }
@@ -614,28 +645,44 @@ GET  /v1/feed        → Tweet[]</pre>
   </div>
   <p class="figcap">"The important ones": 3, 4, 7.</p>
 
+  <h4>📦 Inside a packet: MAC, IP, port</h4>
+  <p class="bridge">Each layer has one job, and it does it by writing a label on the data. On the way down, every layer wraps the data in its <b>own envelope</b>; the receiver opens them in reverse. <span class="add">➕ not in the article</span></p>
+  <div class="env" role="img" aria-label="Nested envelopes: MAC frame holds an IP packet, which holds a TCP segment, which holds the HTTP data">
+    <div class="e2"><span>✉️ L2 · <button type="button" class="gl-link" data-g="mac">MAC</button>: phone → router <i>rewritten every hop</i></span>
+      <div class="e3"><span>✉️ L3 · <button type="button" class="gl-link" data-g="ip">IP</button>: 192.168.1.23 → 142.250.x.x <i>end to end</i></span>
+        <div class="e4"><span>✉️ L4 · TCP: <button type="button" class="gl-link" data-g="port">port</button> 51234 → 443, seq #7 <i>which app + order</i></span>
+          <div class="e7"><span>📄 L7 · HTTP: GET /search?q=… <i>your data</i></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p>📏 One <button type="button" class="gl-link" data-g="packet">packet</button> carries about <b>1,500 bytes</b>, and the TCP + IP labels take ~40 of them. A 1 MB image ≈ 700 packets, which is why TCP numbers them (seq #) to put them back in order.</p>
+  <table class="tbl">
+    <tr><td></td><td><b>Says</b></td><td><b>✉️ Like</b></td></tr>
+    <tr><td>🏷️ <b>MAC</b></td><td>which network card, on <b>this</b> network. Burned in at the factory.</td><td>your name: the next hand to pass it to</td></tr>
+    <tr><td>📍 <b>IP</b></td><td>which machine, anywhere. Given by the network you join (<button type="button" class="gl-link" data-g="dhcp">DHCP</button>).</td><td>the postal address on the envelope</td></tr>
+    <tr><td>🚪 <b>Port</b></td><td>which app on that machine. 0–65535; 443 = HTTPS, 53 = DNS.</td><td>the flat number in the building</td></tr>
+  </table>
+  <ul class="lines">
+    <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP for its public one on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
+    <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
+  </ul>
+  <p class="bridge">So the IP says <b>who it's finally for</b>, the MAC says <b>who gets it next</b>, the port says <b>which app</b>. Now watch those packets move.</p>
+
+
   <h4>🎞️ One web request, packet by packet</h4>
   <p class="bridge">Now watch the three layers work together. DNS finds the server, TCP builds a connection over IP, HTTP asks for the page, and TCP tears it all down. Tap the diagram to step.</p>
   <div class="seq" data-seq="web-request"></div>
   <div class="info"><b>ℹ️ Note</b> "What happens when you type <code>hellointerview.com</code> into your browser and press enter?" used to be a popular interview question (less so in BigTech now). It's rarely part of system design, but it may save you headaches on the job.</div>
 
   <h4>🔭 3 things to take from it</h4>
-  <p class="bridge">You just watched 11 messages fly for one page. Three lessons come out of that animation, and the rest of the course keeps using them.</p>
-  <div class="take">
-    <p><b>1️⃣ 🧘 You only work at the top.</b></p>
-    <p>👀 In the animation, the app said one thing: "GET the page". TCP did the handshake and the teardown on its own, and IP carried every message.</p>
-    <p>➡️ So your mental model is simple: <b>DNS</b> finds the IP, <b>TCP</b> delivers your data reliably and in order (or tells you it failed), and <b>IP</b> plus the networks in between (your <button type="button" class="term" data-p="Internet Service Provider: the company that connects you to the internet, like your broadband or mobile carrier.">ISP</button>, the backbone) route it. You never drive packets yourself.</p>
-  </div>
-  <div class="take">
-    <p><b>2️⃣ ⏱️ Every message costs time.</b></p>
-    <p>👀 One "request" was really 11 messages, and each one is a trip across the network.</p>
-    <p>➡️ You can ignore that… until you can't. ⭐ The <b>higher</b> the layer, the more work per message: reading HTTP costs more than passing bytes. That's why an L4 load balancer beats an L7 one on speed (🔗 <a href="#sd-net-lb">Load Balancing</a>).</p>
-  </div>
-  <div class="take">
-    <p><b>3️⃣ 🧷 An open connection is memory on both sides.</b></p>
-    <p>👀 Between the ACK and the FIN, both TCP layers kept a note: "this connection is open".</p>
-    <p>➡️ A new connection per request = the 3-message handshake every time. <button type="button" class="term" data-p="reuse one open TCP connection for many HTTP requests, instead of a new handshake each time.">HTTP keep-alive</button> and <button type="button" class="term" data-p="sending many requests and responses at the same time, interleaved over one TCP connection.">HTTP/2 multiplexing</button> reuse the open one instead. Flip side: a connection kept open for hours (WebSockets) is memory the server holds for hours (🔗 <a href="#sd-net-realtime">Real-time</a>).</p>
-  </div>
+  <p class="bridge">What the animation just showed you:</p>
+  <div class="take"><p><b>1️⃣ 🧘 You only work at the top</b></p>
+    <p>👀 The app only said "GET". ➡️ DNS finds the IP, TCP delivers in order, IP (+ your <button type="button" class="term" data-p="Internet Service Provider: the company that connects you to the internet, like your broadband or mobile carrier.">ISP</button>) routes. You never touch packets.</p></div>
+  <div class="take"><p><b>2️⃣ ⏱️ Every message costs time</b></p>
+    <p>👀 1 request = 11 trips. ➡️ ⭐ Higher layer = more work per message, so an L4 load balancer beats L7 on speed (🔗 <a href="#sd-net-lb">Load Balancing</a>).</p></div>
+  <div class="take"><p><b>3️⃣ 🧷 An open connection is memory on both sides</b></p>
+    <p>👀 Between ACK and FIN, both sides remember it. ➡️ Reuse it (<button type="button" class="term" data-p="reuse one open TCP connection for many HTTP requests, instead of a new handshake each time.">keep-alive</button>, <button type="button" class="term" data-p="sending many requests and responses at the same time, interleaved over one TCP connection.">HTTP/2</button>) to skip the handshake. Hold it for hours (WebSockets) = memory for hours (🔗 <a href="#sd-net-realtime">Real-time</a>).</p></div>
 
   <h4>📍 Layer 3: where IPs come from</h4>
   <p class="bridge">IP routes to addresses. So who hands them out?</p>
@@ -649,14 +696,18 @@ GET  /v1/feed        → Tweet[]</pre>
 
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
-    <h5>🔌 When does TCP really close? (course admin)</h5>
+    <h5>📞 When does TCP really close? (course admin)</h5>
+    <p>Not after every request. Think of <b>calling a shop</b> with questions: <span class="add">➕ analogy not in the article</span></p>
+    <div class="vs"><div class="bad">☎️ <b>HTTP/1.0</b>: ask one question, hang up, dial again. Every request pays the full handshake. "Super inefficient."</div><div class="good">📞 <b>HTTP/1.1</b>: stay on the line, ask the next one. Connection stays open by default (<b>keep-alive</b>).</div></div>
+    <p>🔚 A 1.1 connection closes when:</p>
     <ul>
-      <li>Not after every request. HTTP/1.1 keeps the connection open by default (<b>keep-alive</b>). It closes when the client closes it, when the server times it out (usually after a few idle seconds), or with a <code>Connection: close</code> header.</li>
-      <li>HTTP/1.0 tore down after every request: "super inefficient". HTTP/2 and HTTP/3 send many request streams over one connection, so teardown is even rarer.</li>
-      <li>Either side can start the teardown. Both sides send a FIN.</li>
+      <li>👋 either side says bye: a <code>Connection: close</code> header (then both sides send a FIN),</li>
+      <li>⏳ nobody talks for a while: the server's idle timeout hangs up (seconds to about a minute; ➕ nginx default 75 s),</li>
+      <li>❌ the tab closes or the network drops.</li>
     </ul>
-    <h5>🚦 Keep-alive vs HTTP/2</h5>
-    <div class="vs"><div class="bad">Keep-alive: one connection, requests one after another. A slow one holds up the rest.</div><div class="good">HTTP/2: requests interleaved on one connection. Faster, but a lost TCP packet still stalls all of them.</div></div>
+    <p>🌐 Why it matters: one page = HTML + CSS + JS + images, often 50+ requests to the same server. Keep-alive reuses a few open lines instead of 50 handshakes (➕ browsers keep up to ~6 per server).</p>
+    <div class="vs"><div class="bad">📞 Keep-alive: one question at a time per line. A slow answer holds up the rest.</div><div class="good">🎙️ HTTP/2: many questions at once on one line. Faster, but one lost TCP packet still stalls them all (HTTP/3 runs on QUIC over UDP to fix that).</div></div>
+    <p>🎞️ So why does the animation end with FIN? It shows one request on its own, start to finish. In a real browser, that FIN comes much later.</p>
     <h5>🌍 Public IPs</h5>
     <ul><li>They go on whatever faces the internet: API gateways, load balancers.</li></ul>
   </div>
@@ -680,8 +731,8 @@ GET  /v1/feed        → Tweet[]</pre>
     <div class="k-green"><b>🐴 TCP: reliable, overhead</b><div class="star">"The workhorse of the internet"</div>
       <div class="chk">🤝 Connection-oriented: 3-way handshake first</div>
       <div class="chk">✅ Reliable: in order, no errors (ACK, else retransmit)</div>
-      <div class="chk">🚰 Flow control: don't overwhelm the receiver</div>
-      <div class="chk">🚦 Congestion control: adapt so the network doesn't collapse</div>
+      <div class="chk">🚰 <button type="button" class="gl-link" data-g="flow">Flow control</button>: don't overwhelm the receiver</div>
+      <div class="chk">🚦 <button type="button" class="gl-link" data-g="congestion">Congestion control</button>: adapt so the network doesn't collapse</div>
       <q>The connection is a stateful "stream": two messages sent in the same stream arrive in the same order.</q></div>
   </div>
 
@@ -748,11 +799,11 @@ GET  /v1/feed        → Tweet[]</pre>
   <p class="figcap">You can type this by hand: open a TCP connection with <button type="button" class="term" data-p="nc on the command line. It opens a raw TCP connection, so you can type an HTTP request and see the raw response (the course admin explained this in the comments).">netcat</button> and send it.</p>
   <p class="bridge">Methods and status codes are standard, like enums. Know the common ones. Interviewers rarely dig in unless you're designing a RESTful API.</p>
   <table class="tbl">
-    <tr><td>GET</td><td>Request data. ⭐ Idempotent, no body</td></tr>
+    <tr><td>GET</td><td>Request data. ⭐ <button type="button" class="gl-link" data-g="idem">Idempotent</button>, no body</td></tr>
     <tr><td>POST</td><td>Send data</td></tr>
     <tr><td>PUT</td><td>Update data</td></tr>
     <tr><td>PATCH</td><td>Update a resource partially</td></tr>
-    <tr><td>DELETE</td><td>Delete data. ⭐ Idempotent</td></tr>
+    <tr><td>DELETE</td><td>Delete data. ⭐ <button type="button" class="gl-link" data-g="idem">Idempotent</button></td></tr>
   </table>
   <table class="tbl">
     <tr><td>✅ 2xx</td><td>200 OK · 201 Created (new resource)</td></tr>
@@ -761,12 +812,21 @@ GET  /v1/feed        → Tweet[]</pre>
     <tr><td>🔥 5xx</td><td>500 Server Error · 502 Bad Gateway (invalid response from upstream)</td></tr>
   </table>
   <p class="bridge">Headers are the flexible part: free-form key/value pairs. That pragmatism is a lesson in itself.</p>
+  <div class="take"><p><b>🏷️ Headers = an open slot for the future</b></p>
+    <p>✉️ Like sticky notes on the envelope: anyone can add a new one, and a post office that doesn't understand a note just ignores it. ➡️ New feature = new header; old clients skip what they don't know, so nothing breaks. <span class="add">➕ analogy not in the article</span></p></div>
   <div class="rem"><b>✅ Remember</b> Headers show how to design an interface for unknown future uses. Content negotiation is the case study:
     <div class="flow"><span>💻 <code>Accept-Encoding: gzip, br</code></span><i>→</i><span>🖥️ <code>Content-Encoding: br</code></span></div>
     <p>The client says what it can handle. The server picks the most efficient one (<button type="button" class="term" data-p="Brotli, a compression format from Google. It usually gets smaller than gzip.">br</button>). Old clients still work: backward compatible, degrades gracefully. 🔎 The article writes "Accepts-Encoding"; the real header is <code>Accept-Encoding</code>.</p></div>
-  <p>🔒 <b>HTTPS</b> = HTTP + TLS/SSL encryption, against <button type="button" class="term" data-p="someone on the network secretly reading the traffic between two devices.">eavesdropping</button> and <button type="button" class="term" data-p="an attacker sits between client and server, relaying and possibly changing the messages while both think they talk directly.">man-in-the-middle</button> attacks. A public website uses HTTPS, without exception.</p>
+  <p>🔒 <b>HTTPS</b> = HTTP + TLS/SSL encryption, against <button type="button" class="gl-link" data-g="eavesdrop">eavesdropping</button> and <button type="button" class="gl-link" data-g="mitm">man-in-the-middle</button> attacks. A public website uses HTTPS, without exception.</p>
   <div class="warn"><b>⚠️ Watch out</b> Encrypted doesn't mean the request came from <b>your</b> client. Never trust the body without validating it.
     <div class="vs"><div class="bad">❌ <code>{ "userId": 42 }</code> in the body → DB query. An attacker edits it and reads anyone's data. Ouch!</div><div class="good">✅ IDs in requests are fine if the server validates them. Never ask for anything you can't trust.</div></div></div>
+  <div class="take"><p><b>🤔 Why never trust the body?</b> <span class="add">➕ not in the article</span></p>
+    <p>✉️ HTTPS is a <b>sealed envelope</b>: it proves nobody opened it on the way. It does <b>not</b> prove the letter inside is honest. The sender can be the attacker: they control their own browser, curl or Postman, and can type anything into the body, e.g. change <code>42</code> to <code>43</code>.</p></div>
+  <div class="take"><p><b>🪪 So who is the user? Ask the token, not the body.</b></p>
+    <div class="flow"><span>🔑 log in</span><i>→</i><span>🖥️ server issues a signed <button type="button" class="gl-link" data-g="auth">token</button></span><i>→</i><span>📨 every request: <code>Authorization: Bearer …</code></span><i>→</i><span>✅ server verifies it → userId = 42</span></div>
+    <p>✉️ Like a staff badge the receptionist scans, vs someone just saying "I'm the manager". The body says what you <b>want</b>; the verified token says who you <b>are</b>.</p>
+    <p>🏷️ Why a header? It rides on every request (even GET, which has no body), stays apart from the data, and one middleware checks it before any handler runs. A header can be faked too: what makes it safe is the server's <b>signature check</b>, not the header itself.</p>
+    <p>🔐 Then check permission: "does user 42 own order 99?" before returning it.</p></div>
 
   <h4>🧩 REST: simple and flexible</h4>
   <p class="bridge">HTTP alone builds <i>websites</i>. Designs are about <i>services</i> talking through APIs, and there are three main paradigms: REST, GraphQL, gRPC. ⭐ REST is the most common.</p>
@@ -804,6 +864,14 @@ GET  /users/{id}/posts  → [Post] (nested =
   <p class="figcap">Trimmed from the article's query: you just list the fields and nested objects you want.</p>
   <div class="vs"><div class="good">✅ Frontend iterates fast · less data (great for mobile) · sweet spot: complex clients, many teams querying overlapping data</div><div class="bad">💸 Running the queries adds backend latency and complexity, sometimes the same bespoke code we tried to avoid</div></div>
   <p>🎤 In interviews its benefits are "murky": requirements are fixed, and the interviewer wants to see you optimise specific queries, where GraphQL "is frequently just in the way". ⭐ Bring it up when the problem is about <b>flexibility</b> (adapting apps fast to changing requirements) or the requirements are deliberately uncertain.</p>
+  <div class="take"><p><b>🤔 Why "murky" in an interview?</b> <span class="add">➕ not in the article</span></p>
+    <p>GraphQL's superpower is coping with <b>unknown future screens</b>. An interview is the opposite: a fixed list of features, decided in the first 5 minutes. For a known screen you design the exact REST endpoint and tune its query, so GraphQL adds a layer and buys nothing. ✉️ Like hiring a personal shopper when you already have the shopping list.</p>
+    <p>➡️ Mention it only when the prompt says many clients / many teams / screens that keep changing.</p></div>
+  <div class="take"><p><b>📱 Why "great for mobile" and less for web?</b> <span class="add">➕ not in the article</span></p>
+    <p>📶 <b>Slow, flaky network</b>: each round trip on 4G costs far more than on office Wi-Fi, and every extra call is one more chance to fail. One query instead of 5 calls → faster, and fewer half-loaded screens.</p>
+    <p>📦 <b>Data and battery</b>: no over-fetching, so fewer bytes on a metered plan.</p>
+    <p>🗓️ <b>Old app versions live for months</b>: a website updates on refresh, but users skip app updates. Each app version asks for just the fields it knows, so the backend can change without breaking old apps.</p>
+    <p>➡️ Web gets the same benefits, just smaller: fast network, always the latest code.</p></div>
 
   <h4>⚡ gRPC: efficient service-to-service calls</h4>
   <p class="bridge">REST and GraphQL ship JSON text. When your own services call each other constantly, text gets expensive. gRPC is Google's (the "g") <b>RPC</b> framework: HTTP/2 + <b>Protocol Buffers</b>.</p>
@@ -825,7 +893,7 @@ GET  /users/{id}/posts  → [Post] (nested =
     returns (GetUserResponse);
 }</pre>
   <ul class="lines">
-    <li>🛠️ Definitions compile into client and server <button type="button" class="term" data-p="generated code that looks like a local function; calling it sends the request over the network for you.">stubs</button> for many languages.</li>
+    <li>🛠️ Definitions compile into client and server <button type="button" class="gl-link" data-g="stub-rpc">stubs</button> for many languages.</li>
     <li>🧰 Built for microservices at scale: streaming, deadlines, client-side load balancing.</li>
     <li>⭐ The key fact: it's <b>binary</b>, faster and more efficient than JSON over HTTP. Strong typing catches errors at compile time. Some benchmarks show <b>10x</b> throughput.</li>
     <li>🔒 Use it for <b>internal</b> calls, when performance is critical or latency is dominated by the network, not the server's work.</li>
@@ -846,9 +914,9 @@ GET  /users/{id}/posts  → [Post] (nested =
     <table class="tbl">
       <tr><td>GET</td><td>Safe + idempotent. No body, so parameters go in the URL: <code>GET /config?config_id=123</code></td></tr>
       <tr><td>POST</td><td>Not idempotent</td></tr>
-      <tr><td>PUT</td><td><b>Replaces</b> the whole resource. Idempotent</td></tr>
+      <tr><td>PUT</td><td><b>Replaces</b> the whole resource. <button type="button" class="gl-link" data-g="idem">Idempotent</button></td></tr>
       <tr><td>PATCH</td><td>Partial update. Not guaranteed idempotent</td></tr>
-      <tr><td>DELETE</td><td>Idempotent</td></tr>
+      <tr><td>DELETE</td><td><button type="button" class="gl-link" data-g="idem">Idempotent</button></td></tr>
     </table>
     <ul><li>So the article's "PUT to update a user" fits when you send the whole user. For a partial change, use PATCH.</li>
       <li>URLs that name a command (<code>updateUser</code>) are RPC-style, not REST.</li></ul>
@@ -1146,6 +1214,12 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 </div>
 </div>
 
+<button type="button" class="gl-fab" id="gl-open" aria-label="Open glossary (shortcut: / or ⌘K)" title="Shortcut: / or ⌘K / Ctrl+K">📖 Glossary <kbd>/</kbd></button>
+<aside class="gl" id="gl" hidden aria-label="Glossary">
+  <div class="gl-head"><button type="button" id="gl-back" hidden>←</button><b>📖 Glossary</b><button type="button" id="gl-close" aria-label="Close glossary">✕</button></div>
+  <input id="gl-q" type="search" placeholder="Search a term… (IP, port, NAT) · Esc to close" autocomplete="off">
+  <div class="gl-body" id="gl-body"></div>
+</aside>
 <script>
 // Follow the tracker's theme ('dsa-theme', same origin); default dark like the tracker.
 try {
@@ -1546,11 +1620,7 @@ function buildSeq(box) {
   body.onclick = next.onclick
   again.onclick = () => { show(0); start() }
   show(0)
-  // Play once when it first scrolls into view; reduced motion stays in step mode
-  if (!reduceMotion && 'IntersectionObserver' in window) {
-    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); if (!timer && cur === 0) start() } }, { threshold: 0.6 })
-    io.observe(box)
-  }
+  // No autoplay: it starts only when you press ▶️ (Adi, 2026-10-29)
 }
 document.querySelectorAll('.seq[data-seq]').forEach(buildSeq)
 
@@ -1569,9 +1639,181 @@ document.querySelectorAll('.term').forEach(t => {
   }
 })
 
+// 📖 Glossary: everyday networking terms, one short note each (what · ✉️ analogy · example).
+// Written by us, not the course, so each note is marked ➕.
+const GLOSSARY = [
+  { id: 'ip', t: 'IP address', aka: 'ipv4 ipv6 address', s: 'Which machine, anywhere on the internet.',
+    an: 'The postal address on the envelope.',
+    b: '<p>A number like <code>192.168.1.23</code> (IPv4) given to each network connection. The network you join hands it out (<b>DHCP</b>), so it changes when you move from home Wi-Fi to mobile data.</p><p>It stays the same for the whole trip: routers read it to pass the packet closer, hop by hop.</p>', see: ['private', 'mac', 'dhcp'] },
+  { id: 'private', t: 'Public vs private IP', aka: 'public private 192.168 10. nat', s: 'Private works only inside your network; public works on the internet.',
+    an: 'Private = "Flat 3" (only means something inside the building). Public = the building\'s street address.',
+    b: '<ul><li>🏠 Private ranges: <code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>. Every home reuses them.</li><li>🌍 Public: unique worldwide, given by your ISP (and to big companies by an RIR). Your router holds one.</li></ul><p>The router swaps private ↔ public as traffic leaves and returns: <b>NAT</b>.</p>', see: ['nat', 'router'] },
+  { id: 'mac', t: 'MAC address', aka: 'hardware address ethernet wifi card', s: 'Which network card, on this local network only.',
+    an: 'Your name: tells the next hand who to pass it to.',
+    b: '<p>An ID burned into every network card at the factory, e.g. <code>a4:83:e7:2b:10:9c</code>. A laptop with Wi-Fi and Ethernet has two.</p><p>Only used on the local network (layer 2), so it is <b>rewritten at every hop</b>: phone → router, router → ISP router, and so on. The IP inside stays the same.</p>', see: ['arp', 'ip'] },
+  { id: 'port', t: 'Port', aka: '443 80 53 ephemeral socket', s: 'Which app on the machine gets the data.',
+    an: 'The flat number. IP gets it to the building, the port to the right flat.',
+    b: '<p>A number 0–65535 in the TCP/UDP label. Servers listen on well-known ones: <b>80</b> HTTP · <b>443</b> HTTPS · <b>53</b> DNS · <b>22</b> SSH · <b>5432</b> Postgres · <b>6379</b> Redis.</p><p>Your side gets a random temporary port (e.g. 51234), so the reply finds the right tab.</p>', see: ['tuple', 'tcp'] },
+  { id: 'packet', t: 'Packet', aka: 'segment frame mtu encapsulation', s: 'One small chunk of data with its labels; ~1,500 bytes.',
+    an: 'Envelopes inside envelopes: each layer adds its own label on the way down.',
+    b: '<p>Your data is cut into chunks. Each one gets a TCP label (ports, sequence #), then an IP label (from/to IP), then a link label (from/to MAC). The receiver opens them in reverse.</p><p>~1,500 bytes each, ~40 of them labels. 1 MB ≈ 700 packets.</p>', see: ['tcp', 'ip', 'mac'] },
+  { id: 'router', t: 'Router', aka: 'gateway hop', s: 'A box that joins networks and passes packets one hop closer.',
+    an: 'A sorting office: reads the address, sends it to the next office closer to the city.',
+    b: '<p>Your home router joins your home network to your ISP. It has a <b>private</b> IP inside (192.168.1.1) and a <b>public</b> IP outside, and does <b>NAT</b> between them. Usually it also runs <b>DHCP</b>.</p><p>Internet routers only look at the destination IP and pick the next hop; nobody plans the whole route.</p>', see: ['nat', 'dhcp'] },
+  { id: 'dhcp', t: 'DHCP', aka: 'dynamic host configuration ip assignment', s: 'Hands out an IP when a device joins a network.',
+    an: 'The front desk giving you a room number when you check in.',
+    b: '<p>When your phone joins Wi-Fi it asks "can I have an address?", and the DHCP server (usually your router) replies with an IP, the router\'s address and which DNS to use. Nobody types it in by hand.</p>', see: ['ip', 'router'] },
+  { id: 'dns', t: 'DNS', aka: 'domain name system lookup resolve', s: 'Turns a name like google.com into an IP.',
+    an: 'The phone book: name in, number out.',
+    b: '<p>Your device asks a DNS server "what is the IP of hellointerview.com?" and caches the answer for a while (its <b>TTL</b>). Runs on port 53, usually over UDP.</p>', see: ['ip', 'udp'] },
+  { id: 'nat', t: 'NAT', aka: 'network address translation', s: 'The router swaps private IPs for its one public IP.',
+    an: 'The building reception: posts every flat\'s letters under the building address, and hands replies back to the right flat.',
+    b: '<p>All devices at home share one public IP. Going out, the router rewrites the source to its public IP + a port it picks, and remembers the mapping. Replies come back to that port and get sent to the right device.</p><p>Side effect: outsiders can\'t start a connection to you, which is why video calls need STUN/TURN.</p>', see: ['private', 'router'] },
+  { id: 'arp', t: 'ARP', aka: 'address resolution protocol', s: 'Finds the MAC address that owns an IP on your network.',
+    an: 'Shouting in the hallway: "who is Flat 1?", and only Flat 1 answers.',
+    b: '<p>Your phone knows the router\'s IP (192.168.1.1) but needs its MAC to send the frame. It broadcasts "who has 192.168.1.1?" and the router replies with its MAC. The answer is cached.</p>', see: ['mac', 'ip'] },
+  { id: 'tcp', t: 'TCP', aka: 'transmission control protocol reliable', s: 'Reliable, in-order delivery over a connection.',
+    an: 'Mailing a book page by page, with page numbers and a receipt for each page.',
+    b: '<p>Starts with a 3-step handshake (SYN, SYN-ACK, ACK), numbers every chunk, resends lost ones, and puts them back in order. Ends with FIN/ACK from both sides.</p><p>Default for almost everything: HTTP/1.1, HTTP/2, databases.</p>', see: ['udp', 'handshake', 'flow', 'congestion'] },
+  { id: 'flow', t: 'Flow control', aka: 'tcp receive window sliding window buffer receiver', s: 'TCP protects the receiver: never send more than it can hold.',
+    an: 'Dictating to a friend who writes it down: "slow down, my page is full", then "go on".',
+    b: '<p>The receiver tells the sender, in every ACK, how much free buffer space it has (its <b>window</b>). The sender never has more unconfirmed data in flight than that. As the receiver reads data out, the window slides forward and opens up again: a <b>sliding window</b>.</p><p>e.g. a fast server sending to a slow phone: the phone\'s buffer fills, the window drops to 0, the server pauses until it opens.</p><p>🆚 Flow control = don\'t drown the <b>receiver</b>. Congestion control = don\'t jam the <b>road</b>.</p>', see: ['congestion', 'tcp'] },
+  { id: 'congestion', t: 'Congestion control', aka: 'tcp slow start cwnd backoff network', s: 'TCP protects the network: probe how much the road can take, back off on loss.',
+    an: 'Merging onto a highway: speed up gradually, brake hard when you see brake lights.',
+    b: '<p>The sender can\'t see how busy the routers in between are, so it guesses:</p><ul><li>🐢 Start small, <b>double</b> each round trip while ACKs come back (slow start).</li><li>📈 Then grow gently, +1 chunk per round trip.</li><li>💥 A lost packet = the road is full → <b>halve</b> and resend.</li></ul><p>Without it, everyone resends at full speed when things get busy, and the network collapses (it happened to the early internet in 1986).</p><p>🆚 Real sending rate = the <b>smaller</b> of the flow-control window (receiver) and the congestion window (network).</p>', see: ['flow', 'tcp', 'latency'] },
+  { id: 'udp', t: 'UDP', aka: 'user datagram protocol', s: 'Just sends: no connection, no checks, fast.',
+    an: 'Dropping flyers in mailboxes: quick, but some get lost and nobody checks.',
+    b: '<p>No handshake, no resend, no ordering. Used where speed beats completeness: DNS lookups, video calls, games, and QUIC (HTTP/3), which adds its own reliability on top.</p>', see: ['tcp', 'dns'] },
+  { id: 'http', t: 'HTTP', aka: 'hypertext transfer protocol request response get post', s: 'The request/response language of the web.',
+    an: 'The letter itself: "please send me /search" and the reply.',
+    b: '<p>Client sends a method + path + headers (<code>GET /search</code>); server answers with a status code + headers + body (<code>200 OK</code>). Stateless: each request carries what it needs.</p><p>1.0 closed the connection after each request; 1.1 keeps it open (keep-alive); 2 sends many at once on one connection.</p>', see: ['tls', 'keepalive'] },
+  { id: 'tls', t: 'HTTPS / TLS', aka: 'ssl encryption certificate', s: 'HTTP inside an encrypted, verified tunnel.',
+    an: 'Sealing the letter in a locked envelope that only the receiver can open.',
+    b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp', 'mitm', 'auth'] },
+  { id: 'eavesdrop', t: 'Eavesdropping', aka: 'sniffing snooping wiretap', s: 'Someone on the network secretly reads your traffic.',
+    an: 'Reading postcards in the sorting office: anything not in an envelope is visible.',
+    b: '<p>Anyone on the path (public Wi-Fi, a router, your ISP) can capture packets. Without encryption they see passwords, cookies and data in plain text. HTTPS (TLS) encrypts it so they only see scrambled bytes and which server you talk to.</p>', see: ['tls', 'mitm'] },
+  { id: 'mitm', t: 'Man-in-the-middle', aka: 'mitm attack interception', s: 'An attacker sits between you and the server, reading and changing messages.',
+    an: 'A fake postman who opens your letter, edits it, reseals it and delivers it.',
+    b: '<p>Both sides think they talk directly, but every message passes through the attacker (e.g. a fake Wi-Fi hotspot). TLS stops it with <b>certificates</b>: the server proves it really is google.com, so a middleman can\'t pretend to be it.</p>', see: ['tls', 'eavesdrop'] },
+  { id: 'auth', t: 'Authentication vs authorization', aka: 'authn authz token jwt bearer session cookie login', s: 'Who are you? vs What are you allowed to do?',
+    an: 'Authentication = the badge scan at the door. Authorization = which rooms that badge opens.',
+    b: '<ul><li>🪪 <b>Authentication</b>: at login the server issues a token (a signed JWT, or a session ID it stores). The client sends it on every request in the <code>Authorization</code> header or a cookie. The server verifies the signature, so it can\'t be forged.</li><li>🔐 <b>Authorization</b>: with the verified user, check the action: "can user 42 read order 99?"</li></ul><p>Never take "who am I" from the request body: the client can type anything there.</p>', see: ['jwt', 'session', 'jwtvs', 'tls'] },
+  { id: 'stub-rpc', t: 'Stub', ctx: 'gRPC / RPC', aka: 'client stub server stub skeleton protoc generated code', s: 'Generated code that makes a network call look like a normal function call.',
+    an: 'A restaurant: the menu is the .proto (the contract). The waiter is the client stub (takes your order, carries it). The kitchen ticket printer is the server stub (reads the order, hands the chef a clean ticket). The chef is your code.',
+    b: '<p>You write the contract once in a <code>.proto</code> file:</p><pre>service UserService {\n  rpc GetUser(GetUserRequest) returns (User);\n}</pre><p>The compiler (<code>protoc</code>) generates code for each language (Go, Java, JS…):</p><ul><li>📤 <b>Client stub</b>: you call <code>client.getUser({id: 42})</code> like a local function. It packs the args into Protobuf bytes, sends them over HTTP/2, waits, and unpacks the reply.</li><li>📥 <b>Server stub</b>: listens on HTTP/2, unpacks the bytes into a <code>GetUserRequest</code> object, routes by name to <b>your</b> <code>getUser</code> function, then packs the returned <code>User</code> and sends it back. It also gives you the empty interface to fill in, so you only write the logic:</li></ul><pre>server.addService(UserService, {\n  getUser: (call, cb) => cb(null, db.findUser(call.request.id))\n})</pre><p>📜 The <code>.proto</code> is the <b>contract</b> (text). Stubs are <b>code generated from it</b>, one per side.</p><p>Both sides come from the same file, so they always agree on the shape, even across languages.</p><p>🆚 Same word, other context: in <b>testing</b>, a stub is a fake that returns canned answers (e.g. a fake payment API that always says "paid").</p>', see: ['http', 'tcp'] },
+  { id: 'jwt', t: 'JWT', aka: 'json web token bearer signed token', s: 'A signed token the client carries to prove who it is.',
+    an: 'A banknote: anyone can read "₹500" on it, only the mint can print a valid one.',
+    b: '<p>Three parts: <code>header.payload.signature</code>. The payload (<code>{"userId": 42, "exp": …}</code>) is only base64, so <b>anyone can read it</b>: never put secrets in it.</p><p>The signature is made from header + payload with a <b>secret key only the server has</b>. Change 42 → 43 and the signature no longer matches, so the server rejects it. Readable, not editable.</p><p>⚠️ Bearer token: whoever holds it <i>is</i> you until it expires. HTTPS only, short expiry, store it in an HttpOnly cookie.</p>', see: ['session', 'jwtvs', 'auth'] },
+  { id: 'session', t: 'Session ID', aka: 'session cookie sid', s: 'A random string; the server looks it up to find who you are.',
+    an: 'A coat-check ticket: the number means nothing alone; the counter looks up whose coat it is.',
+    b: '<p>At login the server makes a random ID (<code>a8f3…</code>), stores <code>a8f3 → user 42</code> in Redis or the DB, and sets it as a cookie. Every request sends the cookie, and the server looks it up.</p><p>Nothing to read or forge inside it. Logging out = delete the row, effective instantly.</p>', see: ['jwt', 'jwtvs', 'auth'] },
+  { id: 'jwtvs', t: 'JWT vs session ID', aka: 'stateless stateful token comparison logout revoke', s: 'No lookup but hard to cancel vs one lookup but instant logout.',
+    an: 'Banknote (valid anywhere, can\'t be cancelled) vs coat-check ticket (the counter can cancel it any time).',
+    b: '<ul><li>🪙 <b>JWT</b>: server checks the signature, no DB lookup → easy to scale across many servers. But you can\'t revoke it before it expires (unless you add a blocklist, which is a lookup again).</li><li>🎟️ <b>Session ID</b>: one lookup per request (Redis, ~1 ms). Instant logout, ban, "log out all devices".</li></ul><p>➡️ Common mix: short-lived JWT (minutes) + a refresh token stored server-side.</p>', see: ['jwt', 'session'] },
+  { id: 'idem', t: 'Idempotent', aka: 'idempotency retry safe repeat get put patch delete post', s: 'Send the same request twice: the data ends up the same as after once.',
+    an: 'A light switch set to OFF: press OFF once or 10 times, the light is off. A doorbell: press it 10 times, it rings 10 times. Switch = idempotent, doorbell = not.',
+    b: '<p>🧪 <b>How to check:</b> send the request once, look at the data. Send it again, look again. Same? → idempotent.</p><table class="gl-t"><tr><th>Request</th><th>After 1×</th><th>After 2×</th><th></th></tr><tr><td><b>GET</b> /user/7</td><td>nothing changed</td><td>nothing changed</td><td>✅</td></tr><tr><td><b>PUT</b> /user/7 {name: \'Adi\'}</td><td>name = Adi</td><td>name = Adi</td><td>✅</td></tr><tr><td><b>DELETE</b> /user/7</td><td>user gone</td><td>still gone</td><td>✅</td></tr><tr><td><b>POST</b> /orders</td><td>1 order</td><td><b>2 orders</b></td><td>❌</td></tr><tr><td><b>PATCH</b> {balance: +100}</td><td>+100</td><td><b>+200</b></td><td>❌</td></tr></table><p>🔑 <b>PUT</b> says "make it <i>this</i>" (a final value) → repeat-safe. <b>POST</b> says "make a <i>new</i> one" → each call adds one. <b>PATCH</b> depends: "set name" is safe, "add 100" is not.</p><p>👀 Look at the data, not the reply: a 2nd DELETE may return 404, but the user is still gone.</p><p>🔁 <b>Why it matters:</b> a request times out and you don\'t know if it worked. Idempotent → just retry. Not (payments) → send an <b>idempotency key</b> so the server spots the repeat and returns the first result.</p>', see: ['http', 'latency'] },
+  { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
+    an: 'The postal company that picks up from your street.',
+    b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
+  { id: 'tuple', t: '5-tuple', aka: 'connection identity socket pair', s: 'The 5 values that identify one connection.',
+    an: 'Sender address + flat, receiver address + flat, and the delivery service.',
+    b: '<p>Source IP · source port · destination IP · destination port · protocol (TCP/UDP). L4 load balancers use it to keep a connection on one server.</p>', see: ['port', 'tcp'] },
+  { id: 'handshake', t: 'Handshake', aka: 'syn ack three-way', s: 'The setup messages before data can flow.',
+    an: '"Can you hear me?" "Yes, can you hear me?" "Yes." Then the call starts.',
+    b: '<p>TCP: SYN → SYN-ACK → ACK (one round trip before any data). HTTPS adds a TLS handshake on top. Every new connection pays this, which is why connections get reused.</p>', see: ['tcp', 'keepalive'] },
+  { id: 'keepalive', t: 'Keep-alive', aka: 'persistent connection reuse', s: 'Reuse one open connection for many requests.',
+    an: 'Staying on the phone for your next question instead of hanging up and redialling.',
+    b: '<p>Default in HTTP/1.1. The connection closes on <code>Connection: close</code>, an idle timeout (seconds to ~a minute), or a network drop. Requests still go one at a time per connection; HTTP/2 sends many at once.</p>', see: ['http', 'handshake'] },
+  { id: 'latency', t: 'Latency', aka: 'delay rtt round trip', s: 'How long one trip takes.',
+    an: 'How long the letter takes to arrive (not how many letters fit in the van).',
+    b: '<p>Usually measured as <b>round-trip time</b> (there and back). Nearby server &lt; 1 ms; New York ↔ London ≥ ~56 ms just from the speed of light in fiber. Every extra message (handshakes, retries) adds trips.</p>', see: ['handshake'] },
+]
+;(() => {
+  const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
+  const back = document.getElementById('gl-back')
+  const byId = Object.fromEntries(GLOSSARY.map(g => [g.id, g]))
+  const list = () => {
+    back.hidden = true; q.hidden = false
+    const words = q.value.toLowerCase().trim()
+    const hits = GLOSSARY.filter(g => !words || (g.t + ' ' + (g.ctx || '') + ' ' + g.aka + ' ' + g.s).toLowerCase().includes(words))
+      .sort((a, b) => a.t.localeCompare(b.t))
+    body.innerHTML = ''
+    if (!hits.length) body.appendChild(el('p', 'gl-empty', 'No term yet. Ask in the thread and it gets added.'))
+    hits.forEach(g => { const b = el('button', 'gl-item', g.t); b.type = 'button'; if (g.ctx) b.appendChild(el('span', 'gl-ctx', g.ctx)); b.appendChild(el('small', '', g.s)); b.onclick = () => show(g.id); body.appendChild(b) })
+  }
+  const show = id => {
+    const g = byId[id]; if (!g) return list()
+    back.hidden = false; q.hidden = true
+    body.innerHTML = `<div class="gl-note"><h3>${g.t}${g.ctx ? ` <span class="gl-ctx">${g.ctx}</span>` : ''}</h3><p><b>${g.s}</b></p><p class="an">✉️ ${g.an}</p>${g.b}`
+      + `<p>🔗 ${g.see.map(s => `<button type="button" class="gl-link" data-g="${s}">${byId[s].t}</button>`).join(' · ')}</p>`
+      + `<p><span class="add">➕ not in the article</span></p></div>`
+    body.scrollTop = 0
+  }
+  const open = id => { panel.hidden = false; id ? show(id) : (list(), q.focus()) }
+  document.getElementById('gl-open').onclick = () => open()
+  document.getElementById('gl-close').onclick = () => { panel.hidden = true }
+  back.onclick = list
+  q.oninput = list
+  // Shortcuts: "/" or "g" (when not typing) or Ctrl/⌘+K open the glossary with the search focused; Esc closes it
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { panel.hidden = true; return }
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable
+    const mod = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'
+    if (mod || (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === '/' || e.key === 'g'))) {
+      e.preventDefault()
+      if (!panel.hidden && !mod) return
+      open(); q.select()
+    }
+  })
+  document.addEventListener('click', e => { const t = e.target.closest('[data-g]'); if (t) { e.preventDefault(); open(t.dataset.g) } })
+})()
+
 let startView = 'topics'
 try { startView = localStorage.getItem(VIEW_KEY) || 'topics' } catch (e) {}
 setView(startView)
+
+// The URL follows the section you're reading, so a refresh or a shared link lands on the same spot.
+// Section headings get ids from their text (card id + slug), so links survive edits elsewhere on the page.
+;(() => {
+  const used = new Set([...document.querySelectorAll('[id]')].map(e => e.id))
+  cards.forEach(c => c.querySelectorAll('h4').forEach(h => {
+    if (h.id) return
+    const slug = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'part'
+    let id = `${c.id}--${slug}`, n = 2
+    while (used.has(id)) id = `${c.id}--${slug}-${n++}`
+    used.add(id); h.id = id
+  }))
+  const marks = () => [...list.querySelectorAll('section.card, section.card h4, h3.lesson')]
+    .filter(e => !e.closest('[hidden]') && e.getClientRects().length && e.getBoundingClientRect().height)
+
+  // On load: open whatever hides the target, then jump to it once layout has settled
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+  const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
+  if (target) {
+    if (target.closest('section.card')?.hidden) setView('topics')
+    for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) d.open = true
+    const jump = () => target.scrollIntoView({ block: 'start' })
+    jump(); requestAnimationFrame(jump); window.addEventListener('load', jump, { once: true })
+  }
+
+  let last = location.hash, ticking = false
+  const update = () => {
+    ticking = false
+    const line = 90 // px from the top: the heading you're reading under
+    let cur = null
+    for (const e of marks()) { if (e.getBoundingClientRect().top <= line) cur = e; else break }
+    const hash = cur ? '#' + cur.id : ''
+    if (hash === last) return
+    last = hash
+    history.replaceState(history.state, '', location.pathname + location.search + hash)
+  }
+  // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
+  let armed = false
+  for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) window.addEventListener(ev, () => { armed = true }, { once: true, passive: true })
+  window.addEventListener('scroll', () => { if (armed && !ticking) { ticking = true; requestAnimationFrame(update) } }, { passive: true })
+})()
 </script>
 <script src="../js/back-button.js"></script>
 </body>
