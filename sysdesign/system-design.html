@@ -127,6 +127,11 @@ details.more li { margin: 2px 0; }
 .learned h5 { margin: 10px 0 2px; font-size: 13px; color: var(--purple-fg); }
 .learned ul { margin: 0; padding-left: 18px; font-size: 14px; }
 .learned li { margin: 3px 0; }
+.tool { margin: 14px 0 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 8px 12px; font-size: 14px; }
+.tool summary { cursor: pointer; font-weight: 600; }
+.tool p { margin: 6px 0; color: var(--muted); font-size: 13px; }
+.tool button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+.tool pre { max-height: 240px; overflow: auto; font-size: 11px; white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 8px 0 0; }
 .figcap { margin: -4px 0 8px; font-size: 12px; color: var(--muted); }
 .card h4 { margin: 14px 0 2px; font-size: 15px; }
 .card .lines { list-style: none; padding-left: 0; }
@@ -155,6 +160,80 @@ details.more li { margin: 2px 0; }
   <p>Notes from our discussions. One idea per card, shown by topic or by course.</p>
 </header>
 
+<details class="tool" id="extractor">
+  <summary>🧲 Article extractor prompt (Claude in Chrome)</summary>
+  <p>Open the lesson in Chrome → start Claude in Chrome → paste this → bring the output to the notes thread. It keeps callouts 💡⚠️, do's/don'ts, images, code and every comment.</p>
+  <button type="button" id="copy-extractor">📋 Copy prompt</button>
+  <pre id="extractor-text">You are extracting a HelloInterview course lesson from the page open in this tab. The goal is a **faithful, complete copy** of the lesson that another assistant will turn into study notes. Do **not** summarize, shorten, reword, or add anything of your own.
+
+## Before you extract
+1. Scroll the whole page from top to bottom so everything loads.
+2. Expand everything that is collapsed: &quot;show more&quot;, accordions, tabs, toggles, hidden solutions. If there are tabs, extract every tab.
+3. In the comments, click &quot;load more&quot; / &quot;show replies&quot; until every comment and reply is visible.
+4. Skip only: the site navigation and sidebar, the course progress UI, the rating widget, ads and sign-up prompts.
+
+## What to output
+One Markdown document, in the **exact order the content appears on the page**:
+
+1. **Header**
+   - `# &lt;Lesson title&gt;`
+   - `Course: &lt;course › section › lesson&gt;` and the subtitle or description line under the title.
+   - `URL: &lt;page URL&gt;`
+
+2. **Body, verbatim**
+   - Keep every heading level (`##`, `###`), every paragraph, list, and numbered step, word for word.
+   - Keep **bold**, *italic* and `inline code`. Keep links as `[text](url)`.
+   - Code blocks go in fenced blocks with the language, exactly as shown.
+   - Tables become Markdown tables, with every row and column.
+
+3. **Callout boxes** (tip / note / warning boxes, often with an icon such as a 💡 bulb or ⚠️). Mark each one where it appears:
+   ```
+   &gt; [CALLOUT: TIP 💡] &lt;exact text&gt;
+   &gt; [CALLOUT: WARNING ⚠️] &lt;exact text&gt;
+   &gt; [CALLOUT: NOTE ℹ️] &lt;exact text&gt;
+   ```
+   Use the icon or colour to pick the type. If you&#x27;re unsure, write `[CALLOUT: &lt;icon or colour you see&gt;]`.
+
+4. **Do&#x27;s and Don&#x27;ts / Good vs Bad / Pros and Cons** sections: keep them as two clearly labelled lists:
+   ```
+   [DO ✅] …
+   [DON&#x27;T ❌] …
+   ```
+
+5. **Images and diagrams.** Write a block at the exact spot where the image sits:
+   ```
+   [IMAGE &lt;n&gt;: &lt;caption under the image, if any&gt;]
+   - Type: &lt;diagram / screenshot / chart / sequence diagram / table image / photo&gt;
+   - All text in the image, exactly: &lt;every label, box name, arrow label, number, step number&gt;
+   - Structure: &lt;what is connected to what, the arrow directions, the order of steps, groupings, solid vs dashed lines, colours that carry meaning&gt;
+   - What it shows: &lt;one or two plain sentences describing the image, no interpretation beyond what&#x27;s drawn&gt;
+   ```
+   For a step-by-step diagram (e.g. a request flow or handshake), list every step in order with its label.
+
+6. **Videos and embeds:** `[VIDEO: &lt;title&gt; · &lt;length if shown&gt;]` at the spot where they appear. Don&#x27;t transcribe them.
+
+7. **Quizzes:** `[QUIZ: &lt;title&gt;]` plus the questions and options if they&#x27;re visible. Skip them if they&#x27;re hidden.
+
+8. **Comments**: put them under `## Comments`, in the page&#x27;s order (keep &quot;Popular&quot; sorting if that&#x27;s the default). For each one:
+   ```
+   ### &lt;author&gt; [ADMIN] [&lt;badges like Top 1%, Premium&gt;] · &lt;votes&gt; votes · &lt;time ago&gt;
+   &lt;exact comment text, keep its lists and formatting&gt;
+     ↳ reply — &lt;author&gt; [ADMIN] · &lt;votes&gt; votes · &lt;time ago&gt;
+       &lt;exact reply text&gt;
+   ```
+   Mark course staff or admin authors with `[ADMIN]`.
+
+## Rules
+- Verbatim. If something can&#x27;t be read, write `[unreadable]` and don&#x27;t guess.
+- Don&#x27;t merge or drop any section, even if it looks repetitive.
+- If the output is too long for one reply, split it into `PART 1/N`, `PART 2/N`… at a heading boundary, and keep going until it&#x27;s complete.
+- At the very end, add:
+  ```
+  ## Extraction checklist
+  - Headings: &lt;count&gt; · Callouts: &lt;count&gt; · Images: &lt;count&gt; · Code blocks: &lt;count&gt; · Tables: &lt;count&gt; · Comments: &lt;count incl. replies&gt;
+  - Anything skipped or unreadable: &lt;list, or &quot;none&quot;&gt;
+  ```</pre>
+</details>
 <div class="views" id="views">
   <button type="button" data-view="topics">📚 Topics</button>
   <button type="button" data-view="courses">🎓 Courses</button>
@@ -501,6 +580,14 @@ document.querySelectorAll('.hld').forEach(box => {
   box.querySelectorAll('.hld-btns button').forEach(b => { b.onclick = () => show(+b.dataset.s) })
   show(1)
 })
+
+// Copy the extractor prompt; fall back to selecting the text where the clipboard API is blocked
+document.getElementById('copy-extractor').onclick = async e => {
+  const text = document.getElementById('extractor-text').textContent
+  try { await navigator.clipboard.writeText(text); e.target.textContent = '✅ Copied' }
+  catch (err) { getSelection().selectAllChildren(document.getElementById('extractor-text')); e.target.textContent = 'Selected: press Copy' }
+  setTimeout(() => { e.target.textContent = '📋 Copy prompt' }, 2000)
+}
 
 let startView = 'topics'
 try { startView = localStorage.getItem(VIEW_KEY) || 'topics' } catch (e) {}
