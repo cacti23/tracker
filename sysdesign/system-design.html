@@ -640,14 +640,18 @@ GET  /v1/feed        → Tweet[]</pre>
 
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
-    <h5>🔌 When does TCP really close? (course admin)</h5>
+    <h5>📞 When does TCP really close? (course admin)</h5>
+    <p>Not after every request. Think of <b>calling a shop</b> with questions: <span class="add">➕ analogy not in the article</span></p>
+    <div class="vs"><div class="bad">☎️ <b>HTTP/1.0</b>: ask one question, hang up, dial again. Every request pays the full handshake. "Super inefficient."</div><div class="good">📞 <b>HTTP/1.1</b>: stay on the line, ask the next one. Connection stays open by default (<b>keep-alive</b>).</div></div>
+    <p>🔚 A 1.1 connection closes when:</p>
     <ul>
-      <li>Not after every request. HTTP/1.1 keeps the connection open by default (<b>keep-alive</b>). It closes when the client closes it, when the server times it out (usually after a few idle seconds), or with a <code>Connection: close</code> header.</li>
-      <li>HTTP/1.0 tore down after every request: "super inefficient". HTTP/2 and HTTP/3 send many request streams over one connection, so teardown is even rarer.</li>
-      <li>Either side can start the teardown. Both sides send a FIN.</li>
+      <li>👋 either side says bye: a <code>Connection: close</code> header (then both sides send a FIN),</li>
+      <li>⏳ nobody talks for a while: the server's idle timeout hangs up (seconds to about a minute; ➕ nginx default 75 s),</li>
+      <li>❌ the tab closes or the network drops.</li>
     </ul>
-    <h5>🚦 Keep-alive vs HTTP/2</h5>
-    <div class="vs"><div class="bad">Keep-alive: one connection, requests one after another. A slow one holds up the rest.</div><div class="good">HTTP/2: requests interleaved on one connection. Faster, but a lost TCP packet still stalls all of them.</div></div>
+    <p>🌐 Why it matters: one page = HTML + CSS + JS + images, often 50+ requests to the same server. Keep-alive reuses a few open lines instead of 50 handshakes (➕ browsers keep up to ~6 per server).</p>
+    <div class="vs"><div class="bad">📞 Keep-alive: one question at a time per line. A slow answer holds up the rest.</div><div class="good">🎙️ HTTP/2: many questions at once on one line. Faster, but one lost TCP packet still stalls them all (HTTP/3 runs on QUIC over UDP to fix that).</div></div>
+    <p>🎞️ So why does the animation end with FIN? It shows one request on its own, start to finish. In a real browser, that FIN comes much later.</p>
     <h5>🌍 Public IPs</h5>
     <ul><li>They go on whatever faces the internet: API gateways, load balancers.</li></ul>
   </div>
