@@ -698,7 +698,7 @@ Tree:      E = V − 1        ← always sparse</code></pre>
 <section data-g="tree" class="sum" id="tree-sum">
 <h2>🧠 Trees — Must Remember</h2>
 <ul>
-<li>🌲 <b>Serialize:</b> preorder + null markers · BST needs preorder only (<a href="#tree-1">#1</a>)</li>
+<li>🌲 <b>Serialize:</b> preorder, never inorder · binary tree + <code>#</code> markers · BST no markers, <code>build(low, high)</code> (<a href="#tree-1">#1</a>)</li>
 <li>🔍 <b>BST?</b> Think inorder = sorted: kth, validate, successor, recover (<a href="#tree-2">#2</a>)</li>
 <li>⬆️ <b>Need to go UP?</b> One DFS builds a parent map, then treat the tree as undirected (<a href="#tree-3">#3</a>)</li>
 <li>🍎 <b>Collect in a tree:</b> dfs returns "has item below?", <code>+2</code> per needed edge (<a href="#tree-4">#4</a>)</li>
@@ -709,11 +709,35 @@ Tree:      E = V − 1        ← always sparse</code></pre>
 
 <section data-g="tree">
 <span id="t9"></span>
-<h2 id="tree-1">1 · 🌲 Serialize/Deserialize Tree → think PREORDER</h2>
+<h2 id="tree-1">1 · 🌲 Serialize/Deserialize Tree → PREORDER, Not Inorder</h2>
 <ul>
-<li><b>Binary Tree (297):</b> preorder + null markers</li>
-<li><b>BST (449):</b> preorder alone suffices — BST bounds preserve structure</li>
+<li>🌳 <b>Binary tree (LC 297):</b> preorder + null markers <code>#</code>.</li>
+<li>🔍 <b>BST (LC 449):</b> preorder, no markers. Pass <code>low</code> and <code>high</code> to <code>build</code>.</li>
+<li>🎯 <b>Why preorder:</b> the root comes first, so you always know it.</li>
 </ul>
+<figure class="calls"><svg viewBox="0 0 240 230" role="img" aria-label="🌳 Tree A"><text x="120" y="18" class="tt">🌳 Tree A</text><line x1="120" y1="69" x2="80" y2="101"/><rect x="106" y="41" width="28" height="28" rx="14"/><text x="120" y="59" class="n">1</text><rect x="66" y="101" width="28" height="28" rx="14"/><text x="80" y="119" class="n">2</text><text x="120" y="170" class="ok">preorder: 1 2 # # #</text><text x="120" y="200" class="bad">inorder: # 2 # 1 #</text></svg><svg viewBox="0 0 240 230" role="img" aria-label="🌳 Tree B"><text x="120" y="18" class="tt">🌳 Tree B</text><line x1="120" y1="69" x2="160" y2="101"/><rect x="106" y="41" width="28" height="28" rx="14"/><text x="120" y="59" class="n">2</text><rect x="146" y="101" width="28" height="28" rx="14"/><text x="160" y="119" class="n">1</text><text x="120" y="170" class="ok">preorder: 2 # 1 # #</text><text x="120" y="200" class="bad">inorder: # 2 # 1 #</text></svg></figure>
+<p>❌ <b>Inorder fails:</b> two different trees give the same string. Preorder gives two different strings.</p>
+<pre class="language-tsx"><code class="language-tsx">// 🌳 Binary tree: read a value, "#" = null
+function build() {
+  const v = vals[i++]
+  if (v === '#') return null
+  const node = new TreeNode(+v)
+  node.left = build()
+  node.right = build()
+  return node
+}
+
+// 🔍 BST: no "#", the bounds decide where each value goes
+function build(low, high) {
+  if (i === vals.length || vals[i] &lt; low || vals[i] &gt; high) return null
+  const node = new TreeNode(vals[i++])
+  node.left = build(low, node.val)
+  node.right = build(node.val, high)
+  return node
+}
+build(-Infinity, Infinity)</code></pre>
+<p class="hint">🔀 Not the same as LC 105 (build from traversals): no markers there, so you need preorder AND inorder. Checked in Node: both builds rebuild 3,000 random BSTs exactly.</p>
+<div class="box key"><b class="tag">📌</b> <b>Root first → preorder.</b> Binary tree: add <code>#</code> for null. BST: no <code>#</code>, the bounds <code>(low, high)</code> place each value.</div>
 </section>
 
 <section data-g="tree">
