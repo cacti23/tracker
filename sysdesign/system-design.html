@@ -150,6 +150,9 @@ details.more li { margin: 2px 0; }
 .views { display: inline-flex; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .views button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--card); color: var(--muted); cursor: pointer; }
 .views button.on { background: var(--accent); color: #fff; }
+.quiz-btn { margin-left: 8px; font: inherit; font-size: 12.5px; font-weight: 600; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; vertical-align: 2px; white-space: nowrap; }
+.quiz-btn:hover { background: var(--accent); color: var(--card); }
+.quiz-btn.done { border-color: var(--green-fg); color: var(--green-fg); background: transparent; }
 .tag.course { background: var(--purple-bg); color: var(--purple-fg); }
 .index { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 14px; }
 .index summary { cursor: pointer; font-weight: 600; }
@@ -1867,6 +1870,42 @@ setView(startView)
     last = hash
     history.replaceState(history.state, '', location.pathname + location.search + hash)
   }
+  // 🧠 Quiz me: copies an interviewer prompt naming this section, to paste into the system design thread
+  const LIVE = 'https://tracker-roan-nine.vercel.app/sysdesign/system-design.html'
+  const quizPrompt = (where, cardId, id) => `🧠 SYSTEM DESIGN QUIZ
+Section: ${where}
+Source: cacti23/tracker → sysdesign/system-design.html, <section id="${cardId}">${id === cardId ? '' : ', the part under that heading'}
+Link: ${LIVE}#${id}
+
+You are a principal software engineer with 20+ years of experience who has interviewed 1,000+ candidates in system design at FAANG / MAANG and similar companies. Quiz me on the section above at SDE2 (L4) and SDE3 (L5) level. The goal is to make me better at system design interviews, not to test trivia.
+
+1. First read that section in the tracker repo (file + section above), so your questions build on what I studied. Go beyond it only in follow-ups, the way a real interviewer would.
+2. Ask ONE question at a time, then wait for my answer.
+3. Ask amazing questions: ones really asked in FAANG / MAANG system design rounds (name the company only if you're sure), "it's 3am and X is slow/down, what now?" scenarios, "A or B, and why?" trade-offs, and follow-up drills that dig deeper.
+4. Start at SDE2 and move to SDE3 as I answer well. Tag each question [SDE2] or [SDE3].
+5. After each answer: a score /10, what a strong candidate would say (key points), what I missed or got wrong, and the follow-up the interviewer would ask next. Be strict and push back like a real interviewer.
+6. After 5 questions, sum up: my strengths, my gaps, and what to re-read in the notes.
+
+Style: clear, concise, simple, emojis as anchors, an analogy where it helps, no long text blocks.`
+  const copy = async (text, btn) => {
+    try { await navigator.clipboard.writeText(text) } catch (e) {
+      const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove()
+    }
+    const was = btn.textContent; btn.textContent = '✓ Copied: paste in the thread'; btn.classList.add('done')
+    setTimeout(() => { btn.textContent = was; btn.classList.remove('done') }, 2500)
+  }
+  const quizBtn = (label, where, cardId, id) => {
+    const b = el('button', 'quiz-btn', label); b.type = 'button'
+    b.title = 'Copy an interviewer prompt for this part'
+    b.onclick = e => { e.stopPropagation(); copy(quizPrompt(where, cardId, id), b) }
+    return b
+  }
+  cards.forEach(c => {
+    const title = cardTitle(c)
+    c.querySelector('.cap').appendChild(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id))
+    c.querySelectorAll(':scope > h4').forEach(h => h.appendChild(quizBtn('🧠 Quiz me', `${title} › ${h.textContent.trim()}`, c.id, h.id)))
+  })
+
   // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
   let armed = false
   for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) window.addEventListener(ev, () => { armed = true }, { once: true, passive: true })
