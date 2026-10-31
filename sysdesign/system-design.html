@@ -150,6 +150,9 @@ details.more li { margin: 2px 0; }
 .views { display: inline-flex; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .views button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--card); color: var(--muted); cursor: pointer; }
 .views button.on { background: var(--accent); color: #fff; }
+.quiz-btn { margin-left: 8px; font: inherit; font-size: 12.5px; font-weight: 600; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; vertical-align: 2px; white-space: nowrap; }
+.quiz-btn:hover { background: var(--accent); color: var(--card); }
+.quiz-btn.done { border-color: var(--green-fg); color: var(--green-fg); background: transparent; }
 .tag.course { background: var(--purple-bg); color: var(--purple-fg); }
 .index { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 16px; font-size: 14px; }
 .index summary { cursor: pointer; font-weight: 600; }
@@ -1867,6 +1870,60 @@ setView(startView)
     last = hash
     history.replaceState(history.state, '', location.pathname + location.search + hash)
   }
+  // 🧠 Quiz me: copies an interviewer prompt naming this section, to paste into the system design thread
+  const LIVE = 'https://tracker-roan-nine.vercel.app/sysdesign/system-design.html'
+  const quizPrompt = (where, cardId, id) => `🧠 SYSTEM DESIGN QUIZ
+Section: ${where}
+Source: cacti23/tracker → sysdesign/system-design.html, <section id="${cardId}">${id === cardId ? '' : ', the part under that heading'}
+Link: ${LIVE}#${id}
+
+You are a principal software engineer with 20+ years of experience who has run 1,000+ system design interviews at FAANG / MAANG-style companies (Google, Meta, Amazon, Apple, Netflix, Microsoft, NVIDIA, AMD, Uber…). Run a mock interview on the section above. Goal: make me interview-ready, not test trivia.
+
+🎯 Level: SDE2 (Google L4 · Meta E4 · Amazon SDE II) → SDE3 (Google L5 · Meta E5 · Amazon SDE III). Tag each question [SDE2] or [SDE3].
+
+📖 Setup
+- Read that section first (repo file above, or the Link). If you can't open either, ask me to paste it. Don't guess its content.
+- Build on what I studied; go beyond it only in follow-ups, the way a real interviewer would.
+
+❓ Questions (ONE at a time, then wait)
+- Open-ended, spoken-interview style. No multiple choice, no definitions ("what is X?").
+- Put the concept inside a real product: "You're designing WhatsApp / Uber / Ticketmaster / a news feed… where does this come in, and what would you choose?"
+- Mix: a design decision with trade-offs (A or B, and why?) · a "3am, X is slow or down, what now?" incident · a back-of-envelope number (QPS, storage, latency) · a pushback ("why not Y?") on my own answer.
+- Prefer questions really asked in these rounds. Name a company only if you're sure; never invent where a question came from.
+- Adapt: score ≥ 8 → harder or SDE3; ≤ 5 → same concept from an easier angle.
+
+📝 After each answer
+- Score /10 on what interviewers grade: navigation (clarify, scope) · design (right components, trade-offs) · depth (numbers, failure modes) · communication.
+- ✅ What a strong candidate would say, in 3–5 bullets, and what separates the SDE3 answer from the SDE2 one.
+- ❌ What I missed or got wrong. Be strict, like a real panel.
+- ➡️ The follow-up the interviewer would ask next (it becomes the next question when it fits).
+- If I say "hint", give a nudge, not the answer. If I say "skip", give the model answer and move on.
+
+🏁 After 5 questions (or when I say stop)
+- Hire signal for this topic: Strong No Hire → Strong Hire, at SDE2 and at SDE3.
+- Strengths · gaps · what to re-read in the notes.
+- 3 one-line "redo later" questions I should be able to answer next time.
+
+Style: clear, concise, simple, emojis as anchors, an analogy where it helps, no long text blocks.`
+  const copy = async (text, btn) => {
+    try { await navigator.clipboard.writeText(text) } catch (e) {
+      const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove()
+    }
+    const was = btn.textContent; btn.textContent = '✓ Copied: paste in the thread'; btn.classList.add('done')
+    setTimeout(() => { btn.textContent = was; btn.classList.remove('done') }, 2500)
+  }
+  const quizBtn = (label, where, cardId, id) => {
+    const b = el('button', 'quiz-btn', label); b.type = 'button'
+    b.title = 'Copy an interviewer prompt for this part'
+    b.onclick = e => { e.stopPropagation(); copy(quizPrompt(where, cardId, id), b) }
+    return b
+  }
+  cards.forEach(c => {
+    const title = cardTitle(c)
+    c.querySelector('.cap').appendChild(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id))
+    c.querySelectorAll(':scope > h4').forEach(h => h.appendChild(quizBtn('🧠 Quiz me', `${title} › ${h.textContent.trim()}`, c.id, h.id)))
+  })
+
   // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
   let armed = false
   for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) window.addEventListener(ev, () => { armed = true }, { once: true, passive: true })
