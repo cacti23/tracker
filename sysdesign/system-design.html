@@ -317,71 +317,61 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 
 ## Before you extract
 1. Scroll the whole page from top to bottom so everything loads.
-2. Expand everything that is collapsed: &quot;show more&quot;, accordions, tabs, toggles, hidden solutions. If there are tabs, extract every tab.
-3. In the comments, click &quot;load more&quot; / &quot;show replies&quot; until every comment and reply is visible.
-4. Skip only: the site navigation and sidebar, the course progress UI, the rating widget, ads and sign-up prompts.
+2. Do NOT use plain page-text extraction — it flattens tables, drops link URLs and loses callout types. Read the DOM / accessibility tree, and screenshot + zoom to read images.
+3. Comments: click "Show All Comments", then click every "Show more" inside long comments so the full text is visible.
+4. Skip: left course sidebar and progress UI, "Get the app" banner, Listen / Focus / Quick ref buttons, "On This Page" table of contents, rating stars, "Complete &amp; next: … quiz" button, comment input box, footer.
 
 ## What to output
 One Markdown document, in the **exact order the content appears on the page**:
 
 1. **Header**
    - `# &lt;Lesson title&gt;`
-   - `Course: &lt;course › section › lesson&gt;` and the subtitle or description line under the title.
+   - `Course: &lt;breadcrumb exactly as shown, e.g. "Course · 02 Foundations"&gt;`
+   - `Subtitle: &lt;description line under the title&gt;`
    - `URL: &lt;page URL&gt;`
 
 2. **Body, verbatim**
    - Keep every heading level (`##`, `###`), every paragraph, list, and numbered step, word for word.
-   - Keep **bold**, *italic* and `inline code`. Keep links as `[text](url)`.
-   - Code blocks go in fenced blocks with the language, exactly as shown.
-   - Tables become Markdown tables, with every row and column.
+   - Keep **bold**, *italic* and `inline code`. Keep links as `[text](url)` with the real URL.
+   - Code blocks go in fenced blocks, exactly as shown. Add a language tag only if obvious (http, json, graphql, protobuf, sql); otherwise leave it blank.
+   - Tables are NOT real &lt;table&gt; elements. Rebuild each one as a Markdown table with its header row, every row and every column, and keep the label above it (e.g. "Users table:").
 
-3. **Callout boxes** (tip / note / warning boxes, often with an icon such as a 💡 bulb or ⚠️). Mark each one where it appears:
-   ```
+3. **Callout boxes** are `div.callout.callout-tip`, `callout-warning` and `callout-info`. Use the class to pick the type and mark each one where it appears:
    &gt; [CALLOUT: TIP 💡] &lt;exact text&gt;
    &gt; [CALLOUT: WARNING ⚠️] &lt;exact text&gt;
-   &gt; [CALLOUT: NOTE ℹ️] &lt;exact text&gt;
-   ```
-   Use the icon or colour to pick the type. If you&#x27;re unsure, write `[CALLOUT: &lt;icon or colour you see&gt;]`.
+   &gt; [CALLOUT: INFO ℹ️] &lt;exact text&gt;
 
-4. **Do&#x27;s and Don&#x27;ts / Good vs Bad / Pros and Cons** sections: keep them as two clearly labelled lists:
-   ```
+4. **Do's and Don'ts / Good vs Bad / Pros and Cons** (only if present): keep them as two clearly labelled lists:
    [DO ✅] …
-   [DON&#x27;T ❌] …
-   ```
+   [DON'T ❌] …
 
-5. **Images and diagrams.** Write a block at the exact spot where the image sits:
-   ```
+5. **Images and diagrams.** Images have no alt text; the caption is the short text line directly under the image (e.g. "Sharding", "Final Whiteboard"). Some diagrams are drawn as SVG text — capture that text ONLY inside the [IMAGE] block, never as body paragraphs. Write a block at the exact spot where the image sits:
    [IMAGE &lt;n&gt;: &lt;caption under the image, if any&gt;]
    - Type: &lt;diagram / screenshot / chart / sequence diagram / table image / photo&gt;
    - All text in the image, exactly: &lt;every label, box name, arrow label, number, step number&gt;
-   - Structure: &lt;what is connected to what, the arrow directions, the order of steps, groupings, solid vs dashed lines, colours that carry meaning&gt;
-   - What it shows: &lt;one or two plain sentences describing the image, no interpretation beyond what&#x27;s drawn&gt;
-   ```
-   For a step-by-step diagram (e.g. a request flow or handshake), list every step in order with its label.
+   - Structure: &lt;what connects to what, arrow directions, order of steps, groupings, solid vs dashed lines, meaningful colours&gt;
+   - What it shows: &lt;one or two plain sentences, nothing beyond what's drawn&gt;
+   For a step-by-step diagram (e.g. a request flow), list every step in order with its label.
 
-6. **Videos and embeds:** `[VIDEO: &lt;title&gt; · &lt;length if shown&gt;]` at the spot where they appear. Don&#x27;t transcribe them.
+6. **Videos:** the lesson has a walkthrough video near the top. Write `[VIDEO: &lt;title&gt; · &lt;length&gt;]` where it appears. Don't transcribe it.
 
-7. **Quizzes:** `[QUIZ: &lt;title&gt;]` plus the questions and options if they&#x27;re visible. Skip them if they&#x27;re hidden.
-
-8. **Comments**: put them under `## Comments`, in the page&#x27;s order (keep &quot;Popular&quot; sorting if that&#x27;s the default). For each one:
-   ```
-   ### &lt;author&gt; [ADMIN] [&lt;badges like Top 1%, Premium&gt;] · &lt;votes&gt; votes · &lt;time ago&gt;
+7. **Comments**: put them under `## Comments`, in "Popular" order. Take the top 20 comments plus all of their replies. Remove the single-letter avatar shown before names. For each one:
+   ### &lt;author&gt; [ADMIN] [&lt;badges e.g. Top 5%, Premium&gt;] · &lt;votes&gt; votes · &lt;time ago&gt;
    &lt;exact comment text, keep its lists and formatting&gt;
-     ↳ reply — &lt;author&gt; [ADMIN] · &lt;votes&gt; votes · &lt;time ago&gt;
+     ↳ reply — &lt;author&gt; [ADMIN] [&lt;badges&gt;] · &lt;votes&gt; votes · &lt;time ago&gt;
        &lt;exact reply text&gt;
-   ```
-   Mark course staff or admin authors with `[ADMIN]`.
+   Mark course staff or admin authors with [ADMIN].
 
 ## Rules
-- Verbatim. If something can&#x27;t be read, write `[unreadable]` and don&#x27;t guess.
-- Don&#x27;t merge or drop any section, even if it looks repetitive.
-- If the output is too long for one reply, split it into `PART 1/N`, `PART 2/N`… at a heading boundary, and keep going until it&#x27;s complete.
+- Verbatim. If something can't be read, write `[unreadable]` and don't guess.
+- Don't merge or drop any section, even if it looks repetitive.
+- If the output is too long for one reply, split it into `PART 1/N`, `PART 2/N`… at a heading boundary, and keep going until it's complete.
 - At the very end, add:
-  ```
   ## Extraction checklist
   - Headings: &lt;count&gt; · Callouts: &lt;count&gt; · Images: &lt;count&gt; · Code blocks: &lt;count&gt; · Tables: &lt;count&gt; · Comments: &lt;count incl. replies&gt;
-  - Anything skipped or unreadable: &lt;list, or &quot;none&quot;&gt;
-  ```</pre>
+  - Headings match the "On This Page" list? &lt;yes / no — list any missing&gt;
+  - Comments captured: &lt;X&gt; of &lt;total shown in "Comments (N)"&gt;
+  - Anything skipped or unreadable: &lt;list, or "none"&gt;</pre>
 </details>
 <div class="views" id="views">
   <button type="button" data-view="topics">📚 Topics</button>
