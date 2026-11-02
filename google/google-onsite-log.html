@@ -3305,29 +3305,45 @@ class XmlNode {
               <a href="https://leetcode.com/problems/tree-diameter/" target="_blank" rel="noopener">LC 1245 &mdash; Tree Diameter</a>
             </div>
           </div>
-          <div class="note">💡 Count each node&rsquo;s remaining children. Remove all original leaves first; when a removal drops a parent to 0 children, queue that parent as a fresh leaf. Then remove the queue in order.</div>
+          <div class="note">💡 It is Kahn&rsquo;s algorithm on upward edges (child &rarr; parent). <code>indeg</code> = children left, so indeg 0 = leaf. The queue starts with every original leaf; a parent that drops to 0 joins the <strong>back</strong> of the queue, so fresh leaves wait until the original leaves are gone.</div>
           <div class="note warn">⚠️ Assumes &ldquo;fresh&rdquo; means a node that just became a leaf, any order among original leaves, oldest fresh leaf first. The page is a paraphrase, so confirm the rule. My answer for the example is 4,5,6,7,8,3,2,1, a different valid order than the page&rsquo;s.</div>
-          <div class="note">⏱️ TC: O(n), each node is counted and removed once<br>📦 SC: O(n), child counts and the fresh queue<br>🧪 Verified against brute force on 4,000 random trees: 0 mismatches.</div>
+          <div class="note">🧪 Verified against brute force on 4,000 random trees: 0 mismatches. Same order as the earlier version on 5,000 random trees.</div>
 
           <div class="code-wrap">
             <div class="code-label"><span>leafRemovalOrder.ts</span><button class="copy-btn" data-copy-target="code-e18-leaves">Copy</button></div>
-            <pre id="code-e18-leaves"><span class="cmt">// parent[i] = parent of node i, -1 for the root</span>
-<span class="kw">function</span> leafRemovalOrder(parent: <span class="kw">number</span>[]): <span class="kw">number</span>[] {
-  <span class="kw">const</span> n = parent.length;
-  <span class="kw">const</span> kids = <span class="kw">new</span> Array&lt;<span class="kw">number</span>&gt;(n).fill(0); <span class="cmt">// children not yet removed</span>
-  parent.forEach((p) =&gt; { <span class="kw">if</span> (p &gt;= 0) kids[p]++; });
+            <pre id="code-e18-leaves"><span class="cmt">// 🍂 LEAF REMOVAL ORDER (graph with upward edges + Kahn's algorithm)</span>
+<span class="cmt">// ⏱️ TC: O(n) → each node and each edge is processed once</span>
+<span class="cmt">// 📦 SC: O(n) → graph + indeg + queue</span>
+<span class="kw">function</span> leafRemovalOrder(edges: <span class="kw">number</span>[][], nodes: <span class="kw">number</span>[]): <span class="kw">number</span>[] {
+    <span class="kw">const</span> graph = <span class="kw">new</span> <span class="kw">Map</span>&lt;<span class="kw">number</span>, <span class="kw">number</span>[]&gt;();   <span class="cmt">// child → parent (edges point UP)</span>
+    <span class="kw">const</span> indeg = <span class="kw">new</span> <span class="kw">Map</span>&lt;<span class="kw">number</span>, <span class="kw">number</span>&gt;();     <span class="cmt">// indeg = number of children</span>
+    <span class="kw">for</span> (<span class="kw">const</span> node <span class="kw">of</span> nodes) {
+        graph.set(node, []);
+        indeg.set(node, 0);
+    }
 
-  <span class="kw">const</span> order: <span class="kw">number</span>[] = [];
-  <span class="kw">const</span> fresh: <span class="kw">number</span>[] = []; <span class="cmt">// leaves created by a removal, kept for later</span>
-  <span class="kw">const</span> remove = (u: <span class="kw">number</span>) =&gt; {
-    order.push(u);
-    <span class="kw">const</span> p = parent[u];
-    <span class="kw">if</span> (p &gt;= 0 &amp;&amp; --kids[p] === 0) fresh.push(p); <span class="cmt">// parent just became a leaf</span>
-  };
+    <span class="kw">for</span> (<span class="kw">const</span> [parent, child] <span class="kw">of</span> edges) {
+        graph.get(child)!.push(parent);          <span class="cmt">// 🔼 child → parent</span>
+        indeg.set(parent, indeg.get(parent)! + 1);
+    }
 
-  <span class="kw">for</span> (<span class="kw">let</span> i = 0; i &lt; n; i++) <span class="kw">if</span> (kids[i] === 0) remove(i); <span class="cmt">// original leaves first</span>
-  <span class="kw">for</span> (<span class="kw">let</span> i = 0; i &lt; fresh.length; i++) remove(fresh[i]); <span class="cmt">// then fresh leaves, oldest first</span>
-  <span class="kw">return</span> order;
+    <span class="kw">const</span> queue: <span class="kw">number</span>[] = [];
+    <span class="kw">for</span> (<span class="kw">const</span> node <span class="kw">of</span> nodes) {
+        <span class="kw">if</span> (indeg.get(node) === 0) queue.push(node);   <span class="cmt">// 🍂 indeg 0 = leaf</span>
+    }
+
+    <span class="kw">const</span> order: <span class="kw">number</span>[] = [];
+    <span class="kw">let</span> front = 0;
+    <span class="kw">while</span> (front &lt; queue.length) {
+        <span class="kw">const</span> node = queue[front++];
+        order.push(node);
+
+        <span class="kw">for</span> (<span class="kw">const</span> nei <span class="kw">of</span> graph.get(node)!) {
+            indeg.set(nei, indeg.get(nei)! - 1);
+            <span class="kw">if</span> (indeg.get(nei) === 0) queue.push(nei);   <span class="cmt">// 🆕 fresh leaf → back of the line</span>
+        }
+    }
+    <span class="kw">return</span> order;
 }</pre>
           </div>
         </div>
