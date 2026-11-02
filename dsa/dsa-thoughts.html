@@ -204,7 +204,7 @@
   <a href="#arr-3"><b>03</b>Count subarrays via atMost()</a>
   <a href="#arr-4"><b>04</b>Circular index: wrap with +n</a>
   <a href="#arr-5"><b>05</b>One-to-one: check both ways</a>
-  <a href="#arr-6"><b>06</b>k pieces = k−1 cuts</a>
+  <a href="#arr-6"><b>06</b>Cuts ≠ indexes</a>
   <a href="#arr-7"><b>07</b>Left + right of each index: precompute</a>
   <a href="#arr-8"><b>08</b>Intervals: sort key, overlap, touching</a>
   <a href="#math-3"><b>Math · 03</b>Pairs vs subarrays vs subsets</a>
@@ -1403,7 +1403,7 @@ else high = mid - 1</code></pre>
 <li>🧮 <b>exactly(k)</b> = <code>atMost(k) − atMost(k−1)</code> (<a href="#arr-3">#3</a>)</li>
 <li>🔄 <b>Negative step on a circle</b> → <code>((x % n) + n) % n</code> (<a href="#arr-4">#4</a>)</li>
 <li>🔗 <b>One-to-one</b> → check both directions (<a href="#arr-5">#5</a>)</li>
-<li>✂️ <b>k pieces</b> = k − 1 cuts, each cut leaves room for the rest (<a href="#arr-6">#6</a>)</li>
+<li>✂️ <b>Cut</b> = BETWEEN elements, index = AT an element; k pieces = k − 1 cuts (<a href="#arr-6">#6</a>)</li>
 <li>🔁 <b>Each index needs its left + right</b> → fill <code>left[]</code> and <code>right[]</code> once, not a scan per index (<a href="#arr-7">#7</a>)</li>
 <li>📏 <b>Overlap</b> = latest start ≤ earliest end · touching? the problem picks <code>≤</code> or <code>&lt;</code> (<a href="#arr-8">#8</a>)</li>
 </ul>
@@ -1489,24 +1489,20 @@ exactly(k) = atMost(k) - atMost(k - 1)</code></pre>
 
 <section data-g="arr">
 <span id="t47"></span>
-<h2 id="arr-6">6 · ✂️ Split Into k Pieces — k−1 Cuts, and Each Cut Leaves Room for the Pieces After It</h2>
-<p><b>🎯</b> A string of <code>n</code> characters has <code>n − 1</code> gaps. <b>k pieces = pick k − 1 gaps</b> (3 pieces → 2 cuts 🔪🔪). This is the same fence-post idea as <a href="#rec-12">Recursion #12</a>, here used to write the loop bounds.</p>
+<h2 id="arr-6">6 · ✂️ Cuts Are Not Indexes — k Pieces = k−1 Cuts</h2>
+<ul>
+<li>📍 An <b>index</b> points AT an element. n items → indexes <code>0 … n−1</code>.</li>
+<li>✂️ A <b>cut</b> sits BETWEEN elements. n items → cut positions <code>0 … n</code>.</li>
+</ul>
 <figure class="calls"><svg viewBox="0 0 380 170" role="img" aria-label="Cuts sit between indices" style="max-width:440px"><text x="190" y="18" class="tt">✂️ Cut c sits just BEFORE index c</text><text x="8" y="50" class="c" style="text-anchor:start">cut</text><text x="8" y="132" class="c" style="text-anchor:start">idx</text><line x1="47" y1="58" x2="47" y2="112" stroke-dasharray="4 4"/><text x="47" y="50" class="n">0</text><line x1="107" y1="58" x2="107" y2="112"/><text x="107" y="50" class="n">1</text><line x1="167" y1="58" x2="167" y2="112" style="stroke-width:3"/><text x="167" y="50" class="ok">2</text><line x1="227" y1="58" x2="227" y2="112"/><text x="227" y="50" class="n">3</text><line x1="287" y1="58" x2="287" y2="112" style="stroke-width:3"/><text x="287" y="50" class="ok">4</text><line x1="347" y1="58" x2="347" y2="112" stroke-dasharray="4 4"/><text x="347" y="50" class="n">5</text><rect x="52" y="65" width="50" height="40" rx="6"/><text x="77" y="90" class="n">1</text><text x="77" y="132" class="c">0</text><rect x="112" y="65" width="50" height="40" rx="6"/><text x="137" y="90" class="n">2</text><text x="137" y="132" class="c">1</text><rect x="172" y="65" width="50" height="40" rx="6"/><text x="197" y="90" class="n">3</text><text x="197" y="132" class="c">2</text><rect x="232" y="65" width="50" height="40" rx="6"/><text x="257" y="90" class="n">6</text><text x="257" y="132" class="c">3</text><rect x="292" y="65" width="50" height="40" rx="6"/><text x="317" y="90" class="n">9</text><text x="317" y="132" class="c">4</text><text x="190" y="160" class="ok">cuts 2, 4 → [1, 2] · [3, 6] · [9]</text></svg></figure>
-<p>👀 <b>Read it:</b> write the index <b>below</b> each number and the cut in the <b>gap before</b> it. Cut <code>0</code> and cut <code>n</code> (dashed) are the ends, not real cuts, so real cuts are <code>1 … n − 1</code>. Cut <code>c</code> = <code>slice(…, c)</code> ends before index <code>c</code>.</p>
-<table>
-<tr><th></th><th>🔪 Slice (cut positions)</th><th>📦 Array (inclusive end)</th></tr>
-<tr><td><b>Pieces</b></td><td><code>[0,i) [i,j) [j,n)</code></td><td><code>[0..i] [i+1..j] [j+1..n-1]</code></td></tr>
-<tr><td><b>i</b></td><td><code>1</code> to <code>n − 2</code></td><td><code>0</code> to <code>n − 3</code></td></tr>
-<tr><td><b>j</b></td><td><code>i + 1</code> to <code>n − 1</code></td><td><code>i + 1</code> to <code>n − 2</code></td></tr>
-</table>
-<pre class="language-tsx"><code class="language-tsx">for (let i = 1; i &lt;= n - 2; i++)          // slice cuts
+<p>👀 Cut <code>c</code> sits just before index <code>c</code>. Cuts <code>0</code> and <code>n</code> are the ends, so real cuts are <code>1 … n−1</code>. 3 pieces = 2 cuts 🔪🔪.</p>
+<pre class="language-tsx"><code class="language-tsx">for (let i = 1; i &lt;= n - 2; i++)          // cuts: [0,i) [i,j) [j,n)
     for (let j = i + 1; j &lt;= n - 1; j++) {}
 
-for (let i = 0; i &lt; n - 2; i++)           // array ends
+for (let i = 0; i &lt; n - 2; i++)           // piece ends: [0..i] [i+1..j] [j+1..n-1]
     for (let j = i + 1; j &lt; n - 1; j++) {}</code></pre>
-<p>🔒 <b>Why the limits stop early:</b> every piece after a cut needs at least 1 character. The 3rd piece needs 1 → <code>j</code> stops 1 early. The 2nd and 3rd need 2 → <code>i</code> stops 2 early. The array version is just the slice version shifted by 1.</p>
-<div class="box warn"><b class="tag">🚨</b> Array version: <code>j</code> starts at <code>i + 1</code> (not 0) and stops at <code>n − 2</code> (not <code>n − 1</code>). Running <code>j</code> up to <code>n</code> and then writing <code>if (j === n) break</code> gives the same splits — that guard IS the "3rd piece can't be empty" rule — but putting the limit in the loop bounds is cleaner (LC 306 Additive Number).</div>
-<div class="box key"><b class="tag">📌</b> <b>k pieces = k − 1 cuts. Each cut leaves room for the pieces after it.</b> Slice → cuts in <code>1..n−1</code>. Array → piece ends in <code>0..n−2</code>. Number of splits = <code>C(n−1, k−1)</code> (n = 5, 3 pieces → 6).</div>
+<p>🔒 Every piece after a cut needs 1 item, so the loops stop early.</p>
+<div class="box key"><b class="tag">📌</b> <b>Index = AT an element. Cut = BETWEEN elements.</b> Slice → cuts in <code>1..n−1</code>. Array → piece ends in <code>0..n−2</code>.</div>
 </section>
 
 <section data-g="arr">
