@@ -316,7 +316,7 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
   <summary>🧲 Article extractor prompt (Claude in Chrome)</summary>
   <p>Open the lesson in Chrome → start Claude in Chrome → paste this → bring the output to the notes thread. It keeps callouts 💡⚠️, do's/don'ts, images, code and every comment.</p>
   <button type="button" id="copy-extractor">📋 Copy prompt</button>
-  <pre id="extractor-text">You are extracting a HelloInterview course lesson from the page open in this tab. The goal is a **faithful, complete copy** of the lesson that another assistant will turn into study notes. Do **not** summarize, shorten, reword, or add anything of your own.
+  <pre id="extractor-text">You are extracting a HelloInterview course lesson from the page open in this tab. The goal is a **complete, faithful restatement** of the lesson that another assistant will turn into study notes. Do **not** summarize, shorten, or add anything of your own: cover every section, point, example, number and name. Write the prose in your own words (do not copy passages word for word), but keep headings, code, identifiers, API names, numbers, table values and short labels exactly as shown.
 
 ## Before you extract
 1. Scroll the whole page from top to bottom so everything loads.
@@ -333,48 +333,52 @@ One Markdown document, in the **exact order the content appears on the page**:
    - `Subtitle: &lt;description line under the title&gt;`
    - `URL: &lt;page URL&gt;`
 
-2. **Body, verbatim**
-   - Keep every heading level (`##`, `###`), every paragraph, list, and numbered step, word for word.
-   - Keep **bold**, *italic* and `inline code`. Keep links as `[text](url)` with the real URL.
-   - Code blocks go in fenced blocks, exactly as shown. Add a language tag only if obvious (http, json, graphql, protobuf, sql); otherwise leave it blank.
+2. **Body, complete restatement**
+   - Map headings exactly by tag: H1→`#`, H2→`##`, H3→`###`, H4→`####`. Cover every paragraph, list, and numbered step, in the same order, with every fact and example.
+   - Keep **bold**, *italic* and `inline code`. Keep links as `[text](url)` with the real URL; convert relative links (e.g. `/learn/...`) to full `https://www.hellointerview.com/...` URLs.
+   - Code blocks go in fenced blocks, exactly as shown (keep indentation and inline `#` / `//` comments). Add a language tag only if obvious (http, json, graphql, protobuf, sql); otherwise leave it blank.
    - Tables are NOT real &lt;table&gt; elements. Rebuild each one as a Markdown table with its header row, every row and every column, and keep the label above it (e.g. "Users table:").
+   - If a section is locked behind Premium or hidden, write `[LOCKED: &lt;section name&gt;]` and continue.
 
 3. **Callout boxes** are `div.callout.callout-tip`, `callout-warning` and `callout-info`. Use the class to pick the type and mark each one where it appears:
-   &gt; [CALLOUT: TIP 💡] &lt;exact text&gt;
-   &gt; [CALLOUT: WARNING ⚠️] &lt;exact text&gt;
-   &gt; [CALLOUT: INFO ℹ️] &lt;exact text&gt;
+   &gt; [CALLOUT: TIP 💡] &lt;full message&gt;
+   &gt; [CALLOUT: WARNING ⚠️] &lt;full message&gt;
+   &gt; [CALLOUT: INFO ℹ️] &lt;full message&gt;
 
 4. **Do's and Don'ts / Good vs Bad / Pros and Cons** (only if present): keep them as two clearly labelled lists:
    [DO ✅] …
    [DON'T ❌] …
 
-5. **Images and diagrams.** Images have no alt text; the caption is the short text line directly under the image (e.g. "Sharding", "Final Whiteboard"). Some diagrams are drawn as SVG text — capture that text ONLY inside the [IMAGE] block, never as body paragraphs. Write a block at the exact spot where the image sits:
+5. **Images and diagrams.** Only capture diagrams/images inside the article body. Ignore UI icons, logos and avatars (e.g. check-circles, arrows, small icon SVGs). Images have no alt text; the caption is the short text line directly under the image (e.g. "Sharding", "Final Whiteboard"). Some diagrams are drawn as SVG text — capture that text ONLY inside the [IMAGE] block, never as body paragraphs. Write a block at the exact spot where the image sits:
    [IMAGE &lt;n&gt;: &lt;caption under the image, if any&gt;]
-   - Type: &lt;diagram / screenshot / chart / sequence diagram / table image / photo&gt;
+   - Type: &lt;diagram / flowchart / screenshot / chart / sequence diagram / table image / photo&gt;
    - All text in the image, exactly: &lt;every label, box name, arrow label, number, step number&gt;
    - Structure: &lt;what connects to what, arrow directions, order of steps, groupings, solid vs dashed lines, meaningful colours&gt;
    - What it shows: &lt;one or two plain sentences, nothing beyond what's drawn&gt;
-   For a step-by-step diagram (e.g. a request flow), list every step in order with its label.
+   For a step-by-step diagram (e.g. a request flow), list every step in order with its label. For a decision flowchart, write it as an indented question → answer → result tree.
 
 6. **Videos:** the lesson has a walkthrough video near the top. Write `[VIDEO: &lt;title&gt; · &lt;length&gt;]` where it appears. Don't transcribe it.
 
-7. **Comments**: put them under `## Comments`, in "Popular" order. Take the top 20 comments plus all of their replies. Remove the single-letter avatar shown before names. For each one:
-   ### &lt;author&gt; [ADMIN] [&lt;badges e.g. Top 5%, Premium&gt;] · &lt;votes&gt; votes · &lt;time ago&gt;
-   &lt;exact comment text, keep its lists and formatting&gt;
-     ↳ reply — &lt;author&gt; [ADMIN] [&lt;badges&gt;] · &lt;votes&gt; votes · &lt;time ago&gt;
-       &lt;exact reply text&gt;
-   Mark course staff or admin authors with [ADMIN].
+7. **Comments**: put them under `## Comments`, in "Popular" order. Take the top 20 comments plus all of their replies (including replies to replies). Remove the single-letter avatar shown before names. For each one:
+   ### &lt;author&gt; [ADMIN] [&lt;badges e.g. Top 5%, Premium&gt;] · &lt;votes&gt; votes · &lt;time ago&gt; [edited]
+   &lt;every point of the comment, in your words, keep its lists&gt;
+     ↳ reply — &lt;author&gt; [ADMIN] [&lt;badges&gt;] · &lt;votes&gt; votes · &lt;time ago&gt; [edited]
+       &lt;every point of the reply, in your words&gt;
+       ↳↳ reply — &lt;author&gt; … (indent one more level per nesting depth)
+   Mark course staff or admin authors with [ADMIN]. Add [edited] only if the page shows it.
 
 ## Rules
-- Verbatim. If something can't be read, write `[unreadable]` and don't guess.
+- Complete and accurate: prose in your own words, code/identifiers/numbers/headings exact. If something can't be read, write `[unreadable]` and don't guess.
+- If something is ambiguous, flag it explicitly.
 - Don't merge or drop any section, even if it looks repetitive.
 - If the output is too long for one reply, split it into `PART 1/N`, `PART 2/N`… at a heading boundary, and keep going until it's complete.
 - At the very end, add:
   ## Extraction checklist
-  - Headings: &lt;count&gt; · Callouts: &lt;count&gt; · Images: &lt;count&gt; · Code blocks: &lt;count&gt; · Tables: &lt;count&gt; · Comments: &lt;count incl. replies&gt;
-  - Headings match the "On This Page" list? &lt;yes / no — list any missing&gt;
+  - Headings: &lt;count by level: H2 / H3 / H4&gt; · Callouts: &lt;count&gt; · Images: &lt;count&gt; · Code blocks: &lt;count&gt; · Tables: &lt;count&gt; · Comments: &lt;count incl. replies&gt;
+  - H2/H3 headings match the "On This Page" list? &lt;yes / no — list any missing&gt; (H4s aren't listed there, so don't compare them)
   - Comments captured: &lt;X&gt; of &lt;total shown in "Comments (N)"&gt;
-  - Anything skipped or unreadable: &lt;list, or "none"&gt;</pre>
+  - Anything skipped, locked or unreadable: &lt;list, or "none"&gt;
+  - Extraction completeness: &lt;Complete / Partial&gt;</pre>
 </details>
 <div class="views" id="views">
   <button type="button" data-view="topics">📚 Topics</button>
