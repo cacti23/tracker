@@ -1142,9 +1142,10 @@
             </div>
           </div>
           <div class="note">💡 <strong>The seesaw</strong><br>
-&#8596;&#65039; <code>diff = left &minus; right</code> at each cut<br>
-&#11013;&#65039; remove from left &rarr; <code>x = diff</code> &nbsp;&middot;&nbsp; &#10145;&#65039; remove from right &rarr; <code>x = &minus;diff</code><br>
-&#128506;&#65039; <code>first</code> / <code>last</code> Maps tell if x sits on that side<br>
+&#8596;&#65039; <code>diff = left &minus; right</code>. We search for the element equal to diff.<br>
+&#11013;&#65039; From the left: <code>left &minus; diff = right</code> &rarr; search <code>diff</code><br>
+&#10145;&#65039; From the right: <code>right &minus; (&minus;diff) = left</code> &rarr; search <code>&minus;diff</code><br>
+&#128506;&#65039; <code>first</code> / <code>last</code> Maps tell if it sits on that side<br>
 &#10067; Ask: &ldquo;can the removed element be anywhere?&rdquo; If it must sit at the cut, it is LC 724.</div>
 
           <div class="code-wrap">
@@ -1166,11 +1167,11 @@
         left += nums[cut - 1];
         <span class="kw">const</span> diff = left - (total - left);  <span class="cmt">// how much heavier the left is</span>
 
-        <span class="cmt">// remove x = diff from the left. li &lt; cut = it is on the left; cut &gt;= 2 = left keeps 1 element</span>
+        <span class="cmt">// 🔍 search diff on the left: left − diff = right. li &lt; cut = it is on the left; cut &gt;= 2 = left keeps 1 element</span>
         <span class="kw">const</span> li = first.get(diff);
         <span class="kw">if</span> (li !== <span class="kw">undefined</span> &amp;&amp; li &lt; cut &amp;&amp; cut &gt;= 2) <span class="kw">return</span> <span class="kw">true</span>;
 
-        <span class="cmt">// remove x = -diff from the right. ri &gt;= cut = on the right; n - cut &gt;= 2 = right keeps 1 element</span>
+        <span class="cmt">// 🔍 search −diff on the right: right − (−diff) = left. ri &gt;= cut = on the right; n - cut &gt;= 2 = right keeps 1 element</span>
         <span class="cmt">// (an empty side sums to 0, e.g. [5, 0] would be a fake yes)</span>
         <span class="kw">const</span> ri = last.get(-diff);
         <span class="kw">if</span> (ri !== <span class="kw">undefined</span> &amp;&amp; ri &gt;= cut &amp;&amp; n - cut &gt;= 2) <span class="kw">return</span> <span class="kw">true</span>;
@@ -3132,8 +3133,8 @@ class XmlNode {
               <a href="https://leetcode.com/problems/summary-ranges/" target="_blank" rel="noopener">LC 228 &mdash; Summary Ranges</a>
             </div>
           </div>
-          <div class="note">💡 Same one-pass scan; start a new range when the gap is more than K instead of more than 1. The example checks out: the gap 3 to 6 is exactly 3, so one range.</div>
-          <div class="note warn">⚠️ The post does not say if the input is sorted. The example is, so I assume so. The follow-up is not described.</div>
+          <div class="note">💡 Same scan as LC 228, but split when the gap is &gt; K. Example: 3 &rarr; 6 is gap 3, so one range.</div>
+          <div class="note warn">⚠️ Sorted input is not stated (the example is sorted). Follow-up not described.</div>
         </div>
       </div>
 
@@ -3152,8 +3153,8 @@ class XmlNode {
               <a href="https://leetcode.com/problems/top-k-frequent-words/" target="_blank" rel="noopener">LC 692 &mdash; Top K Frequent Words</a>
             </div>
           </div>
-          <div class="note warn">⚠️ The post does not say what &ldquo;next to&rdquo; means (4 directions, 8, or left/right only), whether there is one query or many, or what the follow-up was. No code, to avoid guessing.</div>
-          <div class="note">💡 A map of maps built in one pass works. If the follow-up was many queries, store the best neighbour per string while counting so each query is O(1). This is a guess about the follow-up.</div>
+          <div class="note warn">⚠️ Unclear: what &ldquo;next to&rdquo; means, one query or many, the follow-up. No code.</div>
+          <div class="note">💡 Map of maps in one pass. Many queries? Keep the best neighbour while counting (O(1) per query). The follow-up is a guess.</div>
         </div>
       </div>
 
@@ -3174,7 +3175,7 @@ class XmlNode {
               <a href="https://leetcode.com/problems/find-and-replace-pattern/" target="_blank" rel="noopener">LC 890 &mdash; Find and Replace Pattern</a>
             </div>
           </div>
-          <div class="note warn">⚠️ Follow-ups unclear: the post does not define isomorphic for unequal lengths or how the shorter string is extended. No code; ask the interviewer to pin both down.</div>
+          <div class="note warn">⚠️ Unclear: isomorphic for unequal lengths. No code; ask the interviewer.</div>
         </div>
       </div>
 
@@ -3231,7 +3232,7 @@ class XmlNode {
               <a href="https://leetcode.com/problems/check-if-the-rectangle-corner-is-reachable/" target="_blank" rel="noopener">LC 3235 &mdash; Check if the Rectangle Corner Is Reachable</a>
             </div>
           </div>
-          <div class="note warn">⚠️ &ldquo;Group&rdquo; is not defined. If it means connected through overlapping circles, the example does not fit: all three circles overlap each other, so the answer would be true. Ask what &ldquo;group&rdquo; means. No code.</div>
+          <div class="note warn">⚠️ &ldquo;Group&rdquo; is undefined. If it means overlapping circles, all three overlap, so the answer is true. No code.</div>
         </div>
       </div>
 
@@ -3268,7 +3269,6 @@ class XmlNode {
             </div>
           </div>
           <div class="note warn">⚠️ The cut-off end of the title is the rule that matters (for example, can one element move to the other side?). Not guessed. No code.</div>
-          <div class="note">💡 If the interviewer only says the problem aloud, repeat it back with a tiny example before coding.</div>
         </div>
       </div>
 
@@ -3288,9 +3288,7 @@ class XmlNode {
               <a href="https://leetcode.com/problems/tree-diameter/" target="_blank" rel="noopener">LC 1245 &mdash; Tree Diameter</a>
             </div>
           </div>
-          <div class="note">💡 It is Kahn&rsquo;s algorithm on upward edges (child &rarr; parent). <code>indeg</code> = children left, so indeg 0 = leaf. The queue starts with every original leaf; a parent that drops to 0 joins the <strong>back</strong> of the queue, so fresh leaves wait until the original leaves are gone.</div>
-          <div class="note warn">⚠️ Assumes &ldquo;fresh&rdquo; means a node that just became a leaf, any order among original leaves, oldest fresh leaf first. The page is a paraphrase, so confirm the rule. My answer for the example is 4,5,6,7,8,3,2,1, a different valid order than the page&rsquo;s.</div>
-          <div class="note">🧪 Verified against brute force on 4,000 random trees: 0 mismatches. Same order as the earlier version on 5,000 random trees.</div>
+          <div class="note warn">⚠️ &ldquo;Fresh&rdquo; assumed = just became a leaf. The page is a paraphrase. My answer for the example: 4,5,6,7,8,3,2,1 (another valid order).</div>
 
           <div class="code-wrap">
             <div class="code-label"><span>leafRemovalOrder.ts</span><button class="copy-btn" data-copy-target="code-e18-leaves">Copy</button></div>
