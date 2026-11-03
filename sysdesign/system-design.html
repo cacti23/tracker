@@ -2564,11 +2564,11 @@ No score, no hiring recommendation, no Hire / No Hire.
 ⭐ FINAL INSTRUCTION
 You are not here to test how much I already know. You are here to help me become an engineer who understands systems deeply, makes sound architectural decisions, understands trade-offs and can explain them with confidence.
 Teach me until I understand. Challenge me until I can apply it. Repeat until the reasoning becomes natural.`
-  const copy = async (text, btn) => {
+  const copy = async (text, btn, msg = '✓ Copied: paste in the thread') => {
     try { await navigator.clipboard.writeText(text) } catch (e) {
       const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove()
     }
-    const was = btn.textContent; btn.textContent = '✓ Copied: paste in the thread'; btn.classList.add('done')
+    const was = btn.textContent; btn.textContent = msg; btn.classList.add('done')
     setTimeout(() => { btn.textContent = was; btn.classList.remove('done') }, 2500)
   }
   const quizBtn = (label, where, cardId, id) => {
@@ -2577,10 +2577,48 @@ Teach me until I understand. Challenge me until I can apply it. Repeat until the
     b.onclick = e => { e.stopPropagation(); copy(quizPrompt(where, cardId, id), b) }
     return b
   }
+  // 📒 NotebookLM can't read the repo, so this copies the part's own text to paste in as a "Copied text" source
+  const SKIP = new Set(['BUTTON', 'SCRIPT', 'STYLE', 'TEMPLATE', 'svg'])
+  const BLOCK = /^(P|DIV|LI|H[1-6]|TR|UL|OL|TABLE|SECTION|DETAILS|SUMMARY|PRE|BLOCKQUOTE|FIGURE|FIGCAPTION|BR)$/
+  const textOf = n => {
+    if (n.nodeType === 3) return n.nodeValue.replace(/\s+/g, ' ')
+    if (n.nodeType !== 1) return ''
+    // 📘 term buttons keep their word and carry their definition along
+    if (n.classList.contains('term')) return `${n.textContent} (${n.dataset.p})`
+    if (n.classList.contains('gl-link')) return n.textContent
+    if (SKIP.has(n.nodeName)) return ''
+    // Small CSS diagrams carry their meaning in aria-label (their spans are layout); big ones have real text inside
+    if (n.getAttribute('role') === 'img' && n.getAttribute('aria-label') && !n.querySelector('p, div, li')) return `\n[Diagram] ${n.getAttribute('aria-label')}\n`
+    let t = [...n.childNodes].map(textOf).join('')
+    if (n.nodeName === 'LI') t = '• ' + t.trim()
+    if (n.nodeName === 'TD' || n.nodeName === 'TH') t += ' | '
+    if (/^H[1-6]$/.test(n.nodeName)) t = '## ' + t.trim()
+    return BLOCK.test(n.nodeName) ? `\n${t}\n` : t
+  }
+  const tidy = t => t.split('\n').map(l => l.trim()).filter((l, i, a) => l || (i && a[i - 1])).join('\n').trim()
+  const partNodes = (c, h) => {
+    if (!h) return [c]
+    const out = [h]
+    for (let n = h.nextElementSibling; n && n.nodeName !== 'H4'; n = n.nextElementSibling) out.push(n)
+    return out
+  }
+  const nlmText = (where, c, h) => `${where}
+From Adi's system design notes: ${LIVE}#${(h || c).id}
+
+${tidy(partNodes(c, h).map(textOf).join('\n'))}`
+  const nlmBtn = (where, c, h) => {
+    const b = el('button', 'quiz-btn', '📒 NotebookLM'); b.type = 'button'
+    b.title = 'Copy this part as plain text, to paste into NotebookLM as a source'
+    b.onclick = e => { e.stopPropagation(); copy(nlmText(where, c, h), b, '✓ Copied: add as a source') }
+    return b
+  }
   cards.forEach(c => {
     const title = cardTitle(c)
-    c.querySelector('.cap').appendChild(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id))
-    c.querySelectorAll(':scope > h4').forEach(h => h.appendChild(quizBtn('🧠 Quiz me', `${title} › ${h.textContent.trim()}`, c.id, h.id)))
+    c.querySelector('.cap').append(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id), nlmBtn(`${title} (whole card)`, c))
+    c.querySelectorAll(':scope > h4').forEach(h => {
+      const where = `${title} › ${h.textContent.trim()}`
+      h.append(quizBtn('🧠 Quiz me', where, c.id, h.id), nlmBtn(where, c, h))
+    })
   })
 
   // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
