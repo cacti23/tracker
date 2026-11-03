@@ -1647,19 +1647,37 @@ Idempotency-Key: 8e03978e-740c-4c2e-abd1-52f427d5c177
   <div class="rem"><b>✅ Remember</b> In most (not all) interviews auth isn't the focus. Say which endpoints need a logged-in user, and that you'd use a <a href="https://jwt.io/">JWT</a> or a session stored in a database.</div>
 
   <h4>🔑 API keys vs 🎫 JWTs</h4>
-  <p class="bridge">How the server knows who's calling depends on who the caller is: another program, or a person.</p>
-  <div class="grid2">
-    <div class="k-amber"><b>🔑 API key</b><div class="chk">A long random string, a password for <b>applications</b>: <code>sk_live_abc123…</code></div><div class="chk">Server looks it up in the DB (with its permissions and rate limits) on every request</div><div class="chk">⭐ Service-to-service calls where you control both ends; third-party developers</div></div>
-    <div class="k-blue"><b>🎫 JWT</b><div class="chk">Signed token holding user id, role, expiry</div><div class="chk">Server checks the <b>signature</b> and reads the user straight from it, <b>no DB lookup</b></div><div class="chk">⭐ User sessions in web and mobile apps; any service with the key can verify it</div></div>
-  </div>
-<pre>GET /events
-Authorization: Bearer sk_live_abc123...
+  <p class="bridge">How the server knows who's calling depends on who the caller is: another program, or a person. Both ride in the same header (<code>Authorization: Bearer …</code>), but they work in opposite ways.</p>
+  <div class="take">⭐ A <b>JWT carries</b> the info inside it. An <b>API key only points</b> to info stored on the server.</div>
 
-// JWT payload
+  <h5>🎫 JWT: a signed card the user carries</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">① You log in once, and the server signs a token</b>It checks your password, then writes your user id, role and expiry into a <button type="button" class="gl-link" data-g="jwt">JWT</button> and signs it with its secret key.</li>
+    <li><b class="hd">② The client sends the token with every request</b><code>Authorization: Bearer eyJhbGciOi…</code></li>
+    <li><b class="hd">③ The server checks the signature, with no DB lookup</b>Changed even one character? The signature no longer matches → rejected. Otherwise it reads the user straight from the token.</li>
+    <li><b class="hd">⚠️ Signed, not encrypted</b>Anyone can decode and read the payload. It only can't be <i>changed</i>. Never put secrets in it. <span class="add">➕ not in the article</span></li>
+    <li><b class="hd">⏱️ Short-lived, and hard to cancel early</b>It expires in minutes or hours. Since nobody checks a database, a stolen token works until it expires, unless you add a deny list. <span class="add">➕ not in the article</span></li>
+  </ul>
+<pre>// JWT payload: readable by anyone, changeable by no one
 { "user_id": "123", "email": "john@example.com",
   "role": "customer", "exp": 1640995200 }</pre>
+
+  <h5>🔑 API key: a random number the server looks up</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">① The key itself holds no information</b>It's just a long random string, like <code>sk_live_abc123…</code>. A password for an <b>application</b>, not a person.</li>
+    <li><b class="hd">② Every request means a lookup in the server's database</b>Key → which account, what it may do, its rate limit. The info lives on the server, not in the key.</li>
+    <li><b class="hd">🗄️ Stored as a hash, like a password</b>That's why OpenAI or Stripe show your key only once: they keep just a hash of it, so they can't show it again. <span class="add">➕ not in the article</span></li>
+    <li><b class="hd">♾️ Long-lived, and easy to cancel</b>It works until you delete it. Delete the row → it's dead on the very next request. <span class="add">➕ not in the article</span></li>
+  </ul>
+<pre>GET /events
+Authorization: Bearer sk_live_abc123...</pre>
+
+  <div class="grid2">
+    <div class="k-amber"><b>🔑 API key</b><div class="chk">Points to the info → <b>DB lookup</b> each request</div><div class="chk">Lives until deleted · cancel instantly</div><div class="chk">⭐ For <b>programs</b>: your services calling each other; developers calling your API (you → OpenAI, Stripe)</div></div>
+    <div class="k-blue"><b>🎫 JWT</b><div class="chk">Carries the info → <b>check the signature</b>, no lookup</div><div class="chk">Expires in minutes or hours · hard to cancel early</div><div class="chk">⭐ For <b>people</b> who logged in: sessions in web and mobile apps; any service with the key can verify it</div></div>
+  </div>
   <div class="warn"><b>⚠️ Watch out</b> For a user-facing product, API keys are almost never right: users shouldn't manage long secret strings, and keys don't expire or carry user context the way sessions must.</div>
-  <p class="ana">🎪 An API key is a <b>delivery company's account number</b>: the office looks it up each time. A JWT is a <b>festival wristband</b> with your access level printed on it and a hologram: any guard checks the hologram and lets you in, no phone call to the office. <span class="add">➕ analogy not in the article</span></p>
+  <p class="ana">🎪 A JWT is a <b>festival wristband</b>: your name and access level are printed on it with a hologram, so any guard just checks the hologram and lets you in. An API key is a <b>gym membership number</b>: the card shows only a number, and the front desk types it in to see who you are and what you paid for. <span class="add">➕ analogy not in the article</span></p>
   <p>🔗 Glossary: <button type="button" class="gl-link" data-g="jwt">JWT</button> · <button type="button" class="gl-link" data-g="session">Session ID</button> · <button type="button" class="gl-link" data-g="jwtvs">JWT vs session</button> · <button type="button" class="gl-link" data-g="apikey">API key</button></p>
 
   <h4>👥 Role-based access control (RBAC)</h4>
