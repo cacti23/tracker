@@ -1539,24 +1539,35 @@ message Event {
 
   <h4>📐 Nine principles</h4>
   <p class="bridge">You'll rarely be asked to list them. They're the standard your design is quietly judged by.</p>
+  <div class="mnem" role="img" aria-label="Mnemonic: VPS PRICES. V Versioned, P Paginate, S Stateless, P Predictable, R Resources, I Idempotent, C Consistent, E Errors, S Secure">
+    <span><b>V</b>ersioned<small>📈 growth</small></span><span><b>P</b>aginate<small>📈 growth</small></span><span><b>S</b>tateless<small>📈 growth</small></span>
+  </div>
+  <div class="mnem">
+    <span><b>P</b>redictable</span><span><b>R</b>esources</span><span><b>I</b>dempotent</span><span><b>C</b>onsistent</span><span><b>E</b>rrors</span><span><b>S</b>ecure</span>
+  </div>
+  <p class="figcap">🧠 <b>VPS PRICES</b>: before you rent a server, you check the VPS prices; before you ship an API, you check VPS PRICES. <span class="add">➕ mnemonic not in the article</span></p>
+  <h5>📈 VPS: will it survive growth? (more versions, more data, more traffic)</h5>
   <ul class="lines roomy heads">
-    <li><b class="hd">1️⃣ Name resources (nouns), not actions (verbs)</b>Writing <code>/getUserBookings</code> or <code>/processPayment</code>? Ask which resource it is: <code>GET /users/{id}/bookings</code>, <code>POST /payments</code>. The first thing interviewers look at.</li>
-    <li><b class="hd">2️⃣ Same names and shapes on every endpoint</b>Same names, params, response shapes. Not <code>?status=paid</code> here and <code>?state=paid</code> there. 💡 Every light switch in a house works the same way.</li>
-    <li><b class="hd">3️⃣ Each method does exactly what its name says</b>"Least surprise": GET never changes data, DELETE deletes, 200 means success (not <code>"success": false</code> inside a 200). 💡 A door marked "push" opens when you push.</li>
-    <li><b class="hd">4️⃣ Every request carries everything it needs</b><button type="button" class="gl-link" data-g="stateless">Stateless</button>: token, params, payload in each request. Any server can handle any request, so scaling becomes a load-balancer problem. A big reason <button type="button" class="gl-link" data-g="jwt">JWTs</button> are popular. 💡 You show your ticket at every gate, so any guard can let you in.</li>
-    <li><b class="hd">5️⃣ A retry must never do the work twice</b>The client can't tell if the server finished before the network broke, so it retries. GET, PUT, DELETE are naturally safe; POSTs for bookings and payments get idempotency keys 👇</li>
-    <li><b class="hd">6️⃣ Paginate any list that can grow, with a max page size</b>"All bookings" works with 50 rows and dies at 5 million. Paginate from day one, and cap the page size so <code>?limit=100000</code> can't take down the DB.</li>
-    <li><b class="hd">7️⃣ Every endpoint is locked unless you open it on purpose</b>Auth is opt-out: every endpoint needs a token unless deliberately public. Authorization checks <i>this</i> resource (John cancels only his own bookings). Rate limiting backs it up. 💡 Doors are locked unless marked "open".</li>
-    <li><b class="hd">8️⃣ Change the API without breaking old clients</b>Old mobile app versions live for years. Adding a field is safe; renaming, removing or changing a field's meaning is a breaking change → needs versioning.</li>
-    <li><b class="hd">9️⃣ Errors say who is at fault and what went wrong</b>Right status class (4xx "you messed up", 5xx "we messed up") + a machine-readable code + a human message.</li>
+    <li><b class="hd"><u>V</u>ersioned: change the API without breaking old clients</b>Old mobile app versions live for years. Adding a field is safe; renaming, removing or changing a field's meaning is a breaking change → needs versioning.</li>
+    <li><b class="hd"><u>P</u>aginate any list that can grow, with a max page size</b>"All bookings" works with 50 rows and dies at 5 million. Paginate from day one, and cap the page size so <code>?limit=100000</code> can't take down the DB.</li>
+    <li><b class="hd"><u>S</u>tateless: every request carries everything it needs</b>Token, params, payload: all in each request (<button type="button" class="gl-link" data-g="stateless">stateless</button>). Any server can handle any request, so scaling becomes a load-balancer problem. A big reason <button type="button" class="gl-link" data-g="jwt">JWTs</button> are popular. 💡 You show your ticket at every gate, so any guard can let you in.</li>
+  </ul>
+  <h5>🎯 PRICES: is each endpoint right?</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd"><u>P</u>redictable: each method does exactly what its name says</b>"Least surprise": GET never changes data, DELETE deletes, 200 means success (not <code>"success": false</code> inside a 200). 💡 A door marked "push" opens when you push.</li>
+    <li><b class="hd"><u>R</u>esources: name nouns, not actions (verbs)</b>Writing <code>/getUserBookings</code> or <code>/processPayment</code>? Ask which resource it is: <code>GET /users/{id}/bookings</code>, <code>POST /payments</code>. The first thing interviewers look at.</li>
+    <li><b class="hd"><u>I</u>dempotent: a retry must never do the work twice</b>The client can't tell if the server finished before the network broke, so it retries. GET, PUT, DELETE are naturally safe; POSTs for bookings and payments get idempotency keys 👇</li>
+    <li><b class="hd"><u>C</u>onsistent: same names and shapes on every endpoint</b>Same names, params, response shapes. Not <code>?status=paid</code> here and <code>?state=paid</code> there. 💡 Every light switch in a house works the same way.</li>
+    <li><b class="hd"><u>E</u>rrors say who is at fault and what went wrong</b>Right status class (4xx "you messed up", 5xx "we messed up") + a machine-readable code + a human message.</li>
+    <li><b class="hd"><u>S</u>ecure: every endpoint is locked unless opened on purpose</b>Auth is opt-out: every endpoint needs a token unless deliberately public. Authorization checks <i>this</i> resource (John cancels only his own bookings). Rate limiting backs it up. 💡 Doors are locked unless marked "open".</li>
   </ul>
   <p class="figcap">💡 analogies: ➕ not in the article</p>
   <div class="rem"><b>✅ Remember</b> Listing principles earns nothing. Applying them <b>out loud</b> does: <i>"I'll put an idempotency key on this endpoint so a retry can't double-book the seat"</i> beats a lecture on idempotency. Justify decisions with them and you show all nine without naming one.</div>
 
   <h4>📄 Pagination: offset vs cursor</h4>
-  <p class="bridge">Principle 6 in practice. An endpoint that returns every event ever made could send millions of rows. Split it into pages, two ways:</p>
+  <p class="bridge">The <b>P</b> of VPS (paginate) in practice. An endpoint that returns every event ever made could send millions of rows. Split it into pages, two ways:</p>
   <div class="grid2">
-    <div class="k-amber"><b>🔢 Offset</b><div class="chk"><code>/events?offset=20&amp;limit=10</code> → rows 21–30</div><div class="chk">✅ Simple, most websites use it, "jump to page 5" is easy</div><div class="chk">⚠️ A new row while you page → the list shifts → duplicates or missed rows</div></div>
+    <div class="k-amber"><b>🔢 Offset</b><div class="chk"><code>/events?offset=20&amp;limit=10</code> → rows 21–30</div><div class="chk">✅ Simple, most websites use it, "jump to page 5" is easy</div><div class="chk">⚠️ A row added or deleted before your page → the list shifts → duplicates or missed rows</div></div>
     <div class="k-green"><b>🔖 Cursor</b><div class="chk">🔗 <button type="button" class="gl-link" data-g="cursor">how it works</button> · <code>/events?cursor=cmd9…dpy2&amp;limit=10</code></div><div class="chk">✅ Stable: points at a record, so new rows don't shift it</div><div class="chk">⚠️ "Jump to page 5" is harder</div></div>
   </div>
   <div class="dg" role="img" aria-label="Offset pagination duplicate: page 1 shows E1 E2 E3, a new event E0 arrives at the top, page 2 at offset 3 shows E3 again">
@@ -1567,6 +1578,7 @@ message Event {
     <div class="r"><span class="ar">Cursor "after E3"</span><span class="bx" style="border-color: var(--green-fg)">E4</span><span class="bx" style="border-color: var(--green-fg)">E5</span><span class="bx" style="border-color: var(--green-fg)">E6 ✓</span></div>
   </div>
   <p class="figcap">➕ worked example, not in the article (newest-first list)</p>
+  <div class="warn"><b>⚠️ When offset breaks</b> If anything is <b>added or deleted before the position you are reading</b>, the list shifts. Added → you see a row twice. Deleted → you skip a row. Rows added <i>after</i> you (append at the end) are harmless. A cursor says "after E3", so it doesn't care. <span class="add">➕ not in the article</span></div>
 <pre>GET /events?limit=10
 { "events": [...], "next_cursor": "cmd9atj3p000007ky19w1dpy2" }
 
@@ -1635,19 +1647,37 @@ Idempotency-Key: 8e03978e-740c-4c2e-abd1-52f427d5c177
   <div class="rem"><b>✅ Remember</b> In most (not all) interviews auth isn't the focus. Say which endpoints need a logged-in user, and that you'd use a <a href="https://jwt.io/">JWT</a> or a session stored in a database.</div>
 
   <h4>🔑 API keys vs 🎫 JWTs</h4>
-  <p class="bridge">How the server knows who's calling depends on who the caller is: another program, or a person.</p>
-  <div class="grid2">
-    <div class="k-amber"><b>🔑 API key</b><div class="chk">A long random string, a password for <b>applications</b>: <code>sk_live_abc123…</code></div><div class="chk">Server looks it up in the DB (with its permissions and rate limits) on every request</div><div class="chk">⭐ Service-to-service calls where you control both ends; third-party developers</div></div>
-    <div class="k-blue"><b>🎫 JWT</b><div class="chk">Signed token holding user id, role, expiry</div><div class="chk">Server checks the <b>signature</b> and reads the user straight from it, <b>no DB lookup</b></div><div class="chk">⭐ User sessions in web and mobile apps; any service with the key can verify it</div></div>
-  </div>
-<pre>GET /events
-Authorization: Bearer sk_live_abc123...
+  <p class="bridge">How the server knows who's calling depends on who the caller is: another program, or a person. Both ride in the same header (<code>Authorization: Bearer …</code>), but they work in opposite ways.</p>
+  <div class="take">⭐ A <b>JWT carries</b> the info inside it. An <b>API key only points</b> to info stored on the server.</div>
 
-// JWT payload
+  <h5>🎫 JWT: a signed card the user carries</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">① You log in once, and the server signs a token</b>It checks your password, then writes your user id, role and expiry into a <button type="button" class="gl-link" data-g="jwt">JWT</button> and signs it with its secret key.</li>
+    <li><b class="hd">② The client sends the token with every request</b><code>Authorization: Bearer eyJhbGciOi…</code></li>
+    <li><b class="hd">③ The server checks the signature, with no DB lookup</b>Changed even one character? The signature no longer matches → rejected. Otherwise it reads the user straight from the token.</li>
+    <li><b class="hd">⚠️ Signed, not encrypted</b>Anyone can decode and read the payload. It only can't be <i>changed</i>. Never put secrets in it. <span class="add">➕ not in the article</span></li>
+    <li><b class="hd">⏱️ Short-lived, and hard to cancel early</b>It expires in minutes or hours. Since nobody checks a database, a stolen token works until it expires, unless you add a deny list. <span class="add">➕ not in the article</span></li>
+  </ul>
+<pre>// JWT payload: readable by anyone, changeable by no one
 { "user_id": "123", "email": "john@example.com",
   "role": "customer", "exp": 1640995200 }</pre>
+
+  <h5>🔑 API key: a random number the server looks up</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">① The key itself holds no information</b>It's just a long random string, like <code>sk_live_abc123…</code>. A password for an <b>application</b>, not a person.</li>
+    <li><b class="hd">② Every request means a lookup in the server's database</b>Key → which account, what it may do, its rate limit. The info lives on the server, not in the key.</li>
+    <li><b class="hd">🗄️ Stored as a hash, like a password</b>That's why OpenAI or Stripe show your key only once: they keep just a hash of it, so they can't show it again. <span class="add">➕ not in the article</span></li>
+    <li><b class="hd">♾️ Long-lived, and easy to cancel</b>It works until you delete it. Delete the row → it's dead on the very next request. <span class="add">➕ not in the article</span></li>
+  </ul>
+<pre>GET /events
+Authorization: Bearer sk_live_abc123...</pre>
+
+  <div class="grid2">
+    <div class="k-amber"><b>🔑 API key</b><div class="chk">Points to the info → <b>DB lookup</b> each request</div><div class="chk">Lives until deleted · cancel instantly</div><div class="chk">⭐ For <b>programs</b>: your services calling each other; developers calling your API (you → OpenAI, Stripe)</div></div>
+    <div class="k-blue"><b>🎫 JWT</b><div class="chk">Carries the info → <b>check the signature</b>, no lookup</div><div class="chk">Expires in minutes or hours · hard to cancel early</div><div class="chk">⭐ For <b>people</b> who logged in: sessions in web and mobile apps; any service with the key can verify it</div></div>
+  </div>
   <div class="warn"><b>⚠️ Watch out</b> For a user-facing product, API keys are almost never right: users shouldn't manage long secret strings, and keys don't expire or carry user context the way sessions must.</div>
-  <p class="ana">🎪 An API key is a <b>delivery company's account number</b>: the office looks it up each time. A JWT is a <b>festival wristband</b> with your access level printed on it and a hologram: any guard checks the hologram and lets you in, no phone call to the office. <span class="add">➕ analogy not in the article</span></p>
+  <p class="ana">🎪 A JWT is a <b>festival wristband</b>: your name and access level are printed on it with a hologram, so any guard just checks the hologram and lets you in. An API key is a <b>gym membership number</b>: the card shows only a number, and the front desk types it in to see who you are and what you paid for. <span class="add">➕ analogy not in the article</span></p>
   <p>🔗 Glossary: <button type="button" class="gl-link" data-g="jwt">JWT</button> · <button type="button" class="gl-link" data-g="session">Session ID</button> · <button type="button" class="gl-link" data-g="jwtvs">JWT vs session</button> · <button type="button" class="gl-link" data-g="apikey">API key</button></p>
 
   <h4>👥 Role-based access control (RBAC)</h4>
