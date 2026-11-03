@@ -61,7 +61,8 @@ section.card[hidden] { display: none; }
 .types .on { border: 2px solid var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
 .types .note { grid-column: 1 / -1; border: 0; padding: 0; color: var(--text); font-weight: 600; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 10px; }
-.grid2 > div { border: 2px solid; border-radius: 12px; padding: 10px; font-size: 13px; }
+.grid2 > div { border: 2px solid; border-radius: 12px; padding: 10px; font-size: 13px; min-width: 0; }
+.card p code, .card li code, .grid2 code, .vs code, .pills code, .anat div { overflow-wrap: anywhere; }
 .grid2 b { display: block; margin-bottom: 4px; font-size: 14px; }
 .grid2 ul { list-style: none; padding: 0; margin: 0; }
 .grid2 li { margin: 3px 0; }
@@ -84,6 +85,7 @@ details.more li { margin: 2px 0; }
 .map { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 8px; font-size: 13px; margin: 6px 0; align-items: center; }
 .map i { font-style: normal; color: var(--muted); }
 .grid2 .chk { font-size: 13px; margin: 2px 0; }
+.grid2 .chk b { display: inline; margin: 0; font-size: inherit; }
 /* Delivery Framework: tappable step timeline */
 .steps { margin: 6px 0 10px; }
 .steps details { border: 1px solid var(--line); border-radius: 10px; margin: 6px 0; background: var(--bg); }
@@ -1259,6 +1261,362 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
   </div>
 </section>
 
+<section class="card" id="sd-api-protocols" data-topic="API Design" data-course="hi-sd" data-lesson="api-design">
+  <h2 class="cap"><b>🔌 API Design: Pick a Protocol</b></h2>
+  <p class="hook">In the <a href="#sd-delivery-framework">Delivery Framework</a>, step 3 is the API: how clients talk to your system. It's a 5-minute step with a predictable recipe: <b>pick a protocol, name your resources, decide what goes in and what comes out.</b></p>
+  <p class="tldr">💡 Three ways a client can talk to you. Each one is explained below 👇</p>
+  <div class="take"><p>🍽️ <b>REST</b>: a menu of fixed dishes, one URL per thing. ⭐ Your default.</p>
+    <p>🥗 <b>GraphQL</b>: a salad bar. One trip, and you pick exactly what goes on your plate.</p>
+    <p>📞 <b>RPC</b>: calling a colleague by name. "Check permission for user 7", not "fetch the permission resource".</p>
+    <p class="figcap">➕ analogies not in the article</p></div>
+  <div class="warn"><b>⚠️ Watch out</b> Most interviewers don't care whether your API is perfect. They want a <b>reasonable</b> API, and then they want you to move on to the hard parts of the system.</div>
+  <ul class="lines">
+    <li>🎨 <b>Frontend or product roles:</b> the API matters more, because you'll live in APIs every day.</li>
+    <li>🌱 <b>Junior roles:</b> less is expected on distributed systems, so more of the round may go to the API.</li>
+  </ul>
+
+  <h4>🧭 Which protocol?</h4>
+  <p class="bridge">Two questions pick the protocol: who calls it, and does a fixed response shape hurt?</p>
+  <div class="tree" role="img" aria-label="Is the API client facing or internal? Internal: RPC. Client facing: is over or under fetching a concern? Yes: GraphQL. No: REST.">
+    <div><span class="q">🚪 Is the API client facing or internal?</span></div>
+    <div class="in">
+      <div>Internal → <span class="ok">📞 RPC</span></div>
+      <div>Client facing → <span class="q">🎯 Is over- or under-fetching a concern?</span>
+        <div class="in">
+          <div>Yes → <span class="ok">🥗 GraphQL</span></div>
+          <div>No → <span class="ok">🍽️ REST</span></div>
+        </div></div>
+    </div>
+  </div>
+  <p class="figcap">"API Types Flowchart" from the article, rebuilt</p>
+  <ul class="lines">
+    <li>🍽️ <b>REST</b> (Representational State Transfer): HTTP methods (GET, POST, PUT, DELETE) act on <b>resources</b> named by URLs. CRUD in web and mobile apps maps straight onto your database and onto HTTP. ⭐ The go-to for most web services.</li>
+    <li>🥗 <b>GraphQL</b>: one endpoint plus a query language, so each client asks for exactly the fields it needs. The mobile app wants basic user info, the web dashboard wants full analytics: one query each, no extra endpoints. 👂 Hint words: "flexible data fetching", "over-fetching / under-fetching".</li>
+    <li>📞 <b>RPC</b> (e.g. gRPC): binary serialization + HTTP/2, thinking in <b>actions</b>. The user service asking the auth service <code>checkPermission(userId, resource)</code> is more natural than a REST resource. 👂 Hint words: "microservices", "internal APIs", "performance is critical". 🔗 <a href="#sd-net-apis">HTTP and API Styles</a> covers the protocol side.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> REST by default unless you have a specific reason. It's well understood, has great tooling, and covers 90% of use cases. Unsure? Say <i>"I'll use REST APIs"</i> and move on.</div>
+  <div class="rem"><b>✅ Remember</b> Real-time features (notifications, chat, live updates) aren't traditional APIs. They're <b>persistent connections</b>: WebSockets or Server-Sent Events. 🔗 <a href="#sd-net-realtime">Real-time: SSE, WebSockets, WebRTC</a> and the Real-time Updates pattern lesson.</div>
+  <p class="bridge">REST is the default, so most of the lesson is about designing REST well. GraphQL and RPC come after, with what matters in an interview.</p>
+</section>
+
+<section class="card" id="sd-api-rest" data-topic="API Design" data-course="hi-sd" data-lesson="api-design">
+  <h2 class="cap"><b>🧩 REST: Resources, Methods, Inputs, Outputs</b></h2>
+  <p class="hook">A REST API is four decisions: <b>what things</b> exist (resources), <b>what you do</b> to them (methods), <b>where the input goes</b> (path, query, body), and <b>what comes back</b> (status + body).</p>
+  <p class="ana">🗄️ Think of a filing cabinet. <b>Resources</b> are the drawers (events, bookings). <b>Methods</b> are what you do with a file: read it, add one, replace it, edit it, shred it. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📦 Resource modeling: nouns, not verbs</h4>
+  <p class="bridge">Start with the things. If you followed the Delivery Framework, your resources are simply your <b>core entities</b>. Ticketmaster: events, venues, tickets, bookings.</p>
+<pre>GET  /events                 # all events
+GET  /events/{id}            # one event
+GET  /venues/{id}            # one venue
+GET  /events/{id}/tickets    # available tickets for an event
+POST /events/{id}/bookings   # create a booking for an event
+GET  /bookings/{id}          # one booking</pre>
+  <div class="vs"><div class="bad">❌ What users can <b>do</b>: book, purchase</div><div class="good">✅ What <b>exists</b>: events, venues, tickets, bookings</div></div>
+  <div class="info"><b>ℹ️ Note</b> Resources are always <b>plural nouns</b>: bookings, events, tickets. Most interviewers don't care, some do, and it costs nothing to get right.</div>
+  <p class="bridge">Resources relate to each other (an event has tickets). Two ways to show that:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🪆 Nested path</b><div class="chk"><code>/events/{id}/tickets</code></div><div class="chk">The relationship is <b>required</b>: "tickets" makes no sense without saying which event.</div></div>
+    <div class="k-green"><b>🔎 Flat + query</b><div class="chk"><code>/tickets?event_id=123&amp;section=VIP</code></div><div class="chk">The filter is <b>optional</b>: all tickets, one event's, or one event's VIP ones.</div></div>
+  </div>
+  <div class="rem"><b>✅ Remember</b> Quick test: if the query doesn't make sense without the relationship → path parameter. If it's one optional filter among many → query parameter. Interviewers care more that you pick the <b>right resources</b> than a perfect URL, but this shows good instincts.</div>
+
+  <h4>🔧 HTTP methods: and which are safe to retry</h4>
+  <p class="bridge">With the resources named, each method says what you do to one. The key question for each is whether repeating it is safe: <button type="button" class="gl-link" data-g="idem">idempotent</button>.</p>
+  <ul class="lines">
+    <li>📖 <b>GET</b> reads, changes nothing. <code>GET /events/{id}</code>, <code>GET /events</code>. ✅ idempotent</li>
+    <li>➕ <b>POST</b> creates. <code>POST /events/{id}/bookings</code> with details in the body; the server assigns the id. ❌ not idempotent: 2 calls = 2 bookings.</li>
+    <li>🔁 <b>PUT</b> replaces the whole resource (or creates it). <code>PUT /users/{id}</code> with the full user. ✅ idempotent: same data twice, same final state.</li>
+    <li>✏️ <b>PATCH</b> changes part of it. <code>PATCH /users/{id}</code> with just the email. ⚠️ depends: "set email to X" is safe, "append to a list" is not.</li>
+    <li>🗑️ <b>DELETE</b> removes. <code>DELETE /bookings/{id}</code>. ✅ idempotent: it stays deleted, even though the 1st reply is 204 and later ones 404.</li>
+  </ul>
+  <p>⭐ Why it matters: networks fail and clients retry. A retried GET, PUT or DELETE is harmless. A retried POST can create a <b>duplicate booking</b> → fixed by idempotency keys (<a href="#sd-api-principles-patterns">Patterns</a> 👇).</p>
+  <p class="ana">🗄️ Read a file, add a new file, swap the file for a fresh copy, fix one line in it, shred it. Shredding twice still leaves no file; adding twice leaves two files. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📮 Passing data: path, query, body</h4>
+  <p class="bridge">Endpoints need input: which thing, which slice of it, and the data itself. Each kind has one home.</p>
+  <div class="anat">
+    <div style="--c: var(--blue-fg)" data-l="🏠 Path parameter · WHICH resource (required)">/events/123</div>
+    <div style="--c: var(--green-fg)" data-l="🎛️ Query parameter · HOW: filter, sort, page (optional)">/events?city=NYC&amp;date=2024-01-01 · /events?page=2&amp;limit=20</div>
+    <div style="--c: var(--amber-fg)" data-l="📦 Request body · WHAT: the data you create or update">{ "tickets": [...], "payment_method": "credit_card" }</div>
+  </div>
+  <p>Path = <b>structural</b> (which endpoint). Query = <b>modifier</b> (how it behaves). Body = <b>payload</b> (complex data, or anything too large or sensitive for a URL). The first query parameter follows <code>?</code>, the rest are joined with <code>&amp;</code>.</p>
+<pre>POST /events/123/bookings?notify=true
+{
+  "tickets": [
+    {"section": "VIP", "quantity": 2},
+    {"section": "General", "quantity": 1}
+  ],
+  "payment_method": "credit_card"
+}</pre>
+  <p class="figcap">123 in the path: you must say which event · notify in the query: optional behaviour · tickets in the body: the core data you create</p>
+  <p class="ana">📮 Sending a parcel: the <b>path</b> is the address (where it goes), the <b>query</b> is a sticky note ("ring the bell", "leave with neighbour"), the <b>body</b> is what's inside the box. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📬 Returning data: status + body</h4>
+  <p class="bridge">A response is two things: a status code that says whether it worked, and a body (usually JSON) with the data.</p>
+  <div class="pills"><span>✅ 200 OK</span><span>🆕 201 Created</span><span>🙋 400 Bad request</span><span>🔑 401 Needs authentication</span><span>🔍 404 Not found</span><span>🔥 500 Server error</span></div>
+  <div class="rem"><b>✅ Remember</b> Don't overthink codes. Interviewers care that you know <b>4xx = the client's fault, 5xx = the server's fault</b>. Even writing "4XX" is usually fine.</div>
+  <p class="ana">🚦 4xx = "you filled the form in wrong", 5xx = "our kitchen caught fire". The first is fixed by the client, the second by you. <span class="add">➕ analogy not in the article</span></p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🔁 "PUT is idempotent" is a promise, not magic</h5>
+    <ul><li>The verb does nothing by itself (admin Evan King agrees). REST <b>expects</b> the server to implement PUT, GET and DELETE idempotently. A badly written handler can break that.</li>
+      <li>✏️ One reply says REST wants "every method except DELETE" idempotent. That's backwards: <b>POST</b> is the one that isn't, and DELETE is.</li></ul>
+    <h5>🎟️ <code>POST /events/{id}/bookings</code> vs <code>POST /bookings/{eventId}</code></h5>
+    <ul><li>✅ The first: create a booking inside that event's bookings. A path should carry its <b>own</b> resource's id, not another's. Then view one with <code>GET /bookings/{bookingId}</code>.</li></ul>
+    <h5>🧭 Beyond this lesson</h5>
+    <ul><li>Some interviewers grill API design for an hour (one at Atlassian; one at Scale AI wanted presigned URLs explained). Admin: it can be its own interview type, and this lesson isn't enough for that.</li>
+      <li>Extra points worth knowing: an enum instead of a bool (it can grow), removing a field breaks clients, say clearly which errors are retryable, don't leak internals in error messages, and don't nest pagination.</li></ul>
+  </div>
+</section>
+
+<section class="card" id="sd-api-graphql-rpc" data-topic="API Design" data-course="hi-sd" data-lesson="api-design">
+  <h2 class="cap"><b>🔍 GraphQL and ⚡ RPC: When REST Isn't Enough</b></h2>
+  <p class="hook">REST has fixed endpoints with fixed shapes. That hurts in two places: <b>many different clients</b> wanting different data (→ GraphQL), and <b>your own services</b> calling each other millions of times (→ RPC).</p>
+
+  <h4>🥗 GraphQL: why Facebook built it</h4>
+  <p class="bridge">2012: Facebook's mobile app needed different data than the web app, but REST endpoints returned fixed shapes. The mobile team kept asking for new or changed endpoints, slowing both sides.</p>
+  <div class="vs"><div class="bad">😩 <b>Option A</b>: an endpoint per use case → endpoint sprawl, painful upkeep</div><div class="bad">🐘 <b>Option B</b>: one endpoint returns everything → mobile downloads megabytes it never uses (over-fetching)</div></div>
+  <p>✅ GraphQL: <b>one endpoint</b> that takes a query. The client defines the shape; the server returns exactly that shape, no more, no less.</p>
+<pre>query {
+  event(id: "123") {
+    name
+    date
+    venue { name address }
+    tickets { section price available }
+  }
+}</pre>
+  <p class="figcap">Mobile asks for name + date only; the web dashboard asks for all of this. Same endpoint.</p>
+  <p class="ana">🥗 A salad bar vs set dishes: each client fills its own plate in one trip, instead of the kitchen inventing a new dish for every customer. <span class="add">➕ analogy not in the article</span></p>
+  <p class="info"><b>ℹ️ Note</b> Built in 2012, open-sourced in 2015: that's why the <a href="#sd-net-apis">Networking card</a> says 2015. Both are right. <span class="add">➕ not in the article</span></p>
+
+  <h4>🎯 When GraphQL, in an interview</h4>
+  <p class="bridge">GraphQL isn't "better REST". It solves one specific problem, so bring it up only when you hear that problem.</p>
+  <ul class="lines">
+    <li>👂 "The mobile app needs different data than the web app" or "avoid over- and under-fetching" → they probably want GraphQL.</li>
+    <li>🏃 Frontend teams iterate without backend changes: a new field on a screen needs no new deploy, <b>if the field is already in the schema</b>.</li>
+    <li>💸 The cost: query parsing, schema validation, and often sophisticated caching. ⭐ Otherwise REST is simpler.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Raise GraphQL when there's a clear over- or under-fetching problem, never as your default. Interviewers like that you know it, but prefer to see the core problems solved with simpler tools first.</div>
+
+  <h4>🧬 GraphQL schema and the N+1 trap</h4>
+  <p class="bridge">With GraphQL you design a <b>schema</b> (types and how they relate) instead of endpoints. Relationships live in the schema, so a client can follow Event → Venue in one query.</p>
+<pre>type Event {
+  id: ID!
+  name: String!
+  date: DateTime!
+  venue: Venue!
+  tickets: [Ticket!]!
+}
+type Venue { id: ID!  name: String!  address: String! }
+type Query {
+  event(id: ID!): Event
+  events(limit: Int, after: String): [Event!]!
+}</pre>
+  <p>⚠️ That flexibility is the biggest pitfall: the <button type="button" class="gl-link" data-g="n1">N+1 problem</button>. Step through it 👇</p>
+  <div class="seq" data-seq="n1"></div>
+  <p class="ana">🧑‍🍳 A waiter who walks to the kitchen once for the menu, then once more <b>per table</b> for each dish. The dataloader is a waiter who collects every table's order and makes <b>one</b> trip. <span class="add">➕ analogy not in the article</span></p>
+  <p>🔐 Authorization is per <b>field</b>, not per endpoint: a user may see an event's name and date but not its venue. You enforce that in the schema's resolvers.</p>
+
+  <h4>📞 RPC: call a function over the network</h4>
+  <p class="bridge">GraphQL fixes the client side. Inside your system, services just want to call each other fast. RPC (Remote Procedure Call) lets a client call a procedure on a server and wait for the answer, without caring about the network.</p>
+  <div class="vs"><div class="good">🍽️ <b>REST</b> = resource-oriented: <code>GET /events/123</code></div><div class="good">📞 <b>RPC</b> = action-oriented: <code>getEvent(eventId: "123")</code></div></div>
+<pre>// Instead of GET /events/123
+getEvent(eventId: "123")
+// Instead of POST /events/123/bookings
+createBooking(eventId: "123", userId: "456", tickets: [...])
+// Instead of GET /events/123/tickets
+getAvailableTickets(eventId: "123", section: "VIP")</pre>
+  <ul class="lines">
+    <li>⭐ <a href="https://grpc.io/">gRPC</a>: <button type="button" class="gl-link" data-g="protobuf">Protocol Buffers</button> for serialization + HTTP/2 for transport → much faster than REST's JSON over HTTP between services.</li>
+    <li>🧰 <a href="https://thrift.apache.org/">Apache Thrift</a>: also from Facebook, now open source, many languages and formats.</li>
+  </ul>
+
+  <h4>🧾 Protocol Buffers: one contract, typed code everywhere</h4>
+  <p class="bridge">The speed comes with a bonus: a written contract. You describe methods and data in a <code>.proto</code> file.</p>
+<pre>service TicketService {
+  rpc GetEvent(GetEventRequest) returns (Event);
+  rpc CreateBooking(CreateBookingRequest) returns (Booking);
+  rpc GetAvailableTickets(GetTicketsRequest) returns (TicketList);
+}
+message GetEventRequest { string event_id = 1; }
+message Event {
+  string id = 1;
+  string name = 2;
+  int64 date = 3;
+  Venue venue = 4;
+}</pre>
+  <p>🏭 gRPC <b>generates</b> client and server code from it in many languages, so a Go booking service and a Java payment service talk with <b>compile-time type safety</b>: mismatches are caught before deploy. 🔗 Glossary: <button type="button" class="gl-link" data-g="stub-rpc">stub</button>.</p>
+  <p class="ana">📋 A pre-printed form both sides share, with numbered boxes. A missing or wrong box is caught when you fill it in, not when the post office returns it. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎯 When RPC, in an interview</h4>
+  <p class="bridge">RPC shines where your own services talk to each other often.</p>
+  <div class="pills"><span>⚡ Performance is critical</span><span>🛡️ Type safety matters</span><span>🔁 Service-to-service calls</span><span>🌊 Streaming (gRPC is bidirectional)</span><span>🌐 Polyglot services</span></div>
+  <div class="flow"><span>📱 Mobile / web</span><i>→ REST →</i><span>🚪 Public API</span><i>→ gRPC →</i><span>🎟️ Booking · 💳 Payment · 📦 Inventory</span></div>
+  <div class="info"><b>ℹ️ Note</b> Unless asked, you won't lay out internal APIs in the API step. Show only the user-facing ones; at most, say in the high-level design that internal services talk over RPC.</div>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🔁 N+1 isn't only a GraphQL problem</h5>
+    <ul><li>Any ORM can do it too. It comes from a mismatch between how data is read and how it's stored. GraphQL makes it <b>easier to create</b>, because clients shape the query and resolvers run per field. In REST the server writes one optimized query up front.</li></ul>
+    <h5>⚡ "RPC is faster than HTTP"? Not quite</h5>
+    <ul><li>gRPC itself runs on HTTP/2. The speed comes from <b>binary Protocol Buffers</b> instead of JSON (plus HTTP/2's multiplexing), not from skipping HTTP. The article's current text already says this.</li></ul>
+  </div>
+</section>
+
+<section class="card" id="sd-api-principles-patterns" data-topic="API Design" data-course="hi-sd" data-lesson="api-design">
+  <h2 class="cap"><b>📐 Principles and Patterns of a Clean API</b></h2>
+  <p class="hook">When an interviewer calls your API "clean", they're checking it against a few <b>principles</b>, whatever protocol you chose. The <b>patterns</b> are how those principles show up in real systems.</p>
+
+  <h4>📐 Nine principles</h4>
+  <p class="bridge">You'll rarely be asked to list them. They're the standard your design is quietly judged by.</p>
+  <ul class="lines">
+    <li>1️⃣ <b>Resources, not actions.</b> Writing <code>/getUserBookings</code> or <code>/processPayment</code>? Ask which resource it is: <code>GET /users/{id}/bookings</code>, <code>POST /payments</code>. The first thing interviewers look at.</li>
+    <li>2️⃣ <b>Consistent everywhere.</b> Same names, params, response shapes. Not <code>?status=paid</code> here and <code>?state=paid</code> there. 💡 Every light switch in a house works the same way.</li>
+    <li>3️⃣ <b>Least surprise.</b> GET never changes data, DELETE deletes, 200 means success (not <code>"success": false</code> inside a 200). 💡 A door marked "push" opens when you push.</li>
+    <li>4️⃣ <b><button type="button" class="gl-link" data-g="stateless">Stateless</button>.</b> Each request carries everything: token, params, payload. Any server can handle any request, so scaling becomes a load-balancer problem. A big reason <button type="button" class="gl-link" data-g="jwt">JWTs</button> are popular. 💡 You show your ticket at every gate, so any guard can let you in.</li>
+    <li>5️⃣ <b>Safe retries.</b> The client can't tell if the server finished before the network broke, so it retries. GET, PUT, DELETE are naturally safe; POSTs for bookings and payments get idempotency keys 👇</li>
+    <li>6️⃣ <b>Paginate anything that can grow.</b> "All bookings" works with 50 rows and dies at 5 million. Paginate from day one, with a <b>max page size</b> so <code>?limit=100000</code> can't take down the DB.</li>
+    <li>7️⃣ <b>Secure by default.</b> Auth is opt-out: every endpoint needs a token unless deliberately public. Authorization checks <i>this</i> resource (John cancels only his own bookings). Rate limiting backs it up. 💡 Doors are locked unless marked "open".</li>
+    <li>8️⃣ <b>Evolve without breaking.</b> Old mobile app versions live for years. Adding a field is safe; renaming, removing or changing a field's meaning is a breaking change → needs versioning.</li>
+    <li>9️⃣ <b>Actionable errors.</b> Right status class (4xx "you messed up", 5xx "we messed up") + a machine-readable code + a human message.</li>
+  </ul>
+  <p class="figcap">💡 analogies: ➕ not in the article</p>
+  <div class="rem"><b>✅ Remember</b> Listing principles earns nothing. Applying them <b>out loud</b> does: <i>"I'll put an idempotency key on this endpoint so a retry can't double-book the seat"</i> beats a lecture on idempotency. Justify decisions with them and you show all nine without naming one.</div>
+
+  <h4>📄 Pagination: offset vs cursor</h4>
+  <p class="bridge">Principle 6 in practice. An endpoint that returns every event ever made could send millions of rows. Split it into pages, two ways:</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🔢 Offset</b><div class="chk"><code>/events?offset=20&amp;limit=10</code> → rows 21–30</div><div class="chk">✅ Simple, most websites use it, "jump to page 5" is easy</div><div class="chk">⚠️ A new row while you page → the list shifts → duplicates or missed rows</div></div>
+    <div class="k-green"><b>🔖 Cursor</b><div class="chk">🔗 <button type="button" class="gl-link" data-g="cursor">how it works</button> · <code>/events?cursor=cmd9…dpy2&amp;limit=10</code></div><div class="chk">✅ Stable: points at a record, so new rows don't shift it</div><div class="chk">⚠️ "Jump to page 5" is harder</div></div>
+  </div>
+  <div class="dg" role="img" aria-label="Offset pagination duplicate: page 1 shows E1 E2 E3, a new event E0 arrives at the top, page 2 at offset 3 shows E3 again">
+    <div class="r"><span class="lbl">🔢 Offset, limit 3: a new event arrives between pages</span></div>
+    <div class="r"><span class="ar">Page 1</span><span class="bx">E1</span><span class="bx">E2</span><span class="bx">E3</span></div>
+    <div class="r"><span class="ar" style="--c: var(--green-fg)">➕ new</span><span class="bx" style="border-color: var(--green-fg)">E0</span><span class="ar">pushes everything down by one</span></div>
+    <div class="r"><span class="ar">Page 2 (skip 3)</span><span class="bx" style="border-color: var(--red-fg)">E3 again 🔁</span><span class="bx">E4</span><span class="bx">E5</span></div>
+    <div class="r"><span class="ar">Cursor "after E3"</span><span class="bx" style="border-color: var(--green-fg)">E4</span><span class="bx" style="border-color: var(--green-fg)">E5</span><span class="bx" style="border-color: var(--green-fg)">E6 ✓</span></div>
+  </div>
+  <p class="figcap">➕ worked example, not in the article (newest-first list)</p>
+<pre>GET /events?limit=10
+{ "events": [...], "next_cursor": "cmd9atj3p000007ky19w1dpy2" }
+
+GET /events?cursor=cmd9atj3p000007ky19w1dpy2&amp;limit=10</pre>
+  <p>🔖 The cursor is usually an encoded id or timestamp: here, the id of the last event on page 1.</p>
+  <p class="ana">🔖 Offset = "skip the first 20 people in the queue": if someone cuts in, you meet a person twice. Cursor = a <b>bookmark</b>: you continue after the exact page you left, however many pages get added. <span class="add">➕ analogy not in the article</span></p>
+  <p>🎤 In interviews, offset is usually fine unless the data is real-time or high-volume. ⭐ Interviewers care more that you <b>remembered pagination at all</b>.</p>
+
+  <h4>🔎 Filtering and sorting</h4>
+  <p class="bridge">Once you paginate, clients want to choose which slice and in what order. Convention: query parameters.</p>
+  <div class="pills"><span><code>/events?city=NYC&amp;status=upcoming</code></span><span><code>/events?sort=date</code></span><span><code>?sort=-date</code> = newest first</span></div>
+  <p>⭐ The work is <b>consistency</b>, not inventing names: if events filter by <code>status</code>, bookings do too (not <code>state</code>). One of the most common problems in real API reviews. In the interview, show one filtered endpoint and say "same conventions everywhere".</p>
+
+  <h4>🔑 Idempotency keys: retry a POST safely</h4>
+  <p class="bridge">The scenario interviewers love: a user books tickets, the request times out, the client retries. If the first one worked, the user is now charged twice. "Just don't retry" isn't an answer: networks fail all the time.</p>
+<pre>POST /events/123/bookings
+Idempotency-Key: 8e03978e-740c-4c2e-abd1-52f427d5c177
+{ "tickets": [{"section": "VIP", "quantity": 2}] }</pre>
+  <div class="seq" data-seq="idem"></div>
+  <p>The client makes one unique key per logical operation. The server stores <b>key → result</b>; a retry with the same key gets the stored response. Same key, same result, no double charge. That's how <a href="https://docs.stripe.com/api/idempotent_requests">Stripe</a> handles payment retries.</p>
+  <p class="ana">🧾 Like an order number on a form: send it twice and the shop says "already have order #8e03, here's your receipt" instead of making a second order. <span class="add">➕ analogy not in the article</span></p>
+  <p>🎤 ⭐ Raising this whenever your design has payments, bookings or orders is a <b>strong signal</b>: you think about failures, not just the happy path.</p>
+
+  <h4>🧯 Consistent error responses</h4>
+  <p class="bridge">The status code gives the category. The body says what actually happened, in the same envelope on every endpoint.</p>
+<pre>{
+  "error": {
+    "code": "SEAT_UNAVAILABLE",
+    "message": "Section VIP has only 1 seat remaining"
+  }
+}</pre>
+  <ul class="lines">
+    <li>🤖 <b>code</b>: a stable string the client branches on (the app shows a seat picker on <code>SEAT_UNAVAILABLE</code>).</li>
+    <li>🧑 <b>message</b>: for people, free to change.</li>
+    <li>🎤 In the interview it's one sentence: <i>"errors return a consistent envelope with a machine-readable code."</i></li>
+  </ul>
+
+  <h4>🏷️ Versioning</h4>
+  <p class="bridge">APIs change, and public clients update on their own schedule. Versioning lets you change without breaking them.</p>
+  <div class="vs"><div class="good">⭐ <b>URL</b>: <code>/v1/events</code>, <code>/v2/events</code>. Explicit, visible, easy to route to different code.</div><div class="good">📨 <b>Header</b>: <code>Accept-Version: v2</code>. Cleaner URLs, closer to HTTP standards, but less visible and harder to test in a browser.</div></div>
+  <p>🎤 Pick <b>URL versioning</b> unless asked about headers: more people know it, quicker to explain.</p>
+  <div class="info"><b>ℹ️ Note</b> HelloInterview's own breakdowns don't even include versioning: most interviewers don't care. It still matters a lot in practice.</div>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🐢 Why offset gets slow (not only shifting rows)</h5>
+    <ul><li>For page 1,000 at 100 per page, the database still walks <b>100,000</b> rows just to skip them. A cursor jumps to its id through the index (≈ log n), then reads the page.</li></ul>
+    <h5>🔢 Pagination needs a fixed order</h5>
+    <ul><li>Without an explicit sort, the database doesn't promise row order, so pages can repeat or skip. Sort by something unique (or add the id as a tie-breaker). <span class="add">➕ tie-breaker not in the comment</span></li></ul>
+    <h5>🔐 Can someone abuse an idempotency key?</h5>
+    <ul><li>A commenter asks what stops an attacker forging keys. Common answer: store keys <b>per user / account</b>, so a key only ever replays that caller's own request (Stripe scopes keys to the account). <span class="add">➕ not in the comments</span></li></ul>
+    <h5>🤖 Flagged by readers</h5>
+    <ul><li>Readers felt the principles section reads as AI-written; admin Stefan Mai agreed and is checking. The principles are still standard, sound advice.</li></ul>
+  </div>
+</section>
+
+<section class="card" id="sd-api-security" data-topic="API Design" data-course="hi-sd" data-lesson="api-design">
+  <h2 class="cap"><b>🔐 API Security: Who Are You, and What May You Do?</b></h2>
+  <p class="hook">Security is often an afterthought in interviews, so a little awareness sets you apart. You don't need a bulletproof design: show you think about <b>production</b>, then move on.</p>
+  <p class="tldr">💡 Two questions guard every request: <b>who is this?</b> (authentication) and <b>may they do this?</b> (authorization). Then a cap on <b>how often</b> (rate limiting).</p>
+
+  <h4>🪪 Authentication vs authorization</h4>
+  <p class="bridge">The first question your API must answer: who is making this request, and are they allowed to do it?</p>
+  <div class="vs"><div class="good">🪪 <b><button type="button" class="gl-link" data-g="auth">Authentication</button></b>: proves identity. "This is john@example.com."</div><div class="good">🔑 <b>Authorization</b>: checks permission. "John may cancel <i>his</i> booking, not anyone else's."</div></div>
+  <p class="ana">🏨 A hotel: showing your passport at check-in is authentication. Your key card opening only room 412 is authorization. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> In most (not all) interviews auth isn't the focus. Say which endpoints need a logged-in user, and that you'd use a <a href="https://jwt.io/">JWT</a> or a session stored in a database.</div>
+
+  <h4>🔑 API keys vs 🎫 JWTs</h4>
+  <p class="bridge">How the server knows who's calling depends on who the caller is: another program, or a person.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🔑 API key</b><div class="chk">A long random string, a password for <b>applications</b>: <code>sk_live_abc123…</code></div><div class="chk">Server looks it up in the DB (with its permissions and rate limits) on every request</div><div class="chk">⭐ Service-to-service calls where you control both ends; third-party developers</div></div>
+    <div class="k-blue"><b>🎫 JWT</b><div class="chk">Signed token holding user id, role, expiry</div><div class="chk">Server checks the <b>signature</b> and reads the user straight from it, <b>no DB lookup</b></div><div class="chk">⭐ User sessions in web and mobile apps; any service with the key can verify it</div></div>
+  </div>
+<pre>GET /events
+Authorization: Bearer sk_live_abc123...
+
+// JWT payload
+{ "user_id": "123", "email": "john@example.com",
+  "role": "customer", "exp": 1640995200 }</pre>
+  <div class="warn"><b>⚠️ Watch out</b> For a user-facing product, API keys are almost never right: users shouldn't manage long secret strings, and keys don't expire or carry user context the way sessions must.</div>
+  <p class="ana">🎪 An API key is a <b>delivery company's account number</b>: the office looks it up each time. A JWT is a <b>festival wristband</b> with your access level printed on it and a hologram: any guard checks the hologram and lets you in, no phone call to the office. <span class="add">➕ analogy not in the article</span></p>
+  <p>🔗 Glossary: <button type="button" class="gl-link" data-g="jwt">JWT</button> · <button type="button" class="gl-link" data-g="session">Session ID</button> · <button type="button" class="gl-link" data-g="jwtvs">JWT vs session</button> · <button type="button" class="gl-link" data-g="apikey">API key</button></p>
+
+  <h4>👥 Role-based access control (RBAC)</h4>
+  <p class="bridge">Real systems have kinds of users. Ticketmaster: customers book, venue managers create events, admins do everything. Give users roles, give roles permissions. 🔗 <button type="button" class="gl-link" data-g="rbac">RBAC</button></p>
+<pre>customer:      book tickets, view own bookings
+venue_manager: create events, view sales for their venues
+admin:         everything
+
+GET /bookings/{id}
+1. Authenticated?  (valid JWT)
+2. Authorized?     (owns this booking OR is admin)</pre>
+  <p class="ana">🎨 Badge colours at an office: blue opens the floors, red opens the server room. You decide per colour, not per person. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> At most, mention which roles can reach which endpoints. Often even that isn't needed.</div>
+
+  <h4>🚦 Rate limiting</h4>
+  <p class="bridge">Even a valid user can send too much, on purpose or by bug. Rate limiting caps requests per time window.</p>
+  <div class="pills"><span>👤 1,000 / hour per user</span><span>🌐 100 / hour per IP (not logged in)</span><span>🎟️ 10 bookings / min (stops scalpers)</span></div>
+  <p>🧱 Usually done at the API gateway or in middleware. Over the limit → <b>429 Too Many Requests</b>. 🔗 <button type="button" class="gl-link" data-g="ratelimit">Rate limiting</button></p>
+  <p class="ana">🎢 A theme-park turnstile: a set number per minute. Over the limit, you wait, so the ride never jams. <span class="add">➕ analogy not in the article</span></p>
+  <div class="info"><b>ℹ️ Note</b> Mention it, don't design the algorithm unless asked: <i>"we'll rate limit to prevent abuse"</i> is usually enough.</div>
+
+  <h4>🏁 The whole lesson in one breath</h4>
+  <div class="flow"><span>1️⃣ Protocol: REST unless a reason</span><i>→</i><span>2️⃣ Resources = core entities, plural nouns</span><i>→</i><span>3️⃣ Path · query · body</span><i>→</i><span>4️⃣ Status + body</span><i>→</i><span>5️⃣ Paginate · idempotency key · auth</span></div>
+  <p class="bridge">It's about judgment, not perfect specs. Unsure? Fall back on the principles: consistent, predictable, stateless, safe to retry. Candidates fail by spending <b>too long</b> on the API far more often than too little: ⭐ <b>5 minutes, max</b>.</p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🤝 How real developer APIs do it: OAuth 2.0</h5>
+    <ul><li>"API keys for developers" is incomplete. Most developer platforms use OAuth 2.0 <b>client credentials</b>: a client id + secret (the key) is traded for a short-lived <b>bearer token</b>, often a JWT. Saying this sounds like experience, not reading. 🔗 <button type="button" class="gl-link" data-g="oauth">OAuth client credentials</button></li></ul>
+    <h5>🧑‍💼 Senior / staff extras</h5>
+    <ul><li>Cookie sessions vs JWT vs OAuth2; how tokens are signed; stopping replay attacks, DDoS and XSS. Expected from experienced candidates, though big companies usually have an identity team.</li>
+      <li>✏️ The comment says "HMAC vs SHA", but JWT signing choices are really <b>HS256</b> (HMAC with SHA-256, one shared secret) vs <b>RS256 / ES256</b> (private key signs, public key verifies). <span class="add">➕ correction</span></li></ul>
+    <h5>📭 Wanted but missing</h5>
+    <ul><li>Readers asked for deeper pagination and auth coverage, and a structured way to argue a design is secure (threat model → assumptions → "this can't happen").</li></ul>
+  </div>
+</section>
+
 </div>
 </div>
 
@@ -1576,6 +1934,21 @@ const SEQS = {
       { at: 2, m: '⏱️ 2 s timeout · 🔌 breaker · 🚢 own pool', k: 'tcp', cap: '🛡️ The fix: a <b>timeout</b> frees threads fast, a <b>circuit breaker</b> stops calling the bank once it\'s clearly broken, and a <b>separate pool</b> for bank calls (bulkhead) keeps the rest of the site alive. The toolkit is below 👇' },
     ],
   },
+  'n1': {
+    lanes: ['📱 Client', '🔍 GraphQL server', '🗄️ DB'],
+    key: [['http', 'request'], ['tcp', 'query'], ['err', 'wasted']],
+    frames: [
+      { cap: 'A client asks for 100 events, each with its venue. Looks like one request. Let\'s count the database queries.' },
+      { f: 0, t: 1, m: '100 events + venues', k: 'http', cap: 'One GraphQL query arrives. The server runs a <b>resolver</b> per field.' },
+      { f: 1, t: 2, m: '① SELECT events LIMIT 100', k: 'tcp', cap: 'The events resolver: <b>1 query</b> for the list. So far so good.' },
+      { r: [{ f: 1, t: 2, m: '② venue of event 1', k: 'err' }], cap: 'Now the venue resolver runs <b>once per event</b>: a query for event 1\'s venue…' },
+      { r: [{ f: 1, t: 2, m: '③ venue of event 2 · ④ event 3 · …', k: 'err' }], cap: '…then event 2, event 3… One per event.' },
+      { at: 2, m: '1 + 100 = 101 queries 😱', k: 'err', cap: '<b>N+1</b>: 1 query for the list + N for the children. With 100 events, 101 queries instead of 2.' },
+      { at: 1, m: '🧺 dataloader: collect venue ids', k: 'lb', cap: '✅ The fix: <b>batching</b> (the dataloader pattern). Instead of querying each venue right away, collect all 100 venue ids in this tick…' },
+      { f: 1, t: 2, m: '② SELECT venues WHERE id IN (…100 ids)', k: 'tcp', cap: '…and fetch them in <b>one</b> query. Total: 2 queries. It works, but it\'s extra machinery REST doesn\'t need.' },
+      { f: 1, t: 0, m: 'events + venues', k: 'http', cap: 'Same response, 2 queries instead of 101.' },
+    ],
+  },
   'breaker': {
     lanes: ['🧩 Your service', '🔌 Breaker', '🗄️ Dependency'],
     key: [['tcp', 'ok'], ['err', 'failure'], ['lb', 'testing']],
@@ -1779,6 +2152,30 @@ const GLOSSARY = [
   { id: 'updown', t: 'Upstream vs downstream', aka: 'upstream downstream dependency caller callee cascade', s: 'Downstream = services YOU call. Upstream = services that call YOU.',
     an: 'A river: requests flow downhill. You sit mid-river. Water comes from upstream (your callers) and you pass it on downstream (your dependencies).',
     b: '<p>🧪 <b>How to tell:</b> follow the arrow of the request. Whoever the arrow points <i>to</i> is downstream of you.</p><p>📱 App → 🧩 Order service → 🗄️ DB</p><ul><li>For Order service: App is <b>upstream</b>, DB is <b>downstream</b>.</li></ul><p>💥 <b>Cascade:</b> the DB (downstream) gets slow → Order service waits and piles up → the App (upstream) times out. Failure travels <b>up</b> the river. A circuit breaker sits on your call to the downstream service, so its failure stops at you.</p><p>⚠️ <b>Trap:</b> HTTP proxies use the opposite word. In nginx and Envoy (and a 502 "bad upstream"), <b>upstream</b> = the server the proxy forwards to, because they picture the <i>response</i> flowing down from the server to the user. In service-to-service talk (circuit breakers, cascades), stick to the rule above.</p>', see: ['latency', 'idem'] },
+  { id: 'n1', t: 'N+1 query problem', aka: 'n plus one dataloader batching orm graphql resolver', s: '1 query for a list, then 1 more query per item: N+1 in total.',
+    an: 'A waiter who goes to the kitchen once for the menu, then once more per table. The fix: collect every table\'s order, make one trip.',
+    b: '<p>🧪 <b>How to spot it:</b> count the database queries for one request. 100 events with their venues:</p><ul><li>❌ 1 (events) + 100 (one venue each) = <b>101</b> queries</li><li>✅ 1 (events) + 1 (<code>WHERE id IN (…)</code>) = <b>2</b> queries</li></ul><p>GraphQL makes it easy to hit, because each field has its own resolver. ORMs do it too (lazy loading in a loop). Fix: batching (dataloader) or a join.</p>', see: ['http'] },
+  { id: 'protobuf', t: 'Protocol Buffers (protobuf)', aka: 'proto grpc serialization binary schema', s: 'A compact binary format, described by a typed .proto contract.',
+    an: 'A pre-printed form with numbered boxes. Both sides know box 1 = event_id, so you send just the numbers and values, not the labels.',
+    b: '<p>🧪 <b>See the difference:</b> JSON sends <code>{"event_id": "123"}</code>, field names and all, as text. Protobuf sends <i>field 1 = "123"</i> as a few bytes. Smaller and faster to parse.</p><p>The <code>.proto</code> file is the contract. gRPC generates typed client and server code from it, so a wrong field is a compile error, not a 3am bug.</p>', see: ['stub-rpc', 'http'] },
+  { id: 'apikey', t: 'API key', aka: 'api key sk_live service to service developer', s: 'A long random secret that identifies an application, not a person.',
+    an: 'A company\'s account number with a courier: the office looks it up every time you send a parcel.',
+    b: '<p>🧪 <b>How it works:</b> generate <code>sk_live_abc123…</code> per client → store it with its permissions and rate limits → look it up on every request (<code>Authorization: Bearer …</code>).</p><ul><li>✅ Your own services talking to each other; third-party developers.</li><li>❌ End users: they shouldn\'t handle secrets, and keys don\'t expire or carry user context. Use a session or JWT.</li></ul>', see: ['jwt', 'oauth', 'auth'] },
+  { id: 'oauth', t: 'OAuth 2.0 client credentials', aka: 'oauth2 client id secret bearer token developer api', s: 'Trade a client id + secret for a short-lived access token.',
+    an: 'At a hotel desk you show your booking reference (the secret) once and get a key card (the token) that stops working at checkout.',
+    b: '<p>🧪 <b>The flow:</b> ① app sends client id + secret to the auth server → ② gets a bearer token (often a JWT, expiring in about an hour) → ③ calls the API with the token → ④ when it expires, repeat ①.</p><p>Why not send the secret every time? A leaked token dies soon; the secret travels rarely. This is how most developer platforms really issue access.</p>', see: ['apikey', 'jwt'] },
+  { id: 'cursor', t: 'Cursor pagination', aka: 'cursor offset pagination next_cursor keyset', s: 'Page by "continue after this record", not "skip N rows".',
+    an: 'A bookmark: you carry on after the exact page you left, however many pages get added at the front.',
+    b: '<p>🧪 <b>Do it twice:</b> page 1 shows E1–E3. A new event arrives at the top.</p><ul><li>🔢 Offset 3 → E3, E4, E5: <b>E3 again</b>.</li><li>🔖 Cursor "after E3" → E4, E5, E6: correct.</li></ul><p>⚡ Also faster on deep pages: the DB jumps to the cursor through the index instead of walking and throwing away every skipped row. Cost: no "jump to page 5".</p>', see: ['stateless'] },
+  { id: 'stateless', t: 'Stateless API', aka: 'stateless stateful session server memory scaling', s: 'Every request carries everything needed; the server remembers nothing between requests.',
+    an: 'You show your ticket at every gate, so any guard can let you in. Stateful = only the guard who saw you earlier remembers you.',
+    b: '<p>🧪 <b>Test:</b> send request 2 to a different server than request 1. Still works? Stateless.</p><p>Why it matters: any server can take any request, so scaling out is just "add servers behind the load balancer". Tokens like JWTs carry the "who" with each request.</p>', see: ['jwt', 'session'] },
+  { id: 'rbac', t: 'RBAC (role-based access control)', aka: 'roles permissions authorization admin', s: 'Users get roles; roles get permissions. Check the role, not the person.',
+    an: 'Office badge colours: blue opens the floors, red opens the server room. Security decides per colour, not per employee.',
+    b: '<p>🧪 <b>Example:</b> customer → book, see own bookings · venue_manager → create events, see their sales · admin → all.</p><p><code>GET /bookings/42</code>: ① logged in? ② owns booking 42 <b>or</b> is admin? Both pass → 200. Logged in but not allowed → 403.</p>', see: ['auth', 'jwt'] },
+  { id: 'ratelimit', t: 'Rate limiting', aka: 'throttling 429 too many requests quota gateway', s: 'Cap how many requests a client may send per time window.',
+    an: 'A theme-park turnstile lets a set number through per minute, so the ride never jams.',
+    b: '<p>🧪 <b>Example:</b> 1,000/hour per user, 100/hour per IP when logged out, 10 booking attempts/min against scalpers. Request 1,001 → <b>429 Too Many Requests</b>.</p><p>Lives at the API gateway or in middleware. Protects against attacks and against your own buggy clients.</p>', see: ['apikey'] },
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
