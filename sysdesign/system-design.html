@@ -151,6 +151,8 @@ details.more li { margin: 2px 0; }
 .card .lines li { margin: 4px 0; }
 /* Room between points (Adi, 2026-11-03): used from the API Design .proto section onward */
 .card .lines.roomy li { margin: 12px 0; }
+/* Headline list (Adi, 2026-11-03): number + a headline that says it all, details on the next line */
+.card .lines.heads .hd { display: block; font-size: 15.5px; margin-bottom: 3px; }
 .views { display: inline-flex; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .views button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--card); color: var(--muted); cursor: pointer; }
 .views button.on { background: var(--accent); color: #fff; }
@@ -1521,7 +1523,11 @@ message Event {
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
     <h5>🔁 N+1 isn't only a GraphQL problem</h5>
-    <ul><li>Any ORM can do it too. It comes from a mismatch between how data is read and how it's stored. GraphQL makes it <b>easier to create</b>, because clients shape the query and resolvers run per field. In REST the server writes one optimized query up front.</li></ul>
+    <ul class="lines roomy">
+      <li>🔁 <b>REST does it too</b> if code loops: 1 query for 100 events, then 1 query per venue = <b>101</b>. Any ORM can do it (lazy loading in a loop). It comes from a mismatch between how data is read and how it's stored. <span class="add">➕ example from Adi</span></li>
+      <li>🧑‍🍳 <b>Why GraphQL gets the blame:</b> in REST <i>you</i> write the <code>/events</code> endpoint, so you see the loop and write one JOIN or <code>WHERE id IN (…)</code> up front (2 queries). In GraphQL the client shapes the query and the venue resolver runs <b>once per event</b>, not knowing about the other 99. So it's N+1 by default unless you add a dataloader.</li>
+      <li>📱 <b>Client-side N+1 in REST:</b> the app calls <code>GET /events</code>, then <code>GET /venues/{id}</code> 100 times = 101 <b>network</b> calls, even slower. Fix: return the venue inside each event, or <code>?include=venue</code>. <span class="add">➕ not in the article</span></li>
+    </ul>
     <h5>⚡ "RPC is faster than HTTP"? Not quite</h5>
     <ul><li>gRPC itself runs on HTTP/2. The speed comes from <b>binary Protocol Buffers</b> instead of JSON (plus HTTP/2's multiplexing), not from skipping HTTP. The article's current text already says this.</li></ul>
   </div>
@@ -1533,16 +1539,16 @@ message Event {
 
   <h4>📐 Nine principles</h4>
   <p class="bridge">You'll rarely be asked to list them. They're the standard your design is quietly judged by.</p>
-  <ul class="lines">
-    <li>1️⃣ <b>Resources, not actions.</b> Writing <code>/getUserBookings</code> or <code>/processPayment</code>? Ask which resource it is: <code>GET /users/{id}/bookings</code>, <code>POST /payments</code>. The first thing interviewers look at.</li>
-    <li>2️⃣ <b>Consistent everywhere.</b> Same names, params, response shapes. Not <code>?status=paid</code> here and <code>?state=paid</code> there. 💡 Every light switch in a house works the same way.</li>
-    <li>3️⃣ <b>Least surprise.</b> GET never changes data, DELETE deletes, 200 means success (not <code>"success": false</code> inside a 200). 💡 A door marked "push" opens when you push.</li>
-    <li>4️⃣ <b><button type="button" class="gl-link" data-g="stateless">Stateless</button>.</b> Each request carries everything: token, params, payload. Any server can handle any request, so scaling becomes a load-balancer problem. A big reason <button type="button" class="gl-link" data-g="jwt">JWTs</button> are popular. 💡 You show your ticket at every gate, so any guard can let you in.</li>
-    <li>5️⃣ <b>Safe retries.</b> The client can't tell if the server finished before the network broke, so it retries. GET, PUT, DELETE are naturally safe; POSTs for bookings and payments get idempotency keys 👇</li>
-    <li>6️⃣ <b>Paginate anything that can grow.</b> "All bookings" works with 50 rows and dies at 5 million. Paginate from day one, with a <b>max page size</b> so <code>?limit=100000</code> can't take down the DB.</li>
-    <li>7️⃣ <b>Secure by default.</b> Auth is opt-out: every endpoint needs a token unless deliberately public. Authorization checks <i>this</i> resource (John cancels only his own bookings). Rate limiting backs it up. 💡 Doors are locked unless marked "open".</li>
-    <li>8️⃣ <b>Evolve without breaking.</b> Old mobile app versions live for years. Adding a field is safe; renaming, removing or changing a field's meaning is a breaking change → needs versioning.</li>
-    <li>9️⃣ <b>Actionable errors.</b> Right status class (4xx "you messed up", 5xx "we messed up") + a machine-readable code + a human message.</li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Name resources (nouns), not actions (verbs)</b>Writing <code>/getUserBookings</code> or <code>/processPayment</code>? Ask which resource it is: <code>GET /users/{id}/bookings</code>, <code>POST /payments</code>. The first thing interviewers look at.</li>
+    <li><b class="hd">2️⃣ Same names and shapes on every endpoint</b>Same names, params, response shapes. Not <code>?status=paid</code> here and <code>?state=paid</code> there. 💡 Every light switch in a house works the same way.</li>
+    <li><b class="hd">3️⃣ Each method does exactly what its name says</b>"Least surprise": GET never changes data, DELETE deletes, 200 means success (not <code>"success": false</code> inside a 200). 💡 A door marked "push" opens when you push.</li>
+    <li><b class="hd">4️⃣ Every request carries everything it needs</b><button type="button" class="gl-link" data-g="stateless">Stateless</button>: token, params, payload in each request. Any server can handle any request, so scaling becomes a load-balancer problem. A big reason <button type="button" class="gl-link" data-g="jwt">JWTs</button> are popular. 💡 You show your ticket at every gate, so any guard can let you in.</li>
+    <li><b class="hd">5️⃣ A retry must never do the work twice</b>The client can't tell if the server finished before the network broke, so it retries. GET, PUT, DELETE are naturally safe; POSTs for bookings and payments get idempotency keys 👇</li>
+    <li><b class="hd">6️⃣ Paginate any list that can grow, with a max page size</b>"All bookings" works with 50 rows and dies at 5 million. Paginate from day one, and cap the page size so <code>?limit=100000</code> can't take down the DB.</li>
+    <li><b class="hd">7️⃣ Every endpoint is locked unless you open it on purpose</b>Auth is opt-out: every endpoint needs a token unless deliberately public. Authorization checks <i>this</i> resource (John cancels only his own bookings). Rate limiting backs it up. 💡 Doors are locked unless marked "open".</li>
+    <li><b class="hd">8️⃣ Change the API without breaking old clients</b>Old mobile app versions live for years. Adding a field is safe; renaming, removing or changing a field's meaning is a breaking change → needs versioning.</li>
+    <li><b class="hd">9️⃣ Errors say who is at fault and what went wrong</b>Right status class (4xx "you messed up", 5xx "we messed up") + a machine-readable code + a human message.</li>
   </ul>
   <p class="figcap">💡 analogies: ➕ not in the article</p>
   <div class="rem"><b>✅ Remember</b> Listing principles earns nothing. Applying them <b>out loud</b> does: <i>"I'll put an idempotency key on this endpoint so a retry can't double-book the seat"</i> beats a lecture on idempotency. Justify decisions with them and you show all nine without naming one.</div>
