@@ -1466,17 +1466,28 @@ message Event {
     <li>🎟️ <code>CreateBooking</code> works the same: send a <code>CreateBookingRequest</code> (event id, user id, seats), get a <code>Booking</code> back (booking id, status). <span class="add">➕ comments and fields not in the article</span></li>
   </ul>
   <h5>🔢 Only the field number travels, not the name</h5>
-  <p>Both sides hold the same <code>.proto</code>, so both already know <b>field 1 = event_id</b>. The sender writes just "field 1, value 123". Here is <code>GetEventRequest { event_id: "123" }</code> as real bytes:</p>
-  <div class="anat">
-    <div style="--c: var(--blue-fg)" data-l="field 1, a text value">0a</div>
-    <div style="--c: var(--amber-fg)" data-l="3 bytes long">03</div>
-    <div style="--c: var(--green-fg)" data-l='the text "1" "2" "3"'>31 32 33</div>
+  <p class="bridge">Both services hold the same <code>.proto</code>, and it gives every field a number: <b>1 = event_id</b>. So the sender doesn't need to send the name.</p>
+  <p class="ana">🍛 Like ordering by dish number. You and the kitchen hold the same menu, so you say "No. 7", not "Butter Chicken". The kitchen checks its own menu and knows what No. 7 is. <span class="add">➕ analogy not in the article</span></p>
+  <div class="grid2">
+    <div class="k-amber"><b>📄 JSON sends</b><div class="chk"><code>event_id: "123"</code></div><div class="chk">The name goes with every request.</div></div>
+    <div class="k-green"><b>📦 Protobuf sends</b><div class="chk"><code>1: "123"</code></div><div class="chk">Just the number. The receiver looks up "1" in its own .proto.</div></div>
   </div>
+  <div class="seq" data-seq="proto-wire"></div>
   <ul class="lines roomy">
-    <li>📦 <b>Protobuf: 5 bytes.</b> The letters <code>event_id</code> are nowhere in them.</li>
-    <li>📄 <b>JSON: 18 bytes</b>, <code>{"event_id":"123"}</code>. The name travels on every request.</li>
-    <li>✏️ <b>Rename test:</b> rename <code>event_id</code> → <code>id</code> and encode again: the same <code>0a 03 31 32 33</code>. So renaming a field is safe on the wire; changing its <b>number</b> breaks it. <span class="add">➕ checked with real protobuf, not in the article</span></li>
+    <li>⚡ <b>Smaller = faster.</b> This one field is 5 bytes instead of 18, on every call.</li>
+    <li>✏️ <b>Renaming is safe.</b> Rename <code>event_id</code> → <code>id</code> and it is still field 1, so what travels doesn't change.</li>
+    <li>💥 <b>Changing the number breaks.</b> Old booking sends "1", but new ticket thinks 1 means something else → wrong data.</li>
   </ul>
+  <details class="more">
+    <summary>🔬 The real bytes (optional)</summary>
+    <p><code>GetEventRequest { event_id: "123" }</code> encoded with real protobuf:</p>
+    <div class="anat">
+      <div style="--c: var(--blue-fg)" data-l="field 1, a text value">0a</div>
+      <div style="--c: var(--amber-fg)" data-l="3 bytes long">03</div>
+      <div style="--c: var(--green-fg)" data-l='the text "1" "2" "3"'>31 32 33</div>
+    </div>
+    <p>No <code>event_id</code> anywhere. Renamed to <code>id</code>, the bytes are exactly the same. <span class="add">➕ checked with real protobuf, not in the article</span></p>
+  </details>
   <p>🏭 gRPC <b>generates</b> client and server code from it in many languages, so a Go booking service and a Java payment service talk with <b>compile-time type safety</b>: mismatches are caught before deploy. 🔗 Glossary: <button type="button" class="gl-link" data-g="stub-rpc">stub</button>.</p>
   <p class="ana">📋 A pre-printed form both sides share, with numbered boxes. A missing or wrong box is caught when you fill it in, not when the post office returns it. <span class="add">➕ analogy not in the article</span></p>
 
@@ -2012,6 +2023,18 @@ const SEQS = {
       { f: 1, t: 2, m: 'pull v2 at build time', k: 'dns', cap: '③ On its next build, booking pulls v2 and <b>regenerates its stubs</b>.' },
       { at: 2, m: '🚀 redeploy with v2 stub', k: 'lb', cap: '④ Booking redeploys. Only now can it use the new field.' },
       { f: 2, t: 0, m: 'GetTicket (v2 stub)', k: 'tcp', cap: 'Both sides on v2. Stubs change only when the caller is rebuilt and redeployed.' },
+    ],
+  },
+  'proto-wire': {
+    lanes: ['🎟️ Booking (sends)', '🎫 Ticket (receives)'],
+    key: [['lb', 'look up .proto'], ['tcp', 'protobuf'], ['http', 'JSON']],
+    frames: [
+      { cap: 'Booking wants to send <code>{ event_id: "123" }</code>. Both services hold the same <code>.proto</code>, which says <b>field 1 = event_id</b>.' },
+      { at: 0, m: '📜 event_id → 1', k: 'lb', cap: '① Booking checks its .proto: event_id is field <b>1</b>. It swaps the name for the number.' },
+      { f: 0, t: 1, m: '1: "123"', k: 'tcp', cap: '② Only <b>1: "123"</b> goes over the network. The word "event_id" never travels.' },
+      { at: 1, m: '📜 1 → event_id', k: 'lb', cap: '③ Ticket checks <b>its own copy</b> of the .proto: field 1 = event_id.' },
+      { at: 1, m: '{ event_id: "123" }', k: 'lb', cap: '④ It rebuilds the object. Same data, and the name was never sent.' },
+      { f: 0, t: 1, m: 'JSON: {"event_id":"123"}', k: 'http', cap: '🆚 With JSON the name travels <b>every time</b>, because the receiver has no .proto to look it up in.' },
     ],
   },
   'breaker': {
