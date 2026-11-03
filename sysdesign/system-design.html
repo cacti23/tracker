@@ -1464,7 +1464,18 @@ message Event {
   <ul class="lines">
     <li>📤 In brackets = the <b>request</b> message you send. 📥 After <code>returns</code> = the <b>response</b> message you get back. Both are just data shapes.</li>
     <li>🎟️ <code>CreateBooking</code> works the same: send a <code>CreateBookingRequest</code> (event id, user id, seats), get a <code>Booking</code> back (booking id, status). <span class="add">➕ comments and fields not in the article</span></li>
-    <li>🔢 The numbers after <code>=</code> (1, 2, 3, 4) are the box numbers on the form. Only the number travels, not the name <code>event_id</code>. That is why Protobuf is small.</li>
+  </ul>
+  <h5>🔢 Only the field number travels, not the name</h5>
+  <p>Both sides hold the same <code>.proto</code>, so both already know <b>field 1 = event_id</b>. The sender writes just "field 1, value 123". Here is <code>GetEventRequest { event_id: "123" }</code> as real bytes:</p>
+  <div class="anat">
+    <div style="--c: var(--blue-fg)" data-l="field 1, a text value">0a</div>
+    <div style="--c: var(--amber-fg)" data-l="3 bytes long">03</div>
+    <div style="--c: var(--green-fg)" data-l='the text "1" "2" "3"'>31 32 33</div>
+  </div>
+  <ul class="lines roomy">
+    <li>📦 <b>Protobuf: 5 bytes.</b> The letters <code>event_id</code> are nowhere in them.</li>
+    <li>📄 <b>JSON: 18 bytes</b>, <code>{"event_id":"123"}</code>. The name travels on every request.</li>
+    <li>✏️ <b>Rename test:</b> rename <code>event_id</code> → <code>id</code> and encode again: the same <code>0a 03 31 32 33</code>. So renaming a field is safe on the wire; changing its <b>number</b> breaks it. <span class="add">➕ checked with real protobuf, not in the article</span></li>
   </ul>
   <p>🏭 gRPC <b>generates</b> client and server code from it in many languages, so a Go booking service and a Java payment service talk with <b>compile-time type safety</b>: mismatches are caught before deploy. 🔗 Glossary: <button type="button" class="gl-link" data-g="stub-rpc">stub</button>.</p>
   <p class="ana">📋 A pre-printed form both sides share, with numbered boxes. A missing or wrong box is caught when you fill it in, not when the post office returns it. <span class="add">➕ analogy not in the article</span></p>
