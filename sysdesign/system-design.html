@@ -53,7 +53,7 @@ section.card[hidden] { display: none; }
 .src a { color: var(--accent); }
 
 .card ul { margin: 0; padding-left: 20px; }
-.card li { margin: 2px 0; }
+.card li { margin: 8px 0; }
 .empty { color: var(--muted); font-size: 14px; }
 /* CSS diagrams: real text, so they stay readable at phone width (SVG text shrinks with the drawing) */
 .types { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; margin: 6px 0 10px; font-size: 14px; }
@@ -148,7 +148,7 @@ details.more li { margin: 2px 0; }
   background: var(--chip); border-left: 4px solid var(--accent); }
 .card > h4 .figcap { font-weight: normal; }
 .card .lines { list-style: none; padding-left: 0; }
-.card .lines li { margin: 4px 0; }
+.card .lines li { margin: 12px 0; }
 /* Room between points (Adi, 2026-11-03): used from the API Design .proto section onward */
 .card .lines.roomy li { margin: 12px 0; }
 /* Headline list (Adi, 2026-11-03): number + a headline that says it all, details on the next line */
@@ -1274,9 +1274,9 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <p>📞 <b>RPC</b>: calling a colleague by name. "Check permission for user 7", not "fetch the permission resource".</p>
     <p class="figcap">➕ analogies not in the article</p></div>
   <div class="warn"><b>⚠️ Watch out</b> Most interviewers don't care whether your API is perfect. They want a <b>reasonable</b> API, and then they want you to move on to the hard parts of the system.</div>
-  <ul class="lines">
-    <li>🎨 <b>Frontend or product roles:</b> the API matters more, because you'll live in APIs every day.</li>
-    <li>🌱 <b>Junior roles:</b> less is expected on distributed systems, so more of the round may go to the API.</li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎨 Frontend or product roles: the API part matters more</b>Because you'll live in APIs every day.</li>
+    <li><b class="hd">🌱 Junior roles: more of the round may go to the API</b>Less is expected on distributed systems, so more of the round may go to the API.</li>
   </ul>
 
   <h4>🧭 Which protocol?</h4>
@@ -1293,10 +1293,10 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     </div>
   </div>
   <p class="figcap">"API Types Flowchart" from the article, rebuilt</p>
-  <ul class="lines">
-    <li>🍽️ <b>REST</b> (Representational State Transfer): HTTP methods (GET, POST, PUT, DELETE) act on <b>resources</b> named by URLs. CRUD in web and mobile apps maps straight onto your database and onto HTTP. ⭐ The go-to for most web services.</li>
-    <li>🥗 <b>GraphQL</b>: one endpoint plus a query language, so each client asks for exactly the fields it needs. The mobile app wants basic user info, the web dashboard wants full analytics: one query each, no extra endpoints. 👂 Hint words: "flexible data fetching", "over-fetching / under-fetching".</li>
-    <li>📞 <b>RPC</b> (e.g. gRPC): binary serialization + HTTP/2, thinking in <b>actions</b>. The user service asking the auth service <code>checkPermission(userId, resource)</code> is more natural than a REST resource. 👂 Hint words: "microservices", "internal APIs", "performance is critical". 🔗 <a href="#sd-net-apis">HTTP and API Styles</a> covers the protocol side.</li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🍽️ REST: act on resources named by URLs (the default)</b>Representational State Transfer: HTTP methods (GET, POST, PUT, DELETE) act on <b>resources</b> named by URLs. CRUD in web and mobile apps maps straight onto your database and onto HTTP. ⭐ The go-to for most web services.</li>
+    <li><b class="hd">🥗 GraphQL: each client asks for exactly the fields it needs</b>One endpoint plus a query language. The mobile app wants basic user info, the web dashboard wants full analytics: one query each, no extra endpoints. 👂 Hint words: "flexible data fetching", "over-fetching / under-fetching".</li>
+    <li><b class="hd">📞 RPC: call another service's function, fast and typed</b>e.g. gRPC: binary serialization + HTTP/2, thinking in <b>actions</b>. The user service asking the auth service <code>checkPermission(userId, resource)</code> is more natural than a REST resource. 👂 Hint words: "microservices", "internal APIs", "performance is critical". 🔗 <a href="#sd-net-apis">HTTP and API Styles</a> covers the protocol side.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> REST by default unless you have a specific reason. It's well understood, has great tooling, and covers 90% of use cases. Unsure? Say <i>"I'll use REST APIs"</i> and move on.</div>
   <div class="rem"><b>✅ Remember</b> Real-time features (notifications, chat, live updates) aren't traditional APIs. They're <b>persistent connections</b>: WebSockets or Server-Sent Events. 🔗 <a href="#sd-net-realtime">Real-time: SSE, WebSockets, WebRTC</a> and the Real-time Updates pattern lesson.</div>
@@ -1327,12 +1327,12 @@ GET  /bookings/{id}          # one booking</pre>
 
   <h4>🔧 HTTP methods: and which are safe to retry</h4>
   <p class="bridge">With the resources named, each method says what you do to one. The key question for each is whether repeating it is safe: <button type="button" class="gl-link" data-g="idem">idempotent</button>.</p>
-  <ul class="lines">
-    <li>📖 <b>GET</b> reads, changes nothing. <code>GET /events/{id}</code>, <code>GET /events</code>. ✅ idempotent</li>
-    <li>➕ <b>POST</b> creates. <code>POST /events/{id}/bookings</code> with details in the body; the server assigns the id. ❌ not idempotent: 2 calls = 2 bookings.</li>
-    <li>🔁 <b>PUT</b> replaces the whole resource (or creates it). <code>PUT /users/{id}</code> with the full user. ✅ idempotent: same data twice, same final state.</li>
-    <li>✏️ <b>PATCH</b> changes part of it. <code>PATCH /users/{id}</code> with just the email. ⚠️ depends: "set email to X" is safe, "append to a list" is not.</li>
-    <li>🗑️ <b>DELETE</b> removes. <code>DELETE /bookings/{id}</code>. ✅ idempotent: it stays deleted, even though the 1st reply is 204 and later ones 404.</li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📖 GET reads and changes nothing ✅ safe to repeat</b> <code>GET /events/{id}</code>, <code>GET /events</code>.</li>
+    <li><b class="hd">➕ POST creates a new one ❌ a repeat makes a duplicate</b> <code>POST /events/{id}/bookings</code> with details in the body; the server assigns the id. 2 calls = 2 bookings.</li>
+    <li><b class="hd">🔁 PUT replaces the whole thing ✅ safe to repeat</b>Replaces the whole resource (or creates it). <code>PUT /users/{id}</code> with the full user. Same data twice, same final state.</li>
+    <li><b class="hd">✏️ PATCH changes part of it ⚠️ safe or not, it depends</b> <code>PATCH /users/{id}</code> with just the email. "Set email to X" is safe, "append to a list" is not.</li>
+    <li><b class="hd">🗑️ DELETE removes it ✅ safe to repeat</b> <code>DELETE /bookings/{id}</code>. It stays deleted, even though the 1st reply is 204 and later ones 404.</li>
   </ul>
   <p>⭐ Why it matters: networks fail and clients retry. A retried GET, PUT or DELETE is harmless. A retried POST can create a <b>duplicate booking</b>, and a retried PATCH like "add 100" adds 200. Both are fixed by idempotency keys (<a href="#sd-api-principles-patterns">Patterns</a> 👇).</p>
   <p class="ana">🗄️ Read a file, add a new file, swap the file for a fresh copy, fix one line in it, shred it. Shredding twice still leaves no file; adding twice leaves two files. <span class="add">➕ analogy not in the article</span></p>
@@ -1475,10 +1475,10 @@ message Event {
     <div class="k-green"><b>📦 Protobuf sends</b><div class="chk"><code>1: "123"</code></div><div class="chk">Just the number. The receiver looks up "1" in its own .proto.</div></div>
   </div>
   <div class="seq" data-seq="proto-wire"></div>
-  <ul class="lines roomy">
-    <li>⚡ <b>Smaller = faster.</b> This one field is 5 bytes instead of 18, on every call.</li>
-    <li>✏️ <b>Renaming is safe.</b> Rename <code>event_id</code> → <code>id</code> and it is still field 1, so what travels doesn't change.</li>
-    <li>💥 <b>Changing the number breaks.</b> Old booking sends "1", but new ticket thinks 1 means something else → wrong data.</li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚡ Smaller messages = faster calls</b> This one field is 5 bytes instead of 18, on every call.</li>
+    <li><b class="hd">✏️ Renaming a field is safe</b> Rename <code>event_id</code> → <code>id</code> and it is still field 1, so what travels doesn't change.</li>
+    <li><b class="hd">💥 Changing a field's number breaks things</b> Old booking sends "1", but new ticket thinks 1 means something else → wrong data.</li>
   </ul>
   <details class="more">
     <summary>🔬 The real bytes (optional)</summary>
@@ -1495,10 +1495,10 @@ message Event {
 
   <h4>🔄 Changing a .proto: when does the other service see it?</h4>
   <p class="bridge">Two services share one <code>.proto</code>. So what happens when one side changes it? Booking calls ticket service, and the ticket team adds a field. Is that change backward-compatible? <span class="add">➕ Adi's notes, not in the article</span></p>
-  <ul class="lines roomy">
-    <li>📜 <b>.proto</b> = the contract. A text file a developer writes, <b>owned by the service that offers the RPCs</b> (ticket service).</li>
-    <li>⚙️ <b>Stub</b> = code <b>generated from</b> the .proto. Booking calls <code>ticket.GetTicket(id)</code> like a normal function; the stub does the network and <button type="button" class="gl-link" data-g="serial">serialization</button>.</li>
-    <li>🗄️ <b>Shared repo or schema registry</b> = where the .proto is published, so other services can pull it.</li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📜 .proto = the contract, a text file</b> A text file a developer writes, <b>owned by the service that offers the RPCs</b> (ticket service).</li>
+    <li><b class="hd">⚙️ Stub = code generated from the .proto</b>Code <b>generated from</b> the .proto. Booking calls <code>ticket.GetTicket(id)</code> like a normal function; the stub does the network and <button type="button" class="gl-link" data-g="serial">serialization</button>.</li>
+    <li><b class="hd">🗄️ Registry = where the .proto is shared</b>A shared repo or schema registry: where the .proto is published, so other services can pull it.</li>
   </ul>
   <div class="seq" data-seq="proto-change"></div>
   <p>⭐ A running service <b>never updates its own stubs</b>. Booking uses the old stub until it is rebuilt and redeployed. (The .proto isn't "rebuilt": a developer edits it. The <b>stubs</b> are what get regenerated.)</p>
@@ -1506,10 +1506,10 @@ message Event {
     <div class="k-green"><b>✅ Backward-compatible</b><div class="chk">Add a field · add an RPC</div><div class="chk">Old booking still works: it skips fields it doesn't know, and a field it doesn't send arrives as the default (<code>0</code>, <code>""</code>).</div><div class="chk">Redeploy booking whenever you want the new thing.</div></div>
     <div class="k-red"><b>❌ Breaking</b><div class="chk">Remove a field still in use · change a field's number or type · rename or remove an RPC</div><div class="chk">Old booking gets errors or wrong data 💥</div><div class="chk">Redeploying booking fast still leaves a window, so don't break: use the safe way 👇</div></div>
   </div>
-  <ul class="lines roomy">
-    <li>🧯 <b>Safe way to break things</b>: ① add the new field or RPC ② move booking over and redeploy it ③ only then remove the old one.</li>
-    <li>🔢 Renaming a <b>field</b> doesn't break old services on the wire: only its number travels (see the code above 👆). It breaks code that used the old name, and JSON. <span class="add">➕ not in Adi's notes</span></li>
-    <li>🚫 When you remove a field, mark its number <code>reserved</code> so nobody reuses it for something else. <span class="add">➕ not in Adi's notes</span></li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧯 To break safely: add new → move clients → remove old</b> ① add the new field or RPC ② move booking over and redeploy it ③ only then remove the old one.</li>
+    <li><b class="hd">🔢 Renaming a field doesn't break old services on the wire</b>Only its number travels (see the code above 👆). It breaks code that used the old name, and JSON. <span class="add">➕ not in Adi's notes</span></li>
+    <li><b class="hd">🚫 Removed a field? Mark its number reserved</b>When you remove a field, mark its number <code>reserved</code> so nobody reuses it for something else. <span class="add">➕ not in Adi's notes</span></li>
   </ul>
   <p class="ana">🍽️ The <code>.proto</code> is the restaurant's menu; the stub is the printed copy the customer (booking) holds; a redeploy hands them a new copy. A new dish? Their old copy still works. A dish removed or renamed? Their order fails. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> Proto = contract. Stub = code made from it. New stub = redeploy. Adding is safe ✅. Removing or changing is dangerous ❌.</div>
@@ -1523,10 +1523,10 @@ message Event {
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
     <h5>🔁 N+1 isn't only a GraphQL problem</h5>
-    <ul class="lines roomy">
-      <li>🔁 <b>REST does it too</b> if code loops: 1 query for 100 events, then 1 query per venue = <b>101</b>. Any ORM can do it (lazy loading in a loop). It comes from a mismatch between how data is read and how it's stored. <span class="add">➕ example from Adi</span></li>
-      <li>🧑‍🍳 <b>Why GraphQL gets the blame:</b> in REST <i>you</i> write the <code>/events</code> endpoint, so you see the loop and write one JOIN or <code>WHERE id IN (…)</code> up front (2 queries). In GraphQL the client shapes the query and the venue resolver runs <b>once per event</b>, not knowing about the other 99. So it's N+1 by default unless you add a dataloader.</li>
-      <li>📱 <b>Client-side N+1 in REST:</b> the app calls <code>GET /events</code>, then <code>GET /venues/{id}</code> 100 times = 101 <b>network</b> calls, even slower. Fix: return the venue inside each event, or <code>?include=venue</code>. <span class="add">➕ not in the article</span></li>
+    <ul class="lines roomy heads">
+      <li><b class="hd">🔁 REST has N+1 too, whenever code queries in a loop</b> 1 query for 100 events, then 1 query per venue = <b>101</b>. Any ORM can do it (lazy loading in a loop). It comes from a mismatch between how data is read and how it's stored. <span class="add">➕ example from Adi</span></li>
+      <li><b class="hd">🧑‍🍳 GraphQL gets the blame: there it happens by default</b>In REST <i>you</i> write the <code>/events</code> endpoint, so you see the loop and write one JOIN or <code>WHERE id IN (…)</code> up front (2 queries). In GraphQL the client shapes the query and the venue resolver runs <b>once per event</b>, not knowing about the other 99. So it's N+1 by default unless you add a dataloader.</li>
+      <li><b class="hd">📱 REST clients can cause N+1 over the network</b>The app calls <code>GET /events</code>, then <code>GET /venues/{id}</code> 100 times = 101 <b>network</b> calls, even slower. Fix: return the venue inside each event, or <code>?include=venue</code>. <span class="add">➕ not in the article</span></li>
     </ul>
     <h5>⚡ "RPC is faster than HTTP"? Not quite</h5>
     <ul><li>gRPC itself runs on HTTP/2. The speed comes from <b>binary Protocol Buffers</b> instead of JSON (plus HTTP/2's multiplexing), not from skipping HTTP. The article's current text already says this.</li></ul>
@@ -1598,10 +1598,10 @@ Idempotency-Key: 8e03978e-740c-4c2e-abd1-52f427d5c177
     "message": "Section VIP has only 1 seat remaining"
   }
 }</pre>
-  <ul class="lines">
-    <li>🤖 <b>code</b>: a stable string the client branches on (the app shows a seat picker on <code>SEAT_UNAVAILABLE</code>).</li>
-    <li>🧑 <b>message</b>: for people, free to change.</li>
-    <li>🎤 In the interview it's one sentence: <i>"errors return a consistent envelope with a machine-readable code."</i></li>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤖 code: for machines, never changes</b>A stable string the client branches on (the app shows a seat picker on <code>SEAT_UNAVAILABLE</code>).</li>
+    <li><b class="hd">🧑 message: for people, free to change</b></li>
+    <li><b class="hd">🎤 In the interview, say it in one sentence</b> <i>"errors return a consistent envelope with a machine-readable code."</i></li>
   </ul>
 
   <h4>🏷️ Versioning</h4>
