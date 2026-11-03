@@ -1521,7 +1521,11 @@ message Event {
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
     <h5>🔁 N+1 isn't only a GraphQL problem</h5>
-    <ul><li>Any ORM can do it too. It comes from a mismatch between how data is read and how it's stored. GraphQL makes it <b>easier to create</b>, because clients shape the query and resolvers run per field. In REST the server writes one optimized query up front.</li></ul>
+    <ul class="lines roomy">
+      <li>🔁 <b>REST does it too</b> if code loops: 1 query for 100 events, then 1 query per venue = <b>101</b>. Any ORM can do it (lazy loading in a loop). It comes from a mismatch between how data is read and how it's stored. <span class="add">➕ example from Adi</span></li>
+      <li>🧑‍🍳 <b>Why GraphQL gets the blame:</b> in REST <i>you</i> write the <code>/events</code> endpoint, so you see the loop and write one JOIN or <code>WHERE id IN (…)</code> up front (2 queries). In GraphQL the client shapes the query and the venue resolver runs <b>once per event</b>, not knowing about the other 99. So it's N+1 by default unless you add a dataloader.</li>
+      <li>📱 <b>Client-side N+1 in REST:</b> the app calls <code>GET /events</code>, then <code>GET /venues/{id}</code> 100 times = 101 <b>network</b> calls, even slower. Fix: return the venue inside each event, or <code>?include=venue</code>. <span class="add">➕ not in the article</span></li>
+    </ul>
     <h5>⚡ "RPC is faster than HTTP"? Not quite</h5>
     <ul><li>gRPC itself runs on HTTP/2. The speed comes from <b>binary Protocol Buffers</b> instead of JSON (plus HTTP/2's multiplexing), not from skipping HTTP. The article's current text already says this.</li></ul>
   </div>
