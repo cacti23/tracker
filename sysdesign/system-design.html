@@ -149,6 +149,8 @@ details.more li { margin: 2px 0; }
 .card > h4 .figcap { font-weight: normal; }
 .card .lines { list-style: none; padding-left: 0; }
 .card .lines li { margin: 4px 0; }
+/* Room between points (Adi, 2026-11-03): used from the API Design .proto section onward */
+.card .lines.roomy li { margin: 12px 0; }
 .views { display: inline-flex; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .views button { font: inherit; font-size: 14px; padding: 6px 14px; border: 0; background: var(--card); color: var(--muted); cursor: pointer; }
 .views button.on { background: var(--accent); color: #fff; }
@@ -1467,6 +1469,27 @@ message Event {
   <p>🏭 gRPC <b>generates</b> client and server code from it in many languages, so a Go booking service and a Java payment service talk with <b>compile-time type safety</b>: mismatches are caught before deploy. 🔗 Glossary: <button type="button" class="gl-link" data-g="stub-rpc">stub</button>.</p>
   <p class="ana">📋 A pre-printed form both sides share, with numbered boxes. A missing or wrong box is caught when you fill it in, not when the post office returns it. <span class="add">➕ analogy not in the article</span></p>
 
+  <h4>🔄 Changing a .proto: when does the other service see it?</h4>
+  <p class="bridge">Two services share one <code>.proto</code>. So what happens when one side changes it? Booking calls ticket service, and the ticket team adds a field. Is that change backward-compatible? <span class="add">➕ Adi's notes, not in the article</span></p>
+  <ul class="lines roomy">
+    <li>📜 <b>.proto</b> = the contract. A text file a developer writes, <b>owned by the service that offers the RPCs</b> (ticket service).</li>
+    <li>⚙️ <b>Stub</b> = code <b>generated from</b> the .proto. Booking calls <code>ticket.GetTicket(id)</code> like a normal function; the stub does the network and <button type="button" class="gl-link" data-g="serial">serialization</button>.</li>
+    <li>🗄️ <b>Shared repo or schema registry</b> = where the .proto is published, so other services can pull it.</li>
+  </ul>
+  <div class="seq" data-seq="proto-change"></div>
+  <p>⭐ A running service <b>never updates its own stubs</b>. Booking uses the old stub until it is rebuilt and redeployed. (The .proto isn't "rebuilt": a developer edits it. The <b>stubs</b> are what get regenerated.)</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Backward-compatible</b><div class="chk">Add a field · add an RPC</div><div class="chk">Old booking still works: it skips fields it doesn't know, and a field it doesn't send arrives as the default (<code>0</code>, <code>""</code>).</div><div class="chk">Redeploy booking whenever you want the new thing.</div></div>
+    <div class="k-red"><b>❌ Breaking</b><div class="chk">Remove a field still in use · change a field's number or type · rename or remove an RPC</div><div class="chk">Old booking gets errors or wrong data 💥</div><div class="chk">Redeploying booking fast still leaves a window, so don't break: use the safe way 👇</div></div>
+  </div>
+  <ul class="lines roomy">
+    <li>🧯 <b>Safe way to break things</b>: ① add the new field or RPC ② move booking over and redeploy it ③ only then remove the old one.</li>
+    <li>🔢 Renaming a <b>field</b> doesn't break old services on the wire: only its number travels (see the code above 👆). It breaks code that used the old name, and JSON. <span class="add">➕ not in Adi's notes</span></li>
+    <li>🚫 When you remove a field, mark its number <code>reserved</code> so nobody reuses it for something else. <span class="add">➕ not in Adi's notes</span></li>
+  </ul>
+  <p class="ana">🍽️ The <code>.proto</code> is the restaurant's menu; the stub is the printed copy the customer (booking) holds; a redeploy hands them a new copy. A new dish? Their old copy still works. A dish removed or renamed? Their order fails. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> Proto = contract. Stub = code made from it. New stub = redeploy. Adding is safe ✅. Removing or changing is dangerous ❌.</div>
+
   <h4>🎯 When RPC, in an interview</h4>
   <p class="bridge">RPC shines where your own services talk to each other often.</p>
   <div class="pills"><span>⚡ Performance is critical</span><span>🛡️ Type safety matters</span><span>🔁 Service-to-service calls</span><span>🌊 Streaming (gRPC is bidirectional)</span><span>🌐 Polyglot services</span></div>
@@ -1966,6 +1989,20 @@ const SEQS = {
       { f: 1, t: 0, m: 'events + venues', k: 'http', cap: 'Same response, 2 queries instead of 101.' },
     ],
   },
+  'proto-change': {
+    lanes: ['🎫 Ticket service', '🗄️ Registry', '🎟️ Booking'],
+    key: [['lb', 'deploy'], ['dns', '.proto'], ['tcp', 'call']],
+    frames: [
+      { cap: 'Booking calls ticket service through a stub made from <b>v1</b> of the .proto. Now the ticket team adds a field. Watch when booking actually gets it.' },
+      { at: 0, m: '✏️ edit .proto → v2 · deploy', k: 'lb', cap: '① A ticket developer edits the .proto (v2) and deploys ticket service.' },
+      { f: 0, t: 1, m: 'publish ticket.proto v2', k: 'dns', cap: '② The .proto is published to the shared repo or schema registry.' },
+      { f: 2, t: 0, m: 'GetTicket (old v1 stub)', k: 'tcp', cap: '⚠️ Meanwhile, the <b>running</b> booking still uses its old v1 stub. It never updates itself.' },
+      { f: 0, t: 2, m: 'ticket + new field (skipped)', k: 'tcp', cap: 'Still fine: adding a field is backward-compatible. Old booking just skips the field it doesn\'t know.' },
+      { f: 1, t: 2, m: 'pull v2 at build time', k: 'dns', cap: '③ On its next build, booking pulls v2 and <b>regenerates its stubs</b>.' },
+      { at: 2, m: '🚀 redeploy with v2 stub', k: 'lb', cap: '④ Booking redeploys. Only now can it use the new field.' },
+      { f: 2, t: 0, m: 'GetTicket (v2 stub)', k: 'tcp', cap: 'Both sides on v2. Stubs change only when the caller is rebuilt and redeployed.' },
+    ],
+  },
   'breaker': {
     lanes: ['🧩 Your service', '🔌 Breaker', '🗄️ Dependency'],
     key: [['tcp', 'ok'], ['err', 'failure'], ['lb', 'testing']],
@@ -2178,6 +2215,12 @@ const GLOSSARY = [
   { id: 'serial', t: 'Serialization', aka: 'serialize deserialize marshal encode decode json protobuf bytes wire stringify parse', s: 'Turning an object in memory into bytes you can send or store, and back again (deserialization).',
     an: 'Flat-pack furniture: take the wardrobe apart into a flat box to ship it (serialize), build it again at the other end (deserialize). Both sides need the same instructions.',
     b: '<p>🧪 <b>See it:</b> in your Node app an event is a live object. The network only carries bytes, so:</p><table class="gl-t"><tr><th>Step</th><th>What it looks like</th></tr><tr><td>🧠 In memory</td><td><code>{ id: "123", name: "Coldplay" }</code>, an object</td></tr><tr><td>📦 Serialize to JSON</td><td><code>{"id":"123","name":"Coldplay"}</code> as text, 30 bytes</td></tr><tr><td>📦 Serialize to Protobuf</td><td>field 1 = "123", field 2 = "Coldplay" as binary, 15 bytes</td></tr><tr><td>🧠 Deserialize</td><td>the other side rebuilds the object</td></tr></table><p>🔁 You already do it: <code>JSON.stringify</code> = serialize, <code>JSON.parse</code> = deserialize.</p><p>⚡ Why it matters: it happens on every request, both ways. JSON is easy to read but bigger and slower to parse. Protobuf is smaller and faster, but you need the <code>.proto</code> to read it.</p>', see: ['protobuf', 'http'] },
+  { id: 'compat', t: 'Backward-compatible change', aka: 'backwards compatible breaking change schema evolution versioning old client', s: 'A change that old clients, still running old code, keep working with.',
+    an: 'A restaurant adds a dish: customers holding the old menu can still order everything on it. Removing a dish breaks their order.',
+    b: '<p>🧪 <b>Test:</b> deploy the new server, keep the old client running. Does every old call still work?</p><ul><li>✅ Add a field, add an endpoint or RPC: old clients ignore what they don\'t know.</li><li>❌ Remove or rename something in use, change a type: old clients break.</li></ul><p>🧯 To make a breaking change: add the new thing → move every client over → remove the old thing.</p>', see: ['protobuf', 'stub-rpc'] },
+  { id: 'registry', t: 'Schema registry', aka: 'proto registry shared repo buf contract publish', s: 'A shared place where services publish their contracts (.proto files) so other services can pull them.',
+    an: 'The restaurant posts its latest menu on its website; anyone printing a copy grabs it from there.',
+    b: '<p>🧪 <b>See it:</b> ticket service publishes <code>ticket.proto</code> v2 there. Booking pulls it <b>at build time</b> and generates new stubs. It can be a simple shared Git repo or a tool like Buf Schema Registry, which can also reject breaking changes.</p>', see: ['protobuf', 'compat'] },
   { id: 'apikey', t: 'API key', aka: 'api key sk_live service to service developer', s: 'A long random secret that identifies an application, not a person.',
     an: 'A company\'s account number with a courier: the office looks it up every time you send a parcel.',
     b: '<p>🧪 <b>How it works:</b> generate <code>sk_live_abc123…</code> per client → store it with its permissions and rate limits → look it up on every request (<code>Authorization: Bearer …</code>).</p><ul><li>✅ Your own services talking to each other; third-party developers.</li><li>❌ End users: they shouldn\'t handle secrets, and keys don\'t expire or carry user context. Use a session or JWT.</li></ul>', see: ['jwt', 'oauth', 'auth'] },
@@ -2265,12 +2308,12 @@ const GLOSSARY = [
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, tuple: /5-tuple/, handshake: /handshakes?/i,
-    keepalive: /keep-alive/i, latency: /latency/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
+    keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
   }
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
     .map(([id, re]) => [id, new RegExp(`(?<![\\w/+-])(?:${re.source})(?![\\w+-])`, re.flags)])
-  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .add, .tag, kbd'
+  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .add, .tag, kbd, .grid2 > div > b'
   const link = (node, seen) => {
     while (node) {
       let best = null
