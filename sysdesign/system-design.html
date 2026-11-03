@@ -1330,7 +1330,7 @@ GET  /bookings/{id}          # one booking</pre>
     <li>✏️ <b>PATCH</b> changes part of it. <code>PATCH /users/{id}</code> with just the email. ⚠️ depends: "set email to X" is safe, "append to a list" is not.</li>
     <li>🗑️ <b>DELETE</b> removes. <code>DELETE /bookings/{id}</code>. ✅ idempotent: it stays deleted, even though the 1st reply is 204 and later ones 404.</li>
   </ul>
-  <p>⭐ Why it matters: networks fail and clients retry. A retried GET, PUT or DELETE is harmless. A retried POST can create a <b>duplicate booking</b> → fixed by idempotency keys (<a href="#sd-api-principles-patterns">Patterns</a> 👇).</p>
+  <p>⭐ Why it matters: networks fail and clients retry. A retried GET, PUT or DELETE is harmless. A retried POST can create a <b>duplicate booking</b>, and a retried PATCH like "add 100" adds 200. Both are fixed by idempotency keys (<a href="#sd-api-principles-patterns">Patterns</a> 👇).</p>
   <p class="ana">🗄️ Read a file, add a new file, swap the file for a fresh copy, fix one line in it, shred it. Shredding twice still leaves no file; adding twice leaves two files. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>📮 Passing data: path, query, body</h4>
@@ -1435,18 +1435,35 @@ getAvailableTickets(eventId: "123", section: "VIP")</pre>
 
   <h4>🧾 Protocol Buffers: one contract, typed code everywhere</h4>
   <p class="bridge">The speed comes with a bonus: a written contract. You describe methods and data in a <code>.proto</code> file.</p>
-<pre>service TicketService {
+<pre>// 📞 service = functions you can call
+service TicketService {
+  // rpc Name(send) returns (get)
   rpc GetEvent(GetEventRequest) returns (Event);
   rpc CreateBooking(CreateBookingRequest) returns (Booking);
   rpc GetAvailableTickets(GetTicketsRequest) returns (TicketList);
 }
-message GetEventRequest { string event_id = 1; }
+// 📦 message = shape of the data
+// 📤 what you send
+message GetEventRequest {
+  string event_id = 1;
+}
+// 📥 what comes back
 message Event {
+  // 1 = field number, not a value
   string id = 1;
   string name = 2;
   int64 date = 3;
+  // a message inside a message
   Venue venue = 4;
-}</pre>
+}
+// CreateBookingRequest, Booking,
+// GetTicketsRequest, TicketList:
+// written the same way</pre>
+  <ul class="lines">
+    <li>📤 In brackets = the <b>request</b> message you send. 📥 After <code>returns</code> = the <b>response</b> message you get back. Both are just data shapes.</li>
+    <li>🎟️ <code>CreateBooking</code> works the same: send a <code>CreateBookingRequest</code> (event id, user id, seats), get a <code>Booking</code> back (booking id, status). <span class="add">➕ comments and fields not in the article</span></li>
+    <li>🔢 The numbers after <code>=</code> (1, 2, 3, 4) are the box numbers on the form. Only the number travels, not the name <code>event_id</code>. That is why Protobuf is small.</li>
+  </ul>
   <p>🏭 gRPC <b>generates</b> client and server code from it in many languages, so a Go booking service and a Java payment service talk with <b>compile-time type safety</b>: mismatches are caught before deploy. 🔗 Glossary: <button type="button" class="gl-link" data-g="stub-rpc">stub</button>.</p>
   <p class="ana">📋 A pre-printed form both sides share, with numbered boxes. A missing or wrong box is caught when you fill it in, not when the post office returns it. <span class="add">➕ analogy not in the article</span></p>
 
@@ -2158,6 +2175,9 @@ const GLOSSARY = [
   { id: 'protobuf', t: 'Protocol Buffers (protobuf)', aka: 'proto grpc serialization binary schema', s: 'A compact binary format, described by a typed .proto contract.',
     an: 'A pre-printed form with numbered boxes. Both sides know box 1 = event_id, so you send just the numbers and values, not the labels.',
     b: '<p>🧪 <b>See the difference:</b> JSON sends <code>{"event_id": "123"}</code>, field names and all, as text. Protobuf sends <i>field 1 = "123"</i> as a few bytes. Smaller and faster to parse.</p><p>The <code>.proto</code> file is the contract. gRPC generates typed client and server code from it, so a wrong field is a compile error, not a 3am bug.</p>', see: ['stub-rpc', 'http'] },
+  { id: 'serial', t: 'Serialization', aka: 'serialize deserialize marshal encode decode json protobuf bytes wire stringify parse', s: 'Turning an object in memory into bytes you can send or store, and back again (deserialization).',
+    an: 'Flat-pack furniture: take the wardrobe apart into a flat box to ship it (serialize), build it again at the other end (deserialize). Both sides need the same instructions.',
+    b: '<p>🧪 <b>See it:</b> in your Node app an event is a live object. The network only carries bytes, so:</p><table class="gl-t"><tr><th>Step</th><th>What it looks like</th></tr><tr><td>🧠 In memory</td><td><code>{ id: "123", name: "Coldplay" }</code>, an object</td></tr><tr><td>📦 Serialize to JSON</td><td><code>{"id":"123","name":"Coldplay"}</code> as text, 30 bytes</td></tr><tr><td>📦 Serialize to Protobuf</td><td>field 1 = "123", field 2 = "Coldplay" as binary, 15 bytes</td></tr><tr><td>🧠 Deserialize</td><td>the other side rebuilds the object</td></tr></table><p>🔁 You already do it: <code>JSON.stringify</code> = serialize, <code>JSON.parse</code> = deserialize.</p><p>⚡ Why it matters: it happens on every request, both ways. JSON is easy to read but bigger and slower to parse. Protobuf is smaller and faster, but you need the <code>.proto</code> to read it.</p>', see: ['protobuf', 'http'] },
   { id: 'apikey', t: 'API key', aka: 'api key sk_live service to service developer', s: 'A long random secret that identifies an application, not a person.',
     an: 'A company\'s account number with a courier: the office looks it up every time you send a parcel.',
     b: '<p>🧪 <b>How it works:</b> generate <code>sk_live_abc123…</code> per client → store it with its permissions and rate limits → look it up on every request (<code>Authorization: Bearer …</code>).</p><ul><li>✅ Your own services talking to each other; third-party developers.</li><li>❌ End users: they shouldn\'t handle secrets, and keys don\'t expire or carry user context. Use a session or JWT.</li></ul>', see: ['jwt', 'oauth', 'auth'] },
@@ -2230,6 +2250,54 @@ const GLOSSARY = [
     }
   })
   document.addEventListener('click', e => { const t = e.target.closest('[data-g]'); if (t) { e.preventDefault(); open(t.dataset.g) } })
+})()
+
+// 📖 Every glossary word in the notes is tappable (Adi, 2026-11-03), so a new entry links itself everywhere.
+// Only its first mention per section, so a section about TCP isn't a wall of underlines.
+// Acronyms match case-sensitively ("NAT" isn't "nature"); the boundaries keep "port" out of "transport".
+;(() => {
+  const WORDS = {
+    ip: /IP address(?:es)?|IPs?/, private: /(?:public|private) IPs?/i, mac: /MAC address(?:es)?|MAC/, port: /ports?/i,
+    packet: /packets?/i, router: /routers?/i, dhcp: /DHCP/, dns: /DNS/, nat: /NAT/, arp: /ARP/, tcp: /TCP/,
+    flow: /flow control/i, congestion: /congestion control/i, udp: /UDP/, http: /HTTP/, tls: /HTTPS|TLS/,
+    eavesdrop: /eavesdrop(?:ping)?/i, mitm: /man-in-the-middle|MITM/i, auth: /authentication|authorization|auth[NZ]/i,
+    'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
+    updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
+    oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    keepalive: /keep-alive/i, latency: /latency/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
+  }
+  const ids = new Set(GLOSSARY.map(g => g.id))
+  const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
+    .map(([id, re]) => [id, new RegExp(`(?<![\\w/+-])(?:${re.source})(?![\\w+-])`, re.flags)])
+  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .add, .tag, kbd'
+  const link = (node, seen) => {
+    while (node) {
+      let best = null
+      for (const [id, re] of RX) {
+        if (seen.has(id)) continue
+        const m = re.exec(node.data)
+        if (m && (!best || m.index < best.i)) best = { i: m.index, n: m[0].length, id }
+      }
+      if (!best) return
+      const word = node.splitText(best.i), rest = word.splitText(best.n)
+      const b = el('button', 'gl-link', word.data); b.type = 'button'; b.dataset.g = best.id
+      word.replaceWith(b); seen.add(best.id); node = rest
+    }
+  }
+  cards.forEach(card => {
+    // Walk in reading order; each h4 starts a new section. Words already linked by hand count as seen.
+    const parts = [{ seen: new Set(), texts: [] }]
+    const w = document.createTreeWalker(card, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode: n =>
+      n.nodeType === 3 ? (n.parentElement.closest(SKIP) || !n.data.trim() ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)
+        : n.matches('h4, [data-g]') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP })
+    for (let n; (n = w.nextNode());) {
+      if (n.nodeType === 3) parts.at(-1).texts.push(n)
+      else if (n.tagName === 'H4') parts.push({ seen: new Set(), texts: [] })
+      else parts.at(-1).seen.add(n.dataset.g)
+    }
+    parts.forEach(p => p.texts.forEach(t => link(t, p.seen)))
+  })
 })()
 
 let startView = 'topics'
