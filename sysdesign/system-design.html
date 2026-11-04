@@ -2515,19 +2515,22 @@ A. Understand my reasoning
 - Understand what I'm trying to say. Don't penalise imperfect wording.
 - Mark what I got right with "(✅ you said this)" inside the explanation.
 - Explain gaps without making it feel like an exam. Never write "you missed".
-B. Deep questions: always give the complete ideal answer, whether or not I was right. Deep questions are where I learn most, so explain them really well:
-1. 🎯 Direct answer and root cause, in one or two sentences.
-2. 🔍 Detailed technical explanation: what happens inside, why, how the parts interact, what problem it solves, what happens when something fails. Use request flows, diagrams and examples when they help.
-3. 🧮 Calculations, step by step (see C).
-4. 🔧 My issue (only if I had one), in one or two lines.
-5. 🧩 Analogy: simple and memorable. One analogy world per topic (e.g. 🏢 a building for networking: flat number = IP, face = MAC, front desk = router).
-6. ⚖️ Trade-offs: why this approach, its downsides, the alternatives, and when an experienced engineer would choose another one.
-7. 🗣️ Interview-ready answer: a polished answer I could say naturally in about 2–3 minutes, at SDE2 level with real depth. Then what an SDE3 would add: Size (numbers) → Prove (measure) → Cost (math per option) → Path (between servers) → Break (failures), each explained, not one line.
-8. 🧠 Key takeaway: one memorable engineering principle.
+B. Deep questions: after I answer, reply in exactly this order. The quiz is how I learn things I don't know yet, and deep questions are where I learn most. So explain clearly, simply and to the point, but fully: cover every detail I need to understand it deeply. Depth matters more than shortness here; my own interview answer will be shorter once I've learned it.
+1. 🔧 What I got wrong: a short, plain list, one line each. Then one line on what I got right. Nothing else here.
+2. 🗣️ SDE2 interview answer: the version I would actually say to the interviewer, as a short spoken story (about 1–2 minutes): context → root cause → fixes in priority order → trade-off → close.
+3. 🔍 Why: the full explanation. This is the MOST important part. Teach me everything behind the interview answer, as ONE story from the start, with a short heading per step:
+   - Context: restate the problem and every number used (labelled, see C).
+   - What happens: the request or system flow, step by step, what each part does and why.
+   - Calculation: every step shown (see C).
+   - Root cause: what the flow and the numbers prove.
+   - Fixes in priority order: how each one works, why it helps, and its trade-off.
+   Explain in plain words, with a diagram or an analogy right where it helps.
+4. 🚀 SDE3: first the extra lines an SDE3 would say to the interviewer, then the full explanation of each, as deep as part 3. Size → Prove → Cost → Path → Break: what the SDE3 does, why it matters, how it works, with labelled numbers and an example. Never one-liners.
+5. 🧠 Takeaway: one line I can remember.
 C. Calculations (I find estimates hard, so never skip a step)
 - List the steps. Count each step (trips, bytes, requests). Things that happen at the same time count once. Show a small table or timeline, then the total.
 - Use small round numbers (1 trip = 100 ms, 1 MB ≈ 10⁶ bytes, Mbps ÷ 8 = MB/s).
-- Label every number: ✅ fact (from my notes or a source) · 📌 assumption · ≈ approximate.
+- Label every number AND every claim that isn't obvious: ✅ fact (from my notes or a standard source) · 📌 assumption · ≈ approximate. Never present an assumption as a fact.
 - If I still don't get it, explain it again in a different way, with a simpler picture.
 
 🔄 4. REPETITION AND CONCEPT MASTERY (critical)
@@ -2577,11 +2580,11 @@ No score, no hiring recommendation, no Hire / No Hire.
 ⭐ FINAL INSTRUCTION
 You are not here to test how much I already know. You are here to help me become an engineer who understands systems deeply, makes sound architectural decisions, understands trade-offs and can explain them with confidence.
 Teach me until I understand. Challenge me until I can apply it. Repeat until the reasoning becomes natural.`
-  const copy = async (text, btn, msg = '✓ Copied: paste in the thread') => {
+  const copy = async (text, btn) => {
     try { await navigator.clipboard.writeText(text) } catch (e) {
       const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove()
     }
-    const was = btn.textContent; btn.textContent = msg; btn.classList.add('done')
+    const was = btn.textContent; btn.textContent = '✓ Copied: paste in the thread'; btn.classList.add('done')
     setTimeout(() => { btn.textContent = was; btn.classList.remove('done') }, 2500)
   }
   const quizBtn = (label, where, cardId, id) => {
@@ -2590,48 +2593,10 @@ Teach me until I understand. Challenge me until I can apply it. Repeat until the
     b.onclick = e => { e.stopPropagation(); copy(quizPrompt(where, cardId, id), b) }
     return b
   }
-  // 📒 NotebookLM can't read the repo, so this copies the part's own text to paste in as a "Copied text" source
-  const SKIP = new Set(['BUTTON', 'SCRIPT', 'STYLE', 'TEMPLATE', 'svg'])
-  const BLOCK = /^(P|DIV|LI|H[1-6]|TR|UL|OL|TABLE|SECTION|DETAILS|SUMMARY|PRE|BLOCKQUOTE|FIGURE|FIGCAPTION|BR)$/
-  const textOf = n => {
-    if (n.nodeType === 3) return n.nodeValue.replace(/\s+/g, ' ')
-    if (n.nodeType !== 1) return ''
-    // 📘 term buttons keep their word and carry their definition along
-    if (n.classList.contains('term')) return `${n.textContent} (${n.dataset.p})`
-    if (n.classList.contains('gl-link')) return n.textContent
-    if (SKIP.has(n.nodeName)) return ''
-    // Small CSS diagrams carry their meaning in aria-label (their spans are layout); big ones have real text inside
-    if (n.getAttribute('role') === 'img' && n.getAttribute('aria-label') && !n.querySelector('p, div, li')) return `\n[Diagram] ${n.getAttribute('aria-label')}\n`
-    let t = [...n.childNodes].map(textOf).join('')
-    if (n.nodeName === 'LI') t = '• ' + t.trim()
-    if (n.nodeName === 'TD' || n.nodeName === 'TH') t += ' | '
-    if (/^H[1-6]$/.test(n.nodeName)) t = '## ' + t.trim()
-    return BLOCK.test(n.nodeName) ? `\n${t}\n` : t
-  }
-  const tidy = t => t.split('\n').map(l => l.trim()).filter((l, i, a) => l || (i && a[i - 1])).join('\n').trim()
-  const partNodes = (c, h) => {
-    if (!h) return [c]
-    const out = [h]
-    for (let n = h.nextElementSibling; n && n.nodeName !== 'H4'; n = n.nextElementSibling) out.push(n)
-    return out
-  }
-  const nlmText = (where, c, h) => `${where}
-From Adi's system design notes: ${LIVE}#${(h || c).id}
-
-${tidy(partNodes(c, h).map(textOf).join('\n'))}`
-  const nlmBtn = (where, c, h) => {
-    const b = el('button', 'quiz-btn', '📒 NotebookLM'); b.type = 'button'
-    b.title = 'Copy this part as plain text, to paste into NotebookLM as a source'
-    b.onclick = e => { e.stopPropagation(); copy(nlmText(where, c, h), b, '✓ Copied: add as a source') }
-    return b
-  }
   cards.forEach(c => {
     const title = cardTitle(c)
-    c.querySelector('.cap').append(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id), nlmBtn(`${title} (whole card)`, c))
-    c.querySelectorAll(':scope > h4').forEach(h => {
-      const where = `${title} › ${h.textContent.trim()}`
-      h.append(quizBtn('🧠 Quiz me', where, c.id, h.id), nlmBtn(where, c, h))
-    })
+    c.querySelector('.cap').appendChild(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id))
+    c.querySelectorAll(':scope > h4').forEach(h => h.appendChild(quizBtn('🧠 Quiz me', `${title} › ${h.textContent.trim()}`, c.id, h.id)))
   })
 
   // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
