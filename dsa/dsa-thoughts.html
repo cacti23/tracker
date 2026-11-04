@@ -471,32 +471,32 @@ for (let via = 0; via &lt; 26; via++)                           // MUST be outer
 </section>
 
 <section data-g="graph">
-<h2 id="graph-14">14 · 🍰 Dijkstra on States — Node Alone Isn't Enough → <code>dist[node][extra]</code></h2>
+<h2 id="graph-14">14 · 🍰 Dijkstra on States — Same Node, Different Extra → <code>dist[node][extra]</code></h2>
 <p>❓ <b>Ask:</b> "can I decide the next move from the node alone?"</p>
 <ul>
-<li>✅ <b>Yes</b> → normal <code>dist[node]</code></li>
-<li>❌ <b>No</b>, I also need something about the path so far → put it in the state → <code>dist[node][extra]</code></li>
+<li>✅ <b>Yes</b> → <code>dist[node]</code></li>
+<li>❌ <b>No</b>, the path so far matters → <code>dist[node][extra]</code></li>
 </ul>
-<p>🍰 <b>Layered graph:</b> every <code>(node, extra)</code> pair is its own node in a bigger graph. Run plain Dijkstra on it, nothing else changes. Same for BFS: queue <code>[node, extra]</code>, <code>visited[node][extra]</code>.</p>
-<pre class="language-none"><code class="language-none">normal: node 1 has ONE cost
-states: (1, run 1) and (1, run 2) each have their OWN cost</code></pre>
+<p>🔁 <b>One node can be reached many times</b>, each time with a different <code>extra</code>. Every <code>(node, extra)</code> pair is its own node with its own cost. Run normal Dijkstra on these pairs. BFS works the same: <code>visited[node][extra]</code>.</p>
 <p>🐛 <b>Why <code>dist[node]</code> breaks</b> (LC 3970, at most <code>k = 2</code> same labels in a row):</p>
 <pre class="language-none"><code class="language-none">labels: 0=a 1=a 2=b 3=a
 edges:  0→1 (1) · 0→2 (5) · 2→1 (5) · 1→3 (1)
 
-🏃 cheap:  0→1, cost 1,  run "aa" = 2 → 1→3 makes "aaa" ❌
-🐢 dear:   0→2→1, cost 10, run "a" = 1 → 1→3 ✅ total 11
+🏃 0→1:    cost 1,  run "aa" → 1→3 makes "aaa" ❌
+🐢 0→2→1:  cost 10, run "a"  → 1→3 ✅ total 11
 
-dist[1] = 1 already → cost 10 is thrown away → returns -1 ❌ (real: 11)</code></pre>
-<p>✅ <b>Fix:</b> one cost per <code>(node, count)</code>:</p>
+dist[1] = 1 → cost 10 is thrown away → returns -1 ❌ (real: 11)</code></pre>
+<p>✅ <b>Fix:</b> one cost per <code>(node, count)</code>. Node 1 is popped twice: <code>(1, run 2)</code> at 1, <code>(1, run 1)</code> at 10.</p>
 <pre class="language-tsx"><code class="language-tsx">const dist = Array.from({ length: n }, () => Array(k + 1).fill(Infinity))
-dist[0][1] = 0
-if (currDist > dist[node][count]) continue          // stale per (node, count)
+dist[0][1] = 0                                    // heap: [cost, node, count]
+if (currDist > dist[node][count]) continue        // stale per (node, count)
+const newCount = labels[nei] === labels[node] ? count + 1 : 1
+if (newCount > k) continue
 if (neiDist < dist[nei][newCount]) {
   dist[nei][newCount] = neiDist
   pq.enqueue([neiDist, nei, newCount])
 }
-// answer = Math.min(...dist[n - 1])</code></pre>
+// the first pop of n - 1 is the answer</code></pre>
 <p>🚨 <b>Trigger words:</b></p>
 <ul>
 <li>🛑 "at most k stops" → <code>dist[node][stops]</code> (LC 787, or Bellman-Ford <a href="#graph-12">#12</a>)</li>
@@ -504,7 +504,7 @@ if (neiDist < dist[nei][newCount]) {
 <li>🧱 "can remove k obstacles" → <code>dist[cell][removalsLeft]</code> (LC 1293, BFS)</li>
 <li>🔑 "fuel / keys collected" → <code>dist[node][fuel]</code>, <code>dist[node][keysMask]</code> (LC 864, BFS)</li>
 </ul>
-<p class="hint">⏱️ States = <code>n · k</code> → TC <code>O(E·k log(E·k))</code>. Same question as the param test in <a href="#rec-1">Recursion #1</a>: does the future need it? Checked in Node: on 5,000 random graphs, <code>dist[node]</code> was wrong 7 times, <code>dist[node][count]</code> never.</p>
+<p class="hint">⏱️ States = <code>n · k</code>, edges = <code>m · k</code> → TC <code>O(m·k · log(m·k))</code>, SC <code>O(n·k + m·k)</code>. Checked in Node: your code matched a brute force on 3,000 random graphs. Plain <code>dist[node]</code> fails (see <a href="#rec-1">Recursion #1</a>: does the future need it?).</p>
 <div class="box key"><b class="tag">📌</b> <b>If the node alone can't tell you what's allowed next, the state = node + what's missing.</b></div>
 </section>
 
