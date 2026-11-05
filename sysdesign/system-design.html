@@ -1935,37 +1935,71 @@ likes:    user_id (FK → users.id),
   <ul class="lines roomy heads">
     <li><b class="hd">👤 Index on posts.user_id: quickly find all posts by a user</b></li>
     <li><b class="hd">🕒 Index on posts.created_at: load recent posts in time order</b></li>
-    <li><b class="hd">🧩 Composite index on (user_id, created_at): load a user's recent posts efficiently</b>A composite index is sorted by user first, then by time inside each user. So user 7's newest posts sit side by side, already in order. How to use one is just below 👇 <span class="add">➕ why, not in the article</span></li>
+    <li><b class="hd">🧩 Composite index on (user_id, created_at): load a user's recent posts efficiently</b>How it works is just below 👇</li>
     <li><b class="hd">🐢 Every index slows writes a little</b>Each insert or update must also update every index on that table, so index what your queries need, not everything. <span class="add">➕ not in the article</span></li>
   </ul>
   <h5>🧩 Composite index: use it from the left, with no gaps <span class="add">➕ Adi's notes, not in the article</span></h5>
   <p class="ana">📒 A phonebook is sorted by surname, then by first name inside each surname. "Sharma" or "Sharma, Priya" is a quick jump. "Everyone called Priya" means reading the whole book.</p>
-  <div class="dg" role="img" aria-label="Index on user_id then created_at. User 1: Jan 1, Jan 5, Jan 9. User 2: Jan 2, Jan 3, Jan 8. User 3: Jan 1, Jan 4, Jan 7.">
-    <div class="r"><span class="lbl">Index on (user_id, created_at): sorted by user, then by date inside each user</span></div>
-    <div class="r"><span class="ar">user 1 →</span><span class="bx">Jan 1</span><span class="bx">Jan 5</span><span class="bx">Jan 9</span></div>
-    <div class="r"><span class="ar" style="--c: var(--green-fg)">user 2 →</span><span class="bx" style="border-color: var(--green-fg)">Jan 2</span><span class="bx" style="border-color: var(--green-fg)">Jan 3</span><span class="bx" style="border-color: var(--green-fg)">Jan 8</span></div>
-    <div class="r"><span class="ar">user 3 →</span><span class="bx">Jan 1</span><span class="bx">Jan 4</span><span class="bx">Jan 7</span></div>
-  </div>
-  <ul class="lines roomy heads">
-    <li><b class="hd">✅ user_id = 2 → jump straight to user 2's block</b></li>
-    <li><b class="hd">✅ user_id = 2 AND created_at = Jan 3 → jump to the block, then to Jan 3 inside it</b></li>
-    <li><b class="hd">✅ user_id = 2 ORDER BY created_at → already in date order, no sort step</b></li>
-    <li><b class="hd">❌ created_at = Jan 3 alone → slow</b>The Jan 3 rows are scattered across every user's block, so every block must be checked.</li>
-  </ul>
-  <p class="bridge">Three columns work the same way: sorted by country, then city inside each country, then age inside each city.</p>
-<pre>-- index on (country, city, age)
-country               ✅ uses it
-country + city        ✅ uses it
-country + city + age  ✅ best case
-city                  ❌ skips country
-country + age         ⚠️ country only</pre>
-  <p>⚠️ Why "country only"? Inside India the rows are sorted by city first, so the age-30 rows are scattered across every city. Age can't narrow the jump.</p>
+<pre>CREATE INDEX ON posts
+  (user_id, created_at);
+
+-- stored sorted by user, then date:
+-- user 1 → Jan 1, Jan 5, Jan 9
+-- user 2 → Jan 2, Jan 3, Jan 8
+-- user 3 → Jan 1, Jan 4, Jan 7</pre>
+<pre>-- ✅ jump to user 2's block
+WHERE user_id = 2
+
+-- ✅ jump to the block, then Jan 3
+WHERE user_id = 2
+  AND created_at = 'Jan 3'
+
+-- ✅ block is already in date order,
+--    so no sort step
+WHERE user_id = 2
+ORDER BY created_at
+
+-- ❌ Jan 3 is scattered in every
+--    block: check them all
+WHERE created_at = 'Jan 3'</pre>
+  <p class="bridge">Three columns, same idea: sorted by country, then city inside each country, then age inside each city.</p>
+<pre>CREATE INDEX ON users
+  (country, city, age);
+
+-- ✅ uses it
+WHERE country = 'IN'
+
+-- ✅ uses it
+WHERE country = 'IN' AND city = 'BLR'
+
+-- ✅ best case: all three
+WHERE country = 'IN' AND city = 'BLR'
+  AND age = 30
+
+-- ❌ skips country
+WHERE city = 'BLR'
+
+-- ⚠️ country only: city is skipped, so
+--    age-30 rows are spread over
+--    every city in India
+WHERE country = 'IN' AND age = 30</pre>
   <div class="take">🧠 <b>Rule:</b> use the index from the left, with no gaps. It stops at the first missing column.</div>
-  <ul class="lines roomy heads">
-    <li><b class="hd">🛒 Orders (user_id, status, created_at): this user's pending orders, newest first</b></li>
-    <li><b class="hd">💬 Chat messages (chat_id, sent_at): the last 50 messages in this chat</b></li>
-    <li><b class="hd">📱 Products (category, price): phones under ₹20,000, sorted by price</b></li>
-  </ul>
+<pre>-- 🛒 my pending orders, newest first
+-- index (user_id, status, created_at)
+WHERE user_id = 7
+  AND status = 'pending'
+ORDER BY created_at DESC
+
+-- 💬 last 50 messages in a chat
+-- index (chat_id, sent_at)
+WHERE chat_id = 9
+ORDER BY sent_at DESC LIMIT 50
+
+-- 📱 phones under ₹20,000, by price
+-- index (category, price)
+WHERE category = 'phone'
+  AND price &lt; 20000
+ORDER BY price</pre>
   <h5>🎯 How to choose the column order</h5>
   <ul class="lines roomy heads">
     <li><b class="hd">1️⃣ Columns compared with = go first</b>user_id, status, chat_id, category.</li>
