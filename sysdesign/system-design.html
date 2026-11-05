@@ -1746,7 +1746,7 @@ GET /bookings/{id}
 
 <section class="card" id="sd-dm-databases" data-topic="Data Modeling" data-course="hi-sd" data-lesson="data-modeling">
   <h2 class="cap"><b>🗄️ Data Modeling ①: Pick the Database</b></h2>
-  <p class="hook">Every design stores data somewhere. Data modeling decides <b>what</b> you store (entities), <b>how each row is named</b> (keys) and <b>how rows connect</b> (relationships). The interview bar is low: a clear schema that fits the requirements, not a perfect diagram. But a sloppy one hurts every later step: scaling, consistency, growth.</p>
+  <p class="hook">Every design stores data somewhere. Data modeling decides <b>what</b> you store (entities), <b>how each row is named</b> (keys) and <b>how rows connect</b> (relationships). The bar is <b>much lower</b> than in a dedicated data modeling interview (common in data engineering loops): you don't need to normalize everything or draw a full schema diagram, just a schema that is clear, works, and fits the requirements. But a sloppy one hurts every later step: scaling, consistency, growth.</p>
   <p class="tldr">💡 Two decisions, in order. ① <b>Which kind of database?</b> Almost always Postgres: the tool you already know. ② <b>What goes in it?</b> Tables, keys and indexes, and only then copying data and splitting it across machines (<a href="#sd-dm-schema">card ②</a>). Explained below 👇</p>
 
   <h4>📍 Where it shows up in the interview</h4>
@@ -1762,7 +1762,7 @@ GET /bookings/{id}
     <div class="wb-t"><b>Comments</b><span>commentId<i class="pk">pk</i></span><span>postId<i class="fk">fk</i><i class="ix">index</i></span><span>userId<i class="fk">fk</i><i class="ix">index</i></span><span>content</span><span>createdAt<i class="ix">index</i></span></div>
   </div>
   <p class="figcap">🖼️ The whiteboard to aim for (the lesson shows it at the start and again as its final whiteboard)</p>
-  <p>⭐ A good-enough model sets up the rest of the design: scaling reads and writes, consistency where it matters, growth and audit questions, all without going back to fix it.</p>
+  <p>⭐ A good-enough model sets up the rest of the design: scaling reads and writes, consistency where it matters, growth and audit questions, all without going back to fix it. A "good enough" model keeps the conversation on what matters.</p>
   <p class="ana">🏠 An architect's floor plan next to the house sketch: the rooms (tables), the doors between them (keys) and a note on the busiest door (index). Not the wiring diagram. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🧭 Five kinds of database, one default</h4>
@@ -1810,8 +1810,9 @@ GET /bookings/{id}
 }</pre>
   <ul class="lines roomy heads">
     <li><b class="hd">✅ No joins: one read gets the user and all their posts</b></li>
-    <li><b class="hd">⚠️ Editing one post means finding and rewriting the whole user document</b>You copy data more to avoid lookups across collections: more storage and harder updates, in exchange for faster reads.</li>
-    <li><b class="hd">🤔 Choose it over SQL only for changing or very uneven data</b>The schema changes often, data is deeply nested (many joins in SQL), or records differ a lot: some user profiles have long work histories, others almost none.</li>
+    <li><b class="hd">⚠️ But editing one post means finding and rewriting the whole user document</b></li>
+    <li><b class="hd">🤔 When to consider it over SQL: the shape of the data changes often or varies a lot</b>The schema changes often, the data is deeply nested (it would need many SQL joins), or records differ a lot: some user profiles have long work histories, others almost none.</li>
+    <li><b class="hd">🧬 Data modeling impact: embed and copy more, to avoid lookups across collections</b>You denormalize more aggressively: more storage and harder updates, in exchange for faster reads.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> Interviews keep functional requirements small and clear, so "evolving schemas" rarely come up. That removes the main reason for a document database. Consider one only if the interviewer says the data structure changes fast.</div>
   <p class="ana">🗂️ One file folder per customer: everything about them is inside, easy to grab at once. But a fact copied into many folders must be fixed in every folder. <span class="add">➕ analogy not in the article</span></p>
@@ -1820,8 +1821,8 @@ GET /bookings/{id}
   <h4>🔑 Key-value stores</h4>
   <p class="bridge">Give an exact key, get one value back. Extremely fast, but you can't ask anything else: no "find by email", no joins.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⚡ Use it for lookups by one id</b>Caching, sessions, feature flags. Also very high write rates that need no complex queries.</li>
-    <li><b class="hd">🗜️ The model goes flat: the same data is copied under many keys</b>One key per way you read it, because you can't join. Great for reads, bad for consistency when the data changes.</li>
+    <li><b class="hd">🤔 When to consider it over SQL: you look data up by one id</b>Caching, session storage, feature flags. Also very high write rates that need maximum speed and no complex queries.</li>
+    <li><b class="hd">🧬 Data modeling impact: a very flat model, the same data copied under many keys</b>One key per way you read it, because you can't join or query across relationships. Great for reads, bad for consistency when the data changes.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> "Over SQL" is misleading here: you usually use <b>both</b>. SQL is the source of truth, and a key-value cache (Redis) in front holds the hot data. Fast reads, without losing durability or complex queries.</div>
   <div class="seq" data-seq="kv-cache"></div>
@@ -1839,8 +1840,8 @@ GET /bookings/{id}
   <p class="figcap">🖼️ The lesson's picture: User 1 has two columns, User 2 has one</p>
   <ul class="lines roomy heads">
     <li><b class="hd">✍️ A new post is just a new column added to that user's row</b>It is keyed by (user_id, timestamp). All rows for one user_id (the partition key) are stored together, so a write only appends, and a read scans one user's posts in order.</li>
-    <li><b class="hd">📈 Use it for huge append-only writes</b>Telemetry, event logging, IoT sensor data, analytics that mostly append and then aggregate.</li>
-    <li><b class="hd">🧭 Design around the queries, even more than in SQL</b>Data is often copied into several column families, one per access pattern. Time becomes a first-class part of the model.</li>
+    <li><b class="hd">🤔 When to consider it over SQL: enormous, mostly append-only writes</b>Time-series data, or analytics that mostly append and then aggregate. Think telemetry, event logging, IoT sensor data.</li>
+    <li><b class="hd">🧬 Data modeling impact: design around the queries, even more than in SQL</b>Data is often copied into several column families, one per access pattern. Time becomes a first-class part of the model.</li>
   </ul>
   <p class="ana">📔 A diary per user: each new entry goes on the next line with its date. Writing is adding a line. Reading "last week" is reading a few lines in a row. <span class="add">➕ analogy not in the article</span></p>
   <p>Examples: Cassandra · HBase.</p>
@@ -1854,7 +1855,9 @@ GET /bookings/{id}
     <div class="r"><span class="bx" style="border-color: var(--green-fg)">👤 User 2</span><span class="ar" style="--c: var(--blue-fg)">Posted →</span><span class="bx" style="border-color: var(--blue-fg)">"Another post"</span></div>
   </div>
   <p class="figcap">🖼️ The lesson's picture, one arrow per line. Green = users, blue = posts. "Another post" is one node with two arrows into it.</p>
-  <p>🤷 When over SQL? <i>"Honestly? Almost never in interviews."</i> The classic cases are social networks and recommendations, but Facebook keeps its social graph in MySQL. Good enough for the largest social network, good enough for your interview.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤔 When to consider it over SQL: "Honestly? Almost never in interviews."</b>The classic cases are social networks and recommendation engines, but even Facebook models its social graph in MySQL. If that's good enough for the largest social network, it's probably good enough for your interview.</li>
+  </ul>
   <div class="warn"><b>⚠️ Watch out</b> Graph databases are a common interview mistake. They sound smart but add needless complexity. Even graph-heavy LinkedIn and Twitter keep core relationship data in SQL, which handles the main queries without the cost of running a special graph system.</div>
   <p class="ana">🚇 A metro map: perfect for "how do I get from A to B with three changes?", but you would never keep the ticket sales ledger on it. <span class="add">➕ analogy not in the article</span></p>
   <p>Examples: Neo4j · Amazon Neptune.</p>
