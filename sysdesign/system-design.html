@@ -1922,9 +1922,45 @@ likes:    user_id (FK → users.id),
   <ul class="lines roomy heads">
     <li><b class="hd">👤 posts.user_id → all posts by one user, fast</b></li>
     <li><b class="hd">🕒 posts.created_at → recent posts in time order</b></li>
-    <li><b class="hd">🧩 (user_id, created_at) → one user's latest posts in a single jump</b>A composite index is sorted by user first, then by time inside each user. So user 7's newest posts sit side by side, already in order. <span class="add">➕ why, not in the article</span></li>
+    <li><b class="hd">🧩 (user_id, created_at) → one user's latest posts in a single jump</b>A composite index is sorted by user first, then by time inside each user. So user 7's newest posts sit side by side, already in order. How to use one is just below 👇 <span class="add">➕ why, not in the article</span></li>
     <li><b class="hd">🐢 Every index slows writes a little</b>Each insert or update must also update every index on that table, so index what your queries need, not everything. <span class="add">➕ not in the article</span></li>
   </ul>
+  <h5>🧩 Composite index: use it from the left, with no gaps <span class="add">➕ Adi's notes, not in the article</span></h5>
+  <p class="ana">📒 A phonebook is sorted by surname, then by first name inside each surname. "Sharma" or "Sharma, Priya" is a quick jump. "Everyone called Priya" means reading the whole book.</p>
+  <div class="dg" role="img" aria-label="Index on user_id then created_at. User 1: Jan 1, Jan 5, Jan 9. User 2: Jan 2, Jan 3, Jan 8. User 3: Jan 1, Jan 4, Jan 7.">
+    <div class="r"><span class="lbl">Index on (user_id, created_at): sorted by user, then by date inside each user</span></div>
+    <div class="r"><span class="ar">user 1 →</span><span class="bx">Jan 1</span><span class="bx">Jan 5</span><span class="bx">Jan 9</span></div>
+    <div class="r"><span class="ar" style="--c: var(--green-fg)">user 2 →</span><span class="bx" style="border-color: var(--green-fg)">Jan 2</span><span class="bx" style="border-color: var(--green-fg)">Jan 3</span><span class="bx" style="border-color: var(--green-fg)">Jan 8</span></div>
+    <div class="r"><span class="ar">user 3 →</span><span class="bx">Jan 1</span><span class="bx">Jan 4</span><span class="bx">Jan 7</span></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ user_id = 2 → jump straight to user 2's block</b></li>
+    <li><b class="hd">✅ user_id = 2 AND created_at = Jan 3 → jump to the block, then to Jan 3 inside it</b></li>
+    <li><b class="hd">✅ user_id = 2 ORDER BY created_at → already in date order, no sort step</b></li>
+    <li><b class="hd">❌ created_at = Jan 3 alone → slow</b>The Jan 3 rows are scattered across every user's block, so every block must be checked.</li>
+  </ul>
+  <p class="bridge">Three columns work the same way: sorted by country, then city inside each country, then age inside each city.</p>
+<pre>-- index on (country, city, age)
+country               ✅ uses it
+country + city        ✅ uses it
+country + city + age  ✅ best case
+city                  ❌ skips country
+country + age         ⚠️ country only</pre>
+  <p>⚠️ Why "country only"? Inside India the rows are sorted by city first, so the age-30 rows are scattered across every city. Age can't narrow the jump.</p>
+  <div class="take">🧠 <b>Rule:</b> use the index from the left, with no gaps. It stops at the first missing column.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🛒 Orders (user_id, status, created_at): this user's pending orders, newest first</b></li>
+    <li><b class="hd">💬 Chat messages (chat_id, sent_at): the last 50 messages in this chat</b></li>
+    <li><b class="hd">📱 Products (category, price): phones under ₹20,000, sorted by price</b></li>
+  </ul>
+  <h5>🎯 How to choose the column order</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Columns compared with = go first</b>user_id, status, chat_id, category.</li>
+    <li><b class="hd">2️⃣ The range or sort column goes last</b>created_at, price. After a range ("under ₹20,000") the next column is no longer in order, so the index can't help with it.</li>
+    <li><b class="hd">3️⃣ Shape it around your most common query</b></li>
+  </ul>
+  <p class="figcap">ℹ️ Postgres 18 and MySQL 8 can sometimes "skip scan" past a missing first column when it has few distinct values. Don't count on it in an interview. <span class="add">➕ not in Adi's notes</span></p>
+  <div class="rem"><b>✅ Remember</b> Say it like this: <i>"I'd create a composite index on (user_id, created_at), so the feed query filters by user and returns sorted results without a separate sort step."</i></div>
   <div class="rem"><b>✅ Remember</b> Tie each index to an API endpoint: <i>"GET /users/{id}/posts needs an index on posts.user_id."</i> That shows you think about real query speed.</div>
   <p>🔗 How indexes work inside (B-trees, hash indexes) is the next lesson: <a href="https://www.hellointerview.com/learn/courses/system-design/lesson/foundations/db-indexing">Database Indexing</a>.</p>
 
@@ -2647,7 +2683,7 @@ const GLOSSARY = [
     b: '<p>🧪 <b>Do it twice:</b> <code>posts.user_id = 1</code> → user 1 exists → saved. Insert a post with <code>user_id = 99</code> (no such user) → the database refuses: no orphan rows. Delete user 1 while posts still point to them → refused, unless <code>ON DELETE CASCADE</code> deletes the posts too.</p><p>📍 It sits on the "many" side: each post holds its user\'s id. ⚖️ The cost is a check on every write, so at huge scale some teams drop foreign keys and check in code.</p>', see: ['pk', 'normalize'] },
   { id: 'dbindex', t: 'Index', ctx: 'database', aka: 'index composite b-tree lookup query speed', s: 'A sorted lookup structure so the database finds rows without reading every row.',
     an: 'The index at the back of a book: look up "normalization", jump to page 149, instead of reading every page.',
-    b: '<p>🧪 <b>See it:</b> 1 million posts, query <code>WHERE user_id = 7</code>.</p><ul><li>❌ No index: read all 1M rows.</li><li>✅ Index on user_id: jump straight to user 7\'s rows, like binary search (about 20 steps, not 1M).</li><li>🧩 Index on (user_id, created_at): user 7\'s posts are also already in date order, so "latest 10" needs no sorting.</li></ul><p>⚖️ Cost: every write must update every index on the table.</p>', see: ['pk', 'cursor'] },
+    b: '<p>🧪 <b>See it:</b> 1 million posts, query <code>WHERE user_id = 7</code>.</p><ul><li>❌ No index: read all 1M rows.</li><li>✅ Index on user_id: jump straight to user 7\'s rows, like binary search (about 20 steps, not 1M).</li><li>🧩 Index on (user_id, created_at): user 7\'s posts are also already in date order, so "latest 10" needs no sorting.</li></ul><p>📏 A composite index works from the left, with no gaps: (user_id, created_at) helps "user_id" and "user_id + date", never "date" alone.</p><p>⚖️ Cost: every write must update every index on the table.</p>', see: ['pk', 'cursor'] },
   { id: 'normalize', t: 'Normalize vs denormalize', aka: 'normalization denormalization duplicate copy anomaly', s: 'Normalized: each fact stored once (clean writes, slower reads). Denormalized: copies stored where they are read (fast reads, messy writes).',
     an: 'Phone contacts: change a number once and every chat shows it (normalized). The same number on 50 sticky notes is quicker to glance at, but all 50 need fixing (denormalized).',
     b: '<p>🧪 <b>See it:</b> john_doe renames to john_d.</p><ul><li>✅ Normalized: 1 row in users changes.</li><li>⚠️ Denormalized (username copied into each post): every post he wrote changes. Miss one → two names for one person.</li></ul><p>📏 Rule: start normalized. Copy (or cache) only when a read is measurably too slow.</p>', see: ['fk', 'shard'] },
