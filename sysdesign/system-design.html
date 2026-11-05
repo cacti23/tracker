@@ -1904,7 +1904,15 @@ likes:    user_id (FK → users.id),
   <ul class="lines roomy heads">
     <li><b class="hd">🆔 Primary key: a generated id, never business data</b>Use <code>user_id</code>, <code>post_id</code>, not the email. Generated ids stay stable when business rules change. John changes his email: his id stays 1, so every post pointing to user 1 still works. <span class="add">➕ example not in the article</span></li>
     <li><b class="hd">🔗 Foreign key: you can't add a post for a user who doesn't exist</b><code>posts.user_id → users.id</code>, and the database checks it on every write. A post for user 99 (no such user) is refused. Deleting a user who still has posts is refused too, unless you choose <code>ON DELETE CASCADE</code> (delete the posts with them) <span class="add">➕ not in the article</span>. Result: no orphan rows (referential integrity).</li>
-    <li><b class="hd">⚖️ Say the foreign-key trade-off out loud</b>The database checks every insert and update. At very large scale some companies drop foreign keys for write speed and check in application code. NoSQL databases always check in the app.</li>
+    <li><b class="hd">⚖️ Foreign-key trade-off: clean data, but every write pays for a check</b>Insert a like → before saving, the database checks that the user and the post exist (one index lookup each) and briefly locks those two rows so nobody deletes them mid-insert. Cheap once, heavy at millions of writes a second. <span class="add">➕ detail not in the article</span></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Keep foreign keys</b><div class="chk">No orphan rows, ever: the database guarantees it</div><div class="chk">Every insert and update pays for the check</div><div class="chk">⭐ The default: most systems, and your interview</div></div>
+    <div class="k-amber"><b>⚡ Drop them, check in code</b><div class="chk">Faster writes</div><div class="chk">A bug can leave orphans (a like on a deleted post), so you need clean-up jobs</div><div class="chk">For very large scale. Also once data is sharded: a foreign key can't point to another machine <span class="add">➕</span></div></div>
+  </div>
+  <p>🎤 Say it in one line, since the article says mentioning this trade-off shows understanding: <i>"Foreign keys stop likes pointing to deleted posts. At very large scale, or once we shard, I'd drop them and check in the service."</i></p>
+  <p class="ana">💂 A guard at the office door checks every ID: nobody unknown gets in, but there's a queue at rush hour. Some huge offices drop the guard and trust badge checks upstairs: faster, but now and then a stranger slips in. <span class="add">➕ analogy not in the article</span></p>
+  <ul class="lines roomy heads">
     <li><b class="hd">🧷 Constraints keep the data correct inside the database</b><code>NOT NULL</code>, <code>UNIQUE</code> (one account per email), <code>CHECK</code> (price &gt; 0). Better data quality for a little write overhead.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> Pick an obvious primary key and say why: <i>"post_id is the primary key, so we can identify each post and reference it from comments and likes."</i></div>
