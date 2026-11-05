@@ -277,6 +277,8 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .take { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
 .take p { margin: 4px 0; }
 .take a { color: var(--accent); }
+/* Links inside cards: browser default blue is unreadable on the dark theme */
+.card a { color: var(--accent); }
 .mnem { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
 .mnem span { flex: 1 1 0; min-width: 62px; text-align: center; padding: 5px 2px; border-radius: 8px; background: var(--chip); font-size: 13px; }
 .mnem b { color: var(--accent); font-size: 16px; }
@@ -294,6 +296,33 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .dg .ar { color: var(--c, var(--muted)); font-weight: 600; font-size: 11px; white-space: nowrap; }
 .dg .stack { display: grid; gap: 3px; }
 .dg .lbl { font-size: 12px; font-weight: 600; min-width: 100%; }
+.dg .bx small { display: block; color: var(--muted); font-size: 10.5px; }
+/* Data Modeling: whiteboard schema sketch (lesson images 1 and 6) */
+.wb { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; margin: 6px 0 4px; padding: 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; }
+.wb-db { display: grid; place-content: center; text-align: center; width: 100%; max-width: 120px; aspect-ratio: 1; justify-self: center; align-self: center; border-radius: 50%; border: 2px solid var(--text); font-weight: 700; line-height: 1.3; }
+.wb-db small { font-weight: 400; color: var(--muted); }
+.wb-t b { display: block; margin-bottom: 2px; font-size: 13px; }
+.wb-t span { display: block; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.wb-t span::before { content: "- "; color: var(--muted); }
+.wb i { font: 600 10px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-style: normal; padding: 0 5px; border-radius: 99px; margin-left: 3px; white-space: nowrap; }
+.wb .pk { background: var(--amber-bg); color: var(--amber-fg); } .wb .fk { background: var(--blue-bg); color: var(--blue-fg); }
+.wb .ix { background: var(--green-bg); color: var(--green-fg); } .wb .uq { background: var(--purple-bg); color: var(--purple-fg); }
+/* Small data tables with the lesson's rows; .tscroll lets a wide one scroll sideways on a phone */
+.dts { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: flex-start; }
+.dt { border-collapse: collapse; font-size: 12px; margin: 4px 0 8px; }
+.dt caption { text-align: left; font-weight: 700; font-size: 13px; padding: 2px 0; }
+.dt th, .dt td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; white-space: nowrap; }
+.dt th { background: var(--chip); font-weight: 600; }
+.dt .dup { background: var(--red-bg); color: var(--red-fg); }
+.tscroll { overflow-x: auto; max-width: 100%; }
+/* Wide-column rows (lesson image 3): row key, then that row's own columns */
+.wc { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; margin: 6px 0 4px; font-size: 12px; align-items: center; }
+.wc .h { font-weight: 700; color: var(--muted); font-size: 11px; }
+.wc .k { font-weight: 700; }
+.wc .cells { display: flex; flex-wrap: wrap; gap: 4px; }
+.wc .cells span { display: inline-flex; border: 1.5px solid var(--blue-fg); border-radius: 8px; overflow: hidden; }
+.wc .cells code { padding: 3px 6px; background: var(--blue-bg); color: var(--blue-fg); }
+.wc .cells em { padding: 3px 6px; font-style: normal; }
 .bytes { margin: 6px 0; font-size: 12px; }
 .bytes div { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
 .bytes span { height: 14px; border-radius: 4px; }
@@ -1715,6 +1744,359 @@ GET /bookings/{id}
   </div>
 </section>
 
+<section class="card" id="sd-dm-databases" data-topic="Data Modeling" data-course="hi-sd" data-lesson="data-modeling">
+  <h2 class="cap"><b>🗄️ Data Modeling ①: Database Model Options</b></h2>
+  <p class="hook">Every design stores data somewhere. Data modeling decides <b>what</b> you store (entities), <b>how each row is named</b> (keys) and <b>how rows connect</b> (relationships). The bar is <b>much lower</b> than in a dedicated data modeling interview (common in data engineering loops): you don't need to normalize everything or draw a full schema diagram, just a schema that is clear, works, and fits the requirements. But a sloppy one hurts every later step: scaling, consistency, growth.</p>
+  <p class="tldr">💡 Two decisions, in order. ① <b>Which kind of database?</b> Almost always Postgres: the tool you already know. ② <b>What goes in it?</b> Tables, keys and indexes, and only then copying data and splitting it across machines (<a href="#sd-dm-schema">card ②</a>). Explained below 👇</p>
+
+  <h4>📍 Where it shows up in the interview</h4>
+  <p class="bridge">Data modeling is not its own step. It shows up twice in the <a href="#sd-delivery-framework">Delivery Framework</a>.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">① Core entities: name the things you store</b>Each one usually becomes one table (or collection). Together they are the backbone of the schema.</li>
+    <li><b class="hd">② High-level design: sketch the schema next to the database box</b>Key fields, how the tables link, and a note on the index or shard key for the main query. That's enough to show the model won't break under the expected load.</li>
+  </ul>
+  <div class="wb" role="img" aria-label="Whiteboard: a Postgres database with three tables. Posts: postId pk, userId fk and index, content, mediaUrls, createdAt index. Users: userId pk, name, email unique, createdAt. Comments: commentId pk, postId fk and index, userId fk and index, content, createdAt index.">
+    <div class="wb-db">🐘 Database<small>(Postgres)</small></div>
+    <div class="wb-t"><b>Posts</b><span>postId<i class="pk">pk</i></span><span>userId<i class="fk">fk</i><i class="ix">index</i></span><span>content</span><span>mediaUrls</span><span>createdAt<i class="ix">index</i></span></div>
+    <div class="wb-t"><b>Users</b><span>userId<i class="pk">pk</i></span><span>name</span><span>email<i class="uq">unique</i></span><span>createdAt</span></div>
+    <div class="wb-t"><b>Comments</b><span>commentId<i class="pk">pk</i></span><span>postId<i class="fk">fk</i><i class="ix">index</i></span><span>userId<i class="fk">fk</i><i class="ix">index</i></span><span>content</span><span>createdAt<i class="ix">index</i></span></div>
+  </div>
+  <p class="figcap">🖼️ The whiteboard to aim for (the lesson shows it at the start and again as its final whiteboard)</p>
+  <p>⭐ A good-enough model sets up the rest of the design: scaling reads and writes, consistency where it matters, growth and audit questions, all without going back to fix it. A "good enough" model keeps the conversation on what matters.</p>
+  <p class="ana">🏠 An architect's floor plan next to the house sketch: the rooms (tables), the doors between them (keys) and a note on the busiest door (index). Not the wiring diagram. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧭 Database Model Options</h4>
+  <p class="bridge">Pick the database type first, because it shapes how you store everything.</p>
+  <div class="take">⭐ Resist showing off with exotic databases. Use a relational database (<b>PostgreSQL</b>) unless the requirements clearly ask for something else, or you have real experience and a strong opinion. Knowing when the others fit still shows trade-off thinking.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🐘 Relational (SQL): tables with fixed columns, joined by keys</b>The default. PostgreSQL, MySQL, SQLite.</li>
+    <li><b class="hd">📄 Document: one JSON document holds an entity and its nested data</b>MongoDB, Firestore, CouchDB.</li>
+    <li><b class="hd">🔑 Key-value: one exact key gives one value, extremely fast</b>Redis, DynamoDB, Memcached.</li>
+    <li><b class="hd">📊 Wide-column: rows of time-stamped columns, built for huge write volumes</b>Cassandra, HBase.</li>
+    <li><b class="hd">🕸️ Graph: nodes and edges, built for walking relationships</b>Neo4j, Amazon Neptune. In interviews: almost never.</li>
+  </ul>
+  <p class="ana">🧰 A toolbox: Postgres is the screwdriver you reach for nine times out of ten. The others are special tools, great for one job and awkward for everything else. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🐘 Relational Databases (SQL)</h4>
+  <p class="bridge">Tables with a fixed schema: a row is one entity, a column is one attribute. Foreign keys link the tables, and transactions get ACID guarantees. Most interview problems fit: users, posts, comments and likes; or users, products, orders and payments.</p>
+  <div class="dts">
+    <table class="dt"><caption>Users</caption><tr><th>id</th><th>username</th><th>email</th></tr><tr><td>1</td><td>john_doe</td><td>john@example.com</td></tr><tr><td>2</td><td>jane_doe</td><td>jane@example.com</td></tr><tr><td>3</td><td>bob_smith</td><td>bob@example.com</td></tr></table>
+    <table class="dt"><caption>Posts</caption><tr><th>id</th><th>user_id</th><th>content</th></tr><tr><td>1</td><td>1</td><td>Hello, world!</td></tr><tr><td>2</td><td>1</td><td>My first post</td></tr><tr><td>3</td><td>2</td><td>Another post</td></tr></table>
+    <table class="dt"><caption>Likes</caption><tr><th>id</th><th>user_id</th><th>post_id</th></tr><tr><td>1</td><td>1</td><td>1</td></tr><tr><td>2</td><td>1</td><td>2</td></tr><tr><td>3</td><td>2</td><td>3</td></tr></table>
+  </div>
+  <p class="figcap"><code>id</code> = primary key · <code>user_id</code>, <code>post_id</code> = foreign keys · every table also has <code>created_at</code> (left out to fit a phone)</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Joins answer complex questions easily</b>"All posts by people I follow, newest first" is one query with joins.</li>
+    <li><b class="hd">⚠️ Big multi-table joins get slow at scale</b>In an interview, a reporting-style query raises a red flag. Ask yourself: is it fast enough, or do I need denormalized views, a cache or precomputed results?</li>
+    <li><b class="hd">💳 Strong consistency needed? SQL's ACID is the right tool</b>Payments must not charge twice. Inventory must not sell more than it has.</li>
+    <li><b class="hd">❤️ One like per user per post: add a UNIQUE rule</b>A unique constraint on <code>(user_id, post_id)</code> in likes stops a double like at the database. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> "SQL doesn't scale" is exaggerated. Modern SQL databases scale with read replicas, sharding, connection pooling and caching, and Facebook and Airbnb run on relational foundations. Scale comes from how you design around the database, not only which one you pick.</div>
+  <p>🧰 <b>Example technologies include</b> PostgreSQL, MySQL and SQLite.</p>
+  <p class="ana">🏫 A school register: the same fixed columns (roll no., name, class) for every student, and the roll number links each student to the marks sheet. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📄 Document Databases</h4>
+  <p class="bridge">JSON-like documents with a flexible schema. Instead of splitting data across tables, you nest related data inside one document. Here the same posts live inside the user:</p>
+<pre>{
+  "_id": "507f1f77bcf86cd799439011",
+  "username": "john_doe",
+  "email": "john@example.com",
+  "posts": [
+    { "content": "Hello, world!",
+      "created_at": "2024-01-01T10:00:00Z" },
+    { "content": "My first post",
+      "created_at": "2024-01-01T10:05:00Z" }
+  ],
+  "created_at": "2024-01-01T10:00:00Z"
+}</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ No joins: one read gets the user and all their posts</b></li>
+    <li><b class="hd">⚠️ But editing one post means finding and rewriting the whole user document</b></li>
+    <li><b class="hd">🤔 When to consider over SQL: the shape of the data changes often or varies a lot</b>The schema changes often, the data is deeply nested (it would need many SQL joins), or records differ a lot: some user profiles have long work histories, others almost none.</li>
+    <li><b class="hd">🧬 Data modeling impact: embed and copy more, to avoid lookups across collections</b>You denormalize more aggressively: more storage and harder updates, in exchange for faster reads.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Interviews keep functional requirements small and clear, so "evolving schemas" rarely come up. That removes the main reason for a document database. Consider one only if the interviewer says the data structure changes fast.</div>
+  <p class="ana">🗂️ One file folder per customer: everything about them is inside, easy to grab at once. But a fact copied into many folders must be fixed in every folder. <span class="add">➕ analogy not in the article</span></p>
+  <p>🧰 <b>Example technologies include</b> MongoDB, Firestore and CouchDB.</p>
+
+  <h4>🔑 Key-Value Stores</h4>
+  <p class="bridge">Give an exact key, get one value back. Extremely fast, but you can't ask anything else: no "find by email", no joins.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤔 When to consider over SQL: you look data up by one id</b>Caching, session storage, feature flags. Also very high write rates that need maximum speed and no complex queries.</li>
+    <li><b class="hd">🧬 Data modeling impact: a very flat model, the same data copied under many keys</b>One key per way you read it, because you can't join or query across relationships. Great for reads, bad for consistency when the data changes.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> "Over SQL" is misleading here: you usually use <b>both</b>. SQL is the source of truth, and a key-value cache (Redis) in front holds the hot data. Fast reads, without losing durability or complex queries.</div>
+  <div class="seq" data-seq="kv-cache"></div>
+  <p class="figcap">🖼️ The lesson's picture: 1. check cache, 2. if miss, check DB, and the cache "can contain a flattened document based on the query pattern". Steps ③ and ④ <span class="add">➕ not in the article</span></p>
+  <p class="ana">🧥 A coat check: hand over ticket 42 and get coat 42 back, instantly. Ask "which coats are blue?" and the attendant can't help. <span class="add">➕ analogy not in the article</span></p>
+  <p>🧰 <b>Example technologies include</b> Redis, DynamoDB and Memcached.</p>
+
+  <h4>📊 Wide-Column Databases</h4>
+  <p class="bridge">Data sits in column families, and each row can have its own set of columns. Built for huge write-heavy workloads and time-series data.</p>
+  <div class="wc" role="img" aria-label="Wide-column table. Row key User 1 has two columns in the posts family: posts:t2025-09-03 My first post, posts:t2025-09-01 Hello world!. Row key User 2 has one: posts:t2025-07-03 Another post.">
+    <span class="h">Row key</span><span class="h">column family: posts</span>
+    <span class="k">👤 User 1</span><span class="cells"><span><code>posts:t2025-09-03</code><em>"My first post"</em></span><span><code>posts:t2025-09-01</code><em>"Hello world!"</em></span></span>
+    <span class="k">👤 User 2</span><span class="cells"><span><code>posts:t2025-07-03</code><em>"Another post"</em></span></span>
+  </div>
+  <p class="figcap">🖼️ The lesson's picture: User 1 has two columns, User 2 has one</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✍️ A new post is just a new column added to that user's row</b>It is keyed by (user_id, timestamp). All rows for one user_id (the partition key) are stored together, so a write only appends, and a read scans one user's posts in order.</li>
+    <li><b class="hd">🤔 When to consider over SQL: enormous, mostly append-only writes</b>Time-series data, or analytics that mostly append and then aggregate. Think telemetry, event logging, IoT sensor data.</li>
+    <li><b class="hd">🧬 Data modeling impact: design around the queries, even more than in SQL</b>Data is often copied into several column families, one per access pattern. Time becomes a first-class part of the model.</li>
+  </ul>
+  <p class="ana">📔 A diary per user: each new entry goes on the next line with its date. Writing is adding a line. Reading "last week" is reading a few lines in a row. <span class="add">➕ analogy not in the article</span></p>
+  <p>🧰 <b>Example technologies include</b> Cassandra and HBase.</p>
+
+  <h4>🕸️ Graph Databases</h4>
+  <p class="bridge">Data as nodes (things) and edges (relationships), built for walking from one node to the next.</p>
+  <div class="dg" role="img" aria-label="Graph: User 1 posted My first post and Hello world!, and liked Another post. User 2 posted Another post.">
+    <div class="r"><span class="bx" style="border-color: var(--green-fg)">👤 User 1</span><span class="ar" style="--c: var(--blue-fg)">Posted →</span><span class="bx" style="border-color: var(--blue-fg)">"My first post"</span></div>
+    <div class="r"><span class="bx" style="border-color: var(--green-fg)">👤 User 1</span><span class="ar" style="--c: var(--blue-fg)">Posted →</span><span class="bx" style="border-color: var(--blue-fg)">"Hello world!"</span></div>
+    <div class="r"><span class="bx" style="border-color: var(--green-fg)">👤 User 1</span><span class="ar" style="--c: var(--amber-fg)">Liked →</span><span class="bx" style="border-color: var(--blue-fg)">"Another post"</span></div>
+    <div class="r"><span class="bx" style="border-color: var(--green-fg)">👤 User 2</span><span class="ar" style="--c: var(--blue-fg)">Posted →</span><span class="bx" style="border-color: var(--blue-fg)">"Another post"</span></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's picture, one arrow per line. Green = users, blue = posts. "Another post" is one node with two arrows into it.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤔 When to consider over SQL: "Honestly? Almost never in interviews."</b>The classic cases are social networks and recommendation engines, but even Facebook models its social graph in MySQL. If that's good enough for the largest social network, it's probably good enough for your interview.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Graph databases are a common interview mistake. They sound smart but add needless complexity. Even graph-heavy LinkedIn and Twitter keep core relationship data in SQL, which handles the main queries without the cost of running a special graph system.</div>
+  <p class="ana">🚇 A metro map: perfect for "how do I get from A to B with three changes?", but you would never keep the ticket sales ledger on it. <span class="add">➕ analogy not in the article</span></p>
+  <p>🧰 <b>Example technologies include</b> Neo4j and Amazon Neptune.</p>
+
+  <h4>🏁 Picking the database in one breath</h4>
+  <div class="flow"><span>🐘 Postgres by default</span><i>+</i><span>🔑 key-value cache for hot reads</span><i>·</i><span>📊 wide-column for huge append-only writes</span><i>·</i><span>📄 document only if the schema really churns</span><i>·</i><span>🕸️ graph: almost never</span></div>
+  <p class="bridge">Database picked. Next, the schema inside it: keys, indexes, copying and splitting 👉 <a href="#sd-dm-schema">card ②</a>.</p>
+</section>
+
+<section class="card" id="sd-dm-schema" data-topic="Data Modeling" data-course="hi-sd" data-lesson="data-modeling">
+  <h2 class="cap"><b>📐 Data Modeling ②: Schema Design Fundamentals</b></h2>
+  <p class="hook">The database type is picked. Now the real model: tables, keys, links and indexes, then the scaling choices. Each choice should trace back to a requirement, said out loud. That reasoning is what the interviewer scores.</p>
+  <p class="tldr">💡 Three questions decide everything: <b>how much</b> data, <b>how it's read</b>, and <b>how correct</b> it must be right now. Then the tools answer them: keys and relationships (the links), indexes (fast lookups, like a book's index), normalizing (store each fact once, like one contact list), and sharding (split across machines, like library branches). Explained below 👇</p>
+
+  <h4>🎯 Start with Requirements</h4>
+  <p class="bridge">You already found these in requirements and API design. Every technique in this card is a tool for one of them.</p>
+  <div class="mnem" role="img" aria-label="Mnemonic VAC: Volume, Access patterns, Consistency">
+    <span><b>V</b>olume<small>fits on one DB?</small></span><span><b>A</b>ccess patterns<small>⭐ most important</small></span><span><b>C</b>onsistency<small>how tightly coupled</small></span>
+  </div>
+  <p class="figcap">🧠 <b>VAC</b>: check the VAC before you pack the data. <span class="add">➕ mnemonic not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📦 Data volume: does it fit on one database? That decides where the data can physically live</b>Millions of users may need data spread over several stores. If users and posts end up on separate systems, each needs its own schema and a clear way to point to the other.
+      <br>🧮 1M users × 100 posts × 1 KB = <b>100 GB</b>: one Postgres, joins and foreign keys work. 1B users = <b>100 TB</b>: split across machines, and a join or foreign key can't cross them, so you store the other side's id and look it up. <span class="add">➕ example not in the article</span></li>
+    <li><b class="hd">⭐ 🔍 Access patterns: the most important factor, they drive most decisions</b>Ask "how will this be read?" A feed of "recent posts by people I follow" → denormalized data or careful indexes. A dashboard that adds up time periods → different tables. Read it off your API: what query does each endpoint run?</li>
+    <li><b class="hd">🔒 Consistency requirements: decide how tightly coupled the data can be</b>Payments need strong consistency (no half charges) → keep the related data in one ACID database. A feed can be eventually consistent (a like shows up a few seconds late) → the data can spread over separate systems, each shaped for its own query.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Tie each choice back to these, out loud: <i>"Since feeds must load fast and likes can be eventually consistent, I'll denormalize <button type="button" class="gl-link" data-g="likecount">like counts</button> into the posts table."</i> That shows reasoning, not memorized patterns.</div>
+  <p class="ana">🧳 Packing for a trip: how much you carry (volume), what you'll grab most often so it goes on top (access), and what must not break so it gets the hard case (consistency). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔑 Entities, Keys &amp; Relationships</h4>
+  <p class="bridge">Each core entity becomes a table (or collection) with a clear id and clear links to the other tables.</p>
+<pre>users:    id (PK), username, email
+posts:    id (PK),
+          user_id (FK → users.id),
+          content, created_at
+comments: id (PK),
+          post_id (FK → posts.id),
+          user_id (FK → users.id),
+          content
+likes:    user_id (FK → users.id),
+          post_id (FK → posts.id)</pre>
+  <p class="figcap">PK = primary key · FK = foreign key · → = the column it points to</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🆔 Primary key: a generated id, never business data</b>Use <code>user_id</code>, <code>post_id</code>, not the email. Generated ids stay stable when business rules change. John changes his email: his id stays 1, so every post pointing to user 1 still works. <span class="add">➕ example not in the article</span></li>
+    <li><b class="hd">🔗 Foreign key: you can't add a post for a user who doesn't exist</b><code>posts.user_id → users.id</code>, and the database checks it on every write. A post for user 99 (no such user) is refused. Deleting a user who still has posts is refused too, unless you choose <code>ON DELETE CASCADE</code> (delete the posts with them) <span class="add">➕ not in the article</span>. Result: no orphan rows (referential integrity).</li>
+    <li><b class="hd">⚖️ Foreign-key trade-off: clean data, but every write pays for a check</b>Insert a like → before saving, the database checks that the user and the post exist (one index lookup each) and briefly locks those two rows so nobody deletes them mid-insert. Cheap once, heavy at millions of writes a second. <span class="add">➕ detail not in the article</span></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Keep foreign keys</b><div class="chk">No orphan rows, ever: the database guarantees it</div><div class="chk">Every insert and update pays for the check</div><div class="chk">⭐ The default: most systems, and your interview</div></div>
+    <div class="k-amber"><b>⚡ Drop them, check in code</b><div class="chk">Faster writes</div><div class="chk">A bug can leave orphans (a like on a deleted post), so you need clean-up jobs</div><div class="chk">For very large scale. Also once data is sharded: a foreign key can't point to another machine <span class="add">➕</span></div></div>
+  </div>
+  <p>🎤 Say it in one line, since the article says mentioning this trade-off shows understanding: <i>"Foreign keys stop likes pointing to deleted posts. At very large scale, or once we shard, I'd drop them and check in the service."</i></p>
+  <p class="ana">💂 A guard at the office door checks every ID: nobody unknown gets in, but there's a queue at rush hour. Some huge offices drop the guard and trust badge checks upstairs: faster, but now and then a stranger slips in. <span class="add">➕ analogy not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧷 Constraints keep the data correct inside the database</b><code>NOT NULL</code>, <code>UNIQUE</code> (one account per email), <code>CHECK</code> (price &gt; 0). Better data quality for a little write overhead.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Pick an obvious primary key and say why: <i>"post_id is the primary key, so we can identify each post and reference it from comments and likes."</i></div>
+  <div class="dg" role="img" aria-label="Relationships. One-to-many: a user has many posts, a post has many comments; the foreign key sits on the many side. Many-to-many: users and posts meet in the likes table, which holds both keys. One-to-one: user and profile, rare, often merged.">
+    <div class="r"><span class="lbl">1:N one-to-many: the foreign key sits on the "many" side</span></div>
+    <div class="r"><span class="bx">👤 User</span><span class="ar">has many →</span><span class="bx">📝 Post<small>user_id</small></span></div>
+    <div class="r"><span class="bx">📝 Post</span><span class="ar">has many →</span><span class="bx">💬 Comment<small>post_id</small></span></div>
+    <div class="r"><span class="lbl">N:M many-to-many: a middle table holds both keys</span></div>
+    <div class="r"><span class="bx">👤 Users</span><span class="ar">←</span><span class="bx">❤️ likes<small>user_id + post_id</small></span><span class="ar">→</span><span class="bx">📝 Posts</span></div>
+    <div class="r"><span class="lbl">1:1 one-to-one: rare, often a sign to merge the tables</span></div>
+    <div class="r"><span class="bx">👤 User</span><span class="ar">↔</span><span class="bx">🪪 Profile</span><span class="ar">→ usually one table</span></div>
+  </div>
+  <p class="figcap">Users like many posts; posts are liked by many users. "Foreign key on the many side" and "middle table" wording <span class="add">➕ not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> Use the problem's own names: <code>users</code>, <code>tweets</code>, <code>follows</code> for Twitter, not abstract "entities" and "relationships". Then show how keys, foreign keys and constraints keep that model correct and scalable.</div>
+  <p class="ana">🏫 The school again: your roll number is the primary key (given by the school, unique, unlike your name). "Class teacher no." on your form is a foreign key: it must be a real teacher. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📇 Indexing for Access Patterns</h4>
+  <p class="bridge">An index lets the database find rows without reading every row. Say which columns you index, and why.</p>
+  <p class="ana">📖 The index at the back of a book: to find "normalization" you don't read every page. You look it up and jump to page 149.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">👤 Index on posts.user_id: quickly find all posts by a user</b></li>
+    <li><b class="hd">🕒 Index on posts.created_at: load recent posts in time order</b></li>
+    <li><b class="hd">🧩 Composite index on (user_id, created_at): load a user's recent posts efficiently</b>How it works is just below 👇</li>
+    <li><b class="hd">🐢 Every index slows writes a little</b>Each insert or update must also update every index on that table, so index what your queries need, not everything. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <h5>🧩 Composite index: use it from the left, with no gaps <span class="add">➕ Adi's notes, not in the article</span></h5>
+  <p class="ana">📒 A phonebook is sorted by surname, then by first name inside each surname. "Sharma" or "Sharma, Priya" is a quick jump. "Everyone called Priya" means reading the whole book.</p>
+<pre>CREATE INDEX ON posts
+  (user_id, created_at);
+
+-- stored sorted by user, then date:
+-- user 1 → Jan 1, Jan 5, Jan 9
+-- user 2 → Jan 2, Jan 3, Jan 8
+-- user 3 → Jan 1, Jan 4, Jan 7</pre>
+<pre>-- ✅ jump to user 2's block
+WHERE user_id = 2
+
+-- ✅ jump to the block, then Jan 3
+WHERE user_id = 2
+  AND created_at = 'Jan 3'
+
+-- ✅ block is already in date order,
+--    so no sort step
+WHERE user_id = 2
+ORDER BY created_at
+
+-- ❌ Jan 3 is scattered in every
+--    block: check them all
+WHERE created_at = 'Jan 3'</pre>
+  <p class="bridge">Three columns, same idea: sorted by country, then city inside each country, then age inside each city.</p>
+<pre>CREATE INDEX ON users
+  (country, city, age);
+
+-- ✅ uses it
+WHERE country = 'IN'
+
+-- ✅ uses it
+WHERE country = 'IN' AND city = 'BLR'
+
+-- ✅ best case: all three
+WHERE country = 'IN' AND city = 'BLR'
+  AND age = 30
+
+-- ❌ skips country
+WHERE city = 'BLR'
+
+-- ⚠️ country only: city is skipped, so
+--    age-30 rows are spread over
+--    every city in India
+WHERE country = 'IN' AND age = 30</pre>
+  <div class="take">🧠 <b>Rule:</b> use the index from the left, with no gaps. It stops at the first missing column.</div>
+<pre>-- 🛒 my pending orders, newest first
+-- index (user_id, status, created_at)
+WHERE user_id = 7
+  AND status = 'pending'
+ORDER BY created_at DESC
+
+-- 💬 last 50 messages in a chat
+-- index (chat_id, sent_at)
+WHERE chat_id = 9
+ORDER BY sent_at DESC LIMIT 50
+
+-- 📱 phones under ₹20,000, by price
+-- index (category, price)
+WHERE category = 'phone'
+  AND price &lt; 20000
+ORDER BY price</pre>
+  <h5>🎯 How to choose the column order</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Columns compared with = go first</b>user_id, status, chat_id, category.</li>
+    <li><b class="hd">2️⃣ The range or sort column goes last</b>created_at, price. After a range ("under ₹20,000") the next column is no longer in order, so the index can't help with it.</li>
+    <li><b class="hd">3️⃣ Shape it around your most common query</b></li>
+  </ul>
+  <p class="figcap">ℹ️ Postgres 18 and MySQL 8 can sometimes "skip scan" past a missing first column when it has few distinct values. Don't count on it in an interview. <span class="add">➕ not in Adi's notes</span></p>
+  <div class="rem"><b>✅ Remember</b> Say it like this: <i>"I'd create a composite index on (user_id, created_at), so the feed query filters by user and returns sorted results without a separate sort step."</i></div>
+  <div class="rem"><b>✅ Remember</b> Tie each index to an API endpoint: <i>"GET /users/{id}/posts needs an index on posts.user_id."</i> That shows you think about real query speed.</div>
+  <p>🔗 How indexes work inside (B-trees, hash indexes) is the next lesson: <a href="https://www.hellointerview.com/learn/courses/system-design/lesson/foundations/db-indexing">Database Indexing</a>.</p>
+
+  <h4>🧩 Normalization vs Denormalization</h4>
+  <p class="bridge">Normalized means each fact lives in exactly one place: user data only in the users table. That stops update anomalies, where one copy changes and another copy stays old.</p>
+  <p><b>✅ Normalized</b>: two tables, the post points to the user.</p>
+  <div class="dts">
+    <table class="dt"><tr><th>id</th><th>username</th><th>email</th></tr><tr><td>1</td><td>john_doe</td><td>john@example.com</td></tr><tr><td>2</td><td>jane_doe</td><td>jane@example.com</td></tr></table>
+    <table class="dt"><tr><th>id</th><th>user_id (FK)</th><th>content</th></tr><tr><td>1</td><td>1</td><td>Hello, world!</td></tr><tr><td>2</td><td>1</td><td>My first post</td></tr></table>
+  </div>
+  <p><b>⚠️ Denormalized</b>: one table, the user is copied into every post.</p>
+  <div class="tscroll"><table class="dt"><tr><th>id</th><th>user_id</th><th>username</th><th>email</th><th>content</th></tr><tr><td>1</td><td>1</td><td class="dup">john_doe</td><td class="dup">john@example.com</td><td>Hello, world!</td></tr><tr><td>2</td><td>1</td><td class="dup">john_doe</td><td class="dup">john@example.com</td><td>My first post</td></tr></table></div>
+  <p class="figcap">Red = copies. Each table also has <code>created_at</code> (left out to fit a phone). Swipe the wide table →</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Normalized</b><div class="chk">✍️ <b>Clean writes</b>: change one place</div><div class="chk">🐢 <b>Slower reads</b>: joins put the pieces back together</div></div>
+    <div class="k-amber"><b>⚠️ Denormalized</b><div class="chk">⚡ <b>Fast reads</b>: everything is already in one row</div><div class="chk">🧹 <b>Messy writes</b>: every copy must change</div></div>
+  </div>
+  <div class="take">🔁 John renames himself. Normalized: <b>1 row</b> changes. Denormalized: <b>every post he ever wrote</b> changes. Miss one, and the data disagrees with itself.</div>
+  <p>⭐ Start with a clean normalized model and denormalize only when needed. Copied data wastes space and creates consistency problems that are much harder to fix than the speed problems you tried to avoid.</p>
+  <p>Denormalization can make sense in a few exceptions:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📊 Analytics and reporting systems</b>They aggregate data that changes rarely.</li>
+    <li><b class="hd">🧾 Event logs and audit trails</b>They capture a snapshot of the data at a point in time. (The address on an old order should not change when the user moves. <span class="add">➕ example not in the article</span>)</li>
+    <li><b class="hd">🔎 Heavily read-optimized systems, like search engines</b>Speed matters more than consistency.</li>
+    <li><b class="hd">⚡ Or keep the database clean and copy into a cache</b>The source of truth stays normalized. The cache holds pre-joined data, counts, or whatever shape makes reads fast (the flattened document in <a href="#sd-dm-databases--key-value-stores">card ①</a>).</li>
+  </ul>
+  <p class="ana">📱 Your phone contacts: change a friend's number once and every chat shows it (normalized). Writing the number on 50 sticky notes is quicker to glance at, but now you must fix all 50 (denormalized). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📚 Scaling and Sharding</h4>
+  <p class="bridge">When the data outgrows one database, you shard it across machines. The skill is picking a split that keeps data read together on the same shard.</p>
+  <div class="dg" role="img" aria-label="Sharding: a server sends to three shards. Shard 1 holds posts 0 to 10k, Shard 2 posts 10k to 20k, Shard 3 posts 20k to 30k.">
+    <div class="r"><span class="bx big">🖥️ Server</span><span class="stack"><span class="ar">→</span><span class="ar">→</span><span class="ar">→</span></span><span class="stack"><span class="bx">🗄️ Shard 1 · posts 0–10k</span><span class="bx">🗄️ Shard 2 · posts 10k–20k</span><span class="bx">🗄️ Shard 3 · posts 20k–30k</span></span></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's picture: each shard holds a different range of posts</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ Shard by the primary access pattern</b>Mostly reading "posts by user"? Shard by <code>user_id</code>. One user's posts stay on one database, so the query touches one machine.</li>
+    <li><b class="hd">🚫 Avoid cross-shard queries where possible</b>A timeline of posts from many followed users, sharded by user_id, means asking many shards and merging the results: slow and complex. (The usual fix is in the comments 👇)</li>
+    <li><b class="hd">🔎 The picture splits by post range, which breaks the rule above</b>One user's posts end up on every shard. And if the ranges are of growing ids, every new post lands on the last shard. Read it as "the data is split", not as the design. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Be careful with sharding by time range. It sounds good for "recent posts", but every new write goes to the shard for the latest time range: a <b>hot shard</b>. It's usually an anti-pattern for write-heavy systems. Time ranges suit archives and analytics, where recent data is read a lot but writes are spread out.</div>
+  <div class="warn"><b>⚠️ Watch out</b> The shard key is often permanent, and it affects every query. Think hard about the main access patterns before you choose it.</div>
+  <p class="ana">📚 A city library too big for one building splits its books across branches. Split by author name, and "all books by Rowling" is one trip. Split by the date bought, and every new book goes to the same branch, which is packed while the rest sit empty. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🏁 Conclusion</h4>
+  <p class="bridge">Data modeling is a core part of system design interviews but not the focus: design a reasonable schema that supports the requirements, then move on. 🎤 Outline the core entities early. Then, when you introduce a database in the high-level design, walk these six steps in order.</p>
+  <div class="mnem" role="img" aria-label="Mnemonic: The Cook Keeps It Dead Simple. Type, Columns, Keys, Indexes, Denormalize, Shard">
+    <span><b>T</b>ype</span><span><b>C</b>olumns</span><span><b>K</b>eys</span>
+  </div>
+  <div class="mnem">
+    <span><b>I</b>ndexes</span><span><b>D</b>enormalize?</span><span><b>S</b>hard?</span>
+  </div>
+  <p class="figcap">🧠 <b>T</b>he <b>C</b>ook <b>K</b>eeps <b>I</b>t <b>D</b>ead <b>S</b>imple. <span class="add">➕ mnemonic not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Type: determine the type of database you'll use</b><i>"Postgres: the data is relational and bookings need ACID."</i></li>
+    <li><b class="hd">2️⃣ Columns: list the columns each entity needs for the functional requirements</b>Only the fields your features use. Not every field you can imagine.</li>
+    <li><b class="hd">3️⃣ Keys: specify primary and foreign keys for each relationship</b><i>"comments.post_id points to posts.id."</i></li>
+    <li><b class="hd">4️⃣ Indexes: determine which columns need indexes (if any)</b><i>"GET /users/{id}/posts → index on posts.user_id."</i></li>
+    <li><b class="hd">5️⃣ Denormalize: determine whether you need to, for performance</b>Often a cache in front is the better answer.</li>
+    <li><b class="hd">6️⃣ Shard: consider whether sharding is necessary</b>If yes, choose a shard key that matches your main access pattern.</li>
+  </ul>
+  <p>🖼️ The finished whiteboard is the <a href="#sd-dm-databases--where-it-shows-up-in-the-interview">sketch at the top of card ①</a>: Postgres with Posts, Users and Comments, their keys and indexes.</p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🍕 Partitioning vs sharding</h5>
+    <ul><li>Sharding is partitioning <b>across separate machines</b>; use it once one machine can't keep up, or is cheaper to replace with more machines. Partitioning <b>inside one database</b> (Postgres <code>PARTITION BY</code>) still helps: each index and query touches only one piece.</li>
+      <li>The lesson uses the two words loosely. Evan King (admin) agreed and said it will be fixed.</li></ul>
+    <h5>📰 "Sharded by user_id, so how does a timeline work?"</h5>
+    <ul><li>Stefan Mai (admin): sharding does break joins across shards, but most apps don't need them in the main flow. Facebook shards by user, and the timeline is <b>precomputed or cached</b>, not joined live.</li>
+      <li>The usual design is <b>fan-out on write</b>: when someone posts, add a reference to each follower's timeline, so reading is one lookup by viewer id. For celebrities with millions of followers, use a hybrid: pull their posts at read time and merge them in.</li></ul>
+    <h5>⏳ Time-range sharding</h5>
+    <ul><li>Readers agree it's an anti-pattern for writes. It fits only logs and archives, where old data never changes.</li></ul>
+    <h5>🧭 When does data modeling happen?</h5>
+    <ul><li>Evan King (admin): entities in Core Entities; relationships and normalization in the high-level design; scaling and indexes in deep dives. Let the requirements drive it. In a Yelp design, the "business with its reviews" endpoint is the moment to mention <code>reviews.businessId</code> (foreign key) and an index on it.</li>
+      <li>"Pick the type" being step 1 is fine: the entities were already outlined earlier.</li></ul>
+    <h5>🔒 Say which consistency you mean</h5>
+    <ul><li>The <b>C</b> in CAP (all copies agree) is not the <b>C</b> in ACID (the database keeps its rules). "Likes can be eventually consistent" is about CAP.</li></ul>
+    <h5>🔗 Keys, answered</h5>
+    <ul><li>The foreign key lives on the "many" side: <code>posts.user_id</code>, never a list of post ids in users.</li>
+      <li>post_id is the <b>primary key</b> of posts and a <b>foreign key</b> in comments and likes: the same value, two roles.</li></ul>
+    <h5>🏊 Connection pooling</h5>
+    <ul><li>Keep a set of open database connections and reuse them, instead of opening a new one per request: lower latency, less CPU and memory.</li></ul>
+    <h5>🚫 Don't chase buzzwords</h5>
+    <ul><li>A commenter saw a payments-style app built on Cassandra because it was trendy. The designer left before the problems showed, and others cleaned up. Choose from the requirements.</li></ul>
+    <h5>📭 Asked for, not in the lesson</h5>
+    <ul><li>Star and snowflake schemas for reporting; cloud-neutral options to DynamoDB (on Google Cloud: Firestore or Bigtable; on Azure: Cosmos DB <span class="add">➕ not in the comments</span>); how to know you need sharding ("check the numbers": estimate data size and writes per second against one machine).</li></ul>
+  </div>
+</section>
+
 </div>
 </div>
 
@@ -2016,6 +2398,20 @@ const SEQS = {
       { f: 0, t: 1, m: 'retry · same 🔑', k: 'http', cap: 'The client retries with the <b>same key</b>.' },
       { f: 1, t: 2, m: 'seen 🔑? yes ✋', k: 'lb', bi: 1, cap: 'Key seen → don\'t charge again.' },
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
+    ],
+  },
+  'kv-cache': {
+    lanes: ['🖥️ Server', '⚡ Key-value store', '🐘 Postgres'],
+    key: [['http', 'request'], ['err', 'miss'], ['lb', 'save to cache'], ['tcp', 'hit']],
+    frames: [
+      { cap: 'A user opens post 42. The page needs the post, its author and its comments. Postgres is the <b>source of truth</b>; the key-value store sits in front as a cache.' },
+      { f: 0, t: 1, m: '① GET post:42', k: 'http', cap: '① Check the cache first, by one exact key.' },
+      { f: 1, t: 0, m: '❌ miss', k: 'err', dash: 1, cap: 'Not there: the first visit, or the copy expired.' },
+      { f: 0, t: 2, m: '② post + author + comments', k: 'http', cap: '② If miss, check the database. One query with joins across Posts, Users and Comments.' },
+      { f: 2, t: 0, m: 'rows', k: 'http', dash: 1, cap: 'Postgres returns the rows. The page can render.' },
+      { f: 0, t: 1, m: '③ SET post:42 = flat doc', k: 'lb', cap: '③ Save one <b>flattened document</b> under the key, shaped for exactly this page, usually with an expiry time. ➕ not in the article' },
+      { f: 0, t: 1, m: '④ GET post:42', k: 'http', cap: '④ The next visit asks the cache again, with the same key.' },
+      { f: 1, t: 0, m: '✅ hit: whole page', k: 'tcp', dash: 1, cap: 'A hit: one lookup, no joins, no database. That is the speed win. ⚠️ The cost: if the author renames, this copy stays old until it expires or you delete it. ➕ not in the article' },
     ],
   },
   'cascade': {
@@ -2321,6 +2717,48 @@ const GLOSSARY = [
   { id: 'keepalive', t: 'Keep-alive', aka: 'persistent connection reuse', s: 'Reuse one open connection for many requests.',
     an: 'Staying on the phone for your next question instead of hanging up and redialling.',
     b: '<p>Default in HTTP/1.1. The connection closes on <code>Connection: close</code>, an idle timeout (seconds to ~a minute), or a network drop. Requests still go one at a time per connection; HTTP/2 sends many at once.</p>', see: ['http', 'handshake'] },
+  { id: 'acid', t: 'ACID', aka: 'atomicity consistency isolation durability transaction sql', s: 'Four promises a database makes about a transaction: all or nothing, rules kept, no mixing, saved for good.',
+    an: 'A money transfer at the bank counter: both sides of the ledger change, or neither does. Never just one.',
+    b: '<ul><li>🅰️ <b>Atomic</b>: all steps happen or none do.</li><li>📏 <b>Consistent</b>: the rules always hold (no negative balance, no broken foreign key).</li><li>🚧 <b>Isolated</b>: two transactions at once don\'t see each other\'s half-done work.</li><li>💾 <b>Durable</b>: once it says "done", a crash can\'t lose it.</li></ul><p>🧪 <b>See it:</b> move ₹500 from A to B. The server crashes after taking it from A. Atomic → the database undoes that step, so the ₹500 isn\'t lost.</p>', see: ['consistency', 'fk'] },
+  { id: 'pk', t: 'Primary key', aka: 'pk id identifier unique row key', s: 'The column that names each row: unique, never empty, never changes.',
+    an: 'A roll number at school: two students can share a name, never a roll number.',
+    b: '<p>🧪 <b>See it:</b> <code>users.id = 1</code> is john_doe. Every post he writes stores <code>user_id = 1</code>.</p><ul><li>✅ Generated id: John changes his email, his id is still 1, nothing else changes.</li><li>❌ Email as the key: change it, and every post, comment and like pointing to him must be rewritten.</li></ul>', see: ['fk', 'dbindex'] },
+  { id: 'fk', t: 'Foreign key', aka: 'fk reference relationship referential integrity orphan', s: 'A column that holds another table\'s primary key, so a row points to its parent. It is how the database enforces referential integrity.',
+    an: 'The "class teacher no." on a student\'s form: it holds the teacher\'s staff number, and it must be a real teacher.',
+    b: '<p>🧪 <b>Do it twice:</b> <code>posts.user_id = 1</code> → user 1 exists → saved. Insert a post with <code>user_id = 99</code> (no such user) → the database refuses: no orphan rows. Delete user 1 while posts still point to them → refused, unless <code>ON DELETE CASCADE</code> deletes the posts too.</p><p>📍 It sits on the "many" side: each post holds its user\'s id. ⚖️ The cost is a check on every write, so at huge scale some teams drop foreign keys and check in code.</p>', see: ['refint', 'pk', 'normalize'] },
+  { id: 'refint', t: 'Referential integrity', aka: 'orphan rows foreign key cascade restrict dangling reference', s: 'Every reference points to something that really exists: no orphan rows.',
+    an: 'A library card catalogue where every card points to a book on the shelf. Remove a book and its card must go too, or the card points at nothing.',
+    b: '<p>🧪 <b>The two ways it can break</b>, and what a foreign key does:</p><ul><li>➕ <b>Insert</b> a post for user 99, who doesn\'t exist → refused.</li><li>🗑️ <b>Delete</b> post 1 while comments still point to it → refused, or the comments are deleted too if you set <code>ON DELETE CASCADE</code>.</li></ul><p>Either way, nothing ends up pointing at a missing row (an orphan). Drop the foreign keys and your app code must guarantee this instead.</p>', see: ['fk', 'pk'] },
+  { id: 'dbindex', t: 'Index', ctx: 'database', aka: 'index composite b-tree lookup query speed', s: 'A sorted lookup structure so the database finds rows without reading every row.',
+    an: 'The index at the back of a book: look up "normalization", jump to page 149, instead of reading every page.',
+    b: '<p>🧪 <b>See it:</b> 1 million posts, query <code>WHERE user_id = 7</code>.</p><ul><li>❌ No index: read all 1M rows.</li><li>✅ Index on user_id: jump straight to user 7\'s rows, like binary search (about 20 steps, not 1M).</li><li>🧩 Index on (user_id, created_at): user 7\'s posts are also already in date order, so "latest 10" needs no sorting.</li></ul><p>📏 A composite index works from the left, with no gaps: (user_id, created_at) helps "user_id" and "user_id + date", never "date" alone.</p><p>⚖️ Cost: every write must update every index on the table.</p>', see: ['pk', 'cursor'] },
+  { id: 'normalize', t: 'Normalize vs denormalize', aka: 'normalization denormalization duplicate copy anomaly', s: 'Normalized: each fact stored once (clean writes, slower reads). Denormalized: copies stored where they are read (fast reads, messy writes).',
+    an: 'Phone contacts: change a number once and every chat shows it (normalized). The same number on 50 sticky notes is quicker to glance at, but all 50 need fixing (denormalized).',
+    b: '<p>🧪 <b>See it:</b> john_doe renames to john_d.</p><ul><li>✅ Normalized: 1 row in users changes.</li><li>⚠️ Denormalized (username copied into each post): every post he wrote changes. Miss one → two names for one person.</li></ul><p>📏 Rule: start normalized. Copy (or cache) only when a read is measurably too slow.</p>', see: ['fk', 'shard'] },
+  { id: 'shard', t: 'Sharding', aka: 'shard key horizontal scaling split machines cross-shard', s: 'Split one table\'s rows across several database machines, by a shard key.',
+    an: 'A city library too big for one building splits its books across branches by author name.',
+    b: '<p>🧪 <b>See it:</b> shard posts by user_id over 3 machines.</p><ul><li>✅ "Posts by user 7" → one shard.</li><li>⚠️ "Timeline from 200 people I follow" → many shards, then merge: slow.</li></ul><p>📏 Pick the key from your main query. Changing it later means moving all the data.</p>', see: ['hotshard', 'partition', 'fanout'] },
+  { id: 'partition', t: 'Partitioning', aka: 'partition table split pieces range region', s: 'Split data into pieces by a key. Inside one database it\'s table partitioning; across machines it\'s sharding.',
+    an: 'One library building with a separate room per year (partitioning), vs separate branches across the city (sharding).',
+    b: '<p>🧪 <b>See it:</b> Postgres <code>PARTITION BY RANGE (created_at)</code> → <code>logs_2026_10</code>, <code>logs_2026_11</code>. A query for November reads one piece, and dropping an old month is instant. It\'s still one machine\'s CPU and disk; to get more machines, you shard.</p>', see: ['shard', 'hotshard'] },
+  { id: 'hotshard', t: 'Hot shard', aka: 'hot partition hotspot skew uneven load', s: 'One shard gets far more traffic than the others.',
+    an: 'Everyone queues at one billing counter while the other counters sit empty.',
+    b: '<p>🧪 <b>See it:</b> shard posts by month. Every post written today goes to the "November" shard; the other 11 sit idle. The same happens with ranges of growing ids, or with one celebrity on a user_id shard.</p><p>🛠️ Fix: a key that spreads writes, often a hash of the id.</p>', see: ['shard', 'partition'] },
+  { id: 'replica', t: 'Read replica', aka: 'replica replication primary follower lag read scaling', s: 'A copy of the database that serves reads. The primary takes the writes and copies them over.',
+    an: 'A teacher writes on the main board, and assistants copy it onto boards in other rooms so more students can read.',
+    b: '<p>🧪 <b>See it:</b> 1 primary + 3 replicas → about 4× the read capacity. ⚠️ Copying takes a moment (replication lag), so a read just after a write may show old data. It doesn\'t add write capacity: that\'s what sharding is for.</p>', see: ['shard', 'consistency'] },
+  { id: 'connpool', t: 'Connection pooling', aka: 'connection pool reuse database connections pg pool', s: 'Keep a set of open database connections and reuse them across requests.',
+    an: 'A taxi stand: cars wait ready, instead of calling a new cab from the depot for every ride.',
+    b: '<p>🧪 <b>Do it twice:</b> without a pool, each request opens a connection (TCP + TLS + login, several ms) and closes it. With a pool of 20, a request borrows one and gives it back.</p><p>It also caps connections: each Postgres connection is its own process, so thousands of them slow it down. In Node: <code>new Pool({ max: 20 })</code> from <code>pg</code>.</p>', see: ['handshake', 'replica'] },
+  { id: 'consistency', t: 'Strong vs eventual consistency', aka: 'consistent eventually stale cap acid', s: 'Strong: every read sees the latest write. Eventual: reads may be old for a moment, then catch up.',
+    an: 'Strong = a shared Google Doc, edits show at once. Eventual = news spreading by WhatsApp forwards: everyone hears it, a bit later.',
+    b: '<p>🧪 <b>See it:</b></p><ul><li>🔒 You pay, refresh, and the balance must already show it → strong.</li><li>⏳ A like count shows 99 for three seconds after your like → fine, eventual.</li></ul><p>⚠️ Not the C in ACID. ACID\'s C = the database keeps its rules. CAP\'s C = every copy agrees. Say which one you mean.</p>', see: ['acid', 'replica'] },
+  { id: 'fanout', t: 'Fan-out on write vs on read', aka: 'fanout timeline feed push pull celebrity hybrid', s: 'Build each feed when a post is written (copy it to every follower) or when the feed is read (collect from everyone followed).',
+    an: 'On write: the newspaper delivers a copy to every subscriber\'s door. On read: each reader visits every writer to collect the news.',
+    b: '<p>🧪 <b>See it:</b> Alice has 300 followers and posts.</p><ul><li>✍️ On write: 300 small inserts into followers\' timelines; reading a feed = 1 lookup.</li><li>📖 On read: Bob follows 200 people → 200 lookups (maybe on 200 shards) and a merge, every time he opens the app.</li></ul><p>🌟 A celebrity with 10M followers → hybrid: pull their posts at read time and merge them in.</p>', see: ['shard', 'consistency'] },
+  { id: 'likecount', t: 'Denormalized counter (like count)', aka: 'like_count counter cache count column denormalize likes feed', s: 'Store the number of likes on the post itself, instead of counting the likes table every time.',
+    an: 'The "copies sold" number on a bestseller\'s cover: the shop updates it now and then instead of counting every receipt each time someone asks. A bit behind, never wrong for long.',
+    b: '<p>🧪 <b>Do it both ways</b> for a feed of 20 posts:</p><ul><li>🐢 Normalized: for each post, <code>SELECT COUNT(*) FROM likes WHERE post_id = ?</code>. 20 counts over millions of like rows, every time anyone opens the feed.</li><li>⚡ Denormalized: posts has a <code>like_count</code> column, read together with the post. No counting.</li></ul><p>✍️ <b>The cost:</b> one like now writes two places (a row in likes, +1 on posts.like_count), and the two can disagree for a moment.</p><p>⏳ <b>Why that\'s OK:</b> likes can be eventually consistent. Showing 1,202 instead of 1,203 for a second hurts nobody, so the +1 can even happen a little later, from a queue or in batches. A bank balance could never be shown this way.</p>', see: ['normalize', 'consistency', 'dbindex'] },
   { id: 'latency', t: 'Latency', aka: 'delay rtt round trip', s: 'How long one trip takes.',
     an: 'How long the letter takes to arrive (not how many letters fit in the van).',
     b: '<p>Usually measured as <b>round-trip time</b> (there and back). Nearby server &lt; 1 ms; New York ↔ London ≥ ~56 ms just from the speed of light in fiber. Every extra message (handshakes, retries) adds trips.</p>', see: ['handshake'] },
@@ -2378,7 +2816,10 @@ const GLOSSARY = [
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, tuple: /5-tuple/, handshake: /handshakes?/i,
-    keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
+    keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
+    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
+    partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
+    consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
   }
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
