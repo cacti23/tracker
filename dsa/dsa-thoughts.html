@@ -1356,6 +1356,7 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 <ul>
 <li>📦 <b>Inclusive range, nothing extra:</b> indices <code>0 … n − 1</code>, values lowest … highest, <code>low &lt;= high</code> (<a href="#bs-1">#1</a>)</li>
 <li>✅ <b>It works</b> → <code>ans = mid</code>, move <code>high</code> to search left, <code>low</code> to search right (<a href="#bs-1">#1</a>)</li>
+<li>📏 <b>Ranges too:</b> lowest … highest, no extra cell (<a href="#bs-1">#1</a>)</li>
 <li>🎯 <b>Binary search on a threshold</b> + plain BFS as the check (<a href="#graph-11">Graph #11</a>)</li>
 <li>➗ <b>Values past 10⁹</b> → <code>Math.floor((lo + hi) / 2)</code>, not <code>&gt;&gt; 1</code> (<a href="#js-3">JS #3</a>)</li>
 </ul>
@@ -1393,7 +1394,10 @@ else low = mid + 1
 low = 0, high = x, ans = 0
 if (mid * mid &lt;= x) { ans = mid; low = mid + 1 }
 else high = mid - 1</code></pre>
-<p class="hint">Checked in Node: LC 704 → 4, −1 · LC 35 → 2, 1, 4 · LC 69 → 2, 2, 0, 1, 46340 · first/last match brute force on 20,000 random arrays.</p>
+<p>📏 <b>Ranges need no extra.</b> Same rule: the range is lowest … highest, nothing more. LC 69 with <code>x = 8</code> → <code>0 … 8</code>, not <code>0 … 9</code>.</p>
+<figure class="calls"><svg viewBox="0 0 352 128" role="img" aria-label="LC 69 range is 0 to x, no extra cell" style="max-width:440px"><text x="176" y="20" class="tt">📏 LC 69, x = 8 → range 0 … 8</text><rect x="18" y="40" width="28" height="30" rx="5"/><text x="32" y="60" class="n">0</text><rect x="50" y="40" width="28" height="30" rx="5"/><text x="64" y="60" class="n">1</text><rect class="win" x="82" y="40" width="28" height="30" rx="5"/><text x="96" y="60" class="n">2</text><rect x="114" y="40" width="28" height="30" rx="5"/><text x="128" y="60" class="n">3</text><rect x="146" y="40" width="28" height="30" rx="5"/><text x="160" y="60" class="n">4</text><rect x="178" y="40" width="28" height="30" rx="5"/><text x="192" y="60" class="n">5</text><rect x="210" y="40" width="28" height="30" rx="5"/><text x="224" y="60" class="n">6</text><rect x="242" y="40" width="28" height="30" rx="5"/><text x="256" y="60" class="n">7</text><rect x="274" y="40" width="28" height="30" rx="5"/><text x="288" y="60" class="n">8</text><rect x="306" y="40" width="28" height="30" rx="5" stroke-dasharray="4 3" style="fill:none"/><text x="320" y="60" class="c">9</text><text x="32" y="92" class="ok">low</text><text x="290" y="92" class="ok">high</text><text x="96" y="92" class="ok">ans = 2</text><text x="320" y="34" class="bad">✗ extra</text><text x="176" y="118" class="c">old pattern needed the extra cell</text></svg></figure>
+<p>🕰️ The old <code>[low, high)</code> pattern never tested <code>high</code>, so it needed <code>high = x + 1</code>. Here <code>low &lt;= high</code> tests every value and <code>ans</code> keeps the winner. Search left or right, both moves stay inside the range.</p>
+<p class="hint">Checked in Node: LC 704 → 4, −1 · LC 35 → 2, 1, 4 · LC 69 → 2, 2, 0, 1, 46340 · first/last match brute force on 20,000 random arrays. Old half-open pattern without the extra fails LC 69 at x = 0 and 1.</p>
 <div class="box key"><b class="tag">📌</b> Inclusive range, nothing extra. It works → <code>ans = mid</code>, move <code>high</code> to search left, move <code>low</code> to search right.</div>
 </section>
 
