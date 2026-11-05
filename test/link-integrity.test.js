@@ -117,12 +117,12 @@ test('index.html links out to every moved sub-app with the correct folder prefix
   }
 })
 
-test('Google opens in-pane from the sidebar (not a new tab) and embeds both google sub-pages', () => {
+test('Google opens in-pane from the sidebar (not a new tab) and embeds the onsite log', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
   assert.match(html, /id="nav-google"[^>]*onclick="loadGoogle\(\)"/, 'sidebar Google entry must be a button calling loadGoogle()')
   assert.doesNotMatch(html, /<a[^>]*href="google\/[^"]*"[^>]*target="_blank"/, 'Google must not open in a new tab from the sidebar')
   assert.match(html, /id="view-google"/, 'index.html needs a #view-google pane')
-  for (const f of ['google/google-interview-sources.html', 'google/google-onsite-log.html']) {
+  for (const f of ['google/google-onsite-log.html']) {
     assert.ok(html.includes(`'${f}'`), `loadGoogle() should embed ${f}`)
     assert.ok(fs.existsSync(path.join(ROOT, f)), `${f} should exist`)
   }
@@ -158,10 +158,10 @@ test('every app under apps/ that loads sync.js points at ../js/sync.js', () => {
   }
 })
 
-test('google-hub.html links to both google sub-pages, which exist alongside it', () => {
+test('google-hub.html links to the onsite log, which exists alongside it', () => {
   const hubPath = path.join(ROOT, 'google', 'google-hub.html')
   const html = fs.readFileSync(hubPath, 'utf8')
-  for (const link of ['google-interview-sources.html', 'google-onsite-log.html']) {
+  for (const link of ['google-onsite-log.html']) {
     assert.match(html, new RegExp(`href="${link}"`), `google-hub.html should link to ${link}`)
     assert.ok(fs.existsSync(path.join(ROOT, 'google', link)), `${link} should exist in google/`)
   }
@@ -222,7 +222,7 @@ test('top-level folder layout matches the reorg contract', () => {
   const shouldNotBeAtRoot = [
     'data.js', 'sync.js', 'habits.html', 'habits-sw.js', 'habits-manifest.json',
     'gym-5day.html', 'google-hub.html',
-    'google-interview-sources.html', 'google-onsite-log.html', 'dsa-master-map.html',
+    'google-onsite-log.html', 'dsa-master-map.html',
     'dsa-thoughts.html', 'backtracking.html', 'binary-search.html', 'bit-manipulation.html',
     'design.html', 'dp.html', 'graph.html', 'heap.html', 'intervals.html', 'linked-list.html',
     'recursion.html', 'sliding-window.html', 'sorting.html', 'stack.html', 'trees.html',

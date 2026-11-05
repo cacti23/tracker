@@ -992,7 +992,7 @@
       <div id="nav-topics"></div>
 
       <p class="sidebar-section-label">Companies</p>
-      <button type="button" id="nav-google" onclick="loadGoogle()" class="nav-link" title="Google prep — interview sources and the worked onsite log">
+      <button type="button" id="nav-google" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
         <span class="nav-topic-icon">🔍</span>
         <span class="nav-topic-label">Google</span>
       </button>
@@ -1736,11 +1736,11 @@ function _restoreView() {
 }
 
 // ─── GOOGLE (in-pane, same layout as a topic: header title + tab pills + content) ───
+// One page now: the sources live in an accordion at the top of the log. The tab row only shows with 2+ tabs.
 const GOOGLE_TABS = [
-  { key: 'sources', label: '🔍 Interview Sources', src: 'google/google-interview-sources.html' },
-  { key: 'log',     label: '📓 Onsite Log',        src: 'google/google-onsite-log.html' }
+  { key: 'log', label: '📓 Onsite Log', src: 'google/google-onsite-log.html' }
 ]
-let currentGoogleTab = 'sources'
+let currentGoogleTab = 'log'
 function loadGoogle(tab) {
   if (tab) currentGoogleTab = tab
   showView('view-google')
@@ -1753,7 +1753,7 @@ function loadGoogle(tab) {
   if (nav) nav.classList.add('active')
   currentTopicKey = null
   _saveCurrentView('google')
-  document.getElementById('google-tabs').innerHTML = GOOGLE_TABS.map(t =>
+  document.getElementById('google-tabs').innerHTML = GOOGLE_TABS.length < 2 ? '' : GOOGLE_TABS.map(t =>
     `<li class="nav-item"><button class="nav-link${t.key === currentGoogleTab ? ' active' : ''}" type="button"
       onclick="loadGoogle('${t.key}')">${t.label}</button></li>`
   ).join('')
