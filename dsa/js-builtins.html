@@ -74,6 +74,7 @@
   <a href="#j12"><b>12</b>queue.shift() is slow</a>
   <a href="#j13"><b>13</b>Object vs Map as a dictionary</a>
   <a href="#j14"><b>14</b>Alphanumeric check</a>
+  <a href="#j15"><b>15</b>sort() changes the original</a>
 </nav>
 
 <h2 id="j1">1 · 🗂️ Map</h2>
@@ -211,6 +212,25 @@ count['constructor'] = (count['constructor'] || 0) + 1   // ❌ starts from a fu
 }
 // shorter: /[a-z0-9]/i.test(ch)</code></pre>
 <div class="box key"><b class="tag">📌</b> Pass ONE character. Lowercase first, so one range covers A–Z. Use it to skip junk in two-pointer string problems (LC 125).</div>
+
+<h2 id="j15">15 · 🔀 <code>sort()</code> Changes the Original Array — Copy First With <code>[...arr]</code></h2>
+<p>🔍 <code>sort</code> changes the array in place and returns that SAME array.</p>
+<pre class="language-tsx"><code class="language-tsx">const a = [10, 9, 1, 8];
+const s = a.sort((x, y) =&gt; x - y);
+a;               // [1, 8, 9, 10] ← original changed ⚠️
+s === a;         // true (same array)
+
+const b = [10, 9, 1, 8];
+const c = [...b].sort((x, y) =&gt; x - y);
+b;               // [10, 9, 1, 8] ← original safe ✅
+c;               // [1, 8, 9, 10]</code></pre>
+<ul>
+<li>✅ <b>Sort in place</b> when the original order is not needed again. It uses no extra memory.</li>
+<li>🔸 <b>Copy first</b> when you need the original order later, or the array belongs to the caller.</li>
+<li>🆕 <code>arr.toSorted(...)</code> copies and sorts in one step (Node 20+). LeetCode support is not checked, so <code>[...arr].sort</code> is the safe one.</li>
+</ul>
+<p>🎤 Interview: <i>"I sort in place to save memory. If the input must stay unchanged, I copy it first."</i></p>
+<div class="box key"><b class="tag">📌</b> <code>sort</code> changes the array it is called on. To keep the original, copy first with <code>[...arr]</code>.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
