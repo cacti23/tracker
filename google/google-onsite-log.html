@@ -311,7 +311,10 @@
     border:3px solid var(--border); background:var(--surface); color:var(--text-dim);
     font:700 13px/1 "Sora", system-ui, sans-serif; cursor:pointer;
   }
-  .rev-ring.has{ border-color:var(--accent); color:var(--accent); }
+  /* ring colour grows with the pass count: 1 amber, 2 blue, 3+ green */
+  .rev-ring.r1{ border-color:var(--warn); color:var(--warn); }
+  .rev-ring.r2{ border-color:var(--accent); color:var(--accent); }
+  .rev-ring.r3{ border-color:var(--good); color:var(--good); }
   .rev-ring.bump{ animation:rev-bump .25s; }
   @keyframes rev-bump{ 50%{ transform:scale(1.18); } }
   .rev-note{ font-size:12.5px; color:var(--text-dim); margin-top:6px; }
@@ -362,6 +365,41 @@
   .reading-list .row .pill{ margin:0 4px; }
   .reading-list .tag.kind-loop{ background:var(--good-soft,var(--accent-soft)); }
   .reading-list .tag.kind-oa, .reading-list .tag.kind-repeat{ background:var(--warn-soft); color:var(--warn); border-color:transparent; }
+
+  /* Interview sources accordion (moved here from the old Sources tab) */
+  details.srcs{ background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; }
+  details.srcs > summary{ cursor:pointer; padding:14px 18px; font:700 15px "Sora",system-ui,sans-serif; }
+  details.srcs .srcs-in{ padding:0 18px 16px; font-size:14px; }
+  .srcs h2{ font-size:15px; margin:22px 0 4px; padding-top:12px; border-top:1px solid var(--border); }
+  .srcs .sub, .srcs .upd{ color:var(--text-dim); font-size:13px; }
+  .srcs .upd{ margin-top:18px; }
+  .srcs p{ margin:6px 0; }
+  .srcs ul{ margin:6px 0; padding-left:20px; }
+  .srcs .box{ border:1px solid var(--border); border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:9px; padding:10px 14px; margin:12px 0; }
+  .srcs .box.warn{ border-left-color:var(--warn); background:var(--warn-soft); }
+  .srcs .box.key{ border-left-color:var(--good); background:var(--good-soft); }
+  .srcs .box b.tag{ display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+  .srcs .src, .srcs .report{ border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin:10px 0; background:var(--surface-2); }
+  .srcs .report{ background:var(--bg); }
+  .srcs .src h3{ font-size:14.5px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .srcs .kind{ font:600 10.5px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; border-radius:99px; padding:2px 8px; background:var(--bg); color:var(--text-dim); }
+  .srcs .kind.direct{ background:var(--good-soft); color:var(--good); }
+  .srcs .kind.snippet{ background:var(--warn-soft); color:var(--warn); }
+  .srcs .meta{ display:flex; flex-wrap:wrap; gap:6px; }
+  .srcs .meta span{ font-size:11px; font-weight:600; background:var(--surface); color:var(--text-dim); border-radius:99px; padding:2px 8px; }
+  .srcs .meta span.date{ background:var(--accent-soft); color:var(--accent); }
+  .srcs .links{ list-style:none; padding:0; }
+  .srcs .out{ border:1px dashed var(--border); border-radius:9px; padding:2px 14px; margin:10px 0; color:var(--text-dim); font-size:13px; }
+  .srcs .pill{ background:var(--accent-soft); color:var(--accent); }
+  .ibtn{ font:600 14px/1 "IBM Plex Sans",sans-serif; width:26px; height:26px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--accent); cursor:pointer; padding:0; }
+  .ti-back{ position:fixed; inset:0; background:#0008; z-index:20; }
+  .ti-side{ position:fixed; top:0; right:0; bottom:0; width:min(360px,92vw); z-index:21; background:var(--surface); border-left:1px solid var(--border); padding:20px 18px; overflow:auto; font-size:13.5px; color:var(--text-dim); box-shadow:-8px 0 24px #0006; }
+  .ti-side[hidden], .ti-back[hidden]{ display:none; }
+  .ti-side h3{ font-size:15px; color:var(--text); margin-bottom:12px; }
+  .ti-side p{ margin:8px 0; }
+  .ti-side p.ti{ padding:8px 10px; border-radius:8px; border:1px solid transparent; }
+  .ti-side p.ti.hl{ border-color:var(--accent); background:var(--accent-soft); color:var(--text); }
+  .ti-x{ position:absolute; top:10px; right:12px; background:none; border:0; color:var(--text-dim); font-size:24px; cursor:pointer; }
   .rl-legend{ font-size:13.5px; color:var(--text-dim); margin-bottom:10px; }
 </style>
 
@@ -375,9 +413,104 @@
     <p class="lede">Every Google L3/L4 experience read, matched against LeetCode, and rebuilt in code &mdash; one entry per interview.</p>
   </header>
 
+  <details class="srcs" id="sources">
+    <summary>🔍 Interview sources &mdash; where to find new experiences</summary>
+    <div class="srcs-in">
+<p class="sub">Links, not questions — problems rotate, patterns don't. Optimized for freshness + first-person detail + an actual interview date + concrete round/problem information. A source is <b>self-reported</b> unless stated otherwise — "candidate wrote this," not "this is confirmed accurate."</p>
+
+<div class="box warn">
+  <b class="tag">⚠️ Round structure varies</b>
+  Don't assume one fixed Google L4/SWE interview structure from another candidate's report. Round count and focus can vary by role, location, and requisition. Your recruiter's instructions take precedence over any post below.
+</div>
+
+<div class="box key">
+  <b class="tag">🗓️ Your cadence + the freshness rule</b>
+  One write-up every 1–2 days is plenty. Prioritize interviews from the <b>last 12 months</b> — 2026 over 2025 — and note the <i>actual interview date</i> stated in the post, not when it was published or updated. For each one, write down: <b>(1)</b> the pattern, in your cheatsheets' vocabulary, not the LC number, <b>(2)</b> solid or a gap for you, <b>(3)</b> one line on what tripped the candidate up.
+</div>
+
+<h2><span class="tier">Tier 1 — primary, first-person candidate reports</span></h2>
+<p class="sub" style="margin:.2em 0 .8em">Individually dated, written by the candidate. This is where your daily read comes from.</p>
+
+<div class="src">
+  <h3>🌱 Taro <span class="kind direct">fetched &amp; confirmed</span></h3>
+  <p>The most rigorously verified source here — I fetched these directly rather than trust a summary. Each report is individually dated in its own URL, tagged by role, location and outcome.</p>
+  <div class="report">
+    <div class="meta"><span class="date">Oct 26, 2025</span><span>Software Engineer</span><span>India</span><span>No offer · candidate reported positive</span></div>
+    <p>45-minute Google Docs round. Problem: given a string of 'A'/'B' with even frequency, cut it at 1–2 indices so both halves have equal A/B frequency, plus a follow-up. Candidate solved both.</p>
+    <a href="https://www.jointaro.com/interviews/companies/google/experiences/software-engineer-india-october-26-2025-no-offer-positive-c1fa6567/" target="_blank" rel="noopener">Read the full report →</a>
+  </div>
+  <div class="report">
+    <div class="meta"><span class="date">Nov 22–24, 2025</span><span>SWE</span><span>NYC / Mountain View / Bangalore</span><span>3 recent reports</span></div>
+    <p>Three separate candidates, same window: recruiter call → phone screen (array/two-sum variant + a DP question) → onsite technical + behavioral/manager round. Consistent structure across all three — useful as a current-process cross-check, not just one anecdote.</p>
+    <a href="https://www.jointaro.com/interviews/companies/google/?tab=experiences" target="_blank" rel="noopener">See these on the experiences tab →</a>
+  </div>
+  <p><a href="https://www.jointaro.com/interviews/companies/google/" target="_blank" rel="noopener">Full hub</a> — frequency-ranked question list plus every dated experience.</p>
+</div>
+
+<div class="src">
+  <h3>📄 LeetCode Discuss <span class="kind snippet">search-summary only</span></h3>
+  <p>Large, active, first-person — but LeetCode blocks direct page fetches from here, so I could only verify these through a search engine's summary, one layer removed from the actual post. Treat any date/level/location below as <i>reported</i>, not independently confirmed by me the way the Taro entries above are.</p>
+  <ul class="links">
+    <li><b>Start here →</b> <a href="https://leetcode.com/discuss/post/6469509/google-latest-interview-experiences-coll-r4zm/" target="_blank" rel="noopener">📌 Google Latest Interview Experiences — Collection</a> — the curated master index. It aggregates posts across a wide time span, not exclusively 2025/26 — open individual linked posts and check the date yourself.</li>
+    <li><b>Titled with metadata, unconfirmed date →</b> <a href="https://leetcode.com/discuss/post/6479658/google-l4-swe-3-india-offer-by-leethard-owg3/" target="_blank" rel="noopener">Google | L4 | SWE 3 | India — Interview Experience & Journey</a>, <a href="https://leetcode.com/discuss/post/6349651/google-l5-bangalore-selected-interview-e-3wj2/" target="_blank" rel="noopener">Google | L5 | Bangalore | Selected</a> — level and location are in the title; the actual interview date is inside the post, confirm before you weight it.</li>
+  </ul>
+  <p><b>Better than any static link:</b> go to <code>leetcode.com/discuss</code> yourself, search <code>Google interview experience</code> / <code>Google L4</code> / <code>Google phone screen</code>, sort by <b>newest</b>. Do this every couple of weeks.</p>
+</div>
+
+<div class="src">
+  <h3>👽 Reddit — r/leetcode, r/csMajors <span class="kind snippet">no persistent thread found</span></h3>
+  <p>I searched several ways and could not find a specific, persistent Google-interview megathread the way one exists on LeetCode Discuss — if you find one, it's worth a link, but I'm not going to hand you a guess dressed up as a citation. What does exist is a steady stream of individual posts.</p>
+  <p><b>Use it live:</b> search <code>reddit.com/r/leetcode</code> and <code>r/csMajors</code> for <code>Google interview 2026</code> / <code>Google onsite</code> / <code>Google phone screen</code>, sorted by <b>new</b>. Same cadence as the Discuss search above.</p>
+</div>
+
+<h2><span class="tier">Tier 2 — supporting / current-process context</span></h2>
+<p class="sub" style="margin:.2em 0 .8em">Real, but less consistently dated or focused on process/recruiting rather than the DSA round itself. Cross-check Tier 1 with these, don't lead with them.</p>
+
+<div class="src">
+  <h3>💬 Teamblind (Blind) <span class="kind snippet">self-reported, email-gated</span></h3>
+  <p>Signup is gated behind a corporate email, which makes it more likely posters are real current/ex-employees — that verifies the <i>account</i>, not the <i>content</i> of any given post. Best used for current recruiting/process/team-matching discussion, not as your primary DSA-question source.</p>
+  <ul class="links">
+    <li><a href="https://www.teamblind.com/browse/Google-Interview-Questions-13420" target="_blank" rel="noopener">Google Interview Questions board</a></li>
+    <li><a href="https://www.teamblind.com/company/Google/posts/google-interview" target="_blank" rel="noopener">Google company page — "google interview" posts</a></li>
+  </ul>
+</div>
+
+<div class="src">
+  <h3>🏢 Glassdoor <span class="kind snippet">search-summary only, blocked on direct fetch</span></h3>
+  <p>Anonymous and crowdsourced. Glassdoor also blocked my direct fetch attempt, so what's below is a search summary, not something I read myself — weight it accordingly. Quality varies widely: some entries name the exact round topic, many are vague ("one medium-hard question, don't remember").</p>
+  <ul class="links">
+    <li><a href="https://www.glassdoor.com/Interview/Google-Software-Engineer-Interview-Questions-EI_IE9079.0,6_KO7,24.htm" target="_blank" rel="noopener">Google Software Engineer — Interview Questions</a></li>
+  </ul>
+</div>
+
+<h2><span class="tier">Tier 3 — official (current process, not candidate experience)</span></h2>
+<p class="sub" style="margin:.2em 0 .8em">Tells you how Google itself describes the process right now — round count, evaluation criteria, timeline. It will never tell you what problem you'll get.</p>
+
+<div class="src">
+  <h3>🏛️ Google Careers — Our hiring process</h3>
+  <p>Google's own page: recruiter screen → phone screen → onsite loop (2–3 DSA rounds + a behavioral round, system design added at senior levels) → hiring committee review, evaluated on General Cognitive Ability, Role-Related Knowledge, Leadership and Googleyness. Six to eight weeks end to end, typically.</p>
+  <ul class="links">
+    <li><a href="https://www.google.com/about/careers/applications/how-we-hire" target="_blank" rel="noopener">google.com/about/careers/applications/how-we-hire</a></li>
+  </ul>
+</div>
+
+<h2>🚫 Left out, and why</h2>
+<div class="out">
+<ul>
+<li><b>PracHub, Hack2Hire, Jobaaj, Naukri Code360, Educative, Interview Kickstart, IGotAnOffer, 4dayweek.io, AllyNerds, FinalRoundAI</b> — these read as aggregator or coaching-guide content: generic "process overview" pages with no individually dated, attributable candidate post I could verify behind them. Templated "Updated 2026" framing on the URL isn't evidence of fresh sourcing.</li>
+<li><b>Aced / Exponent (tryexponent.com)</b> — a paid coaching platform; "verified by hiring managers" isn't independently checkable, and individual questions carry no date.</li>
+<li><b>krishnadey30's GitHub CompanyWise repo</b> — most-starred on GitHub, but its data is from mid-2024. Outside the 12-month window regardless of stars.</li>
+<li><b>snehasishroy GitHub company-wise dataset</b> — a periodic scrape (LC numbers + frequency %), no date or story per question. Powers this tracker's own company tags — genuinely useful for that job — just not for reading a real dated account, which is what this page is for.</li>
+</ul>
+</div>
+
+<p class="upd">Target level for this prep: <span class="pill">SDE2 → most likely Google L4 (SWE III)</span> — confirm with your recruiter. Rebuilt 2026-09-27: Taro entries fetched and confirmed directly; LeetCode Discuss and Glassdoor entries are search-summary only (both blocked direct fetch); no verifiable persistent Reddit megathread found, so none is linked.</p>
+    </div>
+  </details>
+
   <section class="summary reading-list" id="tiers">
     <div class="fpanel">
-      <div class="frow"><span class="flab">Tier</span>
+      <div class="frow"><span class="flab">Tier</span><button type="button" class="ibtn" id="tier-btn" aria-controls="tier-info" aria-expanded="false" title="What do the tiers mean?">&#9432;</button>
       <div class="tiles" role="group" aria-label="Tiers">
         <button type="button" class="tile on" data-tier="all"><b>All</b><span>115</span></button>
         <button type="button" class="tile" data-tier="diamond"><b>💎 Diamond</b><span>24</span></button>
@@ -398,12 +531,6 @@
       <span class="fcount" id="fcount"></span>
     </div>
     </div>
-    <details class="how" open>
-      <summary>Tiers (read top &rarr; bottom)</summary>
-      <p>💎 <strong>Diamond</strong> = full loop + 2023 or later + India + outcome known<br>🥇 <strong>Platinum</strong> = full loop + 2023 or later + outcome known, outside India or place not stated<br>🥈 <strong>Gold</strong> = 2023 or later and a full loop with no outcome stated, a high-impact single question, or a question asked 2+ times<br>🥉 <strong>Silver</strong> = 2023 or later but partial (phone screen only, online assessment only, a &ldquo;chances?&rdquo; post)<br>🪨 <strong>Bronze</strong> = passed the filter but from 2022 (question patterns only)</p>
-      <p>Tags: 🔄 full loop &middot; 🎯 high-impact single question &middot; 🔁 asked more than once &middot; 🧪 online assessment. Inside a tier: newer first, then L4 before L3 before L5.</p>
-      <p>Full loop = phone screen + onsite (an onsite with no screen counts). Outcome known = offer, selected, reject, downlevel, HC waitlist or freeze. LeetCode post ID gives the date when none is stated: under 3,000,000 means 2022 or older. &ldquo;📖 to add&rdquo; only means not read yet; it never changes the tier. ⚠️ date unclear = post ID under 2,000,000, possibly 2021.</p>
-    </details>
       <details class="rl" data-tier="diamond">
         <summary><strong>💎 Diamond</strong> <span class="rl-n">24</span> <span class="rl-c">✅ 23 added &middot; 📖 1 to add</span></summary>
         <ul>
@@ -6535,6 +6662,18 @@ class XmlNode {
     </div>
   </details>
 
+    <div class="ti-back" id="tier-back" hidden></div>
+  <aside class="ti-side" id="tier-info" aria-label="Tier info" hidden>
+    <button type="button" class="ti-x" id="tier-x" aria-label="Close tier info">&times;</button>
+    <h3>Tiers (read top &rarr; bottom)</h3>
+    <p class="ti" data-tier="diamond">💎 <strong>Diamond</strong> = full loop + 2023 or later + India + outcome known</p>
+    <p class="ti" data-tier="platinum">🥇 <strong>Platinum</strong> = full loop + 2023 or later + outcome known, outside India or place not stated</p>
+    <p class="ti" data-tier="gold">🥈 <strong>Gold</strong> = 2023 or later and a full loop with no outcome stated, a high-impact single question, or a question asked 2+ times</p>
+    <p class="ti" data-tier="silver">🥉 <strong>Silver</strong> = 2023 or later but partial (phone screen only, online assessment only, a &ldquo;chances?&rdquo; post)</p>
+    <p class="ti" data-tier="bronze">🪨 <strong>Bronze</strong> = passed the filter but from 2022 (question patterns only)</p>
+    <p>Tags: 🔄 full loop &middot; 🎯 high-impact single question &middot; 🔁 asked more than once &middot; 🧪 online assessment. Inside a tier: newer first, then L4 before L3 before L5.</p>
+    <p>Full loop = phone screen + onsite (an onsite with no screen counts). Outcome known = offer, selected, reject, downlevel, HC waitlist or freeze. LeetCode post ID gives the date when none is stated: under 3,000,000 means 2022 or older. &ldquo;📖 to add&rdquo; only means not read yet; it never changes the tier. ⚠️ date unclear = post ID under 2,000,000, possibly 2021.</p>
+  </aside>
   <footer class="foot">Add the next experience to keep this log growing.</footer>
 </div>
 
@@ -6549,6 +6688,26 @@ class XmlNode {
       if(details) details.open = true;
     });
   });
+})();
+
+(function(){
+  // Tier info lives in a side panel, not in the filter panel. The picked tier is highlighted.
+  var side = document.getElementById('tier-info'), back = document.getElementById('tier-back'),
+      btn = document.getElementById('tier-btn');
+  if(!side || !btn) return;
+  function sync(){
+    var on = document.querySelector('#tiers .tile.on'), t = on ? on.getAttribute('data-tier') : 'all';
+    side.querySelectorAll('p.ti').forEach(function(p){ p.classList.toggle('hl', p.getAttribute('data-tier') === t); });
+  }
+  function open(v){
+    side.hidden = back.hidden = !v;
+    btn.setAttribute('aria-expanded', v ? 'true' : 'false');
+    if(v){ sync(); side.querySelector('.ti-x').focus(); } else btn.focus();
+  }
+  btn.addEventListener('click', function(){ open(side.hidden); });
+  back.addEventListener('click', function(){ open(false); });
+  document.getElementById('tier-x').addEventListener('click', function(){ open(false); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !side.hidden) open(false); });
 })();
 
 (function(){
@@ -6698,7 +6857,8 @@ class XmlNode {
     function paint(){
       var n = counts[id] || 0;
       btn.textContent = n;
-      btn.classList.toggle('has', n > 0);
+      btn.classList.remove('r1', 'r2', 'r3');
+      if(n > 0) btn.classList.add('r' + Math.min(n, 3));
       btn.title = label(id);
       btn.setAttribute('aria-label', label(id));
       txt.textContent = note(id);
