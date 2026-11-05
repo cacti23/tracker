@@ -1876,15 +1876,16 @@ GET /bookings/{id}
   <h4>🎯 Start with Requirements</h4>
   <p class="bridge">You already found these in requirements and API design. Every technique in this card is a tool for one of them.</p>
   <div class="mnem" role="img" aria-label="Mnemonic VAC: Volume, Access patterns, Consistency">
-    <span><b>V</b>olume<small>where it lives</small></span><span><b>A</b>ccess patterns<small>⭐ most important</small></span><span><b>C</b>onsistency<small>how tightly coupled</small></span>
+    <span><b>V</b>olume<small>fits on one DB?</small></span><span><b>A</b>ccess patterns<small>⭐ most important</small></span><span><b>C</b>onsistency<small>how tightly coupled</small></span>
   </div>
   <p class="figcap">🧠 <b>VAC</b>: check the VAC before you pack the data. <span class="add">➕ mnemonic not in the article</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">📦 Data volume: decides where the data can physically live</b>Millions of users may need data spread over several stores. If users and posts end up on separate systems, each needs its own schema and a clear way to point to the other.</li>
+    <li><b class="hd">📦 Data volume: does it fit on one database? That decides where the data can physically live</b>Millions of users may need data spread over several stores. If users and posts end up on separate systems, each needs its own schema and a clear way to point to the other.
+      <br>🧮 1M users × 100 posts × 1 KB = <b>100 GB</b>: one Postgres, joins and foreign keys work. 1B users = <b>100 TB</b>: split across machines, and a join or foreign key can't cross them, so you store the other side's id and look it up. <span class="add">➕ example not in the article</span></li>
     <li><b class="hd">⭐ 🔍 Access patterns: the most important factor, they drive most decisions</b>Ask "how will this be read?" A feed of "recent posts by people I follow" → denormalized data or careful indexes. A dashboard that adds up time periods → different tables. Read it off your API: what query does each endpoint run?</li>
     <li><b class="hd">🔒 Consistency requirements: decide how tightly coupled the data can be</b>Payments need strong consistency (no half charges) → keep the related data in one ACID database. A feed can be eventually consistent (a like shows up a few seconds late) → the data can spread over separate systems, each shaped for its own query.</li>
   </ul>
-  <div class="rem"><b>✅ Remember</b> Tie each choice back to these, out loud: <i>"Since feeds must load fast and likes can be eventually consistent, I'll denormalize like counts into the posts table."</i> That shows reasoning, not memorized patterns.</div>
+  <div class="rem"><b>✅ Remember</b> Tie each choice back to these, out loud: <i>"Since feeds must load fast and likes can be eventually consistent, I'll denormalize <button type="button" class="gl-link" data-g="likecount">like counts</button> into the posts table."</i> That shows reasoning, not memorized patterns.</div>
   <p class="ana">🧳 Packing for a trip: how much you carry (volume), what you'll grab most often so it goes on top (access), and what must not break so it gets the hard case (consistency). <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🔑 Entities, Keys &amp; Relationships</h4>
@@ -2710,6 +2711,9 @@ const GLOSSARY = [
   { id: 'fanout', t: 'Fan-out on write vs on read', aka: 'fanout timeline feed push pull celebrity hybrid', s: 'Build each feed when a post is written (copy it to every follower) or when the feed is read (collect from everyone followed).',
     an: 'On write: the newspaper delivers a copy to every subscriber\'s door. On read: each reader visits every writer to collect the news.',
     b: '<p>🧪 <b>See it:</b> Alice has 300 followers and posts.</p><ul><li>✍️ On write: 300 small inserts into followers\' timelines; reading a feed = 1 lookup.</li><li>📖 On read: Bob follows 200 people → 200 lookups (maybe on 200 shards) and a merge, every time he opens the app.</li></ul><p>🌟 A celebrity with 10M followers → hybrid: pull their posts at read time and merge them in.</p>', see: ['shard', 'consistency'] },
+  { id: 'likecount', t: 'Denormalized counter (like count)', aka: 'like_count counter cache count column denormalize likes feed', s: 'Store the number of likes on the post itself, instead of counting the likes table every time.',
+    an: 'The "copies sold" number on a bestseller\'s cover: the shop updates it now and then instead of counting every receipt each time someone asks. A bit behind, never wrong for long.',
+    b: '<p>🧪 <b>Do it both ways</b> for a feed of 20 posts:</p><ul><li>🐢 Normalized: for each post, <code>SELECT COUNT(*) FROM likes WHERE post_id = ?</code>. 20 counts over millions of like rows, every time anyone opens the feed.</li><li>⚡ Denormalized: posts has a <code>like_count</code> column, read together with the post. No counting.</li></ul><p>✍️ <b>The cost:</b> one like now writes two places (a row in likes, +1 on posts.like_count), and the two can disagree for a moment.</p><p>⏳ <b>Why that\'s OK:</b> likes can be eventually consistent. Showing 1,202 instead of 1,203 for a second hurts nobody, so the +1 can even happen a little later, from a queue or in batches. A bank balance could never be shown this way.</p>', see: ['normalize', 'consistency', 'dbindex'] },
   { id: 'latency', t: 'Latency', aka: 'delay rtt round trip', s: 'How long one trip takes.',
     an: 'How long the letter takes to arrive (not how many letters fit in the van).',
     b: '<p>Usually measured as <b>round-trip time</b> (there and back). Nearby server &lt; 1 ms; New York ↔ London ≥ ~56 ms just from the speed of light in fiber. Every extra message (handshakes, retries) adds trips.</p>', see: ['handshake'] },
