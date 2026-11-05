@@ -1745,7 +1745,7 @@ GET /bookings/{id}
 </section>
 
 <section class="card" id="sd-dm-databases" data-topic="Data Modeling" data-course="hi-sd" data-lesson="data-modeling">
-  <h2 class="cap"><b>🗄️ Data Modeling ①: Pick the Database</b></h2>
+  <h2 class="cap"><b>🗄️ Data Modeling ①: Database Model Options</b></h2>
   <p class="hook">Every design stores data somewhere. Data modeling decides <b>what</b> you store (entities), <b>how each row is named</b> (keys) and <b>how rows connect</b> (relationships). The bar is <b>much lower</b> than in a dedicated data modeling interview (common in data engineering loops): you don't need to normalize everything or draw a full schema diagram, just a schema that is clear, works, and fits the requirements. But a sloppy one hurts every later step: scaling, consistency, growth.</p>
   <p class="tldr">💡 Two decisions, in order. ① <b>Which kind of database?</b> Almost always Postgres: the tool you already know. ② <b>What goes in it?</b> Tables, keys and indexes, and only then copying data and splitting it across machines (<a href="#sd-dm-schema">card ②</a>). Explained below 👇</p>
 
@@ -1765,7 +1765,7 @@ GET /bookings/{id}
   <p>⭐ A good-enough model sets up the rest of the design: scaling reads and writes, consistency where it matters, growth and audit questions, all without going back to fix it. A "good enough" model keeps the conversation on what matters.</p>
   <p class="ana">🏠 An architect's floor plan next to the house sketch: the rooms (tables), the doors between them (keys) and a note on the busiest door (index). Not the wiring diagram. <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>🧭 Five kinds of database, one default</h4>
+  <h4>🧭 Database Model Options</h4>
   <p class="bridge">Pick the database type first, because it shapes how you store everything.</p>
   <div class="take">⭐ Resist showing off with exotic databases. Use a relational database (<b>PostgreSQL</b>) unless the requirements clearly ask for something else, or you have real experience and a strong opinion. Knowing when the others fit still shows trade-off thinking.</div>
   <ul class="lines roomy heads">
@@ -1777,7 +1777,7 @@ GET /bookings/{id}
   </ul>
   <p class="ana">🧰 A toolbox: Postgres is the screwdriver you reach for nine times out of ten. The others are special tools, great for one job and awkward for everything else. <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>🐘 Relational (SQL): the default</h4>
+  <h4>🐘 Relational Databases (SQL)</h4>
   <p class="bridge">Tables with a fixed schema: a row is one entity, a column is one attribute. Foreign keys link the tables, and transactions get ACID guarantees. Most interview problems fit: users, posts, comments and likes; or users, products, orders and payments.</p>
   <div class="dts">
     <table class="dt"><caption>Users</caption><tr><th>id</th><th>username</th><th>email</th></tr><tr><td>1</td><td>john_doe</td><td>john@example.com</td></tr><tr><td>2</td><td>jane_doe</td><td>jane@example.com</td></tr><tr><td>3</td><td>bob_smith</td><td>bob@example.com</td></tr></table>
@@ -1792,9 +1792,10 @@ GET /bookings/{id}
     <li><b class="hd">❤️ One like per user per post: add a UNIQUE rule</b>A unique constraint on <code>(user_id, post_id)</code> in likes stops a double like at the database. <span class="add">➕ not in the article</span></li>
   </ul>
   <div class="rem"><b>✅ Remember</b> "SQL doesn't scale" is exaggerated. Modern SQL databases scale with read replicas, sharding, connection pooling and caching, and Facebook and Airbnb run on relational foundations. Scale comes from how you design around the database, not only which one you pick.</div>
+  <p>🧰 <b>Example technologies include</b> PostgreSQL, MySQL and SQLite.</p>
   <p class="ana">🏫 A school register: the same fixed columns (roll no., name, class) for every student, and the roll number links each student to the marks sheet. <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>📄 Document databases</h4>
+  <h4>📄 Document Databases</h4>
   <p class="bridge">JSON-like documents with a flexible schema. Instead of splitting data across tables, you nest related data inside one document. Here the same posts live inside the user:</p>
 <pre>{
   "_id": "507f1f77bcf86cd799439011",
@@ -1811,26 +1812,26 @@ GET /bookings/{id}
   <ul class="lines roomy heads">
     <li><b class="hd">✅ No joins: one read gets the user and all their posts</b></li>
     <li><b class="hd">⚠️ But editing one post means finding and rewriting the whole user document</b></li>
-    <li><b class="hd">🤔 When to consider it over SQL: the shape of the data changes often or varies a lot</b>The schema changes often, the data is deeply nested (it would need many SQL joins), or records differ a lot: some user profiles have long work histories, others almost none.</li>
+    <li><b class="hd">🤔 When to consider over SQL: the shape of the data changes often or varies a lot</b>The schema changes often, the data is deeply nested (it would need many SQL joins), or records differ a lot: some user profiles have long work histories, others almost none.</li>
     <li><b class="hd">🧬 Data modeling impact: embed and copy more, to avoid lookups across collections</b>You denormalize more aggressively: more storage and harder updates, in exchange for faster reads.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> Interviews keep functional requirements small and clear, so "evolving schemas" rarely come up. That removes the main reason for a document database. Consider one only if the interviewer says the data structure changes fast.</div>
   <p class="ana">🗂️ One file folder per customer: everything about them is inside, easy to grab at once. But a fact copied into many folders must be fixed in every folder. <span class="add">➕ analogy not in the article</span></p>
-  <p>Examples: MongoDB · Firestore · CouchDB.</p>
+  <p>🧰 <b>Example technologies include</b> MongoDB, Firestore and CouchDB.</p>
 
-  <h4>🔑 Key-value stores</h4>
+  <h4>🔑 Key-Value Stores</h4>
   <p class="bridge">Give an exact key, get one value back. Extremely fast, but you can't ask anything else: no "find by email", no joins.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">🤔 When to consider it over SQL: you look data up by one id</b>Caching, session storage, feature flags. Also very high write rates that need maximum speed and no complex queries.</li>
+    <li><b class="hd">🤔 When to consider over SQL: you look data up by one id</b>Caching, session storage, feature flags. Also very high write rates that need maximum speed and no complex queries.</li>
     <li><b class="hd">🧬 Data modeling impact: a very flat model, the same data copied under many keys</b>One key per way you read it, because you can't join or query across relationships. Great for reads, bad for consistency when the data changes.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> "Over SQL" is misleading here: you usually use <b>both</b>. SQL is the source of truth, and a key-value cache (Redis) in front holds the hot data. Fast reads, without losing durability or complex queries.</div>
   <div class="seq" data-seq="kv-cache"></div>
   <p class="figcap">🖼️ The lesson's picture: 1. check cache, 2. if miss, check DB, and the cache "can contain a flattened document based on the query pattern". Steps ③ and ④ <span class="add">➕ not in the article</span></p>
   <p class="ana">🧥 A coat check: hand over ticket 42 and get coat 42 back, instantly. Ask "which coats are blue?" and the attendant can't help. <span class="add">➕ analogy not in the article</span></p>
-  <p>Examples: Redis · DynamoDB · Memcached.</p>
+  <p>🧰 <b>Example technologies include</b> Redis, DynamoDB and Memcached.</p>
 
-  <h4>📊 Wide-column databases</h4>
+  <h4>📊 Wide-Column Databases</h4>
   <p class="bridge">Data sits in column families, and each row can have its own set of columns. Built for huge write-heavy workloads and time-series data.</p>
   <div class="wc" role="img" aria-label="Wide-column table. Row key User 1 has two columns in the posts family: posts:t2025-09-03 My first post, posts:t2025-09-01 Hello world!. Row key User 2 has one: posts:t2025-07-03 Another post.">
     <span class="h">Row key</span><span class="h">column family: posts</span>
@@ -1840,13 +1841,13 @@ GET /bookings/{id}
   <p class="figcap">🖼️ The lesson's picture: User 1 has two columns, User 2 has one</p>
   <ul class="lines roomy heads">
     <li><b class="hd">✍️ A new post is just a new column added to that user's row</b>It is keyed by (user_id, timestamp). All rows for one user_id (the partition key) are stored together, so a write only appends, and a read scans one user's posts in order.</li>
-    <li><b class="hd">🤔 When to consider it over SQL: enormous, mostly append-only writes</b>Time-series data, or analytics that mostly append and then aggregate. Think telemetry, event logging, IoT sensor data.</li>
+    <li><b class="hd">🤔 When to consider over SQL: enormous, mostly append-only writes</b>Time-series data, or analytics that mostly append and then aggregate. Think telemetry, event logging, IoT sensor data.</li>
     <li><b class="hd">🧬 Data modeling impact: design around the queries, even more than in SQL</b>Data is often copied into several column families, one per access pattern. Time becomes a first-class part of the model.</li>
   </ul>
   <p class="ana">📔 A diary per user: each new entry goes on the next line with its date. Writing is adding a line. Reading "last week" is reading a few lines in a row. <span class="add">➕ analogy not in the article</span></p>
-  <p>Examples: Cassandra · HBase.</p>
+  <p>🧰 <b>Example technologies include</b> Cassandra and HBase.</p>
 
-  <h4>🕸️ Graph databases: almost never</h4>
+  <h4>🕸️ Graph Databases</h4>
   <p class="bridge">Data as nodes (things) and edges (relationships), built for walking from one node to the next.</p>
   <div class="dg" role="img" aria-label="Graph: User 1 posted My first post and Hello world!, and liked Another post. User 2 posted Another post.">
     <div class="r"><span class="bx" style="border-color: var(--green-fg)">👤 User 1</span><span class="ar" style="--c: var(--blue-fg)">Posted →</span><span class="bx" style="border-color: var(--blue-fg)">"My first post"</span></div>
@@ -1856,11 +1857,11 @@ GET /bookings/{id}
   </div>
   <p class="figcap">🖼️ The lesson's picture, one arrow per line. Green = users, blue = posts. "Another post" is one node with two arrows into it.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">🤔 When to consider it over SQL: "Honestly? Almost never in interviews."</b>The classic cases are social networks and recommendation engines, but even Facebook models its social graph in MySQL. If that's good enough for the largest social network, it's probably good enough for your interview.</li>
+    <li><b class="hd">🤔 When to consider over SQL: "Honestly? Almost never in interviews."</b>The classic cases are social networks and recommendation engines, but even Facebook models its social graph in MySQL. If that's good enough for the largest social network, it's probably good enough for your interview.</li>
   </ul>
   <div class="warn"><b>⚠️ Watch out</b> Graph databases are a common interview mistake. They sound smart but add needless complexity. Even graph-heavy LinkedIn and Twitter keep core relationship data in SQL, which handles the main queries without the cost of running a special graph system.</div>
   <p class="ana">🚇 A metro map: perfect for "how do I get from A to B with three changes?", but you would never keep the ticket sales ledger on it. <span class="add">➕ analogy not in the article</span></p>
-  <p>Examples: Neo4j · Amazon Neptune.</p>
+  <p>🧰 <b>Example technologies include</b> Neo4j and Amazon Neptune.</p>
 
   <h4>🏁 Picking the database in one breath</h4>
   <div class="flow"><span>🐘 Postgres by default</span><i>+</i><span>🔑 key-value cache for hot reads</span><i>·</i><span>📊 wide-column for huge append-only writes</span><i>·</i><span>📄 document only if the schema really churns</span><i>·</i><span>🕸️ graph: almost never</span></div>
@@ -1868,25 +1869,25 @@ GET /bookings/{id}
 </section>
 
 <section class="card" id="sd-dm-schema" data-topic="Data Modeling" data-course="hi-sd" data-lesson="data-modeling">
-  <h2 class="cap"><b>📐 Data Modeling ②: Design the Schema</b></h2>
+  <h2 class="cap"><b>📐 Data Modeling ②: Schema Design Fundamentals</b></h2>
   <p class="hook">The database type is picked. Now the real model: tables, keys, links and indexes, then the scaling choices. Each choice should trace back to a requirement, said out loud. That reasoning is what the interviewer scores.</p>
   <p class="tldr">💡 Three questions decide everything: <b>how much</b> data, <b>how it's read</b>, and <b>how correct</b> it must be right now. Then the tools answer them: keys and relationships (the links), indexes (fast lookups, like a book's index), normalizing (store each fact once, like one contact list), and sharding (split across machines, like library branches). Explained below 👇</p>
 
-  <h4>🎯 Start with the requirements: V · A · C</h4>
+  <h4>🎯 Start with Requirements</h4>
   <p class="bridge">You already found these in requirements and API design. Every technique in this card is a tool for one of them.</p>
   <div class="mnem" role="img" aria-label="Mnemonic VAC: Volume, Access patterns, Consistency">
     <span><b>V</b>olume<small>where it lives</small></span><span><b>A</b>ccess patterns<small>⭐ most important</small></span><span><b>C</b>onsistency<small>how tightly coupled</small></span>
   </div>
   <p class="figcap">🧠 <b>VAC</b>: check the VAC before you pack the data. <span class="add">➕ mnemonic not in the article</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">📦 Volume decides where the data can physically live</b>Millions of users may need data spread over several stores. If users and posts end up on separate systems, each needs its own schema and a clear way to point to the other.</li>
-    <li><b class="hd">⭐ 🔍 Access patterns drive most decisions</b>Ask "how will this be read?" A feed of "recent posts by people I follow" → denormalized data or careful indexes. A dashboard that adds up time periods → different tables. Read it off your API: what query does each endpoint run?</li>
-    <li><b class="hd">🔒 Consistency decides how tightly the data must stay together</b>Payments need strong consistency (no half charges) → keep the related data in one ACID database. A feed can be eventually consistent (a like shows up a few seconds late) → the data can spread over separate systems, each shaped for its own query.</li>
+    <li><b class="hd">📦 Data volume: decides where the data can physically live</b>Millions of users may need data spread over several stores. If users and posts end up on separate systems, each needs its own schema and a clear way to point to the other.</li>
+    <li><b class="hd">⭐ 🔍 Access patterns: the most important factor, they drive most decisions</b>Ask "how will this be read?" A feed of "recent posts by people I follow" → denormalized data or careful indexes. A dashboard that adds up time periods → different tables. Read it off your API: what query does each endpoint run?</li>
+    <li><b class="hd">🔒 Consistency requirements: decide how tightly coupled the data can be</b>Payments need strong consistency (no half charges) → keep the related data in one ACID database. A feed can be eventually consistent (a like shows up a few seconds late) → the data can spread over separate systems, each shaped for its own query.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> Tie each choice back to these, out loud: <i>"Since feeds must load fast and likes can be eventually consistent, I'll denormalize like counts into the posts table."</i> That shows reasoning, not memorized patterns.</div>
   <p class="ana">🧳 Packing for a trip: how much you carry (volume), what you'll grab most often so it goes on top (access), and what must not break so it gets the hard case (consistency). <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>🔑 Entities, keys and relationships</h4>
+  <h4>🔑 Entities, Keys &amp; Relationships</h4>
   <p class="bridge">Each core entity becomes a table (or collection) with a clear id and clear links to the other tables.</p>
 <pre>users:    id (PK), username, email
 posts:    id (PK),
@@ -1919,13 +1920,13 @@ likes:    user_id (FK → users.id),
   <div class="rem"><b>✅ Remember</b> Use the problem's own names: <code>users</code>, <code>tweets</code>, <code>follows</code> for Twitter, not abstract "entities" and "relationships". Then show how keys, foreign keys and constraints keep that model correct and scalable.</div>
   <p class="ana">🏫 The school again: your roll number is the primary key (given by the school, unique, unlike your name). "Class teacher no." on your form is a foreign key: it must be a real teacher. <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>📇 Indexes: one for each important query</h4>
+  <h4>📇 Indexing for Access Patterns</h4>
   <p class="bridge">An index lets the database find rows without reading every row. Say which columns you index, and why.</p>
   <p class="ana">📖 The index at the back of a book: to find "normalization" you don't read every page. You look it up and jump to page 149.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">👤 posts.user_id → all posts by one user, fast</b></li>
-    <li><b class="hd">🕒 posts.created_at → recent posts in time order</b></li>
-    <li><b class="hd">🧩 (user_id, created_at) → one user's latest posts in a single jump</b>A composite index is sorted by user first, then by time inside each user. So user 7's newest posts sit side by side, already in order. How to use one is just below 👇 <span class="add">➕ why, not in the article</span></li>
+    <li><b class="hd">👤 Index on posts.user_id: quickly find all posts by a user</b></li>
+    <li><b class="hd">🕒 Index on posts.created_at: load recent posts in time order</b></li>
+    <li><b class="hd">🧩 Composite index on (user_id, created_at): load a user's recent posts efficiently</b>A composite index is sorted by user first, then by time inside each user. So user 7's newest posts sit side by side, already in order. How to use one is just below 👇 <span class="add">➕ why, not in the article</span></li>
     <li><b class="hd">🐢 Every index slows writes a little</b>Each insert or update must also update every index on that table, so index what your queries need, not everything. <span class="add">➕ not in the article</span></li>
   </ul>
   <h5>🧩 Composite index: use it from the left, with no gaps <span class="add">➕ Adi's notes, not in the article</span></h5>
@@ -1967,7 +1968,7 @@ country + age         ⚠️ country only</pre>
   <div class="rem"><b>✅ Remember</b> Tie each index to an API endpoint: <i>"GET /users/{id}/posts needs an index on posts.user_id."</i> That shows you think about real query speed.</div>
   <p>🔗 How indexes work inside (B-trees, hash indexes) is the next lesson: <a href="https://www.hellointerview.com/learn/courses/system-design/lesson/foundations/db-indexing">Database Indexing</a>.</p>
 
-  <h4>🧩 Store each fact once, copy only when needed</h4>
+  <h4>🧩 Normalization vs Denormalization</h4>
   <p class="bridge">Normalized means each fact lives in exactly one place: user data only in the users table. That stops update anomalies, where one copy changes and another copy stays old.</p>
   <p><b>✅ Normalized</b>: two tables, the post points to the user.</p>
   <div class="dts">
@@ -1983,31 +1984,32 @@ country + age         ⚠️ country only</pre>
   </div>
   <div class="take">🔁 John renames himself. Normalized: <b>1 row</b> changes. Denormalized: <b>every post he ever wrote</b> changes. Miss one, and the data disagrees with itself.</div>
   <p>⭐ Start with a clean normalized model and denormalize only when needed. Copied data wastes space and creates consistency problems that are much harder to fix than the speed problems you tried to avoid.</p>
+  <p>Denormalization can make sense in a few exceptions:</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">📊 Copying is fine for analytics and reports</b>They add up data that rarely changes.</li>
-    <li><b class="hd">🧾 Copying is right for event logs and audit trails</b>They record the data as it was at that moment. (The address on an old order should not change when the user moves. <span class="add">➕ example not in the article</span>)</li>
-    <li><b class="hd">🔎 Copying is fine for read-heavy systems like search engines</b>There, speed matters more than consistency.</li>
+    <li><b class="hd">📊 Analytics and reporting systems</b>They aggregate data that changes rarely.</li>
+    <li><b class="hd">🧾 Event logs and audit trails</b>They capture a snapshot of the data at a point in time. (The address on an old order should not change when the user moves. <span class="add">➕ example not in the article</span>)</li>
+    <li><b class="hd">🔎 Heavily read-optimized systems, like search engines</b>Speed matters more than consistency.</li>
     <li><b class="hd">⚡ Or keep the database clean and copy into a cache</b>The source of truth stays normalized. The cache holds pre-joined data, counts, or whatever shape makes reads fast (the flattened document in <a href="#sd-dm-databases--key-value-stores">card ①</a>).</li>
   </ul>
   <p class="ana">📱 Your phone contacts: change a friend's number once and every chat shows it (normalized). Writing the number on 50 sticky notes is quicker to glance at, but now you must fix all 50 (denormalized). <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>📚 Sharding: split the data the way you read it</h4>
+  <h4>📚 Scaling and Sharding</h4>
   <p class="bridge">When the data outgrows one database, you shard it across machines. The skill is picking a split that keeps data read together on the same shard.</p>
   <div class="dg" role="img" aria-label="Sharding: a server sends to three shards. Shard 1 holds posts 0 to 10k, Shard 2 posts 10k to 20k, Shard 3 posts 20k to 30k.">
     <div class="r"><span class="bx big">🖥️ Server</span><span class="stack"><span class="ar">→</span><span class="ar">→</span><span class="ar">→</span></span><span class="stack"><span class="bx">🗄️ Shard 1 · posts 0–10k</span><span class="bx">🗄️ Shard 2 · posts 10k–20k</span><span class="bx">🗄️ Shard 3 · posts 20k–30k</span></span></div>
   </div>
   <p class="figcap">🖼️ The lesson's picture: each shard holds a different range of posts</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⭐ Shard by the main access pattern</b>Mostly reading "posts by user"? Shard by <code>user_id</code>. One user's posts stay on one database, so the query touches one machine.</li>
-    <li><b class="hd">🚫 Avoid queries that need many shards</b>A timeline of posts from many followed users, sharded by user_id, means asking many shards and merging the results: slow and complex. (The usual fix is in the comments 👇)</li>
+    <li><b class="hd">⭐ Shard by the primary access pattern</b>Mostly reading "posts by user"? Shard by <code>user_id</code>. One user's posts stay on one database, so the query touches one machine.</li>
+    <li><b class="hd">🚫 Avoid cross-shard queries where possible</b>A timeline of posts from many followed users, sharded by user_id, means asking many shards and merging the results: slow and complex. (The usual fix is in the comments 👇)</li>
     <li><b class="hd">🔎 The picture splits by post range, which breaks the rule above</b>One user's posts end up on every shard. And if the ranges are of growing ids, every new post lands on the last shard. Read it as "the data is split", not as the design. <span class="add">➕ not in the article</span></li>
   </ul>
   <div class="warn"><b>⚠️ Watch out</b> Be careful with sharding by time range. It sounds good for "recent posts", but every new write goes to the shard for the latest time range: a <b>hot shard</b>. It's usually an anti-pattern for write-heavy systems. Time ranges suit archives and analytics, where recent data is read a lot but writes are spread out.</div>
   <div class="warn"><b>⚠️ Watch out</b> The shard key is often permanent, and it affects every query. Think hard about the main access patterns before you choose it.</div>
   <p class="ana">📚 A city library too big for one building splits its books across branches. Split by author name, and "all books by Rowling" is one trip. Split by the date bought, and every new book goes to the same branch, which is packed while the rest sit empty. <span class="add">➕ analogy not in the article</span></p>
 
-  <h4>🎤 When they say "design the data model"</h4>
-  <p class="bridge">Outline the core entities early. Then, when the database box appears in your high-level design, walk these six steps in order.</p>
+  <h4>🏁 Conclusion</h4>
+  <p class="bridge">Data modeling is a core part of system design interviews but not the focus: design a reasonable schema that supports the requirements, then move on. 🎤 Outline the core entities early. Then, when you introduce a database in the high-level design, walk these six steps in order.</p>
   <div class="mnem" role="img" aria-label="Mnemonic: The Cook Keeps It Dead Simple. Type, Columns, Keys, Indexes, Denormalize, Shard">
     <span><b>T</b>ype</span><span><b>C</b>olumns</span><span><b>K</b>eys</span>
   </div>
@@ -2016,17 +2018,14 @@ country + age         ⚠️ country only</pre>
   </div>
   <p class="figcap">🧠 <b>T</b>he <b>C</b>ook <b>K</b>eeps <b>I</b>t <b>D</b>ead <b>S</b>imple. <span class="add">➕ mnemonic not in the article</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">1️⃣ Type: pick the database</b><i>"Postgres: the data is relational and bookings need ACID."</i></li>
-    <li><b class="hd">2️⃣ Columns: list what each entity needs for the functional requirements</b>Only the fields your features use. Not every field you can imagine.</li>
-    <li><b class="hd">3️⃣ Keys: a primary key per table, a foreign key per relationship</b><i>"comments.post_id points to posts.id."</i></li>
-    <li><b class="hd">4️⃣ Indexes: one per important query, if any</b><i>"GET /users/{id}/posts → index on posts.user_id."</i></li>
-    <li><b class="hd">5️⃣ Denormalize? Only if a read is too slow</b>Often a cache in front is the better answer.</li>
-    <li><b class="hd">6️⃣ Shard? Only if one machine isn't enough</b>If yes, the shard key matches your main access pattern.</li>
+    <li><b class="hd">1️⃣ Type: determine the type of database you'll use</b><i>"Postgres: the data is relational and bookings need ACID."</i></li>
+    <li><b class="hd">2️⃣ Columns: list the columns each entity needs for the functional requirements</b>Only the fields your features use. Not every field you can imagine.</li>
+    <li><b class="hd">3️⃣ Keys: specify primary and foreign keys for each relationship</b><i>"comments.post_id points to posts.id."</i></li>
+    <li><b class="hd">4️⃣ Indexes: determine which columns need indexes (if any)</b><i>"GET /users/{id}/posts → index on posts.user_id."</i></li>
+    <li><b class="hd">5️⃣ Denormalize: determine whether you need to, for performance</b>Often a cache in front is the better answer.</li>
+    <li><b class="hd">6️⃣ Shard: consider whether sharding is necessary</b>If yes, choose a shard key that matches your main access pattern.</li>
   </ul>
   <p>🖼️ The finished whiteboard is the <a href="#sd-dm-databases--where-it-shows-up-in-the-interview">sketch at the top of card ①</a>: Postgres with Posts, Users and Comments, their keys and indexes.</p>
-
-  <h4>🏁 Close the loop</h4>
-  <p class="bridge">Data modeling is a core part of the interview but not the focus. Show a reasonable schema that fits the requirements, give a reason for each choice, and move on.</p>
 
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
