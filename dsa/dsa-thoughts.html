@@ -813,6 +813,13 @@ return currTreeHasApple</code></pre>
 <figure class="calls"><svg viewBox="0 0 220 200" role="img" aria-label="BST from 1, 2, 3 is a chain"><text x="110" y="18" class="tt">🐍 BST: insert 1, 2, 3</text><line x1="60" y1="59" x2="110" y2="81"/><line x1="110" y1="109" x2="160" y2="131"/><rect x="46" y="31" width="28" height="28" rx="14"/><text x="60" y="49" class="n">1</text><rect x="96" y="81" width="28" height="28" rx="14"/><text x="110" y="99" class="n">2</text><rect x="146" y="131" width="28" height="28" rx="14"/><text x="160" y="149" class="n">3</text><text x="110" y="188" class="c">a chain · height 2</text></svg><svg viewBox="0 0 220 200" role="img" aria-label="AVL tree with the same keys is balanced"><text x="110" y="18" class="tt">⚖️ AVL: same keys</text><line x1="110" y1="59" x2="60" y2="81"/><line x1="110" y1="59" x2="160" y2="81"/><rect x="96" y="31" width="28" height="28" rx="14"/><text x="110" y="49" class="n">2</text><rect x="46" y="81" width="28" height="28" rx="14"/><text x="60" y="99" class="n">1</text><rect x="146" y="81" width="28" height="28" rx="14"/><text x="160" y="99" class="n">3</text><text x="110" y="188" class="c">rotate → balanced · height 1</text></svg></figure>
 <p>🧪 Checked in Node: keys <code>1 … 1000</code> inserted in order → BST height <b>999</b>, AVL height <b>9</b>.</p>
 <p>🧰 <b>Why you meet it:</b> JS has no built-in sorted set or ordered map. A balanced-tree library (for example an AVL tree) gives sorted insert, delete and lookup in <code>O(log n)</code>. You use the tree. You do not write the rotations.</p>
+<p>🧪 <b>Example — LC 1606 (busiest servers):</b> request <code>i</code> goes to the first free server with id <code>≥ i % k</code>, else wrap to the smallest free id. A heap cannot answer "first id ≥ x". A sorted tree can.</p>
+<pre class="language-tsx"><code class="language-tsx">const available = new AvlTree&lt;number&gt;()            // free server ids, sorted
+let node = available.upperBound(i % k)               // first free id &gt;= i % k
+if (node === null) node = available.min()!          // wrap around
+available.remove(node.getValue())                    // busy: O(log k)
+available.insert(server)                             // free again: O(log k)</code></pre>
+<p class="hint">⏱️ TC <code>O((n + k) log k)</code> · SC <code>O(k)</code>. Checked in Node on 5,000 random inputs against brute force, with a sorted array in place of the library. The library call <code>upperBound</code> = first id <code>≥</code> x comes from your comment. I did not run the library.</p>
 <div class="box key"><b class="tag">📌</b> <b>AVL = BST that rebalances itself.</b> Plain BST can become a chain (<code>O(n)</code>). AVL keeps height near <code>log n</code> (<code>O(log n)</code>).</div>
 </section>
 
