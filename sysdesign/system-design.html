@@ -1248,6 +1248,13 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
   <p class="bridge">The first tool that stops it is the circuit breaker:</p>
   <div class="seq" data-seq="breaker"></div>
   <p class="figcap">Inspired by electrical circuit breakers: it stops cascading failures and gives failing services time to recover.</p>
+  <h5>📍 Where does the breaker live? <span class="add">➕ not in the article</span></h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧩 In the caller, wrapped around its call to the other service</b>"Your service" in the animation. In the cascade above, Checkout puts a breaker around its call to Payment, and Payment around its call to the bank. The service being called doesn't even know.</li>
+    <li><b class="hd">👥 Each caller keeps its own breaker</b>If Checkout and Orders both call Payment, each tracks its own failures and trips on its own.</li>
+    <li><b class="hd">🌐 Or outside your code, in the network layer</b>An API gateway or a service mesh (like Istio) can do the same job for every service, with no code change.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> A circuit breaker protects the <b>caller</b>, not the service being called.</div>
   <p class="ana">🔌 The <b>fuse</b> in your house: a fault trips it, and power to that circuit stops at once (fail fast) instead of burning the wiring. After a while you try flipping it back (a few test requests); if it holds, power is back. <span class="add">➕ analogy not in the article</span></p>
   <div class="pills"><span>⚡ Fail fast, no waiting for timeouts</span><span>🪶 Less load on a struggling service</span><span>🩹 Self-healing: tests recovery without full traffic</span><span>😊 Fast fallbacks, no hanging UI</span><span>🧱 One failure doesn't take down the system</span></div>
   <p>🎤 Bring them up when the interviewer digs into reliability, failure modes or disaster recovery. That knowledge is usually "won at 3:00am battling a hardware failure when the system Just. Won't. Come. Back. Up." Put them on:</p>
