@@ -726,6 +726,29 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>🌍 For internet traffic to find you, you need <b>public IPs</b>: routable, allocated by an <button type="button" class="term" data-p="Regional Internet Registry: the body that hands out public IP blocks for one region of the world, e.g. ARIN for North America, APNIC for Asia-Pacific.">RIR</button>. Internet routing is optimised to know where public IPs are.</li>
     <li>🍎 Any address starting with <b>17</b> (e.g. 17.0.0.0) is Apple's. The backbone knows to send those packets to Apple's routers.</li>
   </ul>
+  <h5>🔒 Private vs 🌍 public IP: why only public ones reach you <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">DNS hands you an IP. Whether anyone can reach it depends on which kind it is.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🔒 Private IP: inside one network</b><div class="star">✉️ "Flat 3"</div>
+      <div class="chk">🏠 <code>10.x</code> · <code>172.16–31.x</code> · <code>192.168.x</code> (RFC 1918)</div>
+      <div class="chk">🆓 Anyone can use them, no permission</div>
+      <div class="chk">🔁 The same IP sits in millions of homes</div>
+      <div class="chk">🚫 Internet routers drop them</div>
+      <q>Use for: app servers, databases, home devices</q></div>
+    <div class="k-green"><b>🌍 Public IP: reachable from anywhere</b><div class="star">✉️ A full street address</div>
+      <div class="chk">🪪 Unique in the whole world</div>
+      <div class="chk">🏛️ Handed down a chain (below)</div>
+      <div class="chk">📣 Announced with BGP, so every router knows the route</div>
+      <div class="chk">✅ Any internet user can reach it</div>
+      <q>Use for: load balancer, API gateway</q></div>
+  </div>
+  <p>🏛️ Where a public IP comes from:</p>
+  <div class="flow"><span><button type="button" class="term" data-p="Internet Assigned Numbers Authority: the top body for all IP addresses. It gives big blocks to the five RIRs.">IANA</button></span><i>→</i><span>RIR</span><i>→</i><span>ISP or cloud</span><i>→</i><span>🏢 you</span><i>→</i><span>📣 BGP: "this block lives here"</span></div>
+  <p>▶️ Same name in DNS, two answers. Watch where the packet ends up:</p>
+  <div class="seq" data-seq="dns-private"></div>
+  <div class="info"><b>🏢 When a private IP in DNS is fine</b> Internal DNS. Inside a VPC or VPN, the asker sits on the same private network, so the IP works. Example: AWS Route 53 private hosted zones.</div>
+  <p class="ana">✉️ Private IP = <b>"Flat 3"</b>. Every building has one, so a letter with only "Flat 3" goes nowhere, even if the phone book (DNS) prints it. Public IP = a <b>full street address</b> the city registered, on every post office's map (BGP). <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
   <p class="bridge">That's the base of every arrow you'll draw: DNS to find, TCP to connect, HTTP to talk. Next up: TCP isn't the only way to deliver.</p>
 
   <div class="learned">
@@ -2420,6 +2443,21 @@ const SEQS = {
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
     ],
   },
+  'dns-private': {
+    lanes: ['💻 User', '🔎 DNS', '🏠 Home router', '🌐 Internet', '🖥️ Your server'],
+    key: [['lb', 'DNS'], ['http', 'packet'], ['err', 'dead end'], ['tcp', 'reached']],
+    frames: [
+      { cap: 'You add <code>api.example.com</code> to <b>public</b> DNS. Try two answers: a private IP first, then a public one.' },
+      { f: 0, t: 1, m: 'api.example.com?', k: 'lb', cap: '① The user asks DNS for the name.' },
+      { f: 1, t: 0, m: '192.168.1.10', k: 'lb', dash: 1, cap: '② DNS answers with a <b>private</b> IP. The lookup works ✅. DNS does not check if the IP is reachable.' },
+      { f: 0, t: 2, m: 'to 192.168.1.10', k: 'http', cap: '③ The user sends the packet. It goes to their own home router first.' },
+      { at: 2, m: '🖨️ that is my printer', k: 'err', cap: '④ 192.168.1.10 is an address <i>inside this home</i>. The router delivers it at home, maybe to a printer. It never goes out ❌.' },
+      { at: 3, m: '🚫 private: drop', k: 'err', cap: '⑤ Even if it went out, internet routers drop private IPs. Millions of homes have a 192.168.1.10, so no router knows which one you mean.' },
+      { f: 1, t: 0, m: '203.0.113.10', k: 'lb', dash: 1, cap: '⑥ Now DNS answers with a <b>public</b> IP: unique, and announced with BGP.' },
+      { r: [{ f: 0, t: 2, m: 'packet', k: 'http' }, { f: 2, t: 3, m: 'NAT', k: 'http' }, { f: 3, t: 4, m: 'BGP route', k: 'tcp' }], cap: '⑦ Home router → internet → your server. Every router on the way has a route to this block ✅.' },
+      { f: 4, t: 0, m: '200 OK', k: 'tcp', dash: 1, cap: 'The server answers. <b>DNS resolution ≠ reachability.</b> Only a unique, announced IP is reachable.' },
+    ],
+  },
   'kv-cache': {
     lanes: ['🖥️ Server', '⚡ Key-value store', '🐘 Postgres'],
     key: [['http', 'request'], ['err', 'miss'], ['lb', 'save to cache'], ['tcp', 'hit']],
@@ -2622,7 +2660,7 @@ const GLOSSARY = [
     b: '<p>A number like <code>192.168.1.23</code> (IPv4) given to each network connection. The network you join hands it out (<b>DHCP</b>), so it changes when you move from home Wi-Fi to mobile data.</p><p>It stays the same for the whole trip: routers read it to pass the packet closer, hop by hop.</p>', see: ['private', 'mac', 'dhcp'] },
   { id: 'private', t: 'Public vs private IP', aka: 'public private 192.168 10. nat', s: 'Private works only inside your network; public works on the internet.',
     an: 'Private = "Flat 3" (only means something inside the building). Public = the building\'s street address.',
-    b: '<ul><li>🏠 Private ranges: <code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>. Every home reuses them.</li><li>🌍 Public: unique worldwide, given by your ISP (and to big companies by an RIR). Your router holds one.</li></ul><p>The router swaps private ↔ public as traffic leaves and returns: <b>NAT</b>.</p>', see: ['nat', 'router'] },
+    b: '<ul><li>🏠 Private ranges: <code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>. Every home reuses them.</li><li>🌍 Public: unique worldwide, given by your ISP (and to big companies by an RIR). Your router holds one.</li><li>🚫 Internet routers drop private IPs: millions of networks reuse the same ones, so no router knows which one you mean.</li><li>🔎 DNS can return a private IP. The lookup works, but only people inside that network can reach it. DNS resolution ≠ reachability.</li></ul><p>The router swaps private ↔ public as traffic leaves and returns: <b>NAT</b>.</p>', see: ['nat', 'router', 'bgp'] },
   { id: 'mac', t: 'MAC address', aka: 'hardware address ethernet wifi card', s: 'Which network card, on this local network only.',
     an: 'Your name: tells the next hand who to pass it to.',
     b: '<p>An ID burned into every network card at the factory, e.g. <code>a4:83:e7:2b:10:9c</code>. A laptop with Wi-Fi and Ethernet has two.</p><p>Only used on the local network (layer 2), so it is <b>rewritten at every hop</b>: phone → router, router → ISP router, and so on. The IP inside stays the same.</p>', see: ['arp', 'ip'] },
@@ -2728,6 +2766,9 @@ const GLOSSARY = [
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
+  { id: 'bgp', t: 'BGP', aka: 'border gateway protocol route announce advertise', s: 'How networks tell the internet "these IPs live here".',
+    an: 'Each post office tells its neighbours "I deliver to these streets". The news spreads until every office knows the way.',
+    b: '<p><b>Border Gateway Protocol.</b> Each big network (ISP, cloud, large company) announces its public IP blocks to its neighbours. They pass it on, so every internet router learns a route.</p><p>No announcement = no route. Owning a public IP block is not enough on its own.</p>', see: ['private', 'router', 'isp'] },
   { id: 'tuple', t: '5-tuple', aka: 'connection identity socket pair', s: 'The 5 values that identify one connection.',
     an: 'Sender address + flat, receiver address + flat, and the delivery service.',
     b: '<p>Source IP · source port · destination IP · destination port · protocol (TCP/UDP). L4 load balancers use it to keep a connection on one server.</p>', see: ['port', 'tcp'] },
@@ -2835,7 +2876,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
