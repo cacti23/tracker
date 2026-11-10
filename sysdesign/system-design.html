@@ -769,6 +769,7 @@ GET  /v1/feed        → Tweet[]</pre>
       <div class="chk">🚦 <button type="button" class="gl-link" data-g="congestion">Congestion control</button>: adapt so the network doesn't collapse</div>
       <q>The connection is a stateful "stream": two messages sent in the same stream arrive in the same order.</q></div>
   </div>
+  <div class="warn"><b>⚠️ Reliable ≠ on time</b> TCP promises your bytes arrive, in order, <i>eventually</i>. It never promises <b>when</b>. It keeps retrying for minutes before giving up (Linux: about 15 min on an open connection), and if the other side dies silently, an idle connection may not notice for hours. So the deadline lives in your app: 👉 <a href="#sd-net-latency-failures--timeouts-and-retries-with-backoff">timeouts</a>. <span class="add">➕ not in the article</span></div>
 
   <h4>🎯 Why would anyone want UDP?</h4>
   <p class="bridge">No setup sounds great, but losing and reordering packets "kinda suck". So UDP wins only where <b>speed matters more than reliability</b>, and the client can cope with a missing packet.</p>
@@ -1225,6 +1226,18 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
 
   <h4>🔁 Timeouts and retries with backoff</h4>
   <p class="bridge">The most elementary hygiene: expect a call to take X, set a timeout, give up and try again. A temporarily slow server will likely answer the retry. But retries are double-edged: retrying requests that keep failing makes things <b>worse</b>.</p>
+  <h5>⏱️ Why your app sets the timeout: TCP won't <span class="add">➕ not in the article</span></h5>
+  <p>TCP guarantees delivery, not speed, so it will happily wait minutes. Your code decides how long is too long, with two timeouts:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔌 Connect timeout: how long to wait to open the connection</b>The server is down or unreachable. Linux alone would keep trying for about 2 minutes.</li>
+    <li><b class="hd">📨 Request timeout: how long to wait for the answer once connected</b>The server is up but slow, like the bank in the cascade below.</li>
+  </ul>
+<pre>// Node: give up after 2 s,
+// then retry or fall back
+await fetch&#40;url, {
+  signal: AbortSignal.timeout(2000),
+})</pre>
+  <p class="ana">📦 A courier guarantees your parcel arrives, but not by when. So you set your own deadline: "not here by Friday? I reorder."</p>
   <p>⏳ <b>Backoff</b>: don't retry immediately. Wait a little, and longer after each failure, so the system can recover. 🎲 <b>Jitter</b>: add randomness, so clients don't all retry at the same moment "like a jackhammer".</p>
   <p class="ana">📞 Calling a busy friend: no answer → wait 1 min, then 2, then 4 (<b>backoff</b>). If 1,000 people all redial on the exact same second, the line jams again; each waiting a slightly random time (<b>jitter</b>) spreads the calls out. <span class="add">➕ analogy not in the article</span></p>
   <div class="dots" role="img" aria-label="Without jitter all clients retry at the same moments; with jitter retries spread out">
