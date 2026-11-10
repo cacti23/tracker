@@ -726,6 +726,20 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>🌍 For internet traffic to find you, you need <b>public IPs</b>: routable, allocated by an <button type="button" class="term" data-p="Regional Internet Registry: the body that hands out public IP blocks for one region of the world, e.g. ARIN for North America, APNIC for Asia-Pacific.">RIR</button>. Internet routing is optimised to know where public IPs are.</li>
     <li>🍎 Any address starting with <b>17</b> (e.g. 17.0.0.0) is Apple's. The backbone knows to send those packets to Apple's routers.</li>
   </ul>
+  <h5>🔒 Private vs 🌍 public IP: why only public ones reach you <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🏠 Private IPs work only inside one network</b>Three ranges (RFC 1918): <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>. Anyone can use them. No permission needed.</li>
+    <li><b class="hd">🚫 Internet routers don't carry private IPs</b>Millions of homes use <code>192.168.1.10</code> at the same time. No router can know which one you mean, so ISPs drop these packets.</li>
+    <li><b class="hd">🌍 A public IP is unique in the world</b>Blocks come down a chain: <button type="button" class="term" data-p="Internet Assigned Numbers Authority: the top body for all IP addresses. It gives big blocks to the five RIRs.">IANA</button> → RIR → ISP or cloud → you. Then your network announces "this block lives here" with BGP. Now every internet router has a route to it.</li>
+    <li><b class="hd">🔎 DNS finds an IP. It doesn't make it reachable</b>Public DNS can say <code>api.example.com = 192.168.1.10</code>. The lookup works. But each user's packets go to <i>their own</i> home network (maybe their printer), or nowhere.</li>
+    <li><b class="hd">🏢 Private IPs in DNS are fine for internal DNS</b>Inside a VPC or VPN, the asker sits on the same private network, so the IP works. Example: AWS Route 53 private hosted zones.</li>
+  </ul>
+  <div class="dg" role="img" aria-label="DNS answers with a public IP: routers know the route and reach your server. DNS answers with a private IP: packets stay in the user's own network">
+    <div class="r"><span class="lbl">✅ DNS says 203.0.113.10 (public)</span><span class="bx">💻 User</span><span class="ar" style="--c: var(--green-fg)">→ routers know the route</span><span class="bx">🖥️ Your server</span></div>
+    <div class="r"><span class="lbl">❌ DNS says 192.168.1.10 (private)</span><span class="bx">💻 User</span><span class="ar" style="--c: var(--red-fg)">→ stays at home</span><span class="bx">🖨️ Their own printer?</span></div>
+  </div>
+  <p class="ana">✉️ A private IP is <b>"Flat 3"</b>. Every building has a Flat 3, so a letter with only "Flat 3" on it can't be delivered. A phone book (DNS) can print "Flat 3" next to your name, and the letter still goes nowhere. A public IP is a <b>full street address</b> the city registered (IANA → RIR), and every post office's map (BGP) shows that street. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
   <p class="bridge">That's the base of every arrow you'll draw: DNS to find, TCP to connect, HTTP to talk. Next up: TCP isn't the only way to deliver.</p>
 
   <div class="learned">
@@ -2622,7 +2636,7 @@ const GLOSSARY = [
     b: '<p>A number like <code>192.168.1.23</code> (IPv4) given to each network connection. The network you join hands it out (<b>DHCP</b>), so it changes when you move from home Wi-Fi to mobile data.</p><p>It stays the same for the whole trip: routers read it to pass the packet closer, hop by hop.</p>', see: ['private', 'mac', 'dhcp'] },
   { id: 'private', t: 'Public vs private IP', aka: 'public private 192.168 10. nat', s: 'Private works only inside your network; public works on the internet.',
     an: 'Private = "Flat 3" (only means something inside the building). Public = the building\'s street address.',
-    b: '<ul><li>🏠 Private ranges: <code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>. Every home reuses them.</li><li>🌍 Public: unique worldwide, given by your ISP (and to big companies by an RIR). Your router holds one.</li></ul><p>The router swaps private ↔ public as traffic leaves and returns: <b>NAT</b>.</p>', see: ['nat', 'router'] },
+    b: '<ul><li>🏠 Private ranges: <code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>. Every home reuses them.</li><li>🌍 Public: unique worldwide, given by your ISP (and to big companies by an RIR). Your router holds one.</li><li>🚫 Internet routers drop private IPs: millions of networks reuse the same ones, so no router knows which one you mean.</li><li>🔎 DNS can return a private IP. The lookup works, but only people inside that network can reach it. DNS resolution ≠ reachability.</li></ul><p>The router swaps private ↔ public as traffic leaves and returns: <b>NAT</b>.</p>', see: ['nat', 'router', 'bgp'] },
   { id: 'mac', t: 'MAC address', aka: 'hardware address ethernet wifi card', s: 'Which network card, on this local network only.',
     an: 'Your name: tells the next hand who to pass it to.',
     b: '<p>An ID burned into every network card at the factory, e.g. <code>a4:83:e7:2b:10:9c</code>. A laptop with Wi-Fi and Ethernet has two.</p><p>Only used on the local network (layer 2), so it is <b>rewritten at every hop</b>: phone → router, router → ISP router, and so on. The IP inside stays the same.</p>', see: ['arp', 'ip'] },
@@ -2728,6 +2742,9 @@ const GLOSSARY = [
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
+  { id: 'bgp', t: 'BGP', aka: 'border gateway protocol route announce advertise', s: 'How networks tell the internet "these IPs live here".',
+    an: 'Each post office tells its neighbours "I deliver to these streets". The news spreads until every office knows the way.',
+    b: '<p><b>Border Gateway Protocol.</b> Each big network (ISP, cloud, large company) announces its public IP blocks to its neighbours. They pass it on, so every internet router learns a route.</p><p>No announcement = no route. Owning a public IP block is not enough on its own.</p>', see: ['private', 'router', 'isp'] },
   { id: 'tuple', t: '5-tuple', aka: 'connection identity socket pair', s: 'The 5 values that identify one connection.',
     an: 'Sender address + flat, receiver address + flat, and the delivery service.',
     b: '<p>Source IP · source port · destination IP · destination port · protocol (TCP/UDP). L4 load balancers use it to keep a connection on one server.</p>', see: ['port', 'tcp'] },
@@ -2835,7 +2852,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
