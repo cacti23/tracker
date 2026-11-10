@@ -727,18 +727,27 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>🍎 Any address starting with <b>17</b> (e.g. 17.0.0.0) is Apple's. The backbone knows to send those packets to Apple's routers.</li>
   </ul>
   <h5>🔒 Private vs 🌍 public IP: why only public ones reach you <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
-  <ul class="lines roomy heads">
-    <li><b class="hd">🏠 Private IPs work only inside one network</b>Three ranges (RFC 1918): <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>. Anyone can use them. No permission needed.</li>
-    <li><b class="hd">🚫 Internet routers don't carry private IPs</b>Millions of homes use <code>192.168.1.10</code> at the same time. No router can know which one you mean, so ISPs drop these packets.</li>
-    <li><b class="hd">🌍 A public IP is unique in the world</b>Blocks come down a chain: <button type="button" class="term" data-p="Internet Assigned Numbers Authority: the top body for all IP addresses. It gives big blocks to the five RIRs.">IANA</button> → RIR → ISP or cloud → you. Then your network announces "this block lives here" with BGP. Now every internet router has a route to it.</li>
-    <li><b class="hd">🔎 DNS finds an IP. It doesn't make it reachable</b>Public DNS can say <code>api.example.com = 192.168.1.10</code>. The lookup works. But each user's packets go to <i>their own</i> home network (maybe their printer), or nowhere.</li>
-    <li><b class="hd">🏢 Private IPs in DNS are fine for internal DNS</b>Inside a VPC or VPN, the asker sits on the same private network, so the IP works. Example: AWS Route 53 private hosted zones.</li>
-  </ul>
-  <div class="dg" role="img" aria-label="DNS answers with a public IP: routers know the route and reach your server. DNS answers with a private IP: packets stay in the user's own network">
-    <div class="r"><span class="lbl">✅ DNS says 203.0.113.10 (public)</span><span class="bx">💻 User</span><span class="ar" style="--c: var(--green-fg)">→ routers know the route</span><span class="bx">🖥️ Your server</span></div>
-    <div class="r"><span class="lbl">❌ DNS says 192.168.1.10 (private)</span><span class="bx">💻 User</span><span class="ar" style="--c: var(--red-fg)">→ stays at home</span><span class="bx">🖨️ Their own printer?</span></div>
+  <p class="bridge">DNS hands you an IP. Whether anyone can reach it depends on which kind it is.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🔒 Private IP: inside one network</b><div class="star">✉️ "Flat 3"</div>
+      <div class="chk">🏠 <code>10.x</code> · <code>172.16–31.x</code> · <code>192.168.x</code> (RFC 1918)</div>
+      <div class="chk">🆓 Anyone can use them, no permission</div>
+      <div class="chk">🔁 The same IP sits in millions of homes</div>
+      <div class="chk">🚫 Internet routers drop them</div>
+      <q>Use for: app servers, databases, home devices</q></div>
+    <div class="k-green"><b>🌍 Public IP: reachable from anywhere</b><div class="star">✉️ A full street address</div>
+      <div class="chk">🪪 Unique in the whole world</div>
+      <div class="chk">🏛️ Handed down a chain (below)</div>
+      <div class="chk">📣 Announced with BGP, so every router knows the route</div>
+      <div class="chk">✅ Any internet user can reach it</div>
+      <q>Use for: load balancer, API gateway</q></div>
   </div>
-  <p class="ana">✉️ A private IP is <b>"Flat 3"</b>. Every building has a Flat 3, so a letter with only "Flat 3" on it can't be delivered. A phone book (DNS) can print "Flat 3" next to your name, and the letter still goes nowhere. A public IP is a <b>full street address</b> the city registered (IANA → RIR), and every post office's map (BGP) shows that street. <span class="add">➕ analogy not in the article</span></p>
+  <p>🏛️ Where a public IP comes from:</p>
+  <div class="flow"><span><button type="button" class="term" data-p="Internet Assigned Numbers Authority: the top body for all IP addresses. It gives big blocks to the five RIRs.">IANA</button></span><i>→</i><span>RIR</span><i>→</i><span>ISP or cloud</span><i>→</i><span>🏢 you</span><i>→</i><span>📣 BGP: "this block lives here"</span></div>
+  <p>▶️ Same name in DNS, two answers. Watch where the packet ends up:</p>
+  <div class="seq" data-seq="dns-private"></div>
+  <div class="info"><b>🏢 When a private IP in DNS is fine</b> Internal DNS. Inside a VPC or VPN, the asker sits on the same private network, so the IP works. Example: AWS Route 53 private hosted zones.</div>
+  <p class="ana">✉️ Private IP = <b>"Flat 3"</b>. Every building has one, so a letter with only "Flat 3" goes nowhere, even if the phone book (DNS) prints it. Public IP = a <b>full street address</b> the city registered, on every post office's map (BGP). <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
   <p class="bridge">That's the base of every arrow you'll draw: DNS to find, TCP to connect, HTTP to talk. Next up: TCP isn't the only way to deliver.</p>
 
@@ -2432,6 +2441,21 @@ const SEQS = {
       { f: 0, t: 1, m: 'retry · same 🔑', k: 'http', cap: 'The client retries with the <b>same key</b>.' },
       { f: 1, t: 2, m: 'seen 🔑? yes ✋', k: 'lb', bi: 1, cap: 'Key seen → don\'t charge again.' },
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
+    ],
+  },
+  'dns-private': {
+    lanes: ['💻 User', '🔎 DNS', '🏠 Home router', '🌐 Internet', '🖥️ Your server'],
+    key: [['lb', 'DNS'], ['http', 'packet'], ['err', 'dead end'], ['tcp', 'reached']],
+    frames: [
+      { cap: 'You add <code>api.example.com</code> to <b>public</b> DNS. Try two answers: a private IP first, then a public one.' },
+      { f: 0, t: 1, m: 'api.example.com?', k: 'lb', cap: '① The user asks DNS for the name.' },
+      { f: 1, t: 0, m: '192.168.1.10', k: 'lb', dash: 1, cap: '② DNS answers with a <b>private</b> IP. The lookup works ✅. DNS does not check if the IP is reachable.' },
+      { f: 0, t: 2, m: 'to 192.168.1.10', k: 'http', cap: '③ The user sends the packet. It goes to their own home router first.' },
+      { at: 2, m: '🖨️ that is my printer', k: 'err', cap: '④ 192.168.1.10 is an address <i>inside this home</i>. The router delivers it at home, maybe to a printer. It never goes out ❌.' },
+      { at: 3, m: '🚫 private: drop', k: 'err', cap: '⑤ Even if it went out, internet routers drop private IPs. Millions of homes have a 192.168.1.10, so no router knows which one you mean.' },
+      { f: 1, t: 0, m: '203.0.113.10', k: 'lb', dash: 1, cap: '⑥ Now DNS answers with a <b>public</b> IP: unique, and announced with BGP.' },
+      { r: [{ f: 0, t: 2, m: 'packet', k: 'http' }, { f: 2, t: 3, m: 'NAT', k: 'http' }, { f: 3, t: 4, m: 'BGP route', k: 'tcp' }], cap: '⑦ Home router → internet → your server. Every router on the way has a route to this block ✅.' },
+      { f: 4, t: 0, m: '200 OK', k: 'tcp', dash: 1, cap: 'The server answers. <b>DNS resolution ≠ reachability.</b> Only a unique, announced IP is reachable.' },
     ],
   },
   'kv-cache': {
