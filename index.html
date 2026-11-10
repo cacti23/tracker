@@ -162,8 +162,11 @@
     small, .small { font-size: 0.8rem; }
 
     /* ── 5. SIDEBAR — Bootstrap has no sidebar component ───────────────────── */
+    /* Pinned to one viewport on every page, so the topic list scrolls inside the sidebar and
+       Apps stay in view. Without this, long topic pages stretched the sidebar to the page height
+       and pushed Apps to the bottom, while Google/Papers/Visuals (locked to 100vh) did not. */
     #sidebar {
-      width: 260px; min-height: 100vh; flex-shrink: 0;
+      width: 260px; height: 100vh; position: sticky; top: 0; flex-shrink: 0;
       background: var(--bg-surface);
       border-right: 1px solid var(--border);
       transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
@@ -221,6 +224,15 @@
     .sidebar-nav { border-bottom: 1px solid var(--border); margin-bottom: 0.6rem; }
     /* These labels sit outside <nav>, so they need the body font set here. */
     .sidebar-apps-label { padding-top: 0; margin: 0; font-family: var(--font-body); }
+    .sidebar-apps { padding-bottom: 0.4rem; }
+    .sidebar-apps > summary {
+      list-style: none; cursor: pointer; user-select: none;
+      display: flex; align-items: center; justify-content: space-between; padding: 0.45rem 0.75rem;
+    }
+    .sidebar-apps > summary::-webkit-details-marker { display: none; }
+    .sidebar-apps > summary::after { content: '▸'; font-size: 0.8rem; transition: transform 0.15s; }
+    .sidebar-apps[open] > summary::after { transform: rotate(90deg); }
+    .sidebar-apps > summary:hover { color: var(--text-primary); }
     .sidebar-apps-group {
       font-size: 0.68rem; font-weight: 600; color: var(--text-muted); font-family: var(--font-body);
       margin: 0.55rem 0.75rem 0.1rem; padding-left: 0.1rem; white-space: nowrap;
@@ -1014,7 +1026,9 @@
     </nav>
 
     <!-- Apps: standalone pages that open on their own (Google, Papers and Visuals stay in-pane above). -->
-    <p class="sidebar-section-label sidebar-apps-label">🧩 Apps</p>
+    <!-- Closed by default so the topic list gets the room; open/closed is remembered per device. -->
+    <details id="sidebar-apps" class="sidebar-apps" ontoggle="try { localStorage.setItem('dsa-sidebar-apps-open', this.open ? '1' : '0') } catch (e) {}">
+    <summary class="sidebar-section-label sidebar-apps-label">🧩 Apps</summary>
     <p class="sidebar-apps-group">🎯 DSA &amp; Prep</p>
     <a href="dsa/dsa-master-map.html" class="sidebar-dsa-link">
       <span class="nav-topic-icon">🗺️</span>
@@ -1041,6 +1055,7 @@
       <span class="nav-topic-icon">🔥</span>
       <span class="nav-topic-label">5-Day Elite Split</span>
     </a>
+    </details>
 
     <div class="sidebar-data-btns">
       <button type="button" class="sidebar-data-btn" onclick="exportData()" title="Download all progress, notes and links as a JSON backup file">
@@ -1532,6 +1547,7 @@ document.addEventListener('DOMContentLoaded', () => {
   syncThemeIcon()
   _loadQpState()
   buildNav()
+  try { if (localStorage.getItem('dsa-sidebar-apps-open') === '1') document.getElementById('sidebar-apps').open = true } catch (e) {}
   _restoreView()
 })
 
