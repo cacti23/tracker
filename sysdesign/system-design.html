@@ -701,6 +701,31 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP for its public one on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
     <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
   </ul>
+  <h5>🧭 Which box reads which label <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">Every box on the path opens the envelopes only down to its own layer. That's what "a router is an L3 device" means.</p>
+  <div class="dg" role="img" aria-label="Switch reads L2 MAC, router reads L3 IP, L4 load balancer reads ports, L7 load balancer reads HTTP">
+    <div class="r"><span class="bx">🔀 <button type="button" class="gl-link" data-g="switch">Switch</button> · L2</span><span class="ar">→ reads</span><span class="bx">🏷️ MAC<small>next card, same network</small></span></div>
+    <div class="r"><span class="bx">🧭 Router · L3</span><span class="ar">→ reads</span><span class="bx">📍 IP<small>which network next</small></span></div>
+    <div class="r"><span class="bx">☎️ L4 LB</span><span class="ar">→ reads</span><span class="bx">🚪 IP + port<small>which server gets it</small></span></div>
+    <div class="r"><span class="bx">🛎️ L7 LB</span><span class="ar">→ reads</span><span class="bx">📄 HTTP<small>URL, headers, cookies</small></span></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧭 A router reads only the destination IP</b>It picks the next hop and passes the packet on. It never opens TCP or HTTP.</li>
+    <li><b class="hd">🏠 Your home "router" is many boxes in one</b>Router + switch + Wi-Fi + DHCP + NAT. NAT rewrites ports (L4), so the home box reads a bit more than a pure router.</li>
+    <li><b class="hd">⬆️ Higher layer = reads more = decides more, works more</b>Same reason an L7 load balancer can route by URL but costs more than an L4 one (🔗 Load balancing below).</li>
+  </ul>
+  <p class="ana">✉️ The router is a <b>sorting office</b>: it reads the postcode on the envelope and never opens the letter. The L7 load balancer is a <b>receptionist</b> who opens and reads it. <span class="add">➕ analogy not in the article</span></p>
+
+  <h5>🔁 NAT: on every packet that leaves home <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">Your phone has a private IP. The internet can't route it. So the router swaps it on the way out, every time.</p>
+  <div class="seq" data-seq="nat"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Every packet to the internet is rewritten, both ways</b>Out: the source becomes the router's public IP + a port. Back: the destination becomes your private IP again.</li>
+    <li><b class="hd">🏠 Inside the home there is no NAT</b>Phone → printer stays on the local network, private IP to private IP.</li>
+    <li><b class="hd">🆕 IPv6 usually needs no NAT</b>It has enough addresses for every device to get a public one.</li>
+    <li><b class="hd">🏢 A whole office can look like one IP</b>The server sees only the router's public IP. Rate limits or IP hash by IP treat 500 staff as one client.</li>
+  </ul>
+  <p class="ana">✉️ An office <b>mailroom</b>: every letter goes out with the company's address and a reference number. Replies come back to the mailroom, which looks up the number and walks them to your desk. <span class="add">➕ analogy not in the article</span></p>
   <p class="bridge">So the IP says <b>who it's finally for</b>, the MAC says <b>who gets it next</b>, the port says <b>which app</b>. Now watch those packets move.</p>
 
 
@@ -746,9 +771,33 @@ GET  /v1/feed        → Tweet[]</pre>
   <div class="flow"><span><button type="button" class="term" data-p="Internet Assigned Numbers Authority: the top body for all IP addresses. It gives big blocks to the five RIRs.">IANA</button></span><i>→</i><span>RIR</span><i>→</i><span>ISP or cloud</span><i>→</i><span>🏢 you</span><i>→</i><span>📣 BGP: "this block lives here"</span></div>
   <p>▶️ Same name in DNS, two answers. Watch where the packet ends up:</p>
   <div class="seq" data-seq="dns-private"></div>
-  <div class="info"><b>🏢 When a private IP in DNS is fine</b> Internal DNS. Inside a VPC or VPN, the asker sits on the same private network, so the IP works. Example: AWS Route 53 private hosted zones.</div>
   <p class="ana">✉️ Private IP = <b>"Flat 3"</b>. Every building has one, so a letter with only "Flat 3" goes nowhere, even if the phone book (DNS) prints it. Public IP = a <b>full street address</b> the city registered, on every post office's map (BGP). <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
+  <h5>🏢 Office DNS: answers only people inside <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">So a private IP in DNS is useless on the internet. Inside an office, it is exactly right.</p>
+  <div class="dg" role="img" aria-label="In the office or on VPN the office DNS answers wiki.corp with a private IP. From home without VPN it cannot be reached or refuses">
+    <div class="r"><span class="lbl">✅ In the office</span><span class="bx">💻 10.1.2.3</span><span class="ar" style="--c: var(--green-fg)">→ UDP 53</span><span class="bx">🏢 Office DNS<small>wiki.corp = 10.0.5.20</small></span></div>
+    <div class="r"><span class="lbl">✅ At home, on VPN</span><span class="bx">💻 VPN IP 10.8.0.4</span><span class="ar" style="--c: var(--green-fg)">→ UDP 53</span><span class="bx">🏢 Office DNS<small>answers</small></span></div>
+    <div class="r"><span class="lbl">❌ At home, no VPN</span><span class="bx">💻 203.0.113.50</span><span class="ar" style="--c: var(--red-fg)">→ blocked</span><span class="bx">🏢 Office DNS<small>can't reach it, or REFUSED</small></span></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔒 Two locks keep outsiders out</b>① The server sits on a private IP behind the firewall, so outsiders can't reach it. ② Its allow list answers only known IP ranges; anyone else gets <code>REFUSED</code>.</li>
+    <li><b class="hd">🔀 Same name, different answer by who asks (split-horizon)</b>Inside: <code>wiki.corp</code> → <code>10.0.5.20</code>. Outside: the public login page's IP, or nothing.</li>
+    <li><b class="hd">🚪 Port 53: UDP for lookups, TCP for big answers</b>TCP 53 also copies zones between DNS servers. Encrypted DNS uses 443 (DoH) or 853 (DoT).</li>
+    <li><b class="hd">☁️ The cloud does the same</b>AWS Route 53 private hosted zones answer only inside the VPCs you attach.</li>
+  </ul>
+  <p class="ana">☎️ The office <b>receptionist's internal phone list</b>: staff get any extension. A stranger calling from outside hears "sorry, I can't share that". <span class="add">➕ analogy not in the article</span></p>
+
+  <h5>📡 ICMP: the network's delivery notes (ping uses it) <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">IP carries packets but never tells you what went wrong. ICMP is how routers and hosts report back.</p>
+  <div class="seq" data-seq="icmp"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧱 ICMP lives on L3, with no ports</b>It rides inside IP instead of TCP or UDP. So "ping port 443" is not a thing.</li>
+    <li><b class="hd">🛠️ Three jobs: ping, error notes, traceroute</b>Echo request/reply · "destination unreachable" · "time exceeded" when a packet's hop limit (TTL) hits 0.</li>
+    <li><b class="hd">🚫 No ping reply ≠ server down</b>Many firewalls and clouds block ICMP.</li>
+    <li><b class="hd">🎤 Health checks use TCP or HTTP, not ping</b>Ping proves the machine is up, not your app (🔗 <a href="#sd-net-lb--health-checks-route-around-failures">Health checks</a>).</li>
+  </ul>
+  <p class="ana">✉️ ICMP is the post office's <b>own slips</b>: "returned, no such address" or "return receipt". Ping is a postcard saying "are you there?" that the house sends straight back. <span class="add">➕ analogy not in the article</span></p>
   <p class="bridge">That's the base of every arrow you'll draw: DNS to find, TCP to connect, HTTP to talk. Next up: TCP isn't the only way to deliver.</p>
 
   <div class="learned">
@@ -800,11 +849,14 @@ GET  /v1/feed        → Tweet[]</pre>
   <p>📞 VoIP drops the odd packet: a hiccup in the audio, but the call is still intelligible. That beats retransmitting and clogging the network with ACKs.</p>
   <div class="warn"><b>⚠️ Watch out</b> Browsers don't widely support UDP outside WebRTC. If your design uses UDP (e.g. the flood of hearts and reactions in Facebook Live Comments), plan for browser users.
     <div class="vs"><div class="good">📱 App users: real-time UDP stream of reactions</div><div class="bad">🌐 Browser users: slower, batched HTTP stream, spread out over time in the UI</div></div></div>
+  <div class="warn"><b>⚠️ Corporate firewalls often block UDP</b> Many offices allow only TCP 80/443 out. So every UDP design needs a TCP fallback. <span class="add">➕ Adi's notes, checked; not in the article</span>
+    <div class="flow"><span>🔫 try UDP</span><i>→</i><span class="no">🧱 blocked?</span><i>→</i><span class="ok">🐴 fall back to TCP 443</span></div>
+    <p>📞 WebRTC falls back to a TURN relay over TCP/TLS 443. 🚀 HTTP/3 (QUIC, on UDP) falls back to HTTP/2 over TCP.</p></div>
 
   <h4>⚖️ When to choose each</h4>
   <p class="bridge">Interviewers expect TCP by default, often without you even saying it. That's also the course's advice. Extra points come from making a solid case for UDP "and not bungling the details".</p>
   <p>🔫 Choose <b>UDP</b> when:</p>
-  <div class="pills"><span>⚡ low latency is critical (real-time, gaming)</span><span>🎞️ some loss is OK (media streaming)</span><span>📈 high-volume telemetry or logs</span><span>🌐 no browsers (or another path for them)</span></div>
+  <div class="pills"><span>⚡ low latency is critical (real-time, gaming)</span><span>🎞️ some loss is OK (media streaming)</span><span>📈 high-volume telemetry or logs</span><span>🌐 no browsers (or another path for them)</span><span>🧱 a TCP fallback for strict firewalls</span></div>
   <div class="info"><b>ℹ️ Note</b> Apps often use <b>both</b>. A web video-conferencing app: TCP/HTTP for signaling and authentication, UDP/WebRTC for the audio and video streams.</div>
   <table class="tbl">
     <tr><td></td><td><b>🔫 UDP</b></td><td><b>🐴 TCP</b></td></tr>
@@ -885,6 +937,42 @@ GET  /v1/feed        → Tweet[]</pre>
     <p>✉️ Like a staff badge the receptionist scans, vs someone just saying "I'm the manager". The body says what you <b>want</b>; the verified token says who you <b>are</b>.</p>
     <p>🏷️ Why a header? It rides on every request (even GET, which has no body), stays apart from the data, and one middleware checks it before any handler runs. A header can be faked too: what makes it safe is the server's <b>signature check</b>, not the header itself.</p>
     <p>🔐 Then check permission: "does user 42 own order 99?" before returning it.</p></div>
+
+  <h5>📎 multipart/form-data ≠ S3 multipart upload <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">Both say "multipart". One is a body format inside <b>one</b> request. The other sends one file as <b>many</b> requests.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📎 multipart/form-data</b><div class="star">One request, many parts</div>
+      <div class="chk">📨 One HTTP POST: text fields + files in one body</div>
+      <div class="chk">✂️ A boundary line separates the parts</div>
+      <div class="chk">🌐 What an HTML form with a file input sends</div>
+      <div class="chk">💥 Fails at 90% → send it all again</div>
+      <q>Use for: a profile photo, small files</q></div>
+    <div class="k-green"><b>🪣 S3 multipart upload</b><div class="star">One file, many requests</div>
+      <div class="chk">✂️ Split the file: parts of 5 MB–5 GB, up to 10,000</div>
+      <div class="chk">⚡ Upload the parts in parallel</div>
+      <div class="chk">🔁 A part fails → retry only that part</div>
+      <div class="chk">🧩 S3 joins them when you say "complete"</div>
+      <q>Use for: big files (AWS suggests it above 100 MB; a single upload stops at 5 GB)</q></div>
+  </div>
+<pre>Content-Type: multipart/form-data;
+  boundary=XyZ
+
+--XyZ
+Content-Disposition: form-data;
+  name="title"
+
+Trip photo
+--XyZ
+Content-Disposition: form-data;
+  name="file"; filename="a.jpg"
+
+&lt;jpg bytes&gt;
+--XyZ--</pre>
+  <p class="figcap">📎 One request body: two parts, cut by the boundary.</p>
+  <div class="flow"><span>① CreateMultipartUpload → UploadId</span><i>→</i><span>② UploadPart 1…N, in parallel</span><i>→</i><span>③ CompleteMultipartUpload → one object</span></div>
+  <p class="figcap">🪣 S3: three kinds of request for one file.</p>
+  <p class="ana">📦 form-data = <b>one parcel</b> with labelled compartments. S3 multipart = a <b>sofa shipped in numbered boxes</b> by many couriers. One box lost → resend that box only. The warehouse rebuilds the sofa. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> 🎤 Big uploads in a design (YouTube, Dropbox): the server hands out a presigned URL per part, and the client uploads the parts straight to S3. More in Handling Large Blobs, later in the course.</div>
 
   <h4>🧩 REST: simple and flexible</h4>
   <p class="bridge">HTTP alone builds <i>websites</i>. Designs are about <i>services</i> talking through APIs, and there are three main paradigms: REST, GraphQL, gRPC. ⭐ REST is the most common.</p>
@@ -2443,6 +2531,35 @@ const SEQS = {
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
     ],
   },
+  'nat': {
+    lanes: ['📱 Phone 192.168.1.23', '🏠 Router (NAT)', '🖥️ Server'],
+    key: [['http', 'going out'], ['lb', 'NAT rewrite'], ['tcp', 'coming back'], ['gray', 'no NAT']],
+    frames: [
+      { cap: 'Your phone has the private IP <b>192.168.1.23</b>. The router has one public IP, <b>203.0.113.7</b>, shared by the whole home.' },
+      { f: 0, t: 1, m: 'from .23:51234', k: 'http', cap: '① Every packet for the internet goes to the router first.' },
+      { at: 1, m: '✍️ from → 203.0.113.7:40001', k: 'lb', cap: '② The router rewrites the <b>source</b> to its public IP + a free port. It writes the pair in its NAT table: 40001 ↔ 192.168.1.23:51234.' },
+      { f: 1, t: 2, m: 'from 203.0.113.7:40001', k: 'http', cap: '③ The server sees only the public IP. It never learns the phone\'s private IP.' },
+      { f: 2, t: 1, m: 'to 203.0.113.7:40001', k: 'tcp', dash: 1, cap: '④ The reply comes back to the public IP and that port.' },
+      { at: 1, m: '📒 40001 → .23:51234', k: 'lb', cap: '⑤ The router looks up port 40001 in its table and rewrites the <b>destination</b> back to the phone.' },
+      { f: 1, t: 0, m: 'to .23:51234', k: 'tcp', dash: 1, cap: '⑥ The phone gets the reply. This happens on <b>every packet</b> of every request, both ways.' },
+      { at: 0, m: '🖨️ to printer: no NAT', k: 'gray', cap: 'Not for traffic inside the home: phone → printer is private to private, no rewrite. IPv6 usually skips NAT too.' },
+    ],
+  },
+  'icmp': {
+    lanes: ['💻 You', '🧭 Router 1', '🧭 Router 2', '🖥️ Server'],
+    key: [['http', 'packet'], ['tcp', 'ICMP reply'], ['err', 'ICMP error note']],
+    frames: [
+      { cap: '<b>ICMP</b> (Internet Control Message Protocol) rides inside IP, with no ports. Three jobs 👇' },
+      { f: 0, t: 3, m: 'echo request', k: 'http', cap: '① <b>ping</b>: send an ICMP echo request, "are you there?"' },
+      { f: 3, t: 0, m: 'echo reply · 12 ms', k: 'tcp', dash: 1, cap: '② The server replies. ping prints the round-trip time. It proves the machine is reachable, nothing more.' },
+      { f: 0, t: 2, m: 'to 10.9.9.9', k: 'http', cap: '③ <b>Error notes</b>: you send a packet to an address that no route leads to.' },
+      { f: 2, t: 0, m: '❌ destination unreachable', k: 'err', dash: 1, cap: '④ The router that gives up can send back "destination unreachable", so your app fails fast instead of waiting.' },
+      { f: 0, t: 1, m: 'TTL = 1', k: 'http', cap: '⑤ <b>traceroute</b>: every IP packet has a hop limit, the TTL. Each router subtracts 1; at 0 it drops the packet. Send one with TTL 1…' },
+      { f: 1, t: 0, m: '⏱️ time exceeded', k: 'err', dash: 1, cap: '⑥ …router 1 drops it and sends back "time exceeded". Now you know hop 1.' },
+      { f: 0, t: 2, m: 'TTL = 2', k: 'http', cap: '⑦ TTL 2 gets one router further.' },
+      { f: 2, t: 0, m: '⏱️ time exceeded', k: 'err', dash: 1, cap: '⑧ Router 2 answers. Repeat until the server replies: that is the whole path, hop by hop.' },
+    ],
+  },
   'dns-private': {
     lanes: ['💻 User', '🔎 DNS', '🏠 Home router', '🌐 Internet', '🖥️ Your server'],
     key: [['lb', 'DNS'], ['http', 'packet'], ['err', 'dead end'], ['tcp', 'reached']],
@@ -2678,7 +2795,7 @@ const GLOSSARY = [
     b: '<p>When your phone joins Wi-Fi it asks "can I have an address?", and the DHCP server (usually your router) replies with an IP, the router\'s address and which DNS to use. Nobody types it in by hand.</p>', see: ['ip', 'router'] },
   { id: 'dns', t: 'DNS', aka: 'domain name system lookup resolve', s: 'Turns a name like google.com into an IP.',
     an: 'The phone book: name in, number out.',
-    b: '<p>Your device asks a DNS server "what is the IP of hellointerview.com?" and caches the answer for a while (its <b>TTL</b>). Runs on port 53, usually over UDP.</p>', see: ['ip', 'udp'] },
+    b: '<p>Your device asks a DNS server "what is the IP of hellointerview.com?" and caches the answer for a while (its <b>TTL</b>). Runs on port 53: UDP for normal lookups, TCP for big answers.</p><p>🏢 An office DNS answers only inside the office or VPN, and can give a different answer inside than outside (split-horizon).</p>', see: ['ip', 'udp', 'private'] },
   { id: 'nat', t: 'NAT', aka: 'network address translation', s: 'The router swaps private IPs for its one public IP.',
     an: 'The building reception: posts every flat\'s letters under the building address, and hands replies back to the right flat.',
     b: '<p>All devices at home share one public IP. Going out, the router rewrites the source to its public IP + a port it picks, and remembers the mapping. Replies come back to that port and get sent to the right device.</p><p>Side effect: outsiders can\'t start a connection to you, which is why video calls need STUN/TURN.</p>', see: ['private', 'router'] },
@@ -2766,6 +2883,15 @@ const GLOSSARY = [
   { id: 'isp', t: 'ISP', aka: 'internet service provider', s: 'The company that connects you to the internet.',
     an: 'The postal company that picks up from your street.',
     b: '<p>Your broadband or mobile carrier. It gives your router its public IP and carries your packets to the internet backbone.</p>', see: ['private'] },
+  { id: 'icmp', t: 'ICMP', aka: 'internet control message protocol ping traceroute echo unreachable time exceeded', s: 'IP\'s own messages about delivery. ping uses it.',
+    an: 'The post office\'s own slips: "returned, no such address", "return receipt".',
+    b: '<p>Carried inside IP, with <b>no ports</b>: L3, not TCP or UDP.</p><ul><li>🏓 <b>ping</b>: echo request → echo reply, prints the round-trip time.</li><li>❌ <b>destination unreachable</b>: a router can\'t deliver.</li><li>⏱️ <b>time exceeded</b>: the hop limit (TTL) hit 0. traceroute uses this to list every hop.</li></ul><p>⚠️ IP\'s TTL is a hop count. DNS\'s TTL is a cache time. Same name, different thing.</p><p>Firewalls often block ICMP, so no ping reply ≠ server down.</p>', see: ['router', 'ip'] },
+  { id: 'switch', t: 'Switch', aka: 'network switch l2 ethernet', s: 'Joins devices inside one network. Reads only MAC addresses.',
+    an: 'The floor\'s internal mail cart: it knows every desk on this floor, nothing outside.',
+    b: '<p>An <b>L2</b> device. It learns which MAC sits on which cable and forwards each frame only there.</p><p>To leave the network you need a <b>router</b> (L3), which reads IPs. A home Wi-Fi box is both.</p>', see: ['mac', 'router'] },
+  { id: 'firewall', t: 'Firewall', aka: 'block allow rule port filter', s: 'A box or rule set that decides which traffic may pass.',
+    an: 'The security desk: it checks where you come from and which door you want.',
+    b: '<p>Rules on IPs, ports and protocols, e.g. "allow TCP 443 out, block everything else".</p><ul><li>🏢 Office firewalls often block <b>UDP</b> and <b>ICMP</b>. Design a TCP 443 fallback.</li><li>☁️ In the cloud: security groups do the same job.</li></ul>', see: ['udp', 'icmp', 'port'] },
   { id: 'bgp', t: 'BGP', aka: 'border gateway protocol route announce advertise', s: 'How networks tell the internet "these IPs live here".',
     an: 'Each post office tells its neighbours "I deliver to these streets". The news spreads until every office knows the way.',
     b: '<p><b>Border Gateway Protocol.</b> Each big network (ISP, cloud, large company) announces its public IP blocks to its neighbours. They pass it on, so every internet router learns a route.</p><p>No announcement = no route. Owning a public IP block is not enough on its own.</p>', see: ['private', 'router', 'isp'] },
@@ -2876,7 +3002,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
