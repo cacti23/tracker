@@ -301,6 +301,16 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .vflow .bx { padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
 .vflow .bx small { display: block; color: var(--muted); font-size: 11px; }
 .vflow .ar { text-align: center; font-size: 12px; font-weight: 600; color: var(--c, var(--muted)); }
+/* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
+.oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
+.oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.oct > span { text-align: center; padding: 5px 0; border-radius: 6px; border: 1.5px solid; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.oct > .n { background: var(--green-bg); color: var(--green-fg); border-color: var(--green-fg); }
+.oct > .h { background: var(--amber-bg); color: var(--amber-fg); border-color: var(--amber-fg); }
+.oct > small { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.oct.hd > span { border: 0; padding: 0; font: 600 11px/1.2 system-ui, sans-serif; color: var(--muted); }
+.bits { margin: 6px 0; padding: 8px; border-radius: 8px; background: var(--chip); text-align: center; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .3px; overflow-wrap: anywhere; }
+.bits .n { color: var(--green-fg); font-weight: 700; } .bits .h { color: var(--amber-fg); font-weight: 700; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: 12.5px; }
 .vpc .edge { text-align: center; font-weight: 600; }
@@ -730,6 +740,57 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP for its public one on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
     <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
   </ul>
+  <h5>🔌 IP, port, socket: what a socket really is <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">The IP finds the machine. The port finds the program. Then the program needs something to actually <b>talk through</b>: that is a socket, a small object the OS makes for <b>one conversation</b>.</p>
+  <div class="vflow" role="img" aria-label="Zoom in: IP picks the machine, port picks the program, socket is one conversation">
+    <div class="bx" style="border-color: var(--blue-fg)">🏢 <b>IP</b> <code>10.0.2.15</code> → which <b>machine</b></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--green-fg)">🚪 <b>Port</b> <code>8080</code> → which <b>program</b> (💳 payment service)</div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--amber-fg)">🔌 <b>Socket</b> → one <b>conversation</b> with one client</div>
+  </div>
+  <p>🔍 Open one socket and look inside:</p>
+  <div class="vpc" role="img" aria-label="Socket number 7, made by the OS: my address 10.0.2.15:8080, their address 1.1.1.1:51234, an inbox with the request, an outbox with the reply">
+    <div class="box prv">
+      <div class="h">🔌 Socket #7 <small>kept by the OS</small></div>
+      <div class="rt">🏷️ me   10.0.2.15:8080<br>🏷️ them 1.1.1.1:51234</div>
+      <div class="items" style="margin-top:6px"><span class="it">📥 inbox: <code>POST /pay {…}</code><br><small>bytes that arrived, not read yet</small></span><span class="it">📤 outbox: <code>200 OK</code><br><small>bytes written, not sent yet</small></span></div>
+    </div>
+  </div>
+  <p>✍️ Your program only <b>reads</b> and <b>writes</b>. The OS does the rest:</p>
+  <div class="grid2" role="img" aria-label="Incoming: packet, OS puts bytes in socket 7's inbox, program reads. Outgoing: program writes, OS sends from the outbox as packets">
+    <div class="k-blue"><b>📥 Data comes in</b>
+      <div class="vflow"><div class="bx">🌐 packet from 1.1.1.1:51234</div><div class="ar">⬇️</div><div class="bx">🐧 OS puts it in #7's inbox</div><div class="ar">⬇️</div><div class="bx">💳 program: <code>read(#7)</code></div></div></div>
+    <div class="k-green"><b>📤 Data goes out</b>
+      <div class="vflow"><div class="bx">💳 program: <code>write(#7)</code><small>"200 OK"</small></div><div class="ar">⬇️</div><div class="bx">🐧 OS sends #7's outbox</div><div class="ar">⬇️</div><div class="bx">🌐 packets to 1.1.1.1:51234</div></div></div>
+  </div>
+  <p class="figcap">Like a file you read and write, except the other end is another machine.</p>
+  <p>👥 Now 3 clients on the same port: the OS makes one socket each.</p>
+  <div class="vpc" role="img" aria-label="Port 8080: listening socket number 3 only accepts newcomers; sockets 7, 8 and 9 each belong to one client">
+    <div class="box pub">
+      <div class="h">🚪 Port 8080 · 💳 Payment service</div>
+      <div class="items"><span class="it">👂 Socket #3 = listening socket<br><small>only accepts new clients, carries no data</small></span></div>
+      <div class="rt">🔌 #7 them 1.1.1.1:51234<br>🔌 #8 them 2.2.2.2:40112<br>🔌 #9 them 1.1.1.1:51240</div>
+    </div>
+  </div>
+  <p class="figcap">#7 and #9 are two tabs on one laptop: same IP, different port, so two sockets.</p>
+  <p>▶️ Watch two clients arrive:</p>
+  <div class="seq" data-seq="socket"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔌 A socket = an OS object for one conversation</b>Both addresses + an inbox + an outbox. Your program gets a number for it (#7).</li>
+    <li><b class="hd">✍️ The program only reads and writes it</b><code>read(#7)</code> gets the client's bytes. <code>write(#7)</code> sends bytes back. The OS handles packets and TCP.</li>
+    <li><b class="hd">👂 One listening socket per port, one connected socket per client</b>The listening socket only accepts newcomers. Each newcomer gets a new socket. All of them use port 8080.</li>
+    <li><b class="hd">🏷️ The "them" address picks the socket</b>Every packet carries the client's IP + port. The OS puts its bytes in the socket with that "them".</li>
+  </ul>
+<pre>// 👂 listening socket on 8080
+net.createServer(sock => {
+  // 🔌 sock = this client's socket
+  sock.on('data', d =>   // read
+    sock.write('200 OK')) // write
+}).listen(8080)</pre>
+  <p class="ana">🍽️ A <b>restaurant</b>: the IP is the building, the port is the door, each socket is <b>one table</b>. The waiter (your program) takes orders from that table (read) and serves food to that table (write). The host at the door (listening socket) only seats newcomers. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> Socket = the OS object your program reads and writes for <b>one</b> client. <b>One port, many sockets.</b></div>
+
   <h5>🧭 Which box reads which label <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Every box on the path opens the envelopes only down to its own layer. That's what "a router is an L3 device" means.</p>
   <div class="dg" role="img" aria-label="Switch reads L2 MAC, router reads L3 IP, L4 load balancer reads ports, L7 load balancer reads HTTP">
@@ -836,6 +897,30 @@ $ curl -s ifconfig.me  # after NAT
   <div class="seq" data-seq="dns-private"></div>
   <p class="ana">✉️ Private IP = <b>"Flat 3"</b>. Every building has one, so a letter with only "Flat 3" goes nowhere, even if the phone book (DNS) prints it. Public IP = a <b>full street address</b> the city registered, on every post office's map (BGP). <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
+  <h5>🔢 CIDR: an IP = network part + host part <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">An IPv4 address is <b>32 bits</b>, written as 4 numbers of 8 bits each (0–255). CIDR (Classless Inter-Domain Routing) adds <code>/N</code>: the first N bits name the <b>network</b>, the rest name the <b>host</b> inside it.</p>
+  <div class="oct hd" aria-hidden="true"><b></b><span>8 bits</span><span>8 bits</span><span>8 bits</span><span>8 bits</span><small></small></div>
+  <div class="oct" role="img" aria-label="10.0.1.25/24: first three numbers are the network, the last is the host">
+    <b>/24</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="h">25</span><small>this one: host 25</small></div>
+  <p>🔬 The same address as the computer sees it, in bits:</p>
+  <div class="bits" role="img" aria-label="10.0.1.25 in binary: the first 24 bits are the network part, the last 8 bits are the host part"><span class="n">00001010.00000000.00000001</span>.<span class="h">00011001</span></div>
+  <p class="figcap">🟩 24 network bits: the same for every address in this block · 🟨 8 host bits: free, 2<sup>8</sup> = <b>256</b> combinations → <code>10.0.1.0</code> to <code>10.0.1.255</code>.</p>
+  <p>📏 Bigger <code>/N</code> = more bits fixed = <b>smaller</b> block:</p>
+  <div class="oct"><b>/0</b><span class="h">x</span><span class="h">x</span><span class="h">x</span><span class="h">x</span><small>all: "anywhere"</small></div>
+  <div class="oct"><b>/8</b><span class="n">17</span><span class="h">x</span><span class="h">x</span><span class="h">x</span><small>16.7 M · Apple</small></div>
+  <div class="oct"><b>/16</b><span class="n">10</span><span class="n">0</span><span class="h">x</span><span class="h">x</span><small>65,536 · a VPC</small></div>
+  <div class="oct"><b>/24</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="h">x</span><small>256 · a subnet</small></div>
+  <div class="oct"><b>/32</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="n">25</span><small>1 · one host</small></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧮 Addresses in a block = 2<sup>(32 − N)</sup></b>/16 → 2<sup>16</sup> = 65,536 · /24 → 2<sup>8</sup> = 256 · /28 → 2<sup>4</sup> = 16. N can be any number 0–32, not only 8, 16, 24 (/20 = 4,096).</li>
+    <li><b class="hd">🏠 Same network part = same network: talk directly</b><code>10.0.1.25</code> → <code>10.0.1.80</code> share <code>10.0.1</code> in a /24, so they talk directly. <code>10.0.2.15</code> doesn't, so the packet goes through the router.</li>
+    <li><b class="hd">🗺️ Routers store blocks, not single IPs</b>One route for <code>17.0.0.0/8</code> covers all 16.7 M of Apple's addresses. That is why the backbone can know where every public IP lives.</li>
+    <li><b class="hd">🎭 A subnet mask is the same idea, written the old way</b><code>255.255.255.0</code> = 24 ones = /24.</li>
+    <li><b class="hd">🆕 IPv6 is 128 bits, with the same /N idea</b>A typical IPv6 subnet is a /64.</li>
+  </ul>
+  <p class="ana">📞 A phone number: the <b>area code</b> is the network part, the <b>local number</b> is the host. <code>/N</code> says how many digits are area code. A short area code leaves room for many local numbers (a big block). <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> IPv4 = 32 bits. <code>/N</code> = N network bits, 32 − N host bits, 2<sup>(32 − N)</sup> addresses. 🎤 In a design: "VPC <code>10.0.0.0/16</code>, one <code>/24</code> subnet per tier per Availability Zone."</div>
+
   <h5>☁️ VPC: your own private network in the cloud <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Your servers in the cloud need the same split as a home: a few things the internet can reach, everything else private. A <b>VPC</b> (Virtual Private Cloud) is where you draw that line. <span class="aws">☁️ AWS: Amazon VPC</span></p>
   <div class="vpc" role="img" aria-label="Internet, then the Internet Gateway, then a VPC 10.0.0.0/16 with a public subnet holding the load balancer and NAT Gateway, and a private subnet holding app servers and the database">
@@ -2819,6 +2904,21 @@ const SEQS = {
       { f: 2, t: 0, m: 'ACK: next #6', k: 'gray', dash: 1, cap: '⑨ One ACK covers all. 🐢 The sender also halves its sending window: it reads a loss as "the network is busy" (congestion control).' },
     ],
   },
+  'socket': {
+    lanes: ['👤 Client A', '👤 Client B', '🐧 Server OS', '💳 Payment :8080'],
+    key: [['tcp', 'connect'], ['lb', 'new socket'], ['http', 'data']],
+    frames: [
+      { cap: 'The payment service starts and asks the OS for port 8080.' },
+      { at: 3, m: '👂 #3 listens on :8080', k: 'lb', cap: '① The OS makes socket #3, the <b>listening socket</b>. It only accepts newcomers. No data goes through it.' },
+      { f: 0, t: 2, m: 'connect :8080', k: 'tcp', cap: '② Client A connects to port 8080.' },
+      { f: 2, t: 3, m: '🔌 new #7 (them A)', k: 'lb', cap: '③ The OS makes a <b>new socket #7</b> with them = 1.1.1.1:51234 and hands its number to the program.' },
+      { f: 1, t: 2, m: 'connect :8080', k: 'tcp', cap: '④ Client B connects to the <b>same</b> port 8080.' },
+      { f: 2, t: 3, m: '🔌 new #8 (them B)', k: 'lb', cap: '⑤ Another new socket, #8, with them = 2.2.2.2:40112. Still one port.' },
+      { f: 0, t: 2, m: 'POST /pay', k: 'http', cap: '⑥ A packet arrives from 1.1.1.1:51234.' },
+      { f: 2, t: 3, m: '📥 inbox of #7', k: 'http', cap: '⑦ The OS finds the socket with that "them" (#7) and puts the bytes in its inbox. The program calls <code>read(#7)</code>.' },
+      { f: 3, t: 0, m: 'write(#7): 200 OK', k: 'http', dash: 1, cap: '⑧ The program calls <code>write(#7, "200 OK")</code>. The OS sends it to A only. B\'s socket #8 is untouched.' },
+    ],
+  },
   'nat': {
     lanes: ['📱 Phone 192.168.1.23', '🏠 Router (NAT)', '🖥️ Server'],
     key: [['http', 'going out'], ['lb', 'NAT rewrite'], ['tcp', 'coming back'], ['gray', 'no NAT']],
@@ -3102,9 +3202,12 @@ const GLOSSARY = [
   { id: 'mac', t: 'MAC address', aka: 'hardware address ethernet wifi card', s: 'Which network card, on this local network only.',
     an: 'Your name: tells the next hand who to pass it to.',
     b: '<p>An ID burned into every network card at the factory, e.g. <code>a4:83:e7:2b:10:9c</code>. A laptop with Wi-Fi and Ethernet has two.</p><p>Only used on the local network (layer 2), so it is <b>rewritten at every hop</b>: phone → router, router → ISP router, and so on. The IP inside stays the same.</p>', see: ['arp', 'ip'] },
+  { id: 'socket', t: 'Socket', aka: 'listening socket connected socket accept bind listen file descriptor fd', s: 'The handle a program uses to send and receive over the network.',
+    an: 'A restaurant: the IP is the building, the port is the door, each socket is one table. The listening socket is the host who seats newcomers.',
+    b: '<ul><li>👂 <b>Listening socket</b>: one per port. Only takes new connections.</li><li>🔌 <b>Connected socket</b>: one per client, made by <code>accept()</code>. Carries the data.</li><li>🧭 All share the server port. The OS matches packets by the 4-tuple (client IP + port, server IP + port).</li></ul><p>Each socket is an open file in the OS, so the limits are open files and memory.</p>', see: ['port', 'tuple', 'ss'] },
   { id: 'port', t: 'Port', aka: '443 80 53 ephemeral socket', s: 'Which app on the machine gets the data.',
     an: 'The flat number. IP gets it to the building, the port to the right flat.',
-    b: '<p>A number 0–65535 in the TCP/UDP label. Servers listen on well-known ones: <b>80</b> HTTP · <b>443</b> HTTPS · <b>53</b> DNS · <b>22</b> SSH · <b>5432</b> Postgres · <b>6379</b> Redis.</p><p>Your side gets a random temporary port (e.g. 51234), so the reply finds the right tab.</p>', see: ['tuple', 'tcp'] },
+    b: '<p>A number 0–65535 in the TCP/UDP label. Servers listen on well-known ones: <b>80</b> HTTP · <b>443</b> HTTPS · <b>53</b> DNS · <b>22</b> SSH · <b>5432</b> Postgres · <b>6379</b> Redis.</p><p>Your side gets a random temporary port (e.g. 51234), so the reply finds the right tab.</p><p>A server port holds one listening socket + one connected socket per client. No new port per client.</p>', see: ['socket', 'tuple', 'tcp'] },
   { id: 'packet', t: 'Packet', aka: 'segment frame mtu encapsulation', s: 'One small chunk of data with its labels; ~1,500 bytes.',
     an: 'Envelopes inside envelopes: each layer adds its own label on the way down.',
     b: '<p>Your data is cut into chunks. Each one gets a TCP label (ports, sequence #), then an IP label (from/to IP), then a link label (from/to MAC). The receiver opens them in reverse.</p><p>~1,500 bytes each, ~40 of them labels. 1 MB ≈ 700 packets.</p>', see: ['tcp', 'ip', 'mac'] },
@@ -3129,9 +3232,9 @@ const GLOSSARY = [
   { id: 'igw', t: 'Internet Gateway', aka: 'igw internet gateway vpc door', s: 'The VPC\'s door to the internet.',
     an: 'The campus main gate.',
     b: '<p>A subnet whose route table sends <code>0.0.0.0/0</code> to it is a <b>public</b> subnet. Without one, nothing in the VPC talks to the internet.</p><p>☁️ <b>On AWS:</b> Internet Gateway (one per VPC)</p>', see: ['vpc', 'subnet', 'nat'] },
-  { id: 'cidr', t: 'CIDR block', aka: 'cidr /16 /24 ip range slash netmask', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
+  { id: 'cidr', t: 'CIDR block', aka: 'cidr classless inter-domain routing /16 /24 ip range slash netmask subnet mask network host bits 32-bit ipv4', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
     an: 'A street name with "all house numbers": /16 fixes the street, the rest are the houses.',
-    b: '<p>The number after <code>/</code> is how many bits are fixed. The rest are free:</p><ul><li><code>/16</code> → 2<sup>16</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>8</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li></ul>', see: ['vpc', 'subnet', 'ip'] },
+    b: '<p>CIDR = Classless Inter-Domain Routing. IPv4 is 32 bits. The number after <code>/</code> is how many bits are the <b>network</b> part (fixed). The other 32 − N bits are the <b>host</b> part (free):</p><ul><li><code>/16</code> → 2<sup>(32−16)</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>(32−24)</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li><li><code>/0</code> → every address ("anywhere")</li></ul><p>Old way to write it: subnet mask <code>255.255.255.0</code> = /24.</p>', see: ['vpc', 'subnet', 'ip'] },
   { id: 'cgnat', t: 'CGNAT (carrier-grade NAT)', aka: 'carrier grade nat cgn mobile 4g 5g 100.64 shared address', s: 'NAT run by your mobile carrier or ISP: thousands of users share one public IP.',
     an: 'One big apartment block\'s mailroom for a whole town.',
     b: '<p>Home NAT shares one public IP across one house. CGNAT does the same across thousands of customers. The phone often gets an IP from <code>100.64.0.0/10</code>, a range set aside for this (RFC 6598).</p><ul><li>🚫 Rate limits by IP hit many innocent users at once.</li><li>🚪 Nobody outside can start a connection to your phone.</li></ul>', see: ['nat', 'private'] },
@@ -3374,7 +3477,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
