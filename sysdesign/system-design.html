@@ -301,6 +301,20 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .vflow .bx { padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
 .vflow .bx small { display: block; color: var(--muted); font-size: 11px; }
 .vflow .ar { text-align: center; font-size: 12px; font-weight: 600; color: var(--c, var(--muted)); }
+/* VPC: nested network boxes (VPC > public / private subnet) */
+.vpc { margin: 8px 0 10px; font-size: 12.5px; }
+.vpc .edge { text-align: center; font-weight: 600; }
+.vpc .ar { text-align: center; font-size: 11.5px; font-weight: 600; color: var(--c, var(--muted)); margin: 3px 0; }
+.vpc .box { border: 2px solid var(--c); border-radius: 12px; padding: 8px; background: var(--bg-c); }
+.vpc .box.v { --c: var(--blue-fg); --bg-c: var(--blue-bg); border-style: dashed; }
+.vpc .box.pub { --c: var(--green-fg); --bg-c: var(--green-bg); }
+.vpc .box.prv { --c: var(--amber-fg); --bg-c: var(--amber-bg); }
+.vpc .h { font-weight: 700; color: var(--c); font-size: 13px; margin-bottom: 6px; }
+.vpc .h small { font-weight: 500; font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.vpc .items { display: flex; flex-wrap: wrap; gap: 5px; }
+.vpc .it { padding: 4px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); }
+.vpc .rt { margin-top: 6px; font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--c); }
+.vpc .door { display: inline-block; padding: 4px 10px; border-radius: 8px; border: 2px solid var(--blue-fg); background: var(--card); font-weight: 700; }
 .pipes { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
 .pp { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--card); }
 .pp > b { display: block; font-size: 13px; margin-bottom: 6px; }
@@ -795,6 +809,53 @@ $ curl -s ifconfig.me  # after NAT
   <div class="seq" data-seq="dns-private"></div>
   <p class="ana">✉️ Private IP = <b>"Flat 3"</b>. Every building has one, so a letter with only "Flat 3" goes nowhere, even if the phone book (DNS) prints it. Public IP = a <b>full street address</b> the city registered, on every post office's map (BGP). <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
+  <h5>☁️ VPC: your own private network in the cloud <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">Your servers in the cloud need the same split as a home: a few things the internet can reach, everything else private. A <b>VPC</b> (Virtual Private Cloud) is where you draw that line. <span class="aws">☁️ AWS: Amazon VPC</span></p>
+  <div class="vpc" role="img" aria-label="Internet, then the Internet Gateway, then a VPC 10.0.0.0/16 with a public subnet holding the load balancer and NAT Gateway, and a private subnet holding app servers and the database">
+    <div class="edge">🌍 Internet</div>
+    <div class="ar" style="--c: var(--blue-fg)">⇅</div>
+    <div class="edge"><span class="door">🚪 Internet Gateway</span></div>
+    <div class="ar" style="--c: var(--blue-fg)">⇅ the VPC's only door to the internet</div>
+    <div class="box v">
+      <div class="h">☁️ VPC <small>10.0.0.0/16</small></div>
+      <div class="box pub">
+        <div class="h">🟢 Public subnet <small>10.0.1.0/24</small></div>
+        <div class="items"><span class="it">⚖️ Load balancer</span><span class="it">🔁 NAT Gateway</span></div>
+        <div class="rt">0.0.0.0/0 → Internet Gateway</div>
+      </div>
+      <div class="ar" style="--c: var(--green-fg)">⬇️ LB → app &nbsp;·&nbsp; ⬆️ app → NAT (out only)</div>
+      <div class="box prv">
+        <div class="h">🔒 Private subnet <small>10.0.2.0/24</small></div>
+        <div class="items"><span class="it">🖥️ App servers</span><span class="it">🧩 Microservices</span><span class="it">🐘 Database</span><span class="it">⚡ Cache</span></div>
+        <div class="rt">0.0.0.0/0 → NAT Gateway</div>
+      </div>
+    </div>
+  </div>
+  <p class="figcap">The coloured line in each subnet is its route table: where traffic for "anywhere" (<code>0.0.0.0/0</code>) goes. That one line is what makes a subnet public or private.</p>
+  <div class="grid2">
+    <div class="k-green"><b>🟢 Public subnet: the front door</b><div class="star">✉️ The reception lobby</div>
+      <div class="chk">🛣️ Route: anywhere → Internet Gateway</div>
+      <div class="chk">🌍 Its boxes get public IPs</div>
+      <div class="chk">↕️ The internet can reach in (if the firewall allows)</div>
+      <q>Put here: load balancer, NAT Gateway</q></div>
+    <div class="k-amber"><b>🔒 Private subnet: the back office</b><div class="star">✉️ Badge-only offices</div>
+      <div class="chk">🛣️ Route: anywhere → NAT Gateway (or nowhere)</div>
+      <div class="chk">🔒 Private IPs only</div>
+      <div class="chk">⬆️ Can call out, nobody can call in</div>
+      <q>Put here: app servers, microservices, databases, caches</q></div>
+  </div>
+  <p>▶️ Three trips through one VPC: a user comes in, the app calls out, a stranger is stopped:</p>
+  <div class="seq" data-seq="vpc"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">☁️ A VPC is your own private network inside the cloud</b>You pick its IP range (a <button type="button" class="gl-link" data-g="cidr">CIDR</button> block like <code>10.0.0.0/16</code> = 65,536 addresses), cut it into subnets, and set the routes and firewalls. Other customers can't see in. The cloud still runs the hardware; you control the network rules.</li>
+    <li><b class="hd">🧩 A subnet is a slice of the VPC, in one Availability Zone</b><code>10.0.1.0/24</code> = 256 addresses (AWS keeps 5). Real setups repeat public + private subnets in 2–3 Availability Zones, so one data center failing doesn't take you down.</li>
+    <li><b class="hd">🛣️ The route table makes a subnet public, not its name</b>Public = has a route to the <button type="button" class="gl-link" data-g="igw">Internet Gateway</button>. Private = no such route; it goes out through a NAT Gateway, or not at all.</li>
+    <li><b class="hd">🔒 Only the front door is public</b>The load balancer takes traffic in. The servers behind it stay private too, not only the databases.</li>
+    <li><b class="hd">🧱 Two firewalls on top: per server and per subnet</b>Security Group per server: "DB allows port 5432 only from the app's group". Network ACL per subnet: a coarse extra fence. <span class="aws">☁️ AWS: Security Groups + Network ACLs</span></li>
+    <li><b class="hd">🔗 Private paths to everything else</b>VPC endpoint: reach S3 or DynamoDB without going through NAT. VPC peering or Transit Gateway: VPC to VPC. Site-to-Site VPN or Direct Connect: office to VPC.</li>
+  </ul>
+  <p class="ana">🏢 A VPC is a <b>gated office campus</b>. The Internet Gateway is the main gate. The public subnet is the reception lobby, where visitors are let in. The private subnet is the badge-only offices: staff can step out for coffee (NAT), but no stranger walks in. Route tables are the signposts. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> 🎤 Say it in a design: "One VPC across 2–3 Availability Zones. Only the load balancer sits in public subnets. Services, databases and caches sit in private subnets and reach the internet through a NAT Gateway."</div>
   <h5>🏢 Office DNS: answers only people inside <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">So a private IP in DNS is useless on the internet. Inside an office, it is exactly right.</p>
   <div class="dg" role="img" aria-label="In the office or on VPN the office DNS answers wiki.corp with a private IP. From home without VPN it cannot be reached or refuses">
@@ -2760,6 +2821,23 @@ const SEQS = {
       { f: 2, t: 0, m: '⏱️ time exceeded', k: 'err', dash: 1, cap: '⑧ Router 2 answers. Repeat until the server replies: that is the whole path, hop by hop.' },
     ],
   },
+  'vpc': {
+    lanes: ['🌍 Internet', '🚪 Internet GW', '🟢 Public subnet', '🔒 Private subnet'],
+    key: [['http', 'coming in'], ['tcp', 'reply'], ['lb', 'going out (NAT)'], ['err', 'blocked']],
+    frames: [
+      { cap: 'One VPC, <code>10.0.0.0/16</code>. The public subnet holds the load balancer and NAT Gateway. The private subnet holds the app and database. Watch three trips.' },
+      { f: 0, t: 1, m: 'GET /feed', k: 'http', cap: '① <b>In</b>: a user calls your API. Every packet enters the VPC through the <b>Internet Gateway</b>, its one door to the internet.' },
+      { f: 1, t: 2, m: 'to LB public IP', k: 'http', cap: '② The load balancer sits in the public subnet and has a public IP, so the internet can reach it.' },
+      { f: 2, t: 3, m: 'to 10.0.2.15', k: 'http', cap: '③ The load balancer forwards to an app server\'s <b>private</b> IP. Inside a VPC every subnet can reach every other (the "local" route), if the firewalls allow.' },
+      { at: 3, m: '🐘 app ↔ DB', k: 'tcp', cap: '④ The app reads the database: private IP to private IP. This traffic never leaves the VPC.' },
+      { r: [{ f: 3, t: 2, m: '200 OK', k: 'tcp', dash: 1 }, { f: 2, t: 1, m: '200 OK', k: 'tcp', dash: 1 }, { f: 1, t: 0, m: '200 OK', k: 'tcp', dash: 1 }], cap: '⑤ The reply goes back the same way.' },
+      { f: 3, t: 2, m: 'POST api.stripe.com', k: 'lb', cap: '⑥ <b>Out</b>: the app must call Stripe. Its route table says "anywhere → NAT Gateway", which sits in the public subnet.' },
+      { at: 2, m: '✍️ from → NAT public IP', k: 'lb', cap: '⑦ The NAT Gateway swaps the app\'s private IP for its own public IP: the same trick as your home router (🔗 NAT above).' },
+      { r: [{ f: 2, t: 1, m: 'to Stripe', k: 'lb' }, { f: 1, t: 0, m: 'to Stripe', k: 'lb' }], cap: '⑧ Out through the Internet Gateway. Stripe\'s reply comes back to the NAT Gateway, which hands it to the app.' },
+      { f: 0, t: 1, m: '👾 to 10.0.2.15', k: 'err', cap: '⑨ <b>Blocked</b>: a stranger tries to reach the app server directly.' },
+      { at: 1, m: '🚫 private IP: no route', k: 'err', cap: 'The app has only a private IP, and NAT lets in only replies to calls the app started. Nobody outside can open a connection to the private subnet ✅.' },
+    ],
+  },
   'dns-private': {
     lanes: ['💻 User', '🔎 DNS', '🏠 Home router', '🌐 Internet', '🖥️ Your server'],
     key: [['lb', 'DNS'], ['http', 'packet'], ['err', 'dead end'], ['tcp', 'reached']],
@@ -2999,6 +3077,18 @@ const GLOSSARY = [
   { id: 'nat', t: 'NAT', aka: 'network address translation', s: 'The router swaps private IPs for its one public IP.',
     an: 'The building reception: posts every flat\'s letters under the building address, and hands replies back to the right flat.',
     b: '<p>All devices at home share one public IP. Going out, the router rewrites the source to its public IP + a port it picks, and remembers the mapping. Replies come back to that port and get sent to the right device.</p><p>Side effect: outsiders can\'t start a connection to you, which is why video calls need STUN/TURN.</p><p>☁️ <b>On AWS:</b> NAT Gateway (managed NAT for private subnets)</p>', see: ['private', 'router'] },
+  { id: 'vpc', t: 'VPC (Virtual Private Cloud)', aka: 'virtual private cloud vnet private network cloud subnet', s: 'Your own isolated private network inside a cloud provider.',
+    an: 'A gated office campus: one main gate, a reception lobby, and badge-only offices.',
+    b: '<ul><li>🧩 You pick the IP range (e.g. <code>10.0.0.0/16</code>) and cut it into subnets.</li><li>🟢 Public subnets hold what the internet must reach: load balancer, NAT Gateway.</li><li>🔒 Private subnets hold everything else: services, databases, caches.</li><li>🧱 Security Groups (per server) and Network ACLs (per subnet) control traffic.</li></ul><p>Azure calls the same thing a VNet.</p><p>☁️ <b>On AWS:</b> Amazon VPC</p>', see: ['subnet', 'igw', 'cidr', 'nat'] },
+  { id: 'subnet', t: 'Subnet (public / private)', aka: 'public subnet private subnet route table', s: 'A slice of a VPC\'s IP range, in one Availability Zone.',
+    an: 'Floors of the campus: the lobby is open to visitors, the offices need a badge.',
+    b: '<p>Public or private is decided by its <b>route table</b>, not its name:</p><pre>public : 0.0.0.0/0 → igw\nprivate: 0.0.0.0/0 → nat</pre><p>Every subnet also has a "local" route, so subnets in one VPC can reach each other (if firewalls allow).</p>', see: ['vpc', 'igw', 'cidr'] },
+  { id: 'igw', t: 'Internet Gateway', aka: 'igw internet gateway vpc door', s: 'The VPC\'s door to the internet.',
+    an: 'The campus main gate.',
+    b: '<p>A subnet whose route table sends <code>0.0.0.0/0</code> to it is a <b>public</b> subnet. Without one, nothing in the VPC talks to the internet.</p><p>☁️ <b>On AWS:</b> Internet Gateway (one per VPC)</p>', see: ['vpc', 'subnet', 'nat'] },
+  { id: 'cidr', t: 'CIDR block', aka: 'cidr /16 /24 ip range slash netmask', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
+    an: 'A street name with "all house numbers": /16 fixes the street, the rest are the houses.',
+    b: '<p>The number after <code>/</code> is how many bits are fixed. The rest are free:</p><ul><li><code>/16</code> → 2<sup>16</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>8</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li></ul>', see: ['vpc', 'subnet', 'ip'] },
   { id: 'arp', t: 'ARP', aka: 'address resolution protocol', s: 'Finds the MAC address that owns an IP on your network.',
     an: 'Shouting in the hallway: "who is Flat 1?", and only Flat 1 answers.',
     b: '<p>Your phone knows the router\'s IP (192.168.1.1) but needs its MAC to send the frame. It broadcasts "who has 192.168.1.1?" and the router replies with its MAC. The answer is cached.</p>', see: ['mac', 'ip'] },
@@ -3238,7 +3328,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
