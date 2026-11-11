@@ -301,6 +301,14 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .vflow .bx { padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
 .vflow .bx small { display: block; color: var(--muted); font-size: 11px; }
 .vflow .ar { text-align: center; font-size: 12px; font-weight: 600; color: var(--c, var(--muted)); }
+/* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
+.oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
+.oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.oct > span { text-align: center; padding: 5px 0; border-radius: 6px; border: 1.5px solid; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.oct > .n { background: var(--green-bg); color: var(--green-fg); border-color: var(--green-fg); }
+.oct > .h { background: var(--amber-bg); color: var(--amber-fg); border-color: var(--amber-fg); }
+.oct > small { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.oct.hd > span { border: 0; padding: 0; font: 600 11px/1.2 system-ui, sans-serif; color: var(--muted); }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: 12.5px; }
 .vpc .edge { text-align: center; font-weight: 600; }
@@ -885,6 +893,28 @@ $ curl -s ifconfig.me  # after NAT
   <div class="seq" data-seq="dns-private"></div>
   <p class="ana">✉️ Private IP = <b>"Flat 3"</b>. Every building has one, so a letter with only "Flat 3" goes nowhere, even if the phone book (DNS) prints it. Public IP = a <b>full street address</b> the city registered, on every post office's map (BGP). <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> DNS resolution ≠ reachability. A public IP is reachable because it is <b>unique</b> and <b>announced with BGP</b>. 🎤 In a design: public IPs only on the internet-facing parts (load balancer, API gateway). App servers and databases stay private.</div>
+  <h5>🔢 CIDR: an IP = network part + host part <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">An IPv4 address is <b>32 bits</b>, written as 4 numbers of 8 bits each (0–255). CIDR (Classless Inter-Domain Routing) adds <code>/N</code>: the first N bits name the <b>network</b>, the rest name the <b>host</b> inside it.</p>
+  <div class="oct hd" aria-hidden="true"><b></b><span>8 bits</span><span>8 bits</span><span>8 bits</span><span>8 bits</span><small></small></div>
+  <div class="oct" role="img" aria-label="10.0.1.25/24: first three numbers are the network, the last is the host">
+    <b>/24</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="h">25</span><small>this one: host 25</small></div>
+  <p class="figcap">🟩 network: fixed, 24 bits · 🟨 host: free, 32 − 24 = 8 bits → 2<sup>8</sup> = <b>256</b> addresses (<code>10.0.1.0</code>–<code>10.0.1.255</code>).</p>
+  <p>📏 Bigger <code>/N</code> = more bits fixed = <b>smaller</b> block:</p>
+  <div class="oct"><b>/0</b><span class="h">x</span><span class="h">x</span><span class="h">x</span><span class="h">x</span><small>all: "anywhere"</small></div>
+  <div class="oct"><b>/8</b><span class="n">17</span><span class="h">x</span><span class="h">x</span><span class="h">x</span><small>16.7 M · Apple</small></div>
+  <div class="oct"><b>/16</b><span class="n">10</span><span class="n">0</span><span class="h">x</span><span class="h">x</span><small>65,536 · a VPC</small></div>
+  <div class="oct"><b>/24</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="h">x</span><small>256 · a subnet</small></div>
+  <div class="oct"><b>/32</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="n">25</span><small>1 · one host</small></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧮 Addresses in a block = 2<sup>(32 − N)</sup></b>/16 → 2<sup>16</sup> = 65,536 · /24 → 2<sup>8</sup> = 256 · /28 → 2<sup>4</sup> = 16. N can be any number 0–32, not only 8, 16, 24 (/20 = 4,096).</li>
+    <li><b class="hd">🏠 Same network part = same network: talk directly</b><code>10.0.1.25</code> → <code>10.0.1.80</code> share <code>10.0.1</code> in a /24, so they talk directly. <code>10.0.2.15</code> doesn't, so the packet goes through the router.</li>
+    <li><b class="hd">🗺️ Routers store blocks, not single IPs</b>One route for <code>17.0.0.0/8</code> covers all 16.7 M of Apple's addresses. That is why the backbone can know where every public IP lives.</li>
+    <li><b class="hd">🎭 A subnet mask is the same idea, written the old way</b><code>255.255.255.0</code> = 24 ones = /24.</li>
+    <li><b class="hd">🆕 IPv6 is 128 bits, with the same /N idea</b>A typical IPv6 subnet is a /64.</li>
+  </ul>
+  <p class="ana">📞 A phone number: the <b>area code</b> is the network part, the <b>local number</b> is the host. <code>/N</code> says how many digits are area code. A short area code leaves room for many local numbers (a big block). <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> IPv4 = 32 bits. <code>/N</code> = N network bits, 32 − N host bits, 2<sup>(32 − N)</sup> addresses. 🎤 In a design: "VPC <code>10.0.0.0/16</code>, one <code>/24</code> subnet per tier per Availability Zone."</div>
+
   <h5>☁️ VPC: your own private network in the cloud <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Your servers in the cloud need the same split as a home: a few things the internet can reach, everything else private. A <b>VPC</b> (Virtual Private Cloud) is where you draw that line. <span class="aws">☁️ AWS: Amazon VPC</span></p>
   <div class="vpc" role="img" aria-label="Internet, then the Internet Gateway, then a VPC 10.0.0.0/16 with a public subnet holding the load balancer and NAT Gateway, and a private subnet holding app servers and the database">
@@ -3196,9 +3226,9 @@ const GLOSSARY = [
   { id: 'igw', t: 'Internet Gateway', aka: 'igw internet gateway vpc door', s: 'The VPC\'s door to the internet.',
     an: 'The campus main gate.',
     b: '<p>A subnet whose route table sends <code>0.0.0.0/0</code> to it is a <b>public</b> subnet. Without one, nothing in the VPC talks to the internet.</p><p>☁️ <b>On AWS:</b> Internet Gateway (one per VPC)</p>', see: ['vpc', 'subnet', 'nat'] },
-  { id: 'cidr', t: 'CIDR block', aka: 'cidr /16 /24 ip range slash netmask', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
+  { id: 'cidr', t: 'CIDR block', aka: 'cidr classless inter-domain routing /16 /24 ip range slash netmask subnet mask network host bits 32-bit ipv4', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
     an: 'A street name with "all house numbers": /16 fixes the street, the rest are the houses.',
-    b: '<p>The number after <code>/</code> is how many bits are fixed. The rest are free:</p><ul><li><code>/16</code> → 2<sup>16</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>8</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li></ul>', see: ['vpc', 'subnet', 'ip'] },
+    b: '<p>CIDR = Classless Inter-Domain Routing. IPv4 is 32 bits. The number after <code>/</code> is how many bits are the <b>network</b> part (fixed). The other 32 − N bits are the <b>host</b> part (free):</p><ul><li><code>/16</code> → 2<sup>(32−16)</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>(32−24)</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li><li><code>/0</code> → every address ("anywhere")</li></ul><p>Old way to write it: subnet mask <code>255.255.255.0</code> = /24.</p>', see: ['vpc', 'subnet', 'ip'] },
   { id: 'cgnat', t: 'CGNAT (carrier-grade NAT)', aka: 'carrier grade nat cgn mobile 4g 5g 100.64 shared address', s: 'NAT run by your mobile carrier or ISP: thousands of users share one public IP.',
     an: 'One big apartment block\'s mailroom for a whole town.',
     b: '<p>Home NAT shares one public IP across one house. CGNAT does the same across thousands of customers. The phone often gets an IP from <code>100.64.0.0/10</code>, a range set aside for this (RFC 6598).</p><ul><li>🚫 Rate limits by IP hit many innocent users at once.</li><li>🚪 Nobody outside can start a connection to your phone.</li></ul>', see: ['nat', 'private'] },
