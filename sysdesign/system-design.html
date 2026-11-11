@@ -762,6 +762,33 @@ $ ip route          # my router
 default via 192.168.1.1
 $ curl -s ifconfig.me  # after NAT
 203.0.113.7</pre>
+  <h5>📶 Wi-Fi → 4G: what changes, what stays <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">You walk out of the house mid-chat. The phone drops Wi-Fi and joins 4G. Which labels on the envelope change?</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🔄 Changes: where you are</b><div class="star">✉️ The address on the envelope</div>
+      <div class="chk">📱 Phone IP: <code>192.168.1.23</code> (home router) → <code>100.72.5.9</code> (carrier)</div>
+      <div class="chk">🌍 IP the server sees: home <code>203.0.113.7</code> → carrier <code>198.51.100.20</code></div>
+      <div class="chk">🚪 Source port: <code>51234</code> → <code>40112</code></div>
+      <div class="chk">🔗 First hop: Wi-Fi to the router → radio to the cell tower</div>
+      <q>All of L2, L3 and the source side of L4</q></div>
+    <div class="k-green"><b>✅ Stays: who you are, what you want</b><div class="star">✉️ The letter inside</div>
+      <div class="chk">🖥️ Server IP + port: <code>93.184.216.34:443</code></div>
+      <div class="chk">🍪 Cookie / JWT</div>
+      <div class="chk">🛒 Your session and cart on the server</div>
+      <q>L7 identity: the app still knows it's you</q></div>
+  </div>
+  <p>▶️ An open WebSocket, right when you switch:</p>
+  <div class="seq" data-seq="wifi-4g"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💥 Open TCP connections die</b>TCP knows a connection only by source IP + port and destination IP + port (the <button type="button" class="gl-link" data-g="tuple">4-tuple</button>). Two of them changed, so to the server it's a stranger. WebSockets, long polls and half-done uploads must start again.</li>
+    <li><b class="hd">🔁 The app reconnects, the token proves it's you</b>A new TCP + TLS handshake, then the same cookie or JWT. Identity lives in L7, not in the IP. Heartbeats spot the dead connection fast (🔗 <a href="#sd-net-realtime--websockets-both-sides-talk-any-time">Heartbeats</a>).</li>
+    <li><b class="hd">🚀 HTTP/3 survives the switch</b>QUIC names a connection by a <b>connection ID</b>, not IP + port. The server sees a new address with the same ID and carries on (connection migration).</li>
+    <li><b class="hd">🏢 On 4G you share one public IP with thousands</b>Carriers put many phones behind one public IP (<button type="button" class="gl-link" data-g="cgnat">CGNAT</button>). The phone's own IP is often <code>100.64.x</code>–<code>100.127.x</code>, a range made for this.</li>
+    <li><b class="hd">🏷️ The MAC never reaches the server</b>It is only for one hop (phone ↔ home router). On 4G there is no Wi-Fi MAC at all: the radio link uses its own IDs.</li>
+    <li><b class="hd">🔎 Server IP stays, unless DNS is asked again</b>Open connections keep their server. A new lookup through the carrier's DNS may get a different CDN edge.</li>
+  </ul>
+  <p class="ana">🚚 You <b>move house</b>. Your address and your postman change, but your name and your ID card (cookie/JWT) stay, and the bank (server) is at the same address. Letters on their way to the old house are lost, so you write again and show your ID. HTTP/3 is a <b>tracking number</b>: the courier finds you at the new address. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> 🎤 Never tie a user to an IP. Keep identity in a cookie or token, make clients reconnect and resume, and don't rate-limit or route sticky by IP alone: one user changes IPs, and one IP holds thousands of users.</div>
   <p class="bridge">So the IP says <b>who it's finally for</b>, the MAC says <b>who gets it next</b>, the port says <b>which app</b>. Now watch those packets move.</p>
 
 
@@ -2806,6 +2833,22 @@ const SEQS = {
       { at: 0, m: '🖨️ to printer: no NAT', k: 'gray', cap: 'Not for traffic inside the home: phone → printer is private to private, no rewrite. IPv6 usually skips NAT too.' },
     ],
   },
+  'wifi-4g': {
+    lanes: ['📱 Phone', '🏠 Home router', '📶 Carrier', '🖥️ Server'],
+    key: [['http', 'data'], ['lb', 'network switch'], ['err', 'broken'], ['tcp', 'recovered']],
+    frames: [
+      { cap: 'Your chat app holds one WebSocket (a TCP connection) to the server. The server knows it as <b>203.0.113.7:40001 ↔ 93.184.216.34:443</b>.' },
+      { r: [{ f: 0, t: 1, m: 'from .23', k: 'http' }, { f: 1, t: 3, m: 'from 203.0.113.7', k: 'http' }], cap: '① On Wi-Fi: the home router rewrites your private IP to its public one (NAT). The server sees the home IP and port, <b>203.0.113.7:40001</b>.' },
+      { at: 0, m: '📶 Wi-Fi off → 4G', k: 'lb', cap: '② You walk out. The carrier gives the phone a new IP, <b>100.72.5.9</b>. The Wi-Fi link (and its MAC) is gone.' },
+      { r: [{ f: 0, t: 2, m: 'from 100.72.5.9', k: 'http' }, { f: 2, t: 3, m: 'from 198.51.100.20', k: 'http' }], cap: '③ The next packet goes through the carrier\'s NAT (CGNAT). The server sees a new IP <b>and</b> a new port: <b>198.51.100.20:52011</b>.' },
+      { at: 3, m: '❓ unknown connection', k: 'err', cap: '④ No open connection has this IP + port. The server drops it or sends a RST. The old connection is dead.' },
+      { at: 0, m: '🔁 reconnect', k: 'lb', cap: '⑤ The app sees an error or a missed heartbeat, and opens a new connection.' },
+      { r: [{ f: 0, t: 2, m: 'SYN + TLS', k: 'tcp' }, { f: 2, t: 3, m: 'SYN + TLS', k: 'tcp' }], cap: '⑥ A new TCP + TLS handshake: extra round trips on a slow mobile link.' },
+      { r: [{ f: 0, t: 2, m: '🍪 same JWT', k: 'tcp' }, { f: 2, t: 3, m: '🍪 same JWT', k: 'tcp' }], cap: '⑦ Same cookie or JWT, so the server knows it\'s still you. Identity lives in L7, not in the IP.' },
+      { f: 3, t: 0, m: 'missed messages', k: 'tcp', dash: 1, cap: '⑧ The app asks for what it missed (e.g. "since message 812") and carries on.' },
+      { at: 0, m: '🚀 HTTP/3: same connection ID', k: 'tcp', cap: '➕ HTTP/3 (QUIC) skips ④–⑥. Its packets carry a <b>connection ID</b>, so the server accepts the new address and the connection continues.' },
+    ],
+  },
   'icmp': {
     lanes: ['💻 You', '🧭 Router 1', '🧭 Router 2', '🖥️ Server'],
     key: [['http', 'packet'], ['tcp', 'ICMP reply'], ['err', 'ICMP error note']],
@@ -3089,6 +3132,9 @@ const GLOSSARY = [
   { id: 'cidr', t: 'CIDR block', aka: 'cidr /16 /24 ip range slash netmask', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
     an: 'A street name with "all house numbers": /16 fixes the street, the rest are the houses.',
     b: '<p>The number after <code>/</code> is how many bits are fixed. The rest are free:</p><ul><li><code>/16</code> → 2<sup>16</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>8</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li></ul>', see: ['vpc', 'subnet', 'ip'] },
+  { id: 'cgnat', t: 'CGNAT (carrier-grade NAT)', aka: 'carrier grade nat cgn mobile 4g 5g 100.64 shared address', s: 'NAT run by your mobile carrier or ISP: thousands of users share one public IP.',
+    an: 'One big apartment block\'s mailroom for a whole town.',
+    b: '<p>Home NAT shares one public IP across one house. CGNAT does the same across thousands of customers. The phone often gets an IP from <code>100.64.0.0/10</code>, a range set aside for this (RFC 6598).</p><ul><li>🚫 Rate limits by IP hit many innocent users at once.</li><li>🚪 Nobody outside can start a connection to your phone.</li></ul>', see: ['nat', 'private'] },
   { id: 'arp', t: 'ARP', aka: 'address resolution protocol', s: 'Finds the MAC address that owns an IP on your network.',
     an: 'Shouting in the hallway: "who is Flat 1?", and only Flat 1 answers.',
     b: '<p>Your phone knows the router\'s IP (192.168.1.1) but needs its MAC to send the frame. It broadcasts "who has 192.168.1.1?" and the router replies with its MAC. The answer is cached.</p>', see: ['mac', 'ip'] },
@@ -3223,7 +3269,7 @@ const GLOSSARY = [
     b: '<p><b>Border Gateway Protocol.</b> Each big network (ISP, cloud, large company) announces its public IP blocks to its neighbours. They pass it on, so every internet router learns a route.</p><p>No announcement = no route. Owning a public IP block is not enough on its own.</p>', see: ['private', 'router', 'isp'] },
   { id: 'tuple', t: '5-tuple', aka: 'connection identity socket pair', s: 'The 5 values that identify one connection.',
     an: 'Sender address + flat, receiver address + flat, and the delivery service.',
-    b: '<p>Source IP · source port · destination IP · destination port · protocol (TCP/UDP). L4 load balancers use it to keep a connection on one server.</p>', see: ['port', 'tcp'] },
+    b: '<p>Source IP · source port · destination IP · destination port · protocol (TCP/UDP). L4 load balancers use it to keep a connection on one server.</p><p>📶 Switch from Wi-Fi to 4G and the source IP and port change, so the TCP connection is gone. QUIC (HTTP/3) names a connection by a connection ID instead, so it survives.</p>', see: ['port', 'tcp', 'cgnat'] },
   { id: 'handshake', t: 'Handshake', aka: 'syn ack three-way', s: 'The setup messages before data can flow.',
     an: '"Can you hear me?" "Yes, can you hear me?" "Yes." Then the call starts.',
     b: '<p>TCP: SYN → SYN-ACK → ACK (one round trip before any data). HTTPS adds a TLS handshake on top. Every new connection pays this, which is why connections get reused.</p>', see: ['tcp', 'keepalive'] },
@@ -3328,7 +3374,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
