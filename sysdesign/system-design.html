@@ -739,53 +739,38 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
   </ul>
   <h5>🔌 IP, port, socket: how one server talks to many clients <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
-  <p class="bridge">The IP finds the machine. The port finds the program. But 1,000 clients all call port 443, so how does the server keep their conversations apart? With <b>sockets</b>.</p>
-  <div class="vpc" role="img" aria-label="One server IP with three ports. Port 443 has one listening socket and three connected sockets, one per client. Port 5432 has a listening socket and one connected socket. Port 80 has only a listening socket">
-    <div class="box v">
-      <div class="h">🖥️ Server <small>93.184.216.34</small></div>
-      <div class="box pub">
-        <div class="h">🚪 Port 443 · HTTPS</div>
-        <div class="items"><span class="it">👂 Listening socket: takes new calls only</span></div>
-        <div class="rt">🔌 A ↔ 203.0.113.7:51234<br>🔌 B ↔ 198.51.100.20:40112<br>🔌 C ↔ 203.0.113.7:51240</div>
-      </div>
-      <div class="ar">one connected socket per client, all on port 443</div>
-      <div class="box prv">
-        <div class="h">🚪 Port 5432 · Postgres</div>
-        <div class="items"><span class="it">👂 Listening socket</span></div>
-        <div class="rt">🔌 ↔ 10.0.2.15:39001 (app)</div>
-      </div>
-      <div class="ar">&nbsp;</div>
-      <div class="box" style="--c: var(--muted); --bg-c: var(--card)">
-        <div class="h">🚪 Port 80 · HTTP</div>
-        <div class="items"><span class="it">👂 Listening socket: no clients now</span></div>
-      </div>
+  <p class="bridge">Think of a <b>restaurant</b>. The IP is the building's address. The port is the restaurant's door. A socket is <b>one table</b>: one customer's own conversation with the restaurant.</p>
+  <div class="vflow" role="img" aria-label="Zoom in: IP picks the machine, port picks the program, socket picks the conversation">
+    <div class="bx" style="border-color: var(--blue-fg)">🏢 <b>IP</b> <code>10.0.2.15</code> → which <b>machine</b><small>✉️ the building</small></div>
+    <div class="ar">⬇️ zoom in</div>
+    <div class="bx" style="border-color: var(--green-fg)">🚪 <b>Port</b> <code>8080</code> → which <b>program</b>: 💳 payment service<small>✉️ the restaurant's door</small></div>
+    <div class="ar">⬇️ zoom in</div>
+    <div class="bx" style="border-color: var(--amber-fg)">💬 <b>Socket</b> → which <b>conversation</b>: one per client<small>✉️ one table</small></div>
+  </div>
+  <p>🍽️ Three customers walk in through the <b>same door</b>, and each gets their own table:</p>
+  <div class="vpc" role="img" aria-label="Port 8080 payment service: one listening socket like a host at the door, and three connected sockets like tables, one per client">
+    <div class="box pub">
+      <div class="h">🚪 Port 8080 · 💳 Payment service</div>
+      <div class="items"><span class="it">🙋 Listening socket = the host at the door<br><small>only seats new customers</small></span></div>
+      <div class="rt">🍽️ table A ↔ 👤 1.1.1.1:51234<br>🍽️ table B ↔ 👤 2.2.2.2:40112<br>🍽️ table C ↔ 👤 1.1.1.1:51240</div>
     </div>
   </div>
-  <p class="figcap">A and C come from the <b>same laptop</b> (two tabs). Only the client's port differs, and that is enough to tell them apart.</p>
-  <p>▶️ Two clients connect to the same port 443:</p>
+  <p class="figcap">Each table (socket) is named by <b>who sits there</b>: the client's IP + port. A and C are two tabs on the same laptop: same IP, different port, so different tables.</p>
+  <p>▶️ Watch two clients arrive:</p>
   <div class="seq" data-seq="socket"></div>
   <ul class="lines roomy heads">
-    <li><b class="hd">📍 IP = which machine</b>Each network card gets one. A machine can have several (Wi-Fi, Ethernet, a private and a public one).</li>
-    <li><b class="hd">🚪 Port = which program on that machine</b>A number 0–65535. One program listens on a port: <b>80</b> HTTP · <b>443</b> HTTPS · <b>5432</b> Postgres · <b>22</b> SSH.</li>
-    <li><b class="hd">🔌 Socket = the handle a program uses to send and receive</b>The OS gives it out. One end of a connection: IP + port + TCP or UDP. A connection = two sockets, one on each side.</li>
-    <li><b class="hd">👂 One listening socket per port, one connected socket per client</b>The listening socket only answers new calls. Each <code>accept()</code> hands the program a <b>new</b> socket for that one client.</li>
-    <li><b class="hd">🧭 No new port per client: the 4-tuple tells them apart</b>All connected sockets share port 443. The OS sends each packet to its socket by client IP + client port + server IP + server port.</li>
-    <li><b class="hd">🎲 The client's port is random</b>The client's OS picks a free temporary (ephemeral) port, e.g. 51234. Two tabs on one laptop get two ports.</li>
-    <li><b class="hd">🧵 The limit is memory, not ports</b>Each socket is an open file plus buffers. One server holds many thousands, served by an event loop (Node, nginx) or a thread per connection.</li>
+    <li><b class="hd">🏢 IP = which machine</b>It gets the packet to the right building.</li>
+    <li><b class="hd">🚪 Port = which program on that machine</b>A number 0–65535. Only a few are used: each running program listens on its own one (8080 payment service, 5432 Postgres). The rest stay closed.</li>
+    <li><b class="hd">💬 Socket = one conversation with one client</b>100 clients on port 8080 = 1 port, 100 sockets. They share the door, never the table.</li>
+    <li><b class="hd">🏷️ The client's IP + port tells the tables apart</b>Every packet carries it. The OS reads it and hands the data to the matching socket.</li>
   </ul>
-  <p>🔍 In code, and on the server with <button type="button" class="gl-link" data-g="ss">ss</button>:</p>
-<pre>// 👂 one listening socket on 443
+  <p>🧑‍💻 In code, the two kinds of socket look like this:</p>
+<pre>// 🙋 the host: listens on 8080
 net.createServer(sock => {
-  // 🔌 a new sock per client
+  // 🍽️ a new table per client
   sock.on('data', d => sock.write(d))
-}).listen(443)
-
-$ ss -tn 'sport = :443'
-# trimmed: local → peer
-:443  203.0.113.7:51234
-:443  198.51.100.20:40112</pre>
-  <p class="ana">☎️ Port 443 is a <b>call center's phone number</b>. The listening socket is the receptionist who only picks up new calls. <code>accept()</code> moves each caller to their own agent line: that line is the connected socket. Everyone dialed the same number, and each call is still separate. <span class="add">➕ analogy not in the article</span></p>
-  <div class="rem"><b>✅ Remember</b> IP → machine, port → program, socket → one conversation. A server port holds 1 listening socket + N connected sockets, and the 4-tuple keeps them apart. 🎤 "Max connections" is about memory and open files, not about running out of ports.</div>
+}).listen(8080)</pre>
+  <div class="rem"><b>✅ Remember</b> IP → building · port → restaurant door · socket → one table. <b>One port, many sockets</b>, one per client.</div>
 
   <h5>🧭 Which box reads which label <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Every box on the path opens the envelopes only down to its own layer. That's what "a router is an L3 device" means.</p>
@@ -2899,18 +2884,18 @@ const SEQS = {
     ],
   },
   'socket': {
-    lanes: ['💻 Client A', '💻 Client B', '🐧 Server OS', '🖥️ App (port 443)'],
-    key: [['tcp', 'connect'], ['lb', 'socket made'], ['http', 'data']],
+    lanes: ['👤 Client A', '👤 Client B', '🐧 Server OS', '💳 Payment :8080'],
+    key: [['tcp', 'walks in'], ['lb', 'new table'], ['http', 'talking']],
     frames: [
-      { cap: 'The app asks the OS for a socket, binds it to port 443 and listens: <code>socket()</code> → <code>bind(443)</code> → <code>listen()</code>.' },
-      { at: 3, m: '👂 listening on :443', k: 'lb', cap: '① One <b>listening socket</b> now waits on port 443. It never carries data. It only takes new connections.' },
-      { f: 0, t: 2, m: 'SYN :51234 → :443', k: 'tcp', cap: '② Client A\'s OS picks a free port, <b>51234</b>, and connects to 443 (the TCP handshake).' },
-      { f: 2, t: 3, m: 'accept() → 🔌 A', k: 'lb', cap: '③ <code>accept()</code> gives the app a <b>new</b> socket A for 203.0.113.7:51234 ↔ :443. The listening socket goes back to waiting.' },
-      { f: 1, t: 2, m: 'SYN :40112 → :443', k: 'tcp', cap: '④ Client B connects to the <b>same</b> port 443.' },
-      { f: 2, t: 3, m: 'accept() → 🔌 B', k: 'lb', cap: '⑤ Another new socket, B. Still port 443: no new port per client.' },
-      { f: 0, t: 2, m: 'GET /a', k: 'http', cap: '⑥ A packet arrives. The OS reads its 4-tuple: client IP + port, server IP + port.' },
-      { f: 2, t: 3, m: '→ 🔌 A', k: 'http', cap: '⑦ It matches socket A, so the app reads it from A and answers on A.' },
-      { r: [{ f: 1, t: 2, m: 'GET /b', k: 'http' }, { f: 2, t: 3, m: '→ 🔌 B', k: 'http' }], cap: '⑧ B\'s packets go to socket B. One port, one listening socket, many connected sockets.' },
+      { cap: 'The payment service starts and opens port 8080.' },
+      { at: 3, m: '🙋 host waits at :8080', k: 'lb', cap: '① It opens a <b>listening socket</b>: the host at the door. It only greets newcomers. It never takes orders.' },
+      { f: 0, t: 2, m: 'connect :8080', k: 'tcp', cap: '② Client A walks in through door 8080.' },
+      { f: 2, t: 3, m: '🍽️ table A', k: 'lb', cap: '③ The host gives A its own table: a <b>new socket</b>, named "1.1.1.1:51234". The host goes back to the door.' },
+      { f: 1, t: 2, m: 'connect :8080', k: 'tcp', cap: '④ Client B walks in through the <b>same</b> door 8080.' },
+      { f: 2, t: 3, m: '🍽️ table B', k: 'lb', cap: '⑤ B gets a different table: socket B, named "2.2.2.2:40112". Still one door.' },
+      { f: 0, t: 2, m: 'order from A', k: 'http', cap: '⑥ A sends a request. The packet says who sent it: 1.1.1.1:51234.' },
+      { f: 2, t: 3, m: '→ 🍽️ table A', k: 'http', cap: '⑦ The OS finds the table with that name and delivers it there. B never sees it.' },
+      { r: [{ f: 1, t: 2, m: 'order from B', k: 'http' }, { f: 2, t: 3, m: '→ 🍽️ table B', k: 'http' }], cap: '⑧ Same for B. <b>One door (port), one host, a table (socket) per client.</b>' },
     ],
   },
   'nat': {
@@ -3197,7 +3182,7 @@ const GLOSSARY = [
     an: 'Your name: tells the next hand who to pass it to.',
     b: '<p>An ID burned into every network card at the factory, e.g. <code>a4:83:e7:2b:10:9c</code>. A laptop with Wi-Fi and Ethernet has two.</p><p>Only used on the local network (layer 2), so it is <b>rewritten at every hop</b>: phone → router, router → ISP router, and so on. The IP inside stays the same.</p>', see: ['arp', 'ip'] },
   { id: 'socket', t: 'Socket', aka: 'listening socket connected socket accept bind listen file descriptor fd', s: 'The handle a program uses to send and receive over the network.',
-    an: 'A phone line. The call center\'s number is the port; each ongoing call is a socket.',
+    an: 'A restaurant: the IP is the building, the port is the door, each socket is one table. The listening socket is the host who seats newcomers.',
     b: '<ul><li>👂 <b>Listening socket</b>: one per port. Only takes new connections.</li><li>🔌 <b>Connected socket</b>: one per client, made by <code>accept()</code>. Carries the data.</li><li>🧭 All share the server port. The OS matches packets by the 4-tuple (client IP + port, server IP + port).</li></ul><p>Each socket is an open file in the OS, so the limits are open files and memory.</p>', see: ['port', 'tuple', 'ss'] },
   { id: 'port', t: 'Port', aka: '443 80 53 ephemeral socket', s: 'Which app on the machine gets the data.',
     an: 'The flat number. IP gets it to the building, the port to the right flat.',
