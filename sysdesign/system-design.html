@@ -297,6 +297,10 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .dg .stack { display: grid; gap: 3px; }
 .dg .lbl { font-size: 12px; font-weight: 600; min-width: 100%; }
 .dg .bx small { display: block; color: var(--muted); font-size: 10.5px; }
+.vflow { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-top: 8px; font-size: 13px; }
+.vflow .bx { padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
+.vflow .bx small { display: block; color: var(--muted); font-size: 11px; }
+.vflow .ar { text-align: center; font-size: 12px; font-weight: 600; color: var(--c, var(--muted)); }
 /* Data Modeling: whiteboard schema sketch (lesson images 1 and 6) */
 .wb { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; margin: 6px 0 4px; padding: 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; }
 .wb-db { display: grid; place-content: center; text-align: center; width: 100%; max-width: 120px; aspect-ratio: 1; justify-self: center; align-self: center; border-radius: 50%; border: 2px solid var(--text); font-weight: 700; line-height: 1.3; }
@@ -1215,10 +1219,26 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
     <li>⚠️ It hides TCP details, but for persistent connections to the <b>same</b> server you still can't ignore the connection.</li>
   </ul>
   <p class="ana">📨 L7 is a <b>receptionist who opens every letter</b>: "billing? → desk 3, support? → desk 5". Smart routing by what's inside, but reading costs time (CPU). For a long phone call there's nothing to read, so the receptionist just holds two lines open for hours. <span class="add">➕ analogy not in the article</span></p>
+  <h5>🔌 Where each connection ends: L4 vs L7 <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">Same three boxes. The difference is where TCP and TLS stop, and so who can read the request.</p>
+  <div class="grid2" role="img" aria-label="L4: one TCP and TLS connection from client to server, the LB forwards bytes it cannot read. L7: connection 1 with TLS ends at the LB, which decrypts and reads HTTP, then connection 2 goes to the server">
+    <div class="k-blue"><b>4️⃣ L4: one connection</b><div class="star">The LB can't read it</div>
+      <div class="vflow"><span class="bx">💻 Client</span><span class="ar" style="--c: var(--green-fg)">↓ 🔒 TCP + TLS</span><span class="bx">⚖️ L4 <button type="button" class="gl-link" data-g="l4lb">LB</button><small>🙈 forwards bytes</small></span><span class="ar" style="--c: var(--green-fg)">↓ same connection</span><span class="bx">🖥️ Server<small>🔑 cert here, decrypts</small></span></div></div>
+    <div class="k-green"><b>7️⃣ L7: two connections</b><div class="star">The LB reads in the middle</div>
+      <div class="vflow"><span class="bx">💻 Client</span><span class="ar" style="--c: var(--green-fg)">↓ ① 🔒 TCP + TLS</span><span class="bx">⚖️ L7 <button type="button" class="gl-link" data-g="l7lb">LB</button><small>🔑 cert here · 🔓 reads HTTP</small></span><span class="ar" style="--c: var(--blue-fg)">↓ ② TCP, pooled</span><span class="bx">🖥️ Server<small>plain HTTP, or 🔒 again</small></span></div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">4️⃣ L4: TLS runs client ↔ server, the LB never decrypts</b>The LB picks a server per <b>connection</b> by IP + port. Every request on that connection goes to the same server. With a pass-through LB (AWS NLB) even the TCP handshake reaches the server; a proxy-style L4 (HAProxy TCP mode) ends TCP itself but still copies bytes blind.</li>
+    <li><b class="hd">7️⃣ L7: TCP handshake, then TLS handshake, both with the LB</b>The certificate lives on the LB (<button type="button" class="gl-link" data-g="tlsterm">TLS termination</button>). The LB decrypts, reads URL, headers and cookies, and picks a server per <b>request</b>.</li>
+    <li><b class="hd">♻️ Connection ② is reused, not opened per request</b>The LB keeps a pool of warm connections to each server, so no new handshake per request.</li>
+    <li><b class="hd">🔒 Re-encrypt only if you must</b>Inside the private network, LB → server is often plain HTTP (cheaper). If rules demand encryption everywhere, the LB opens TLS to the server too: decrypt, read, encrypt again, both ways.</li>
+    <li><b class="hd">🪪 Who does the server see?</b>L4 pass-through: the client's real IP. L7: the LB's IP; the client IP arrives in the <code>X-Forwarded-For</code> header.</li>
+  </ul>
   <table class="tbl">
     <tr><td></td><td><b>4️⃣ L4</b></td><td><b>7️⃣ L7</b></td></tr>
     <tr><td>Looks at</td><td>IP + port</td><td>URL, headers, cookies</td></tr>
     <tr><td>Connection</td><td>As if client ↔ server direct</td><td>Ends at the LB, new one to server</td></tr>
+    <tr><td>TLS ends at</td><td>Server</td><td>LB</td></tr>
     <tr><td>Cost</td><td>Fast, minimal inspection</td><td>More CPU</td></tr>
     <tr><td>Pick for</td><td>⭐ WebSockets, raw speed</td><td>⭐ HTTP, e.g. long polling</td></tr>
     <tr><td>AWS</td><td>NLB</td><td>ALB</td></tr>
@@ -2495,26 +2515,29 @@ const SEQS = {
   },
   'l4': {
     lanes: ['💻 Client', '⚖️ L4 LB', '🖥️ Server'],
-    key: [['tcp', 'TCP'], ['http', 'HTTP']],
+    key: [['tcp', 'TCP'], ['dns', 'TLS'], ['http', 'HTTP (🔒 = encrypted)']],
     frames: [
       { cap: '<b>Layer 4</b> LB, e.g. AWS <b>Network Load Balancer (NLB)</b>. It routes on IP addresses and ports, <b>without looking at the content</b>.' },
       { r: [{ f: 0, t: 1, m: '🤝 handshake', k: 'tcp', bi: 1 }, { f: 1, t: 2, m: '🤝 handshake', k: 'tcp', bi: 1 }], cap: 'TCP handshake (SYN · SYN-ACK · ACK). The LB picks a server for this connection and the handshake runs through to it. The effect: as if the client had a <b>direct</b> TCP connection to that server.' },
-      { f: 0, t: 2, m: 'HTTP GET', k: 'http', cap: 'The HTTP request passes <b>straight through</b>. The LB never reads it.' },
-      { f: 2, t: 0, m: 'HTTP Response', k: 'http', cap: 'Same path back. Every later request in this TCP session goes to the <b>same server</b>.' },
+      { f: 0, t: 2, m: '🔒 TLS handshake', k: 'dns', bi: 1, cap: 'TLS handshake, also end to end: the <b>server</b> holds the certificate and the keys. The LB only sees encrypted bytes. ➕ not in the article' },
+      { f: 0, t: 2, m: '🔒 HTTP GET', k: 'http', cap: 'The HTTP request passes <b>straight through</b>, still encrypted. The LB never reads it.' },
+      { f: 2, t: 0, m: '🔒 HTTP Response', k: 'http', cap: 'Same path back. Every later request in this TCP session goes to the <b>same server</b>.' },
       { r: [{ f: 0, t: 1, m: '👋 teardown', k: 'tcp', bi: 1 }, { f: 1, t: 2, m: '👋 teardown', k: 'tcp', bi: 1 }], cap: 'Teardown (FIN · ACK · FIN · ACK) runs through too. ⭐ One persistent connection, minimal inspection, fast → the pick for <b>WebSockets</b>.' },
     ],
   },
   'l7': {
     lanes: ['💻 Client', '⚖️ L7 LB', '🖥️ Server'],
-    key: [['tcp', 'TCP'], ['http', 'HTTP'], ['lb', 'LB reads']],
+    key: [['tcp', 'TCP'], ['dns', 'TLS'], ['http', 'HTTP (🔒 = encrypted)'], ['lb', 'LB reads']],
     frames: [
       { cap: '<b>Layer 7</b> LB, e.g. AWS <b>Application Load Balancer (ALB)</b>. It understands HTTP and <b>reads each request</b>.' },
       { f: 0, t: 1, m: '🤝 handshake', k: 'tcp', bi: 1, cap: 'Handshake (SYN · SYN-ACK · ACK): the client\'s TCP connection <b>ends at the LB</b>: it terminates the incoming connection.' },
-      { f: 0, t: 1, m: 'HTTP GET', k: 'http', cap: 'The LB receives the whole HTTP request…' },
-      { at: 1, m: '🔍 URL · headers · cookies', k: 'lb', cap: '…and routes on its content. e.g. API requests → one set of servers, web pages → another (like an API Gateway), or one user → always the same server, by cookie. This costs more CPU.' },
-      { f: 1, t: 2, m: '🤝 handshake', k: 'tcp', bi: 1, cap: 'It opens a <b>new</b> connection to the chosen server. That connection is "not all that relevant": it\'s just how the LB forwards L7 requests.' },
-      { f: 1, t: 2, m: 'HTTP GET', k: 'http', cap: '…and forwards <b>that request</b>.' },
-      { r: [{ f: 2, t: 1, m: 'HTTP Response', k: 'http' }, { f: 1, t: 0, m: 'HTTP Response', k: 'http' }], cap: 'The response comes back in two hops: two connections, two requests.' },
+      { f: 0, t: 1, m: '🔒 TLS handshake', k: 'dns', bi: 1, cap: 'Then the TLS handshake, also with the LB. The <b>LB</b> holds the certificate, so it can decrypt (TLS termination). ➕ not in the article' },
+      { f: 0, t: 1, m: '🔒 HTTP GET', k: 'http', cap: 'The client sends the encrypted HTTP request to the LB…' },
+      { at: 1, m: '🔓 decrypt → URL · headers · cookies', k: 'lb', cap: '…the LB decrypts it and routes on its content. e.g. API requests → one set of servers, web pages → another (like an API Gateway), or one user → always the same server, by cookie. This costs more CPU.' },
+      { f: 1, t: 2, m: '🤝 handshake', k: 'tcp', bi: 1, cap: 'It uses a <b>second</b> connection to the chosen server. That connection is "not all that relevant": it\'s just how the LB forwards L7 requests. ➕ In practice the LB keeps a pool of warm connections, so this handshake happens once, not per request.' },
+      { f: 1, t: 2, m: 'HTTP GET', k: 'http', cap: '…and forwards <b>that request</b>. Inside the private network it\'s often plain HTTP. If rules demand encryption everywhere, the LB re-encrypts it with TLS to the server. ➕ not in the article' },
+      { f: 2, t: 1, m: 'HTTP Response', k: 'http', cap: 'The server answers the LB (decrypted first, if that leg used TLS).' },
+      { f: 1, t: 0, m: '🔒 HTTP Response', k: 'http', cap: 'The LB encrypts it with the client\'s TLS keys and sends it on. Two hops, two connections. The next request on the same client connection may go to a <b>different</b> server.' },
       { r: [{ f: 0, t: 1, m: '👋 teardown', k: 'tcp', bi: 1 }, { f: 1, t: 2, m: '👋 teardown', k: 'tcp', bi: 1 }], cap: 'Two separate teardowns (FIN · ACK · FIN · ACK). ⭐ Flexible and feature-rich → the pick for everything <b>HTTP</b>.' },
     ],
   },
@@ -2817,6 +2840,15 @@ const GLOSSARY = [
   { id: 'http', t: 'HTTP', aka: 'hypertext transfer protocol request response get post', s: 'The request/response language of the web.',
     an: 'The letter itself: "please send me /search" and the reply.',
     b: '<p>Client sends a method + path + headers (<code>GET /search</code>); server answers with a status code + headers + body (<code>200 OK</code>). Stateless: each request carries what it needs.</p><p>1.0 closed the connection after each request; 1.1 keeps it open (keep-alive); 2 sends many at once on one connection.</p>', see: ['tls', 'keepalive'] },
+  { id: 'l4lb', t: 'L4 load balancer', aka: 'layer 4 nlb network load balancer tcp', s: 'Picks a server per connection by IP + port. Never reads the request.',
+    an: 'A phone switchboard: connects your call to one line and steps away.',
+    b: '<ul><li>🔒 TLS runs client ↔ server; the LB only sees encrypted bytes. The server holds the certificate.</li><li>🔗 One connection = one server for its whole life. Good for WebSockets.</li><li>⚡ Fast, cheap. Can\'t route by URL or cookie.</li></ul><p>e.g. AWS NLB.</p>', see: ['l7lb', 'tcp', 'tls'] },
+  { id: 'l7lb', t: 'L7 load balancer', aka: 'layer 7 alb application load balancer http reverse proxy', s: 'Ends the client\'s connection, reads each HTTP request, picks a server per request.',
+    an: 'A receptionist who opens every letter and walks it to the right desk.',
+    b: '<ol><li>🤝 Client does TCP + TLS handshakes with the <b>LB</b> (it holds the certificate).</li><li>🔓 LB decrypts and reads URL, headers, cookies.</li><li>♻️ Sends the request over a warm, pooled connection to a server: plain HTTP inside the network, or re-encrypted with TLS.</li><li>🔒 Encrypts the response back to the client.</li></ol><p>e.g. AWS ALB, nginx, Envoy.</p>', see: ['l4lb', 'tlsterm', 'http'] },
+  { id: 'tlsterm', t: 'TLS termination', aka: 'ssl offload termination decrypt at load balancer', s: 'Decrypting HTTPS at the load balancer, not at each server.',
+    an: 'The mailroom opens the sealed envelopes so it can read where each letter goes.',
+    b: '<p>The certificate and keys live on the LB. Servers get plain HTTP (less CPU for them, one place to renew certs).</p><p>Need encryption all the way? The LB re-encrypts to the server: <b>TLS re-encryption</b> (end-to-end TLS).</p>', see: ['l7lb', 'tls'] },
   { id: 'tls', t: 'HTTPS / TLS', aka: 'ssl encryption certificate', s: 'HTTP inside an encrypted, verified tunnel.',
     an: 'Sealing the letter in a locked envelope that only the receiver can open.',
     b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp', 'mitm', 'auth'] },
@@ -3002,7 +3034,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
