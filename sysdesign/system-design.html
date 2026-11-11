@@ -309,6 +309,8 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .oct > .h { background: var(--amber-bg); color: var(--amber-fg); border-color: var(--amber-fg); }
 .oct > small { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
 .oct.hd > span { border: 0; padding: 0; font: 600 11px/1.2 system-ui, sans-serif; color: var(--muted); }
+.bits { margin: 6px 0; padding: 8px; border-radius: 8px; background: var(--chip); text-align: center; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .3px; overflow-wrap: anywhere; }
+.bits .n { color: var(--green-fg); font-weight: 700; } .bits .h { color: var(--amber-fg); font-weight: 700; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: 12.5px; }
 .vpc .edge { text-align: center; font-weight: 600; }
@@ -738,39 +740,56 @@ GET  /v1/feed        → Tweet[]</pre>
     <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP for its public one on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
     <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
   </ul>
-  <h5>🔌 IP, port, socket: how one server talks to many clients <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
-  <p class="bridge">Think of a <b>restaurant</b>. The IP is the building's address. The port is the restaurant's door. A socket is <b>one table</b>: one customer's own conversation with the restaurant.</p>
-  <div class="vflow" role="img" aria-label="Zoom in: IP picks the machine, port picks the program, socket picks the conversation">
-    <div class="bx" style="border-color: var(--blue-fg)">🏢 <b>IP</b> <code>10.0.2.15</code> → which <b>machine</b><small>✉️ the building</small></div>
-    <div class="ar">⬇️ zoom in</div>
-    <div class="bx" style="border-color: var(--green-fg)">🚪 <b>Port</b> <code>8080</code> → which <b>program</b>: 💳 payment service<small>✉️ the restaurant's door</small></div>
-    <div class="ar">⬇️ zoom in</div>
-    <div class="bx" style="border-color: var(--amber-fg)">💬 <b>Socket</b> → which <b>conversation</b>: one per client<small>✉️ one table</small></div>
+  <h5>🔌 IP, port, socket: what a socket really is <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">The IP finds the machine. The port finds the program. Then the program needs something to actually <b>talk through</b>: that is a socket, a small object the OS makes for <b>one conversation</b>.</p>
+  <div class="vflow" role="img" aria-label="Zoom in: IP picks the machine, port picks the program, socket is one conversation">
+    <div class="bx" style="border-color: var(--blue-fg)">🏢 <b>IP</b> <code>10.0.2.15</code> → which <b>machine</b></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--green-fg)">🚪 <b>Port</b> <code>8080</code> → which <b>program</b> (💳 payment service)</div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--amber-fg)">🔌 <b>Socket</b> → one <b>conversation</b> with one client</div>
   </div>
-  <p>🍽️ Three customers walk in through the <b>same door</b>, and each gets their own table:</p>
-  <div class="vpc" role="img" aria-label="Port 8080 payment service: one listening socket like a host at the door, and three connected sockets like tables, one per client">
-    <div class="box pub">
-      <div class="h">🚪 Port 8080 · 💳 Payment service</div>
-      <div class="items"><span class="it">🙋 Listening socket = the host at the door<br><small>only seats new customers</small></span></div>
-      <div class="rt">🍽️ table A ↔ 👤 1.1.1.1:51234<br>🍽️ table B ↔ 👤 2.2.2.2:40112<br>🍽️ table C ↔ 👤 1.1.1.1:51240</div>
+  <p>🔍 Open one socket and look inside:</p>
+  <div class="vpc" role="img" aria-label="Socket number 7, made by the OS: my address 10.0.2.15:8080, their address 1.1.1.1:51234, an inbox with the request, an outbox with the reply">
+    <div class="box prv">
+      <div class="h">🔌 Socket #7 <small>kept by the OS</small></div>
+      <div class="rt">🏷️ me   10.0.2.15:8080<br>🏷️ them 1.1.1.1:51234</div>
+      <div class="items" style="margin-top:6px"><span class="it">📥 inbox: <code>POST /pay {…}</code><br><small>bytes that arrived, not read yet</small></span><span class="it">📤 outbox: <code>200 OK</code><br><small>bytes written, not sent yet</small></span></div>
     </div>
   </div>
-  <p class="figcap">Each table (socket) is named by <b>who sits there</b>: the client's IP + port. A and C are two tabs on the same laptop: same IP, different port, so different tables.</p>
+  <p>✍️ Your program only <b>reads</b> and <b>writes</b>. The OS does the rest:</p>
+  <div class="grid2" role="img" aria-label="Incoming: packet, OS puts bytes in socket 7's inbox, program reads. Outgoing: program writes, OS sends from the outbox as packets">
+    <div class="k-blue"><b>📥 Data comes in</b>
+      <div class="vflow"><div class="bx">🌐 packet from 1.1.1.1:51234</div><div class="ar">⬇️</div><div class="bx">🐧 OS puts it in #7's inbox</div><div class="ar">⬇️</div><div class="bx">💳 program: <code>read(#7)</code></div></div></div>
+    <div class="k-green"><b>📤 Data goes out</b>
+      <div class="vflow"><div class="bx">💳 program: <code>write(#7)</code><small>"200 OK"</small></div><div class="ar">⬇️</div><div class="bx">🐧 OS sends #7's outbox</div><div class="ar">⬇️</div><div class="bx">🌐 packets to 1.1.1.1:51234</div></div></div>
+  </div>
+  <p class="figcap">Like a file you read and write, except the other end is another machine.</p>
+  <p>👥 Now 3 clients on the same port: the OS makes one socket each.</p>
+  <div class="vpc" role="img" aria-label="Port 8080: listening socket number 3 only accepts newcomers; sockets 7, 8 and 9 each belong to one client">
+    <div class="box pub">
+      <div class="h">🚪 Port 8080 · 💳 Payment service</div>
+      <div class="items"><span class="it">👂 Socket #3 = listening socket<br><small>only accepts new clients, carries no data</small></span></div>
+      <div class="rt">🔌 #7 them 1.1.1.1:51234<br>🔌 #8 them 2.2.2.2:40112<br>🔌 #9 them 1.1.1.1:51240</div>
+    </div>
+  </div>
+  <p class="figcap">#7 and #9 are two tabs on one laptop: same IP, different port, so two sockets.</p>
   <p>▶️ Watch two clients arrive:</p>
   <div class="seq" data-seq="socket"></div>
   <ul class="lines roomy heads">
-    <li><b class="hd">🏢 IP = which machine</b>It gets the packet to the right building.</li>
-    <li><b class="hd">🚪 Port = which program on that machine</b>A number 0–65535. Only a few are used: each running program listens on its own one (8080 payment service, 5432 Postgres). The rest stay closed.</li>
-    <li><b class="hd">💬 Socket = one conversation with one client</b>100 clients on port 8080 = 1 port, 100 sockets. They share the door, never the table.</li>
-    <li><b class="hd">🏷️ The client's IP + port tells the tables apart</b>Every packet carries it. The OS reads it and hands the data to the matching socket.</li>
+    <li><b class="hd">🔌 A socket = an OS object for one conversation</b>Both addresses + an inbox + an outbox. Your program gets a number for it (#7).</li>
+    <li><b class="hd">✍️ The program only reads and writes it</b><code>read(#7)</code> gets the client's bytes. <code>write(#7)</code> sends bytes back. The OS handles packets and TCP.</li>
+    <li><b class="hd">👂 One listening socket per port, one connected socket per client</b>The listening socket only accepts newcomers. Each newcomer gets a new socket. All of them use port 8080.</li>
+    <li><b class="hd">🏷️ The "them" address picks the socket</b>Every packet carries the client's IP + port. The OS puts its bytes in the socket with that "them".</li>
   </ul>
-  <p>🧑‍💻 In code, the two kinds of socket look like this:</p>
-<pre>// 🙋 the host: listens on 8080
+<pre>// 👂 listening socket on 8080
 net.createServer(sock => {
-  // 🍽️ a new table per client
-  sock.on('data', d => sock.write(d))
+  // 🔌 sock = this client's socket
+  sock.on('data', d =>   // read
+    sock.write('200 OK')) // write
 }).listen(8080)</pre>
-  <div class="rem"><b>✅ Remember</b> IP → building · port → restaurant door · socket → one table. <b>One port, many sockets</b>, one per client.</div>
+  <p class="ana">🍽️ A <b>restaurant</b>: the IP is the building, the port is the door, each socket is <b>one table</b>. The waiter (your program) takes orders from that table (read) and serves food to that table (write). The host at the door (listening socket) only seats newcomers. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> Socket = the OS object your program reads and writes for <b>one</b> client. <b>One port, many sockets.</b></div>
 
   <h5>🧭 Which box reads which label <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Every box on the path opens the envelopes only down to its own layer. That's what "a router is an L3 device" means.</p>
@@ -883,7 +902,9 @@ $ curl -s ifconfig.me  # after NAT
   <div class="oct hd" aria-hidden="true"><b></b><span>8 bits</span><span>8 bits</span><span>8 bits</span><span>8 bits</span><small></small></div>
   <div class="oct" role="img" aria-label="10.0.1.25/24: first three numbers are the network, the last is the host">
     <b>/24</b><span class="n">10</span><span class="n">0</span><span class="n">1</span><span class="h">25</span><small>this one: host 25</small></div>
-  <p class="figcap">🟩 network: fixed, 24 bits · 🟨 host: free, 32 − 24 = 8 bits → 2<sup>8</sup> = <b>256</b> addresses (<code>10.0.1.0</code>–<code>10.0.1.255</code>).</p>
+  <p>🔬 The same address as the computer sees it, in bits:</p>
+  <div class="bits" role="img" aria-label="10.0.1.25 in binary: the first 24 bits are the network part, the last 8 bits are the host part"><span class="n">00001010.00000000.00000001</span>.<span class="h">00011001</span></div>
+  <p class="figcap">🟩 24 network bits: the same for every address in this block · 🟨 8 host bits: free, 2<sup>8</sup> = <b>256</b> combinations → <code>10.0.1.0</code> to <code>10.0.1.255</code>.</p>
   <p>📏 Bigger <code>/N</code> = more bits fixed = <b>smaller</b> block:</p>
   <div class="oct"><b>/0</b><span class="h">x</span><span class="h">x</span><span class="h">x</span><span class="h">x</span><small>all: "anywhere"</small></div>
   <div class="oct"><b>/8</b><span class="n">17</span><span class="h">x</span><span class="h">x</span><span class="h">x</span><small>16.7 M · Apple</small></div>
@@ -2885,17 +2906,17 @@ const SEQS = {
   },
   'socket': {
     lanes: ['👤 Client A', '👤 Client B', '🐧 Server OS', '💳 Payment :8080'],
-    key: [['tcp', 'walks in'], ['lb', 'new table'], ['http', 'talking']],
+    key: [['tcp', 'connect'], ['lb', 'new socket'], ['http', 'data']],
     frames: [
-      { cap: 'The payment service starts and opens port 8080.' },
-      { at: 3, m: '🙋 host waits at :8080', k: 'lb', cap: '① It opens a <b>listening socket</b>: the host at the door. It only greets newcomers. It never takes orders.' },
-      { f: 0, t: 2, m: 'connect :8080', k: 'tcp', cap: '② Client A walks in through door 8080.' },
-      { f: 2, t: 3, m: '🍽️ table A', k: 'lb', cap: '③ The host gives A its own table: a <b>new socket</b>, named "1.1.1.1:51234". The host goes back to the door.' },
-      { f: 1, t: 2, m: 'connect :8080', k: 'tcp', cap: '④ Client B walks in through the <b>same</b> door 8080.' },
-      { f: 2, t: 3, m: '🍽️ table B', k: 'lb', cap: '⑤ B gets a different table: socket B, named "2.2.2.2:40112". Still one door.' },
-      { f: 0, t: 2, m: 'order from A', k: 'http', cap: '⑥ A sends a request. The packet says who sent it: 1.1.1.1:51234.' },
-      { f: 2, t: 3, m: '→ 🍽️ table A', k: 'http', cap: '⑦ The OS finds the table with that name and delivers it there. B never sees it.' },
-      { r: [{ f: 1, t: 2, m: 'order from B', k: 'http' }, { f: 2, t: 3, m: '→ 🍽️ table B', k: 'http' }], cap: '⑧ Same for B. <b>One door (port), one host, a table (socket) per client.</b>' },
+      { cap: 'The payment service starts and asks the OS for port 8080.' },
+      { at: 3, m: '👂 #3 listens on :8080', k: 'lb', cap: '① The OS makes socket #3, the <b>listening socket</b>. It only accepts newcomers. No data goes through it.' },
+      { f: 0, t: 2, m: 'connect :8080', k: 'tcp', cap: '② Client A connects to port 8080.' },
+      { f: 2, t: 3, m: '🔌 new #7 (them A)', k: 'lb', cap: '③ The OS makes a <b>new socket #7</b> with them = 1.1.1.1:51234 and hands its number to the program.' },
+      { f: 1, t: 2, m: 'connect :8080', k: 'tcp', cap: '④ Client B connects to the <b>same</b> port 8080.' },
+      { f: 2, t: 3, m: '🔌 new #8 (them B)', k: 'lb', cap: '⑤ Another new socket, #8, with them = 2.2.2.2:40112. Still one port.' },
+      { f: 0, t: 2, m: 'POST /pay', k: 'http', cap: '⑥ A packet arrives from 1.1.1.1:51234.' },
+      { f: 2, t: 3, m: '📥 inbox of #7', k: 'http', cap: '⑦ The OS finds the socket with that "them" (#7) and puts the bytes in its inbox. The program calls <code>read(#7)</code>.' },
+      { f: 3, t: 0, m: 'write(#7): 200 OK', k: 'http', dash: 1, cap: '⑧ The program calls <code>write(#7, "200 OK")</code>. The OS sends it to A only. B\'s socket #8 is untouched.' },
     ],
   },
   'nat': {
