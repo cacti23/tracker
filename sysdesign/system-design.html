@@ -301,6 +301,16 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .vflow .bx { padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
 .vflow .bx small { display: block; color: var(--muted); font-size: 11px; }
 .vflow .ar { text-align: center; font-size: 12px; font-weight: 600; color: var(--c, var(--muted)); }
+.pipes { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.pp { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--card); }
+.pp > b { display: block; font-size: 13px; margin-bottom: 6px; }
+.pp small { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+.pipe { display: flex; gap: 4px; align-items: center; padding: 4px 8px; border-radius: 99px; background: var(--chip); margin: 4px 0; }
+.pipe i { font-style: normal; font-size: 11.5px; min-width: 22px; text-align: center; padding: 1px 5px; border-radius: 6px; background: var(--blue-bg); color: var(--blue-fg); }
+.pipe i.x { background: var(--red-bg); color: var(--red-fg); font-weight: 700; }
+.pipe i.w { opacity: .4; }
+.pipe i.ok { background: var(--green-bg); color: var(--green-fg); }
+.pipe .tag { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
 .aws { display: inline-block; font-size: 11.5px; font-weight: 600; line-height: 1.4; padding: 1px 8px; margin: 2px 0; border-radius: 99px; background: var(--blue-bg); color: var(--blue-fg); border: 1px solid var(--blue-fg); font-style: normal; vertical-align: 1px; }
 /* Data Modeling: whiteboard schema sketch (lesson images 1 and 6) */
 .wb { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; margin: 6px 0 4px; padding: 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font-size: 12.5px; }
@@ -848,6 +858,17 @@ GET  /v1/feed        → Tweet[]</pre>
   </div>
   <div class="warn"><b>⚠️ Reliable ≠ on time</b> TCP promises your bytes arrive, in order, <i>eventually</i>. It never promises <b>when</b>. It keeps retrying for minutes before giving up (Linux: about 15 min on an open connection), and if the other side dies silently, an idle connection may not notice for hours. So the deadline lives in your app: 👉 <a href="#sd-net-latency-failures--timeouts-and-retries-with-backoff">timeouts</a>. <span class="add">➕ not in the article</span></div>
 
+  <h5>💥 When a TCP packet is lost: step by step <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">"Reliable, in order" has a price. Watch what one lost packet does to everything behind it.</p>
+  <div class="seq" data-seq="tcp-loss"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔢 Every packet is numbered; the ACK says "next I need #N"</b>So when #2 is missing, every later arrival repeats "next I need #2" (duplicate ACKs).</li>
+    <li><b class="hd">⏸️ Packets after the hole wait in the buffer</b>#3, #4, #5 arrived, but the app can't have them until #2 does. This is <b>head-of-line blocking</b>.</li>
+    <li><b class="hd">🔁 3 duplicate ACKs → resend at once (fast retransmit)</b>No ACKs at all → the sender waits for a timeout, then resends (slower).</li>
+    <li><b class="hd">🐢 Then the sender slows down</b>TCP reads a loss as "the network is busy" and halves its sending window (🔗 <button type="button" class="gl-link" data-g="congestion">congestion control</button>).</li>
+  </ul>
+  <p class="ana">🚚 A numbered <b>moving van</b>: boxes 3, 4 and 5 arrived, box 2 fell off. You can't unpack in order until box 2 comes back, so 3, 4 and 5 sit in the hall. <span class="add">➕ analogy not in the article</span></p>
+
   <h4>🎯 Why would anyone want UDP?</h4>
   <p class="bridge">No setup sounds great, but losing and reordering packets "kinda suck". So UDP wins only where <b>speed matters more than reliability</b>, and the client can cope with a missing packet.</p>
   <div class="pills"><span>📺 live video</span><span>🎮 online gaming</span><span>📞 VoIP</span><span>📖 DNS lookups</span></div>
@@ -942,6 +963,32 @@ GET  /v1/feed        → Tweet[]</pre>
     <p>✉️ Like a staff badge the receptionist scans, vs someone just saying "I'm the manager". The body says what you <b>want</b>; the verified token says who you <b>are</b>.</p>
     <p>🏷️ Why a header? It rides on every request (even GET, which has no body), stays apart from the data, and one middleware checks it before any handler runs. A header can be faked too: what makes it safe is the server's <b>signature check</b>, not the header itself.</p>
     <p>🔐 Then check permission: "does user 42 own order 99?" before returning it.</p></div>
+
+  <h5>🛣️ HTTP/1.1 vs HTTP/2 vs HTTP/3: one page, 40 images <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">One page needs 40 images from the same site. How many can travel at once, and what happens when one packet is lost?</p>
+  <div class="pipes" role="img" aria-label="HTTP/1.1: 6 connections, images queue. HTTP/2: one connection with mixed streams, one lost packet stalls all. HTTP/3: separate streams, a loss stalls only its own stream">
+    <div class="pp"><b>1️⃣ HTTP/1.1 · up to 6 TCP connections per site</b>
+      <div class="pipe"><i>1</i><i>7</i><i>13</i><i>…</i><span class="tag">conn 1</span></div>
+      <div class="pipe"><i>2</i><i>8</i><i>14</i><i>…</i><span class="tag">conn 2</span></div>
+      <div class="pipe"><i class="w">3 · 4 · 5 · 6 …</i><span class="tag">conns 3–6</span></div>
+      <small>🚗 One image at a time per connection. Image 7 waits for a free one.</small></div>
+    <div class="pp"><b>2️⃣ HTTP/2 · 1 TCP connection, many streams</b>
+      <div class="pipe"><i>1</i><i>2</i><i>3</i><i>4</i><i class="x">💥5</i><i class="w">6</i><i class="w">7</i><i class="w">8</i><span class="tag">⏸ all wait</span></div>
+      <small>🛣️ All 40 travel at once, mixed. But one lost TCP packet stalls <b>every</b> stream.</small></div>
+    <div class="pp"><b>3️⃣ HTTP/3 · QUIC (on UDP), streams recover alone</b>
+      <div class="pipe"><i class="ok">1</i><i class="ok">4</i><i class="ok">7</i><span class="tag">✅ moving</span></div>
+      <div class="pipe"><i>2</i><i class="x">💥5</i><i class="w">8</i><span class="tag">⏸ only this one</span></div>
+      <div class="pipe"><i class="ok">3</i><i class="ok">6</i><i class="ok">9</i><span class="tag">✅ moving</span></div>
+      <small>🚀 A loss stalls only its own stream.</small></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🚗 HTTP/1.1: about 6 connections per site, one request at a time on each</b>40 images = queues of ~7 per connection. Each connection also pays its own TCP + TLS handshake.</li>
+    <li><b class="hd">🛣️ HTTP/2: one connection carries every request as its own stream</b>Frames from all 40 images interleave on one connection. No 6-connection limit, one handshake, compressed headers.</li>
+    <li><b class="hd">💥 The trade-off: TCP head-of-line blocking</b>TCP hands bytes to the app strictly in order, and it doesn't know about streams. One lost packet freezes all 40 until it is resent (🔗 step by step in the Transport card). On lossy mobile networks, HTTP/2 can be slower than six HTTP/1.1 connections.</li>
+    <li><b class="hd">🚀 HTTP/3 fixes it by moving streams into the transport</b>QUIC runs on UDP and knows each stream, so a loss stalls only that stream. Bonus: faster setup. If a firewall blocks UDP, the browser falls back to HTTP/2.</li>
+  </ul>
+  <p class="ana">🏪 HTTP/1.1 = <b>6 checkout counters</b>, one customer each. HTTP/2 = <b>one conveyor belt</b> with everyone's items mixed: one item falls off, the whole belt stops. HTTP/3 = <b>one belt with separate lanes</b>: only the lane with the fallen item stops. <span class="add">➕ analogy not in the article</span> <span class="aws">☁️ CloudFront serves HTTP/2 and HTTP/3</span></p>
+  <div class="rem"><b>✅ Remember</b> 🎤 "HTTP/2 multiplexes many requests on one TCP connection, but a lost packet blocks them all. HTTP/3 on QUIC keeps streams independent, which helps users on lossy mobile networks."</div>
 
   <h5>📎 multipart/form-data ≠ S3 multipart upload <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Both say "multipart". One is a body format inside <b>one</b> request. The other sends one file as <b>many</b> requests.</p>
@@ -2555,6 +2602,24 @@ const SEQS = {
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
     ],
   },
+  'tcp-loss': {
+    lanes: ['💻 Sender', '🌐 Network', '🖥️ Receiver TCP', '📱 Receiver app'],
+    key: [['tcp', 'packet'], ['gray', 'ACK'], ['err', 'loss / repeat'], ['lb', 'buffer'], ['http', 'to the app']],
+    frames: [
+      { cap: 'TCP numbers every packet. The receiver ACKs with "next I need #N". Watch packet #2 get lost.' },
+      { f: 0, t: 2, m: '#1', k: 'tcp', cap: '① #1 arrives.' },
+      { f: 2, t: 3, m: '#1', k: 'http', cap: 'It is next in order, so TCP hands it to the app at once.' },
+      { f: 2, t: 0, m: 'ACK: next #2', k: 'gray', dash: 1, cap: '② The receiver ACKs: "next I need #2".' },
+      { f: 0, t: 1, m: '#2', k: 'tcp', cap: '③ #2 leaves the sender…' },
+      { at: 1, m: '💥 #2 lost', k: 'err', cap: '…and a router drops it (full queue, weak Wi-Fi, mobile signal).' },
+      { f: 0, t: 2, m: '#3 #4 #5', k: 'tcp', cap: '④ The sender keeps going: #3, #4 and #5 arrive fine.' },
+      { at: 2, m: '📦 hold #3 #4 #5', k: 'lb', cap: '⑤ TCP must deliver <b>in order</b>, so it holds them in a buffer. The app gets nothing: <b>head-of-line blocking</b>.' },
+      { f: 2, t: 0, m: 'next #2 · next #2 · next #2', k: 'err', dash: 1, cap: '⑥ Each arrival repeats "next I need #2": 3 <b>duplicate ACKs</b>. (With SACK it also says "I have #3–#5".)' },
+      { f: 0, t: 2, m: '🔁 #2 again', k: 'tcp', cap: '⑦ 3 duplicate ACKs → the sender resends #2 at once (<b>fast retransmit</b>). No ACKs at all → it waits for a timeout first, which is slower.' },
+      { f: 2, t: 3, m: '#2 #3 #4 #5', k: 'http', cap: '⑧ The hole is filled. #2 to #5 go to the app together, in one burst.' },
+      { f: 2, t: 0, m: 'ACK: next #6', k: 'gray', dash: 1, cap: '⑨ One ACK covers all. 🐢 The sender also halves its sending window: it reads a loss as "the network is busy" (congestion control).' },
+    ],
+  },
   'nat': {
     lanes: ['📱 Phone 192.168.1.23', '🏠 Router (NAT)', '🖥️ Server'],
     key: [['http', 'going out'], ['lb', 'NAT rewrite'], ['tcp', 'coming back'], ['gray', 'no NAT']],
@@ -2850,6 +2915,9 @@ const GLOSSARY = [
   { id: 'tlsterm', t: 'TLS termination', aka: 'ssl offload termination decrypt at load balancer', s: 'Decrypting HTTPS at the load balancer, not at each server.',
     an: 'The mailroom opens the sealed envelopes so it can read where each letter goes.',
     b: '<p>The certificate and keys live on the LB. Servers get plain HTTP (less CPU for them, one place to renew certs).</p><p>Need encryption all the way? The LB re-encrypts to the server: <b>TLS re-encryption</b> (end-to-end TLS).</p><p>☁️ <b>On AWS:</b> AWS Certificate Manager (ACM) puts the certificate on the ALB</p>', see: ['l7lb', 'tls'] },
+  { id: 'hol', t: 'Head-of-line blocking', aka: 'hol http2 http/2 http3 quic multiplex packet loss stall', s: 'One stuck item at the front holds up everything behind it.',
+    an: 'One conveyor belt: one item falls off, the whole belt stops until it is put back.',
+    b: '<ul><li>🐴 <b>TCP</b>: a lost packet holds back every later packet, because bytes go to the app strictly in order.</li><li>🛣️ <b>HTTP/2</b>: many streams share one TCP connection, so one loss stalls all of them.</li><li>🚀 <b>HTTP/3 (QUIC)</b>: streams are separate in the transport, so a loss stalls only its own stream.</li></ul>', see: ['tcp', 'udp', 'http'] },
   { id: 'tls', t: 'HTTPS / TLS', aka: 'ssl encryption certificate', s: 'HTTP inside an encrypted, verified tunnel.',
     an: 'Sealing the letter in a locked envelope that only the receiver can open.',
     b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp', 'mitm', 'auth'] },
@@ -3035,7 +3103,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
