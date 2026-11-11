@@ -741,6 +741,13 @@ GET  /v1/feed        → Tweet[]</pre>
     <li><b class="hd">🏢 A whole office can look like one IP</b>The server sees only the router's public IP. Rate limits or IP hash by IP treat 500 staff as one client.</li>
   </ul>
   <p class="ana">✉️ An office <b>mailroom</b>: every letter goes out with the company's address and a reference number. Replies come back to the mailroom, which looks up the number and walks them to your desk. <span class="add">➕ analogy not in the article</span></p>
+  <p>🔍 See NAT on your own laptop with <button type="button" class="gl-link" data-g="ipcmd">ip</button> (Mac: <code>ifconfig</code>):</p>
+<pre>$ ip -4 addr        # my private IP
+inet 192.168.1.23/24
+$ ip route          # my router
+default via 192.168.1.1
+$ curl -s ifconfig.me  # after NAT
+203.0.113.7</pre>
   <p class="bridge">So the IP says <b>who it's finally for</b>, the MAC says <b>who gets it next</b>, the port says <b>which app</b>. Now watch those packets move.</p>
 
 
@@ -802,6 +809,14 @@ GET  /v1/feed        → Tweet[]</pre>
     <li><b class="hd">☁️ The cloud does the same</b>AWS Route 53 private hosted zones answer only inside the VPCs you attach.</li>
   </ul>
   <p class="ana">☎️ The office <b>receptionist's internal phone list</b>: staff get any extension. A stranger calling from outside hears "sorry, I can't share that". <span class="add">➕ analogy not in the article</span></p>
+  <p>🔍 Ask DNS yourself with <button type="button" class="gl-link" data-g="dig">dig</button>:</p>
+<pre>$ dig +short api.example.com
+203.0.113.10
+# ask the office DNS directly
+$ dig @10.0.0.2 +short wiki.corp
+10.0.5.20
+$ dig +trace example.com
+# root → .com → example.com</pre>
 
   <h5>📡 ICMP: the network's delivery notes (ping uses it) <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">IP carries packets but never tells you what went wrong. ICMP is how routers and hosts report back.</p>
@@ -813,6 +828,13 @@ GET  /v1/feed        → Tweet[]</pre>
     <li><b class="hd">🎤 Health checks use TCP or HTTP, not ping</b>Ping proves the machine is up, not your app (🔗 <a href="#sd-net-lb--health-checks-route-around-failures">Health checks</a>).</li>
   </ul>
   <p class="ana">✉️ ICMP is the post office's <b>own slips</b>: "returned, no such address" or "return receipt". Ping is a postcard saying "are you there?" that the house sends straight back. <span class="add">➕ analogy not in the article</span></p>
+  <p>🔍 Try it with <button type="button" class="gl-link" data-g="ping">ping</button> and <button type="button" class="gl-link" data-g="traceroute">traceroute</button> (Windows: <code>tracert</code>):</p>
+<pre>$ ping -c 3 example.com
+64 bytes … time=12.3 ms
+$ traceroute example.com
+ 1  192.168.1.1   1 ms  # router
+ 2  10.20.0.1     8 ms  # ISP
+ 3  * * *  # hop drops ICMP</pre>
   <p class="bridge">That's the base of every arrow you'll draw: DNS to find, TCP to connect, HTTP to talk. Next up: TCP isn't the only way to deliver.</p>
 
   <div class="learned">
@@ -868,6 +890,27 @@ GET  /v1/feed        → Tweet[]</pre>
     <li><b class="hd">🐢 Then the sender slows down</b>TCP reads a loss as "the network is busy" and halves its sending window (🔗 <button type="button" class="gl-link" data-g="congestion">congestion control</button>).</li>
   </ul>
   <p class="ana">🚚 A numbered <b>moving van</b>: boxes 3, 4 and 5 arrived, box 2 fell off. You can't unpack in order until box 2 comes back, so 3, 4 and 5 sit in the hall. <span class="add">➕ analogy not in the article</span></p>
+  <p>🔍 See it: in Wireshark, filter <code>tcp.analysis.retransmission</code> to list every resent packet.</p>
+
+  <h5>🚫 When connecting fails: timed out vs refused vs reset <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">Three errors, three causes. The error name tells you where to look.</p>
+  <div class="seq" data-seq="tcp-errors"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⏱️ Timed out: the SYN got no reply at all</b>A firewall dropped it, the host is down, or the IP is wrong. Slow: the client keeps resending SYN until your connect timeout. Error <code>ETIMEDOUT</code>. <span class="aws">☁️ On AWS, check the Security Group: it drops silently</span></li>
+    <li><b class="hd">🚫 Refused: the host answered RST, "nobody here"</b>The machine is up, but nothing listens on that port: service down or wrong port. Fast, in milliseconds. Error <code>ECONNREFUSED</code>.</li>
+    <li><b class="hd">💥 Reset: it was connected, then got RST</b>The app crashed or restarted, or an LB or NAT forgot the connection after an idle timeout. Error <code>ECONNRESET</code>. Retry with backoff.</li>
+  </ul>
+  <p class="ana">🚪 Knocking on a flat door: nobody answers (<b>timed out</b>), someone shouts "wrong flat!" (<b>refused</b>), or you were talking and the door slams (<b>reset</b>). <span class="add">➕ analogy not in the article</span></p>
+  <p>🔍 Check which one with <button type="button" class="gl-link" data-g="nc">nc</button>, <button type="button" class="gl-link" data-g="ss">ss</button> and <button type="button" class="gl-link" data-g="tcpdump">tcpdump</button>:</p>
+<pre>$ nc -vz -w 3 db.internal 5432
+# succeeded → port open
+# refused   → nothing listening
+# timed out → dropped on the way</pre>
+<pre>$ ss -tlnp      # on the server:
+LISTEN 0.0.0.0:5432  # who listens</pre>
+<pre>$ sudo tcpdump -n port 5432
+Flags [S]   # SYN … no answer
+Flags [R.]  # RST: refused</pre>
 
   <h4>🎯 Why would anyone want UDP?</h4>
   <p class="bridge">No setup sounds great, but losing and reordering packets "kinda suck". So UDP wins only where <b>speed matters more than reliability</b>, and the client can cope with a missing packet.</p>
@@ -933,6 +976,12 @@ GET  /v1/feed        → Tweet[]</pre>
     <div style="--c: var(--amber-fg)" data-l="Body">{ "userId": 1, "id": 1, "title": "Some post title", "body": "Interesting words" }</div>
   </div>
   <p class="figcap">You can type this by hand: open a TCP connection with <button type="button" class="term" data-p="nc on the command line. It opens a raw TCP connection, so you can type an HTTP request and see the raw response (the course admin explained this in the comments).">netcat</button> and send it.</p>
+  <p>🔍 See every step of one real request with <button type="button" class="gl-link" data-g="curlv">curl -v</button>: <span class="add">➕ not in the article</span></p>
+<pre>$ curl -v https://example.com
+* Trying 203.0.113.10:443  # TCP
+* SSL connection … TLSv1.3 # TLS
+> GET / HTTP/2             # sent
+< HTTP/2 200               # got</pre>
   <p class="bridge">Methods and status codes are standard, like enums. Know the common ones. Interviewers rarely dig in unless you're designing a RESTful API.</p>
   <table class="tbl">
     <tr><td>GET</td><td>Request data. ⭐ <button type="button" class="gl-link" data-g="idem">Idempotent</button>, no body</td></tr>
@@ -972,6 +1021,10 @@ GET  /v1/feed        → Tweet[]</pre>
       <div class="pipe"><i>2</i><i>8</i><i>14</i><i>…</i><span class="tag">conn 2</span></div>
       <div class="pipe"><i class="w">3 · 4 · 5 · 6 …</i><span class="tag">conns 3–6</span></div>
       <small>🚗 One image at a time per connection. Image 7 waits for a free one.</small></div>
+    <div class="pp"><b>1️⃣➕ HTTP/1.1 + domain sharding · 2 hostnames</b>
+      <div class="pipe"><i>1–6</i><span class="tag">img1.example.com ×6</span></div>
+      <div class="pipe"><i>7–12</i><span class="tag">img2.example.com ×6</span></div>
+      <small>🔀 The 6 limit is per hostname, so 2 names = 12 connections. Each name costs a DNS lookup + TCP + TLS handshake.</small></div>
     <div class="pp"><b>2️⃣ HTTP/2 · 1 TCP connection, many streams</b>
       <div class="pipe"><i>1</i><i>2</i><i>3</i><i>4</i><i class="x">💥5</i><i class="w">6</i><i class="w">7</i><i class="w">8</i><span class="tag">⏸ all wait</span></div>
       <small>🛣️ All 40 travel at once, mixed. But one lost TCP packet stalls <b>every</b> stream.</small></div>
@@ -983,6 +1036,7 @@ GET  /v1/feed        → Tweet[]</pre>
   </div>
   <ul class="lines roomy heads">
     <li><b class="hd">🚗 HTTP/1.1: about 6 connections per site, one request at a time on each</b>40 images = queues of ~7 per connection. Each connection also pays its own TCP + TLS handshake.</li>
+    <li><b class="hd">🔀 Domain sharding: a trick for HTTP/1.1, a mistake for HTTP/2</b>HTTP/1.1: spread images over <code>img1.</code> and <code>img2.example.com</code> to get 12 connections instead of 6. HTTP/2: it splits the one shared connection back into many, so you pay extra handshakes and lose shared prioritization. Remove it when you move to HTTP/2.</li>
     <li><b class="hd">🛣️ HTTP/2: one connection carries every request as its own stream</b>Frames from all 40 images interleave on one connection. No 6-connection limit, one handshake, compressed headers.</li>
     <li><b class="hd">💥 The trade-off: TCP head-of-line blocking</b>TCP hands bytes to the app strictly in order, and it doesn't know about streams. One lost packet freezes all 40 until it is resent (🔗 step by step in the Transport card). On lossy mobile networks, HTTP/2 can be slower than six HTTP/1.1 connections.</li>
     <li><b class="hd">🚀 HTTP/3 fixes it by moving streams into the transport</b>QUIC runs on UDP and knows each stream, so a loss stalls only that stream. Bonus: faster setup. If a firewall blocks UDP, the browser falls back to HTTP/2.</li>
@@ -1154,12 +1208,53 @@ data: {"id": 100, …}</pre>Each line is its own message, handled on arrival.</d
   <div class="rem"><b>✅ Remember</b> Most interviewers don't know these limits and will gladly let you assume they don't exist. But anyone who has actually built SSE "has an enduring headache" from them, and may probe whether you've really used it.</div>
   <p>🎯 Use it when clients should get notifications or events <b>as soon as they happen</b>, e.g. keeping auction bidders up to date on the current price. 🔗 Realtime Updates covers the server side.</p>
 
+  <h5>⏳ SSE and idle timeouts: keep the stream alive <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">SSE is one long HTTP response. If no event arrives for a while, an LB or proxy idle timer closes it, and the client misses events.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💓 Send a heartbeat every 15–20 s</b>A line starting with <code>:</code> is a comment: the browser ignores it, but it resets every idle timer on the path.</li>
+    <li><b class="hd">⏱️ Raise the idle timeout, turn off proxy buffering</b>Raise the LB or proxy idle timeout above your heartbeat <span class="aws">☁️ ALB default: 60 s</span>. Buffering is also what batches SSE chunks (the "misbehaving networks" above): nginx <code>proxy_buffering off</code>, or send <code>X-Accel-Buffering: no</code>.</li>
+    <li><b class="hd">🔁 EventSource reconnects by itself</b>It sends <code>Last-Event-ID</code> with the last id it saw, so the server resumes from there. The server sets the wait with <code>retry:</code>.</li>
+  </ul>
+<pre>: ping
+
+id: 42
+data: {"price":101}
+
+retry: 5000</pre>
+  <p class="figcap">📬 The raw stream: <code>: ping</code> = heartbeat · <code>id</code> = what the browser sends back as Last-Event-ID · <code>retry</code> = reconnect wait in ms.</p>
+<pre>const es = new EventSource&#40;'/bids')
+es.onmessage = e => show(e.data)
+// dropped? it reconnects alone
+// and sends Last-Event-ID: 42</pre>
+
   <h4>🔌 WebSockets: both sides talk, any time</h4>
   <p class="bridge">SSE pushes one way only. For real-time <b>bidirectional</b> traffic, WebSockets give a persistent, TCP-style connection with broad support, browsers included. The server pushes without a request, and so does the client. <span class="aws">☁️ Amazon API Gateway WebSocket APIs, or ALB</span></p>
   <div class="warn"><b>⚠️ Watch out</b> A client being able to upgrade doesn't mean your infrastructure supports it. <b>Every</b> piece between client and server must support WebSocket connections. Anyone who's built them has fought firewalls, proxies and load balancers that don't.</div>
   <div class="seq" data-seq="websocket"></div>
   <p>🎯 Use them for <b>high-frequency, persistent, bi-directional</b> communication: real-time apps, games, anything that must send and receive the moment it happens. Just request/response, or SSE pushes are enough? Then WebSockets are overkill.</p>
   <div class="warn"><b>⚠️ Watch out</b> Launching into WebSockets without justifying them is "a great way to get a thumbs down". The infra is expensive, and stateful connections at scale need significant accommodations in your design. Hold off unless you really need them!</div>
+
+  <h5>💓 Heartbeats: beat the shortest idle timer on the path <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">A chat WebSocket can sit silent for minutes. Every box on the path keeps its own idle timer, and silence past it closes the connection without telling anyone.</p>
+  <div class="vflow" role="img" aria-label="Phone, carrier NAT, load balancer, proxy, server: each has its own idle timer">
+    <span class="bx">📱 Phone</span><span class="ar">↓</span>
+    <span class="bx">📶 Mobile carrier NAT<small>⏱️ varies, can be under a minute</small></span><span class="ar">↓</span>
+    <span class="bx">⚖️ Load balancer<small>⏱️ ALB default: 60 s</small></span><span class="ar">↓</span>
+    <span class="bx">🔀 Proxy<small>⏱️ nginx default: 60 s</small></span><span class="ar">↓</span>
+    <span class="bx">🖥️ Server</span>
+  </div>
+  <div class="rem"><b>✅ Remember</b> Heartbeat interval &lt; the <b>shortest</b> idle timer on the path. Any message resets every timer.</div>
+  <div class="grid2">
+    <div class="k-red"><b>⚡ Too often (every 5 s)</b><div class="chk">📶 Wakes the phone's radio every time</div><div class="chk">🔋 Drains the battery</div></div>
+    <div class="k-amber"><b>😴 Too rare (every 5 min)</b><div class="chk">⏱️ A NAT or LB timer fires first</div><div class="chk">🔇 The connection dies silently</div></div>
+  </div>
+  <p>✅ <b>25–30 s</b> is the common middle ground (Socket.IO pings every 25 s by default).</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📱 Chat is mostly mobile, so battery is the real cost</b>Each heartbeat keeps the radio awake for a few seconds after it.</li>
+    <li><b class="hd">📵 In the background, the phone pauses the socket</b>iOS and Android freeze background apps. Reach them with a push notification (APNs / FCM), not a heartbeat.</li>
+    <li><b class="hd">🔁 Heartbeats lower drops; they don't stop them</b>Always reconnect with backoff, then fetch what was missed. <span class="aws">☁️ API Gateway WebSockets close after 10 min idle</span></li>
+  </ul>
+  <p class="ana">📞 A call on hold: if nobody speaks, the operator assumes you hung up. Say "still there?" every 25 s. Every 2 s burns your battery; every 10 min, the line is already gone. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🎥 WebRTC: browser to browser, no server in between</h4>
   <p class="bridge">The third shape: two users talking to <b>each other</b>, not to you. WebRTC connects browsers peer-to-peer. It's built for video and audio calls, and it's the only app protocol here that uses <b>UDP</b>.</p>
@@ -1476,6 +1571,8 @@ await fetch&#40;url, {
   <div class="flow"><span>1️⃣ Basics: IP, DNS, TCP/IP</span><i>→</i><span>2️⃣ Protocols: TCP vs UDP, HTTP/S, WebSockets, gRPC</span><i>→</i><span>3️⃣ Load balancing: client-side + dedicated</span><i>→</i><span>4️⃣ Reality: regions + failures</span></div>
   <p class="bridge">Networking choices touch latency, throughput, reliability and security. The course gives sensible defaults, but most problems have no single right answer: justify each choice from the requirements, and show the interviewer how you weigh the trade-offs.</p>
   <p>🧪 <b>Try it yourself</b>: capture your own traffic in <b>Wireshark</b> to see the whole stack in action. Then fake a nasty cell connection (latency, packet loss) with Mac's <b>Network Link Conditioner</b> (via Xcode) and watch apps break.</p>
+  <p>🧰 <b>Debug ladder</b>: go bottom-up and stop at the first step that fails. <span class="add">➕ not in the article</span></p>
+  <div class="flow"><span>📍 <button type="button" class="gl-link" data-g="ipcmd">ip</button>: my IP, my router?</span><i>→</i><span>🏓 <button type="button" class="gl-link" data-g="ping">ping</button>: host alive?</span><i>→</i><span>🗺️ <button type="button" class="gl-link" data-g="traceroute">traceroute</button>: where does it stop?</span><i>→</i><span>🔎 <button type="button" class="gl-link" data-g="dig">dig</button>: name → IP?</span><i>→</i><span>🔌 <button type="button" class="gl-link" data-g="nc">nc</button>: port open?</span><i>→</i><span>📄 <button type="button" class="gl-link" data-g="curlv">curl -v</button>: HTTP OK?</span><i>→</i><span>🦈 <button type="button" class="gl-link" data-g="tcpdump">tcpdump</button>: what's on the wire?</span></div>
 
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
@@ -2602,6 +2699,20 @@ const SEQS = {
       { f: 1, t: 0, m: 'first result', k: 'http', cap: 'User-friendly APIs wait for the first request to finish, then send its result to <b>all</b> requesters. Less friendly ones return an error ("request already exists"). Either way: no double charge.' },
     ],
   },
+  'tcp-errors': {
+    lanes: ['💻 Client', '🧱 Firewall', '🖥️ Server'],
+    key: [['tcp', 'TCP'], ['err', 'error'], ['gray', 'retry']],
+    frames: [
+      { cap: 'Three ways opening (or keeping) a TCP connection fails. Each gives a different error.' },
+      { f: 0, t: 1, m: 'SYN', k: 'tcp', cap: '① <b>Timed out</b>: the client sends SYN…' },
+      { at: 1, m: '🕳️ dropped silently', k: 'err', cap: '…and a firewall drops it, or the host is down, or the IP is wrong. No answer comes back at all.' },
+      { at: 0, m: '🔁 SYN again… ETIMEDOUT', k: 'gray', cap: 'The client resends SYN, waiting longer each time, until your connect timeout (Linux alone: about 2 min). Slow.' },
+      { f: 0, t: 2, m: 'SYN → :5432', k: 'tcp', cap: '② <b>Refused</b>: the SYN reaches the server, but nothing listens on port 5432.' },
+      { f: 2, t: 0, m: 'RST', k: 'err', dash: 1, cap: 'The server\'s OS answers RST at once: "nobody here". <code>ECONNREFUSED</code> in milliseconds. (A firewall set to REJECT answers the same way.)' },
+      { f: 0, t: 2, m: '🤝 connected · data', k: 'tcp', bi: 1, cap: '③ <b>Reset</b>: this time the connection opens and data flows…' },
+      { f: 2, t: 0, m: 'RST', k: 'err', dash: 1, cap: '…then an RST arrives mid-way: the app crashed or restarted, or an LB or NAT forgot the idle connection. <code>ECONNRESET</code>.' },
+    ],
+  },
   'tcp-loss': {
     lanes: ['💻 Sender', '🌐 Network', '🖥️ Receiver TCP', '📱 Receiver app'],
     key: [['tcp', 'packet'], ['gray', 'ACK'], ['err', 'loss / repeat'], ['lb', 'buffer'], ['http', 'to the app']],
@@ -2918,6 +3029,30 @@ const GLOSSARY = [
   { id: 'hol', t: 'Head-of-line blocking', aka: 'hol http2 http/2 http3 quic multiplex packet loss stall', s: 'One stuck item at the front holds up everything behind it.',
     an: 'One conveyor belt: one item falls off, the whole belt stops until it is put back.',
     b: '<ul><li>🐴 <b>TCP</b>: a lost packet holds back every later packet, because bytes go to the app strictly in order.</li><li>🛣️ <b>HTTP/2</b>: many streams share one TCP connection, so one loss stalls all of them.</li><li>🚀 <b>HTTP/3 (QUIC)</b>: streams are separate in the transport, so a loss stalls only its own stream.</li></ul>', see: ['tcp', 'udp', 'http'] },
+  { id: 'ipcmd', t: 'ip (command)', aka: 'ip addr ip route ifconfig linux network command', s: 'Shows your IPs and routes on Linux.',
+    an: 'Reading your own address label and the sign to the nearest post office.',
+    b: '<pre>$ ip -4 addr   # my IPs\n$ ip route     # where packets go\ndefault via 192.168.1.1</pre><p>Mac: <code>ifconfig</code>, <code>netstat -rn</code>. Use it first: no IP or no route = nothing else works.</p>', see: ['ip', 'router', 'nat'] },
+  { id: 'ping', t: 'ping', aka: 'icmp echo reachable latency rtt', s: 'Is the host reachable, and how far away (round-trip time)?',
+    an: 'A postcard saying "are you there?" that comes straight back.',
+    b: '<pre>$ ping -c 3 example.com\n64 bytes … time=12.3 ms</pre><p>Uses ICMP, not TCP, so it says nothing about your app. Many firewalls block it: no reply ≠ down.</p>', see: ['icmp', 'traceroute'] },
+  { id: 'traceroute', t: 'traceroute', aka: 'tracert mtr hops path ttl', s: 'Lists every router on the way, hop by hop.',
+    an: 'Following a parcel\'s tracking page: each sorting office it passed.',
+    b: '<pre>$ traceroute example.com\n 1  192.168.1.1  1 ms\n 2  10.20.0.1    8 ms\n 3  * * *</pre><p>Sends packets with TTL 1, 2, 3…; each router that drops one replies "time exceeded". <code>* * *</code> = that hop hides. Windows: <code>tracert</code>. <code>mtr</code> = ping + traceroute live.</p>', see: ['icmp', 'ping', 'router'] },
+  { id: 'dig', t: 'dig', aka: 'dns lookup nslookup query resolve', s: 'Asks DNS a question and shows the raw answer.',
+    an: 'Looking up a name in the phone book yourself.',
+    b: '<pre>$ dig +short example.com\n203.0.113.10\n$ dig @8.8.8.8 example.com\n$ dig +trace example.com</pre><p><code>@server</code> asks one DNS server directly (e.g. your office DNS). <code>+trace</code> walks root → .com → example.com. Older tool: <code>nslookup</code>.</p>', see: ['dns'] },
+  { id: 'nc', t: 'nc (netcat)', aka: 'netcat port check tcp connect raw', s: 'Opens a raw TCP connection: is this port open?',
+    an: 'Knocking on one specific door to see if anyone answers.',
+    b: '<pre>$ nc -vz -w 3 db.internal 5432</pre><p>succeeded = open · refused = nothing listening · timed out = dropped on the way. Without <code>-z</code> you can type a raw HTTP request by hand.</p>', see: ['tcp', 'port', 'ss'] },
+  { id: 'ss', t: 'ss', aka: 'socket statistics netstat listening ports connections', s: 'Lists open connections and listening ports on this machine.',
+    an: 'A list of which doors in the building are open, and who is talking at each.',
+    b: '<pre>$ ss -tlnp   # TCP ports listening\n$ ss -tn     # open connections</pre><p>Use it on the server when clients get "refused": is the app really listening, on the right port and IP? Older tool: <code>netstat</code>.</p>', see: ['nc', 'port'] },
+  { id: 'curlv', t: 'curl -v', aka: 'curl verbose http debug request headers tls', s: 'Makes one HTTP request and prints every step.',
+    an: 'Sending a letter with a tracking slip for every stage.',
+    b: '<pre>$ curl -v https://example.com</pre><p>Shows the IP it tried (DNS), the TCP connect, the TLS version and certificate, the request headers (<code>&gt;</code>) and the response headers (<code>&lt;</code>). <code>curl -I</code> = headers only.</p>', see: ['http', 'tls', 'dns'] },
+  { id: 'tcpdump', t: 'tcpdump', aka: 'packet capture sniff wireshark pcap flags syn rst', s: 'Shows every packet on the wire.',
+    an: 'A camera on the mailroom conveyor belt.',
+    b: '<pre>$ sudo tcpdump -n -i any port 443</pre><p>Flags: <code>[S]</code> SYN · <code>[S.]</code> SYN-ACK · <code>[.]</code> ACK · <code>[P.]</code> data · <code>[F.]</code> FIN · <code>[R]</code> RST. Save with <code>-w file.pcap</code> and open in Wireshark.</p>', see: ['tcp', 'handshake', 'nc'] },
   { id: 'tls', t: 'HTTPS / TLS', aka: 'ssl encryption certificate', s: 'HTTP inside an encrypted, verified tunnel.',
     an: 'Sealing the letter in a locked envelope that only the receiver can open.',
     b: '<p>After the TCP handshake, a TLS handshake agrees on keys and checks the server\'s certificate (proves it really is google.com). Then all HTTP is encrypted. Port 443.</p>', see: ['http', 'tcp', 'mitm', 'auth'] },
@@ -3103,7 +3238,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
