@@ -3105,11 +3105,36 @@ WHERE content LIKE '%database%';</pre>
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
     <h5>🚕 Things that move all the time (Uber cars)</h5>
-    <ul><li>Evan King (admin): for very frequent location updates, use an <b>in-memory geohash in Redis</b>. Re-balancing a tree on every move is costly at that write rate.</li>
-      <li>Not every geohash setup uses a B-tree: Redis keeps geo points in a <b>sorted set</b>.</li>
+    <ul><li>Evan King (admin): for very frequent location updates, use an <b>in-memory geohash in Redis</b>. Re-balancing a tree on every move is costly at that write rate.</li></ul>
+    <p>🤔 What that means: a driver's app sends its location every few seconds. 1 million drivers, one update every 4 s = <b>250,000 moves a second</b>. What does each move cost? <span class="add">➕ explained, not in the comments</span></p>
+    <div class="grid2">
+      <div class="k-red"><b>🌳 Tree (quadtree, R-tree)</b><div class="star">The map's shape depends on the points</div>
+        <div class="chk">➖ remove the driver from its old square</div>
+        <div class="chk">➕ insert it into the new square</div>
+        <div class="chk">✂️ new square too full → split; old one nearly empty → merge</div>
+        <div class="chk">🔒 the structure changes, so parts of it are locked while it does</div>
+        <div class="chk">❌ × 250,000 a second = too costly</div></div>
+      <div class="k-green"><b>#️⃣ Geohash in Redis</b><div class="star">The grid is fixed for the whole Earth</div>
+        <div class="chk">🗺️ <code>dr5ru</code> is the same square forever, computed by a formula, never stored as a structure</div>
+        <div class="chk">🧮 new location → compute the new code (pure math)</div>
+        <div class="chk">✏️ overwrite one value for this driver</div>
+        <div class="chk">✅ nothing else changes, all in RAM</div></div>
+    </div>
+<pre>-- driver 42 moved (every 4 s):
+-- one overwrite
+GEOADD drivers
+  -73.985 40.758 "driver:42"
+-- rider: drivers within 2 km
+GEOSEARCH drivers
+  FROMLONLAT -73.98 40.75
+  BYRADIUS 2 km ASC</pre>
+    <ul><li>🔑 Key point: the squares already exist, fixed in advance for the whole Earth. Only the driver's code changes as it moves.</li>
+      <li>🗃️ Inside Redis it is a <b>sorted set</b>: member = <code>driver:42</code>, score = its geohash as a number. A move = update one score. A nearby search = read score ranges for the 9 squares. (So not every geohash setup uses a B-tree.)</li></ul>
+    <p class="ana">🅿️ A parking lot with painted, numbered bays: a car that moves just takes another bay number. A tree is like redrawing the lot's sections every time a car moves so each section holds at most 4 cars. <span class="add">➕ analogy not in the comments</span></p>
+    <ul>
       <li>Uber's own system is <b>H3</b>, a grid of hexagons. Readers suggest it as an honourable mention; it's also built into Databricks and Snowflake.</li></ul>
     <h5>📏 "How does 5 miles turn into a prefix?"</h5>
-    <ul><li>Evan King (admin): centre geohash → prefix length for ~5 miles → that cell + its neighbours (8–9 queries, e.g. dr5ru, dr5rv, dr5rt…) → filter by true distance. Redis GEOSEARCH hides all of this. (It's the 3×3 grid above.)</li></ul>
+    <ul><li>Evan King (admin): centre geohash → prefix length for ~5 miles → that cell + its neighbours (8–9 queries, e.g. dr5ru, dr5rv, dr5rt…) → filter by true distance. Redis GEOSEARCH hides all of this. (It's the radius picture above.)</li></ul>
     <h5>🧩 "Why not one (lat, lng) composite index?"</h5>
     <ul><li>Evan King (admin): better than two separate indexes, still weak for "nearby", because lat and lng stay separate. Geohash wins: similar prefixes mean close points.</li>
       <li>Readers: a composite index turns a 2D box into a huge 1D band scan across the planet; a geohash mixes the bits of lat and lng, so close points share a prefix and sit on the same disk pages.</li></ul>
