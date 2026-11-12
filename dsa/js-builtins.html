@@ -76,6 +76,7 @@
   <a href="#j14"><b>14</b>Alphanumeric check</a>
   <a href="#j15"><b>15</b>sort() changes the original</a>
   <a href="#j16"><b>16</b>toString(radix) · parseInt · Number</a>
+  <a href="#j17"><b>17</b>Shifts: &lt;&lt; &gt;&gt; &gt;&gt;&gt;</a>
 </nav>
 
 <h2 id="j1">1 · 🗂️ Map</h2>
@@ -188,18 +189,6 @@ Math.floor(-7 / 2);      // -4 — rounds down
 Math.trunc(-7 / 2);      // -3 — cuts the decimal (what Java/C++ `/` does)
 1 &lt;&lt; 31;                 // -2147483648 — bit ops work on 32-bit signed ints</code></pre>
 <div class="box key"><b class="tag">📌</b> <code>a / b</code> is a float — wrap it: <code>Math.floor</code> for positives, pick <code>floor</code> vs <code>trunc</code> on purpose for negatives. <code>| &amp; ^ &lt;&lt; &gt;&gt;</code> cut numbers to 32 bits: fine up to 2^31, wrong beyond it.</div>
-<p>↔️ <b>Left vs right shift:</b></p>
-<pre class="language-tsx"><code class="language-tsx">5 &lt;&lt; 1;      // 10  ← left:  n × 2ᵏ  (fills the right with 0)
-5 &gt;&gt; 1;      // 2   ← right: ⌊n / 2ᵏ⌋ (drops the last bit)
--5 &gt;&gt; 1;     // -3  ← rounds DOWN like Math.floor, not toward 0</code></pre>
-<p>➡️ <b><code>&gt;&gt;</code> vs <code>&gt;&gt;&gt;</code></b> (shift right):</p>
-<pre class="language-tsx"><code class="language-tsx">-8 &gt;&gt; 1;                       // -4          ← fills with the SIGN bit (keeps the sign)
--8 &gt;&gt;&gt; 1;                      // 2147483644  ← fills with 0 (bits read as unsigned)
-8 &gt;&gt; 1 === 8 &gt;&gt;&gt; 1;            // true — same for n ≥ 0
-
-let n = -1; while (n) n &gt;&gt;= 1;     // ❌ never ends: -1 stays -1
-let m = -1; while (m) m &gt;&gt;&gt;= 1;   // ✅ ends after 32 steps (-1 has 32 one-bits)</code></pre>
-<div class="box key"><b class="tag">📌</b> <code>&gt;&gt;</code> keeps the sign. <code>&gt;&gt;&gt;</code> fills with 0. Same for <code>n ≥ 0</code>. A bit loop or a bit count on a possibly negative <code>n</code> → use <code>&gt;&gt;&gt;</code>.<br/>⬅️ Only <b>right</b> shift has two kinds. <b>Left</b> shift always fills the right side with 0, so there is no <code>&lt;&lt;&lt;</code> (<code>-8 &lt;&lt; 1</code> is <code>-16</code>).</div>
 
 <h2 id="j12">12 · 🐢 <code>queue.shift()</code> Is Slow on Big Arrays — BFS With a Head Pointer</h2>
 <pre class="language-tsx"><code class="language-tsx">while (q.length) { const x = q.shift(); }          // ❌ each shift moves every element → O(n)
@@ -261,6 +250,26 @@ Number("12px");                     // NaN ← the WHOLE string must be a number
 parseInt("12px");                   // 12  ← stops at the first bad character</code></pre>
 <div class="box warn"><b class="tag">🚨</b> Always pass the radix to <code>parseInt</code>. <code>['1','2','3'].map(parseInt)</code> gives <code>[1, NaN, NaN]</code>, because <code>map</code> passes the index as the radix. Use <code>.map(Number)</code>.<br/>🚨 <code>(−5).toString(2)</code> is <code>"-101"</code> (a sign, not two's complement). For the 32-bit pattern use <code>(n &gt;&gt;&gt; 0).toString(2)</code>.</div>
 <div class="box key"><b class="tag">📌</b> <code>toString(radix)</code> writes a number in a base. <code>parseInt(s, radix)</code> reads it back. <code>Number(s)</code> is strict: any bad character → <code>NaN</code>.</div>
+
+<h2 id="j17">17 · ↔️ Shift Operators — <code>&lt;&lt;</code>, <code>&gt;&gt;</code>, <code>&gt;&gt;&gt;</code></h2>
+<p>🧱 <b>Every bitwise operator works on 32-bit signed integers.</b> JS cuts the number to 32 bits first. The result is a 32-bit signed integer. <b>One exception:</b> <code>&gt;&gt;&gt;</code> returns an unsigned number (<code>0 … 2³² − 1</code>).</p>
+<ul>
+<li>⬅️ <code>n &lt;&lt; k</code> → <code>n × 2ᵏ</code>. Fills the right with 0.</li>
+<li>➡️ <code>n &gt;&gt; k</code> → <code>⌊n / 2ᵏ⌋</code>. Fills the left with the <b>sign bit</b>.</li>
+<li>➡️ <code>n &gt;&gt;&gt; k</code> → fills the left with <b>0</b>. The result is never negative.</li>
+</ul>
+<pre class="language-none"><code class="language-none">-8       = 1111 1000    (8 bits shown, JS uses 32)
+-8 &gt;&gt;  1  = 1111 1100    ← new left bit = sign bit (1)  → -4
+-8 &gt;&gt;&gt; 1  = 0111 1100    ← new left bit = 0             → 2147483644</code></pre>
+<pre class="language-tsx"><code class="language-tsx">1 &lt;&lt; 31;     // -2147483648 ← the result is SIGNED 32-bit
+2 ** 32 | 0;  // 0            ← bits beyond 32 are cut
+5 &lt;&lt; 1;      // 10
+5 &gt;&gt; 1;      // 2
+-5 &gt;&gt; 1;     // -3 ← rounds DOWN, like Math.floor
+
+let n = -1; while (n) n &gt;&gt;= 1;     // ❌ never ends: -1 stays -1
+let m = -1; while (m) m &gt;&gt;&gt;= 1;   // ✅ ends after 32 steps</code></pre>
+<div class="box key"><b class="tag">📌</b> <code>&gt;&gt;</code> and <code>&gt;&gt;&gt;</code> give the same result when <code>n ≥ 0</code>. They differ only for negative <code>n</code>. Only right shift has two kinds. Left shift has one, so there is no <code>&lt;&lt;&lt;</code>. A bit loop on a possibly negative <code>n</code> → use <code>&gt;&gt;&gt;</code>.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
