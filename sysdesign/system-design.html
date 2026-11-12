@@ -423,6 +423,39 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .cmp span { display: inline-block; height: 12px; border-radius: 3px; background: currentColor; opacity: .55; }
 .cmp .s { width: 12px; } .cmp .m { width: 22px; } .cmp .l { width: 60px; } .cmp .t { width: 12px; opacity: .35; }
 .cmp em { font-style: normal; margin: 0 3px; } .cmp i { font: 11px ui-monospace, Menlo, monospace; font-style: normal; width: 20px; }
+/* Caching: app → cache/DB fork, cache-inside-box, latency bars, 4-pattern minis, eviction rows, cache nodes */
+.fork { display: grid; gap: 6px; margin: 6px 0 10px; font-size: 12.5px; }
+.fork .bx { padding: 5px 9px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
+.fork .ar { font-size: 11.5px; font-weight: 600; color: var(--c, var(--muted)); }
+.fork .top, .fork .br > div { display: flex; align-items: center; gap: 6px; }
+.fork .br { display: grid; gap: 6px; margin-left: 40px; padding-left: 8px; border-left: 2px solid var(--line); }
+.dg .bx .in { display: block; margin: 4px auto 0; padding: 2px 6px; border-radius: 6px; border: 1.5px dashed var(--red-fg); background: var(--red-bg); font-size: 11px; }
+.lat { display: grid; gap: 8px; margin: 8px 0 4px; font-size: 12.5px; }
+.lat > div { display: grid; grid-template-columns: 84px 1fr 78px; align-items: center; gap: 8px; }
+.lat small { display: block; color: var(--muted); font-size: 10.5px; }
+.lat .bar { height: 14px; border-radius: 7px; background: var(--chip); overflow: hidden; }
+.lat .bar i { display: block; height: 100%; border-radius: 7px; }
+.lat > div > b { text-align: right; }
+.arch .mini { margin: 4px 0 6px; padding: 5px 4px; border-radius: 8px; background: var(--card); font-size: 11.5px; text-align: center; line-height: 1.7; }
+.arch .mini small { color: var(--muted); }
+.ev { display: grid; gap: 8px; margin: 6px 0 10px; font-size: 13px; }
+.ev-req { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ev-req span { width: 30px; padding: 3px 0 1px; border-radius: 6px; background: var(--chip); border: 1px solid var(--line); text-align: center; font-weight: 700; }
+.ev-req span small { display: block; font-size: 9.5px; font-weight: 400; color: var(--muted); }
+.ev-req em { font-size: 12px; font-style: normal; font-weight: 600; margin-left: 4px; }
+.ev-row { border: 2px solid; border-radius: 12px; padding: 8px 10px; }
+.ev-row > b:first-child { display: block; font-size: 13.5px; }
+.ev-row .keys { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+.ev-row .keys span { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); font-size: 12px; }
+.ev-row .keys .out { border-color: var(--red-fg); color: var(--red-fg); text-decoration: line-through; font-weight: 700; }
+.hk { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 4px 0 6px; font-size: 12.5px; }
+.hk > div { border: 2px solid var(--line); border-radius: 10px; padding: 7px 4px; text-align: center; background: var(--card); font-weight: 600; min-width: 0; }
+.hk small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.hk .hot { border-color: var(--red-fg); background: var(--red-bg); }
+.hk .ok { border-color: var(--green-fg); background: var(--green-bg); }
+.hk-lbl { font-size: 12px; font-weight: 700; margin-top: 8px; }
+.heads .say { display: block; margin: 5px 0 3px; }
+
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -3323,6 +3356,314 @@ LIMIT 20;</pre>
   </div>
 </section>
 
+<section class="card" id="sd-cache-where" data-topic="Caching" data-course="hi-sd" data-lesson="caching">
+  <h2 class="cap"><b>⚡ Caching ①: Where to Cache · External · CDN · Client · In-Process</b></h2>
+  <p class="hook">In system design interviews, caching comes up almost every time you need to handle high read traffic. The database becomes the bottleneck, latency starts to creep up, and the interviewer is waiting for you to say "cache". Reading a user profile from Postgres may take <b>50 ms</b>. Reading it from an in-memory cache like Redis takes <b>1 ms</b>: a <b>50×</b> latency improvement. Caches cut latency and take load off the database, but they bring new challenges: invalidation and failure handling.</p>
+  <p class="tldr">💡 A cache keeps a <b>copy of hot data in fast memory</b>, so most reads skip the database: the fridge at home instead of a trip to the supermarket. You can keep that copy in four places: 🟥 <b>external</b> (Redis, ⭐ the default answer), 🌍 <b>CDN</b> (media close to users), 📱 <b>client-side</b> (the user's device), 🧠 <b>in-process</b> (the server's own RAM). How you read and write the cache, and what gets thrown out when it's full: <a href="#sd-cache-patterns">card ②</a>. What goes wrong, and the 5-step interview script: <a href="#sd-cache-problems">card ③</a>. Explained below 👇</p>
+  <div class="info"><b>ℹ️ Note</b> <span class="add">➕ fact-check</span> The lesson says every database query pays for disk. Not quite: hot pages already sit in the database's own RAM (the buffer pool, <a href="#sd-idx-core">Indexing ①</a>), so a simple indexed lookup can take ~1 ms too. 50 ms is a heavy or busy query (joins, many rows, a loaded database). A cache still wins: it skips the query work and keeps that load off the database.</div>
+
+  <h4>🗺️ Where to Cache</h4>
+  <p class="bridge">Most engineers hear "caching" and picture Redis or Memcached between the app and the database. That's the most common type, and the one interviewers care about most. But caching happens in other layers too: browsers cache, CDNs cache, applications cache, and databases even have built-in caching layers. From the user down to the data:</p>
+  <div class="vflow" role="img" aria-label="Cache layers from the user down to the data: client-side on the device, CDN edge server near the user, in-process inside the app server, external cache like Redis shared by all app servers, and the database with its own buffer pool.">
+    <div class="bx" style="border-color: var(--purple-fg)">📱 <b>Client-side</b>: on the user's device <small>no network call at all</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--teal-fg)">🌍 <b>CDN</b>: an edge server near the user <small>20–40 ms instead of 250–300 ms across the world</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--amber-fg)">🧠 <b>In-process</b>: inside the app server's own memory <small>no network call, but only this server sees it</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--red-fg)">🟥 <b>External</b> (Redis, Memcached): its own server <small>⭐ one network hop (~1 ms), shared by every app server</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx">🗄️ <b>Database</b>: has its own cache too (the buffer pool) <small>the source of truth; 50 ms in the lesson's example</small></div>
+  </div>
+  <p class="figcap">🖼️ Each layer saves a trip to the one below it. <span class="add">➕ summary picture not in the article</span></p>
+  <p class="ana">🛒 Groceries. 🗄️ The database is the <b>supermarket</b> across town: it has everything, but it's a trip. 🟥 Redis is the <b>family fridge</b> down the hall: a short trip, and everyone shares it. 🧠 In-process is the <b>snack on your desk</b>: instant, but only yours. 🌍 A CDN is the <b>corner shop</b> on every street. 📱 Client-side is what's already <b>in your bag</b>. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🟥 External Caching</h4>
+  <p class="bridge">A standalone cache service your application talks to <b>over the network</b>. This is what most people mean by caching: keep frequently accessed data in Redis or Memcached so you don't hit the database every time. <span class="aws">☁️ AWS: ElastiCache (Redis / Valkey / Memcached)</span></p>
+  <div class="fork" role="img" aria-label="The client talks to the application servers. The application servers 1. check the cache, then 2. read from the database as a fallback.">
+    <div class="top"><span class="bx">👤 Client</span><span class="ar">⇄</span><span class="bx">🖥️ Application Servers</span></div>
+    <div class="br">
+      <div><span class="ar" style="--c: var(--green-fg)">⇄ 1. Check cache</span><span class="bx">🟥 Cache</span></div>
+      <div><span class="ar" style="--c: var(--amber-fg)">⇄ 2. Read from DB as fallback</span><span class="bx">🗄️ Database</span></div>
+    </div>
+  </div>
+  <p class="figcap">🖼️ The lesson's picture</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤝 One cache, shared by every app server</b>That's why it scales well: server A caches a profile, and servers B and C get the hit too.</li>
+    <li><b class="hd">📏 Memory stays under control</b>Eviction policies like LRU throw out old entries, and TTLs expire them (<a href="#sd-cache-patterns">card ②</a>).</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> In interviews, external caching with Redis is <b>the default answer</b>. Interviewers expect you to mention it for any high-traffic system. Start here, then add other types such as CDN or client-side caching only if the problem calls for them.</div>
+  <p class="ana">🧊 The family fridge: one short trip down the hall, and whoever stocked it, everyone can eat from it. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🌍 CDN (Content Delivery Network)</h4>
+  <p class="bridge">Redis saves the trip to the database. A CDN saves the trip <b>across the world</b>: a network of servers spread around the globe that keeps copies of your content on <b>edge servers</b> close to users. <span class="aws">☁️ AWS: CloudFront</span> (Also in <a href="#sd-net-latency-failures--cdns-the-answer-is-up-the-road">Networking: CDNs</a>.)</p>
+  <p>▶️ How it works, for one image:</p>
+  <div class="seq" data-seq="cdn"></div>
+  <div class="lat" role="img" aria-label="Server in Virginia, user in India: 250 to 300 ms per image without a CDN, 20 to 40 ms from a nearby CDN edge.">
+    <div><span>🚫 No CDN<small>Virginia → India</small></span><div class="bar"><i style="width: 100%; background: var(--red-fg)"></i></div><b>250–300 ms</b></div>
+    <div><span>✅ CDN edge<small>nearby</small></span><div class="bar"><i style="width: 12%; background: var(--green-fg)"></i></div><b>20–40 ms</b></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's map: the client reads from its <b>closest CDN</b>, not from the far server. Per request, "a massive performance difference".</p>
+  <div class="info"><b>ℹ️ Note</b> Modern CDNs like Cloudflare, Fastly and Akamai can cache much more than static files: public API responses and HTML pages too. They can also run edge logic to personalize content or enforce security rules before requests reach your servers. But the most common and most impactful use of a CDN is still <b>media delivery</b>.</div>
+  <div class="rem"><b>✅ Remember</b> The safest time to introduce a CDN in an interview: your system <b>serves static media at scale</b>. Start with that reason, then expand only if the problem calls for more.</div>
+  <p class="ana">🏪 The corner shop on every street. The first customer who asks makes the shop order the item from the far warehouse. Everyone after just grabs it off the shelf. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📱 Client-Side Caching</h4>
+  <p class="bridge">Even closer: keep the data <b>on the requester</b>, so there's no network call at all. Usually that's the user's device: a browser (HTTP cache, localStorage) or a mobile app using local memory or on-device storage.</p>
+  <div class="dg" role="img" aria-label="The cache lives inside the client. Client with a cache inside, then application servers, then the database."><div class="r"><span class="bx">👤 Client<span class="in">🟥 Cache</span></span><span class="ar">⇄</span><span class="bx">🖥️ Application<br>Servers</span><span class="ar">⇄</span><span class="bx">🗄️ Database</span></div></div>
+  <p class="figcap">🖼️ The lesson's picture: the cache lives <b>inside the client</b>.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🌐 Browser: reuse what was already downloaded</b>A browser reusing an image from disk instead of downloading it again is caching too.</li>
+    <li><b class="hd">🏃 Mobile app: work offline, sync later</b>The Strava app keeps your run on the device while you're offline, and syncs it later.</li>
+    <li><b class="hd">🧭 A client library can cache too</b>Redis clients cache the cluster's <b>metadata</b>: which nodes exist and which slots each one owns. So they send each command straight to the right node, without asking the cluster every time (<a href="#sd-net-lb">Networking: client-side load balancing</a>).</li>
+    <li><b class="hd">⚠️ The catch: the backend has little control</b>Data on users' devices can go stale, and invalidating it is harder: you can't reach into their phone and delete it.</li>
+  </ul>
+  <p>🔗 This very site does it: your DSA Notebook keeps its data in <code>localStorage</code>, and its service worker caches the app so it opens offline. <span class="add">➕ not in the article</span></p>
+  <p class="ana">🎒 What's already in your bag: no trip at all. But if the shop changes the recipe, the snack in your bag is still the old one. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧠 In-Process Caching</h4>
+  <p class="bridge">Most candidates, and engineers, overlook this one. Servers have <b>a lot of memory</b>, and each hardware generation ships with more. Use it to cache data inside the application process itself, instead of always calling out to Redis or the database.</p>
+  <div class="dg" role="img" aria-label="The cache lives inside the application server process. Client, then application servers with a cache inside, then the database."><div class="r"><span class="bx">👤 Client</span><span class="ar">⇄</span><span class="bx">🖥️ Application<br>Servers<span class="in">🟥 Cache</span></span><span class="ar">⇄</span><span class="bx">🗄️ Database</span></div></div>
+  <p class="figcap">🖼️ The lesson's picture: the cache lives <b>inside the application server</b>.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚡ Even faster than Redis: no network call</b>A read from the process's own memory takes ~100 ns. Redis is a network hop away (~0.5–1 ms in the same data centre). <span class="add">➕ numbers not in the article</span></li>
+    <li><b class="hd">🎯 For small pieces of data asked for again and again</b>A light-weight cache that fits:</li>
+  </ul>
+  <div class="pills"><span>⚙️ Configuration values</span><span>🚩 Feature flags</span><span>📚 Small reference datasets</span><span>🔥 Hot keys</span><span>🚦 Rate limiting counters</span><span>🧮 Precomputed values</span></div>
+  <p>⚠️ The obvious limit: <b>each instance has its own cache</b>. Nothing is shared, and if one instance updates or invalidates a value, the others don't know:</p>
+  <div class="hk" role="img" aria-label="A feature flag was switched off. Server A handled the change and sees off. Servers B and C never heard and still say on.">
+    <div class="ok">🖥️ Server A<small>dark_mode = off ✅<br>handled the change</small></div>
+    <div class="hot">🖥️ Server B<small>dark_mode = on ⚠️<br>never heard</small></div>
+    <div class="hot">🖥️ Server C<small>dark_mode = on ⚠️<br>never heard</small></div>
+  </div>
+  <p class="figcap">🖼️ A feature flag was switched off. Only the server that handled the change knows. <span class="add">➕ example not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> Use in-process caching for <b>small, frequently accessed values that rarely change</b>. Great for speed, but not a replacement for Redis. In interviews, mention it only as an <b>optimization layer after</b> you've introduced an external cache.</div>
+  <p class="ana">🍫 The snack on your desk: instant, but yours alone. If the office swaps the snacks, your desk keeps the old one until you clear it. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧭 Which one when?</h4>
+  <p class="bridge">The four places, in one glance. <span class="add">➕ summary not in the article</span></p>
+  <div class="grid2">
+    <div class="k-red"><b>🟥 External (Redis)</b><div class="star">⭐ The default</div><div class="chk">Any high-traffic system: say it first</div></div>
+    <div class="k-blue"><b>🌍 CDN</b><div class="star">Static media at scale</div><div class="chk">Images and videos for users far from your servers</div></div>
+    <div class="k-green"><b>📱 Client-side</b><div class="star">On the device</div><div class="chk">Skip repeat downloads, work offline; hard to invalidate</div></div>
+    <div class="k-amber"><b>🧠 In-process</b><div class="star">After Redis, as an extra layer</div><div class="chk">Tiny, hot, rarely-changing values; not shared</div></div>
+  </div>
+</section>
+
+<section class="card" id="sd-cache-patterns" data-topic="Caching" data-course="hi-sd" data-lesson="caching">
+  <h2 class="cap"><b>⚡ Caching ②: Cache Architectures · Eviction Policies</b></h2>
+  <p class="hook">Not all caching works the same way. <b>How</b> you read from and write to the cache changes performance, consistency and complexity. And caches have limited memory, so something has to decide what to throw out when they're full.</p>
+  <p class="tldr">💡 Four patterns, told apart by one question: <b>who talks to the database, and when?</b> ⭐ <b>Cache-aside</b>: the app does (the default). <b>Read-through</b>: the cache does, on a read miss. <b>Write-through</b>: the cache does, on every write, right away. <b>Write-behind</b>: the cache does, later, in batches. Then <b>eviction</b>: LRU (the default) throws out what wasn't used for the longest time, LFU what's used least often, FIFO what came in first, and a TTL expires old entries. Explained below 👇</p>
+
+  <h4>🏗️ Cache Architectures</h4>
+  <p class="bridge">The four core patterns you should know for interviews. Their pictures look alike at a glance. ⭐ The trick (from the comments): <b>follow the arrow into the database</b>.</p>
+  <div class="grid2 arch">
+    <div class="k-green"><b>⭐ Cache-Aside</b><div class="star">🖥️ The app talks to the DB</div>
+      <div class="mini">🖥️ App ⇄ 🟥 Cache<br>🖥️ App ⇄ 🗄️ DB</div>
+      <div class="chk">📖 Reads: the app checks the cache, then the DB</div></div>
+    <div class="k-blue"><b>Read-Through</b><div class="star">🟥 The cache talks to the DB</div>
+      <div class="mini">🖥️ App ⇄ 🟥 Cache<br>🟥 Cache ⇄ 🗄️ DB</div>
+      <div class="chk">📖 Reads: the cache fetches on a miss</div></div>
+    <div class="k-amber"><b>Write-Through</b><div class="star">🟥 The cache writes the DB now</div>
+      <div class="mini">🖥️ App → 🟥 Cache<br>🟥 Cache → 🗄️ DB <small>sync</small></div>
+      <div class="chk">✍️ Writes: done when both are updated</div></div>
+    <div class="k-red"><b>Write-Behind</b><div class="star">🟥 The cache writes the DB later</div>
+      <div class="mini">🖥️ App → 🟥 Cache<br>🟥 Cache ⇢ 🗄️ DB <small>async</small></div>
+      <div class="chk">✍️ Writes: done when the cache has it</div></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's four pictures, side by side</p>
+  <p class="ana">🧊 Cache-aside: <b>you</b> check the fridge, and if it's empty, you go to the shop yourself. Read-through: a <b>housekeeper</b> keeps the fridge stocked, and you only ever open the fridge. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>⭐ Cache-Aside (Lazy Loading)</h4>
+  <p class="bridge">The most common caching pattern, and the one you should default to in interviews. The app does all the work: cache first, database only on a miss. ▶️</p>
+  <div class="seq" data-seq="cache-aside"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🪶 It only caches what's actually asked for, so the cache stays lean</b>Nothing is preloaded. If no customer ever opens Item Z, Item Z never enters the cache, so the expensive memory holds only popular data (from the comments).</li>
+    <li><b class="hd">🐢 The downside: a miss costs extra latency</b>Three trips instead of one: cache (miss) → database → cache (store).</li>
+    <li><b class="hd">✍️ And writes? Update the database, then delete the cache key</b>The next read misses and loads the fresh value. Writing only to the database and skipping the cache is called <b>write-around</b> (asked about in the comments). Why delete: <a href="#sd-cache-problems--cache-consistency">Cache Consistency</a>. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> If you only remember one caching pattern for interviews, make it <b>cache-aside</b>.</div>
+  <p class="ana">🧊 You check the fridge. Empty? You go to the shop yourself, and put some in the fridge on the way back, so next time it's there. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>✍️ Write-Through Caching</h4>
+  <p class="bridge">Cache-aside is about reads. Write-through is about <b>writes</b>: the app writes only to the cache, and the cache writes to the database <b>synchronously</b> before answering. The write isn't done until both are updated. ▶️ <span class="aws">☁️ AWS: DynamoDB Accelerator (DAX)</span></p>
+  <div class="seq" data-seq="write-through"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧰 It needs a cache that supports it</b>In practice, a caching library with a data store plugin: when you write to the cache, it calls your database write logic before acknowledging. <b>Redis doesn't support write-through natively</b>, so you need application code or a framework.</li>
+    <li><b class="hd">🐢 Slower writes</b>The app waits for the cache update <b>and</b> the database write.</li>
+    <li><b class="hd">🗑️ Cache pollution</b>Every write lands in the cache, including data that may never be read again.</li>
+    <li><b class="hd">⚠️ It still has the dual-write problem</b>The cache succeeds and the database fails, or the other way round, and the two disagree. You need retry logic and error handling, or you accept that perfect consistency is hard without distributed transactions.</li>
+    <li><b class="hd">🎤 Less common in interviews than cache-aside</b>It needs specialized caching infrastructure and still has consistency edge cases.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Use write-through when <b>reads must always return fresh data</b> and your system can tolerate slightly slower writes.</div>
+  <p class="ana">💾 Saving a file to your laptop <b>and</b> your cloud drive, where Save only turns green once both are saved. Safer, but every save waits. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📮 Write-Behind (Write-Back) Caching</h4>
+  <p class="bridge">Write-through makes every write wait for the database. Write-behind <b>doesn't wait</b>: the app writes only to the cache, and the cache batches the data and writes it to the database <b>asynchronously</b>, in the background. ▶️</p>
+  <div class="seq" data-seq="write-behind"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚡ Very fast writes</b>The app gets "ok" as soon as the cache has the data. Many writes become one batch to the database.</li>
+    <li><b class="hd">💥 The risk: the cache crashes before flushing, and data is lost</b>Best for workloads where occasional data loss is acceptable.</li>
+    <li><b class="hd">⏳ "Eventual consistency" here means between the cache and the database</b>Every app server reads the same cache, so users see the new value. It's the <b>database</b> that is behind for a while (two comments asked about this).</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Use write-behind when you need <b>high write throughput</b> and eventual consistency is acceptable. Common in <b>analytics and metrics pipelines</b>.</div>
+  <p class="ana">📝 A busy waiter jots orders on a notepad and hands the kitchen a batch every few minutes. Fast at the table, but if the notepad is lost, so are the orders. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧑‍💼 Read-Through Caching</h4>
+  <p class="bridge">The read twin of write-through. The cache acts as a <b>smart proxy</b>: your app never talks to the database directly. On a miss, <b>the cache itself</b> fetches from the database, stores the data and returns it. ▶️ <span class="aws">☁️ AWS: DynamoDB Accelerator (DAX)</span></p>
+  <div class="seq" data-seq="read-through"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤝 Read-through handles reads, write-through handles writes</b>In both, the cache sits in the middle and does the database work. Systems often combine the two.</li>
+    <li><b class="hd">🧩 Central logic, but more complexity</b>It usually needs a specialized caching library or service. It is less common in practice than cache-aside.</li>
+    <li><b class="hd">🌍 CDNs are read-through caches</b>On a miss, the CDN fetches from your origin server, caches the result and returns it. But for application-level caching with Redis, cache-aside is far more common.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> There are very few reasons to propose read-through in an interview, unless you're discussing <b>CDNs</b> or similar infrastructure.</div>
+  <p class="ana">📚 A library desk: you ask the librarian, who fetches the book from the stacks. You never walk into the stacks yourself. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧹 Cache Eviction Policies</h4>
+  <p class="bridge">Caches have limited memory. When one is full, something must go, and the strategy that picks it is the <b>eviction policy</b>. One example shows the three policies: a cache with <b>3 slots</b> gets 6 requests, then a new key D arrives. Who leaves? <span class="add">➕ example not in the article</span></p>
+  <div class="ev" role="img" aria-label="Requests: B, A, A, A, C, B, then D arrives and the cache is full. LRU looks at last use: A was last used at step 4, C at 5, B at 6, so A goes. LFU looks at counts: A 3 times, B 2 times, C once, so C goes. FIFO looks at arrival: B came first, so B goes, even though it was just used.">
+    <div class="ev-req"><span>B<small>1</small></span><span>A<small>2</small></span><span>A<small>3</small></span><span>A<small>4</small></span><span>C<small>5</small></span><span>B<small>6</small></span><em>→ D arrives, cache full</em></div>
+    <div class="ev-row k-blue"><b>🕰️ LRU · when was it last used?</b><div class="keys"><span class="out">A · step 4</span><span>C · step 5</span><span>B · step 6</span></div>A goes: untouched for the longest time, even though it was used 3 times.</div>
+    <div class="ev-row k-green"><b>🔢 LFU · how often is it used?</b><div class="keys"><span>A · 3×</span><span>B · 2×</span><span class="out">C · 1×</span></div>C goes: used only once.</div>
+    <div class="ev-row k-amber"><b>🚶 FIFO · who came in first?</b><div class="keys"><span class="out">B · 1st</span><span>A · 2nd</span><span>C · 3rd</span></div>B goes: it arrived first, even though it was <b>just used</b> at step 6.</div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🕰️ LRU (Least Recently Used): ⭐ the default in many systems</b>Evicts the item that hasn't been accessed for the longest time. It adapts well to most workloads, where recently used data is likely to be used again. It tracks access order with a linked list or ring buffer, so the least recently used item is removed in constant time. The classic build is a hash map + a doubly linked list, both O(1): LeetCode 146, LRU Cache. <span class="add">➕ not in the article</span></li>
+    <li><b class="hd">🔢 LFU (Least Frequently Used): for keys that stay popular</b>Keeps a counter for each key and evicts the lowest. Works well when some keys are consistently popular over time, like trending videos or top playlists. Some implementations use approximate LFU to avoid the cost of exact counting.</li>
+    <li><b class="hd">🚶 FIFO (First In First Out): rarely used in real systems</b>Evicts the oldest item by insertion time only. A simple queue, but it ignores usage, so it may evict items that are still hot. Rarely used beyond simple caching layers.</li>
+    <li><b class="hd">⏰ TTL (Time To Live): not an eviction policy by itself</b>It sets an expiry time on each key and removes entries that are too old. Often combined with LRU or LFU to balance freshness and memory. A must-have when data must eventually refresh, like API responses or session tokens.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> <span class="add">➕ not in the article</span> Redis's default <code>maxmemory-policy</code> is <code>noeviction</code>: when memory is full, it <b>refuses new writes</b> instead of evicting. For a cache, set <code>allkeys-lru</code> (or <code>allkeys-lfu</code>). Redis's LRU is approximate: it samples a few keys and evicts the oldest of those.</div>
+  <p class="ana">🧊 A fridge with 3 shelves and a new carton of milk. LRU: toss what you haven't touched for longest. LFU: toss what you use least. FIFO: toss whatever you bought first, even if you ate from it this morning. TTL: the <b>expiry date</b> on each pack, however much room is left. <span class="add">➕ analogy not in the article</span></p>
+</section>
+
+<section class="card" id="sd-cache-problems" data-topic="Caching" data-course="hi-sd" data-lesson="caching">
+  <h2 class="cap"><b>⚡ Caching ③: Common Problems · Caching in Interviews</b></h2>
+  <p class="hook">Caching makes systems faster, but it also adds new failure modes. They show up in real systems at scale, and interviewers use them to test whether you understand the <b>trade-offs</b> of caching, not just the benefits. If you bring up caching, also show you can handle these edge cases. Then know <b>when</b> to bring caching up, and <b>how</b> to walk through it.</p>
+  <p class="tldr">💡 Three classic problems: 🐃 <b>cache stampede</b> (a popular key expires and everyone hits the database at once), 🔄 <b>cache consistency</b> (the cache still shows old data after a write), 🔥 <b>hot keys</b> (one key gets so much traffic that its cache node chokes). Then the interview: bring caching up only after you've <b>found and measured</b> a bottleneck, then walk 5 steps: bottleneck → what to cache → pattern → eviction → downsides. Explained below 👇</p>
+
+  <h4>🐃 Cache Stampede (Thundering Herd)</h4>
+  <p class="bridge">A popular cache entry expires, and many requests try to rebuild it <b>at the same time</b>. For a brief window, even one second, every request misses and goes straight to the database. Instead of one query, you suddenly have hundreds or thousands. ▶️</p>
+  <div class="seq" data-seq="stampede"></div>
+  <p class="figcap">🖼️ The lesson's picture: "Cache Miss, so all requests hit the DB!" → "Overwhelmed!"</p>
+  <p>🩹 How to handle it:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤝 Request coalescing (single flight): ⭐ the most effective fix</b>Only one request rebuilds the cache; the others wait for its result.</li>
+    <li><b class="hd">🌡️ Cache warming: refresh popular keys before they expire</b>This only helps with TTL-based expiry. If you invalidate the cache on writes instead, warming doesn't prevent stampedes.</li>
+    <li><b class="hd">🎲 Probabilistic early expiration: one request refreshes a little early</b>Named in the lesson's interview script. As the expiry gets close, each request has a small, growing chance to rebuild the key early, while the old value keeps serving everyone else. <span class="add">➕ explanation not in the article</span></li>
+    <li><b class="hd">🖥️ Many app servers? Each one coalesces its own requests</b>So the database sees at most one query per server: 20 servers → 20 queries, not 1,000. A shared lock across servers (e.g. Redis <code>SET … NX</code>) gets it down to 1, but readers called that "overkill" (comments). <span class="add">➕ numbers not in the article</span></li>
+  </ul>
+  <details class="more"><summary>🧩 Single flight in Node, in 7 lines <span class="add">➕ not in the article</span></summary>
+<pre>// call this on a cache miss
+const inFlight = new Map()
+function loadOnce(key) {
+  if (!inFlight.has(key))
+    inFlight.set(key, loadFromDb(key)
+      .finally(() =&gt;
+        inFlight.delete(key)))
+  return inFlight.get(key)
+}</pre>
+  <p>The first miss starts the database load and stores its Promise. Every request that misses meanwhile awaits the <b>same</b> Promise. When it settles, the entry is removed. (Go has this built in: <code>singleflight</code>.)</p>
+  </details>
+  <p class="ana">🛒 The bread shelf empties at noon, and 1,000 shoppers all run to the warehouse. Single flight: <b>one</b> clerk goes, everyone else waits at the shelf. Cache warming: restock at 11:59. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔄 Cache Consistency</h4>
+  <p class="bridge">Among the most discussed caching problems in interviews: the cache and the database return <b>different values</b> for the same data. It's common because most systems <b>read from the cache</b> but <b>write to the database first</b>, which leaves a window where the cache still holds stale data. ▶️</p>
+  <div class="seq" data-seq="consistency"></div>
+  <p>There is <b>no perfect solution</b>. You choose a strategy by <b>how fresh the data must be</b>:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🗑️ Cache invalidation on writes: the freshest</b>Delete the cache entry after updating the database, so it gets refilled with fresh data.</li>
+    <li><b class="hd">⏳ Short TTLs for stale tolerance: a little stale</b>Let slightly stale data live for a while, if eventual consistency is acceptable. "Short" because the TTL is now the <b>only</b> thing that refreshes the data: there's no delete on write (from the comments).</li>
+    <li><b class="hd">🤷 Accept eventual consistency: stale is fine</b>For feeds, metrics and analytics, a short delay is usually fine.</li>
+  </ul>
+  <div class="rem"><b>🔑 Key point</b> <span class="add">➕ not in the article</span> Why <b>delete</b> the key instead of writing the new value into it? Two writers can race: A updates the database, then B does, but B's cache write lands first and A's lands last, so the cache keeps A's <b>older</b> value. A delete can't go stale: the next read loads whatever the database holds now. And delete <b>after</b> the database write, not before, or a read in between can put the old value back.</div>
+  <p class="ana">🪧 A café menu board. The kitchen changed the price (the database), but the board (the cache) still shows the old one. Wipe that line the moment the price changes (invalidate), repaint the board every 10 minutes (TTL), or don't mind a few minutes of old prices (eventual). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔥 Hot Keys</h4>
+  <p class="bridge">A stampede happens when the cache <b>misses</b>. A hot key hurts even when it <b>hits</b>: one entry gets huge traffic compared with everything else, and one key lives on one node. Even with a high hit rate, that one node or Redis shard becomes the bottleneck.</p>
+  <div class="hk-lbl">Before</div>
+  <div class="hk" role="img" aria-label="Before: three Redis nodes. Node 2 holds user:taylorswift and gets millions of requests per second. Nodes 1 and 3 are quiet.">
+    <div class="ok">🟥 Node 1<small>user:alice<br>😴 quiet</small></div>
+    <div class="hot">🟥 Node 2<small>user:taylorswift<br>🔥 millions/s</small></div>
+    <div class="ok">🟥 Node 3<small>user:bob<br>😴 quiet</small></div>
+  </div>
+  <p class="figcap">🖼️ You're building Twitter, and everyone is viewing Taylor Swift's profile. Her key <code>user:taylorswift</code> may get millions of requests a second, and overload <b>one Redis node</b>, even though everything is working "correctly". <span class="add">➕ drawing not in the article</span></p>
+  <p>🩹 How to handle it:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📑 Replicate hot keys</b>Store the same value on several cache nodes, and load balance reads across them. No extra load balancer needed (asked in the comments): save copies as <code>…taylorswift#1</code> to <code>#3</code>. Different keys usually land on different nodes, and the app reads a random copy. <span class="add">➕ not in the article</span></li>
+    <li><b class="hd">🧠 Add a local fallback cache</b>Keep extremely hot values in-process (<a href="#sd-cache-where">card ①</a>), so most reads never reach Redis.</li>
+    <li><b class="hd">🚦 Apply rate limiting</b>Slow down abusive traffic patterns on specific keys.</li>
+  </ul>
+  <div class="hk-lbl">After replicating <span class="add">➕</span></div>
+  <div class="hk" role="img" aria-label="After replicating: three copies of the key on three nodes, each taking about a third of the reads.">
+    <div class="ok">🟥 Node 1<small>…taylorswift#1<br>⅓ of reads</small></div>
+    <div class="ok">🟥 Node 2<small>…taylorswift#2<br>⅓ of reads</small></div>
+    <div class="ok">🟥 Node 3<small>…taylorswift#3<br>⅓ of reads</small></div>
+  </div>
+  <div class="rem"><b>✅ Remember</b> (from the comments) <b>Stampede</b>: lots of traffic slams the <b>database</b>, because the cache missed. <b>Hot key</b>: lots of users slam the <b>cache</b>, even though it hit. Two different problems; a hot key that expires can cause both.</div>
+  <div class="info"><b>ℹ️ Note</b> 🔗 <b>Pattern: Scaling Reads.</b> Hot keys aren't limited to caches. It's a common problem in distributed systems: when millions of users request the same viral content at once, the usual caching assumptions break down. <a href="https://www.hellointerview.com/learn/courses/system-design/lesson/scaling-reads/scaling-reads" target="_blank" rel="noopener">Learn This Pattern ↗</a></div>
+  <p class="ana">✍️ A celebrity book signing: one table, an endless queue. Fixes: more tables with pre-signed copies (replicate), copies handed out at the door (local cache), one per person (rate limit). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎤 When to Bring Up Caching</h4>
+  <p class="bridge">Caching comes up in nearly every system design interview, so know when to bring it up and how to walk through it. ⭐ "Don't jump straight to caching." First establish <b>why</b> it's needed. Bring it up when you spot one of these four problems:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📖 Read-heavy workload</b><div class="star">200M reads a day</div><div class="chk">10M daily users × 20 requests each</div><div class="chk">20–50 ms per query, even with indexes</div><div class="chk">⚡ A cache: under 2 ms, most load off the DB</div></div>
+    <div class="k-amber"><b>🧮 Expensive queries</b><div class="star">A 200 ms feed query</div><div class="chk">Joins posts, followers and likes across tables</div><div class="chk">⚡ Cache the computed feed for 60 s: 1 ms from Redis</div></div>
+    <div class="k-red"><b>🔥 High database CPU</b><div class="star">80% CPU at peak, just serving reads</div><div class="chk">The same queries run over and over</div><div class="chk">⚡ Cache the hot queries: DB load drops 70–80%</div></div>
+    <div class="k-green"><b>⏱️ Latency requirements</b><div class="star">The API needs sub-10 ms responses</div><div class="chk">Database queries take 30–50 ms</div><div class="chk">⚡ "We have to cache."</div></div>
+  </div>
+  <p>🔢 Sanity check: 200M reads a day ÷ 86,400 seconds ≈ <b>2,300 reads a second</b> on average, more at peak. <span class="add">➕ not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> The pattern is simple: <b>identify</b> the performance problem → <b>quantify</b> it with rough numbers → <b>explain</b> how caching solves it. Numbers to Know gives reasonable database and cache latencies.</div>
+  <p class="ana">🩺 A doctor names the symptom and measures it before prescribing. "Add a cache" with no measured bottleneck is a prescription without a diagnosis. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🪜 How to Introduce Caching</h4>
+  <p class="bridge">Once you've shown the need, walk through your caching strategy in this order. Each step comes with a line you can say out loud.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Identify the bottleneck: be specific about what's slow and why</b>Database load? Query latency? Expensive computations?<span class="say">🗣️ "User profile queries are hitting the database 500 times per second at peak. Each takes 30 ms. That's our bottleneck."</span></li>
+    <li><b class="hd">2️⃣ Decide what to cache: read often, rarely changed, expensive to get</b>Not everything should be cached. Name the cache keys too: <code>user:123:profile</code>, <code>trending:posts:global</code>.<span class="say">🗣️ "User profiles: read on every page load, but only updated when users edit their settings. And the trending posts feed: expensive aggregations, but it only needs to refresh every minute."</span></li>
+    <li><b class="hd">3️⃣ Choose your cache architecture: match your consistency needs</b>Write-through when you need strong consistency; write-behind for high-volume writes where you can tolerate some risk. Static images or videos → mention a CDN. Extremely hot keys → in-process caching as an optimization layer.<span class="say">🗣️ "I'll use cache-aside. On a read, we check Redis first. If it's there, return it. If not, query the database, store the result in Redis, and return it."</span></li>
+    <li><b class="hd">4️⃣ Set an eviction policy: LRU is the safe default, TTL prevents stale data</b><span class="say">🗣️ "LRU eviction in Redis, and a 10-minute TTL on user profiles. That stops the cache growing unbounded, and profiles don't get too stale. If a user updates their profile, we invalidate the entry immediately."</span></li>
+    <li><b class="hd">5️⃣ Address the downsides: show you've thought about the trade-offs</b>🗑️ <b>Cache invalidation</b>: invalidate on writes, rely on TTL, or accept eventual consistency?<span class="say">🗣️ "When a user updates their profile, we delete the cache entry so the next read fetches fresh data from the database."</span>💥 <b>Cache failures</b>: Redis goes down. Will the database get crushed by the sudden spike?<span class="say">🗣️ "Requests fall back to the database. We'll add circuit breakers so we don't overwhelm it, and maybe a small in-process cache as a last-resort layer."</span>🐃 <b>Thundering herd</b>: a popular entry expires, and 1,000 requests refetch it at once.<span class="say">🗣️ "For extremely popular keys, probabilistic early expiration or request coalescing, so only one request hits the database while the others wait for its result."</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Don't list every possible problem. Pick <b>one or two</b> that matter for the system you're designing, and explain how you'd handle them. For staff-level candidates: focus on the important but <b>non-obvious</b> scenarios, rather than burning time on things the interviewer can already assume.</div>
+  <p class="ana">🩺 The same doctor: the diagnosis (1), what to treat (2), which medicine (3), the dose (4), the side effects (5). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔚 Conclusion</h4>
+  <p class="bridge">Caching is what you do when reading from the database is too slow or too expensive: keep frequently accessed data in fast memory, and skip the database for most reads.</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ You gain</b><div class="chk">⚡ Faster reads</div><div class="chk">🪶 Less load on whatever is behind the cache</div></div>
+    <div class="k-red"><b>💸 You pay</b><div class="chk">🔄 Cached data can fall out of sync with the database</div><div class="chk">💥 A cache failure can crush the database if you're not prepared</div><div class="chk">🔥 Hot keys can bottleneck even a distributed cache</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎤 In interviews: first the bottleneck, then the cache</b>Then walk through what you'll cache, which pattern, how you'll evict, and what happens when things go wrong. A CDN for static media; in-process caching for extremely hot keys.</li>
+  </ul>
+  <div class="take">⭐ Most importantly, <b>don't cache everything</b>. Show you understand when caching is worth the complexity, and when a well-indexed database is enough.</div>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🔀 Cache-aside vs read-through look the same</h5>
+    <ul><li>Follow the arrow into the database. Cache-aside: the <b>app</b> talks to the database. Read-through: only the <b>cache</b> does, through a database plugin, so the app never handles the fetch-and-store on a miss.</li></ul>
+    <h5>🧱 Write-through without distributed transactions?</h5>
+    <ul><li>Two readers: "I don't think so." Distributed transactions (two-phase commit, 2PC) are slow, stall everyone when one participant fails, and can leave nodes stuck until someone fixes them by hand.</li>
+    <li>Their "golden rules": if you need strong consistency, send every operation that can see the others through <b>one thread on one node</b> (e.g. one database shard with its transactions). Otherwise avoid strong consistency: at-least-once delivery + idempotency + eventual consistency.</li>
+    <li>One reader suggested a saga for write-behind. Our take: a saga is for multi-step business flows across services. A write-behind flush is one write to one database, so a durable queue + retries is enough. <span class="add">➕ not in the article</span></li></ul>
+    <h5>🏷️ Cache versioning</h5>
+    <ul><li>Asked for: version numbers in keys to handle invalidation (covered in the Scaling Reads lesson). Recommended read: Meta's <a href="https://engineering.fb.com/2022/06/08/core-infra/cache-made-consistent/" target="_blank" rel="noopener">"Cache made consistent"</a>. The idea: put a version in the key (<code>user:123:v7</code>) and bump it on every write. Old entries are never read again, and they age out. <span class="add">➕ not in the article</span></li></ul>
+    <h5>🐃 Stampedes in practice</h5>
+    <ul><li>Many app servers: single flight works per server, so should you add a distributed lock? One reader was asked exactly this in an interview. Another said "overkill": at most one query in flight per app instance.</li>
+    <li>A Big Tech engineer: warming the cache through an <b>external channel</b> (a job that refreshes keys) is the most common pattern they saw. Invalidating and letting requests refill it is too expensive.</li>
+    <li>Another reader: warming barely helps. Data that never changes needs no TTL, and changing data gets invalidated on write, so request coalescing is the only truly effective fix.</li>
+    <li>Cold starts after an outage (asked, not answered): the cache is empty, so every request misses. Warm the hottest keys before taking traffic, and let traffic back in gradually. <span class="add">➕ not in the article</span></li></ul>
+    <h5>🔌 Circuit breakers when Redis is down?</h5>
+    <ul><li>Asked, not answered. With Redis down, every request falls through to the database. A breaker around the database calls trips when it slows down: extra requests fail fast (an error or a stale fallback) instead of piling on, so the database survives. See <a href="#sd-net-latency-failures--circuit-breakers-stop-the-cascade">Networking: circuit breakers</a>. <span class="add">➕ not in the article</span></li></ul>
+    <h5>⏱️ Numbers and TTLs</h5>
+    <ul><li>Why 50 ms vs 1 ms here, but 1 ms (disk) vs 100 ns (memory) in the video? The video gives raw hardware speeds. The lesson's numbers include the <b>network round trip</b> to Redis and the query work in Postgres.</li>
+    <li>Can a TTL be hours? Yes, any length. But keep an offline user's unread messages (Messenger) in a durable store: a cache can evict or lose them. <span class="add">➕ not in the article</span></li>
+    <li>Instead of caching a computed feed for 60 s, you can <b>pre-compute</b> it and cache it with a TTL.</li></ul>
+  </div>
+</section>
+
 </div>
 </div>
 
@@ -3903,6 +4244,100 @@ const SEQS = {
       { f: 2, t: 1, m: '✓ → 🟢 CLOSED', k: 'tcp', cap: '…success → close the circuit, failure → stay open. Self-healing, without sending the full load.' },
     ],
   },
+  'cdn': {
+    lanes: ['👤 User (India)', '📍 CDN edge (nearby)', '🏢 Origin (Virginia)'],
+    key: [['tcp', 'short trip'], ['err', 'long trip'], ['http', 'response']],
+    frames: [
+      { cap: 'A user in India opens your app. Your server (the <b>origin</b>) is in Virginia. Without a CDN, every image crosses the world: <b>250–300 ms</b> per request. With one 👇' },
+      { f: 0, t: 1, m: 'GET cat.jpg', k: 'tcp', cap: '① The user requests an image. ② The request goes to the <b>nearest CDN edge server</b>, not to your origin.' },
+      { at: 1, m: '❌ not cached yet', k: 'err', cap: '③ Is the image cached there? The first time, no.' },
+      { f: 1, t: 2, m: 'fetch cat.jpg', k: 'err', cap: '④ On a miss, the CDN fetches it from your origin server: the long trip, paid once…' },
+      { f: 2, t: 1, m: 'cat.jpg', k: 'err', note: '💾 the edge stores a copy', cap: '…stores it…' },
+      { f: 1, t: 0, m: 'cat.jpg', k: 'http', cap: '…and returns it.' },
+      { f: 0, t: 1, m: 'GET cat.jpg (next user)', k: 'tcp', cap: '⑤ The next user in that region asks for the same image…' },
+      { f: 1, t: 0, m: '✅ cat.jpg · 20–40 ms', k: 'tcp', cap: '③ …it\'s cached, so it\'s returned <b>immediately</b> from nearby: 20–40 ms instead of 250–300 ms. The origin isn\'t touched.' },
+    ],
+  },
+  'cache-aside': {
+    lanes: ['🖥️ App server', '🟥 Cache (Redis)', '🗄️ Database'],
+    key: [['http', 'the app asks'], ['err', 'miss, slow path'], ['tcp', 'hit, fast']],
+    frames: [
+      { cap: '<code>GET /users/123</code>. In cache-aside, the <b>app</b> is in charge: it talks to the cache <b>and</b> to the database 👇' },
+      { f: 0, t: 1, m: 'GET user:123', k: 'http', cap: '① The application checks the cache.' },
+      { f: 1, t: 0, m: '(nil): miss', k: 'err', cap: 'Not there: a cache miss.' },
+      { f: 0, t: 2, m: 'SELECT … WHERE id = 123', k: 'err', cap: '③ The app fetches from the database itself (50 ms in the lesson\'s example).' },
+      { f: 2, t: 0, m: 'row', k: 'err', cap: 'The row comes back to the app.' },
+      { f: 0, t: 1, m: 'SET user:123 (TTL)', k: 'http', cap: 'The app stores it in the cache (usually with a TTL), then returns it. A miss costs 3 trips: that\'s the "extra latency".' },
+      { f: 0, t: 1, m: 'GET user:123 (next request)', k: 'http', cap: 'The next request for the same user…' },
+      { f: 1, t: 0, m: '✅ hit · ~1 ms', k: 'tcp', cap: '② …finds the data there, so it\'s returned at once. No database at all.' },
+    ],
+  },
+  'write-through': {
+    lanes: ['🖥️ App server', '🟥 Cache', '🗄️ Database'],
+    key: [['http', 'write'], ['tcp', 'ok'], ['err', 'failure']],
+    frames: [
+      { cap: 'A user changes their name. With write-through, the app writes <b>only to the cache</b>, and the cache does the rest 👇' },
+      { f: 0, t: 1, m: 'SET user:123', k: 'http', cap: '① The app writes to the cache: a caching library with a data store plugin (Redis doesn\'t do this natively).' },
+      { f: 1, t: 2, m: 'sync write to DB', k: 'http', cap: '② Before answering, the cache writes to the database, <b>synchronously</b>.' },
+      { f: 2, t: 1, m: 'ok', k: 'tcp', cap: 'The database confirms.' },
+      { f: 1, t: 0, m: '✅ done', k: 'tcp', cap: '③ Only now is the write complete: both are updated. The app waited for <b>both</b>, so writes are slower, but reads are always fresh.' },
+      { r: [{ at: 1, m: '✅ cache ok', k: 'tcp' }, { at: 2, m: '❌ DB failed', k: 'err' }], cap: '⚠️ The <b>dual-write problem</b>: the cache update succeeds but the database write fails (or the other way round). Now they disagree. Retries and error handling help, but perfect consistency is hard without distributed transactions.' },
+    ],
+  },
+  'write-behind': {
+    lanes: ['🖥️ App server', '🟥 Cache', '🗄️ Database'],
+    key: [['http', 'write'], ['tcp', 'ok'], ['gray', 'later, in batches'], ['err', 'loss']],
+    frames: [
+      { cap: 'A metrics pipeline: thousands of "page viewed" counters a second. Write-behind writes <b>only to the cache</b>, and the cache flushes later 👇 <span class="add">➕ example not in the article</span>' },
+      { f: 0, t: 1, m: 'INCR views:42', k: 'http', cap: '① The app writes to the cache…' },
+      { f: 1, t: 0, m: '✅ ok (instant)', k: 'tcp', cap: '…and gets "ok" right away. No database in the path, so writes are very fast.' },
+      { f: 0, t: 1, m: 'more writes…', k: 'http', cap: 'More writes keep landing in the cache. Reads are served from the cache too.' },
+      { f: 1, t: 2, m: 'batched async flush', k: 'gray', dash: 1, cap: '② In the background, the cache <b>batches</b> the changes and writes them to the database. The database is a little behind: eventually consistent.' },
+      { at: 1, m: '💥 crash before flush', k: 'err', cap: '⚠️ The risk: if the cache crashes before flushing, the unflushed writes are <b>lost</b>. Fine for analytics and metrics, where occasional loss is acceptable.' },
+    ],
+  },
+  'read-through': {
+    lanes: ['🖥️ App server', '🟥 Cache (smart proxy)', '🗄️ Database'],
+    key: [['http', 'the app asks'], ['err', 'miss'], ['tcp', 'hit']],
+    frames: [
+      { cap: 'The cache acts as a <b>smart proxy</b>. The app never talks to the database directly 👇' },
+      { f: 0, t: 1, m: 'GET user:123', k: 'http', cap: '① The app asks only the cache.' },
+      { f: 1, t: 2, m: 'miss → SELECT', k: 'err', cap: '② On a miss, <b>the cache itself</b> fetches from the database (through a database plugin), not the app.' },
+      { f: 2, t: 1, m: 'row', k: 'err', note: '💾 the cache stores it', cap: 'The cache stores the data…' },
+      { f: 1, t: 0, m: 'row', k: 'http', cap: '…and returns it. The same steps as cache-aside: only <b>who</b> goes to the database changed.' },
+      { f: 0, t: 1, m: 'GET user:123 (next request)', k: 'http', cap: 'Next time…' },
+      { f: 1, t: 0, m: '✅ hit', k: 'tcp', cap: '…a hit. 🌍 A CDN works exactly like this: on a miss it fetches from your origin, caches the result, and returns it.' },
+    ],
+  },
+  'stampede': {
+    lanes: ['👥 1,000 users', '🖥️ App servers', '🟥 Cache', '🗄️ Database'],
+    key: [['tcp', 'hit'], ['err', 'miss, overload'], ['http', 'the fix']],
+    frames: [
+      { cap: 'The homepage feed is cached with a <b>TTL of 60 seconds</b>. Every request hits the cache. Fine… until the key expires 👇' },
+      { r: [{ f: 0, t: 1, m: 'GET feed', k: 'tcp' }, { f: 1, t: 2, m: '✅ hit', k: 'tcp', bi: 1 }], cap: '12:00:59: every request is a cache hit. The database is quiet.' },
+      { at: 2, m: '⏰ 12:01:00 expired', k: 'err', cap: '12:01:00: the entry expires.' },
+      { f: 1, t: 2, m: '❌ miss × 1,000', k: 'err', cap: 'For a brief window, even one second, <b>every</b> request at that moment misses…' },
+      { f: 1, t: 3, m: '1,000 × the same query', k: 'err', cap: '…and each one rebuilds the feed from the database. Instead of 1 query: hundreds or thousands.' },
+      { at: 3, m: '🔥 overwhelmed', k: 'err', cap: 'If traffic is high, the spike overwhelms the database and can cause <b>cascading failures</b>.' },
+      { f: 1, t: 3, m: '1 query (single flight)', k: 'http', note: '⏳ the other 999 wait for that result', cap: '✅ The fix: <b>request coalescing (single flight)</b>. Only one request rebuilds the entry; the others wait for its result. ⭐ The most effective fix.' },
+      { f: 1, t: 2, m: 'SET feed (60 s)', k: 'http', cap: 'That one result goes back into the cache and to all 1,000 waiting requests. The database saw 1 query.' },
+    ],
+  },
+  'consistency': {
+    lanes: ['👤 Alice / Bob', '🖥️ App', '🟥 Cache', '🗄️ Database'],
+    key: [['http', 'write'], ['tcp', 'read'], ['err', 'stale']],
+    frames: [
+      { cap: 'Most systems <b>read from the cache</b> but <b>write to the database first</b>. That leaves a window where the cache is stale 👇' },
+      { f: 0, t: 1, m: 'Alice: new photo 🐱', k: 'http', cap: 'Alice updates her profile picture.' },
+      { f: 1, t: 3, m: 'UPDATE photo = 🐱', k: 'http', cap: 'The new value is written to the database.' },
+      { at: 2, m: 'still 🐶 (old)', k: 'err', cap: 'But the cache still holds the old picture.' },
+      { r: [{ f: 0, t: 1, m: 'Bob: view Alice', k: 'tcp' }, { f: 1, t: 2, m: '🐶', k: 'err', bi: 1 }], cap: 'Bob views Alice\'s profile: a cache hit, with the <b>old</b> picture. Other users see it until the cache refreshes.' },
+      { f: 1, t: 2, m: 'DEL user:alice', k: 'http', cap: '✅ The usual fix, invalidation on writes: right after updating the database, <b>delete</b> the cache entry.' },
+      { f: 1, t: 2, m: 'GET: miss', k: 'tcp', bi: 1, cap: 'Bob\'s next read misses…' },
+      { f: 1, t: 3, m: 'SELECT → 🐱', k: 'tcp', bi: 1, cap: '…so the app loads the fresh picture from the database…' },
+      { f: 1, t: 2, m: 'SET 🐱', k: 'tcp', cap: '…refills the cache, and Bob sees the new photo. Everyone after him gets 🐱 from the cache.' },
+    ],
+  },
 }
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -4295,6 +4730,51 @@ const GLOSSARY = [
   { id: 'latency', t: 'Latency', aka: 'delay rtt round trip', s: 'How long one trip takes.',
     an: 'How long the letter takes to arrive (not how many letters fit in the van).',
     b: '<p>Usually measured as <b>round-trip time</b> (there and back). Nearby server &lt; 1 ms; New York ↔ London ≥ ~56 ms just from the speed of light in fiber. Every extra message (handshakes, retries) adds trips.</p>', see: ['handshake'] },
+  { id: 'extcache', t: 'External cache (Redis, Memcached)', aka: 'redis memcached valkey in-memory key value store external caching elasticache', s: 'A cache running as its own service, shared by every app server over the network.',
+    an: 'The family fridge down the hall: one short trip, and everyone shares it.',
+    b: '<p>Postgres: 50 ms for a profile in the lesson\'s example. Redis: ~1 ms, and most of that is the network trip, since all data sits in RAM.</p><ul><li>🤝 Server A caches <code>user:123</code>, servers B and C get the hit too.</li><li>📏 LRU eviction + TTLs keep memory under control.</li></ul><p>Memcached is the simpler cousin: plain key → value, no persistence, no data types. ⭐ Redis is the default answer in interviews.</p><p>☁️ <b>On AWS:</b> ElastiCache (Redis OSS / Valkey / Memcached)</p>', see: ['cacheaside', 'inproc', 'lru'] },
+  { id: 'cdn', t: 'CDN (Content Delivery Network)', aka: 'edge server edge location origin cloudfront cloudflare akamai fastly', s: 'Servers around the world that keep copies of your content close to users.',
+    an: 'A corner shop on every street, stocked from the far warehouse.',
+    b: '<p>User in India, server in Virginia: 250–300 ms per image. From an edge server nearby: 20–40 ms.</p><ul><li>✅ Hit: the edge has it and returns it at once.</li><li>❌ Miss: the edge fetches it from your <b>origin</b>, stores it, returns it. The next user in that region gets a hit.</li></ul><p>A CDN is a <b>read-through</b> cache. Best for static media; modern CDNs also cache API responses and HTML, and run edge logic.</p><p>☁️ <b>On AWS:</b> CloudFront</p>', see: ['readthrough', 'latency'] },
+  { id: 'clientcache', t: 'Client-side cache', aka: 'browser cache http cache localstorage offline service worker', s: 'Data kept on the requester (browser, phone, client library), so there is no network call at all.',
+    an: 'What\'s already in your bag: no trip needed.',
+    b: '<ul><li>🌐 A browser reuses a downloaded image from disk.</li><li>🏃 Strava keeps your run on the phone while offline and syncs later.</li><li>🧭 A Redis client remembers which node owns which slot.</li></ul><p>⚠️ The backend can\'t reach into the device to delete it, so it can go stale.</p>', see: ['inproc', 'cdn'] },
+  { id: 'inproc', t: 'In-process cache', aka: 'local cache in-memory cache local fallback cache', s: 'A cache inside the app\'s own memory: the fastest, but each server has its own copy.',
+    an: 'The snack on your desk: instant, but only yours.',
+    b: '<p>A <code>Map</code> in your Node process: <code>flags.get(\'dark_mode\')</code> in ~100 ns, no network.</p><p>⚠️ Server A invalidates a value; servers B and C never hear about it. So use it for small values that rarely change (config, feature flags) or extremely hot keys, and only after Redis.</p>', see: ['extcache', 'hotkey'] },
+  { id: 'cacheaside', t: 'Cache-aside (lazy loading)', aka: 'lazy loading look-aside caching pattern', s: 'The app checks the cache; on a miss it reads the DB and fills the cache itself.',
+    an: 'You check the fridge; empty → you go shopping yourself and restock it.',
+    b: '<ol><li><code>GET user:123</code> from the cache → hit? Return it.</li><li>Miss → <code>SELECT</code> from the database.</li><li><code>SET user:123</code> in the cache (with a TTL), return it.</li></ol><p>Writes: update the database, then delete the key. Only requested data gets cached, so the cache stays lean; a miss costs 3 trips. ⭐ The default pattern in interviews.</p>', see: ['readthrough', 'writearound', 'invalidation'] },
+  { id: 'readthrough', t: 'Read-through cache', aka: 'smart proxy caching pattern', s: 'The app only talks to the cache; on a miss the cache itself loads from the DB.',
+    an: 'A librarian fetches the book; you never walk into the stacks.',
+    b: '<p>The same steps as cache-aside, but the <b>cache</b> does the database fetch, through a database plugin. Tell them apart by the arrow into the database: app → DB = cache-aside; cache → DB = read-through.</p><p>CDNs work this way. Rarely worth proposing for Redis.</p><p>☁️ <b>On AWS:</b> DynamoDB Accelerator (DAX)</p>', see: ['cacheaside', 'writethrough', 'cdn'] },
+  { id: 'writethrough', t: 'Write-through cache', aka: 'caching pattern dual write', s: 'The app writes to the cache, and the cache writes the DB synchronously before saying "done".',
+    an: 'Saving to your laptop and your cloud drive; Save waits for both.',
+    b: '<p>✅ Reads are always fresh.</p><p>❌ Slower writes (wait for both), cache pollution (data that is never read), and still the <b>dual-write problem</b>: one write succeeds, the other fails, and they disagree.</p><p>Redis doesn\'t do it natively: you need a library or framework.</p><p>☁️ <b>On AWS:</b> DynamoDB Accelerator (DAX)</p>', see: ['writebehind', 'readthrough'] },
+  { id: 'writebehind', t: 'Write-behind (write-back) cache', aka: 'write back async flush caching pattern', s: 'The app writes only to the cache; the cache flushes to the DB later, in batches.',
+    an: 'A waiter jots orders and hands the kitchen a batch every few minutes.',
+    b: '<p>✅ Very fast writes, and many writes become one batch.</p><p>❌ If the cache crashes before the flush, those writes are lost. The database lags behind the cache for a while (eventually consistent).</p><p>Use it for analytics and metrics, never for money.</p>', see: ['writethrough'] },
+  { id: 'writearound', t: 'Write-around', aka: 'caching pattern write path', s: 'Writes go only to the DB; the cache is skipped (or its key deleted) and refills on the next read miss.',
+    an: 'Restock the warehouse, not the fridge; the fridge refills the next time someone finds it empty.',
+    b: '<p>What cache-aside does on writes: <code>UPDATE</code> the database → <code>DEL</code> the key. Rarely-read data stays out of the cache; the first read after a write is a miss.</p>', see: ['cacheaside', 'invalidation'] },
+  { id: 'lru', t: 'LRU (Least Recently Used)', aka: 'eviction policy lru cache leetcode 146 maxmemory-policy', s: 'When the cache is full, evict the key untouched for the longest time.',
+    an: 'Toss whatever in the fridge you haven\'t touched for longest.',
+    b: '<p>3 slots, requests B A A A C B, then D arrives: <b>A</b> goes (last used at step 4), even though it was used 3 times.</p><p>O(1) with a hash map + a doubly linked list (LeetCode 146). ⭐ The safe default. In Redis, set <code>maxmemory-policy allkeys-lru</code>: the default, <code>noeviction</code>, refuses writes when full.</p>', see: ['lfu', 'ttl'] },
+  { id: 'lfu', t: 'LFU (Least Frequently Used)', aka: 'eviction policy fifo', s: 'When the cache is full, evict the key used the fewest times.',
+    an: 'Toss whatever in the fridge you use least often.',
+    b: '<p>3 slots, requests B A A A C B, then D arrives: <b>C</b> goes (used once). LRU would drop A; FIFO would drop B, the first one in, even though it was just used.</p><p>Good when some keys stay popular for a long time (trending videos, top playlists). Often approximate, to save the cost of exact counters.</p>', see: ['lru', 'ttl'] },
+  { id: 'ttl', t: 'TTL (Time To Live)', aka: 'expiry expire expiration', s: 'An expiry time on each cache key; after it, the key is gone.',
+    an: 'The expiry date on a pack in the fridge.',
+    b: '<p><code>SET user:123 … EX 600</code> → gone after 10 minutes, so stale data can\'t live forever. Not an eviction policy by itself: combine it with LRU or LFU to bound memory.</p><p>⚠️ When a popular key expires, everyone misses at once: a stampede.</p>', see: ['lru', 'stampede', 'invalidation'] },
+  { id: 'stampede', t: 'Cache stampede (thundering herd)', aka: 'dog-pile request coalescing single flight cache warming probabilistic early expiration', s: 'A popular key expires and every request rebuilds it from the DB at the same time.',
+    an: 'The bread shelf empties and 1,000 shoppers run to the warehouse at once.',
+    b: '<p>A feed cached for 60 s expires at 12:01:00 → 1,000 misses → 1,000 identical database queries → the database is overwhelmed.</p><ul><li>⭐ Request coalescing (single flight): one request rebuilds, the rest wait for it.</li><li>🌡️ Cache warming: refresh before expiry (TTL-based only).</li><li>🎲 Probabilistic early expiration: one request refreshes a little early.</li></ul>', see: ['ttl', 'hotkey'] },
+  { id: 'hotkey', t: 'Hot key', aka: 'celebrity key viral content', s: 'One cache key gets far more traffic than the rest and overloads the one node holding it.',
+    an: 'A celebrity book signing: one table, an endless queue.',
+    b: '<p><code>user:taylorswift</code>: millions of reads a second, all on one Redis node, even with a perfect hit rate.</p><ul><li>📑 Replicate it: <code>…#1</code> to <code>#3</code> on different nodes, read a random copy.</li><li>🧠 Keep a local in-process copy.</li><li>🚦 Rate limit.</li></ul><p>Stampede = traffic slams the database (a miss). Hot key = traffic slams the cache (a hit).</p>', see: ['stampede', 'hotshard', 'inproc'] },
+  { id: 'invalidation', t: 'Cache invalidation', aka: 'invalidate stale cache consistency delete key', s: 'Removing a cached value when the real data changes, so nobody reads the old one.',
+    an: 'Wiping the old price off the café menu board the moment it changes.',
+    b: '<p>Alice changes her photo → <code>UPDATE</code> the database → <code>DEL user:alice</code>. Bob\'s next read misses and loads the new photo.</p><p>Delete instead of overwriting (racing writers can leave an older value), and delete <b>after</b> the database write. The other options: a short TTL, or accept eventual consistency.</p>', see: ['ttl', 'consistency', 'cacheaside'] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -4352,7 +4832,10 @@ const GLOSSARY = [
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
-    consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
+    consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i,
+    extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
+    cacheaside: /cache-aside/i, readthrough: /read-through/i, writethrough: /write-through/i, writebehind: /write-behind|write-back/i, writearound: /write-around/i,
+    lru: /LRU/, lfu: /LFU/, ttl: /TTLs?/, stampede: /cache stampedes?|request coalescing|single flight/i, hotkey: /hot keys?/i, invalidation: /(?:cache )?invalidat(?:e|es|ed|ion|ing)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
   }
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
