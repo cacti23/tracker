@@ -91,13 +91,13 @@
      a line to the topic's "Must Remember" box if it's a rule worth recalling. Cross-links: "#3" in the same topic,
      "Recursion #3" across topics. Old #tN and #dp-N anchors stay so earlier links still land. -->
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 57</button>
+  <button data-g="all" class="on">📚 All · 58</button>
   <button data-g="graph">🕸️ Graph · 23</button>
   <button data-g="tree">🌳 Trees · 7</button>
   <button data-g="rec">🔀 Recursion, Backtracking &amp; DP · 16</button>
   <button data-g="bs">🎯 Binary Search · 3</button>
   <button data-g="arr">🪟 Arrays &amp; Strings · 9</button>
-  <button data-g="math">🔢 Math · 4</button>
+  <button data-g="math">🔢 Math · 5</button>
   <button data-g="js">🚨 JS Gotchas · 3</button>
 </div>
 
@@ -220,6 +220,7 @@
   <a href="#math-2"><b>02</b>A % B when A &lt; B</a>
   <a href="#math-3"><b>03</b>Pairs vs subarrays vs subsets</a>
   <a href="#math-4"><b>04</b>XOR range = memo size</a>
+  <a href="#math-5"><b>05</b>Power of 2 / 4 with bits</a>
 </nav>
 </div>
 <div class="grp" data-g="js">
@@ -1588,6 +1589,7 @@ for (let i = n - 1; i &gt;= 0; i--) right[i] = Math.max(h[i], i &lt; n - 1 ? rig
 <li>🍕 <b><code>A % B</code> with A &lt; B</b> → just A (<a href="#math-2">#2</a>)</li>
 <li>🧮 <b>Count them:</b> pairs <code>nC2 = n(n−1)/2</code> · subarrays <code>n(n+1)/2</code> · every <code>(i, j)</code> <code>n²</code> · subsets <code>2ⁿ</code> (<a href="#math-3">#3</a>)</li>
 <li>⚡ <b>XOR / OR stay inside the max value's bits</b> → range <code>0 … 2ᵇ − 1</code> = memo size (<a href="#math-4">#4</a>)</li>
+<li>🔌 <b>Power of 2</b> → <code>n &gt; 0 &amp;&amp; (n &amp; (n − 1)) === 0</code> · <b>power of 4</b> → also <code>(n &amp; 0x55555555) !== 0</code> (<a href="#math-5">#5</a>)</li>
 </ul>
 </section>
 
@@ -1644,6 +1646,21 @@ subsets:      2 × 2 × 2                 = 8</code></pre>
 const size = 1 << b               // 1024 slots</code></pre>
 <p class="hint">Where it's used: LC 3882 Min XOR Path, memo on <code>(i, j, x)</code>. Checked in Node: XOR / OR of 200,000 random sets never left <code>0 … 2ᵇ − 1</code>, AND never passed the smallest value.</p>
 <div class="box key"><b class="tag">📌</b> <b>Bit operations stay inside the bits you start with. Only arithmetic can grow them.</b></div>
+</section>
+
+<section data-g="math">
+<h2 id="math-5">5 · 🔌 Power of Two → <code>n &amp; (n − 1)</code> · Power of 4 → Add the <code>0x55555555</code> Mask</h2>
+<p>🎯 <b>Power of two = exactly one 1-bit.</b> <code>&amp;</code> is bitwise AND, not multiply.</p>
+<ul>
+<li>1️⃣ <code>n − 1</code> turns the lowest 1 into 0 and every 0 below it into 1. One 1-bit only → nothing is left in common → <code>n &amp; (n − 1)</code> is <code>0</code>.</li>
+<li>2️⃣ <b>Power of 4</b> = power of two + the 1-bit sits at an <b>even</b> position (0, 2, 4, … counted from the right). <code>0x55555555</code> is <code>0101…01</code>. It keeps only even positions.</li>
+</ul>
+<figure class="calls"><svg viewBox="0 0 220 150" role="img" aria-label="n = 8 gives 0"><text x="110" y="18" class="tt">n = 8</text><text x="8" y="50" class="c" style="text-anchor:start">n</text><text x="78" y="50" class="c">0</text><text x="95" y="50" class="c">0</text><text x="112" y="50" class="c">0</text><text x="129" y="50" class="c">0</text><text x="146" y="50" class="n">1</text><text x="163" y="50" class="c">0</text><text x="180" y="50" class="c">0</text><text x="197" y="50" class="c">0</text><text x="8" y="72" class="c" style="text-anchor:start">n − 1</text><text x="78" y="72" class="c">0</text><text x="95" y="72" class="c">0</text><text x="112" y="72" class="c">0</text><text x="129" y="72" class="c">0</text><text x="146" y="72" class="c">0</text><text x="163" y="72" class="n">1</text><text x="180" y="72" class="n">1</text><text x="197" y="72" class="n">1</text><text x="8" y="98" class="c" style="text-anchor:start">n&amp;(n−1)</text><text x="78" y="98" class="c">0</text><text x="95" y="98" class="c">0</text><text x="112" y="98" class="c">0</text><text x="129" y="98" class="c">0</text><text x="146" y="98" class="c">0</text><text x="163" y="98" class="c">0</text><text x="180" y="98" class="c">0</text><text x="197" y="98" class="c">0</text><line x1="70" y1="80" x2="206" y2="80"/><text x="110" y="126" class="ok">0 → one 1-bit ✅</text></svg><svg viewBox="0 0 220 150" role="img" aria-label="n = 6 gives not 0"><text x="110" y="18" class="tt">n = 6</text><text x="8" y="50" class="c" style="text-anchor:start">n</text><text x="78" y="50" class="c">0</text><text x="95" y="50" class="c">0</text><text x="112" y="50" class="c">0</text><text x="129" y="50" class="c">0</text><text x="146" y="50" class="c">0</text><text x="163" y="50" class="n">1</text><text x="180" y="50" class="n">1</text><text x="197" y="50" class="c">0</text><text x="8" y="72" class="c" style="text-anchor:start">n − 1</text><text x="78" y="72" class="c">0</text><text x="95" y="72" class="c">0</text><text x="112" y="72" class="c">0</text><text x="129" y="72" class="c">0</text><text x="146" y="72" class="c">0</text><text x="163" y="72" class="n">1</text><text x="180" y="72" class="c">0</text><text x="197" y="72" class="n">1</text><text x="8" y="98" class="c" style="text-anchor:start">n&amp;(n−1)</text><text x="78" y="98" class="c">0</text><text x="95" y="98" class="c">0</text><text x="112" y="98" class="c">0</text><text x="129" y="98" class="c">0</text><text x="146" y="98" class="c">0</text><text x="163" y="98" class="bad">1</text><text x="180" y="98" class="c">0</text><text x="197" y="98" class="c">0</text><line x1="70" y1="80" x2="206" y2="80"/><text x="110" y="126" class="bad">≠ 0 → many 1-bits ❌</text></svg><svg viewBox="0 0 220 150" role="img" aria-label="4 matches the mask"><text x="110" y="18" class="tt">n = 4 · mask 0x55</text><text x="78" y="40" class="c">7</text><text x="95" y="40" class="c">6</text><text x="112" y="40" class="c">5</text><text x="129" y="40" class="c">4</text><text x="146" y="40" class="c">3</text><text x="163" y="40" class="c">2</text><text x="180" y="40" class="c">1</text><text x="197" y="40" class="c">0</text><text x="8" y="40" class="c" style="text-anchor:start">pos</text><text x="8" y="60" class="c" style="text-anchor:start">mask</text><text x="78" y="60" class="c">0</text><text x="95" y="60" class="n">1</text><text x="112" y="60" class="c">0</text><text x="129" y="60" class="n">1</text><text x="146" y="60" class="c">0</text><text x="163" y="60" class="n">1</text><text x="180" y="60" class="c">0</text><text x="197" y="60" class="n">1</text><text x="8" y="82" class="c" style="text-anchor:start">n</text><text x="78" y="82" class="c">0</text><text x="95" y="82" class="c">0</text><text x="112" y="82" class="c">0</text><text x="129" y="82" class="c">0</text><text x="146" y="82" class="c">0</text><text x="163" y="82" class="n">1</text><text x="180" y="82" class="c">0</text><text x="197" y="82" class="c">0</text><text x="8" y="108" class="c" style="text-anchor:start">mask &amp; n</text><text x="78" y="108" class="c">0</text><text x="95" y="108" class="c">0</text><text x="112" y="108" class="c">0</text><text x="129" y="108" class="c">0</text><text x="146" y="108" class="c">0</text><text x="163" y="108" class="ok">1</text><text x="180" y="108" class="c">0</text><text x="197" y="108" class="c">0</text><line x1="70" y1="90" x2="206" y2="90"/><text x="110" y="136" class="ok">≠ 0 → power of 4 ✅</text></svg><svg viewBox="0 0 220 150" role="img" aria-label="8 does not match the mask"><text x="110" y="18" class="tt">n = 8 · mask 0x55</text><text x="78" y="40" class="c">7</text><text x="95" y="40" class="c">6</text><text x="112" y="40" class="c">5</text><text x="129" y="40" class="c">4</text><text x="146" y="40" class="c">3</text><text x="163" y="40" class="c">2</text><text x="180" y="40" class="c">1</text><text x="197" y="40" class="c">0</text><text x="8" y="40" class="c" style="text-anchor:start">pos</text><text x="8" y="60" class="c" style="text-anchor:start">mask</text><text x="78" y="60" class="c">0</text><text x="95" y="60" class="n">1</text><text x="112" y="60" class="c">0</text><text x="129" y="60" class="n">1</text><text x="146" y="60" class="c">0</text><text x="163" y="60" class="n">1</text><text x="180" y="60" class="c">0</text><text x="197" y="60" class="n">1</text><text x="8" y="82" class="c" style="text-anchor:start">n</text><text x="78" y="82" class="c">0</text><text x="95" y="82" class="c">0</text><text x="112" y="82" class="c">0</text><text x="129" y="82" class="c">0</text><text x="146" y="82" class="n">1</text><text x="163" y="82" class="c">0</text><text x="180" y="82" class="c">0</text><text x="197" y="82" class="c">0</text><text x="8" y="108" class="c" style="text-anchor:start">mask &amp; n</text><text x="78" y="108" class="c">0</text><text x="95" y="108" class="c">0</text><text x="112" y="108" class="c">0</text><text x="129" y="108" class="c">0</text><text x="146" y="108" class="c">0</text><text x="163" y="108" class="c">0</text><text x="180" y="108" class="c">0</text><text x="197" y="108" class="c">0</text><line x1="70" y1="90" x2="206" y2="90"/><text x="110" y="136" class="bad">0 → power of 2 only ❌</text></svg></figure>
+<pre class="language-tsx"><code class="language-tsx">const isPow2 = n &gt; 0 &amp;&amp; (n &amp; (n - 1)) === 0                 // LC 231
+const isPow4 = isPow2 &amp;&amp; (n &amp; 0x55555555) !== 0               // LC 342</code></pre>
+<div class="box warn"><b class="tag">🚨</b> Keep <code>n &gt; 0</code>. For <code>n = 0</code> the AND is <code>0</code>, so it says "yes". <code>−2³¹</code> also passes the AND test (32-bit).</div>
+<p class="hint">🧪 Checked in Node: 270,166 values (all of −70 … 70,000, every <code>2ᵉ</code>, <code>2ᵉ ± 1</code>, the 32-bit edges, 200,000 random) match a loop. Exactly 16 powers of 4 up to <code>2³⁰</code>.</p>
+<div class="box key"><b class="tag">📌</b> <b>One 1-bit → <code>n &amp; (n − 1) === 0</code>.</b> Even position too → <code>&amp; 0x55555555</code> is not 0 → power of 4.</div>
 </section>
 
 <section data-g="js" class="sum" id="js-sum">
