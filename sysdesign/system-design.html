@@ -3691,6 +3691,71 @@ No score, no hiring recommendation, no Hire / No Hire.
 ⭐ FINAL INSTRUCTION
 You are not here to test how much I already know. You are here to help me become an engineer who understands systems deeply, makes sound architectural decisions, understands trade-offs and can explain them with confidence.
 Teach me until I understand. Challenge me until I can apply it. Repeat until the reasoning becomes natural.`
+  // ⚡ Drill: the fast mode. Many small questions on one part, deep scenarios cut into small chained steps
+  const drillPrompt = (where, cardId, id) => `⚡ SYSTEM DESIGN DRILL
+Section: ${where}
+Source: cacti23/tracker → sysdesign/system-design.html, <section id="${cardId}">${id === cardId ? '' : ', the part under that heading'}
+Link: ${LIVE}#${id}
+Size: auto (if I add a number like 20, 30 or 50, use that)
+
+You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microsoft, now mentoring SDE2 and SDE3 candidates for system design interviews at these companies. This is a FAST drill, not the long quiz. Goal: cover every concept of this part with many small questions I can reason about and remember. Mentor, not examiner: no scores, grades or hire signals.
+
+📖 1. SOURCE AND SIZE
+- Read the section above first (repo file, or the Link). If you can't open either, ask me to paste it. Don't guess its content.
+- List every concept in it (headlines, terms, numbers, trade-offs). Each concept gets at least 2 questions. Show the concept list in one short line before Q1.
+- Auto size: about 2 questions per concept, rounded to 20, 30 or 50.
+- Extras beyond my notes are fine when they help. Tag them "➕ Beyond your notes".
+
+📈 2. THREE ROUNDS, EASY TO HARD
+| Size | 🟢 Recall | 🟡 Connect | 🔴 Chains |
+| 20 | 6 | 6 | 1 chain × 8 steps |
+| 30 | 8 | 8 | 2 chains × 7 steps |
+| 50 | 15 | 15 | 2 chains × 10 steps |
+- 🟢 Recall: pick 1 of 4 · true or false + why · fill in the number.
+- 🟡 Connect: match 5 ↔ 5 · put in order · odd one out · spot the wrong decision.
+- 🔴 Chains: one real product scenario split into small steps (see 3).
+- About 20% of all questions come from my revision bank (section 6): concepts to practise first, then other sections. Reword them as new scenarios. Mark them 🔁 only in the feedback.
+- Wrong options are realistic engineering mistakes, never silly ones.
+
+🔗 3. CHAINS (the deep part, in small steps)
+- One real product incident or design (Uber, Flipkart, Hotstar, WhatsApp…), told one step at a time.
+- One decision per step. Each step gives ONE new clue (a log line, a metric, a config, a number) and asks one small question: pick 1 of 4 or a one-line answer.
+- Numbers come one at a time: "fill one blank", never a full calculation up front.
+- First steps are SDE2 (what broke, which layer, why). Last 2–3 steps are SDE3: Size → Prove → Cost → Path → Break.
+- Post ONE step at a time and wait for my answer, so a wrong turn is caught at that step. Short feedback, then the next step in the same message.
+- At the end of a chain: the whole story in 5–7 lines (what happened → root cause → fixes in order → trade-off), the way I'd say it to the interviewer.
+
+⏩ 4. PACE AND LAYOUT
+- Recall and Connect come in batches of 5. Chains go one step at a time.
+- Layout: ### Q3 heading only · the question in bold · each option on its own line with a blank line between · --- between questions.
+- I answer however I like: "1B 2D 3 A-3 B-1…", short words or voice.
+- Feedback per question, 3–4 lines: the question again → ✅ Correct / ⚠️ Partly / 🔧 Not correct → the right answer → one-line why → 🧩 analogy → why the tempting wrong option is tempting (only if one is).
+- Then a --- divider and the next batch in the SAME message. Don't wait for "next".
+- Start every reply with a 📘 Terms line: each acronym used, spelled out, with a short memory hook.
+- Maths: never skip a step. Small round numbers, things at the same time count once, label each number ✅ fact · 📌 assumption · ≈ approx.
+- Never claim a company asked a question without evidence.
+
+💬 5. MY COMMANDS
+- hint: a small hint, not the answer.
+- explain: stop and teach this concept fully (technical first, analogy, diagram in chat), then continue.
+- skip: show the answer, then continue.
+- slower: wait for "next" after each batch.
+- harder / easier: change the level of the next batch.
+- stop: end the drill and show the summary.
+If I ask my own question, answer it before continuing.
+
+📚 6. REVISION BANK
+- File: /mnt/project-files/quiz/sd-question-bank.md. Read it before you start.
+- Log this drill in its "⚡ Drills" part (add it if missing): one row per concept with date, result, what to reinforce.
+- A missed concept comes back in my next drill as a new scenario, then again about a week later. Right in 2 different scenarios → 🟢 learned.
+- Update it after every batch and chain. Never claim you updated it unless you did.
+
+🏁 7. END OF DRILL
+- 🗺️ Concept heatmap: each concept 🟢 / 🟡 / 🔴.
+- My 3 weakest concepts, each with one line to remember.
+- The one chain worth redoing.
+No score, no grade.`
+
   const copy = async (text, btn) => {
     try { await navigator.clipboard.writeText(text) } catch (e) {
       const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove()
@@ -3698,16 +3763,24 @@ Teach me until I understand. Challenge me until I can apply it. Repeat until the
     const was = btn.textContent; btn.textContent = '✓ Copied: paste in the thread'; btn.classList.add('done')
     setTimeout(() => { btn.textContent = was; btn.classList.remove('done') }, 2500)
   }
-  const quizBtn = (label, where, cardId, id) => {
+  // Two modes per part: ⚡ Drill (fast, many small questions) and 🧠 Quiz me (the long, deep quiz)
+  const quizBtn = (label, tip, prompt, where, cardId, id) => {
     const b = el('button', 'quiz-btn', label); b.type = 'button'
-    b.title = 'Copy an interviewer prompt for this part'
-    b.onclick = e => { e.stopPropagation(); copy(quizPrompt(where, cardId, id), b) }
+    b.title = tip
+    b.onclick = e => { e.stopPropagation(); copy(prompt(where, cardId, id), b) }
     return b
   }
+  const DRILL_TIP = 'Copy a fast drill prompt: 20–50 small questions + scenarios in small steps'
+  const QUIZ_TIP = 'Copy the full quiz prompt: 20 quick checks + 5 deep questions'
   cards.forEach(c => {
-    const title = cardTitle(c)
-    c.querySelector('.cap').appendChild(quizBtn('🧠 Quiz me on this card', `${title} (whole card)`, c.id, c.id))
-    c.querySelectorAll(':scope > h4').forEach(h => h.appendChild(quizBtn('🧠 Quiz me', `${title} › ${h.textContent.trim()}`, c.id, h.id)))
+    const title = cardTitle(c), cap = c.querySelector('.cap'), whole = `${title} (whole card)`
+    cap.appendChild(quizBtn('⚡ Drill this card', DRILL_TIP, drillPrompt, whole, c.id, c.id))
+    cap.appendChild(quizBtn('🧠 Quiz me on this card', QUIZ_TIP, quizPrompt, whole, c.id, c.id))
+    c.querySelectorAll(':scope > h4').forEach(h => {
+      const where = `${title} › ${h.textContent.trim()}`
+      h.appendChild(quizBtn('⚡ Drill', DRILL_TIP, drillPrompt, where, c.id, h.id))
+      h.appendChild(quizBtn('🧠 Quiz me', QUIZ_TIP, quizPrompt, where, c.id, h.id))
+    })
   })
 
   // Track only once the user has touched the page, so the load-time jump can't overwrite the hash
