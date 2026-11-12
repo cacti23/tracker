@@ -418,6 +418,11 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .cv-e span.inc { border-color: var(--green-fg); color: var(--green-fg); font-weight: 700; }
 .cv-e span.tid { color: var(--muted); border-style: dashed; }
 .cv-n { margin: 3px 0; color: var(--text); }
+/* compaction mini diagrams: file sizes as bars */
+.cmp { display: flex; align-items: center; gap: 3px; margin: 4px 0; min-height: 16px; }
+.cmp span { display: inline-block; height: 12px; border-radius: 3px; background: currentColor; opacity: .55; }
+.cmp .s { width: 12px; } .cmp .m { width: 22px; } .cmp .l { width: 60px; } .cmp .t { width: 12px; opacity: .35; }
+.cmp em { font-style: normal; margin: 0 3px; } .cmp i { font: 11px ui-monospace, Menlo, monospace; font-style: normal; width: 20px; }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -2856,6 +2861,31 @@ WHERE user_id = 355;
     <li><b class="hd">📇 Sparse indexes skip blocks by key range</b>SSTables are sorted, so each keeps the key range of every block. Want user_id 500 and a file holds 1000–2000? Skip the whole file.</li>
     <li><b class="hd">🧹 Compaction strategies trade one cost for another</b>Size-tiered: less write amplification, more files to check. Leveled: fewer files, more frequent rewrites.</li>
   </ul>
+  <h5>⚖️ Size-tiered vs leveled compaction: the main trade-off <span class="add">➕ expanded, not in the article</span></h5>
+  <p>Both merge SSTables. They differ in <b>how strictly</b> they keep files tidy. The trade: <b>rewrite less</b> (fast writes) or <b>check fewer files</b> (fast reads).</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📦 Size-tiered</b><div class="star">Merge when ~4 files of a similar size pile up</div>
+      <div class="cmp"><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span><em>→</em><span class="m"></span></div>
+      <div class="cmp"><span class="m"></span><span class="m"></span><span class="m"></span><span class="m"></span><em>→</em><span class="l"></span></div>
+      <div class="chk">✅ each piece of data is rewritten only a few times: <b>cheap writes</b></div>
+      <div class="chk">❌ files overlap in key range: a read may check <b>many files</b></div>
+      <div class="chk">❌ a big merge needs up to <b>2× disk</b> for a while</div>
+      <q>Cassandra's default · write-heavy</q></div>
+    <div class="k-green"><b>🪜 Leveled</b><div class="star">Levels, each ~10× bigger, no overlap inside a level</div>
+      <div class="cmp"><i>L0</i><span class="s"></span><span class="s"></span></div>
+      <div class="cmp"><i>L1</i><span class="s"></span><span class="s"></span><span class="s"></span><span class="s"></span></div>
+      <div class="cmp"><i>L2</i><span class="t"></span><span class="t"></span><span class="t"></span><span class="t"></span><span class="t"></span><span class="t"></span><span class="t"></span><span class="t"></span></div>
+      <div class="chk">✅ a read checks <b>at most 1 file per level</b>: fast reads</div>
+      <div class="chk">✅ little wasted space (~10%)</div>
+      <div class="chk">❌ data is rewritten every time it moves down a level: <b>much more writing</b></div>
+      <q>RocksDB's default · read-heavy</q></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 In one line: size-tiered = cheap writes, slower reads, more disk. Leveled = fast reads, less disk, more rewriting.</b></li>
+    <li><b class="hd">✍️ "Write amplification" = how many times one byte you wrote gets rewritten on disk</b>You write 1 GB; leveled compaction may physically write 10 GB or more over time as the data moves down the levels. That eats disk bandwidth and wears SSDs.</li>
+    <li><b class="hd">🎤 Interview pick</b>Mostly writes (logs, metrics, events) → size-tiered. Mostly reads, or the same keys updated often → leveled (old versions get cleaned out fast). Time-series data that expires → Cassandra's time-window compaction: drop whole old files.</li>
+  </ul>
+  <p class="ana">👕 Laundry. <b>Size-tiered</b>: throw clothes in piles; when you have 4 small piles, combine them into one big pile. Little folding, but to find one shirt you dig through several piles. <b>Leveled</b>: a wardrobe with shelves kept strictly sorted; every new batch is folded into its exact place. Lots of folding, but you look in one spot per shelf.</p>
   <div class="take">⚖️ Even with all three, LSM trees <b>trade read speed for write speed</b>. 🎤 Writes far more than reads (metrics, audit logs, IoT data)? LSM tree. A user-facing app where each page load runs several queries? B-trees usually win.</div>
   <h5>🏭 Real-World Examples</h5>
   <ul class="lines roomy heads">
@@ -4191,7 +4221,7 @@ const GLOSSARY = [
     b: '<p>🧪 <b>See it:</b> 10 SSTables, looking for key 500. 9 filters say "definitely not" → skip 9 files. 1 says "maybe" → read only that one.</p><p>Never a false "no"; sometimes a false "maybe".</p>', see: ['sstable', 'lsm'] },
   { id: 'compaction', t: 'Compaction', aka: 'compaction merge sstables size-tiered leveled write amplification', s: 'A background job that merges SSTables and drops old or deleted entries.',
     an: 'Merging the week\'s boxes of letters into one, throwing away old drafts.',
-    b: '<ul><li>Size-tiered: less rewriting, but more files to check on reads.</li><li>Leveled: fewer files, but rewrites more often.</li></ul>', see: ['lsm', 'sstable'] },
+    b: '<ul><li>📦 <b>Size-tiered</b>: merge ~4 files of similar size. Cheap writes, but reads may check many files and big merges need up to 2× disk. Cassandra default, write-heavy.</li><li>🪜 <b>Leveled</b>: levels ~10× bigger, no overlap inside a level. A read checks at most 1 file per level, little wasted space, but data is rewritten at every level (high write amplification). RocksDB default, read-heavy.</li></ul>', see: ['lsm', 'sstable'] },
   { id: 'hashidx', t: 'Hash index', aka: 'hash index bucket exact match o(1)', s: 'A persistent hashmap: value → row location. Exact matches only.',
     an: 'A coat check: ticket 42 gives coat 42, but "coats 40 to 50" means nothing.',
     b: '<p><code>hash("bob@x.com")</code> picks a bucket, the bucket points to the page. O(1) on average. No ranges, no sorting. Rare on disk (B-trees are almost as fast); common in memory (Redis).</p><p>🔁 <b>Collision in Postgres:</b> the index keeps only hash code + TID, so it fetches every row with the same code and compares the real value. <b>In Redis:</b> the bucket keeps the full key, so it compares keys in RAM.</p><p>☁️ <b>On AWS:</b> ElastiCache (Redis)</p>', see: ['btree', 'dbindex'] },
