@@ -356,6 +356,29 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .s3 b { display: block; font-size: 14.5px; margin-bottom: 3px; }
 .s3 .no { margin-top: 6px; opacity: .85; }
 .s3 code { overflow-wrap: anywhere; }
+/* TID walk: index path (top) → heap block → slot → row (bottom) */
+.td { margin: 10px 0; padding: 10px; border-radius: 12px; background: var(--chip); font-size: 13px; }
+.td-lbl { font-weight: 700; margin: 2px 0 6px; } .td-lbl small { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.td-lv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.td-n { border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 2px; text-align: center; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 0; }
+.td-n.off { color: var(--muted); border-style: dashed; opacity: .9; align-self: center; }
+.td-n.on { border: 2px solid var(--blue-fg); background: var(--blue-bg); color: var(--blue-fg); font-weight: 700; }
+.td-n.full { grid-column: 1 / -1; justify-self: center; padding: 6px 14px; }
+.td-n span + span { border-left: 1.5px solid var(--blue-fg); margin-left: 8px; padding-left: 8px; }
+.td-n.leaf { border-color: var(--green-fg); background: var(--green-bg); color: var(--green-fg); font-weight: 400; padding: 4px 2px; }
+.td-n.leaf i { display: block; font-style: normal; font-size: 11.5px; padding: 1px 0; }
+.td i.hit, .td-n.leaf i.hit { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; border-radius: 4px; outline: 1.5px solid var(--amber-fg); }
+.td-step { margin: 5px 0 7px; padding-left: 8px; border-left: 3px solid var(--accent); font-size: 12.5px; }
+.td-step.hit { border-left-color: var(--amber-fg); color: var(--amber-fg); font-weight: 600; }
+.td-blocks { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.td-blocks i { display: block; font: 12px ui-monospace, Menlo, monospace; font-style: normal; min-width: 0; padding: 6px 2px; text-align: center; border: 1.5px solid var(--line); border-radius: 6px; background: var(--card); }
+.td-blocks i.dots { border: 0; background: none; color: var(--muted); }
+.td-page { border: 2px solid var(--amber-fg); border-radius: 10px; background: var(--card); padding: 6px; display: grid; gap: 5px; }
+.td-ph { font-weight: 700; font-size: 12.5px; }
+.td-slots, .td-rows { display: flex; gap: 4px; flex-wrap: wrap; }
+.td-slots i, .td-rows i { font-style: normal; font-size: 11.5px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 6px; }
+.td-rows { flex-direction: column; } .td-rows i { padding: 5px 8px; }
+.td-free { text-align: center; color: var(--muted); font-size: 11.5px; border: 1.5px dashed var(--line); border-radius: 6px; padding: 6px; }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -2701,19 +2724,27 @@ ORDER BY price</pre>
   </ul>
   <h5>🎯 From leaf to row: the TID <span class="add">➕ Postgres detail</span></h5>
   <p>The leaf doesn't hold the row. It holds the key plus a <b>TID</b> (tuple ID): the row's exact address in the heap file. The heap file is the table's files, cut into <b>8KB pages</b> (blocks), numbered 0, 1, 2…</p>
-  <div class="vflow" role="img" aria-label="Find user_id 355: root 200 and 400 sends 355 to the middle child, the inner node 300 and 350 sends it right, the leaf holds 355 with TID 12 comma 3, then heap page 12, slot 3, is the row">
-    <div class="bx">🔎 <code>WHERE user_id = 355</code></div><div class="ar">⬇️</div>
-    <div class="bx">🌳 root <code>[200 | 400]</code> → 355 is between → middle child</div><div class="ar">⬇️</div>
-    <div class="bx">🌿 inner <code>[300 | 350]</code> → 355 &gt; 350 → right child</div><div class="ar">⬇️</div>
-    <div class="bx">🍃 leaf <code>355 → TID (12, 3)</code></div><div class="ar">⬇️</div>
-    <div class="bx">📄 heap <b>block 12</b>, <b>slot 3</b> → the row ✅</div>
+  <div class="td" role="img" aria-label="Find user_id 355. Step 1: the root holds 200 and 400; 355 is between them, so go to the middle child. Step 2: that node holds 300 and 350; 355 is bigger than 350, so go right. Step 3: the leaf holds 351, 355 and 360, each with a TID; 355 has TID 12 comma 3. Step 4: the heap file is a row of 8KB blocks; open block 12. Step 5: block 12 starts with slots 1 to 4; slot 3 points to row 3, which is user 355.">
+    <div class="td-lbl">🌳 The index (B-tree) <small>keys + TIDs only</small></div>
+    <div class="td-lv"><div class="td-n on full"><span>200</span><span>400</span></div></div>
+    <div class="td-step">① 355 is between 200 and 400 → middle child</div>
+    <div class="td-lv"><div class="td-n off">&lt; 200</div><div class="td-n on"><span>300</span><span>350</span></div><div class="td-n off">&gt; 400</div></div>
+    <div class="td-step">② 355 &gt; 350 → rightmost child</div>
+    <div class="td-lv"><div class="td-n off">200–300</div><div class="td-n off">300–350</div><div class="td-n on leaf"><i>351 → (11,7)</i><i class="hit">355 → (12,3)</i><i>360 → (12,5)</i></div></div>
+    <div class="td-step hit">③ leaf: 355 → TID <b>(12, 3)</b> = block 12, slot 3</div>
+    <div class="td-lbl">📄 The table (heap file) <small>the real rows, 8KB blocks</small></div>
+    <div class="td-blocks"><i>0</i><i>1</i><i>2</i><i class="dots">…</i><i>11</i><i class="hit">12</i><i>13</i><i class="dots">…</i></div>
+    <div class="td-step">④ jump straight to block 12, read only that page</div>
+    <div class="td-page">
+      <div class="td-ph">📄 block 12 (8KB)</div>
+      <div class="td-slots"><i>slot 1</i><i>slot 2</i><i class="hit">slot 3 ⬇</i><i>slot 4</i></div>
+      <div class="td-free">… free space …</div>
+      <div class="td-rows"><i>row 4</i><i class="hit">row 3 · user 355 · Adi ✅</i><i>row 2</i><i>row 1</i></div>
+    </div>
+    <div class="td-step">⑤ slot 3 says where row 3 sits in the page → the row</div>
   </div>
-<pre>📄 heap block 12 (8KB)
-┌ header ───────────────┐
-│ slot1 slot2 slot3 →   │ pointers
-│       … free …        │
-│   ← row3 row2 row1    │ rows
-└───────────────────────┘
+  <p class="figcap">🖼️ Two separate things: the <b>index</b> (top) only stores keys and addresses. The <b>table</b> (bottom) stores the rows. The TID is the bridge. Slots sit at the top of the page, rows fill up from the bottom.</p>
+<pre>-- 👀 see a row's TID yourself
 SELECT ctid, * FROM users
 WHERE user_id = 355;
 -- ctid = (12,3)</pre>
