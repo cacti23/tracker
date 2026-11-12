@@ -512,50 +512,61 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
   <summary>🧲 Article extractor prompt (Claude in Chrome)</summary>
   <p>Open the lesson in Chrome → start Claude in Chrome → paste this → bring the output to the notes thread. It keeps callouts 💡⚠️, do's/don'ts, images, code and every comment.</p>
   <button type="button" id="copy-extractor">📋 Copy prompt</button>
-  <pre id="extractor-text">You are extracting a HelloInterview course lesson from the page open in this tab. The goal is a **complete, faithful restatement** of the lesson that another assistant will turn into study notes. Do **not** summarize, shorten, or add anything of your own: cover every section, point, example, number and name. Write the prose in your own words (do not copy passages word for word), but keep headings, code, identifiers, API names, numbers, table values and short labels exactly as shown.
+  <pre id="extractor-text">You are extracting a HelloInterview course lesson from the page open in this tab. The goal is a **complete, faithful restatement** of the lesson that another assistant will turn into study notes. Do **not** summarize, shorten, or add anything of your own: cover every section, point, example, number and name. Write the prose in your own words (do not copy passages word for word), but keep the meaning identical and keep headings, code, identifiers, API names, numbers, table values and short labels exactly as shown.
 
 ## Before you extract
-1. Scroll the whole page from top to bottom so everything loads.
-2. Do NOT use plain page-text extraction — it flattens tables, drops link URLs and loses callout types. Read the DOM / accessibility tree, and screenshot + zoom to read images.
+1. Scroll the whole page from top to bottom so everything (including lazy-loaded diagrams) loads.
+2. Do NOT use plain page-text extraction: it flattens tables, drops link URLs and loses callout types. Read the DOM / accessibility tree of the main article element instead. Use screenshots + zoom to read diagrams.
 3. Comments: click "Show All Comments", then click every "Show more" inside long comments so the full text is visible.
-4. Skip: left course sidebar and progress UI, "Get the app" banner, Listen / Focus / Quick ref buttons, "On This Page" table of contents, rating stars, "Complete &amp; next: … quiz" button, comment input box, footer.
+4. Skip: left course sidebar and progress UI, "Get the app" banner, Listen / Focus / Quick ref buttons, "On This Page" table of contents, rating stars, "Complete &amp; next" button, comment input box, footer, and the top **video (ignore it completely, don't mention it)**.
+5. Don't assume this page has any specific headings, callouts, tables, code or images. Extract whatever is actually there. If a feature is absent (no tables, no code), skip it silently and never invent one.
+
+## Faithfulness rules
+- Keep the meaning identical. Keep every qualifier ("usually", "can", "must", "at most"), every trade-off, every condition and every number.
+- Never add outside knowledge, examples, opinions or explanations. Only what the page says.
+- If a sentence is hard to restate without changing its meaning, keep it close to the original wording.
 
 ## What to output
 One Markdown document, in the **exact order the content appears on the page**:
 
 1. **Header**
    - `# &lt;Lesson title&gt;`
-   - `Course: &lt;breadcrumb exactly as shown, e.g. "Course · 02 Foundations"&gt;`
+   - `Course: &lt;breadcrumb exactly as shown&gt;`
    - `Subtitle: &lt;description line under the title&gt;`
    - `URL: &lt;page URL&gt;`
 
 2. **Body, complete restatement**
-   - Map headings exactly by tag: H1→`#`, H2→`##`, H3→`###`, H4→`####`. Cover every paragraph, list, and numbered step, in the same order, with every fact and example.
+   - Map headings by tag: H1→`#`, H2→`##`, H3→`###`, H4→`####`. Cover every paragraph, list and numbered step in order, with every fact and example.
    - Keep **bold**, *italic* and `inline code`. Keep links as `[text](url)` with the real URL; convert relative links (e.g. `/learn/...`) to full `https://www.hellointerview.com/...` URLs.
-   - Code blocks go in fenced blocks, exactly as shown (keep indentation and inline `#` / `//` comments). Add a language tag only if obvious (http, json, graphql, protobuf, sql); otherwise leave it blank.
-   - Tables are NOT real &lt;table&gt; elements. Rebuild each one as a Markdown table with its header row, every row and every column, and keep the label above it (e.g. "Users table:").
+   - Code blocks go in fenced blocks exactly as shown (keep indentation and comments). Add a language tag only if obvious.
+   - Tables may not be real &lt;table&gt; elements. Rebuild each as a Markdown table with its header row, every row and every column, and keep the label above it.
    - If a section is locked behind Premium or hidden, write `[LOCKED: &lt;section name&gt;]` and continue.
 
-3. **Callout boxes** are `div.callout.callout-tip`, `callout-warning` and `callout-info`. Use the class to pick the type and mark each one where it appears:
+3. **Callout boxes** are elements with classes like `callout callout-tip`, `callout-warning`, `callout-info` (or any other `callout-*`). Use the class to pick the type and mark each where it appears:
    &gt; [CALLOUT: TIP 💡] &lt;full message&gt;
    &gt; [CALLOUT: WARNING ⚠️] &lt;full message&gt;
    &gt; [CALLOUT: INFO ℹ️] &lt;full message&gt;
+   For any other `callout-*` type, use its name in capitals.
 
-4. **Do's and Don'ts / Good vs Bad / Pros and Cons** (only if present): keep them as two clearly labelled lists:
+4. **Do's and Don'ts / Good vs Bad / Pros and Cons** (only if present): keep them as two labelled lists:
    [DO ✅] …
    [DON'T ❌] …
 
-5. **Images and diagrams.** Only capture diagrams/images inside the article body. Ignore UI icons, logos and avatars (e.g. check-circles, arrows, small icon SVGs). Images have no alt text; the caption is the short text line directly under the image (e.g. "Sharding", "Final Whiteboard"). Some diagrams are drawn as SVG text — capture that text ONLY inside the [IMAGE] block, never as body paragraphs. Write a block at the exact spot where the image sits:
-   [IMAGE &lt;n&gt;: &lt;caption under the image, if any&gt;]
+5. **Images and diagrams.** Capture every diagram/figure inside the article body, **whatever its size** (small, wide or full-width). Diagrams may be inline `&lt;svg&gt;`, `&lt;img&gt;`, or `&lt;canvas&gt;`.
+   - Ignore only UI decoration: logos, avatars, check-circles, arrows, small icons, and the video thumbnail.
+   - Detect them by content, not by width or tag. If an SVG or image sits in the article flow and carries labels, shapes or data, it is a diagram.
+   - For SVGs, read their `&lt;text&gt;` labels from the DOM for exact wording. Then screenshot and zoom into each diagram to understand arrows, grouping and order. The page may be in a wide view, so zoom in enough to read small text.
+   - Captions are usually a short text line near the figure (often not a `&lt;figcaption&gt;`). Use it if present.
+   - Diagram text goes ONLY inside the [IMAGE] block, never as body paragraphs.
+   Write a block at the exact spot where the image sits:
+   [IMAGE &lt;n&gt;: &lt;caption, if any&gt;]
    - Type: &lt;diagram / flowchart / screenshot / chart / sequence diagram / table image / photo&gt;
    - All text in the image, exactly: &lt;every label, box name, arrow label, number, step number&gt;
    - Structure: &lt;what connects to what, arrow directions, order of steps, groupings, solid vs dashed lines, meaningful colours&gt;
    - What it shows: &lt;one or two plain sentences, nothing beyond what's drawn&gt;
-   For a step-by-step diagram (e.g. a request flow), list every step in order with its label. For a decision flowchart, write it as an indented question → answer → result tree.
+   For a step-by-step diagram, list every step in order with its label. For a decision flowchart, write an indented question → answer → result tree.
 
-6. **Videos:** the lesson has a walkthrough video near the top. Write `[VIDEO: &lt;title&gt; · &lt;length&gt;]` where it appears. Don't transcribe it.
-
-7. **Comments**: put them under `## Comments`, in "Popular" order. Take the top 20 comments plus all of their replies (including replies to replies). Remove the single-letter avatar shown before names. For each one:
+6. **Comments**: put them under `## Comments`, in "Popular" order. Take the top 40 comments plus all of their replies (including nested replies). Remove the single-letter avatar before names. For each:
    ### &lt;author&gt; [ADMIN] [&lt;badges e.g. Top 5%, Premium&gt;] · &lt;votes&gt; votes · &lt;time ago&gt; [edited]
    &lt;every point of the comment, in your words, keep its lists&gt;
      ↳ reply — &lt;author&gt; [ADMIN] [&lt;badges&gt;] · &lt;votes&gt; votes · &lt;time ago&gt; [edited]
@@ -563,16 +574,21 @@ One Markdown document, in the **exact order the content appears on the page**:
        ↳↳ reply — &lt;author&gt; … (indent one more level per nesting depth)
    Mark course staff or admin authors with [ADMIN]. Add [edited] only if the page shows it.
 
+## Verification pass (do this before the checklist)
+Reread the page once more from top to bottom and compare it with your output. Look for any missing sentence, bullet, number, name, callout, diagram, link or comment, and for any place where your wording changed the meaning. Fix every gap you find, then report "Verification: passed" or "Verification: fixed N gaps (list them)".
+
 ## Rules
-- Complete and accurate: prose in your own words, code/identifiers/numbers/headings exact. If something can't be read, write `[unreadable]` and don't guess.
+- Complete and accurate: prose in your own words; code, identifiers, numbers and headings exact. If something can't be read, write `[unreadable]` and don't guess.
 - If something is ambiguous, flag it explicitly.
 - Don't merge or drop any section, even if it looks repetitive.
-- If the output is too long for one reply, split it into `PART 1/N`, `PART 2/N`… at a heading boundary, and keep going until it's complete.
+- If the output is too long for one reply, split it into `PART 1/N`, `PART 2/N`… at a heading boundary and keep going until complete.
 - At the very end, add:
   ## Extraction checklist
-  - Headings: &lt;count by level: H2 / H3 / H4&gt; · Callouts: &lt;count&gt; · Images: &lt;count&gt; · Code blocks: &lt;count&gt; · Tables: &lt;count&gt; · Comments: &lt;count incl. replies&gt;
-  - H2/H3 headings match the "On This Page" list? &lt;yes / no — list any missing&gt; (H4s aren't listed there, so don't compare them)
+  - Headings: &lt;count by level: H2 / H3 / H4&gt; · Callouts: &lt;count by type&gt; · Images/diagrams: &lt;count&gt; · Code blocks: &lt;count&gt; · Tables: &lt;count&gt; · Comments: &lt;count incl. replies&gt;
+  - H2/H3 headings match the "On This Page" list? &lt;yes / no, list any missing&gt;
+  - Diagrams found in the article vs diagrams written up: &lt;X of Y&gt;
   - Comments captured: &lt;X&gt; of &lt;total shown in "Comments (N)"&gt;
+  - Verification: &lt;passed / fixed N gaps&gt;
   - Anything skipped, locked or unreadable: &lt;list, or "none"&gt;
   - Extraction completeness: &lt;Complete / Partial&gt;</pre>
 </details>
