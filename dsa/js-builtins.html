@@ -75,6 +75,7 @@
   <a href="#j13"><b>13</b>Object vs Map as a dictionary</a>
   <a href="#j14"><b>14</b>Alphanumeric check</a>
   <a href="#j15"><b>15</b>sort() changes the original</a>
+  <a href="#j16"><b>16</b>toString(radix) · parseInt · Number</a>
 </nav>
 
 <h2 id="j1">1 · 🗂️ Map</h2>
@@ -231,6 +232,23 @@ c;               // [1, 8, 9, 10]</code></pre>
 </ul>
 <p>🎤 Interview: <i>"I sort in place to save memory. If the input must stay unchanged, I copy it first."</i></p>
 <div class="box key"><b class="tag">📌</b> <code>sort</code> changes the array it is called on. To keep the original, copy first with <code>[...arr]</code>.</div>
+
+<h2 id="j16">16 · 🔢 Number ↔ String in a Base — <code>toString(radix)</code>, <code>parseInt(s, radix)</code>, <code>Number(s)</code></h2>
+<ul>
+<li>🔢→🔤 <code>n.toString(radix)</code>: number → string in that base.</li>
+<li>🔤→🔢 <code>parseInt(s, radix)</code>: string in that base → integer.</li>
+<li>🔤→🔢 <code>Number(s)</code>: the whole string → number (base 10).</li>
+</ul>
+<pre class="language-tsx"><code class="language-tsx">(255).toString(2);                  // "11111111"
+(255).toString(16);                 // "ff"
+(5).toString(2).padStart(8, '0');   // "00000101"
+parseInt("ff", 16);                 // 255
+parseInt("101", 2);                 // 5
+Number("12");                       // 12
+Number("12px");                     // NaN ← the WHOLE string must be a number
+parseInt("12px");                   // 12  ← stops at the first bad character</code></pre>
+<div class="box warn"><b class="tag">🚨</b> Always pass the radix to <code>parseInt</code>. <code>['1','2','3'].map(parseInt)</code> gives <code>[1, NaN, NaN]</code>, because <code>map</code> passes the index as the radix. Use <code>.map(Number)</code>.<br/>🚨 <code>(−5).toString(2)</code> is <code>"-101"</code> (a sign, not two's complement). For the 32-bit pattern use <code>(n &gt;&gt;&gt; 0).toString(2)</code>.</div>
+<div class="box key"><b class="tag">📌</b> <code>toString(radix)</code> writes a number in a base. <code>parseInt(s, radix)</code> reads it back. <code>Number(s)</code> is strict: any bad character → <code>NaN</code>.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha384-MXybTpajaBV0AkcBaCPT4KIvo0FzoCiWXgcihYsw4FUkEz0Pv3JGV6tk2G8vJtDc" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
