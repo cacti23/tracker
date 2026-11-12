@@ -2967,8 +2967,8 @@ CREATE INDEX idx_lng
   </ul>
 <pre>CREATE INDEX idx_geohash
   ON restaurants(geohash);</pre>
-  <h5>📏 Radius search: "everything within 3 km of me"</h5>
-  <p class="bridge">The problem: "within 3 km" is a <b>circle</b>. A database index can't search a circle. But a geohash index can search a <b>square</b> very fast: "every row whose geohash starts with <code>dr5ru</code>" is one B-tree range scan. So we cover the circle with squares, then throw away what's outside the circle. (The method is from Evan King, admin, in the comments.)</p>
+  <h5>📏 Radius search: "restaurants within 3 km of me"</h5>
+  <p class="bridge">A database can't search a circle. But with geohash it can fetch a <b>square</b> in one fast lookup. So: <b>grab squares, then cut out the circle.</b></p>
   <div class="rad-wrap">
   <div class="rad" role="img" aria-label="A 3 by 3 grid of geohash squares around Manhattan. The user is in the centre square dr5ru, near its top-right edge. A dashed 3 km circle around the user spills into the north square dr72h, the east square dr5rv and the north-east square dr72j. Green restaurants inside the circle are kept, including ones in the neighbour squares. Red restaurants inside the squares but outside the circle are dropped.">
     <span>dr725</span><span>dr72h</span><span>dr72j</span>
@@ -2985,28 +2985,30 @@ CREATE INDEX idx_lng
   </div>
   <div class="rad-key"><span class="in">A B C</span> inside the circle ✅ kept · <span class="out">D E F</span> inside a square, outside the circle ❌ dropped</div>
   </div>
-  <p class="figcap">🖼️ Real geohashes around Manhattan (each 5-letter square ≈ 4.9 × 3.7 km here). Not to scale. B and C are in <b>other squares</b> but close to you; D is in <b>your own square</b> but too far. <span class="add">➕ picture not in the article</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">1️⃣ Find your own square</b>Your location → geohash <code>dr5ru</code>.</li>
-    <li><b class="hd">2️⃣ Pick squares at least as wide as the radius</b>Then a circle around <b>any</b> point in your square can only reach the 8 squares around it, never further. Sizes at the equator: 4 letters ≈ 39 × 20 km · 5 letters ≈ 4.9 × 4.9 km · 6 letters ≈ 1.2 × 0.6 km. 3 km → 5 letters. 5 miles (8 km) → 4 letters.</li>
-    <li><b class="hd">3️⃣ Scan your square + its 8 neighbours = 9 prefix scans</b>The circle spills over the edges (B and C), so your own square alone would miss them. 👀 Look at the top row: it starts <code>dr72</code>, not <code>dr5r</code>. Neighbours can have very different prefixes, so one shorter prefix can't replace the 9 scans.</li>
-    <li><b class="hd">4️⃣ Keep only what is truly within 3 km</b>9 squares cover much more than the circle (D, E, F). Compute the real distance for each candidate and drop the ones beyond the radius.</li>
+    <li><b class="hd">1️⃣ Grab 9 squares: yours + the 8 around it</b>Why not just yours? You may stand near its edge. B and C are close, but in the next squares.</li>
+    <li><b class="hd">2️⃣ Measure each place, keep only those inside the circle</b>The squares grab too much: D, E, F are in the squares but too far. Drop them.</li>
   </ul>
-<pre>-- 3️⃣ 9 squares → 9 prefix range scans
-SELECT * FROM restaurants
+  <p class="ana">🍪 A cookie cutter: you can't buy dough in circles, so you take a square sheet a bit bigger than the cookie, then cut the circle out. <span class="add">➕ analogy not in the article</span></p>
+  <details class="more"><summary>🔍 Interview details (how big the squares are, the query)</summary>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📐 Squares must be at least as wide as the radius</b>Then the circle can never reach past the 8 neighbours. At the equator: 4 letters ≈ 39 × 20 km · 5 letters ≈ 4.9 × 4.9 km · 6 letters ≈ 1.2 × 0.6 km. 3 km → 5 letters. 5 miles (8 km) → 4 letters.</li>
+    <li><b class="hd">🔤 Each square is one prefix scan on the B-tree</b>9 squares = 9 scans. The top row starts <code>dr72</code>, not <code>dr5r</code>: neighbours can have very different prefixes, so one shorter prefix can't replace them.</li>
+  </ul>
+<pre>SELECT * FROM restaurants
 WHERE geohash LIKE 'dr5ru%'
-   OR geohash LIKE 'dr5rv%'
    OR geohash LIKE 'dr72h%'
-   OR …            -- 6 more
--- 4️⃣ then: keep distance(me, row) &lt;= 3 km</pre>
-  <p class="ana">📮 You can't ask the post office for "every house in a circle", but you can ask for PIN codes. So ask for your PIN area plus the 8 around it, then check each address on a map and keep the close ones. <span class="add">➕ analogy not in the article</span></p>
+   OR …            -- 7 more
+-- then keep distance(me, row) &lt;= 3 km</pre>
+  <p class="figcap">🖼️ The picture uses real geohashes around Manhattan (5-letter squares, ≈ 4.9 × 3.7 km there), not to scale. Method from Evan King, admin, in the comments. <span class="add">➕ picture not in the article</span></p>
+  </details>
   <p>Redis does all of this for you, with geohash inside:</p>
 <pre>GEOADD restaurants -122.4194
   37.7749 "Restaurant A"
 GEOSEARCH restaurants FROMLONLAT
   -122.4194 37.7749 BYRADIUS 5 mi</pre>
   <div class="info"><b>ℹ️ Note</b> <code>GEORADIUS</code> is deprecated in favour of <code>GEOSEARCH</code>. Redis uses geohash under the hood to find nearby points.</div>
-  <div class="warn"><b>⚠️ Watch out</b> Places close in real life may share no prefix if a major grid line runs between them: two restaurants on either side of a street that is a geohash boundary. For most apps this edge case doesn't matter (and the neighbour scan in step 3 covers it: see <code>dr5ru</code> next to <code>dr72h</code> above).</div>
+  <div class="warn"><b>⚠️ Watch out</b> Places close in real life may share no prefix if a major grid line runs between them: two restaurants on either side of a street that is a geohash boundary. For most apps this edge case doesn't matter (grabbing the 8 neighbours in step 1 covers it: see <code>dr5ru</code> next to <code>dr72h</code> above).</div>
   <p>⭐ Why it's so popular: it turns a hard 2D problem into simple string prefix matching on B-trees, which every database already does well. Easy to understand, build and run.</p>
   <p class="ana">📮 An Indian <b>PIN code</b>: the first digit is the region, the next ones narrow it to a district, then a post office. Same first digits = close by. Geohash is a PIN code for any square on Earth. <span class="add">➕ analogy not in the article</span></p>
 
