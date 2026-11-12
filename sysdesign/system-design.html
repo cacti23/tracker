@@ -2620,7 +2620,7 @@ ORDER BY price</pre>
   <div class="info"><b>ℹ️ Note</b> Indexing gets more attention in infrastructure-style interviews. Full-stack and product roles usually need only the basics: when and why to add an index. This lesson goes deeper, and the basics still help you design and tune your own apps.</div>
 
   <h4>🧠 How Database Indexes Work</h4>
-  <p class="bridge">Data ends up on disk as files. The main table is usually a <b>heap file</b>: rows in no particular order, like a notebook where entries are written in the order they arrive.</p>
+  <p class="bridge">Data ends up on disk as files. The main table is usually a <b>heap file</b>: a set of files cut into fixed-size pages (8KB in Postgres), with rows in no particular order, like a notebook where entries are written in the order they arrive.</p>
   <h5>💾 Physical Storage and Access Patterns</h5>
   <div class="warn"><b>⚠️ Watch out</b> Unless you interview for a database-internals role, you won't be asked about these details. They are still the reason indexes exist.</div>
   <ul class="lines roomy heads">
@@ -2668,6 +2668,31 @@ ORDER BY price</pre>
     <li><b class="hd">↕️ Keys inside a node stay sorted</b></li>
     <li><b class="hd">💾 One node = one disk page (typically 8KB)</b>To find <code>id = 350</code>, PostgreSQL may read only 2–3 pages: the root, maybe an inner node, and the leaf.</li>
   </ul>
+  <h5>🎯 From leaf to row: the TID <span class="add">➕ Postgres detail</span></h5>
+  <p>The leaf doesn't hold the row. It holds the key plus a <b>TID</b> (tuple ID): the row's exact address in the heap file. The heap file is the table's files, cut into <b>8KB pages</b> (blocks), numbered 0, 1, 2…</p>
+  <div class="vflow" role="img" aria-label="Find user_id 355: root 200 and 400 sends 355 to the middle child, the inner node 300 and 350 sends it right, the leaf holds 355 with TID 12 comma 3, then heap page 12, slot 3, is the row">
+    <div class="bx">🔎 <code>WHERE user_id = 355</code></div><div class="ar">⬇️</div>
+    <div class="bx">🌳 root <code>[200 | 400]</code> → 355 is between → middle child</div><div class="ar">⬇️</div>
+    <div class="bx">🌿 inner <code>[300 | 350]</code> → 355 &gt; 350 → right child</div><div class="ar">⬇️</div>
+    <div class="bx">🍃 leaf <code>355 → TID (12, 3)</code></div><div class="ar">⬇️</div>
+    <div class="bx">📄 heap <b>block 12</b>, <b>slot 3</b> → the row ✅</div>
+  </div>
+<pre>📄 heap block 12 (8KB)
+┌ header ───────────────┐
+│ slot1 slot2 slot3 →   │ pointers
+│       … free …        │
+│   ← row3 row2 row1    │ rows
+└───────────────────────┘
+SELECT ctid, * FROM users
+WHERE user_id = 355;
+-- ctid = (12,3)</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📍 TID = (block number, offset)</b>Block = which 8KB page of the heap file. Offset = which slot on that page. Postgres shows it as the hidden column <code>ctid</code>.</li>
+    <li><b class="hd">🗂️ Slot → row, not byte → row</b>The page starts with a list of small pointers (slots), and slot 3 says where row 3 sits inside the page. So a row can move inside its page without changing its TID.</li>
+    <li><b class="hd">🔁 An UPDATE writes a new row version, with a new TID</b>Postgres keeps the old version for running transactions, so each index needs an entry for the new address too (skipped by a HOT update: no indexed column changed and the new version fits on the same page). One reason writes cost more with many indexes.</li>
+    <li><b class="hd">🐬 MySQL InnoDB has no heap file</b>The table itself is a B-tree sorted by primary key. A secondary index stores the primary key, not a TID, then does a second lookup in the primary-key tree.</li>
+  </ul>
+  <p class="ana">🎟️ A cinema ticket: "screen 12, seat 3". The index is the box office that sells you the ticket. You walk straight to screen 12 and sit in seat 3, never checking other seats.</p>
   <h5>🏭 Real-World Examples</h5>
   <p>B-trees are used almost everywhere. PostgreSQL uses them for nearly everything: primary keys, unique constraints and most ordinary indexes.</p>
 <pre>CREATE TABLE users (
@@ -3927,7 +3952,10 @@ const GLOSSARY = [
     b: '<p>🧪 <b>See it:</b> 1 million posts, query <code>WHERE user_id = 7</code>.</p><ul><li>❌ No index: read all 1M rows.</li><li>✅ Index on user_id: jump straight to user 7\'s rows, like binary search (about 20 steps, not 1M).</li><li>🧩 Index on (user_id, created_at): user 7\'s posts are also already in date order, so "latest 10" needs no sorting.</li></ul><p>📏 A composite index works from the left, with no gaps: (user_id, created_at) helps "user_id" and "user_id + date", never "date" alone.</p><p>⚖️ Cost: every write must update every index on the table.</p>', see: ['btree', 'covidx', 'pk', 'cursor'] },
   { id: 'heapfile', t: 'Heap file', aka: 'heap table rows unordered storage', s: 'The table\'s rows on disk, in no particular order.',
     an: 'A notebook where each entry is written on the next free line, in the order it arrived.',
-    b: '<p>New rows go wherever there is room. Finding one row without an index means reading every page.</p>', see: ['dbindex', 'seqrand'] },
+    b: '<p>📄 The table\'s files are cut into <b>8KB pages</b> (blocks) numbered 0, 1, 2… Each page has slots pointing to the rows on it.</p><p>New rows go wherever there is room. Finding one row without an index means reading every page.</p><p>📍 Every row has an address, the <b>TID</b> = (block, slot). Index leaves store it.</p>', see: ['tid', 'dbindex', 'seqrand'] },
+  { id: 'tid', t: 'TID (tuple ID)', aka: 'ctid tuple identifier row address block offset slot line pointer', s: 'A row\'s exact address in the heap file: (block number, slot on that page).',
+    an: 'A cinema ticket: screen 12, seat 3. Walk straight there.',
+    b: '<p>🧪 <b>See it:</b> <code>SELECT ctid, * FROM users WHERE user_id = 355;</code> → <code>(12,3)</code> = block 12, slot 3.</p><ul><li>🌳 A B-tree leaf stores key → TID, e.g. <code>355 → (12,3)</code>.</li><li>📄 The database reads only heap block 12, follows slot 3, and has the row.</li><li>🔁 An UPDATE writes a new row version with a new TID.</li><li>🐬 MySQL InnoDB has no TID: secondary indexes store the primary key.</li></ul>', see: ['heapfile', 'btree'] },
   { id: 'seqrand', t: 'Sequential vs random access', aka: 'sequential random disk ssd hdd seek io', s: 'Reading data in order vs jumping around the disk.',
     an: 'Reading a book page after page vs flipping to 50 random pages.',
     b: '<ul><li>➡️ <b>Sequential</b>: the next byte is right after the last one. Fast.</li><li>🔀 <b>Random</b>: each read jumps to a new place. Slower, even on SSDs (the gap is smaller than on hard disks).</li></ul><p>LSM trees win at writes by turning random writes into sequential ones.</p>', see: ['lsm', 'btree'] },
@@ -4053,7 +4081,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
