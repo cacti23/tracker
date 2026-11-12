@@ -2701,14 +2701,12 @@ ORDER BY price</pre>
       <div class="chk">🔌 Wiped when power is off</div>
       <div class="chk">⚡ ~100 ns to read: about 1,000× faster</div></div>
   </div>
-  <div class="vflow" role="img" aria-label="Checking one row: the page sits on disk, is copied whole into the RAM buffer pool, then the CPU compares each row on it">
-    <div class="bx">💾 page 4,812 on disk (8KB, many rows)</div><div class="ar">⬇️ copy the whole page (smallest unit the disk gives)</div>
-    <div class="bx">🧠 RAM: the <b>buffer pool</b> (page cache)</div><div class="ar">⬇️</div>
-    <div class="bx">⚙️ CPU checks each row: <code>alice@x.com?</code> ✅ / ❌</div>
-  </div>
+  <p>📖 A read, step by step (<code>SELECT * FROM users WHERE id = 10</code>):</p>
+  <div class="seq" data-seq="idx-read"></div>
   <ul class="lines roomy heads">
     <li><b class="hd">📦 The disk hands out whole pages, never one row</b>Need 1 row? You still copy its 8KB page. So the real cost of a query = <b>how many pages</b> it copies.</li>
     <li><b class="hd">♻️ Pages stay in RAM for a while (the buffer pool)</b>If the next query needs the same page, it is already on the counter: no disk trip. Hot pages, like the top of a B-tree, almost always are.</li>
+    <li><b class="hd">🪜 Postgres has two caches in RAM</b>Its own buffer pool (<code>shared_buffers</code>) first, then the operating system's page cache. A miss in the first can still be a hit in the second, so "read from disk" often never touches the disk.</li>
     <li><b class="hd">🎯 This is the whole reason indexes exist</b>No index: copy every page, millions of trips. Index: copy 3–4 pages, then the one page with the row.</li>
   </ul>
   <h5>✍️ And an update? Change it in RAM, log it, write the page back later <span class="add">➕ not in the article</span></h5>
@@ -3679,6 +3677,19 @@ const SEQS = {
       { at: 1, m: '🌳 root → leaf: 2–3 pages', k: 'tcp', cap: 'A B-tree reads its root, maybe an inner node, then a leaf: 2–3 pages.' },
       { f: 1, t: 2, m: 'go to page 4,812', k: 'tcp', cap: 'The leaf says exactly which page holds the row.' },
       { f: 2, t: 3, m: 'load 1 page', k: 'tcp', cap: 'Load only that page. About 4 page reads instead of millions: the table of contents, not the whole book.' },
+    ],
+  },
+  'idx-read': {
+    lanes: ['🔎 SELECT', '🧠 RAM (buffer pool)', '💾 Disk'],
+    key: [['tcp', 'in RAM'], ['err', 'disk read'], ['http', 'result']],
+    frames: [
+      { cap: '<code>SELECT * FROM users WHERE id = 10</code>. The index says: block 12, slot 3. (Index pages are read the same way.)' },
+      { f: 0, t: 1, m: 'need block 12', k: 'tcp', cap: '① Ask RAM first: is block 12 already in the buffer pool?' },
+      { at: 1, m: '✅ hit? skip the disk', k: 'tcp', cap: '②a Cache hit: it is already there. No disk read at all. Most hot data is served like this.' },
+      { f: 1, t: 2, m: '❌ miss: read block 12', k: 'err', cap: '②b Cache miss: read the whole 8KB page from disk. The slow part (~100 µs on SSD).' },
+      { f: 2, t: 1, m: 'copy page into RAM', k: 'err', cap: '③ The page is copied into the buffer pool, and stays there for the next query.' },
+      { at: 1, m: '⚙️ slot 3 → check id = 10', k: 'tcp', cap: '④ The CPU works on the page in RAM: follow slot 3, check the row.' },
+      { f: 1, t: 0, m: 'row id = 10 ✅', k: 'http', cap: '⑤ Return the result. Next time block 12 is needed, step ②a: no disk.' },
     ],
   },
   'idx-update': {
