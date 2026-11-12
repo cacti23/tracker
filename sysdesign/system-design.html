@@ -2957,11 +2957,20 @@ buckets[hash("bob@example.com")]
     <li><b class="hd">🚫 Same limit as any hash: no ranges</b>That's why Redis adds sorted sets (a skip list) for "top 10" and range queries.</li>
   </ul>
   <h5>🤔 When to Choose Hash Indexes</h5>
-  <ul class="lines roomy heads">
-    <li><b class="hd">⚡ You need the fastest possible exact-match lookups</b></li>
-    <li><b class="hd">🚫 You'll never need range queries or sorting</b></li>
-    <li><b class="hd">🧠 You have plenty of memory</b>Hash indexes tend to be larger than B-trees.</li>
-  </ul>
+  <p>Pick a hash index only if the answer to <b>all 3</b> is yes. One "no" → B-tree.</p>
+  <div class="dtree" role="img" aria-label="Three yes or no gates. Only exact matches, never ranges or sorting? Need the fastest possible exact lookup? Plenty of memory to spare, since hash indexes are bigger? Any no leads to a B-tree. Three yes answers lead to a hash index.">
+    <div class="q">1️⃣ 🎯 Only exact matches (<code>=</code>)? Never ranges, never ORDER BY?</div>
+    <div class="no">No → 🌳 B-tree</div>
+    <div class="ar">⬇️ Yes</div>
+    <div class="q">2️⃣ ⚡ Need the fastest possible exact lookup?</div>
+    <div class="no">No → 🌳 B-tree (almost as fast)</div>
+    <div class="ar">⬇️ Yes</div>
+    <div class="q">3️⃣ 🧠 Plenty of memory? (hash indexes are bigger)</div>
+    <div class="no">No → 🌳 B-tree</div>
+    <div class="ar">⬇️ Yes</div>
+    <div class="tune"><div>#️⃣ <b>Hash index</b>, e.g. a session token → user, or Redis key → value</div></div>
+  </div>
+  <div class="rem"><b>🧠 Remember</b> Hash = <b>3 yeses</b>: exact only · fastest · memory to spare. Anything else → B-tree.</div>
   <p>⭐ In most cases B-trees are still better: nearly as fast for exact matches, plus ranges when you need them. Database expert Bruce Momjian: hash indexes solve <b>"a problem we rarely have"</b>.</p>
   <div class="warn"><b>⚠️ Watch out</b> Don't overemphasize hash indexes in an interview. Dwelling on them can make you seem out of touch, because they're rarely used in production. They're a specialized kitchen gadget you buy and use once; B-trees cover most cases where you'd think of one.</div>
   <p class="ana">🧥 A coat check: ticket 42 gives coat 42 instantly. "All coats between 40 and 50?" The attendant has no idea: the hooks aren't in ticket order. <span class="add">➕ analogy not in the article</span></p>
