@@ -393,6 +393,18 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .hx-rk > div { padding: 6px 8px; border-radius: 8px; border: 1.5px solid; }
 .hx-rk .ok { background: var(--green-bg); color: var(--green-fg); border-color: var(--green-fg); font-weight: 700; }
 .hx-rk .no { background: var(--red-bg); color: var(--red-fg); border-color: var(--red-fg); }
+/* radius search: 3x3 geohash squares with the search circle drawn over them */
+.rad-wrap { max-width: 340px; margin: 10px auto; }
+.rad { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); aspect-ratio: 1; border: 2px solid var(--blue-fg); border-radius: 10px; overflow: hidden; background: var(--blue-bg); }
+.rad span { border: 1px solid color-mix(in srgb, var(--blue-fg) 45%, transparent); padding: 4px 5px; font: 11.5px ui-monospace, Menlo, monospace; color: var(--blue-fg); }
+.rad span.me { background: color-mix(in srgb, var(--green-fg) 22%, transparent); color: var(--green-fg); font-weight: 700; }
+.rad .circle { position: absolute; left: 32%; top: 14%; width: 52%; height: 52%; border-radius: 50%; border: 2.5px dashed var(--amber-fg); background: color-mix(in srgb, var(--amber-fg) 12%, transparent); }
+.rad b { position: absolute; transform: translate(-50%, -50%); }
+.rad .pin { font-size: 22px; transform: translate(-50%, -85%); }
+.rad .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; color: #fff; }
+.rad .dot.in { background: #16a34a; } .rad .dot.out { background: #dc2626; }
+.rad-key { font-size: 12px; color: var(--muted); text-align: center; margin-top: 6px; }
+.rad-key .in { color: var(--green-fg); font-weight: 700; } .rad-key .out { color: var(--red-fg); font-weight: 700; }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -2955,24 +2967,46 @@ CREATE INDEX idx_lng
   </ul>
 <pre>CREATE INDEX idx_geohash
   ON restaurants(geohash);</pre>
-  <h5>📏 "Within 5 miles" = a few prefix scans</h5>
-  <p>The radius becomes several prefix queries (Evan King, admin, in the comments):</p>
-  <div class="gh3" role="img" aria-label="A 3 by 3 grid of geohash cells. The centre cell dr5ru holds the user; the 8 cells around it are also scanned, because a place just over the edge can still be within 5 miles.">
-    <span>↖</span><span>⬆ dr5rv</span><span>↗</span><span>⬅</span><span class="on">📍 dr5ru</span><span>➡</span><span>↙</span><span>⬇ dr5rt</span><span>↘</span>
+  <h5>📏 Radius search: "everything within 3 km of me"</h5>
+  <p class="bridge">The problem: "within 3 km" is a <b>circle</b>. A database index can't search a circle. But a geohash index can search a <b>square</b> very fast: "every row whose geohash starts with <code>dr5ru</code>" is one B-tree range scan. So we cover the circle with squares, then throw away what's outside the circle. (The method is from Evan King, admin, in the comments.)</p>
+  <div class="rad-wrap">
+  <div class="rad" role="img" aria-label="A 3 by 3 grid of geohash squares around Manhattan. The user is in the centre square dr5ru, near its top-right edge. A dashed 3 km circle around the user spills into the north square dr72h, the east square dr5rv and the north-east square dr72j. Green restaurants inside the circle are kept, including ones in the neighbour squares. Red restaurants inside the squares but outside the circle are dropped.">
+    <span>dr725</span><span>dr72h</span><span>dr72j</span>
+    <span>dr5rg</span><span class="me">dr5ru</span><span>dr5rv</span>
+    <span>dr5re</span><span>dr5rs</span><span>dr5rt</span>
+    <i class="circle"></i>
+    <b class="pin" style="left:58%;top:40%">📍</b>
+    <b class="dot in" style="left:50%;top:52%">A</b>
+    <b class="dot in" style="left:74%;top:30%">B</b>
+    <b class="dot in" style="left:56%;top:21%">C</b>
+    <b class="dot out" style="left:37%;top:64%">D</b>
+    <b class="dot out" style="left:12%;top:88%">E</b>
+    <b class="dot out" style="left:90%;top:9%">F</b>
   </div>
+  <div class="rad-key"><span class="in">A B C</span> inside the circle ✅ kept · <span class="out">D E F</span> inside a square, outside the circle ❌ dropped</div>
+  </div>
+  <p class="figcap">🖼️ Real geohashes around Manhattan (each 5-letter square ≈ 4.9 × 3.7 km here). Not to scale. B and C are in <b>other squares</b> but close to you; D is in <b>your own square</b> but too far. <span class="add">➕ picture not in the article</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">1️⃣ Find the geohash of the user's location</b><code>dr5ru</code>.</li>
-    <li><b class="hd">2️⃣ Pick the prefix length whose squares are about 5 miles across</b></li>
-    <li><b class="hd">3️⃣ Scan that cell plus its 8 neighbours</b>A place just over the edge can be within 5 miles with a different prefix. Usually 8–9 prefix queries.</li>
-    <li><b class="hd">4️⃣ Filter the results by true distance</b>The squares are only an approximation of the circle.</li>
+    <li><b class="hd">1️⃣ Find your own square</b>Your location → geohash <code>dr5ru</code>.</li>
+    <li><b class="hd">2️⃣ Pick squares at least as wide as the radius</b>Then a circle around <b>any</b> point in your square can only reach the 8 squares around it, never further. Sizes at the equator: 4 letters ≈ 39 × 20 km · 5 letters ≈ 4.9 × 4.9 km · 6 letters ≈ 1.2 × 0.6 km. 3 km → 5 letters. 5 miles (8 km) → 4 letters.</li>
+    <li><b class="hd">3️⃣ Scan your square + its 8 neighbours = 9 prefix scans</b>The circle spills over the edges (B and C), so your own square alone would miss them. 👀 Look at the top row: it starts <code>dr72</code>, not <code>dr5r</code>. Neighbours can have very different prefixes, so one shorter prefix can't replace the 9 scans.</li>
+    <li><b class="hd">4️⃣ Keep only what is truly within 3 km</b>9 squares cover much more than the circle (D, E, F). Compute the real distance for each candidate and drop the ones beyond the radius.</li>
   </ul>
+<pre>-- 3️⃣ 9 squares → 9 prefix range scans
+SELECT * FROM restaurants
+WHERE geohash LIKE 'dr5ru%'
+   OR geohash LIKE 'dr5rv%'
+   OR geohash LIKE 'dr72h%'
+   OR …            -- 6 more
+-- 4️⃣ then: keep distance(me, row) &lt;= 3 km</pre>
+  <p class="ana">📮 You can't ask the post office for "every house in a circle", but you can ask for PIN codes. So ask for your PIN area plus the 8 around it, then check each address on a map and keep the close ones. <span class="add">➕ analogy not in the article</span></p>
   <p>Redis does all of this for you, with geohash inside:</p>
 <pre>GEOADD restaurants -122.4194
   37.7749 "Restaurant A"
 GEOSEARCH restaurants FROMLONLAT
   -122.4194 37.7749 BYRADIUS 5 mi</pre>
   <div class="info"><b>ℹ️ Note</b> <code>GEORADIUS</code> is deprecated in favour of <code>GEOSEARCH</code>. Redis uses geohash under the hood to find nearby points.</div>
-  <div class="warn"><b>⚠️ Watch out</b> Places close in real life may share no prefix if a major grid line runs between them: two restaurants on either side of a street that is a geohash boundary. For most apps this edge case doesn't matter (and the neighbour scan in step 3 covers it).</div>
+  <div class="warn"><b>⚠️ Watch out</b> Places close in real life may share no prefix if a major grid line runs between them: two restaurants on either side of a street that is a geohash boundary. For most apps this edge case doesn't matter (and the neighbour scan in step 3 covers it: see <code>dr5ru</code> next to <code>dr72h</code> above).</div>
   <p>⭐ Why it's so popular: it turns a hard 2D problem into simple string prefix matching on B-trees, which every database already does well. Easy to understand, build and run.</p>
   <p class="ana">📮 An Indian <b>PIN code</b>: the first digit is the region, the next ones narrow it to a district, then a post office. Same first digits = close by. Geohash is a PIN code for any square on Earth. <span class="add">➕ analogy not in the article</span></p>
 
