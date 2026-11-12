@@ -2681,7 +2681,16 @@ ORDER BY price</pre>
     <li><b class="hd">♻️ Pages stay in RAM for a while (the buffer pool)</b>If the next query needs the same page, it is already on the counter: no disk trip. Hot pages, like the top of a B-tree, almost always are.</li>
     <li><b class="hd">🎯 This is the whole reason indexes exist</b>No index: copy every page, millions of trips. Index: copy 3–4 pages, then the one page with the row.</li>
   </ul>
-  <p class="ana">🍳 A cook can only chop on the kitchen counter. The ingredients live in a basement warehouse, in sealed crates. To check one tomato, you carry up its whole crate. No index = carry up every crate. An index = a list on the wall: "tomatoes → crate 4,812".</p>
+  <h5>✍️ And an update? Change it in RAM, log it, write the page back later <span class="add">➕ not in the article</span></h5>
+  <p>Writes follow the same rule: the CPU can only change bytes in RAM. So an <code>UPDATE</code> never edits the disk directly. ▶️ Step through it:</p>
+  <div class="seq" data-seq="idx-update"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧠 The change happens in the RAM copy of the page</b>Copy block 12 into the buffer pool (if it isn't already there), change the row there. The page is now <b>dirty</b>: the RAM copy is newer than the disk copy.</li>
+    <li><b class="hd">📜 Before saying "done", append the change to the WAL on disk</b>A small append to the end of one file (sequential, fast). That's what <code>COMMIT</code> waits for, not the 8KB page write.</li>
+    <li><b class="hd">⏳ The dirty page goes back to disk later, in the background</b>Many changes to the same page become one write. Postgres does this in its background writer and at each checkpoint.</li>
+    <li><b class="hd">⚡ Power cut? RAM is wiped, the WAL is not</b>On restart the database replays the WAL and redoes every committed change that hadn't reached its page yet. Nothing committed is lost.</li>
+  </ul>
+  <p class="ana">🍳 A cook can only chop on the kitchen counter. The ingredients live in a basement warehouse, in sealed crates. To check one tomato, you carry up its whole crate. No index = carry up every crate. An index = a list on the wall: "tomatoes → crate 4,812". ✍️ To change a recipe, you edit it on the counter and jot the change in a notebook by the door (the WAL). The crate goes back down later. If the lights go out, the counter is wiped, but the notebook says what to redo.</p>
   <p>▶️ One lookup, without and with an index:</p>
   <div class="seq" data-seq="idx-scan"></div>
   <div class="info"><b>ℹ️ Note</b> Databases prefetch and cache pages, which makes random access faster. Scanning every page is still too slow.</div>
@@ -3592,6 +3601,19 @@ const SEQS = {
       { at: 1, m: '🌳 root → leaf: 2–3 pages', k: 'tcp', cap: 'A B-tree reads its root, maybe an inner node, then a leaf: 2–3 pages.' },
       { f: 1, t: 2, m: 'go to page 4,812', k: 'tcp', cap: 'The leaf says exactly which page holds the row.' },
       { f: 2, t: 3, m: 'load 1 page', k: 'tcp', cap: 'Load only that page. About 4 page reads instead of millions: the table of contents, not the whole book.' },
+    ],
+  },
+  'idx-update': {
+    lanes: ['✍️ UPDATE', '🧠 RAM (buffer pool)', '📜 WAL (disk)', '💾 Table (disk)'],
+    key: [['tcp', 'in RAM'], ['http', 'append to log'], ['gray', 'later, background']],
+    frames: [
+      { cap: '<code>UPDATE users SET name = \'Aditya\' WHERE user_id = 355</code>. The index says: block 12, slot 3.' },
+      { f: 3, t: 1, m: 'copy block 12', k: 'tcp', cap: '① Block 12 is copied from disk into RAM (skipped if it is already in the buffer pool).' },
+      { at: 1, m: '✏️ change row 3', k: 'tcp', cap: '② The row is changed in RAM. The page is now <b>dirty</b>: RAM copy ≠ disk copy.' },
+      { f: 1, t: 2, m: 'append the change', k: 'http', cap: '③ A small record of the change is appended to the <b>write-ahead log</b> on disk. Appending is sequential, so it is fast.' },
+      { f: 2, t: 0, m: '✅ COMMIT ok', k: 'http', cap: '④ Once the log record is safe on disk, the database says "done". The table on disk still has the old page.' },
+      { f: 1, t: 3, m: 'write block 12 back', k: 'gray', dash: true, cap: '⑤ Later, in the background (checkpoint), the dirty page is written back to its place on disk. Many changes, one write.' },
+      { at: 2, m: '⚡ crash? replay the WAL', k: 'gray', cap: 'If power fails before ⑤, RAM is wiped. On restart the WAL is replayed and the change is redone. Nothing committed is lost.' },
     ],
   },
   'lsm-write': {
