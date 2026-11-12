@@ -2718,6 +2718,7 @@ ORDER BY price</pre>
     <li><b class="hd">⏳ The dirty page goes back to disk later, in the background</b>Many changes to the same page become one write. Postgres does this in its background writer and at each checkpoint.</li>
     <li><b class="hd">⚡ Power cut? RAM is wiped, the WAL is not</b>On restart the database replays the WAL and redoes every committed change that hadn't reached its page yet. Nothing committed is lost.</li>
   </ul>
+  <div class="rem"><b>✅ Remember</b> Read and write <b>start the same</b>: get the page into RAM (load it on a miss). Then a <b>read</b> returns the row. A <b>write</b> changes the row in RAM → appends to the WAL → says "COMMIT ok" → writes the page back later.</div>
   <p class="ana">🍳 A cook can only chop on the kitchen counter. The ingredients live in a basement warehouse, in sealed crates. To check one tomato, you carry up its whole crate. No index = carry up every crate. An index = a list on the wall: "tomatoes → crate 4,812". ✍️ To change a recipe, you edit it on the counter and jot the change in a notebook by the door (the WAL). The crate goes back down later. If the lights go out, the counter is wiped, but the notebook says what to redo.</p>
   <p>▶️ One lookup, without and with an index:</p>
   <div class="seq" data-seq="idx-scan"></div>
