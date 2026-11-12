@@ -379,6 +379,20 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .td-slots i, .td-rows i { font-style: normal; font-size: 11.5px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 6px; }
 .td-rows { flex-direction: column; } .td-rows i { padding: 5px 8px; }
 .td-free { text-align: center; color: var(--muted); font-size: 11.5px; border: 1.5px dashed var(--line); border-radius: 6px; padding: 6px; }
+/* hash index lookup: hash → bucket grid → recheck rows */
+.hx-fn { font-size: 12.5px; padding: 6px 8px; border-radius: 8px; background: var(--card); border: 1.5px solid var(--line); text-align: center; }
+.hx-fn code.hit { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; padding: 1px 4px; border-radius: 4px; }
+.hx-bk { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.hx-bk > div { border: 1.5px dashed var(--line); border-radius: 8px; padding: 5px; font-size: 11.5px; min-width: 0; color: var(--muted); }
+.hx-bk > div.on { grid-column: 1 / -1; order: -1; border: 2px solid var(--blue-fg); background: var(--blue-bg); color: var(--blue-fg); }
+.hx-bk b { display: block; font-size: 12px; margin-bottom: 3px; }
+.hx-bk i { display: block; font: 11.5px ui-monospace, Menlo, monospace; font-style: normal; padding: 2px 4px; margin: 2px 0; }
+.hx-bk i.skip { opacity: .6; text-decoration: line-through; }
+.hx-bk small { display: block; font-size: 11px; opacity: .8; margin-top: 2px; }
+.hx-rk { display: grid; gap: 5px; font-size: 12.5px; }
+.hx-rk > div { padding: 6px 8px; border-radius: 8px; border: 1.5px solid; }
+.hx-rk .ok { background: var(--green-bg); color: var(--green-fg); border-color: var(--green-fg); font-weight: 700; }
+.hx-rk .no { background: var(--red-bg); color: var(--red-fg); border-color: var(--red-fg); }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -2830,24 +2844,47 @@ WHERE user_id = 355;
   <h4>#️⃣ Hash Indexes</h4>
   <p class="bridge">B-trees dominate, but hash indexes do one thing: <b>exact matches</b>. A persistent hashmap that trades flexibility for very fast O(1) lookups.</p>
   <h5>⚙️ How Hash Indexes Work</h5>
-  <div class="vflow" role="img" aria-label="Hash index: the email is hashed, the hash picks a bucket, the bucket holds a pointer to the disk page with the full record">
-    <div class="bx">📧 <code>john@test.com</code></div><div class="ar">⬇️ hash function</div>
-    <div class="bx">🪣 bucket <code>2e2bd…</code> → pointer</div><div class="ar">⬇️</div>
-    <div class="bx">💾 disk page with John's full record</div>
+  <div class="td" role="img" aria-label="Postgres hash index lookup for user_id 355. Step 1: hash 355 gives hash code 9A3F61C2; its low bits pick bucket 2. Step 2: bucket 2 holds three entries, each a hash code and a TID. Two have hash code 9A3F61C2, pointing to TID 12,3 and TID 40,1; one has 51D0E8A2 and is skipped. Step 3: the heap rows are fetched; block 12 slot 3 is user 355, a match; block 40 slot 1 is user 450, a collision, dropped.">
+    <div class="td-lbl">#️⃣ Postgres hash index <small>finding <code>user_id = 355</code></small></div>
+    <div class="hx-fn"><code>355</code> → <b>hash()</b> → <code class="hit">9A3F61C2</code> → low bits → <b>bucket 2</b></div>
+    <div class="td-step">① hash the value, the hash picks the bucket</div>
+    <div class="hx-bk">
+      <div class="off"><b>bucket 0</b><i>…</i></div>
+      <div class="off"><b>bucket 1</b><i>…</i></div>
+      <div class="on"><b>bucket 2</b><i class="hit">9A3F61C2 → (12,3)</i><i class="hit">9A3F61C2 → (40,1)</i><i class="skip">51D0E8A2 → (7,5)</i><small>full? → overflow page</small></div>
+      <div class="off"><b>bucket 3</b><i>…</i></div>
+    </div>
+    <div class="td-step">② inside the bucket, keep entries with the <b>same hash code</b>. The third one has a different code: skipped, no disk trip.</div>
+    <div class="td-step hit">⚠️ The index stores only the <b>hash code + TID</b>, never 355 itself. Two entries share the code: 450 hashed to the same 9A3F61C2.</div>
+    <div class="td-lbl">📄 Heap (the real rows) <small>recheck the real value</small></div>
+    <div class="hx-rk"><div class="ok">(12,3) → <code>user_id 355</code> ✅ keep</div><div class="no">(40,1) → <code>user_id 450</code> ❌ collision, drop</div></div>
+    <div class="td-step">③ open each TID's row and compare the real value → return only 355</div>
   </div>
-  <p class="figcap">🖼️ The lesson's picture: john@ and tim@ hash to different rows (d5f43…, 2e2bd…). Their arrows cross: similar keys land far apart on purpose.</p>
+  <p class="figcap">🖼️ The lesson's picture shows the same idea with emails: john@ and tim@ hash to different buckets (d5f43…, 2e2bd…), so similar keys land far apart on purpose. Hash codes and TIDs above are made up. <span class="add">➕ Postgres detail</span></p>
 <pre>buckets[hash("alice@example.com")]
   -&gt; [ptr to page 1]
 buckets[hash("bob@example.com")]
   -&gt; [ptr to page 2]</pre>
   <ul class="lines roomy heads">
     <li><b class="hd">🔗 Collisions: a bucket holds several entries</b>Many systems chain to overflow storage when a bucket fills (PostgreSQL hash buckets link to overflow pages). With a good hash and load factor, lookups stay O(1) on average.</li>
+    <li><b class="hd">🔁 Postgres resolves a collision by rechecking the row</b>Different hash code in the same bucket → skipped inside the index. Same hash code (355 and 450 above) → it fetches both rows by TID and compares the real <code>user_id</code>. Only the true match is returned. <span class="add">➕ Postgres detail</span></li>
     <li><b class="hd">🚫 Useless for ranges and sorting</b>Similar values are scattered across buckets on purpose, so "age &gt; 25" or ORDER BY can't use it.</li>
   </ul>
   <h5>🏭 Real-World Usage</h5>
   <ul class="lines roomy heads">
     <li><b class="hd">🐘 Rare on disk: PostgreSQL has them but doesn't use them by default</b>Its docs say B-trees handle equality almost as fast, and also do ranges and sorting.</li>
     <li><b class="hd">🧠 They shine in memory</b>Redis uses hash tables as its main structure for key lookups, because all data is in RAM. MySQL's MEMORY engine defaulted to hash indexes. <span class="aws">☁️ AWS: ElastiCache (Redis)</span></li>
+  </ul>
+  <p>🟥 <b>Redis: the whole database is one big hash table</b> <span class="add">➕ not in the article</span></p>
+  <div class="vflow" role="img" aria-label="Redis GET user:355: hash the key, pick a bucket, walk the bucket's short chain comparing the full key, and the entry holds the value itself, all in RAM">
+    <div class="bx">🔎 <code>GET user:355</code></div><div class="ar">⬇️ hash("user:355") → bucket</div>
+    <div class="bx">🪣 bucket chain: <code>user:450</code> → <code>user:355</code> ✅</div><div class="ar">⬇️ compare the full key string</div>
+    <div class="bx">📦 the entry holds the <b>value itself</b>: no TID, no disk</div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 Redis keeps the key in the bucket, so a collision is solved right there</b>Keys that land in the same bucket form a short chain. Redis compares the full key string, all in RAM. Postgres keeps only the hash code, so it must open the row to check.</li>
+    <li><b class="hd">📈 When the table fills up, Redis grows it a little at a time</b>It builds a table twice as big and moves a few buckets on every request (incremental rehash), so there is never one long pause.</li>
+    <li><b class="hd">🚫 Same limit as any hash: no ranges</b>That's why Redis adds sorted sets (a skip list) for "top 10" and range queries.</li>
   </ul>
   <h5>🤔 When to Choose Hash Indexes</h5>
   <ul class="lines roomy heads">
@@ -4072,7 +4109,7 @@ const GLOSSARY = [
     b: '<ul><li>Size-tiered: less rewriting, but more files to check on reads.</li><li>Leveled: fewer files, but rewrites more often.</li></ul>', see: ['lsm', 'sstable'] },
   { id: 'hashidx', t: 'Hash index', aka: 'hash index bucket exact match o(1)', s: 'A persistent hashmap: value → row location. Exact matches only.',
     an: 'A coat check: ticket 42 gives coat 42, but "coats 40 to 50" means nothing.',
-    b: '<p><code>hash("bob@x.com")</code> picks a bucket, the bucket points to the page. O(1) on average. No ranges, no sorting. Rare on disk (B-trees are almost as fast); common in memory (Redis).</p><p>☁️ <b>On AWS:</b> ElastiCache (Redis)</p>', see: ['btree', 'dbindex'] },
+    b: '<p><code>hash("bob@x.com")</code> picks a bucket, the bucket points to the page. O(1) on average. No ranges, no sorting. Rare on disk (B-trees are almost as fast); common in memory (Redis).</p><p>🔁 <b>Collision in Postgres:</b> the index keeps only hash code + TID, so it fetches every row with the same code and compares the real value. <b>In Redis:</b> the bucket keeps the full key, so it compares keys in RAM.</p><p>☁️ <b>On AWS:</b> ElastiCache (Redis)</p>', see: ['btree', 'dbindex'] },
   { id: 'geohash', t: 'Geohash', aka: 'geohash geo location proximity prefix base32 nearby', s: 'A location turned into a string; nearby places share a prefix.',
     an: 'A PIN code for any square on Earth: same first digits, same area.',
     b: '<p><code>9q8y</code> ≈ San Francisco · <code>9q8yy</code> ≈ the Mission · <code>9q8yyk</code> ≈ one block.</p><p>"Within 5 miles": the user\'s cell + its 8 neighbours as prefix scans on a B-tree, then filter by true distance.</p><p>☁️ <b>On AWS:</b> ElastiCache (Redis GEOSEARCH)</p>', see: ['quadtree', 'rtree', 'btree'] },
