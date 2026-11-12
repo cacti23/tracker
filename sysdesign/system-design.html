@@ -403,12 +403,21 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .rad .dot.in { background: #16a34a; } .rad .dot.out { background: #dc2626; }
 .rad-key { font-size: 12px; color: var(--muted); text-align: center; margin-top: 6px; }
 .rad-key .in { color: var(--green-fg); font-weight: 700; } .rad-key .out { color: var(--red-fg); font-weight: 700; }
-/* composite index as one sorted list of pairs */
-.cl { display: grid; gap: 3px; margin-bottom: 6px; }
-.cl i { display: flex; justify-content: space-between; gap: 6px; padding: 5px 8px; border: 1.5px solid var(--line); border-radius: 6px; background: var(--card); font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; font-style: normal; }
-.cl i small { font: 11.5px system-ui, sans-serif; color: var(--muted); }
-.cl i.hit { background: var(--amber-bg); color: var(--amber-fg); border-color: var(--amber-fg); font-weight: 700; } .cl i.hit small { color: var(--amber-fg); }
-.cl i.skip { opacity: .75; }
+.ck { margin: 8px 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+.ck-root { display: inline-block; padding: 4px 10px; border: 1.5px solid var(--blue-fg); background: var(--blue-bg); color: var(--blue-fg); border-radius: 6px; margin-bottom: 6px; }
+.ck-leaves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ck-leaves > div { display: grid; gap: 2px; padding: 4px; border: 1.5px solid var(--green-fg); border-radius: 8px; background: var(--card); }
+.ck-leaves span { padding: 3px 0; border-radius: 4px; }
+.ck-leaves .on { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; outline: 1.5px solid var(--amber-fg); }
+/* covering index: what one index entry holds */
+.cv { display: grid; gap: 8px; margin: 8px 0 10px; }
+.cv > div { border: 2px solid; border-radius: 12px; padding: 10px; font-size: 13px; }
+.cv b { display: block; margin-bottom: 6px; }
+.cv-e { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.cv-e span { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 8px; border: 1.5px solid var(--line); border-radius: 6px; background: var(--card); color: var(--text); }
+.cv-e span.inc { border-color: var(--green-fg); color: var(--green-fg); font-weight: 700; }
+.cv-e span.tid { color: var(--muted); border-style: dashed; }
+.cv-n { margin: 3px 0; color: var(--text); }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -3160,48 +3169,67 @@ ORDER BY created_at DESC;
 
 CREATE INDEX idx_user_time
   ON posts(user_id, created_at);</pre>
-  <div class="td" role="img" aria-label="The composite index as one sorted list of pairs: 101 Jan 1, 101 Jan 2, 119 Jan 3, 123 Jan 1, 123 Jan 2, 123 Jan 3, 125 Jan 1. For user 123 after Jan 1, the database jumps to user 123's group and reads Jan 2 and Jan 3, already in date order.">
-    <div class="td-lbl">🧩 The index = one sorted list of pairs <small>(user_id, created_at)</small></div>
-    <div class="cl">
-      <i>(101, Jan 1)</i><i>(101, Jan 2)</i><i>(119, Jan 3)</i>
-      <i class="skip">(123, Jan 1) <small>not after 1 Jan: skip</small></i>
-      <i class="hit">(123, Jan 2) <small>✅ read</small></i>
-      <i class="hit">(123, Jan 3) <small>✅ read</small></i>
-      <i>(125, Jan 1) <small>⛔ next user: stop</small></i>
+  <p>🔍 Inside, it's one B-tree whose key is the <b>pair</b> of values, sorted by user_id first, then by date inside each user:</p>
+  <div class="ck" role="img" aria-label="Composite B-tree: root (120, 130). Left leaf holds keys for users 101 and 119. Right leaf holds (122, 01-01), (123, 01-02), (123, 01-03), (125, 01-01); the two user 123 entries are highlighted.">
+    <div class="ck-root">(120, 130)</div>
+    <div class="ck-leaves">
+      <div><span>(101, 01-01)</span><span>(101, 01-02)</span><span>(119, 01-01)</span><span>(119, 01-03)</span></div>
+      <div><span>(122, 01-01)</span><span class="on">(123, 01-02)</span><span class="on">(123, 01-03)</span><span>(125, 01-01)</span></div>
     </div>
-    <div class="td-step">① jump to user 123's group (one B-tree walk)</div>
-    <div class="td-step">② read on while it's still user 123: dates are <b>already sorted</b>, so "newest first" = read it backwards. No sort step.</div>
   </div>
-  <p class="figcap">🖼️ Same as the lesson's picture: "Both filtering AND sorting are handled by a single index traversal!" With two separate indexes (one on user, one on date), the database must find both lists, intersect them, then sort.</p>
+  <p class="figcap">🖼️ The lesson's picture (dates are 2024): for user 123 only the two highlighted entries are read, already in date order. "Both filtering AND sorting are handled by a single index traversal!" With two separate indexes (one on user, one on date), the database must find both lists, intersect them, then sort.</p>
   <ul class="lines roomy heads">
     <li><b class="hd">⬅️ It only helps from the left</b>(user_id, created_at) helps "user 123" and "user 123 after 1 Jan", but not "posts after 1 Jan" alone: dates are sorted only <b>inside</b> each user. More examples: 🔗 <a href="#sd-dm-schema--indexing-for-access-patterns">Data Modeling ②</a>.</li>
-    <li><b class="hd">🎯 Which column first? Usually the one that narrows the rows most</b>But query patterns can beat that: if you often sort by a column, putting it in the index removes an expensive sort.</li>
-    <li><b class="hd">🎤 Interview classics</b>Order history <code>(customer_id, order_date)</code> · job queue <code>(status, priority, created_at)</code> · activity feed <code>(user_id, type, timestamp)</code>.</li>
+  </ul>
+  <h5>🎯 Which column goes first?</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Usually: the column that narrows the rows the most ("most selective")</b>An <code>orders</code> table with 10 million rows:<br>· <code>status = 'shipped'</code> → about <b>3 million</b> rows left (only 3 statuses: barely narrows)<br>· <code>customer_id = 42</code> → about <b>10</b> rows left (1 million customers: narrows a lot)<br>So <code>(customer_id, status)</code>: the first column alone already cuts 10 million rows to 10. And the index still helps a query on <code>customer_id</code> alone. <span class="add">➕ example not in the article</span></li>
+    <li><b class="hd">2️⃣ But query patterns can beat that</b>A job queue always asks <code>WHERE status = 'pending' ORDER BY priority</code>. <code>status</code> narrows little, yet it goes first because <b>every</b> query filters on it, and <code>priority</code> right after it means the rows come out already sorted: no sort step.</li>
+    <li><b class="hd">3️⃣ Exact matches (=) before ranges (&gt;, &lt;)</b>That's why it's <code>(user_id, created_at)</code>: fix the user with =, then read a date range inside that user. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <h5>🎤 Interview classics</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🛒 Order history → (customer_id, order_date)</b>"Show my orders, newest first": <code>WHERE customer_id = ? ORDER BY order_date DESC</code>. Jump to one customer, the dates are already in order.</li>
+    <li><b class="hd">⚙️ Job queue → (status, priority, created_at)</b>"Give me the next job": <code>WHERE status = 'pending' ORDER BY priority DESC, created_at LIMIT 1</code>. The answer is the first entry of the pending group: one read.</li>
+    <li><b class="hd">📰 Activity feed → (user_id, type, timestamp)</b>"My comments, latest first": <code>WHERE user_id = ? AND type = 'comment' ORDER BY timestamp DESC</code>. Two exact matches, then time already sorted.</li>
   </ul>
   <p class="ana">📞 A phone book sorted by surname, then first name. "Sharma, Aditi" is instant. "Everyone called Aditi" means reading the whole book. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>📑 Covering Indexes</h4>
-  <p class="bridge">Remember the TID walk: the index gives an address, then the database opens the table page to read the row. A covering index <b>stores the extra column in the index</b>, so that last trip is skipped.</p>
-  <div class="grid2">
-    <div class="k-amber"><b>🐢 Regular index</b>
-      <div class="chk">🌳 index → <code>(123, Jan 3)</code> → TID</div>
-      <div class="chk">📄 open the table page, just to read <code>likes</code></div>
-      <q>2 trips per row</q></div>
-    <div class="k-green"><b>⚡ Covering index</b>
-      <div class="chk">🌳 index → <code>(123, Jan 3) · likes 42</code></div>
-      <div class="chk">✅ the answer is already here</div>
-      <q>1 trip, table never opened</q></div>
+  <p class="bridge">First, what is inside one index entry? <b>Only the indexed columns + the row's address (TID)</b>. Nothing else from the row. So if a query asks for a column the index doesn't have, the database must go to the table to fetch it.</p>
+<pre>-- 📰 feed: show date + like count
+SELECT created_at, likes
+FROM posts
+WHERE user_id = 123
+ORDER BY created_at DESC
+LIMIT 20;</pre>
+  <div class="cv" role="img" aria-label="Regular index entry holds user_id 123 and date Jan 3 plus TID 12 comma 3. The query needs created_at, which is in the entry, and likes, which is not, so the database opens table page 12 for each of 20 rows. Covering index entry also holds likes 42, so every column the query needs is in the entry and the table is never opened.">
+    <div class="k-amber">
+      <b>🐢 Regular index (user_id, created_at)</b>
+      <div class="cv-e"><span>123</span><span>Jan 3</span><span class="tid">→ (12,3)</span></div>
+      <div class="cv-n">query needs: created_at ✅ · likes ❌ not here</div>
+      <div class="cv-n">→ open table page 12 just for <code>likes</code>. × 20 rows = <b>up to 20 extra page reads</b></div>
+    </div>
+    <div class="k-green">
+      <b>⚡ Covering: … INCLUDE (likes)</b>
+      <div class="cv-e"><span>123</span><span>Jan 3</span><span class="inc">likes 42</span><span class="tid">→ (12,3)</span></div>
+      <div class="cv-n">query needs: created_at ✅ · likes ✅ both here</div>
+      <div class="cv-n">→ answer straight from the index. <b>Table never opened.</b></div>
+    </div>
   </div>
-<pre>-- likes rides along in the index
-CREATE INDEX idx_user_time_likes
+<pre>CREATE INDEX idx_user_time_likes
   ON posts(user_id, created_at)
-  INCLUDE (likes);</pre>
+  INCLUDE (likes);
+-- INCLUDE = carried in the entry,
+-- not used for sorting</pre>
   <ul class="lines roomy heads">
-    <li><b class="hd">⚡ Use it for a hot query that needs only a few columns</b>Feeds, leaderboards, other read-heavy features. (Postgres calls this an index-only scan.)</li>
-    <li><b class="hd">💸 Cost: a bigger index, and more work on every change</b>Each new like now rewrites the index entry too. Likes change all the time? Keep the index lean and read counts from a separate table or cache. (From the comments 👇)</li>
+    <li><b class="hd">📑 "Covering" = the index covers every column the query asks for</b>It's not a new index type, just a normal B-tree that carries a few extra columns. Postgres calls the result an <b>index-only scan</b>.</li>
+    <li><b class="hd">⚡ Use it for a hot query that needs only a few columns</b>Feeds, leaderboards, other read-heavy features. The post's long text stays in the table; only the tiny <code>likes</code> number rides along.</li>
+    <li><b class="hd">💸 Cost: a bigger index, and more work on every change</b>Each new like now also rewrites the index entry. Likes change all the time? Keep the index lean and read counts from a separate table or cache. (From the comments 👇)</li>
+    <li><b class="hd">🚫 Why not include every column?</b>Then the index is a second copy of the table: double the disk, every write done twice.</li>
   </ul>
   <div class="warn"><b>⚠️ Watch out</b> In 2026 covering indexes are a niche optimization, not a go-to fix: modern optimizers do well with regular indexes. Reach for one only with a good reason. <b>Unsure? Err on the side of simplicity.</b></div>
-  <p class="ana">🗃️ A library catalog card that already says the page count. "How many pages?" is answered at the catalog, no walk to the shelf. But every new edition means updating the card. <span class="add">➕ analogy not in the article</span></p>
+  <p class="ana">🛍️ A shopping site's search results already show price and rating, so you don't open every product page. Covering index = the search result already shows what you came for. Regular index = it shows only the name, so you click into each product. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🏁 Wrapping Up</h4>
   <p class="bridge">Using indexes well is a key skill at work and is tested in interviews. ⭐ The most important part: knowing <b>when</b> you need an index and <b>on which columns</b>. It should come naturally while you design the schema: which columns will you filter or sort on?</p>
