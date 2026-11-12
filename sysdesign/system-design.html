@@ -348,6 +348,14 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .dtree .pick .main { border-width: 2.5px; }
 .dtree .tune { display: grid; gap: 5px; }
 .dtree .tune > div { border-color: var(--green-fg); background: var(--green-bg); }
+/* B-tree "3 S" rows: big letter on the left, reason + what fails without it on the right */
+.s3 { display: grid; gap: 8px; margin: 6px 0 10px; }
+.s3 > div { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: start; border: 2px solid; border-radius: 12px; padding: 10px; font-size: 13px; min-width: 0; }
+.s3 .big { font-size: 26px; text-align: center; line-height: 1.15; }
+.s3 .big small { display: block; font-size: 11px; font-weight: 700; }
+.s3 b { display: block; font-size: 14.5px; margin-bottom: 3px; }
+.s3 .no { margin-top: 6px; opacity: .85; }
+.s3 code { overflow-wrap: anywhere; }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -2624,10 +2632,33 @@ ORDER BY price</pre>
   <h5>💾 Physical Storage and Access Patterns</h5>
   <div class="warn"><b>⚠️ Watch out</b> Unless you interview for a database-internals role, you won't be asked about these details. They are still the reason indexes exist.</div>
   <ul class="lines roomy heads">
-    <li><b class="hd">💾 Data lives on disk, but can only be checked in RAM</b>It sits on SSDs. So every query must load pages from disk into memory first.</li>
+    <li><b class="hd">💾 Data lives on disk, but can only be checked in RAM</b>It sits on SSDs. So every query must load pages from disk into memory first. What this means 👇</li>
     <li><b class="hd">🐢 No index = read every page, one by one</b>Millions of pages means millions of slow disk reads to find one row: flipping through every page of a huge book to find one word.</li>
     <li><b class="hd">⚡ An index says exactly which pages hold the data</b>It gives a structured path straight to the data: the book's table of contents.</li>
   </ul>
+  <h5>🧠 "Checked only in RAM": what it means <span class="add">➕ not in the article</span></h5>
+  <p>The CPU can only compare bytes that sit in RAM. It cannot look inside the disk. So to test one row (<code>email = 'alice@x.com'?</code>), the database first <b>copies the whole page</b> holding it from disk into RAM.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>💾 Disk (SSD)</b><div class="star">🏚️ The warehouse</div>
+      <div class="chk">📦 Big: terabytes</div>
+      <div class="chk">🔌 Keeps data when power is off</div>
+      <div class="chk">🐢 ~100 µs to fetch one random page</div></div>
+    <div class="k-green"><b>🧠 RAM</b><div class="star">🍳 The kitchen counter</div>
+      <div class="chk">🤏 Small: gigabytes</div>
+      <div class="chk">🔌 Wiped when power is off</div>
+      <div class="chk">⚡ ~100 ns to read: about 1,000× faster</div></div>
+  </div>
+  <div class="vflow" role="img" aria-label="Checking one row: the page sits on disk, is copied whole into the RAM buffer pool, then the CPU compares each row on it">
+    <div class="bx">💾 page 4,812 on disk (8KB, many rows)</div><div class="ar">⬇️ copy the whole page (smallest unit the disk gives)</div>
+    <div class="bx">🧠 RAM: the <b>buffer pool</b> (page cache)</div><div class="ar">⬇️</div>
+    <div class="bx">⚙️ CPU checks each row: <code>alice@x.com?</code> ✅ / ❌</div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📦 The disk hands out whole pages, never one row</b>Need 1 row? You still copy its 8KB page. So the real cost of a query = <b>how many pages</b> it copies.</li>
+    <li><b class="hd">♻️ Pages stay in RAM for a while (the buffer pool)</b>If the next query needs the same page, it is already on the counter: no disk trip. Hot pages, like the top of a B-tree, almost always are.</li>
+    <li><b class="hd">🎯 This is the whole reason indexes exist</b>No index: copy every page, millions of trips. Index: copy 3–4 pages, then the one page with the row.</li>
+  </ul>
+  <p class="ana">🍳 A cook can only chop on the kitchen counter. The ingredients live in a basement warehouse, in sealed crates. To check one tomato, you carry up its whole crate. No index = carry up every crate. An index = a list on the wall: "tomatoes → crate 4,812".</p>
   <p>▶️ One lookup, without and with an index:</p>
   <div class="seq" data-seq="idx-scan"></div>
   <div class="info"><b>ℹ️ Note</b> Databases prefetch and cache pages, which makes random access faster. Scanning every page is still too slow.</div>
@@ -2707,13 +2738,19 @@ WHERE user_id = 355;
     <li><b class="hd">🔑 DynamoDB keeps items in sort-key order inside a partition</b>So range queries inside a partition are cheap. Its internals aren't public; the article says it is widely understood to use an LSM-style engine (the comments dispute this 👇).</li>
   </ul>
   <h5>⭐ Why B-trees are the default choice</h5>
-  <ul class="lines roomy heads">
-    <li><b class="hd">1️⃣ They keep sorted order, so range queries and ORDER BY are efficient</b></li>
-    <li><b class="hd">2️⃣ They balance themselves, so speed stays predictable as data grows</b></li>
-    <li><b class="hd">3️⃣ They need few disk reads, because their shape matches how databases store data</b></li>
-    <li><b class="hd">4️⃣ They handle equality and ranges equally well</b><code>email = 'x'</code> and <code>age &gt; 25</code>.</li>
-    <li><b class="hd">5️⃣ They stay balanced under random inserts and deletes</b>No sudden slowdowns like simpler trees.</li>
-  </ul>
+  <p>The lesson gives five reasons. They fold into <b>3 S's</b>: <b>Sorted · Short · Steady</b>. Each one is something a rival index lacks. <span class="add">➕ grouping and rivals not in the article</span></p>
+  <div class="s3">
+    <div class="k-blue"><div class="big">📚<small>SORTED</small></div><div><b>Keys stay in order, so ranges are free</b>
+      Find the start once, then read neighbours left to right. <code>email = 'x'</code> is just a range of size one, so exact matches and <code>age &gt; 25</code>, <code>ORDER BY</code> all work. <small>(lesson ①, ④)</small>
+      <div class="no">❌ A hash index has no order: exact match only, no ranges.</div></div></div>
+    <div class="k-green"><div class="big">📏<small>SHORT</small></div><div><b>Hundreds of keys per node, so only 3–4 levels</b>
+      One node = one disk page, and each node has hundreds of children: 500 × 500 × 500 ≈ 125 million keys in 3 levels. 3–4 page reads to find anything. <small>(lesson ③)</small>
+      <div class="no">❌ A binary tree has 2 children per node: a billion keys = ~30 levels = ~30 disk reads.</div></div></div>
+    <div class="k-amber"><div class="big">⚖️<small>STEADY</small></div><div><b>It balances itself, so speed never drifts</b>
+      A full node splits in two and pushes a key up. All leaves stay at the same depth, whatever the insert order and however big the table grows. <small>(lesson ②, ⑤)</small>
+      <div class="no">❌ A plain binary search tree fed sorted IDs (1, 2, 3…) becomes a long chain: lookups get slower and slower.</div></div></div>
+  </div>
+  <p>🧠 Say it in one line: <b>"B-trees are sorted (ranges), short (few disk reads) and steady (self-balancing)."</b></p>
   <div class="rem"><b>✅ Remember</b> "If you must pick an index in an interview, B-trees are a safe choice."</div>
   <p class="ana">🏢 A big office building: the lobby board says "floors 1–20 → lift A", the floor sign says "rooms 300–399 → left", and you're at the door in three steps. Each sign (node) fits on one board (disk page). <span class="add">➕ analogy not in the article</span></p>
 
