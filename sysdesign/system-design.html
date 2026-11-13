@@ -1299,7 +1299,6 @@ $ curl -s ifconfig.me  # after NAT
   <ul class="lines roomy heads">
     <li><b class="hd">🔒 Two locks keep outsiders out</b>① The server sits on a private IP behind the firewall, so outsiders can't reach it. ② Its allow list answers only known IP ranges; anyone else gets <code>REFUSED</code>.</li>
     <li><b class="hd">🔀 Same name, different answer by who asks (split-horizon)</b>Inside: <code>wiki.corp</code> → <code>10.0.5.20</code>. Outside: the public login page's IP, or nothing.</li>
-    <li><b class="hd">🚪 Port 53: UDP for lookups, TCP for big answers</b>TCP 53 also copies zones between DNS servers. Encrypted DNS uses 443 (DoH) or 853 (DoT).</li>
   </ul>
   <p class="ana">☎️ The office <b>receptionist's internal phone list</b>: staff get any extension. A stranger calling from outside hears "sorry, I can't share that". <span class="add">➕ analogy not in the article</span></p>
   <p>🔍 Ask DNS yourself with <button type="button" class="gl-link" data-g="dig">dig</button>:</p>
@@ -1310,6 +1309,22 @@ $ dig @10.0.0.2 +short wiki.corp
 10.0.5.20
 $ dig +trace example.com
 # root → .com → example.com</pre>
+
+  <h5>🚪 How a DNS question travels: UDP 53, TCP 53, DoT, DoH <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">The office picture above says "UDP 53". That's the default, but a DNS question can travel 4 ways: 2 plain, 2 encrypted.</p>
+  <div class="grid2">
+    <div class="k-green"><b>⚡ UDP 53</b><div class="star">Normal lookups</div><div class="chk">1 packet out, 1 back, no handshake: fast</div><div class="chk">👀 Not encrypted</div></div>
+    <div class="k-blue"><b>📦 TCP 53</b><div class="star">Big answers</div><div class="chk">Answer too big for one UDP packet, or a whole zone copied between DNS servers</div><div class="chk">👀 Not encrypted</div></div>
+    <div class="k-amber"><b>🔒 DoT · TCP 853</b><div class="star">DNS over TLS</div><div class="chk">Encrypted, on its own port</div><div class="chk">📱 Android "Private DNS"</div></div>
+    <div class="k-red"><b>🌐 DoH · TCP 443</b><div class="star">DNS over HTTPS</div><div class="chk">Encrypted, on the normal web port</div><div class="chk">🧭 Chrome / Firefox "Secure DNS"</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚡ UDP first, TCP only when the answer is too big</b>A lookup is 1 question and 1 short answer, so a TCP handshake would only add a round trip. If the answer doesn't fit, the server replies "truncated", and the client asks again over TCP 53.</li>
+    <li><b class="hd">👀 Plain DNS can be read on the way</b>Your ISP or the café Wi-Fi sees every name you look up (<code>bank.com</code>), and could even change the answer. DoT and DoH wrap the same question in TLS, so nobody on the path can read or change it.</li>
+    <li><b class="hd">🚪 DoT vs DoH: same lock, different door</b>DoT uses its own port 853, so a network can see "this is DNS" and block it. DoH uses 443, the same port as every HTTPS website, so it looks like normal web traffic and is hard to block.</li>
+  </ul>
+  <p class="ana">✉️ UDP 53 is a <b>postcard</b>: quick, but every postman can read it. TCP 53 is a <b>parcel</b> for big answers: still see-through. DoT is a <b>sealed envelope in a special "DNS only" mailbox</b>: nobody can read it, but anyone can see that mailbox and lock it. DoH is a <b>sealed envelope dropped in the normal mailbox</b> with all the other letters.</p>
+  <div class="rem"><b>✅ Remember</b> UDP 53 by default, TCP 53 for big answers. Encrypted: DoT = TLS on <b>853</b>, DoH = HTTPS on <b>443</b>.</div>
 
   <h5>☁️ Route 53 private hosted zone: DNS only your VPC can see <span class="add">➕ not in the article</span></h5>
   <p class="bridge">AWS gives you the same office DNS for a VPC. Your microservices call each other by name (<code>db.internal</code>), and the name works only inside the VPC. <span class="aws">☁️ AWS: Route 53 private hosted zone</span></p>
@@ -1348,6 +1363,8 @@ $ dig +trace example.com
   <ul class="lines roomy heads">
     <li><b class="hd">🧱 ICMP lives on L3, with no ports</b>It rides inside IP instead of TCP or UDP. So "ping port 443" is not a thing.</li>
     <li><b class="hd">🛠️ Three jobs: ping, error notes, traceroute</b>Echo request/reply · "destination unreachable" · "time exceeded" when a packet's hop limit (TTL) hits 0.</li>
+    <li><b class="hd">🏓 ping = "is this machine reachable, and how fast?"</b>It sends echo requests and prints the round-trip time. It does <b>not</b> check that a domain exists: DNS answers that first. <code>ping nosuchname.xyz</code> fails at the DNS step ("cannot resolve") before any ICMP is sent.</li>
+    <li><b class="hd">🗺️ traceroute = "which routers does my packet pass through?"</b>It lists every hop and its time, so you can see <b>where</b> a slow or broken path goes wrong (see ⑤–⑧ above).</li>
     <li><b class="hd">🚫 No ping reply ≠ server down</b>Many firewalls and clouds block ICMP.</li>
     <li><b class="hd">🎤 Health checks use TCP or HTTP, not ping</b>Ping proves the machine is up, not your app (🔗 <a href="#sd-net-lb--health-checks-route-around-failures">Health checks</a>).</li>
   </ul>
@@ -5127,6 +5144,9 @@ const GLOSSARY = [
   { id: 'netaddr', t: 'Network address', aka: 'subnet address network id first address host bits zero', s: 'The first address of a CIDR block (host bits all 0): the block\'s name, never given to a device.',
     an: 'The street sign: it names the street, nobody lives there.',
     b: '<p><code>10.0.1.77/24</code> → network <code>10.0.1.0</code>. Route tables and firewall rules use it: "<code>10.0.1.0/24</code> → this subnet".</p><p>🧮 For <code>10.0.1.77/26</code>: block size 2<sup>6</sup> = 64, 77 is in 64–127 → network <code>10.0.1.64</code>.</p>', see: ['cidr', 'bcast', 'subnet'] },
+  { id: 'encdns', t: 'DoH and DoT (encrypted DNS)', aka: 'dns over https dns over tls doh dot 853 443 secure dns private dns encrypted', s: 'DNS questions wrapped in TLS so nobody on the path can read or change them. DoT on port 853, DoH on 443.',
+    an: 'A sealed envelope instead of a postcard: DoT goes in a special DNS-only mailbox, DoH in the normal one.',
+    b: '<ul><li>⚡ Plain: UDP 53 (normal), TCP 53 (big answers, zone copies). Anyone on the path can read it.</li><li>🔒 <b>DoT</b>: TLS on TCP 853. Easy to spot and block. Android "Private DNS".</li><li>🌐 <b>DoH</b>: HTTPS on 443. Looks like web traffic. Chrome / Firefox "Secure DNS".</li></ul>', see: ['dns', 'tls'] },
   { id: 'phz', t: 'Route 53 private hosted zone', aka: 'private hosted zone public hosted zone route53 private dns internal dns split horizon aws', s: 'DNS names that resolve only inside the VPCs you attach, e.g. db.internal → 10.0.2.20.',
     an: 'A building\'s internal phone list: every floor can read it, outsiders only get the public number.',
     b: '<p>Services call <code>db.internal</code>; the VPC\'s DNS at <code>.2</code> answers with a private IP. From the internet the name doesn\'t exist.</p><ul><li>🔒 <b>Private</b> hosted zone: only attached VPCs (every subnet in them).</li><li>🌍 <b>Public</b> hosted zone: anyone on the internet, e.g. <code>api.example.com</code> → your load balancer.</li></ul><p>Needs the VPC settings "DNS resolution" + "DNS hostnames" on.</p><p>☁️ <b>On AWS:</b> Route 53</p>', see: ['dns', 'vpc', 'subnet'] },
@@ -5486,7 +5506,7 @@ const GLOSSARY = [
 ;(() => {
   const WORDS = {
     ip: /IP address(?:es)?|IPs?/, private: /(?:public|private) IPs?/i, mac: /MAC address(?:es)?|MAC/, port: /ports?/i,
-    packet: /packets?/i, router: /routers?/i, dhcp: /DHCP/, dns: /DNS/, nat: /NAT/, arp: /ARP/, tcp: /TCP/,
+    packet: /packets?/i, router: /routers?/i, dhcp: /DHCP/, encdns: /DoH|DoT|DNS over (?:HTTPS|TLS)/, dns: /DNS/, nat: /NAT/, arp: /ARP/, tcp: /TCP/,
     flow: /flow control/i, congestion: /congestion control/i, udp: /UDP/, http: /HTTP/, tls: /HTTPS|TLS/,
     eavesdrop: /eavesdrop(?:ping)?/i, mitm: /man-in-the-middle|MITM/i, auth: /authentication|authorization|auth[NZ]/i,
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
