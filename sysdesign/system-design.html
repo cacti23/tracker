@@ -3685,29 +3685,48 @@ if (left &lt; roll * rebuildMs)
   <p class="ana">📋 A notice board copied from a master file. Two clerks update the master, then each rewrites the board. If the slower clerk writes last, the board shows the old version. Better: each clerk just <b>wipes</b> the board, and the next person who needs it copies from the master file, which is always right.</p>
 
   <h4>🔥 Hot Keys</h4>
-  <p class="bridge">A stampede happens when the cache <b>misses</b>. A hot key hurts even when it <b>hits</b>: one entry gets huge traffic compared with everything else, and one key lives on one node. Even with a high hit rate, that one node or Redis shard becomes the bottleneck.</p>
-  <div class="hk-lbl">Before</div>
-  <div class="hk" role="img" aria-label="Before: three Redis nodes. Node 2 holds user:taylorswift and gets millions of requests per second. Nodes 1 and 3 are quiet.">
+  <p class="bridge">A stampede happens when the cache <b>misses</b>. A hot key hurts even when it <b>hits</b>: one entry gets huge traffic compared with everything else. In a Redis cluster, each key lives on exactly <b>one</b> node (its name decides which), so even with a high hit rate, that one node or shard becomes the bottleneck.</p>
+  <div class="hk" role="img" aria-label="Three Redis nodes. Node 2 holds user:taylorswift and gets millions of requests per second. Nodes 1 and 3 are quiet.">
     <div class="ok">🟥 Node 1<small>user:alice<br>😴 quiet</small></div>
     <div class="hot">🟥 Node 2<small>user:taylorswift<br>🔥 millions/s</small></div>
     <div class="ok">🟥 Node 3<small>user:bob<br>😴 quiet</small></div>
   </div>
   <p class="figcap">🖼️ You're building Twitter, and everyone is viewing Taylor Swift's profile. Her key <code>user:taylorswift</code> may get millions of requests a second, and overload <b>one Redis node</b>, even though everything is working "correctly". <span class="add">➕ drawing not in the article</span></p>
-  <p>🩹 How to handle it:</p>
-  <ul class="lines roomy heads">
-    <li><b class="hd">📑 Replicate hot keys</b>Store the same value on several cache nodes, and load balance reads across them. No extra load balancer needed (asked in the comments): save copies as <code>…taylorswift#1</code> to <code>#3</code>. Different keys usually land on different nodes, and the app reads a random copy. <span class="add">➕ not in the article</span></li>
-    <li><b class="hd">🧠 Add a local fallback cache</b>Keep extremely hot values in-process (<a href="#sd-cache-where">card ①</a>), so most reads never reach Redis.</li>
-    <li><b class="hd">🚦 Apply rate limiting</b>Slow down abusive traffic patterns on specific keys.</li>
-  </ul>
-  <div class="hk-lbl">After replicating <span class="add">➕</span></div>
+  <p>🩹 Three fixes:</p>
+
+  <h5>📑 Replicate hot keys: copies of the value, not new nodes</h5>
+  <p>Store the same value on several cache nodes, and spread the reads across them. Same 3 nodes as before: you just save her profile under <b>3 key names</b>. Different names land on different nodes: <span class="add">➕ how, not in the article</span></p>
   <div class="hk" role="img" aria-label="After replicating: three copies of the key on three nodes, each taking about a third of the reads.">
     <div class="ok">🟥 Node 1<small>…taylorswift#1<br>⅓ of reads</small></div>
     <div class="ok">🟥 Node 2<small>…taylorswift#2<br>⅓ of reads</small></div>
     <div class="ok">🟥 Node 3<small>…taylorswift#3<br>⅓ of reads</small></div>
   </div>
+  <div class="grid2">
+    <div class="k-blue"><b>📖 On a read</b><div class="chk">Pick a random number 1–3</div><div class="chk">Read that copy: <code>…taylorswift#2</code></div><div class="chk">Each node gets ⅓ of the traffic. The random pick <b>is</b> the load balancing: no extra load balancer (asked in the comments)</div></div>
+    <div class="k-amber"><b>✍️ On a write</b><div class="chk">She changes her bio</div><div class="chk">Update (or delete) <b>all 3</b> copies</div><div class="chk">Miss one, and ⅓ of readers see the old bio</div></div>
+  </div>
+  <p>➕ Another way: give the hot node <b>read replicas</b>, whole copies of that node that also serve reads (a reader suggested this in the comments).</p>
+  <p class="ana">✍️ A book signing with one table and an endless queue. Put the same signed poster on <b>3 tables</b>, and let people go to any table. Same poster, three queues a third as long.</p>
+
+  <h5>🧠 Add a local fallback cache: a copy inside each app server</h5>
+  <p>Keep extremely hot values <b>in-process</b> (<a href="#sd-cache-where">card ①</a>): each app server holds its own copy in memory for a few seconds, so most reads never reach Redis at all. Example with 100 app servers: <span class="add">➕ numbers not in the article</span></p>
+  <div class="vflow" role="img" aria-label="One million reads a second are spread over 100 app servers, 10,000 each. Each server answers them from its own in-memory copy, which lives 5 seconds. Only when the copy expires does a server ask Redis: 100 servers, once every 5 seconds, is 20 reads a second on the Redis node.">
+    <div class="bx">👥 1,000,000 reads/s of her profile<small>spread over 100 app servers = 10,000/s each</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--green-fg)">🖥️ Each app server: 🧠 its own copy, TTL 5 s<small>answers its 10,000/s from memory, ~100 ns each</small></div>
+    <div class="ar" style="--c: var(--amber-fg)">⬇️ only when its copy expires: once every 5 s</div>
+    <div class="bx" style="border-color: var(--green-fg)">🟥 Redis Node 2: <b>20 reads/s</b> 🙂<small>100 servers ÷ 5 s, instead of 1,000,000/s</small></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ The price: up to 5 s of stale data</b>Fine for a profile or a like count. Keep it for the few hottest keys, since each server's memory is small.</li>
+  </ul>
+  <p class="ana">📌 Instead of everyone walking to the one notice board downstairs, each office prints a copy for its own wall and reprints it every few minutes.</p>
+
+  <h5>🚦 Apply rate limiting</h5>
+  <p>Slow down abusive traffic patterns on specific keys, e.g. a bot refreshing her profile 1,000 times a second.</p>
+
   <div class="rem"><b>✅ Remember</b> (from the comments) <b>Stampede</b>: lots of traffic slams the <b>database</b>, because the cache missed. <b>Hot key</b>: lots of users slam the <b>cache</b>, even though it hit. Two different problems; a hot key that expires can cause both.</div>
   <div class="info"><b>ℹ️ Note</b> 🔗 <b>Pattern: Scaling Reads.</b> Hot keys aren't limited to caches. It's a common problem in distributed systems: when millions of users request the same viral content at once, the usual caching assumptions break down. <a href="https://www.hellointerview.com/learn/courses/system-design/lesson/scaling-reads/scaling-reads" target="_blank" rel="noopener">Learn This Pattern ↗</a></div>
-  <p class="ana">✍️ A celebrity book signing: one table, an endless queue. Fixes: more tables with pre-signed copies (replicate), copies handed out at the door (local cache), one per person (rate limit). <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🎤 When to Bring Up Caching</h4>
   <p class="bridge">Caching comes up in nearly every system design interview, so know when to bring it up and how to walk through it. ⭐ "Don't jump straight to caching." First establish <b>why</b> it's needed. Bring it up when you spot one of these four problems:</p>
