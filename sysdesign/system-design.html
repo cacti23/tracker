@@ -1111,7 +1111,6 @@ $ curl -s ifconfig.me  # after NAT
     <li><b class="hd">🧮 Addresses in a block = 2<sup>(32 − N)</sup></b>/16 → 2<sup>16</sup> = 65,536 · /24 → 2<sup>8</sup> = 256 · /28 → 2<sup>4</sup> = 16. N can be any number 0–32, not only 8, 16, 24 (/20 = 4,096).</li>
     <li><b class="hd">🏠 Same network part = same network: talk directly</b><code>10.0.1.25</code> → <code>10.0.1.80</code> share <code>10.0.1</code> in a /24, so they talk directly. <code>10.0.2.15</code> doesn't, so the packet goes through the router.</li>
     <li><b class="hd">🗺️ Routers store blocks, not single IPs</b>One route for <code>17.0.0.0/8</code> covers all 16.7 M of Apple's addresses. That is why the backbone can know where every public IP lives.</li>
-    <li><b class="hd">🎭 A subnet mask is the same idea, written the old way</b><code>255.255.255.0</code> = 24 ones = /24.</li>
     <li><b class="hd">🆕 IPv6 is 128 bits, with the same /N idea</b>A typical IPv6 subnet is a /64.</li>
   </ul>
   <p class="ana">📞 A phone number: the <b>area code</b> is the network part, the <b>local number</b> is the host. <code>/N</code> says how many digits are area code. A short area code leaves room for many local numbers (a big block). <span class="add">➕ analogy not in the article</span></p>
@@ -1154,6 +1153,42 @@ $ curl -s ifconfig.me  # after NAT
     </tbody></table>
   <p class="ana">🏘️ A street with 256 plots. Plot 0 holds the <b>street sign</b>: the street's name, nobody lives there (network). Plot 255 holds a <b>loudspeaker</b>: speak into it and every house hears, but the sound stops at the street's end (broadcast). The 254 plots in between are homes, and plot 1 is usually the gate (the router).</p>
   <div class="rem"><b>✅ Remember</b> 🎤 "How many IPs in a /N?" → "2<sup>(32 − N)</sup> in total. Minus 2 usable: the first is the network address, the last is broadcast. On AWS, minus 5." A /24 → 256 · 254 · 251.</div>
+
+  <h5>🎭 Subnet mask: the same /N, written like an IP <span class="add">➕ not in the article</span></h5>
+  <p class="bridge">A subnet mask is <code>/N</code> written out as 32 bits: <b>N ones, then zeros</b>. Same information, older notation, and still what your Wi-Fi settings and <code>ipconfig</code> show.</p>
+  <div class="bits" role="img" aria-label="/24 as a mask: 24 ones then 8 zeros, which is 255.255.255.0. /26: 26 ones then 6 zeros, which is 255.255.255.192.">
+    /24 = <span class="n">11111111.11111111.11111111.</span><span class="h">00000000</span><br>= <b>255.255.255.0</b><br><br>
+    /26 = <span class="n">11111111.11111111.11111111.11</span><span class="h">000000</span><br>= <b>255.255.255.192</b></div>
+  <p>🔍 <b>How it is used:</b> before sending any packet, your device asks "is the target on <b>my</b> network?" It uses the mask to find out:</p>
+  <ol class="steps-c">
+    <li><b>My IP AND mask = my network.</b> <code>10.0.1.25</code> AND <code>255.255.255.0</code> = <code>10.0.1.0</code>. AND keeps a bit where the mask has 1 and wipes it to 0 where the mask has 0, so 255 keeps a number and 0 zeroes it.</li>
+    <li><b>Target IP AND mask = its network.</b> Two targets below.</li>
+    <li><b>Same → send directly</b> (find its MAC with ARP). <b>Different → send to the router</b> (the default gateway, often <code>.1</code>).</li>
+  </ol>
+  <div class="grid2">
+    <div class="k-green"><b>✅ 10.0.1.80</b><div class="star">Same network: 10.0.1.0</div><div class="chk">📨 Sent straight to it</div></div>
+    <div class="k-amber"><b>🧭 10.0.2.15</b><div class="star">Different: 10.0.2.0</div><div class="chk">📨 Sent to the router at 10.0.1.1</div></div>
+  </div>
+  <p>The same AND gives the network address from the /26 example above:</p>
+  <div class="bits" role="img" aria-label="77 AND 192: 01001101 AND 11000000 equals 01000000, which is 64, the network address.">
+    77 &nbsp;= 01001101<br>AND 192 = <span class="n">11</span><span class="h">000000</span><br>= <b>01000000 = 64</b> 🏷️</div>
+  <table class="cidr-t">
+    <thead><tr><th>/N</th><th>Subnet mask</th><th>Addresses</th></tr></thead>
+    <tbody>
+      <tr><td>/8</td><td>255.0.0.0</td><td>16.7 M</td></tr>
+      <tr><td>/16</td><td>255.255.0.0</td><td>65,536</td></tr>
+      <tr><td>/24</td><td>255.255.255.0</td><td>256</td></tr>
+      <tr><td>/26</td><td>255.255.255.192</td><td>64</td></tr>
+      <tr><td>/28</td><td>255.255.255.240</td><td>16</td></tr>
+      <tr><td>/32</td><td>255.255.255.255</td><td>1</td></tr>
+    </tbody></table>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔢 Mask → /N: count the ones</b>255 = 8 ones. A last number of 128, 192, 224, 240, 248, 252 or 254 adds 1 to 7 ones. <code>255.255.255.192</code> = 8 + 8 + 8 + 2 = <b>/26</b>.</li>
+    <li><b class="hd">👀 Where you see it</b>Wi-Fi details and Windows <code>ipconfig</code>: "Subnet Mask 255.255.255.0". Mac <code>ifconfig</code>: <code>netmask 0xffffff00</code> (the same in hex). AWS and most cloud consoles use only <code>/N</code>.</li>
+    <li><b class="hd">⚠️ A wrong mask breaks things quietly</b>Mask /16 on a /24 network: the laptop thinks <code>10.0.2.15</code> is local, sends it directly instead of to the router, and it never arrives.</li>
+  </ul>
+  <p class="ana">🎭 A <b>stencil</b> laid over the address. The holes (1s) show the street part; the solid part (0s) covers the house number. What shows through is the network address. Two addresses that show the same street live on the same street.</p>
+  <div class="rem"><b>✅ Remember</b> Mask = <code>/N</code> as 32 bits (N ones). IP AND mask = network address. Same network as the target → send directly; different → send to the router.</div>
 
   <h5>☁️ VPC: your own private network in the cloud <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Your servers in the cloud need the same split as a home: a few things the internet can reach, everything else private. A <b>VPC</b> (Virtual Private Cloud) is where you draw that line. <span class="aws">☁️ AWS: Amazon VPC</span></p>
@@ -4718,10 +4753,13 @@ const GLOSSARY = [
     b: '<p>A subnet whose route table sends <code>0.0.0.0/0</code> to it is a <b>public</b> subnet. Without one, nothing in the VPC talks to the internet.</p><p>☁️ <b>On AWS:</b> Internet Gateway (one per VPC)</p>', see: ['vpc', 'subnet', 'nat'] },
   { id: 'cidr', t: 'CIDR block', aka: 'cidr classless inter-domain routing /16 /24 ip range slash netmask subnet mask network host bits 32-bit ipv4', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
     an: 'A street name with "all house numbers": /16 fixes the street, the rest are the houses.',
-    b: '<p>CIDR = Classless Inter-Domain Routing. IPv4 is 32 bits. The number after <code>/</code> is how many bits are the <b>network</b> part (fixed). The other 32 − N bits are the <b>host</b> part (free):</p><ul><li><code>/16</code> → 2<sup>(32−16)</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>(32−24)</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li><li><code>/0</code> → every address ("anywhere")</li></ul><p>Old way to write it: subnet mask <code>255.255.255.0</code> = /24.</p>', see: ['vpc', 'subnet', 'ip'] },
+    b: '<p>CIDR = Classless Inter-Domain Routing. IPv4 is 32 bits. The number after <code>/</code> is how many bits are the <b>network</b> part (fixed). The other 32 − N bits are the <b>host</b> part (free):</p><ul><li><code>/16</code> → 2<sup>(32−16)</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>(32−24)</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li><li><code>/0</code> → every address ("anywhere")</li></ul><p>Old way to write it: subnet mask <code>255.255.255.0</code> = /24.</p>', see: ['netmask', 'vpc', 'subnet', 'ip'] },
   { id: 'netaddr', t: 'Network address', aka: 'subnet address network id first address host bits zero', s: 'The first address of a CIDR block (host bits all 0): the block\'s name, never given to a device.',
     an: 'The street sign: it names the street, nobody lives there.',
     b: '<p><code>10.0.1.77/24</code> → network <code>10.0.1.0</code>. Route tables and firewall rules use it: "<code>10.0.1.0/24</code> → this subnet".</p><p>🧮 For <code>10.0.1.77/26</code>: block size 2<sup>6</sup> = 64, 77 is in 64–127 → network <code>10.0.1.64</code>.</p>', see: ['cidr', 'bcast', 'subnet'] },
+  { id: 'netmask', t: 'Subnet mask', aka: 'netmask mask 255.255.255.0 and default gateway local network', s: 'The /N written as 32 bits (N ones, then zeros), e.g. /24 = 255.255.255.0.',
+    an: 'A stencil over the address: the holes show the street, the solid part hides the house number.',
+    b: '<p>Your device does <b>IP AND mask</b> = network address, for itself and for the target. Same → send directly. Different → send to the router (default gateway).</p><p>🧪 <code>10.0.1.25</code> AND <code>255.255.255.0</code> = <code>10.0.1.0</code>. Target <code>10.0.2.15</code> → <code>10.0.2.0</code>: different, so it goes to the router.</p><p>🔢 Count the ones: <code>255.255.255.192</code> = /26.</p>', see: ['cidr', 'netaddr', 'subnet'] },
   { id: 'bcast', t: 'Broadcast address', aka: 'broadcast last address host bits one 255 dhcp everyone', s: 'The last address of a CIDR block (host bits all 1): a packet sent to it reaches every device in the subnet.',
     an: 'A loudspeaker on the street: every house hears, but the sound stops at the street\'s end.',
     b: '<p><code>10.0.1.0/24</code> → broadcast <code>10.0.1.255</code>. Routers don\'t forward broadcasts, so they stay inside the subnet.</p><p>🧪 A new laptop with no IP shouts "any DHCP server here?" to <code>255.255.255.255</code>.</p><p>🧮 Usable hosts = 2<sup>(32 − N)</sup> − 2 (network + broadcast). /24 → 254.</p><p>☁️ <b>On AWS:</b> 5 reserved per subnet (.0, .1, .2, .3, .255) → a /24 gives 251.</p>', see: ['netaddr', 'cidr', 'dhcp'] },
@@ -5060,7 +5098,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
