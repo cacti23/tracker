@@ -1264,7 +1264,11 @@ $ curl -s ifconfig.me  # after NAT
     <li><b class="hd">🧩 A subnet is a slice of the VPC, in one Availability Zone</b><code>10.0.1.0/24</code> = 256 addresses (AWS keeps 5). Real setups repeat public + private subnets in 2–3 Availability Zones, so one data center failing doesn't take you down.</li>
     <li><b class="hd">🛣️ The route table makes a subnet public, not its name</b>Public = has a route to the <button type="button" class="gl-link" data-g="igw">Internet Gateway</button>. Private = no such route; it goes out through a NAT Gateway, or not at all.</li>
     <li><b class="hd">🔒 Only the front door is public</b>The load balancer takes traffic in. The servers behind it stay private too, not only the databases.</li>
-    <li><b class="hd">🧱 Two firewalls on top: per server and per subnet</b>Security Group per server: "DB allows port 5432 only from the app's group". Network ACL per subnet: a coarse extra fence. <span class="aws">☁️ AWS: Security Groups + Network ACLs</span></li>
+    <li><b class="hd">🧱 Per-server firewall = Security Group · per-subnet firewall = Network ACL</b>
+      <div class="grid2" style="margin: 6px 0">
+        <div class="k-blue"><b>🔐 Security Group</b><div class="star">On each server</div><div class="chk">✅ Allow rules only</div><div class="chk">🧠 Remembers connections: a reply gets back in by itself</div><div class="chk">"DB allows 5432 only from the app's group"</div></div>
+        <div class="k-amber"><b>🚧 Network ACL</b><div class="star">On the whole subnet</div><div class="chk">✅❌ Allow and deny rules, checked in order</div><div class="chk">🙈 Forgets connections: you must allow the reply too</div><div class="chk">A coarse extra fence; often left as the default</div></div>
+      </div>🏢 Security Group = the lock on each office door. Network ACL = the guard at the floor's entrance. <span class="aws">☁️ AWS: Security Groups + Network ACLs</span></li>
     <li><b class="hd">🔗 Private paths to everything else</b>VPC endpoint: reach S3 or DynamoDB without going through NAT. VPC peering or Transit Gateway: VPC to VPC. Site-to-Site VPN or Direct Connect: office to VPC.</li>
   </ul>
   <p class="ana">🏢 A VPC is a <b>gated office campus</b>. The Internet Gateway is the main gate. The public subnet is the reception lobby, where visitors are let in. The private subnet is the badge-only offices: staff can step out for coffee (NAT), but no stranger walks in. Route tables are the signposts. <span class="add">➕ analogy not in the article</span></p>
