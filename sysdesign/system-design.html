@@ -1190,6 +1190,21 @@ $ curl -s ifconfig.me  # after NAT
       <div class="chk">⬆️ Can call out, nobody can call in</div>
       <q>Put here: app servers, microservices, databases, caches</q></div>
   </div>
+  <p>🛣️ <b>Two ways out to the internet</b>, say to call <code>api.stripe.com</code>: <span class="add">➕ not in the article</span></p>
+  <div class="grid2" role="img" aria-label="Public subnet path: EC2 or load balancer with its own public IP goes to the Internet Gateway, then the internet; Stripe sees the server's public IP. Private subnet path: private EC2 goes to the NAT Gateway in the public subnet, which swaps in its public IP, then the Internet Gateway, then the internet; Stripe sees the NAT Gateway's IP. New connections from outside are dropped.">
+    <div class="k-green"><b>🟢 From a public subnet</b><div class="star">Goes out directly</div>
+      <div class="vflow"><div class="bx">🖥️ EC2 / ⚖️ LB<small>own public IP 54.1.2.3</small></div><div class="ar">⬇️</div><div class="bx">🚪 Internet Gateway</div><div class="ar">⬇️</div><div class="bx">🌍 Internet<small>Stripe sees 54.1.2.3</small></div></div>
+      <div class="chk">↕️ Can also be reached from outside (if the Security Group allows)</div></div>
+    <div class="k-amber"><b>🔒 From a private subnet</b><div class="star">Goes out through NAT</div>
+      <div class="vflow"><div class="bx">🖥️ Private EC2<small>only 10.0.2.15</small></div><div class="ar">⬇️ route: anywhere → NAT</div><div class="bx">🔁 NAT Gateway<small>sits in the public subnet · swaps in its IP 3.4.5.6</small></div><div class="ar">⬇️</div><div class="bx">🚪 Internet Gateway</div><div class="ar">⬇️</div><div class="bx">🌍 Internet<small>Stripe sees 3.4.5.6</small></div></div>
+      <div class="chk">⬆️ Out only: replies come back, new calls from outside are dropped</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🚪 Every path ends at the Internet Gateway</b>It is the VPC's only door. The difference is the step before it: a public server walks out itself, a private one goes through the NAT Gateway.</li>
+    <li><b class="hd">🔁 The NAT Gateway lives in the public subnet</b>It needs a public IP (an Elastic IP) and the route to the Internet Gateway, which only the public subnet has. Without it, private servers can't reach the internet at all.</li>
+    <li><b class="hd">🏢 One NAT Gateway per Availability Zone</b>Each one lives in one AZ. Give each AZ its own, so one AZ failing doesn't cut every private server off. It also costs per hour and per GB, so S3 and DynamoDB traffic should use a free VPC endpoint instead.</li>
+  </ul>
+  <p class="ana">🏢 Reception staff (public subnet) walk out of the main gate themselves. Badge-only staff (private subnet) hand their orders to reception (NAT), who goes out through the same gate. The delivery comes back to them, but no stranger walks in.</p>
   <p>▶️ Three trips through one VPC: a user comes in, the app calls out, a stranger is stopped:</p>
   <div class="seq" data-seq="vpc"></div>
   <ul class="lines roomy heads">
