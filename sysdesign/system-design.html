@@ -3565,23 +3565,11 @@ LIMIT 20;</pre>
   <p class="figcap">🖼️ The lesson's picture: "Cache Miss, so all requests hit the DB!" → "Overwhelmed!"</p>
   <p>🩹 How to handle it:</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">🤝 Request coalescing (single flight): ⭐ the most effective fix</b>Only one request rebuilds the cache; the others wait for its result.</li>
+    <li><b class="hd">🤝 Request coalescing (single flight): ⭐ the most effective fix</b>Only one request rebuilds the cache; the others wait for its result. How it works 👇</li>
     <li><b class="hd">🌡️ Cache warming: refresh popular keys before they expire</b>This only helps with TTL-based expiry. If you invalidate the cache on writes instead, warming doesn't prevent stampedes. How it works 👇</li>
     <li><b class="hd">🎲 Probabilistic early expiration: one request refreshes a little early</b>Named in the lesson's interview script. As the expiry gets close, each request has a small, growing chance to rebuild the key early, while the old value keeps serving everyone else. How it works 👇 <span class="add">➕ explanation not in the article</span></li>
     <li><b class="hd">🖥️ Many app servers? Each one coalesces its own requests</b>So the database sees at most one query per server: 20 servers → 20 queries, not 1,000. A shared lock across servers (e.g. Redis <code>SET … NX</code>) gets it down to 1, but readers called that "overkill" (comments). Both pictured 👇 <span class="add">➕ numbers not in the article</span></li>
   </ul>
-  <details class="more"><summary>🧩 Single flight in Node, in 7 lines <span class="add">➕ not in the article</span></summary>
-<pre>// call this on a cache miss
-const inFlight = new Map()
-function loadOnce(key) {
-  if (!inFlight.has(key))
-    inFlight.set(key, loadFromDb(key)
-      .finally(() =&gt;
-        inFlight.delete(key)))
-  return inFlight.get(key)
-}</pre>
-  <p>The first miss starts the database load and stores its Promise. Every request that misses meanwhile awaits the <b>same</b> Promise. When it settles, the entry is removed. (Go has this built in: <code>singleflight</code>.)</p>
-  </details>
   <p class="ana">🛒 The bread shelf empties at noon, and 1,000 shoppers all run to the warehouse. Single flight: <b>one</b> clerk goes, everyone else waits at the shelf. Cache warming: restock at 11:59. <span class="add">➕ analogy not in the article</span></p>
 
   <h5>🧭 When each fix acts: before or after the expiry <span class="add">➕ not in the article</span></h5>
@@ -3635,6 +3623,30 @@ if (left &lt; roll * rebuildMs)
   <p>🎲 <code>roll</code> is about 1 on average, now and then 3 or 4. 🐢 <code>rebuildMs</code> is how long the last rebuild took, stored next to the value. So a slow rebuild starts refreshing earlier, a fast one later. Chance of a yes = e<sup>−left ÷ rebuildMs</sup>: that's where the numbers above come from.</p>
   </details>
   <p class="ana">🥛 Housemates and a milk bottle that expires at midnight. Every time someone opens the fridge, they glance at the date. At 9 AM nobody thinks of it. At 11 PM, someone is quite likely to say "I'll grab more on the way home". One person buys it before it runs out, and nobody ever finds the fridge empty.</p>
+
+  <h5>🤝 Request coalescing (single flight): how it works <span class="add">➕ details not in the article</span></h5>
+  <p>"Coalesce" means <b>merge into one</b>. Many identical requests that miss at the same moment are merged into <b>one</b> database call. The trick is one small map inside the app server: <b>key → the load already in progress</b>. ▶️</p>
+  <div class="seq" data-seq="coalesce"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">👑 The first miss is the leader, everyone after is a follower</b>The leader finds no entry in the map, so it runs the query and records "⏳ loading". Followers find that entry and wait instead of querying.</li>
+    <li><b class="hd">🤝 1,000 misses → 1 query, and everyone gets the same answer</b>The followers get the result at the same moment as the leader. They wait about one rebuild, no longer.</li>
+    <li><b class="hd">⚠️ If the one query fails, everyone waiting fails together</b>So don't cache the failure: remove the entry, and the next request starts a fresh attempt.</li>
+    <li><b class="hd">📍 The map lives in one server's memory</b>So it merges requests <b>per server</b>. Twenty servers → up to 20 queries (below 👇).</li>
+    <li><b class="hd">🌍 CDNs do the same</b>Many users ask an edge for the same uncached video at once: CloudFront and Varnish send <b>one</b> request to your origin and share the answer ("request collapsing").</li>
+  </ul>
+  <details class="more"><summary>🧩 Single flight in Node, in 7 lines</summary>
+<pre>// call this on a cache miss
+const inFlight = new Map()
+function loadOnce(key) {
+  if (!inFlight.has(key))
+    inFlight.set(key, loadFromDb(key)
+      .finally(() =&gt;
+        inFlight.delete(key)))
+  return inFlight.get(key)
+}</pre>
+  <p>🗺️ <code>inFlight</code> is the map from the animation. 👑 The first miss finds no entry, so it starts <code>loadFromDb</code> and stores its <b>Promise</b> (the "⏳ loading" ticket). 🙋 Every later miss finds the entry and returns the <b>same</b> Promise, so it awaits the same query. 🧹 <code>finally</code> removes the entry when the load succeeds <b>or</b> fails. (Go has this built in: the <code>singleflight</code> package.)</p>
+  </details>
+  <p class="ana">🍕 Ten colleagues want the same pizza at the same time. The first one calls and orders (the leader). Everyone else asks "has someone already ordered?", hears "yes", and waits for the same delivery. One call, one pizza, ten happy people, instead of ten calls and ten pizzas.</p>
 
   <h5>🖥️ Many app servers: single flight per server, or a shared lock <span class="add">➕ details not in the article</span></h5>
   <p>Single flight lives in each server's <b>own memory</b> (the <code>inFlight</code> map above). Server 1 can't see Server 2's map. So 1,000 misses spread over 20 servers = 50 misses per server, and each server sends <b>1</b> query:</p>
@@ -4465,6 +4477,21 @@ const SEQS = {
       { f: 0, t: 2, m: 'rebuild in background (1 query)', k: 'http', bi: 1, cap: '…and that request\'s server rebuilds the feed in the background. Meanwhile everyone else keeps reading the old value: it hasn\'t expired.' },
       { f: 0, t: 1, m: 'SET feed EX 60', k: 'http', cap: 'The fresh value goes in with a new 60 s TTL. The clock restarts.' },
       { f: 0, t: 1, m: 'hit · 60 s left', k: 'tcp', bi: 1, note: 'the key never expired: 0 misses', cap: 'The key never reached 0, so nobody missed. No job and no lock: the requests shared the work by chance.' },
+    ],
+  },
+  'coalesce': {
+    lanes: ['👤 Request A', '👥 B, C… (999)', '🗺️ inFlight map', '🗄️ Database'],
+    key: [['tcp', 'ask the map'], ['http', 'the one query'], ['gray', 'wait'], ['lb', 'result']],
+    frames: [
+      { cap: '12:01:00: the feed just expired. On <b>one</b> app server, 1,000 requests miss the cache within a few milliseconds: A first, then B, C and the rest 👇' },
+      { f: 0, t: 2, m: 'anyone loading feed? no', k: 'tcp', bi: 1, cap: '① A misses and asks the map: "is anyone already loading <code>feed</code>?" No entry.' },
+      { f: 0, t: 3, m: 'SELECT feed (1 query)', k: 'http', cap: '② So A becomes the <b>leader</b>: it starts the one database query…' },
+      { at: 2, m: 'feed → ⏳ loading', k: 'http', cap: '…and records it in the map: "feed is being loaded". In Node, the value is the Promise of that query.' },
+      { f: 1, t: 2, m: 'anyone loading feed? yes ⏳', k: 'gray', bi: 1, cap: '③ B, C and the other 997 miss too. They ask the map: yes, someone is already loading it. So they send <b>no</b> query…' },
+      { at: 1, m: '⏳ wait on the same load', k: 'gray', cap: '…they all wait on that same load. The database still sees only 1 query.' },
+      { f: 3, t: 2, m: 'feed rows', k: 'lb', cap: '④ The one query returns.' },
+      { f: 2, t: 0, m: 'feed → A, B, C… all 1,000', k: 'lb', cap: '⑤ The same result goes to <b>everyone</b> who was waiting, at the same moment. 1,000 misses, 1 query.' },
+      { at: 2, m: '🧹 remove feed · SET cache', k: 'lb', cap: '⑥ The entry is removed from the map, and the result is written to the cache (<code>SET feed EX 60</code>). Requests after this are cache hits again.' },
     ],
   },
 }
