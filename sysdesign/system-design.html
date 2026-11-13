@@ -3563,76 +3563,23 @@ LIMIT 20;</pre>
   <p class="bridge">A popular cache entry expires, and many requests try to rebuild it <b>at the same time</b>. For a brief window, even one second, every request misses and goes straight to the database. Instead of one query, you suddenly have hundreds or thousands. ▶️</p>
   <div class="seq" data-seq="stampede"></div>
   <p class="figcap">🖼️ The lesson's picture: "Cache Miss, so all requests hit the DB!" → "Overwhelmed!"</p>
-  <p>🩹 How to handle it:</p>
-  <ul class="lines roomy heads">
-    <li><b class="hd">🤝 Request coalescing (single flight): ⭐ the most effective fix</b>Only one request rebuilds the cache; the others wait for its result. How it works 👇</li>
-    <li><b class="hd">🌡️ Cache warming: refresh popular keys before they expire</b>This only helps with TTL-based expiry. If you invalidate the cache on writes instead, warming doesn't prevent stampedes. How it works 👇</li>
-    <li><b class="hd">🎲 Probabilistic early expiration: one request refreshes a little early</b>Named in the lesson's interview script. As the expiry gets close, each request has a small, growing chance to rebuild the key early, while the old value keeps serving everyone else. How it works 👇 <span class="add">➕ explanation not in the article</span></li>
-    <li><b class="hd">🖥️ Many app servers? Each one coalesces its own requests</b>So the database sees at most one query per server: 20 servers → 20 queries, not 1,000. A shared lock across servers (e.g. Redis <code>SET … NX</code>) gets it down to 1, but readers called that "overkill" (comments). Both pictured 👇 <span class="add">➕ numbers not in the article</span></li>
-  </ul>
-  <p class="ana">🛒 The bread shelf empties at noon, and 1,000 shoppers all run to the warehouse. Single flight: <b>one</b> clerk goes, everyone else waits at the shelf. Cache warming: restock at 11:59. <span class="add">➕ analogy not in the article</span></p>
-
-  <h5>🧭 When each fix acts: before or after the expiry <span class="add">➕ not in the article</span></h5>
-  <p>All four fixes do something at a different moment in the key's life. One picture, for the feed with a 60 s TTL:</p>
+  <p>🩹 Four fixes. Two act <b>after</b> the key expires and shrink the crowd; two act <b>before</b>, so the miss never happens:</p>
   <div class="tlx" role="img" aria-label="Timeline of one cached key, from 0 to 60 seconds, then expired. Cache warming acts at 50 seconds, from a scheduled job. Probabilistic early expiration acts in the last few seconds, from one lucky request. Single flight and a shared lock act after the expiry, at the miss.">
     <div class="tlx-ax"><span></span><div><b style="left: 0; transform: none">0 s</b><b style="left: 55%">50 s</b><b style="left: 75%">⏰ 60 s</b><b style="left: 91%">miss</b></div></div>
-    <div class="tlx-row"><span>🌡️ Warming<small>a job, on a schedule</small></span><div class="tlx-tr"><i style="left: 55%; --c: var(--blue-fg)"></i></div></div>
-    <div class="tlx-row"><span>🎲 Probabilistic<small>one lucky request</small></span><div class="tlx-tr"><span class="zone"></span><i style="left: 68%; --c: var(--amber-fg)"></i></div></div>
     <div class="tlx-row"><span>🤝 Single flight<small>at the miss, per server</small></span><div class="tlx-tr"><i style="left: 87%; --c: var(--green-fg)"></i></div></div>
     <div class="tlx-row"><span>🔒 Shared lock<small>at the miss, all servers</small></span><div class="tlx-tr"><i style="left: 87%; --c: var(--purple-fg)"></i></div></div>
+    <div class="tlx-row"><span>🌡️ Warming<small>a job, on a schedule</small></span><div class="tlx-tr"><i style="left: 55%; --c: var(--blue-fg)"></i></div></div>
+    <div class="tlx-row"><span>🎲 Probabilistic<small>one lucky request</small></span><div class="tlx-tr"><span class="zone"></span><i style="left: 68%; --c: var(--amber-fg)"></i></div></div>
   </div>
-  <p class="figcap">🖼️ Green = the key is cached. Red = it has expired. Not to scale.</p>
-  <ul class="lines roomy heads">
-    <li><b class="hd">⏰ Before the expiry: stop the miss from ever happening</b>Warming and probabilistic early expiration put a fresh value in <b>before</b> the old one runs out. Users never see a miss.</li>
-    <li><b class="hd">💥 After the expiry: let the miss happen, but shrink the crowd</b>Single flight and a lock accept the miss, but only 1 query per server (or 1 in total) reaches the database.</li>
-  </ul>
+  <p class="figcap">🖼️ The life of the feed key (TTL 60 s). Green = cached, red = expired. Not to scale. <span class="add">➕ not in the article</span></p>
 
-  <h5>🌡️ Cache warming: how it works <span class="add">➕ details not in the article</span></h5>
-  <p>A <b>background job</b>, not a user request, rebuilds the hot keys a little before their TTL runs out. ▶️</p>
-  <div class="seq" data-seq="warm"></div>
-  <ul class="lines roomy heads">
-    <li><b class="hd">📋 It needs a list of hot keys</b>You can only warm what you know is hot: fixed keys (the homepage feed, trending posts), or the top keys the app counts as it serves them.</li>
-    <li><b class="hd">🔁 Refresh before the TTL ends, so the clock keeps restarting</b>TTL 60 s, job every 50 s: each run writes a new value with a new 60 s TTL, so the key never reaches 0.</li>
-    <li><b class="hd">⚠️ Useless when writes delete the key</b>A write can delete the key at any second. The job is asleep until its next run, so the misses that follow are a stampede anyway. That's why the lesson says warming only helps with TTL-based expiry.</li>
-    <li><b class="hd">🏢 At Big Tech: an "external channel" (comments)</b>A job like this one, or a stream of database changes that pushes each new value into the cache as it happens.</li>
-  </ul>
-  <p class="ana">🥛 A milkman delivers fresh milk every evening, before yesterday's bottle expires. Nobody in the house ever opens an empty fridge. But if someone pours the milk away at noon (a write deletes the key), the fridge stays empty until the evening delivery.</p>
-
-  <h5>🎲 Probabilistic early expiration: how it works <span class="add">➕ details not in the article</span></h5>
-  <p>No job and no lock. Every request that gets a cache <b>hit</b> also rolls a die: "Should I refresh this now?" Far from the expiry, the answer is almost always no. Near it, yes becomes likely. Example: the feed takes <b>0.5 s</b> to rebuild. Chance of a yes, <b>per request</b>:</p>
-  <div class="pe" role="img" aria-label="Chance that one request refreshes early, with a 0.5 second rebuild: 10 seconds left, about 0 percent. 5 seconds left, 0.005 percent. 3 seconds left, 0.25 percent. 1 second left, 14 percent. Half a second left, 37 percent.">
-    <div><span>10 s left</span><div class="bar"><i class="z"></i></div><b>≈ 0%</b></div>
-    <div><span>5 s left</span><div class="bar"><i style="width: 0.005%"></i></div><b>0.005%</b></div>
-    <div><span>3 s left</span><div class="bar"><i style="width: 0.25%"></i></div><b>0.25%</b></div>
-    <div><span>1 s left</span><div class="bar"><i style="width: 14%"></i></div><b>14%</b></div>
-    <div><span>0.5 s left</span><div class="bar"><i style="width: 37%"></i></div><b>37%</b></div>
-  </div>
-  <p>Tiny chances, but the feed gets <b>1,000 requests a second</b>. At 3 s left, 0.25% × 1,000 ≈ 2 yeses a second. So one request usually says yes about <b>3 s before</b> the expiry. ▶️</p>
-  <div class="seq" data-seq="xfetch"></div>
-  <ul class="lines roomy heads">
-    <li><b class="hd">🎯 The refresh happens while the old value still works</b>The lucky request rebuilds in the background. Everyone else keeps reading the old value, which hasn't expired yet. So there is no miss window at all.</li>
-    <li><b class="hd">🧩 No coordination needed</b>No job, no lock, no list of hot keys. Hot keys get the most rolls, so they refresh themselves. A cold key rarely rolls a yes and simply expires, which is fine: nobody is crowding it.</li>
-    <li><b class="hd">⚠️ Not perfect: a few duplicates</b>While the 0.5 s rebuild runs, another request may also roll a yes. That's a handful of queries, never 1,000.</li>
-  </ul>
-  <details class="more"><summary>🧮 The rule in code (XFetch), 5 lines</summary>
-<pre>// on every cache hit
-const left = expiresAt - Date.now()
-const roll = -Math.log(Math.random())
-if (left &lt; roll * rebuildMs)
-  refreshInBackground(key)</pre>
-  <p>🎲 <code>roll</code> is about 1 on average, now and then 3 or 4. 🐢 <code>rebuildMs</code> is how long the last rebuild took, stored next to the value. So a slow rebuild starts refreshing earlier, a fast one later. Chance of a yes = e<sup>−left ÷ rebuildMs</sup>: that's where the numbers above come from.</p>
-  </details>
-  <p class="ana">🥛 Housemates and a milk bottle that expires at midnight. Every time someone opens the fridge, they glance at the date. At 9 AM nobody thinks of it. At 11 PM, someone is quite likely to say "I'll grab more on the way home". One person buys it before it runs out, and nobody ever finds the fridge empty.</p>
-
-  <h5>🤝 Request coalescing (single flight): how it works <span class="add">➕ details not in the article</span></h5>
-  <p>"Coalesce" means <b>merge into one</b>. Many identical requests that miss at the same moment are merged into <b>one</b> database call. The trick is one small map inside the app server: <b>key → the load already in progress</b>. ▶️</p>
+  <h5>🤝 Request coalescing (single flight): ⭐ the most effective fix</h5>
+  <p>Only one request rebuilds the cache; the others wait for its result. How: each app server keeps a small map, <b>key → the load already in progress</b>. The first miss runs the query; every later miss finds it in the map and waits for the same answer. ▶️ <span class="add">➕ the map, not in the article</span></p>
   <div class="seq" data-seq="coalesce"></div>
   <ul class="lines roomy heads">
-    <li><b class="hd">👑 The first miss is the leader, everyone after is a follower</b>The leader finds no entry in the map, so it runs the query and records "⏳ loading". Followers find that entry and wait instead of querying.</li>
-    <li><b class="hd">🤝 1,000 misses → 1 query, and everyone gets the same answer</b>The followers get the result at the same moment as the leader. They wait about one rebuild, no longer.</li>
-    <li><b class="hd">⚠️ If the one query fails, everyone waiting fails together</b>So don't cache the failure: remove the entry, and the next request starts a fresh attempt.</li>
-    <li><b class="hd">📍 The map lives in one server's memory</b>So it merges requests <b>per server</b>. Twenty servers → up to 20 queries (below 👇).</li>
-    <li><b class="hd">🌍 CDNs do the same</b>Many users ask an edge for the same uncached video at once: CloudFront and Varnish send <b>one</b> request to your origin and share the answer ("request collapsing").</li>
+    <li><b class="hd">🤝 1,000 misses → 1 query, one shared answer</b>The waiters get the result at the same moment as the first request.</li>
+    <li><b class="hd">⚠️ If that one query fails, all the waiters fail with it</b>So never cache the failure: drop the map entry, and the next request tries again.</li>
+    <li><b class="hd">📍 The map lives in one server's memory, so it merges per server</b>CDNs do the same at each edge ("request collapsing" in CloudFront).</li>
   </ul>
   <details class="more"><summary>🧩 Single flight in Node, in 7 lines</summary>
 <pre>// call this on a cache miss
@@ -3648,8 +3595,8 @@ function loadOnce(key) {
   </details>
   <p class="ana">🍕 Ten colleagues want the same pizza at the same time. The first one calls and orders (the leader). Everyone else asks "has someone already ordered?", hears "yes", and waits for the same delivery. One call, one pizza, ten happy people, instead of ten calls and ten pizzas.</p>
 
-  <h5>🖥️ Many app servers: single flight per server, or a shared lock <span class="add">➕ details not in the article</span></h5>
-  <p>Single flight lives in each server's <b>own memory</b> (the <code>inFlight</code> map above). Server 1 can't see Server 2's map. So 1,000 misses spread over 20 servers = 50 misses per server, and each server sends <b>1</b> query:</p>
+  <h5>🔒 Many app servers: single flight per server, or a shared lock <span class="add">➕ not in the article</span></h5>
+  <p>Server 1 can't see Server 2's map. So 1,000 misses over 20 servers = 50 per server, and each server sends <b>1</b> query:</p>
   <div class="hk" role="img" aria-label="Twenty app servers each get 50 of the 1,000 misses. Each one coalesces its own 50 into 1 query. The database sees 20 queries, not 1,000.">
     <div class="ok">🖥️ Server 1<small>50 misses<br>→ 1 query</small></div>
     <div class="ok">🖥️ Server 2<small>50 misses<br>→ 1 query</small></div>
@@ -3676,12 +3623,43 @@ else {
 }</pre>
   <p>🔑 <code>NX</code>: only one server's SET succeeds. ⏳ <code>EX 5</code>: the lock disappears on its own after 5 s, so a winner that crashes doesn't block everyone forever.</p>
   </details>
-  <div class="grid2">
-    <div class="k-green"><b>🤝 Single flight per server</b><div class="star">DB gets 1 query per server</div><div class="chk">✅ No extra parts: a Map in memory</div><div class="chk">✅ Usually enough: 20 queries is nothing for a database</div></div>
-    <div class="k-blue"><b>🔒 Shared lock in Redis</b><div class="star">DB gets 1 query in total</div><div class="chk">➖ An extra Redis call, losers must wait and retry, the lock needs a TTL</div><div class="chk">✅ Worth it with hundreds of servers, or a rebuild that costs seconds of DB time</div></div>
-  </div>
-  <div class="rem"><b>🔑 Key point</b> That's why a reader in the comments called the lock "overkill": per-server single flight already turns 1,000 queries into 20. 🎤 In an interview, say single flight first. Add "with many servers, a short Redis lock" only if the interviewer pushes on it.</div>
+  <div class="rem"><b>🔑 Key point</b> 20 queries is nothing for a database, so a reader called the lock "overkill". 🎤 Say single flight first. Add the Redis lock only with hundreds of servers or a rebuild that costs seconds, or if the interviewer pushes.</div>
   <p class="ana">🏢 A building with 20 flats, and the milk runs out everywhere at once. Single flight: each flat sends <b>one</b> person, so 20 people go to the shop. A shared lock: a note on the building's front door, "Ravi went for milk", so only <b>one</b> person goes for the whole building.</p>
+
+  <h5>🌡️ Cache warming: refresh popular keys before they expire</h5>
+  <p>A <b>background job</b>, not a user request, rebuilds the hot keys a little before their TTL runs out. The clock keeps restarting, so the key never expires. ▶️ <span class="add">➕ the job, not in the article</span></p>
+  <div class="seq" data-seq="warm"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📋 It needs a list of hot keys</b>Fixed ones (homepage feed, trending), or the top keys the app counts.</li>
+    <li><b class="hd">⚠️ It only helps with TTL-based expiry</b>If writes delete the key, a delete can come at any second while the job sleeps, and the misses that follow are a stampede anyway.</li>
+    <li><b class="hd">🏢 At Big Tech: "warming through an external channel" (comments)</b>A job like this, or a stream of database changes that pushes each new value into the cache.</li>
+  </ul>
+  <p class="ana">🥛 A milkman delivers fresh milk every evening, before yesterday's bottle expires. Nobody in the house ever opens an empty fridge. But if someone pours the milk away at noon (a write deletes the key), the fridge stays empty until the evening delivery.</p>
+
+  <h5>🎲 Probabilistic early expiration: one request refreshes a little early <span class="add">➕ details not in the article</span></h5>
+  <p>No job and no lock. Every cache <b>hit</b> also rolls a die: "should I refresh now?" The closer the expiry, the likelier a yes. Example, a 0.5 s rebuild. Chance of a yes, <b>per request</b>:</p>
+  <div class="pe" role="img" aria-label="Chance that one request refreshes early, with a 0.5 second rebuild: 10 seconds left, about 0 percent. 5 seconds left, 0.005 percent. 3 seconds left, 0.25 percent. 1 second left, 14 percent. Half a second left, 37 percent.">
+    <div><span>10 s left</span><div class="bar"><i class="z"></i></div><b>≈ 0%</b></div>
+    <div><span>5 s left</span><div class="bar"><i style="width: 0.005%"></i></div><b>0.005%</b></div>
+    <div><span>3 s left</span><div class="bar"><i style="width: 0.25%"></i></div><b>0.25%</b></div>
+    <div><span>1 s left</span><div class="bar"><i style="width: 14%"></i></div><b>14%</b></div>
+    <div><span>0.5 s left</span><div class="bar"><i style="width: 37%"></i></div><b>37%</b></div>
+  </div>
+  <p>Tiny, but with <b>1,000 requests a second</b>, one says yes about <b>3 s before</b> the expiry. It rebuilds in the background while everyone keeps reading the old, still-valid value. ▶️</p>
+  <div class="seq" data-seq="xfetch"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧩 No coordination needed</b>Hot keys get the most rolls, so they refresh themselves. Cold keys just expire; nobody is crowding them.</li>
+    <li><b class="hd">⚠️ A few duplicates, never 1,000</b>During the 0.5 s rebuild, another request may also roll a yes.</li>
+  </ul>
+  <details class="more"><summary>🧮 The rule in code (XFetch), 5 lines</summary>
+<pre>// on every cache hit
+const left = expiresAt - Date.now()
+const roll = -Math.log(Math.random())
+if (left &lt; roll * rebuildMs)
+  refreshInBackground(key)</pre>
+  <p>🎲 <code>roll</code> is about 1 on average, now and then 3 or 4. 🐢 <code>rebuildMs</code> is how long the last rebuild took, stored next to the value. So a slow rebuild starts refreshing earlier, a fast one later. Chance of a yes = e<sup>−left ÷ rebuildMs</sup>: that's where the numbers above come from.</p>
+  </details>
+  <p class="ana">🥛 Housemates and a milk bottle that expires at midnight. Every time someone opens the fridge, they glance at the date. At 9 AM nobody thinks of it. At 11 PM, someone is quite likely to say "I'll grab more on the way home". One person buys it before it runs out, and nobody ever finds the fridge empty.</p>
 
   <h4>🔄 Cache Consistency</h4>
   <p class="bridge">Among the most discussed caching problems in interviews: the cache and the database return <b>different values</b> for the same data. It's common because most systems <b>read from the cache</b> but <b>write to the database first</b>, which leaves a window where the cache still holds stale data. ▶️</p>
@@ -3692,8 +3670,19 @@ else {
     <li><b class="hd">⏳ Short TTLs for stale tolerance: a little stale</b>Let slightly stale data live for a while, if eventual consistency is acceptable. "Short" because the TTL is now the <b>only</b> thing that refreshes the data: there's no delete on write (from the comments).</li>
     <li><b class="hd">🤷 Accept eventual consistency: stale is fine</b>For feeds, metrics and analytics, a short delay is usually fine.</li>
   </ul>
-  <div class="rem"><b>🔑 Key point</b> <span class="add">➕ not in the article</span> Why <b>delete</b> the key instead of writing the new value into it? Two writers can race: A updates the database, then B does, but B's cache write lands first and A's lands last, so the cache keeps A's <b>older</b> value. A delete can't go stale: the next read loads whatever the database holds now. And delete <b>after</b> the database write, not before, or a read in between can put the old value back.</div>
   <p class="ana">🪧 A café menu board. The kitchen changed the price (the database), but the board (the cache) still shows the old one. Wipe that line the moment the price changes (invalidate), repaint the board every 10 minutes (TTL), or don't mind a few minutes of old prices (eventual). <span class="add">➕ analogy not in the article</span></p>
+
+  <h5>🗑️ Why delete the key instead of writing the new value? <span class="add">➕ not in the article</span></h5>
+  <p>Two admins change a product's price within a moment: A sets <b>₹100</b>, then B sets <b>₹120</b>. The database ends with ₹120 ✅. Now see what reaches the cache:</p>
+  <div class="grid2">
+    <div class="k-red"><b>✍️ Overwrite (SET the new value)</b><div class="chk">① A: DB → ₹100</div><div class="chk">② B: DB → ₹120</div><div class="chk">③ B's <code>SET 120</code> reaches the cache</div><div class="chk">④ A's <code>SET 100</code> arrives <b>late</b> (slow network)</div><div class="star">❌ Cache ₹100, DB ₹120: wrong until the TTL ends</div></div>
+    <div class="k-green"><b>🗑️ Delete (DEL the key)</b><div class="chk">① A: DB → ₹100, then <code>DEL</code></div><div class="chk">② B: DB → ₹120, then <code>DEL</code></div><div class="chk">③ Either DEL can arrive last: the cache is empty both ways</div><div class="chk">④ The next read misses and loads ₹120 from the DB</div><div class="star">✅ Cache ₹120</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔑 A late SET can bring back an old value. A late DEL can only empty the cache.</b>An empty cache refills from the database, and the database always has the latest value.</li>
+    <li><b class="hd">⏱️ Delete <u>after</u> the database write, not before</b>Delete first, and a reader can slip into the gap: it misses, reads the old ₹100 (the DB isn't updated yet), and puts it back in the cache.</li>
+  </ul>
+  <p class="ana">📋 A notice board copied from a master file. Two clerks update the master, then each rewrites the board. If the slower clerk writes last, the board shows the old version. Better: each clerk just <b>wipes</b> the board, and the next person who needs it copies from the master file, which is always right.</p>
 
   <h4>🔥 Hot Keys</h4>
   <p class="bridge">A stampede happens when the cache <b>misses</b>. A hot key hurts even when it <b>hits</b>: one entry gets huge traffic compared with everything else, and one key lives on one node. Even with a high hit rate, that one node or Redis shard becomes the bottleneck.</p>
