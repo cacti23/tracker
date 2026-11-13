@@ -483,6 +483,11 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .bits { margin: 6px 0; padding: 8px; border-radius: 8px; background: var(--chip); text-align: center; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .3px; overflow-wrap: anywhere; }
 .bits .n { color: var(--green-fg); font-weight: 700; } .bits .h { color: var(--amber-fg); font-weight: 700; }
 /* CIDR: network / usable / broadcast strip and the hosts table */
+.ipr5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin: 8px 0; text-align: center; font-size: 10.5px; line-height: 1.25; }
+.ipr5 > span { border: 1.5px solid var(--c); background: var(--bg-c); border-radius: 7px; padding: 5px 1px; display: flex; flex-direction: column; gap: 2px; }
+.ipr5 code { font-size: 11.5px; font-weight: 700; color: var(--c); }
+.ipr5 .nw { --c: var(--blue-fg); --bg-c: var(--blue-bg); } .ipr5 .rs { --c: var(--red-fg); --bg-c: var(--red-bg); } .ipr5 .bc { --c: var(--amber-fg); --bg-c: var(--amber-bg); }
+.ipr5 .us { grid-column: 1 / -1; border: 1.5px solid var(--green-fg); background: var(--green-bg); border-radius: 7px; padding: 6px; font-size: 12.5px; }
 .ipr { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 4px; margin: 8px 0; text-align: center; font-size: 12px; }
 .ipr > div { border: 1.5px solid var(--c); background: var(--bg-c); border-radius: 8px; padding: 6px 3px; display: flex; flex-direction: column; gap: 2px; }
 .ipr code { font-size: 12px; } .ipr b { color: var(--c); font-size: 12px; } .ipr small { color: var(--muted); font-size: 10.5px; line-height: 1.25; }
@@ -1127,9 +1132,21 @@ $ curl -s ifconfig.me  # after NAT
     <li><b class="hd">🏷️ Network address = the block's name, not a device</b>All host bits are 0. Route tables and firewall rules use it: "<code>10.0.1.0/24</code> → this subnet". Every IP in the block shares it.</li>
     <li><b class="hd">📢 Broadcast address = "to everyone in this subnet"</b>All host bits are 1. One packet sent to <code>10.0.1.255</code> reaches every device in the subnet. Routers don't forward it, so it never leaves the subnet. Example: a new laptop has no IP yet, so it shouts "any DHCP server here?" to everyone (<code>255.255.255.255</code>, the "this network" broadcast).</li>
     <li><b class="hd">🧮 Usable hosts = 2<sup>(32 − N)</sup> − 2</b>/24 → 256 − 2 = <b>254</b>. /16 → 65,534. /28 → 14.</li>
-    <li><b class="hd">⚠️ /31 and /32 skip the rule</b>/31 = 2 addresses, both usable: a link between exactly 2 routers needs no broadcast. /32 = 1 address: one machine, used in routes and firewall rules.</li>
-    <li><b class="hd">☁️ AWS takes 5, not 2</b><code>.0</code> network, <code>.1</code> VPC router, <code>.2</code> DNS, <code>.3</code> reserved, <code>.255</code> broadcast. A /24 subnet gives <b>251</b>. The smallest subnet is /28 → 16 − 5 = <b>11</b>.</li>
   </ul>
+  <p>☁️ <b>On AWS, a subnet loses 5 addresses, not 2.</b> AWS puts its own helpers inside every subnet, at fixed addresses, so you can't give those to your servers. A <code>10.0.1.0/24</code> subnet:</p>
+  <div class="ipr5" role="img" aria-label="AWS subnet 10.0.1.0/24: .0 network, .1 VPC router, .2 DNS, .3 kept spare by AWS, .255 broadcast. Your servers get .4 to .254, which is 251 addresses.">
+    <span class="nw"><code>.0</code>🏷️ network</span><span class="rs"><code>.1</code>🧭 router</span><span class="rs"><code>.2</code>📖 DNS</span><span class="rs"><code>.3</code>🔒 spare</span><span class="bc"><code>.255</code>📢 broadcast</span>
+    <div class="us"><code>.4 → .254</code> 💻 <b>251</b> left for your servers</div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧭 .1 = the subnet's router, 📖 .2 = kept for DNS</b>Every server sends "not my network" traffic to <code>.1</code>. AWS's DNS server sits at the VPC's own .2 (<code>10.0.0.2</code> in a <code>10.0.0.0/16</code> VPC), and AWS keeps .2 free in every subnet too. <code>.3</code> is kept for AWS's future use.</li>
+    <li><b class="hd">🧮 So on AWS: usable = 2<sup>(32 − N)</sup> − 5</b>/24 → 256 − 5 = <b>251</b>. The smallest subnet AWS allows is /28 → 16 − 5 = <b>11</b>.</li>
+  </ul>
+  <p>🔍 <b>Two tiny blocks don't follow the "− 2" rule</b>, because they aren't really networks of many devices:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>/32 = exactly 1 address</b><div class="star">One machine, in a rule</div><div class="chk">Nobody builds a network of 1. You write it to mean "this one IP": <code>allow SSH from 203.0.113.7/32</code>.</div></div>
+    <div class="k-amber"><b>/31 = 2 addresses, both used</b><div class="star">A cable between 2 routers</div><div class="chk">Only 2 devices can ever be on it, so it needs no name address and no "shout to all" address. Both IPs go to the routers.</div></div>
+  </div>
   <p>🔬 <b>Work it out for any IP:</b> <code>10.0.1.77/26</code>. The split isn't on a dot now, so do it in 3 steps:</p>
   <ol class="steps-c">
     <li><b>Host bits = 32 − 26 = 6</b> → block size 2<sup>6</sup> = <b>64</b>.</li>
