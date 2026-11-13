@@ -477,6 +477,17 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .pe .bar i { display: block; height: 100%; min-width: 3px; border-radius: 6px; background: var(--amber-fg); }
 .pe .bar i.z { min-width: 0; width: 0; }
 .pe > div > b { text-align: right; }
+/* Sharding: partition tiles (.mt) and key-movement strip (.mv) */
+.mt { display: grid; gap: 4px; margin: 6px 0 }
+.mt.v { grid-template-columns: 1fr 1fr }
+.mt span { padding: 4px 6px; border-radius: 6px; background: var(--card); border: 1px dashed var(--line); font-size: 11.5px; text-align: center }
+.mt .on { border-style: solid; border-color: var(--green-fg) }
+.mt small { color: var(--muted) }
+.mv { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin: 8px 0 }
+.mv span { border-radius: 5px; padding: 3px 0; text-align: center; font-size: 12px; font-weight: 600 }
+.mv small { display: block; font-size: 9.5px; font-weight: 400; opacity: .85 }
+.mv .st { background: var(--green-bg); color: var(--green-fg) }
+.mv .mo { background: var(--red-bg); color: var(--red-fg) }
 /* CIDR: IPv4 octets coloured network (fixed) vs host (free) */
 .oct { display: grid; grid-template-columns: 34px repeat(4, 1fr) 62px; gap: 4px; align-items: center; margin: 4px 0; font-size: 12.5px; }
 .oct > b { font: 700 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -3940,6 +3951,268 @@ if (left &lt; roll * rebuildMs)
   </div>
 </section>
 
+
+
+<section class="card" id="sd-shard-what" data-topic="Sharding" data-course="hi-sd" data-lesson="sharding">
+  <h2 class="cap"><b>🧩 Sharding ①: Partitioning · Sharding · Shard Key · Range, Hash, Directory</b></h2>
+  <p class="hook">Your app keeps growing: more traffic, more sign-ups, a bigger database. First you move to a bigger machine with more CPU, memory and storage. That works for a while. Then one machine hits its ceiling: queries slow down, writes bottleneck, storage runs out. Even Amazon Aurora maxes out around <b>256 TiB</b>. When one database can't keep up, there's only one real option: <b>split your data across multiple machines</b>.</p>
+  <p class="tldr">💡 <b>Partitioning</b> splits a big table into pieces <b>inside one database</b>: more rooms in one library. <b>Sharding</b> splits it across <b>many machines</b>: new library branches across the city. Two decisions: the <b>shard key</b> (which field decides where a row goes) and the <b>strategy</b>: 📏 range, #️⃣ hash (⭐ the default) or 📒 directory. What goes wrong: <a href="#sd-shard-challenges">card ②</a>. Real databases and the interview script: <a href="#sd-shard-interview">card ③</a>. Explained below 👇</p>
+  <div class="info"><b>ℹ️ Note</b> People often use "partitioning" and "sharding" as if they meant the same thing. Technically, partitioning usually means splitting data <b>inside one database instance</b>, and sharding means splitting it <b>across machines</b>. Don't get hung up on the word: just be clear whether your data lives on one machine or many.</div>
+  <p class="figcap"><span class="add">➕ fact-check</span> Aurora's limit depends on the engine version: 128 TiB on older versions, 256 TiB on newer ones.</p>
+
+  <h4>🗂️ First, what is Partitioning?</h4>
+  <p class="bridge">Splitting one large table into smaller pieces <b>inside a single database</b>. No new machines: the data is just organized so the database works on one piece at a time.</p>
+  <p>🧪 An <code>orders</code> table: 500 million rows, 2 TB. "Last month's orders" scans the whole table, indexes are huge and slow to maintain, and upkeep like <button type="button" class="term" data-p="Postgres housekeeping: cleans up dead rows left by updates and deletes, frees the space, and refreshes the statistics the query planner uses.">vacuuming</button>, analyzing or rebuilding indexes can lock the whole table. Partition it, and that query scans <b>one piece</b>. Two ways to cut:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>↔️ Horizontal: split rows</b><div class="star">Same columns, fewer rows</div>
+      <div class="mt"><span>📦 orders_2024</span><span>📦 orders_2025</span><span class="on">📦 orders_2026 ← last month's query reads only this</span></div></div>
+    <div class="k-amber"><b>↕️ Vertical: split columns</b><div class="star">Same rows, fewer columns</div>
+      <div class="mt v"><span class="on">⚡ id · status · total<br><small>read all the time</small></span><span>🐘 id · invoice_pdf · notes<br><small>big, rarely read</small></span></div></div>
+  </div>
+  <p class="ana">📚 One library building gets a separate room per year. Still one building, one staff, one front door, but finding "2026" means walking into one room, not the whole library.</p>
+
+  <h4>🗄️ What is Sharding?</h4>
+  <p class="bridge"><b>Horizontal partitioning across multiple machines.</b> Each shard holds a subset of the rows; together they make up the full dataset. E.g. orders split by id:</p>
+  <div class="vflow" role="img" aria-label="The original database, at capacity, is split into three shards: shard 1 holds ids 0 to 10 million, shard 2 holds 10 to 20 million, shard 3 holds 20 to 30 million.">
+    <div class="bx" style="border-color: var(--red-fg)">🗄️ Original Database <small>at capacity</small></div>
+    <div class="ar">⬇️ split</div>
+  </div>
+  <div class="hk"><div>🗄️ Shard 1<small>id: 0–10M</small></div><div>🗄️ Shard 2<small>id: 10M–20M</small></div><div>🗄️ Shard 3<small>id: 20M–30M</small></div></div>
+  <p class="figcap">🖼️ The lesson's picture. It labels shard 3 "30M–40M", which several readers flagged as a typo for 20M–30M.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💪 Each shard is a full, standalone database</b>Its own CPU, memory, storage and connection pool. No machine holds all the data or takes all the traffic, so storage <b>and</b> read/write throughput grow as you add shards.</li>
+    <li><b class="hd">🧾 The price: four new jobs</b>Choose a shard key, route each query to the right shard, avoid hot spots, and rebalance data as shards grow.</li>
+  </ul>
+  <p class="ana">🏛️ The city library is full, so it opens three branches. Each branch has its own building, staff and doors. Now someone has to decide which books go to which branch, and tell readers where to go.</p>
+
+  <h4>🔑 Choosing Your Shard Key</h4>
+  <p class="bridge">Sharding means two decisions that work together: <b>what to shard by</b> (the field that groups the data) and <b>how to distribute it</b> (the rule that assigns groups to shards, next sections). In interviews you'll say "I'm going to shard by [field]". The skill is knowing which field, and why.</p>
+  <div class="s3">
+    <div class="k-blue"><div class="big">🔢<small>MANY</small></div><div><b>High cardinality: many unique values</b>
+      user_id with millions of users leaves plenty of room.
+      <div class="no">❌ A boolean like is_premium allows at most 2 shards, and if most users are free, one of them is overloaded.</div></div></div>
+    <div class="k-green"><div class="big">⚖️<small>EVEN</small></div><div><b>Even distribution: values spread evenly</b>
+      user_id usually spreads well.
+      <div class="no">❌ country: if 90% of users are in the US, that shard is far bigger than the rest.</div></div></div>
+    <div class="k-amber"><div class="big">🎯<small>MATCHES</small></div><div><b>Aligns with queries: common queries hit one shard</b>
+      Shard by user_id, and "get user profile" or "get this user's orders" touch one shard.
+      <div class="no">❌ Queries that span all shards get expensive (<a href="#sd-shard-challenges">card ②</a>).</div></div></div>
+  </div>
+  <p class="figcap">🧠 Many · Even · Matches. <span class="add">➕ mnemonic not in the article</span></p>
+  <div class="grid2">
+    <div class="k-green"><b>🟢 Good keys</b><div class="chk"><b>user_id</b> for a user-centric app: millions of values, even, and most queries are "this user's data". Perfect fit.</div><div class="chk"><b>order_id</b> for an orders table: millions of values, queries are about one order, orders spread evenly over time.</div></div>
+    <div class="k-red"><b>🔴 Bad keys</b><div class="chk"><b>is_premium</b>: 2 values = 2 shards, and the free-user shard is overloaded.</div><div class="chk"><b>created_at</b> on a growing table: every new write goes to the newest shard, while old shards sit idle.</div></div>
+  </div>
+  <p class="ana">🏛️ Deciding which branch gets which books: by author (thousands of authors, spread evenly, and readers usually look for one author) beats by "hardback or paperback" (two branches, one packed).</p>
+
+  <h4>📏 Range-Based Sharding</h4>
+  <p class="bridge">The most straightforward strategy: each shard owns a <b>continuous range</b> of the shard key.</p>
+<pre>Shard 1 → User IDs 1–1M
+Shard 2 → User IDs 1M–2M
+Shard 3 → User IDs 2M–3M</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Simple, and range scans are cheap</b>"All orders for user IDs 500K–600K" hits one shard.</li>
+    <li><b class="hd">🏢 Best when different users naturally query different ranges</b>Multi-tenant SaaS: Company A owns one range of IDs, Company B another, so each company's traffic stays on its own shard.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Most real access patterns aren't spread evenly across ranges. Shard orders by created_at, and almost all traffic hits the newest shard: users care about recent orders, and every new write lands there. Old shards sit mostly idle.</div>
+  <p class="ana">📒 A phone book split into volumes A–H, I–P, Q–Z. Great for "everyone named Sharma", but if half the city is named Patel, one volume is twice as thick.</p>
+
+  <h4>#️⃣ Hash-Based Sharding (Default)</h4>
+  <p class="bridge">Hash the shard key and use the result to pick a shard. The hash scrambles the values, so users spread <b>evenly</b> across all shards.</p>
+<pre>shard = hash(user_id) % 4
+
+User 42  → hash(42) % 4 = Shard 2
+User 99  → hash(99) % 4 = Shard 3
+User 123 → hash(123) % 4 = Shard 1</pre>
+  <p>⚠️ The catch shows up when you add a shard. Going from 4 to 5 shards changes <code>% 4</code> to <code>% 5</code>, and almost every record maps somewhere new. Keys 0–19 (old shard → new shard):</p>
+  <div class="mv" role="img" aria-label="Keys 0 to 19 with their shard under modulo 4 and modulo 5. Only keys 0, 1, 2 and 3 stay on the same shard. The other 16, 80 percent, move.">
+    <span class="st">0<small>0→0</small></span><span class="st">1<small>1→1</small></span><span class="st">2<small>2→2</small></span><span class="st">3<small>3→3</small></span><span class="mo">4<small>0→4</small></span><span class="mo">5<small>1→0</small></span><span class="mo">6<small>2→1</small></span><span class="mo">7<small>3→2</small></span><span class="mo">8<small>0→3</small></span><span class="mo">9<small>1→4</small></span><span class="mo">10<small>2→0</small></span><span class="mo">11<small>3→1</small></span><span class="mo">12<small>0→2</small></span><span class="mo">13<small>1→3</small></span><span class="mo">14<small>2→4</small></span><span class="mo">15<small>3→0</small></span><span class="mo">16<small>0→1</small></span><span class="mo">17<small>1→2</small></span><span class="mo">18<small>2→3</small></span><span class="mo">19<small>3→4</small></span>
+  </div>
+  <p class="figcap">🖼️ Green stays, red moves: <b>80% of the data moves</b> just to add one shard. <span class="add">➕ example not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔄 The fix: consistent hashing</b>It replaces the plain modulo so that adding a shard moves only a small slice of the data (about 1/5 here, instead of 4/5). It's the next lesson. Hash sharding works great as long as you have a plan for resharding.</li>
+  </ul>
+  <div class="info"><b>ℹ️ Note</b> Hash-based sharding is the default and most common strategy. It's also what your interviewer will assume you're using unless you say otherwise.</div>
+  <p class="ana">🃏 Dealing cards into 4 piles by "number mod 4" gives fair piles. Add a 5th pile and redeal by "mod 5", and almost every card changes pile.</p>
+
+  <h4>📒 Directory-Based Sharding</h4>
+  <p class="bridge">No formula: a <b>lookup table</b> (or service) stores where each record lives.</p>
+<pre>user_to_shard
+---------------
+User 15   → Shard 1
+User 87   → Shard 4
+User 204  → Shard 2</pre>
+  <div class="vflow" role="img" aria-label="A request for user 87 first asks the directory, which answers shard 4. Only then does the request go to shard 4.">
+    <div class="bx">🖥️ Request: user 87's data</div>
+    <div class="ar">⬇️ ① ask first (every request)</div>
+    <div class="bx" style="border-color: var(--amber-fg)">📒 Directory: user 87 → Shard 4 <small>down? the whole system stops, even with every shard healthy</small></div>
+    <div class="ar">⬇️ ②</div>
+    <div class="bx">🗄️ Shard 4</div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Maximum flexibility</b>A user generates a lot of traffic? Move them to a dedicated shard by changing one row. Any logic a hash can't express is possible.</li>
+    <li><b class="hd">❌ An extra lookup on every request, and a critical dependency</b>Latency on every request, and if the directory goes down, everything stops. Most systems start with hash or range, and use a directory only when a requirement demands it.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Realistically, directory-based sharding is valid for dynamic use cases but is <b>rarely the answer in an interview</b>. It adds a single point of failure and latency on every request, which invites follow-up questions that can derail the conversation.</div>
+  <p class="ana">🛎️ A receptionist who knows which room everyone sits in. Very flexible (people can change rooms any time), but every visitor queues at the desk first, and if the receptionist is out, nobody finds anyone.</p>
+
+  <h4>🧭 Which strategy when?</h4>
+  <p class="bridge">The three side by side. <span class="add">➕ summary not in the article</span></p>
+  <div class="grid2">
+    <div class="k-green"><b>#️⃣ Hash</b><div class="star">⭐ The default</div><div class="chk">Even spread. Plan for resharding (consistent hashing).</div></div>
+    <div class="k-blue"><b>📏 Range</b><div class="star">Range scans, multi-tenant</div><div class="chk">Watch for the newest range getting all the traffic.</div></div>
+    <div class="k-amber"><b>📒 Directory</b><div class="star">Maximum flexibility</div><div class="chk">Extra lookup + single point of failure. Rarely in interviews.</div></div>
+    <div class="k-red"><b>🔑 All three</b><div class="star">Only as good as the key</div><div class="chk">Many · Even · Matches your queries.</div></div>
+  </div>
+</section>
+
+<section class="card" id="sd-shard-challenges" data-topic="Sharding" data-course="hi-sd" data-lesson="sharding">
+  <h2 class="cap"><b>🧩 Sharding ②: Hot Spots · Cross-Shard Operations · Consistency</b></h2>
+  <p class="hook">Sharding solves your scaling problem, but data is now spread across machines. Three new problems come with it: <b>uneven load</b>, <b>queries that span shards</b>, and <b>consistency across databases</b>. You can't avoid them, but you can design around them if you know what to expect.</p>
+  <p class="tldr">💡 🔥 <b>Hot spots</b>: one shard does most of the work (a celebrity, or the newest date range). 🕸️ <b>Cross-shard queries</b>: ask every shard and merge, so cache, denormalize or accept it when rare. 🤝 <b>Consistency</b>: one transaction can't span two databases cheaply, so keep related data on one shard; if you can't, use a saga. Explained below 👇</p>
+
+  <h4>🔥 Hot Spots and Load Imbalance</h4>
+  <p class="bridge">Even with a good shard key, one shard can get far more traffic than the others. That one overloaded shard becomes your bottleneck, which undoes the point of sharding. The most common cause is the <b>celebrity problem</b>:</p>
+  <div class="hk" role="img" aria-label="A server sends 1 million requests per second to shard 1, which has Taylor Swift on it, and 1 thousand each to shards 2 and 3.">
+    <div class="hot">🗄️ Shard 1<small>🔥 1M rps<br>Taylor Swift is here</small></div>
+    <div class="ok">🗄️ Shard 2<small>1k rps</small></div>
+    <div class="ok">🗄️ Shard 3<small>1k rps</small></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's picture: "This shard has Taylor Swift on it!"</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🌟 Celebrity: some keys are simply busier</b>Shard users by user_id, and every profile view, like and message for Taylor Swift hits one shard: 1000× a normal user. Hashing doesn't help: the problem isn't the strategy, it's one very active key.</li>
+    <li><b class="hd">📅 Time-based: the newest shard takes every write</b>Shard by creation date, and all new writes go to the latest shard, while older shards only serve the odd read of old data.</li>
+    <li><b class="hd">📈 Spot it with per-shard metrics</b>Query latency, CPU, request volume. One shard always higher than the rest = a hot spot.</li>
+  </ul>
+  <p>🩹 Three ways to handle it:</p>
+  <h5>🏝️ Isolate hot keys to dedicated shards</h5>
+  <p>Move Taylor Swift's account to a shard that holds only celebrity accounts. That shard is still busy, but it's sized for it (bigger machine, more replicas), and normal users on the other shards stop suffering. Knowing who lives where needs a directory, which is when directory sharding earns its place, though you wouldn't start there.</p>
+  <h5>🧩 Use compound shard keys</h5>
+  <p>Shard by <code>hash(user_id + date)</code> instead of user_id alone. One user's data spreads over several shards, one day at a time:</p>
+  <div class="hk" role="img" aria-label="With a compound key of user id plus date, Taylor Swift's Monday data goes to shard 3, Tuesday's to shard 1, Wednesday's to shard 2.">
+    <div class="ok">🗄️ Shard 3<small>Taylor · Mon</small></div>
+    <div class="ok">🗄️ Shard 1<small>Taylor · Tue</small></div>
+    <div class="ok">🗄️ Shard 2<small>Taylor · Wed</small></div>
+  </div>
+  <p>⚠️ The catch (several readers): "all of user X's posts this week" now hits 7 shards, for <b>every</b> user, which breaks "matches the queries". Use it only for known hot users, kept in a small list, while everyone else stays on <code>hash(user_id)</code>.</p>
+  <h5>✂️ Dynamic shard splitting</h5>
+  <p>Some databases split a shard that gets too big or too hot. MongoDB's balancer splits and moves chunks <b>automatically</b> (also with a hashed shard key). Vitess supports online resharding, but <b>operators</b> start and manage it.</p>
+  <p class="ana">🏛️ One branch holds the famous author everyone wants. Give that author a branch of their own with more staff (isolate), spread their books across branches by year (compound key), or split a packed branch in two (splitting). For reads, a copy at the front desk helps most: see <a href="#sd-cache-problems--hot-keys">Caching: hot keys</a>.</p>
+
+  <h4>🕸️ Cross-Shard Operations</h4>
+  <p class="bridge">Any query that needs data from more than one shard gets expensive: query several shards, wait for all of them, merge the results yourself. It happens when a query doesn't match the shard key. Users sharded by user_id: "get user 12345's profile" is one shard. "Top 10 most popular posts globally" is every shard. ▶️</p>
+  <div class="seq" data-seq="scatter"></div>
+  <p class="figcap">🖼️ The lesson's picture: "aggregate all 30, rank, return top 10".</p>
+  <p>📏 With 64 shards that's 64× the network calls. <span class="add">➕ fact-check</span> Latency is <b>not</b> 64×: the calls run in parallel, so you wait for the <b>slowest</b> of the 64, plus the merge (a reader pointed this out). But the more shards you ask, the likelier one of them is slow.</p>
+  <p>🩹 You can't remove cross-shard queries, but you can make them rare:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🗃️ Cache the result</b>Cache "top 10 posts" for 5 minutes: the first query asks 64 shards, the next thousand hit the cache. Perfect for things that don't need to be real-time: leaderboards, trending content, aggregate stats.</li>
+    <li><b class="hd">📋 Denormalize to keep related data together</b>Copy data onto the shard where it's read: duplicated data and harder updates, but the query touches one shard. E.g. a post shows its author's name and photo, so copy them onto the post row instead of asking the users shard every time. <span class="add">➕ example not in the article</span> (Readers found the lesson's wording confusing: denormalizing doesn't fix a global top 10. It fixes queries that need two shards for one item.)</li>
+    <li><b class="hd">🐢 Accept the hit for rare queries</b>An admin dashboard with "total users across all shards", loaded a few times a day, can be slow. That's fine.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> In interviews, cross-shard queries often signal that something in your design needs rethinking. If you hear yourself say "we'll query all shards and aggregate" for a <b>common</b> request, pause: can I denormalize? Cache it? Precompute it with a background job? Interviewers expect you to minimize them, not accept them as inevitable.</div>
+  <p class="ana">🏛️ "The 10 most borrowed books in the city" means phoning every branch and merging the lists. So keep a printed list at the main desk, updated every evening (cache / precompute).</p>
+
+  <h4>🤝 Maintaining Consistency</h4>
+  <p class="bridge">On one database, transactions are easy. Deduct inventory and create the order inside one transaction: both succeed or both fail, and the database guarantees it. Sharding breaks this: with the account on shard 1 and the order on shard 2, there is no shared transaction. Two independent databases don't know about each other.</p>
+  <h5>🐌 The textbook answer: two-phase commit (2PC)</h5>
+  <p>A coordinator asks every shard to <b>prepare</b>, waits for all of them to say ready, then tells them all to <b>commit</b>. ▶️</p>
+  <div class="seq" data-seq="twopc"></div>
+  <p>It guarantees consistency but is <b>slow and fragile</b>: if a shard or the coordinator fails mid-way, the whole thing can get stuck. Most production systems avoid it. What to do instead:</p>
+  <h5>1️⃣ Design to avoid cross-shard transactions: ⭐ the best answer</h5>
+  <p>Shard by user_id and keep <b>all</b> of a user's data on their shard: balance, transaction history, profile. Every transaction is then a single-shard transaction: fast and reliable.</p>
+  <h5>2️⃣ Use sagas when you truly must span shards</h5>
+  <p>Break the operation into independent steps, each with a <b>compensating action</b> (an undo). If step 2 fails, undo step 1. Eventual consistency, without 2PC's fragility. ▶️</p>
+  <div class="seq" data-seq="saga"></div>
+  <div class="grid2">
+    <div class="k-red"><b>🐌 2PC</b><div class="chk">🔒 Locks rows on every shard until the coordinator decides</div><div class="chk">⏳ Coordinator down = everyone waits, locked</div><div class="chk">✅ Never shows a half-done state</div></div>
+    <div class="k-green"><b>🔁 Saga</b><div class="chk">✅ Each step commits on its own, at once: no locks across the network</div><div class="chk">♻️ Runner down = resume from its log later</div><div class="chk">⚠️ For a moment, a half-done state is visible</div></div>
+  </div>
+  <p class="figcap">🖼️ How a saga differs from 2PC, which a reader asked about. <span class="add">➕ not in the article</span></p>
+  <h5>3️⃣ Accept eventual consistency</h5>
+  <p>Often strict consistency isn't needed. A user's follower count copied onto several shards for fast profile reads can differ for a few seconds; they all converge. Much simpler than a distributed transaction.</p>
+  <div class="rem"><b>✅ Remember</b> TL;DR: most apps can be designed to avoid cross-shard transactions entirely. If you keep needing distributed transactions, you probably picked the wrong shard key or the wrong shard boundaries.</div>
+  <p class="ana">🏦 Moving money between two banks. 2PC: both managers hold the money frozen on the phone until a third person says "go", and if that person hangs up, both wait. Saga: bank A sends it now; if bank B rejects it, bank A refunds it. Simplest of all: keep both accounts at the same bank.</p>
+</section>
+
+<section class="card" id="sd-shard-interview" data-topic="Sharding" data-course="hi-sd" data-lesson="sharding">
+  <h2 class="cap"><b>🧩 Sharding ③: Modern Databases · Sharding in Interviews</b></h2>
+  <p class="hook">Good news: you probably won't build sharding yourself. Most modern databases do it for you. What matters in an interview is <b>when</b> to bring sharding up, <b>what</b> to say, and which mistake to avoid.</p>
+  <p class="tldr">💡 Name the database and its key ("DynamoDB, partition key user_id"), and you're done with the internals. In the interview: <b>prove</b> one database isn't enough first (storage, writes or reads, with numbers), then walk 4 steps: shard key → strategy → trade-offs → growth. ⚠️ The #1 mistake is sharding before you've shown you need it. Explained below 👇</p>
+
+  <h4>🧰 Sharding in Modern Databases</h4>
+  <p class="bridge">You set a partition key; the database spreads the data, routes queries and rebalances when you add capacity. The mechanics differ: <span class="aws">☁️ AWS: DynamoDB · Aurora PostgreSQL Limitless Database</span></p>
+  <div class="grid2">
+    <div class="k-blue"><b>👁️ Cassandra</b><div class="chk">A partitioner (Murmur3) with virtual nodes: a form of <b>consistent hashing</b> onto token ranges</div></div>
+    <div class="k-amber"><b>🟧 DynamoDB</b><div class="chk">Hashes the partition key to internal partitions, and <b>splits/merges</b> them as they grow. Not a ring you can see</div></div>
+    <div class="k-green"><b>🍃 MongoDB</b><div class="chk"><b>Range chunks</b> on the shard key (or on its hash). A balancer splits and moves chunks automatically</div></div>
+    <div class="k-red"><b>🐬 Vitess · 🐘 Citus</b><div class="chk">Open-source sharding layers in front of MySQL / Postgres: routing, cross-shard queries, resharding</div></div>
+  </div>
+  <p>☁️ Cloud distributed SQL with built-in sharding: AWS Aurora and Google Cloud Spanner.</p>
+  <div class="rem"><b>✅ Remember</b> In interviews it's enough to say <i>"We'll use DynamoDB with user_id as the partition key"</i> or <i>"We'll shard using Vitess on user_id and plan for operator-driven online resharding."</i> You don't need the internals unless asked.</div>
+  <p class="ana">🏛️ You don't build the library branches yourself: you hire a library chain that already has them. You just tell it how to sort the books (the key).</p>
+
+  <h4>⏰ When to Mention Sharding</h4>
+  <p class="bridge">Sharding comes up nearly any time you discuss scale. But don't shard early: first show <b>why</b> one database won't work. Bring it up in capacity planning when you hit one of these limits:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>💾 Storage</b><div class="star">500M users × 5 KB = 2.5 TB</div><div class="chk">One Postgres can hold that, but 10× growth needs sharding</div></div>
+    <div class="k-red"><b>✍️ Write throughput</b><div class="star">50K writes/s at peak</div><div class="chk">One database will struggle with that load</div></div>
+    <div class="k-green"><b>📖 Read throughput</b><div class="star">100M daily users, many queries each</div><div class="chk">Even with read replicas, the reads need spreading</div></div>
+    <div class="k-amber"><b>🧮 The formula</b><div class="chk">1️⃣ Identify the bottleneck</div><div class="chk">2️⃣ Explain why one database won't scale</div><div class="chk">3️⃣ Propose sharding</div></div>
+  </div>
+  <div class="warn"><b>⚠️ Watch out</b> By far the <b>number one sharding mistake</b> the author sees in interviews: introducing sharding before proving it's needed. Slow down, do the math, make sure it's needed, and only then explain how.</div>
+  <p>🪜 What to try before sharding, in order (from a reader's notes): <span class="add">➕ not in the article</span></p>
+  <div class="vflow" role="img" aria-label="Escalation order: query tuning and indexes, then a bigger machine, then read replicas, then caching, then sharding.">
+    <div class="bx">1️⃣ Query tuning + indexes</div>
+    <div class="bx">2️⃣ A bigger machine (vertical scaling)</div>
+    <div class="bx">3️⃣ Read replicas <small>scale reads only: every replica still takes every write</small></div>
+    <div class="bx">4️⃣ Caching</div>
+    <div class="bx" style="border-color: var(--accent)">5️⃣ Sharding <small>the one step that scales writes and storage</small></div>
+  </div>
+  <p class="ana">🏛️ Before opening new branches: reorganize the shelves (indexes), move to a bigger building, add photocopy desks (replicas), keep popular books at the front (cache). Open branches only when the building truly can't cope.</p>
+
+  <h4>🗣️ What to Say</h4>
+  <p class="bridge">Walk through your reasoning, not a list of facts. A social media app, in 4 steps:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Propose a shard key based on your access pattern</b><span class="say">🗣️ "Most queries are user-centric: loading a feed means their posts, their followers, their likes, all scoped to one user. So I'd shard by user_id."</span></li>
+    <li><b class="hd">2️⃣ Choose your distribution strategy</b><span class="say">🗣️ "Hash-based sharding with consistent hashing: hash the user_id to spread users evenly."</span></li>
+    <li><b class="hd">3️⃣ Call out the trade-offs</b><span class="say">🗣️ "Global queries get expensive: trending posts across all users means asking every shard. So we cache trending content and precompute it with a background job, not on every request."</span></li>
+    <li><b class="hd">4️⃣ Address how you'll handle growth</b><span class="say">🗣️ "We'll start with 64 shards, which leaves room to grow. With consistent hashing, adding shards later moves only a fraction of the data."</span>➕ "64 shards" usually means 64 <b>logical</b> shards on a few machines (a reader's point). When load grows, you move whole shards to new machines instead of re-splitting data, which is far easier.</li>
+  </ul>
+  <p class="ana">🏛️ Like proposing branches to the city council: how readers search (key), how books are assigned (strategy), what gets harder (trade-offs), and how you'll open more branches later (growth).</p>
+
+  <h4>🔚 Conclusion</h4>
+  <p class="bridge">Sharding is what you do when one database can't handle your scale: split the data across machines for more storage and throughput.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔑 Two decisions matter: the key and the strategy</b>A key that matches your queries, and a strategy that spreads load evenly. Get them wrong, and you get hot spots and expensive cross-shard queries.</li>
+    <li><b class="hd">🎤 In interviews: bottleneck first, then the shard key, trade-offs, cross-shard queries and resharding</b></li>
+  </ul>
+  <div class="take">⭐ Most importantly, <b>don't shard too early</b>. A well-tuned single database can get you surprisingly far.</div>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🧾 "DynamoDB has transactions across partitions"</h5>
+    <ul><li>Evan King (admin): good practical knowledge, but caveat it. Limits: 4 MB total, one account and region, and a capped number of items (now 100). They use optimistic concurrency, so high-contention workloads see many cancelled and retried transactions.</li>
+    <li>A reader's framing for interviews: "yes, managed distributed ACID exists here, but only within narrow operating bounds." Dropbox wrote up cross-shard transactions at 10M requests/s.</li></ul>
+    <h5>🌟 "Won't the celebrity shard be the hot one?"</h5>
+    <ul><li>Yes, on purpose: it's isolated and sized for it (a bigger machine, more replicas), so normal users aren't hurt. A reader's numbers: one server handles 50K rps; 50K normal users at 1 rps each + 2 celebrities at 25K rps → one server for the normal users, one celebrity shard for the two.</li>
+    <li>It needs a directory, and when someone becomes famous (Ellen's Oscar selfie), their data has to migrate.</li></ul>
+    <h5>📅 Sharding by date can be right</h5>
+    <ul><li>The Strava breakdown shards activities by date. It works because there sharding is about <b>data size</b>, not traffic: it keeps an activity's data together and lets old data move to cheaper storage. "Archive shards" for old orders are the same idea.</li></ul>
+    <h5>📒 "Real systems all have a directory"</h5>
+    <ul><li>A reader: Vitess, Redis Cluster, MongoDB and Kafka all keep a map. True, but clients and routers cache that map and refresh it only when it changes, so there's no lookup on every request, and the map itself is replicated. The lesson warns against putting your own lookup service in every request's path. <span class="add">➕ not in the comments</span></li>
+    <li>MongoDB maps a key (or its hash) to a chunk range, then uses metadata to find the shard that owns it: right, that's not a consistent-hashing ring.</li></ul>
+    <h5>💥 Does sharding help availability?</h5>
+    <ul><li>Stefan Mai (admin): replicas are better for that. But thinking about blast radius is smart: if an outage hits only N/M customers, that helps, as long as each customer's whole path is sharded the same way. Shard orders one way and items another, and one outage can still break everyone.</li></ul>
+    <h5>📖 Read throughput: why not just replicas?</h5>
+    <ul><li>Asked, not answered. Replicas first: they're simpler. Shard when every replica would still need the full dataset and every write, i.e. when storage or write load is the real limit. <span class="add">➕ my answer</span></li></ul>
+    <h5>🐦 Timelines across shards</h5>
+    <ul><li>With users sharded by user_id, the people you follow live on other shards. Precompute timelines with fan-out on write and keep them in Redis; celebrities are pulled at read time (see <a href="#sd-dm-schema--scaling-and-sharding">Data Modeling: sharding</a>).</li></ul>
+    <h5>✏️ Errata</h5>
+    <ul><li>Diagram 1: the third shard should be 20M–30M. The lesson once said "4 strategies": Evan King (admin) said geographic sharding was cut and the count would be fixed.</li></ul>
+  </div>
+</section>
+
 </div>
 </div>
 
@@ -4655,6 +4928,47 @@ const SEQS = {
       { at: 2, m: '🧹 remove feed · SET cache', k: 'lb', cap: '⑥ The entry is removed from the map, and the result is written to the cache (<code>SET feed EX 60</code>). Requests after this are cache hits again.' },
     ],
   },
+  'scatter': {
+    lanes: ['🖥️ Server', '🗄️ Shard 1', '🗄️ Shard 2', '🗄️ Shard 3'],
+    key: [['http', 'ask every shard'], ['tcp', 'replies'], ['lb', 'merge']],
+    frames: [
+      { cap: '"Show the 10 most popular posts." Posts are sharded by user_id, so popular posts sit on <b>every</b> shard 👇' },
+      { f: 0, t: 1, m: 'top 10 posts?', k: 'http', cap: '① The server asks shard 1…' },
+      { f: 0, t: 2, m: 'top 10 posts?', k: 'http', cap: '…shard 2…' },
+      { f: 0, t: 3, m: 'top 10 posts?', k: 'http', cap: '…and shard 3. All at the same time (<b>scatter</b>).' },
+      { f: 1, t: 0, m: '10 posts', k: 'tcp', cap: '② Each shard returns its own top 10…' },
+      { f: 2, t: 0, m: '10 posts', k: 'tcp', cap: '…' },
+      { f: 3, t: 0, m: '10 posts (slowest)', k: 'tcp', cap: '…and the server waits for the <b>slowest</b> one.' },
+      { at: 0, m: 'merge 30 → rank → top 10', k: 'lb', cap: '③ <b>Gather</b>: merge 30 posts, rank them, keep 10. With 64 shards: 64 calls on every page load, and you are only as fast as the slowest of the 64.' },
+    ],
+  },
+  'twopc': {
+    lanes: ['🧭 Coordinator', '🗄️ Shard 1 · A', '🗄️ Shard 2 · B'],
+    key: [['http', 'phase 1: prepare'], ['tcp', 'phase 2: commit'], ['err', 'failure']],
+    frames: [
+      { cap: 'Move ₹500 from account A (shard 1) to account B (shard 2). Both changes must happen, or neither 👇' },
+      { f: 0, t: 1, m: 'prepare: −₹500?', k: 'http', cap: '① <b>Prepare</b>: the coordinator asks each shard "can you do your part?"' },
+      { f: 0, t: 2, m: 'prepare: +₹500?', k: 'http', cap: '…' },
+      { f: 1, t: 0, m: 'ready ✅ (rows locked 🔒)', k: 'http', cap: 'Each shard checks, <b>locks</b> the rows, and says "ready".' },
+      { f: 2, t: 0, m: 'ready ✅ (rows locked 🔒)', k: 'http', cap: '…' },
+      { f: 0, t: 1, m: 'commit', k: 'tcp', cap: '② Everyone said yes, so the coordinator says <b>commit</b>.' },
+      { f: 0, t: 2, m: 'commit', k: 'tcp', cap: 'Both shards apply the change and release the locks. Strong consistency ✅' },
+      { at: 0, m: '💥 crash between ① and ②?', k: 'err', cap: '⚠️ If the coordinator dies after "ready", both shards hold their locks and wait, unsure whether to commit. Slow, fragile, and the reason 2PC is avoided at scale.' },
+    ],
+  },
+  'saga': {
+    lanes: ['🧭 Saga runner', '🗄️ Shard 1 · A', '🗄️ Shard 2 · B'],
+    key: [['http', 'step'], ['tcp', 'done'], ['err', 'failure'], ['lb', 'undo']],
+    frames: [
+      { cap: 'The same ₹500 transfer as a <b>saga</b>: a chain of small local transactions, each one committed on its own. No locks across shards 👇' },
+      { f: 0, t: 1, m: '① deduct ₹500 from A', k: 'http', cap: '① Step 1 runs on shard 1…' },
+      { f: 1, t: 0, m: 'done ✅ (committed now)', k: 'tcp', cap: '…and commits at once. A is already ₹500 down.' },
+      { f: 0, t: 2, m: '② add ₹500 to B', k: 'http', cap: '② Step 2 runs on shard 2…' },
+      { f: 2, t: 0, m: '❌ failed', k: 'err', cap: '…and fails (B\'s account is frozen, say).' },
+      { f: 0, t: 1, m: '③ refund ₹500 to A', k: 'lb', cap: '③ Step 1 can\'t be rolled back (it already committed), so the saga runs a <b>compensating</b> step: refund A.' },
+      { f: 1, t: 0, m: 'done ✅', k: 'tcp', cap: 'Back to a correct state. But for a moment, A showed ₹500 less: that\'s <b>eventual consistency</b>.' },
+    ],
+  },
 }
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -5037,7 +5351,7 @@ const GLOSSARY = [
     b: '<p>🧪 <b>See it:</b> shard posts by user_id over 3 machines.</p><ul><li>✅ "Posts by user 7" → one shard.</li><li>⚠️ "Timeline from 200 people I follow" → many shards, then merge: slow.</li></ul><p>📏 Pick the key from your main query. Changing it later means moving all the data.</p><p>☁️ <b>On AWS:</b> DynamoDB shards by partition key for you</p>', see: ['hotshard', 'partition', 'fanout'] },
   { id: 'partition', t: 'Partitioning', aka: 'partition table split pieces range region', s: 'Split data into pieces by a key. Inside one database it\'s table partitioning; across machines it\'s sharding.',
     an: 'One library building with a separate room per year (partitioning), vs separate branches across the city (sharding).',
-    b: '<p>🧪 <b>See it:</b> Postgres <code>PARTITION BY RANGE (created_at)</code> → <code>logs_2026_10</code>, <code>logs_2026_11</code>. A query for November reads one piece, and dropping an old month is instant. It\'s still one machine\'s CPU and disk; to get more machines, you shard.</p>', see: ['shard', 'hotshard'] },
+    b: '<p>🧪 <b>See it:</b> Postgres <code>PARTITION BY RANGE (created_at)</code> → <code>logs_2026_10</code>, <code>logs_2026_11</code>. A query for November reads one piece, and dropping an old month is instant. It\'s still one machine\'s CPU and disk; to get more machines, you shard.</p><p>↔️ <b>Horizontal</b> = split rows (by year). ↕️ <b>Vertical</b> = split columns (hot columns apart from a big, rarely read <code>invoice_pdf</code>).</p>', see: ['shard', 'hotshard'] },
   { id: 'hotshard', t: 'Hot shard', aka: 'hot partition hotspot skew uneven load', s: 'One shard gets far more traffic than the others.',
     an: 'Everyone queues at one billing counter while the other counters sit empty.',
     b: '<p>🧪 <b>See it:</b> shard posts by month. Every post written today goes to the "November" shard; the other 11 sit idle. The same happens with ranges of growing ids, or with one celebrity on a user_id shard.</p><p>🛠️ Fix: a key that spreads writes, often a hash of the id.</p>', see: ['shard', 'partition'] },
@@ -5104,6 +5418,27 @@ const GLOSSARY = [
   { id: 'invalidation', t: 'Cache invalidation', aka: 'invalidate stale cache consistency delete key', s: 'Removing a cached value when the real data changes, so nobody reads the old one.',
     an: 'Wiping the old price off the café menu board the moment it changes.',
     b: '<p>Alice changes her photo → <code>UPDATE</code> the database → <code>DEL user:alice</code>. Bob\'s next read misses and loads the new photo.</p><p>Delete instead of overwriting (racing writers can leave an older value), and delete <b>after</b> the database write. The other options: a short TTL, or accept eventual consistency.</p>', see: ['ttl', 'consistency', 'cacheaside'] },
+  { id: 'shardkey', t: 'Shard key (partition key)', aka: 'partition key sharding key distribution key', s: 'The column that decides which shard a row lives on.',
+    an: 'The surname that decides which library branch keeps your file.',
+    b: '<p>A good key passes 3 checks: <b>Many</b> distinct values, <b>Even</b> traffic, <b>Matches</b> your main query.</p><ul><li>✅ <code>user_id</code> for a user-centric app.</li><li>❌ <code>is_premium</code> (2 values), <code>created_at</code> (all new writes on one shard).</li></ul><p>Changing it later means moving all the data.</p>', see: ['shard', 'hotshard', 'hashshard'] },
+  { id: 'rangeshard', t: 'Range-based sharding', aka: 'range partitioning sharding strategy', s: 'Each shard owns a range of key values: ids 1–1M, 1M–2M, and so on.',
+    an: 'Library branches by surname: A–F, G–M, N–Z.',
+    b: '<p>✅ Range scans hit one shard ("orders from March").</p><p>⚠️ Hot spots when keys grow over time: every new id or today\'s date lands on the last shard. Good for multi-tenant (one company = one range).</p>', see: ['hashshard', 'hotshard', 'shardkey'] },
+  { id: 'hashshard', t: 'Hash-based sharding', aka: 'hash partitioning modulo sharding strategy', s: 'shard = hash(key) % N: rows spread evenly, with no hot range.',
+    an: 'A shuffled deck dealt to the players: everyone gets about the same number of cards.',
+    b: '<p>⭐ The default. <code>hash(user_id) % 4</code> → shard 0–3.</p><p>⚠️ Going from 4 to 5 shards moves about 80% of the keys. Consistent hashing fixes that. Range queries must ask every shard.</p>', see: ['rangeshard', 'shardkey', 'scatter'] },
+  { id: 'dirshard', t: 'Directory-based sharding', aka: 'lookup table sharding strategy shard map', s: 'A lookup table says which shard each key lives on.',
+    an: 'A front desk with a ledger: "Ravi\'s file is in branch 3".',
+    b: '<p>✅ Most flexible: move a celebrity to their own shard by editing one row.</p><p>⚠️ An extra lookup per request, and the directory must never go down. In practice clients cache the map.</p>', see: ['hashshard', 'rangeshard'] },
+  { id: 'scatter', t: 'Cross-shard query (scatter-gather)', aka: 'scatter gather fan-out query cross-shard operations', s: 'A query that must ask every shard and merge the answers.',
+    an: 'Phoning every branch of the library to ask "what are your 10 most borrowed books?", then merging the lists.',
+    b: '<p>"Top 10 posts" on 64 shards = 64 calls, and you wait for the slowest one.</p><ul><li>🗄️ Cache the result.</li><li>📑 Denormalize so one shard has what you need.</li><li>🤷 Accept it if the query is rare.</li></ul>', see: ['shard', 'shardkey', 'fanout'] },
+  { id: 'twopc', t: 'Two-phase commit (2PC)', aka: '2pc distributed transaction atomic commit', s: 'A coordinator asks every shard to "prepare", then tells all of them to "commit".',
+    an: 'A wedding: the officiant asks both "do you?", and only after two yeses says "you\'re married".',
+    b: '<p>✅ Strong consistency across shards.</p><p>❌ Slow (two round trips, locks held), and if the coordinator dies mid-way, the shards wait with rows locked. Avoided at scale.</p>', see: ['saga', 'consistency'] },
+  { id: 'saga', t: 'Saga', aka: 'sagas compensating transaction distributed transaction', s: 'A chain of local transactions; on failure, earlier steps are undone by compensating steps.',
+    an: 'A trip booked step by step: flight, then hotel. Hotel full? Cancel the flight.',
+    b: '<p>₹500 transfer: ① deduct from A (commits) → ② add to B fails → ③ refund A.</p><p>✅ No cross-shard locks. ⚠️ Eventually consistent: for a moment A shows ₹500 less.</p>', see: ['twopc', 'consistency'] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -5159,7 +5494,7 @@ const GLOSSARY = [
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
-    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
+    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i,
     extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
