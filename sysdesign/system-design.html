@@ -482,6 +482,15 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .oct.hd > span { border: 0; padding: 0; font: 600 11px/1.2 system-ui, sans-serif; color: var(--muted); }
 .bits { margin: 6px 0; padding: 8px; border-radius: 8px; background: var(--chip); text-align: center; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .3px; overflow-wrap: anywhere; }
 .bits .n { color: var(--green-fg); font-weight: 700; } .bits .h { color: var(--amber-fg); font-weight: 700; }
+/* CIDR: network / usable / broadcast strip and the hosts table */
+.ipr { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 4px; margin: 8px 0; text-align: center; font-size: 12px; }
+.ipr > div { border: 1.5px solid var(--c); background: var(--bg-c); border-radius: 8px; padding: 6px 3px; display: flex; flex-direction: column; gap: 2px; }
+.ipr code { font-size: 12px; } .ipr b { color: var(--c); font-size: 12px; } .ipr small { color: var(--muted); font-size: 10.5px; line-height: 1.25; }
+.ipr .nw { --c: var(--blue-fg); --bg-c: var(--blue-bg); } .ipr .us { --c: var(--green-fg); --bg-c: var(--green-bg); } .ipr .bc { --c: var(--amber-fg); --bg-c: var(--amber-bg); }
+.cidr-t { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0; }
+.cidr-t th, .cidr-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+.cidr-t th:first-child, .cidr-t td:first-child { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.steps-c { margin: 6px 0; padding-left: 20px; } .steps-c li { margin: 6px 0; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: 12.5px; }
 .vpc .edge { text-align: center; font-weight: 600; }
@@ -1106,7 +1115,45 @@ $ curl -s ifconfig.me  # after NAT
     <li><b class="hd">🆕 IPv6 is 128 bits, with the same /N idea</b>A typical IPv6 subnet is a /64.</li>
   </ul>
   <p class="ana">📞 A phone number: the <b>area code</b> is the network part, the <b>local number</b> is the host. <code>/N</code> says how many digits are area code. A short area code leaves room for many local numbers (a big block). <span class="add">➕ analogy not in the article</span></p>
-  <div class="rem"><b>✅ Remember</b> IPv4 = 32 bits. <code>/N</code> = N network bits, 32 − N host bits, 2<sup>(32 − N)</sup> addresses. 🎤 In a design: "VPC <code>10.0.0.0/16</code>, one <code>/24</code> subnet per tier per Availability Zone."</div>
+  <div class="rem"><b>✅ Remember</b> IPv4 = 32 bits. <code>/N</code> = N network bits, 32 − N host bits, 2<sup>(32 − N)</sup> addresses (2 fewer usable, see below). 🎤 In a design: "VPC <code>10.0.0.0/16</code>, one <code>/24</code> subnet per tier per Availability Zone."</div>
+
+  <h5>🧮 How many IPs can you use? Network and broadcast addresses <span class="add">➕ not in the article</span></h5>
+  <p class="bridge">A block has 2<sup>(32 − N)</sup> addresses, but <b>two of them never go to a device</b>: the first and the last. A <code>10.0.1.0/24</code>:</p>
+  <div class="ipr" role="img" aria-label="10.0.1.0/24: the first address 10.0.1.0 is the network address, 10.0.1.1 to 10.0.1.254 are the 254 usable addresses, and 10.0.1.255 is the broadcast address.">
+    <div class="nw"><code>.0</code><b>🏷️ Network</b><small>host bits all 0</small></div>
+    <div class="us"><code>.1 → .254</code><b>💻 254 usable</b><small>.1 is usually the router</small></div>
+    <div class="bc"><code>.255</code><b>📢 Broadcast</b><small>host bits all 1</small></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🏷️ Network address = the block's name, not a device</b>All host bits are 0. Route tables and firewall rules use it: "<code>10.0.1.0/24</code> → this subnet". Every IP in the block shares it.</li>
+    <li><b class="hd">📢 Broadcast address = "to everyone in this subnet"</b>All host bits are 1. One packet sent to <code>10.0.1.255</code> reaches every device in the subnet. Routers don't forward it, so it never leaves the subnet. Example: a new laptop has no IP yet, so it shouts "any DHCP server here?" to everyone (<code>255.255.255.255</code>, the "this network" broadcast).</li>
+    <li><b class="hd">🧮 Usable hosts = 2<sup>(32 − N)</sup> − 2</b>/24 → 256 − 2 = <b>254</b>. /16 → 65,534. /28 → 14.</li>
+    <li><b class="hd">⚠️ /31 and /32 skip the rule</b>/31 = 2 addresses, both usable: a link between exactly 2 routers needs no broadcast. /32 = 1 address: one machine, used in routes and firewall rules.</li>
+    <li><b class="hd">☁️ AWS takes 5, not 2</b><code>.0</code> network, <code>.1</code> VPC router, <code>.2</code> DNS, <code>.3</code> reserved, <code>.255</code> broadcast. A /24 subnet gives <b>251</b>. The smallest subnet is /28 → 16 − 5 = <b>11</b>.</li>
+  </ul>
+  <p>🔬 <b>Work it out for any IP:</b> <code>10.0.1.77/26</code>. The split isn't on a dot now, so do it in 3 steps:</p>
+  <ol class="steps-c">
+    <li><b>Host bits = 32 − 26 = 6</b> → block size 2<sup>6</sup> = <b>64</b>.</li>
+    <li><b>Blocks start at multiples of 64</b> in the last number: 0, 64, 128, 192. 77 falls in <b>64–127</b>.</li>
+    <li><b>Network = <code>.64</code></b> (block start) · <b>broadcast = <code>.127</code></b> (next start − 1) · <b>usable = <code>.65</code> → <code>.126</code></b> = 64 − 2 = <b>62</b>.</li>
+  </ol>
+  <p>The same in bits (last number only; the first 24 bits are network anyway):</p>
+  <div class="bits" role="img" aria-label="77 in binary is 01 001101. Two network bits, then six host bits. Host bits all 0 gives 01000000 equals 64, the network address. Host bits all 1 gives 01111111 equals 127, the broadcast address.">
+    77 = <span class="n">01</span><span class="h">001101</span><br>
+    host bits → 0: <span class="n">01</span><span class="h">000000</span> = <b>64</b> 🏷️<br>
+    host bits → 1: <span class="n">01</span><span class="h">111111</span> = <b>127</b> 📢</div>
+  <table class="cidr-t">
+    <thead><tr><th>/N</th><th>Total</th><th>Usable</th><th>On AWS</th></tr></thead>
+    <tbody>
+      <tr><td>/16</td><td>65,536</td><td>65,534</td><td>65,531</td></tr>
+      <tr><td>/24</td><td>256</td><td>254</td><td>251</td></tr>
+      <tr><td>/26</td><td>64</td><td>62</td><td>59</td></tr>
+      <tr><td>/28</td><td>16</td><td>14</td><td>11</td></tr>
+      <tr><td>/30</td><td>4</td><td>2</td><td>too small</td></tr>
+      <tr><td>/32</td><td>1</td><td>1 (one host)</td><td>too small</td></tr>
+    </tbody></table>
+  <p class="ana">🏘️ A street with 256 plots. Plot 0 holds the <b>street sign</b>: the street's name, nobody lives there (network). Plot 255 holds a <b>loudspeaker</b>: speak into it and every house hears, but the sound stops at the street's end (broadcast). The 254 plots in between are homes, and plot 1 is usually the gate (the router).</p>
+  <div class="rem"><b>✅ Remember</b> 🎤 "How many IPs in a /N?" → "2<sup>(32 − N)</sup> in total. Minus 2 usable: the first is the network address, the last is broadcast. On AWS, minus 5." A /24 → 256 · 254 · 251.</div>
 
   <h5>☁️ VPC: your own private network in the cloud <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Your servers in the cloud need the same split as a home: a few things the internet can reach, everything else private. A <b>VPC</b> (Virtual Private Cloud) is where you draw that line. <span class="aws">☁️ AWS: Amazon VPC</span></p>
@@ -4657,6 +4704,12 @@ const GLOSSARY = [
   { id: 'cidr', t: 'CIDR block', aka: 'cidr classless inter-domain routing /16 /24 ip range slash netmask subnet mask network host bits 32-bit ipv4', s: 'An IP range written as address/number, e.g. 10.0.0.0/16.',
     an: 'A street name with "all house numbers": /16 fixes the street, the rest are the houses.',
     b: '<p>CIDR = Classless Inter-Domain Routing. IPv4 is 32 bits. The number after <code>/</code> is how many bits are the <b>network</b> part (fixed). The other 32 − N bits are the <b>host</b> part (free):</p><ul><li><code>/16</code> → 2<sup>(32−16)</sup> = 65,536 addresses (a VPC)</li><li><code>/24</code> → 2<sup>(32−24)</sup> = 256 addresses (a subnet)</li><li><code>/32</code> → exactly 1 address</li><li><code>/0</code> → every address ("anywhere")</li></ul><p>Old way to write it: subnet mask <code>255.255.255.0</code> = /24.</p>', see: ['vpc', 'subnet', 'ip'] },
+  { id: 'netaddr', t: 'Network address', aka: 'subnet address network id first address host bits zero', s: 'The first address of a CIDR block (host bits all 0): the block\'s name, never given to a device.',
+    an: 'The street sign: it names the street, nobody lives there.',
+    b: '<p><code>10.0.1.77/24</code> → network <code>10.0.1.0</code>. Route tables and firewall rules use it: "<code>10.0.1.0/24</code> → this subnet".</p><p>🧮 For <code>10.0.1.77/26</code>: block size 2<sup>6</sup> = 64, 77 is in 64–127 → network <code>10.0.1.64</code>.</p>', see: ['cidr', 'bcast', 'subnet'] },
+  { id: 'bcast', t: 'Broadcast address', aka: 'broadcast last address host bits one 255 dhcp everyone', s: 'The last address of a CIDR block (host bits all 1): a packet sent to it reaches every device in the subnet.',
+    an: 'A loudspeaker on the street: every house hears, but the sound stops at the street\'s end.',
+    b: '<p><code>10.0.1.0/24</code> → broadcast <code>10.0.1.255</code>. Routers don\'t forward broadcasts, so they stay inside the subnet.</p><p>🧪 A new laptop with no IP shouts "any DHCP server here?" to <code>255.255.255.255</code>.</p><p>🧮 Usable hosts = 2<sup>(32 − N)</sup> − 2 (network + broadcast). /24 → 254.</p><p>☁️ <b>On AWS:</b> 5 reserved per subnet (.0, .1, .2, .3, .255) → a /24 gives 251.</p>', see: ['netaddr', 'cidr', 'dhcp'] },
   { id: 'cgnat', t: 'CGNAT (carrier-grade NAT)', aka: 'carrier grade nat cgn mobile 4g 5g 100.64 shared address', s: 'NAT run by your mobile carrier or ISP: thousands of users share one public IP.',
     an: 'One big apartment block\'s mailroom for a whole town.',
     b: '<p>Home NAT shares one public IP across one house. CGNAT does the same across thousands of customers. The phone often gets an IP from <code>100.64.0.0/10</code>, a range set aside for this (RFC 6598).</p><ul><li>🚫 Rate limits by IP hit many innocent users at once.</li><li>🚪 Nobody outside can start a connection to your phone.</li></ul>', see: ['nat', 'private'] },
@@ -4992,7 +5045,7 @@ const GLOSSARY = [
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
-    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
+    ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, vpc: /VPCs?/, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
