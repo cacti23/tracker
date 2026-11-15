@@ -1020,6 +1020,9 @@
   function setVariant(dayIdx, exIdx, variantIdx) {
     const key = exKey(dayIdx, exIdx);
     if (!userData[key]) userData[key] = { sets: [{ weight: "", reps: "" }], notes: "", variant: 0 };
+    // The current sets are about to be replaced, so a PR one of them set (not yet banked) would
+    // lose its undo — revert it now, under the old variant's name, as un-ticking would.
+    (userData[key].sets || []).forEach((s, i) => revertPRFromSet(dayIdx, exIdx, i));
     userData[key].variant = variantIdx;
     const exName = getExerciseName(dayIdx, exIdx);
     const lastHist = getLastHistory(exName);
@@ -1038,6 +1041,9 @@
   function removeSet(dayIdx, exIdx) {
     const exData = getExerciseData(dayIdx, exIdx);
     if (exData.sets.length > 1) {
+      // Removing a set that set an unbanked PR undoes that PR, same as un-ticking it would —
+      // otherwise the undo marker points at a set that no longer exists.
+      revertPRFromSet(dayIdx, exIdx, exData.sets.length - 1);
       exData.sets.pop();
       setExerciseSets(dayIdx, exIdx, exData.sets);
       window.renderContent();
@@ -1050,6 +1056,13 @@
     userData[key].sets[setIdx].done = !userData[key].sets[setIdx].done;
     saveUserData();
     return userData[key].sets[setIdx].done;
+  }
+
+  // Stamp the device's local calendar day, not UTC: toISOString() files a late-night (or, in
+  // IST, a pre-05:30) workout under the wrong day and can merge two sessions into one entry.
+  function localToday() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
   const prStorageKey = 'gym5day_pr_v1';
@@ -1095,7 +1108,7 @@
     if (isPR(dayIdx, exIdx, w, r)) {
       const prData = getPRData();
       const exName = getExerciseName(dayIdx, exIdx);
-      prData[exName] = { weight: w.toString(), reps: r.toString(), date: new Date().toISOString().split('T')[0] };
+      prData[exName] = { weight: w.toString(), reps: r.toString(), date: localToday() };
       savePRData(prData);
     }
   }
@@ -1120,7 +1133,7 @@
     const cur = prData[exName];
     const prev = cur ? { weight: cur.weight, reps: cur.reps, date: cur.date } : null;
     prData[exName] = {
-      weight: w.toString(), reps: r.toString(), date: new Date().toISOString().split('T')[0],
+      weight: w.toString(), reps: r.toString(), date: localToday(),
       prev, src: { key: exKey(dayIdx, exIdx), setIdx }
     };
     savePRData(prData);
@@ -1172,7 +1185,7 @@
   }
   function saveDayToHistory(dayIdx) {
     const day = days[dayIdx];
-    const today = new Date().toISOString().split('T')[0];
+    const today = localToday();
     const all = getHistoryData();
     let saved = 0;
     day.exercises.forEach((baseEx, exIdx) => {
@@ -1196,6 +1209,11 @@
       setExerciseSets(dayIdx, exIdx, exData.sets);
     });
     saveHistoryData(all);
+    // A finished day starts fresh next week: drop its exercise checkmarks along with the set ticks.
+    if (saved && userData[dayIdx] && userData[dayIdx].completed) {
+      userData[dayIdx].completed = [];
+      saveUserData();
+    }
     return saved;
   }
 
