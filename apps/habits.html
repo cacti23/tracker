@@ -396,6 +396,10 @@
   function isFuture(dateStr) { return dateStr > todayStr(); }
 
   function toggleLog(habitId, dateStr) {
+    // A tap on a view drawn before midnight would toggle a date the user
+    // didn't mean (the dot still highlighted as "today" is yesterday), so
+    // redraw instead and let them tap the fresh view.
+    if (todayStr() !== renderedDay) { renderHabits(); return; }
     if (isFuture(dateStr)) return;
     if (!state.logs[habitId]) state.logs[habitId] = {};
     const habit = state.habits.find(h => h.id === habitId);
@@ -587,7 +591,20 @@
     return { y: d.getFullYear(), m: d.getMonth() };
   }
 
+  // Every "today" highlight, streak and dot range is computed at render time,
+  // so a page (or installed PWA) left open past midnight goes stale. Remember
+  // which day we drew and redraw once the local date moves on: on return to
+  // the tab, on focus, and on a light timer for a page left in view.
+  let renderedDay = null;
+  function refreshIfDayChanged() {
+    if (renderedDay !== null && todayStr() !== renderedDay) renderHabits();
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfDayChanged(); });
+  window.addEventListener('focus', refreshIfDayChanged);
+  setInterval(refreshIfDayChanged, 60000);
+
   function renderHabits() {
+    renderedDay = todayStr();
     const list = document.getElementById('habitList');
     list.innerHTML = '';
     if (state.habits.length === 0) {
