@@ -167,6 +167,7 @@
   .modal input[type="text"]:focus { outline: none; border-color: var(--accent); }
   .slot-header { font-family: 'Bebas Neue', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--heading-color); margin: 28px 0 12px 2px; }
   .slot-header:first-child { margin-top: 4px; }
+  .slot-header.must { color: var(--accent); }
   .slot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .slot-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); border-radius: 999px; padding: 6px 11px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
   .slot-chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -302,6 +303,8 @@
   }
 
   const SLOTS = [
+    // Most important habits of the day: always rendered first, above the time slots
+    { id: 'must', label: 'Must do daily', icon: '🔥' },
     { id: 'morning', label: 'Morning', icon: '🌅' },
     { id: 'noon', label: 'Noon', icon: '☀️' },
     { id: 'evening', label: 'Evening', icon: '🌇' },
@@ -602,7 +605,7 @@
       if (group.length === 0) return;
       if (anySlot) {
         const header = document.createElement('div');
-        header.className = 'slot-header';
+        header.className = 'slot-header' + (slot.id === 'must' ? ' must' : '');
         header.textContent = slot.icon + ' ' + slot.label;
         header.addEventListener('dragover', (e) => e.preventDefault());
         header.addEventListener('drop', (e) => {
