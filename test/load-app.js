@@ -165,7 +165,9 @@ function loadAppWithDom() {
   // this is the step loadApp() skips, and the step buildNav() runs from.
   for (const fn of (docListeners.DOMContentLoaded || [])) fn()
 
-  return { sandbox, localStorage, getElement: (id) => elements.get(id) }
+  // fire(evt) runs the app's document listeners for evt (e.g. 'visibilitychange' on tab refocus).
+  const fire = (evt) => { for (const fn of (docListeners[evt] || [])) fn() }
+  return { sandbox, localStorage, getElement: (id) => elements.get(id), fire }
 }
 
 // Evaluate a snippet of app-level JS (has access to every let/const/function

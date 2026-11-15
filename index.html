@@ -1182,6 +1182,16 @@ const DIFFICULTY_BADGE = { Easy: 'success', Medium: 'warning', Hard: 'danger' }
 const STATUS_DOT       = { Solved: 'bg-success', 'In Progress': 'bg-warning', Pending: 'bg-secondary' }
 const STATUS_EMOJI      = { Solved: '✅', 'In Progress': '🚧', Pending: '📋' }
 const STATUS_CYCLE      = { Pending: 'In Progress', 'In Progress': 'Solved', Solved: 'Pending' }
+// The status a question is COUNTED under in the progress tallies (dashboard + topic tracker).
+// 📋 Pending there means the untouched learn backlog (the same reading isCodeDue uses), so a
+// question you've solved or graded but whose dot reads 📋 counts as 🚧 In Progress — where its
+// next grade puts it anyway. The dot itself isn't reset: Solved → Pending → In Progress is the
+// only way the cycle can step a question down, so landing on 📋 is often just passing through,
+// and wiping the solve count / revise history / cooldown there would destroy real progress.
+function _countedStatus(lcKey) {
+  const st = getStatus(lcKey)
+  return st === 'Pending' && _isEngaged(lcKey) ? 'In Progress' : st
+}
 
 // Interview frequency (how often a question is asked). Source field: q.freq in data.js.
 // High = Blind 75 / FAANG-flagged "must-know"; Medium = NeetCode 150 / commonly asked;
@@ -1263,7 +1273,6 @@ let _psTimerRun   = false // is timer running?
 let _psTimerIv    = null  // setInterval handle
 let _psTimerPreset = 0    // last selected preset in minutes
 let _psDoneThisSession      = new Set()  // keys done in current per-topic practice batch
-let _psStruggledThisSession = new Set()  // subset of done that were marked "struggled"
 let _psCurrentItems         = []         // current ordered list for per-topic session
 let _psCurrentTopic         = null       // currently active topic key for practice session
 let _psMode                 = 'graded'   // per-topic mode default: 'graded' (your graded questions, weakest first) | 'worked' | 'mock' | 'revise' (active recall over the WHOLE topic) | 'revise-pattern' (active recall scoped to selected pattern(s) — see _psRevisePatterns)
@@ -1277,7 +1286,7 @@ let _psReviseShownThisSession = new Set()  // Revise/By Pattern only: keys alrea
 // Store/restore practice sessions (ALL modes — Worked/Graded/Mock) so a refresh or topic
 // navigation never reshuffles your set: only ↺ Reset/Refresh or a mode switch regenerates.
 // Format: { [topicKey]: { mode, items: [[lcKey, {title, difficulty}]], doneInSession: [lcKeys...],
-//           struggledInSession: [lcKeys...], mockReveal } } — one saved session per topic.
+//           mockReveal, ... } } — one saved session per topic.
 const PS_SESSION_KEY = 'dsa-practice-session-v1'
 function _psAllSessions() {
   try {
@@ -1306,7 +1315,6 @@ function _psSaveSession() {
       mode: _psMode,
       items: _psCurrentItems.map(([lcKey, q]) => [lcKey, { title: q.title, difficulty: q.difficulty }]),
       doneInSession: Array.from(_psDoneThisSession),
-      struggledInSession: Array.from(_psStruggledThisSession),
       mockReveal: _psMockReveal,
       revisePatterns: Array.from(_psRevisePatterns),
       codeFlagged: Array.from(_psReviseCodeFlagged),
@@ -1321,7 +1329,6 @@ function _psLoadSession(topicKey) {
   if (!session || !Array.isArray(session.items)) return null
   // Restore done state from persisted session
   _psDoneThisSession      = new Set(session.doneInSession || [])
-  _psStruggledThisSession = new Set(session.struggledInSession || [])
   _psRevisePatterns       = new Set(session.revisePatterns || [])
   _psReviseCodeFlagged    = new Set(session.codeFlagged || [])
   _psReviseShownThisSession = new Set(session.reviseShown || [])
@@ -1333,7 +1340,6 @@ function _psLoadSession(topicKey) {
 // Kept separate from per-topic state so navigating to a topic page and back
 // never wipes the dashboard session progress.
 let _qpDoneThisSession      = new Set()  // keys marked done on the dashboard qp panel
-let _qpStruggledThisSession = new Set()  // subset of qp done that were marked "struggled"
 
 // ─── LAST-PRACTICED TRACKING ─────────────────────────────────────────────────
 // shape: { [lcKey]: ISO timestamp }
@@ -1377,13 +1383,35 @@ function resetReviewInterval(lcKey) {
   return REVIEW_LADDER[0]
 }
 // Give a ✓ Solid grade in Graded the same "clean solve" credit the old click-to-solve row gave:
-// push the code-cooldown ladder further out, timestamp it as practiced, and mark the question
-// Solved if it isn't already. The confidence-ring bump is NOT repeated here — gradeRevise()
-// already does that (deduped once/day) before this runs.
+// push the code-cooldown ladder further out, timestamp it as practiced, clear a ✗'s must-code
+// flag (this is the cold solve it asked for), and mark the question Solved if it isn't already.
+// The confidence-ring bump is NOT repeated here — gradeRevise() already does that. Always called
+// right after gradeRevise(), which has rewound any earlier grade from today, so a repeated ✓
+// steps the ladder from the same starting point instead of climbing it once per click.
 function _psCreditCleanSolve(lcKey) {
   markPracticed(lcKey)
   bumpReviewInterval(lcKey)
+  _refreshReviseOnSolve(lcKey)
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
+}
+// Raw stored values (undefined / null = never set), so a same-day correction can put back
+// exactly what was there — getReviewInterval's default of 1 must not get written as a real value.
+function _rawReviewInterval(lcKey) {
+  try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] } catch { return undefined }
+}
+function _restoreReviewInterval(lcKey, days) {
+  try {
+    const d = JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')
+    if (days == null) delete d[lcKey]; else d[lcKey] = days
+    localStorage.setItem(REVIEW_INTERVAL_KEY, JSON.stringify(d))
+  } catch {}
+}
+function _restoreLastPracticed(lcKey, iso) {
+  try {
+    const d = JSON.parse(localStorage.getItem(LAST_PRACTICED_KEY) || '{}')
+    if (iso == null) delete d[lcKey]; else d[lcKey] = iso
+    localStorage.setItem(LAST_PRACTICED_KEY, JSON.stringify(d))
+  } catch {}
 }
 
 // ─── STREAK TRACKING ──────────────────────────────────────────────────────────
@@ -1468,7 +1496,7 @@ let _qpDueOnly     = false  // when true: generate only "due for review" questio
 let _qpMock        = false  // Mock Mode removed from the dashboard UI — only Graded (on/off) + Generate remain
 let _qpMockReveal  = false  // after a mock run, reveal the hidden topic/difficulty for post-mortem (not persisted)
 let _qpRevise      = false  // Revise Session: active-recall pass — pulls revise-due problems with ✓/~/✗ grade buttons (no cold-solve). Mutually exclusive with Mock.
-let _qpRevised     = false  // Revised log: read-only list of everything you've already graded, newest-first, with grade + "ago". Re-grade in place. Mutually exclusive with Mock/Revise.
+let _qpRevised     = false  // Dashboard 🕒 Graded mode: the set is your graded questions, weakest first (✗ → ~ → ✓), graded in place; a ✓ there gets clean-solve credit. Mutually exclusive with Mock/Revise.
 let _practiceWorkedOnly = false  // when true: practice pool excludes 📋 Pending (only 🚧 In Progress + ✅ Solved). Shared by dashboard Quick Practice + per-topic Practice Session.
 
 // ─── QP STATE PERSISTENCE ─────────────────────────────────────────────────────
@@ -1482,7 +1510,6 @@ function _saveQpState() {
       mock:    _qpMock,
       revise:  _qpRevise,
       revised: _qpRevised,
-      workedOnly: _practiceWorkedOnly,
       results: _qpResults ? _qpResults.map(([k]) => k) : null,
       // Which of THIS generated set you've graded/solved this session — without this, closing
       // and reopening the tab restores the same question list (results, above) but the tint
@@ -1559,10 +1586,30 @@ document.addEventListener('DOMContentLoaded', () => {
 // the newer one on disk, making today's grading look like it "disappeared". Re-sync
 // from disk the moment a tab regains focus/visibility, before you can act in it.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return
+  if (document.hidden) { _flushNoteSaves(); return }
   _loadQpState()
   _renderQuickPractice()
+  _psResyncFromDisk()
 })
+window.addEventListener('pagehide', () => _flushNoteSaves())
+// Another tab wrote the per-topic sessions: adopt them now, before this tab can save over them.
+window.addEventListener('storage', e => { if (e.key === PS_SESSION_KEY) _psResyncFromDisk() })
+
+// Same clobber as above, for the per-topic practice panel: _psSaveSession writes THIS tab's
+// in-memory set (items, graded-this-session...) for the open topic, so a tab that sat in the
+// background would overwrite the grades another tab saved meanwhile. Rebuild the open topic's
+// panel from disk instead (_buildPracticePanel restores a saved session whenever the in-memory
+// set is empty — the same path a reload or topic switch takes).
+function _psResyncFromDisk() {
+  const topicKey = _psCurrentTopic
+  const mod = topicKey && TOPIC_MODULES[topicKey]
+  if (!mod || topicKey !== currentTopicKey) return
+  _psCurrentItems = []
+  _psDoneThisSession = new Set()
+  const html = _buildPracticePanel(topicKey, mod)
+  const body = document.getElementById('ps-body')
+  if (body) body.innerHTML = html
+}
 
 // ─── NAV BADGE COLOUR ───────────────────────────────────────────────────────
 // 5-level colour ramp: grey → yellow → teal → blue → green as you fill the topic
@@ -1833,8 +1880,8 @@ function loadDashboard() {
     if (!mod) return { key: t.key, icon: t.icon, label: t.label, mod: null }
     const qKeys  = Object.keys(mod.questions)
     const solved  = qKeys.filter(k => getStatus(k) === 'Solved').length
-    const inProg  = qKeys.filter(k => getStatus(k) === 'In Progress').length
-    const pending = qKeys.filter(k => getStatus(k) === 'Pending').length
+    const inProg  = qKeys.filter(k => _countedStatus(k) === 'In Progress').length
+    const pending = qKeys.filter(k => _countedStatus(k) === 'Pending').length
     return {
       key: t.key, icon: t.icon, label: t.label, mod,
       total: qKeys.length, solved, inProg, pending,
@@ -1847,7 +1894,7 @@ function loadDashboard() {
   const _uniq = _uniqueQuestionKeys()
   _uniq.forEach(k => {
     totalQ++
-    const st = getStatus(k)
+    const st = _countedStatus(k)
     if (st === 'Solved') totalSolved++
     else if (st === 'In Progress') totalInProg++
     else totalPending++
@@ -1965,10 +2012,11 @@ function loadTopic(key) {
   const topic = TOPICS.find(t => t.key === key)
   if (!topic) return
 
+  _parkNoteDraft()                // keep an unsaved note edit from the prior topic for when you come back
   currentTopicKey = key
   _saveCurrentView(key)
   currentTab = TOPIC_TABS[0].key  // always start on first tab
-  _editingNoteId = null           // drop any in-progress note edit from the prior topic
+  _editingNoteId = (_noteDrafts()[key] || {}).id || null
   _noteQuery = ''                 // clear notes search on topic switch
   currentQFilter = 'all'          // reset filter on topic switch
   currentCompanyFilter = null     // reset company filter on topic switch
@@ -1978,10 +2026,14 @@ function loadTopic(key) {
 
   // Clear in-memory session state — the practice panel build restores this topic's saved session
   _psCurrentItems = []
-  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  _psDoneThisSession.clear()
   _psQCount = 5
   _psRevisePatterns = new Set()
   _psReviseShownThisSession = new Set()
+  // _psMode is one variable for every topic; a topic with no saved session of its own opens in the
+  // default mode, not in whatever mode the last topic was left in. (A 🗑 Cleared topic has no saved
+  // session on purpose and keeps its mode.)
+  if (!_psAllSessions()[key] && !_psClearedTopics.has(key)) _psMode = 'graded'
 
   showView('view-topic')
   document.getElementById('page-title').textContent = topic.icon + ' ' + topic.label
@@ -2027,6 +2079,46 @@ function renderCurrentTab() {
 // Standalone "things to remember" notes, scoped to the current topic. Storage +
 // accessors live in data.js (TOPIC_NOTES_KEY / getTopicNotes / upsertTopicNote …).
 let _editingNoteId = null   // null = not editing; '__new__' = adding; else a note id
+
+// The open editor's text, per topic: { [topicKey]: { id, title, body } }. The inputs alone are not
+// enough — every re-render (pinning or deleting another note, a topic switch, a reload) rebuilt
+// them from the SAVED note and silently threw away what you'd typed. Kept in sessionStorage so a
+// reload of this tab brings it back; not localStorage, because a half-typed draft isn't data to sync.
+const NOTE_DRAFTS_KEY = 'dsa-note-drafts-v1'
+let _noteDraftsMem = null
+let _noteEditorTopic = null   // topic whose editor inputs are in the page right now (null = none)
+function _noteDrafts() {
+  if (!_noteDraftsMem) {
+    try { _noteDraftsMem = JSON.parse(sessionStorage.getItem(NOTE_DRAFTS_KEY) || '{}') || {} } catch { _noteDraftsMem = {} }
+  }
+  return _noteDraftsMem
+}
+function _setNoteDraft(topicKey, draft) {
+  const all = _noteDrafts()
+  if (draft) all[topicKey] = draft; else delete all[topicKey]
+  try { sessionStorage.setItem(NOTE_DRAFTS_KEY, JSON.stringify(all)) } catch {}
+}
+// Copy the open editor's inputs into the draft (oninput does this on every keystroke; this also
+// runs before any re-render, so nothing typed is lost even if an input event was missed).
+function _captureNoteDraft() {
+  if (!_editingNoteId || !currentTopicKey || _noteEditorTopic !== currentTopicKey) return
+  const t = document.getElementById('note-edit-title')
+  const b = document.getElementById('note-edit-body')
+  if (!t || !b) return
+  _setNoteDraft(currentTopicKey, { id: _editingNoteId, title: t.value, body: b.value })
+}
+// Leaving a topic: keep its draft only if it says something the saved note doesn't (an untouched
+// editor just closes, as before).
+function _parkNoteDraft() {
+  _captureNoteDraft()
+  _noteEditorTopic = null   // the topic page is about to be rebuilt
+  if (!currentTopicKey) return
+  const d = _noteDrafts()[currentTopicKey]
+  if (!d) return
+  const saved = d.id === '__new__' ? { title: '', body: '' } : getTopicNotes(currentTopicKey).find(x => x.id === d.id)
+  const same = saved && (d.title || '') === (saved.title || '') && (d.body || '') === (saved.body || '')
+  if (same || !saved) _setNoteDraft(currentTopicKey, null)
+}
 
 // Tiny safe markdown: escape first, then apply - bullets, **bold**, `code`.
 // Markdown → HTML for notes. Escapes first (XSS-safe even though notes sync via gist),
@@ -2228,6 +2320,8 @@ function renderTopicNotes() {
   if (!host) return
   const topic = TOPICS.find(t => t.key === currentTopicKey)
   const notes = getTopicNotes(currentTopicKey)
+  _captureNoteDraft()   // the inputs are about to be rebuilt
+  _noteEditorTopic = null
 
   let html = '<div class="notes-head d-flex align-items-center justify-content-between mb-3">' +
     '<div><h6 class="mb-0">📝 Notes' + (topic ? ' — ' + escHtml(topic.label) : '') +
@@ -2250,11 +2344,15 @@ function renderTopicNotes() {
   host.innerHTML = html
   _renderNotesList()
 
-  // Re-open the editor if we were mid-edit when a re-render happened.
-  if (_editingNoteId === '__new__') renderNoteEditor({ id: null, title: '', body: '' })
+  // Re-open the editor if we were mid-edit when a re-render happened — with what you'd typed,
+  // not the saved note.
+  const draft = _noteDrafts()[currentTopicKey]
+  if (draft) _editingNoteId = draft.id
+  if (_editingNoteId === '__new__') renderNoteEditor(draft || { id: null, title: '', body: '' })
   else if (_editingNoteId) {
     const n = notes.find(x => x.id === _editingNoteId)
-    if (n) renderNoteEditor(n)
+    if (n) renderNoteEditor(draft || n)
+    else { _editingNoteId = null; _setNoteDraft(currentTopicKey, null) }   // the note itself is gone
   }
 }
 
@@ -2286,10 +2384,11 @@ function _toggleNoteEditorExpand(btn) {
 function renderNoteEditor(n) {
   const host = document.getElementById('note-editor-host')
   if (!host) return
+  _noteEditorTopic = currentTopicKey
   host.innerHTML =
     '<div class="note-editor">' +
-    '<input class="note-editor-title" id="note-edit-title" placeholder="Note title (e.g. Topological sort)" value="' + escHtml(n.title || '') + '">' +
-    '<textarea class="note-editor-body" id="note-edit-body"' + _noteEditorHeightStyle() + ' onmouseup="_saveNoteEditorHeight(this)" placeholder="Markdown supported — # heading · **bold** · *italic* · `code` · ```block``` - bullets · 1. list · &gt; quote · [link](url). Drag the bottom-right corner to resize.">' + escHtml(n.body || '') + '</textarea>' +
+    '<input class="note-editor-title" id="note-edit-title" placeholder="Note title (e.g. Topological sort)" oninput="_captureNoteDraft()" value="' + escHtml(n.title || '') + '">' +
+    '<textarea class="note-editor-body" id="note-edit-body"' + _noteEditorHeightStyle() + ' oninput="_captureNoteDraft()" onmouseup="_saveNoteEditorHeight(this)" placeholder="Markdown supported — # heading · **bold** · *italic* · `code` · ```block``` - bullets · 1. list · &gt; quote · [link](url). Drag the bottom-right corner to resize.">' + escHtml(n.body || '') + '</textarea>' +
     '<div class="note-editor-actions">' +
     '<button class="btn-note-expand" onclick="_toggleNoteEditorExpand(this)" title="Expand / shrink the editor">⤢ Expand</button>' +
     '<span class="note-editor-hint">**bold** · `code` · drag the ▝ corner to resize</span>' +
@@ -2302,6 +2401,7 @@ function renderNoteEditor(n) {
 
 function startNewTopicNote() {
   _editingNoteId = '__new__'
+  _setNoteDraft(currentTopicKey, null)
   renderNoteEditor({ id: null, title: '', body: '' })
   document.getElementById('note-editor-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
@@ -2310,12 +2410,15 @@ function editTopicNote(id) {
   const n = getTopicNotes(currentTopicKey).find(x => x.id === id)
   if (!n) return
   _editingNoteId = id
+  _setNoteDraft(currentTopicKey, null)
   renderNoteEditor(n)
   document.getElementById('note-editor-host')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 function cancelNoteEditor() {
   _editingNoteId = null
+  _noteEditorTopic = null
+  _setNoteDraft(currentTopicKey, null)
   const h = document.getElementById('note-editor-host')
   if (h) h.innerHTML = ''
 }
@@ -2336,6 +2439,7 @@ function saveTopicNoteFromEditor() {
   }
   upsertTopicNote(currentTopicKey, note)
   _editingNoteId = null
+  _setNoteDraft(currentTopicKey, null)
   // Open the note you just saved so the result is visible.
   const open = _openNoteSet(getTopicNotes(currentTopicKey))
   open.add(note.id)
@@ -2353,7 +2457,7 @@ function toggleTopicNotePin(id) {
 function removeTopicNote(id) {
   if (!confirm('Delete this note?')) return
   deleteTopicNote(currentTopicKey, id)
-  if (_editingNoteId === id) _editingNoteId = null
+  if (_editingNoteId === id) { _editingNoteId = null; _setNoteDraft(currentTopicKey, null) }
   renderTopicNotes()
 }
 
@@ -2553,7 +2657,7 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const subsRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)" id="subs-' + lcKey + '">' + _subsRowHtml(lcKey) + '</div>'
   const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="mb-2"><span class="q-section-label">📝 My notes</span></p>' +
     '<textarea class="note-area" placeholder="Add your attempt notes, observations, or reminders here…" id="note-' + lcKey + '"' +
-    ' onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
+    ' oninput="_queueNoteSave(\'' + lcKey + '\')" onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
     '<span class="note-saved-flash" id="note-flash-' + lcKey + '">Saved</span>' +
     '</div>'
 
@@ -2620,18 +2724,21 @@ function setQuestionStatus(lcKey, status, btnEl) {
     cycleBtn.setAttribute('aria-label', 'Status: ' + status + ' — click to cycle')
     cycleBtn.textContent = STATUS_EMOJI[status] ?? '📋'
   }
-  // Refresh topic tracker and sidebar nav badge
+  // Refresh topic tracker and the sidebar nav badges. Every topic that lists the question gets
+  // its badge redone (cross-listed questions share one status), not just the open topic — a ✓
+  // from the dashboard has no open topic at all.
   const mod = TOPIC_MODULES[currentTopicKey]
-  if (mod) {
-    renderTopicTracker(mod)
-    const navBadge = document.getElementById('nav-badge-' + currentTopicKey)
-    if (navBadge) {
-      const qKeys  = Object.keys(mod.questions)
-      const solved = qKeys.filter(k => getStatus(k) === 'Solved').length
-      navBadge.textContent = solved + '/' + qKeys.length
-      navBadge.className = 'badge rounded-pill text-xxs ' + _navBadgeCls(solved, qKeys.length)
-    }
-  }
+  if (mod) renderTopicTracker(mod)
+  TOPICS.forEach(t => {
+    const m = TOPIC_MODULES[t.key]
+    if (!m || !m.questions[lcKey]) return
+    const navBadge = document.getElementById('nav-badge-' + t.key)
+    if (!navBadge) return
+    const qKeys  = Object.keys(m.questions)
+    const solved = qKeys.filter(k => getStatus(k) === 'Solved').length
+    navBadge.textContent = solved + '/' + qKeys.length
+    navBadge.className = 'badge rounded-pill text-xxs ' + _navBadgeCls(solved, qKeys.length)
+  })
   // If filtered view is active, re-render filtered list to reflect new status
   if (currentQFilter !== 'all' && mod) _renderFilteredQuestions(mod)
 }
@@ -2682,28 +2789,67 @@ function _refreshReviseGradeBadges(lcKey) {
   document.querySelectorAll('.revise-grade-badge[data-rg-key="' + lcKey + '"]').forEach(el => { el.outerHTML = _reviseGradeBadge(lcKey) })
 }
 // Grade a recall pass. Solid/Shaky/Forgot move the revise ladder; Forgot also force-queues a
-// cold re-solve. No solve-count change (recall ≠ coding). Counts toward the daily streak.
+// cold re-solve. Counts toward the daily streak.
+//
+// One grade per question per day: a second grade the same day is a CORRECTION, not another rep.
+// The first grade of the day stores what the question looked like before it (`base` on the revise
+// record: revise record, code interval, last-practiced, status, must-code flag, whether the ring was
+// credited); every later grade that day rewinds to that first and then applies itself. So ✓✓✓✓
+// counts once, ✓ then ✗ takes the ✓'s credit back, and ✓✗✓ credits once — whichever list the
+// clicks came from (the caller's _psCreditCleanSolve runs after this, from the rewound state).
 function gradeRevise(lcKey, grade, el) {
-  // ✓ "recalled it cold" credits ONE solve on the confidence ring (deduped to once/day) — a clean
-  // recall is a real successful rep. ~ shaky and ✗ forgot never credit. This is the ONLY link from
-  // recall to the solve count, and only on an explicit positive grade (unlike the old eye, which
-  // bumped on every passive click). Status is untouched here beyond the 📋→🚧 nudge below.
+  // ✓ "recalled it cold" credits ONE solve on the confidence ring — a clean recall is a real
+  // successful rep. ~ shaky and ✗ forgot never credit. This is the ONLY link from recall to the
+  // solve count, and only on an explicit positive grade (unlike the old eye, which bumped on every
+  // passive click). Status is untouched here beyond the 📋→🚧 nudge below.
   const prev  = getRevise(lcKey)
   const today = _localDay()
-  const creditedSolidToday = prev && prev.grade === 'solid' && prev.last && _localDay(new Date(prev.last)) === today
-  markRevised(lcKey, grade)
-  setCodeForced(lcKey, grade === 'forgot')
-  if (grade === 'solid' && !creditedSolidToday) _adjSolveCount(lcKey, 1)
+  const shownStatus = getStatus(lcKey)
+  let base = prev && prev.base && prev.base.day === today ? prev.base : null
+  // A ✓ from today saved before records carried a `base` was already credited; don't credit again.
+  const legacySolidToday = !base && prev && prev.grade === 'solid' && prev.last && _localDay(new Date(prev.last)) === today
+  if (base) {
+    if (base.credited) _adjSolveCount(lcKey, -1)
+    _restoreReviewInterval(lcKey, base.interval)
+    _restoreLastPracticed(lcKey, base.practiced)
+    setCodeForced(lcKey, base.forced)
+    if (getStatus(lcKey) !== base.status) setStatus(lcKey, base.status)
+  } else {
+    const rev = prev ? Object.assign({}, prev) : null
+    if (rev) delete rev.base
+    base = { day: today, rev, status: shownStatus, forced: isCodeForced(lcKey),
+             interval: _rawReviewInterval(lcKey), practiced: getLastPracticed(lcKey), credited: false }
+  }
+  base.credited = grade === 'solid' && !legacySolidToday
+  markRevised(lcKey, grade, base)
+  // Grades only ever SET the must-code flag. A later ~ or ✓ recall is not the cold solve the flag
+  // asks for; only _refreshReviseOnSolve (a clean solve) clears it.
+  if (grade === 'forgot') setCodeForced(lcKey, true)
+  if (base.credited) _adjSolveCount(lcKey, 1)
   _updateStreak()
   // Engaging with recall promotes an untouched (📋 Pending) question — never downgrades, never auto-✅.
-  if (getStatus(lcKey) === 'Pending') setQuestionStatus(lcKey, 'In Progress')
+  if (getStatus(lcKey) === 'Pending') setStatus(lcKey, 'In Progress')
+  if (getStatus(lcKey) !== shownStatus) setQuestionStatus(lcKey, getStatus(lcKey))
   _refreshReviseCtrl(lcKey)
   _refreshReviseGradeBadges(lcKey)
   _refreshDueCounts()
 }
 
 // ─── SAVE NOTE ────────────────────────────────────────────────────────────────
-function saveNoteFromTextarea(lcKey) {
+// Saving only on blur lost whatever was typed if the tab was closed or reloaded (or the app
+// re-rendered the card) before focus left the box, so typing also saves after a short pause.
+// That save is quiet: the "Saved" flash stays for blur, where it always appeared.
+const NOTE_SAVE_DELAY_MS = 600
+const _noteSaveTimers = {}
+function _queueNoteSave(lcKey) {
+  clearTimeout(_noteSaveTimers[lcKey])
+  _noteSaveTimers[lcKey] = setTimeout(() => saveNoteFromTextarea(lcKey, true), NOTE_SAVE_DELAY_MS)
+}
+function _flushNoteSaves() {
+  Object.keys(_noteSaveTimers).forEach(k => saveNoteFromTextarea(k, true))
+}
+function saveNoteFromTextarea(lcKey, quiet) {
+  clearTimeout(_noteSaveTimers[lcKey]); delete _noteSaveTimers[lcKey]
   const ta = document.getElementById('note-' + lcKey)
   if (!ta) return
   setNote(lcKey, ta.value)
@@ -2723,7 +2869,7 @@ function saveNoteFromTextarea(lcKey) {
       }
     }
   }
-  const flash = document.getElementById('note-flash-' + lcKey)
+  const flash = quiet ? null : document.getElementById('note-flash-' + lcKey)
   if (flash) {
     flash.classList.add('show')
     setTimeout(() => flash.classList.remove('show'), 1500)
@@ -3035,8 +3181,8 @@ function renderTopicTracker(mod) {
 
   const qKeys     = Object.keys(mod.questions)
   const solved    = qKeys.filter(k => getStatus(k) === 'Solved').length
-  const inProg    = qKeys.filter(k => getStatus(k) === 'In Progress').length
-  const pending   = qKeys.filter(k => getStatus(k) === 'Pending').length
+  const inProg    = qKeys.filter(k => _countedStatus(k) === 'In Progress').length
+  const pending   = qKeys.filter(k => _countedStatus(k) === 'Pending').length
   const pct       = qKeys.length ? Math.round(solved    / qKeys.length * 100) : 0
   const inProgPct = qKeys.length ? Math.round(inProg    / qKeys.length * 100) : 0
 
@@ -3473,7 +3619,9 @@ function _buildPracticePanel(topicKey, mod) {
       } else if (_psMode === 'pinned') {
         _psCurrentItems = _psModePool(topicKey)   // always live: pins change on the cards below
       } else {
-        _psCurrentItems = savedSession.items.map(([lcKey, q]) => [lcKey, mod.questions[lcKey] || q])
+        // A question since removed from data.js has no link/pattern/grade controls left — drop it
+        // rather than restore a broken row from the {title, difficulty} the session kept.
+        _psCurrentItems = savedSession.items.filter(([lcKey]) => mod.questions[lcKey]).map(([lcKey]) => [lcKey, mod.questions[lcKey]])
         // Graded promise: ✗/~ questions ALWAYS appear. Merge in any weak graded
         // questions missing from the restored set — graded since it was saved (or saved back
         // when the old cooldown filter still hid them). They go on top, weakest first.
@@ -3560,7 +3708,7 @@ function _buildPracticePanel(topicKey, mod) {
   html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===5  ? ' ps-active':'') + '" onclick="_psTimerSet(5,this)">5m</button>'
   html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===10 ? ' ps-active':'') + '" onclick="_psTimerSet(10,this)">10m</button>'
   html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===20 ? ' ps-active':'') + '" onclick="_psTimerSet(20,this)">20m</button>'
-  html += '<span class="ps-timer-display' + (_psTimerRun ? ' ps-running' : '') + (_psTimerRem === 0 && _psTimerTotal > 0 ? ' ps-expired' : '') + '" id="ps-timer-disp">' + _fmtTimer(_psTimerRem || _psTimerTotal) + '</span>'
+  html += '<span class="ps-timer-display' + (_psTimerRun ? ' ps-running' : '') + (_psTimerRem === 0 && _psTimerTotal > 0 ? ' ps-expired' : '') + '" id="ps-timer-disp">' + _timerText(_psTimerRem, _psTimerTotal) + '</span>'
   html += '<button type="button" class="ps-timer-ctrl" id="ps-timer-play" onclick="_psTimerToggle()" title="Start / Pause">'
   html += (_psTimerRun ? '⏸' : '▶') + '</button>'
   html += '<button type="button" class="ps-timer-ctrl" onclick="_psTimerReset()" title="Reset timer">↺</button>'
@@ -3572,6 +3720,11 @@ function _fmtTimer(secs) {
   if (!secs) return 'Off'
   const m = Math.floor(secs / 60), s = secs % 60
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+}
+// What a timer display reads. Remaining time is 0 only when no timer is set ('Off') or once a set
+// timer has run out — that must stay 00:00 on a re-render, not jump back to the full preset.
+function _timerText(rem, total) {
+  return total && !rem ? '00:00' : _fmtTimer(rem || total)
 }
 
 // The count control is a plain <span> in most modes, but an editable <input> in Graded
@@ -3595,7 +3748,7 @@ function _psClear(topicKey) {
   _stopTimer()
   _psTimerRem = _psTimerTotal                       // back to the preset, not a half-run clock
   _psCurrentItems = []
-  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  _psDoneThisSession.clear()
   _psReviseCodeFlagged.clear(); _psReviseShownThisSession.clear()
   _psMockReveal = false
   _psClearedTopics.add(topicKey)                    // keep By Pattern from auto-refilling on re-render / revisit
@@ -3695,7 +3848,7 @@ function _psToggleWorkedOnly(topicKey) {
   // If a set is already loaded, regenerate it so the filter applies immediately (mirrors Reset).
   if (_psCurrentItems.length > 0) {
     _stopTimer()
-    _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+    _psDoneThisSession.clear()
     const count = Math.max(1, Math.min(_psQCount, Object.keys(mod.questions).length))
     _psCurrentItems = _genPracticeSet(topicKey, count)
     _psQCount = _psCurrentItems.length
@@ -3841,7 +3994,7 @@ function _psSetMode(mode, topicKey) {
   _psMockReveal = false
   _psClearedTopics.delete(topicKey)   // a mode switch regenerates, so the topic is no longer 'cleared'
   _stopTimer()
-  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  _psDoneThisSession.clear()
   _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
   if (mode === 'pinned') {
@@ -3930,7 +4083,7 @@ function _psShuffle(topicKey) {
   // Save which keys were done this session BEFORE clearing, so we can push
   // them to the bottom of the new set — they've been practiced already today.
   const prevDone = new Set(_psDoneThisSession)
-  _psDoneThisSession.clear(); _psStruggledThisSession.clear()
+  _psDoneThisSession.clear()
 
   const count = Math.max(1, Math.min(_psQCount, Object.keys(mod.questions).length))
   const generated = _psModePool(topicKey, count)
@@ -4018,14 +4171,6 @@ function _adjSolveCount(lcKey, delta) {
   }
 }
 
-// Mark a practice row as solved IN PLACE — flash the outcome style but keep the row where it is
-// (completed questions stay put; they no longer slide to the bottom). Then run onSettled(list).
-function _markRowSolved(rowEl, outcomeCls, onSettled) {
-  rowEl.classList.add(outcomeCls)
-  const list = rowEl.parentElement
-  if (onSettled && list) onSettled(list)
-}
-
 // A solve deliberately does NOT touch the REVISE grade — you may have peeked at the answer
 // while coding, so recall grades are only ever set by hand via the ✓/~/✗ buttons (gradeRevise
 // is the sole writer). The solve still clears the "re-code me" force flag: that flag queued
@@ -4038,59 +4183,6 @@ function _refreshReviseOnSolve(lcKey) {
   _refreshDueCounts()
 }
 
-// Handle click on a practice row: a clean solve — credit a solve, expand the review interval, mark solved in place.
-function _psRowClick(event, lcKey) {
-  // Ignore clicks on the link, pin, or struggle button — they already stopPropagation
-  if (event.target.classList.contains('ps-q-link')) return
-
-  const rowEl = event.currentTarget
-  if (!rowEl) return
-
-  // Prevent double-counting if already done this session
-  if (_psDoneThisSession.has(lcKey)) return
-  _psDoneThisSession.add(lcKey)
-
-  // Clean solve: mark practiced + push the review interval one step further out
-  markPracticed(lcKey)
-  bumpReviewInterval(lcKey)
-
-  const newCount = incSolveCount(lcKey)
-
-  // Update solve ring on the main accordion item if visible
-  const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
-  if (acRing) {
-    acRing.className = 'solve-ring ' + _solveRingCls(newCount)
-    acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
-    acRing.title     = _solveRingTitle(newCount)
-  }
-  _refreshReviseOnSolve(lcKey)
-
-  // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
-  if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
-  const stBadge = rowEl.querySelector('.ps-status-badge')
-  if (stBadge) { stBadge.className = 'badge ' + STATUS_DOT.Solved + ' q-badge flex-shrink-0 ps-status-badge'; stBadge.textContent = STATUS_EMOJI.Solved }
-
-  // Persist session state after marking as done
-  _psSaveSession()
-
-  _markRowSolved(rowEl, 'ps-q-solved', () => {
-    // Show session-complete banner if every question in this set is done
-    if (_psCurrentItems.length > 0 && _psDoneThisSession.size >= _psCurrentItems.length) {
-      _psShowSessionComplete()
-    }
-  })
-}
-
-
-// Show a compact banner at the top of ps-list when all session questions are done.
-function _psShowSessionComplete() {
-  const listEl = document.getElementById('ps-list')
-  if (!listEl || listEl.querySelector('.ps-session-done')) return
-  const total = _psDoneThisSession.size
-  let msg = '✅ Session complete · <span style="color:var(--green)">' + total + ' solved</span>'
-  listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
-}
-
 function _qpShowSessionComplete() {
   const listEl = document.getElementById('qp-results')
   if (!listEl || listEl.querySelector('.ps-session-done')) return
@@ -4098,48 +4190,6 @@ function _qpShowSessionComplete() {
   let msg = '✅ Session complete · <span style="color:var(--green)">' + total + ' solved</span>'
   listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
 }
-
-// ─── DASHBOARD ROW CLICK HANDLERS ────────────────────────────────────────────
-// Dashboard QP handlers use _qpDoneThisSession so that topic navigation never clears QP state.
-
-// After a dashboard row is marked solved, re-sync results order to the DOM and maybe show the complete banner.
-function _qpAfterRowSettled(list) {
-  // Sync _qpResults order to match DOM so navigating back restores positions
-  if (_qpResults) {
-    const qMap = Object.fromEntries(_qpResults)
-    _qpResults = Array.from(list.querySelectorAll('.ps-q-row[data-lc-key]'))
-      .map(r => { const k = r.getAttribute('data-lc-key'); return k && qMap[k] ? [k, qMap[k]] : null })
-      .filter(Boolean)
-    _saveQpState()
-  }
-  if (_qpResults && _qpResults.length > 0 && _qpDoneThisSession.size >= _qpResults.length) {
-    _qpShowSessionComplete()
-  }
-}
-
-function _qpRowClick(event, lcKey) {
-  if (event.target.classList.contains('ps-q-link')) return
-  const rowEl = event.currentTarget
-  if (!rowEl) return
-  if (_qpDoneThisSession.has(lcKey)) return
-  _qpDoneThisSession.add(lcKey)
-  markPracticed(lcKey)
-  bumpReviewInterval(lcKey)
-  const newCount = incSolveCount(lcKey)
-  const acRing = document.querySelector('[data-solve-key="' + lcKey + '"]')
-  if (acRing) {
-    acRing.className = 'solve-ring ' + _solveRingCls(newCount)
-    acRing.innerHTML = _solveRingEmoji(newCount) + '<span class="solve-ring-num">' + newCount + '</span>'
-    acRing.title     = _solveRingTitle(newCount)
-  }
-  _refreshReviseOnSolve(lcKey)
-  // Completing a practice question marks it ✅ Solved (e.g. In Progress → Completed).
-  if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
-  const stBadge = rowEl.querySelector('.ps-status-badge')
-  if (stBadge) { stBadge.className = 'badge ' + STATUS_DOT.Solved + ' q-badge flex-shrink-0 ps-status-badge'; stBadge.textContent = STATUS_EMOJI.Solved }
-  _markRowSolved(rowEl, 'ps-q-solved', _qpAfterRowSettled)
-}
-
 
 // ── Timer controls ────────────────────────────────────────────────────────────
 function _psTimerSet(mins, btn) {
@@ -4201,11 +4251,10 @@ function _psTimerTick() {
 function _syncTimerDisplay() {
   const disp = document.getElementById('ps-timer-disp')
   if (!disp) return
-  const secs = _psTimerRem || _psTimerTotal
-  disp.textContent = _fmtTimer(secs)
+  disp.textContent = _timerText(_psTimerRem, _psTimerTotal)
   disp.className = 'ps-timer-display' +
     (_psTimerRun ? ' ps-running' : '') +
-    (!secs && _psTimerTotal > 0 ? ' ps-expired' : '')
+    (!_psTimerRem && _psTimerTotal > 0 ? ' ps-expired' : '')
 }
 
 // ─── QUICK PRACTICE (Dashboard) ───────────────────────────────────────────────
@@ -4258,7 +4307,7 @@ function _renderQuickPractice() {
   }
 
   // Timer bar (mirrors per-topic timer)
-  const qpTimerDisp = _fmtTimer(_qpTimerRem || _qpTimerTotal)
+  const qpTimerDisp = _timerText(_qpTimerRem, _qpTimerTotal)
   html += '<div class="ps-timer-bar mt-2">'
   html += '<span class="text-secondary text-xs flex-shrink-0">⏱ Timer:</span>'
   html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===5  ? ' ps-active':'') + '" onclick="_qpTimerSet(5,this)">5m</button>'
@@ -4316,7 +4365,7 @@ function _qpClear() {
   _qpTimerRem = _qpTimerTotal
   _qpResults = null
   _qpMockReveal = false
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
@@ -4441,7 +4490,7 @@ function _qpGenerate() {
   // Snapshot done-this-session BEFORE clearing, so previously solved questions
   // land at the bottom of the new set instead of back at the top.
   const prevDone = new Set(_qpDoneThisSession)
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
 
   // Graded: ✗ forgot / ~ shaky NEVER get cut by the count cap (only ✓ solid padding is capped), weighted
   // by interview frequency so limited practice time goes to your weakest AND highest-impact problems.
@@ -4482,7 +4531,7 @@ function _qpToggleDueOnly() {
   _qpResults = null
   // Clear session state too — the pool is changing so done state against
   // the old set is meaningless and would pollute the next generated set's prevDone snapshot
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
@@ -4493,7 +4542,7 @@ function _qpToggleMock() {
   if (_qpMock) { _qpRevise = false; _qpRevised = false }   // Mock / Revise / Revised are mutually exclusive
   _qpMockReveal = false
   _qpResults = null
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
@@ -4503,7 +4552,7 @@ function _qpToggleRevise() {
   _qpRevise = !_qpRevise
   if (_qpRevise) { _qpMock = false; _qpRevised = false; _qpMockReveal = false }
   _qpResults = null
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
@@ -4513,7 +4562,7 @@ function _qpToggleRevised() {
   _qpRevised = !_qpRevised
   if (_qpRevised) { _qpMock = false; _qpRevise = false; _qpMockReveal = false }
   _qpResults = null
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
@@ -4531,7 +4580,7 @@ function _qpToggleWorkedOnly() {
   _practiceWorkedOnly = !_practiceWorkedOnly
   _qpResults = null
   // Pool is changing — done-state against the old set is meaningless for the next prevDone snapshot
-  _qpDoneThisSession.clear(); _qpStruggledThisSession.clear()
+  _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
 }
@@ -4601,11 +4650,10 @@ function _qpTimerTick() {
 function _qpSyncTimerDisplay() {
   const disp = document.getElementById('qp-timer-disp')
   if (!disp) return
-  const secs = _qpTimerRem || _qpTimerTotal
-  disp.textContent = _fmtTimer(secs)
+  disp.textContent = _timerText(_qpTimerRem, _qpTimerTotal)
   disp.className = 'ps-timer-display' +
     (_qpTimerRun ? ' ps-running' : '') +
-    (!secs && _qpTimerTotal > 0 ? ' ps-expired' : '')
+    (!_qpTimerRem && _qpTimerTotal > 0 ? ' ps-expired' : '')
 }
 
 // renderInterviewTips removed — now rendered inside renderTopicAlwaysVisible
@@ -4708,7 +4756,10 @@ if (window.DataSync) {
     keys: BACKUP_KEYS,
     versionLabel: 'DSA Notebook',
     autoPush: true,                                  // upload a few seconds after each edit
-    noiseKeys: ['dsa-streak-v1', 'dsa-theme'],       // rewritten on load / per-device; not "edits"
+    // Rewritten on load / per-device / by every grade and page visit (the two practice-session
+    // keys hold which set is on screen, not progress): still synced, but not "edits", so they
+    // never make a stale device look edited and merge instead of fast-forwarding.
+    noiseKeys: ['dsa-streak-v1', 'dsa-theme', 'dsa-qp-state-v1', 'dsa-practice-session-v1'],
     maxKeys: ['dsa-solve-counts-v1', 'google-log-reviews-v1']   // on conflict keep the larger count
   })
   DataSync.autoSync()   // runs at most once / 24h if a token is set
