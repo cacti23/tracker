@@ -73,23 +73,25 @@ function makeFakeButton() {
   }
 }
 
-// extra: { elements: {id: fakeElement}, prompt(), confirm() }
+// extra: { elements: {id: fakeElement}, prompt(), confirm(), onReload() }
 function load(localStorage, fakeGitHub, extra) {
   extra = extra || {}
   const alerts = []
   const elements = extra.elements || {}
+  let dead = false   // after a reload the old page's timers and requests never complete
   const sandbox = {
     localStorage,
     document: { getElementById: (id) => elements[id] || null },
-    fetch: fakeGitHub.fetch.bind(fakeGitHub),
+    fetch: (url, o) => (dead ? new Promise(() => {}) : fakeGitHub.fetch(url, o)),
     console, JSON, Object, Array, String, Number, Boolean, Date, Math, Promise, Error,
-    setTimeout, clearTimeout,
+    setTimeout: (fn, ms) => setTimeout(() => { if (!dead) fn() }, ms), clearTimeout,
     alert: (msg) => { alerts.push(msg) },
     prompt: extra.prompt || (() => null),
     confirm: extra.confirm || (() => true),
   }
   sandbox.window = sandbox
-  sandbox.location = { reload() {} } // syncNow()/autoSync() reload the page on a successful pull
+  // sync.js reloads the page after a pull/merge changes local data
+  sandbox.location = { reload() { if (dead || !extra.onReload) return; dead = true; extra.onReload() } }
   vm.createContext(sandbox)
   const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'sync.js'), 'utf8')
   vm.runInContext(src, sandbox, { filename: 'sync.js' })
@@ -320,13 +322,23 @@ test('INCIDENT REPLAY (2026-10-01): a device holding only 2 keys must never over
 })
 
 // ─── merge / multi-device / auto-push (cloud sync hardening) ─────────────────
-// Two "devices" = two (localStorage, DataSync) pairs sharing one fake gist.
+// Two "devices" = two (localStorage, DataSync) pairs sharing one fake gist. A pull or merge
+// reloads the page, modelled as a fresh page: a new sync.js instance and a new localStorage
+// binding over the same stored data. (Until the reload, sync.js drops the app's writes to
+// synced keys, so a device that never reloaded could not be edited again.)
 function makeDevice(gh, initOpts) {
-  const ls = makeLocalStorage()
-  const ds = load(ls, gh)
-  ls.setItem('tracker-sync-token', 'test-token')
-  ds.init(Object.assign({ appId: 'dsa', keys: ['dsa-revise-v1', 'dsa-solve-counts-v1', 'dsa-streak-v1'] }, initOpts || {}))
-  return { ls, ds }
+  const store = makeLocalStorage()
+  const dev = {}
+  function boot() {
+    const ls = { getItem: store.getItem, setItem: store.setItem, removeItem: store.removeItem, clear: store.clear }
+    const ds = load(ls, gh, { onReload: boot })
+    ls.setItem('tracker-sync-token', 'test-token')
+    ds.init(Object.assign({ appId: 'dsa', keys: ['dsa-revise-v1', 'dsa-solve-counts-v1', 'dsa-streak-v1'], reloadDelayMs: 1 }, initOpts || {}))
+    dev.ls = ls
+    dev.ds = ds
+  }
+  boot()
+  return dev
 }
 const settle = (ms) => new Promise((r) => setTimeout(r, ms || 40))
 async function syncDevice(dev) { dev.ds.syncNow(); await settle(50) }

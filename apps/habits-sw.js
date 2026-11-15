@@ -7,8 +7,9 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
+  // CacheStorage is shared by every service worker on this origin: only drop our own old versions.
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('habits-cache-') && k !== CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });

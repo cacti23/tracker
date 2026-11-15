@@ -376,12 +376,10 @@
 
   // Push to the cloud a couple seconds after the last edit, so changes made
   // on one device reach the others without waiting for the manual Sync button
-  // or the shared 24h auto-sync throttle in sync.js.
-  let autoPushTimer = null;
+  // or the shared 24h auto-sync throttle in sync.js. pushSoon is the quiet
+  // path: syncNow() alerted on every tap made while offline.
   function scheduleAutoPush() {
-    if (!window.DataSync || !DataSync.isConfigured()) return;
-    clearTimeout(autoPushTimer);
-    autoPushTimer = setTimeout(() => DataSync.syncNow(), 2500);
+    if (window.DataSync) DataSync.pushSoon(2500);
   }
   function uid() { return 'h_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -398,6 +396,10 @@
   function isFuture(dateStr) { return dateStr > todayStr(); }
 
   function toggleLog(habitId, dateStr) {
+    // A tap on a view drawn before midnight would toggle a date the user
+    // didn't mean (the dot still highlighted as "today" is yesterday), so
+    // redraw instead and let them tap the fresh view.
+    if (todayStr() !== renderedDay) { renderHabits(); return; }
     if (isFuture(dateStr)) return;
     if (!state.logs[habitId]) state.logs[habitId] = {};
     const habit = state.habits.find(h => h.id === habitId);
@@ -589,7 +591,20 @@
     return { y: d.getFullYear(), m: d.getMonth() };
   }
 
+  // Every "today" highlight, streak and dot range is computed at render time,
+  // so a page (or installed PWA) left open past midnight goes stale. Remember
+  // which day we drew and redraw once the local date moves on: on return to
+  // the tab, on focus, and on a light timer for a page left in view.
+  let renderedDay = null;
+  function refreshIfDayChanged() {
+    if (renderedDay !== null && todayStr() !== renderedDay) renderHabits();
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfDayChanged(); });
+  window.addEventListener('focus', refreshIfDayChanged);
+  setInterval(refreshIfDayChanged, 60000);
+
   function renderHabits() {
+    renderedDay = todayStr();
     const list = document.getElementById('habitList');
     list.innerHTML = '';
     if (state.habits.length === 0) {
@@ -846,11 +861,14 @@
     DataSync.init({
       appId: 'habits',
       keys: [STORAGE_KEY, themeKey, 'habits_view'],
-      versionLabel: 'habits-v1'
+      versionLabel: 'habits-v1',
+      noiseKeys: ['habits_view', themeKey],     // view state, not data: switching the view isn't an edit
+      deepKeys: { [STORAGE_KEY]: 'id' }         // merge habits by id and ticks by habit + date
     });
     // Check the cloud on every open (not gated to sync.js's 24h autoSync
     // throttle) so a habit added on one device shows up on another right away.
-    if (DataSync.isConfigured()) DataSync.syncNow();
+    // autoSync stays quiet when offline; syncNow() alerted.
+    DataSync.autoSync({ everyOpen: true });
   }
 
   function init() {
