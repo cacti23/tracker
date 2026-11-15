@@ -20,7 +20,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 
 - All state is in localStorage. The keys that sync are listed in `BACKUP_KEYS` in `index.html`. If you add a new localStorage key that should survive across devices, add it there.
 - `js/sync.js` is shared by `index.html`, `apps/gym-5day.html` and `apps/habits.html`. The decision order is documented above `doReconcile`; the short version: pull when only the cloud changed, push when only this device changed, and **merge** (key by key, `mergeValue`) when both did. The previous cloud copy is kept as `<app>.prev.json` and local snapshots rotate through `<app>-presync`, `-2`, `-3`. This is where data loss would happen, so run `node --test test/sync.test.js` after any change and add a test for any behaviour change.
-- `DataSync.init` options: `autoPush` (upload shortly after each edit; works by hooking `Storage.prototype.setItem/removeItem` for the synced keys), `noiseKeys` (keys rewritten on every load, such as the streak, which don't count as edits), `maxKeys` (counter objects where a conflict keeps the larger number). Keep `noiseKeys` up to date if you add a key that is rewritten on page load, or a stale device will look edited and merge instead of fast-forwarding.
+- `DataSync.init` options: `autoPush` (upload shortly after each edit; works by hooking `Storage.prototype.setItem/removeItem` for the synced keys), `noiseKeys` (keys rewritten on every load, such as the streak, which don't count as edits), `maxKeys` (counter objects where a conflict keeps the larger number), `deepKeys` (`{ key: idField }`: merge that key recursively, arrays unioned by `idField`). Keep `noiseKeys` up to date if you add a key that is rewritten on page load, or a stale device will look edited and merge instead of fast-forwarding.
 - `data.js` caches parsed objects in memory and writes the whole object back on save, so after sync changes localStorage the page must reload (sync does this itself on pull and merge). Don't write synced keys behind its back.
 - Never commit tokens. The sync token lives only in the browser's localStorage.
 
@@ -34,3 +34,4 @@ The service worker (`sw.js`) caches an app-shell list in `ASSETS`. If you add a 
 
 - Commits have mostly been bare version bumps (`v219`). Descriptive messages are preferred for real changes.
 - Comments explain why, not what. Match the surrounding style (the inline script uses no semicolons, `data.js` is mixed).
+- No new implicit state: model a mode as one status value with named states, or derive it from the source of truth. Any change to sync or merge needs a test that fails before the change.
