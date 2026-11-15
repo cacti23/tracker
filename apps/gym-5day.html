@@ -927,6 +927,15 @@
   let userData;
   try { userData = JSON.parse(localStorage.getItem(storageKey)) || {}; }
   catch (e) { userData = {}; }
+  // userData is a copy of storage that saveUserData() writes back whole. When another tab (or
+  // another tab's sync) changes the stored copy, take it over and redraw, or this tab's next
+  // save would put back its stale copy and erase that change. PRs and history are re-read on
+  // every use, so they need nothing.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== storageKey) return;
+    try { userData = JSON.parse(e.newValue) || {}; } catch (err) { userData = {}; }
+    renderContent();
+  });
 
   // Cloud sync (shared module in sync.js): all gym5day localStorage keys.
   if (window.DataSync) {
@@ -1213,12 +1222,18 @@
     return saved;
   }
 
+  // Stored text (notes, set values, history) can come from another device through sync, so it
+  // is escaped before it goes into innerHTML, like escHtml() in the notebook.
+  function esc(v) {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function renderExerciseHistory(exName) {
     const hist = getExerciseHistory(exName);
     if (!hist.length) return `<div class="history-list"><div class="history-empty">No saved sessions yet. Tap "Finish & Save to History" after a workout.</div></div>`;
     return `<div class="history-list">${hist.slice(0, 12).map(h => {
-      const sets = (h.sets || []).map(s => `${s.weight||'–'}×${s.reps||'–'}`).join('  ');
-      return `<div class="history-row"><span class="history-date">${h.date}</span><span class="history-sets">${sets}</span></div>`;
+      const sets = (h.sets || []).map(s => `${esc(s.weight||'–')}×${esc(s.reps||'–')}`).join('  ');
+      return `<div class="history-row"><span class="history-date">${esc(h.date)}</span><span class="history-sets">${sets}</span></div>`;
     }).join('')}</div>`;
   }
 
@@ -1229,7 +1244,7 @@
     document.querySelectorAll(`.set-status[data-day="${dayIdx}"][data-ex="${exIdx}"]`).forEach(el => {
       const setIdx = parseInt(el.dataset.set);
       const set = exData.sets[setIdx] || { weight: "", reps: "" };
-      const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
+      const bestText = best ? `Best: ${esc(best.weight)}kg × ${esc(best.reps)}` : 'No PR yet';
       const hasVals = set.weight && set.reps;
       let badge = '';
       if (set.done && hasVals && isRecordSet(dayIdx, exIdx, set.weight, set.reps)) {
@@ -1372,7 +1387,7 @@
                   <div class="ex-tracking">
                     ${exData.sets.map((set, setIdx) => {
                       const best = window.getBestForExercise(index, i);
-                      const bestText = best ? `Best: ${best.weight}kg × ${best.reps}` : 'No PR yet';
+                      const bestText = best ? `Best: ${esc(best.weight)}kg × ${esc(best.reps)}` : 'No PR yet';
                       const hasVals = set.weight && set.reps;
                       // ⭐ PR only shows once the set is ticked done and it holds the record;
                       // while typing you get a muted "potential PR" hint — nothing is stored yet.
@@ -1385,8 +1400,8 @@
                       <div class="set-block${set.done?' done':''}" id="setblock-${index}-${i}-${setIdx}">
                         <div class="set-row">
                           <button class="set-done${set.done?' done':''}" onclick="window.toggleSetDone(this,${index},${i},${setIdx})" title="Mark set done — confirms it & logs any PR">${set.done?'✓':(setIdx+1)}</button>
-                          <input type="text" inputmode="decimal" class="track-input" placeholder="kg" value="${set.weight}" oninput="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
-                          <input type="text" inputmode="numeric" class="track-input" placeholder="reps" value="${set.reps}" oninput="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
+                          <input type="text" inputmode="decimal" class="track-input" placeholder="kg" value="${esc(set.weight)}" oninput="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
+                          <input type="text" inputmode="numeric" class="track-input" placeholder="reps" value="${esc(set.reps)}" oninput="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
                         </div>
                         <div class="set-status" data-day="${index}" data-ex="${i}" data-set="${setIdx}" style="display:flex;justify-content:space-between;align-items:center;padding:2px 0 4px 52px;">
                           <span class="set-best">${bestText}</span>
@@ -1399,7 +1414,7 @@
                       <button class="set-btn" onclick="window.addSet(${index},${i})">+ Set</button>
                       <button class="set-btn" onclick="window.removeSet(${index},${i})">− Set</button>
                     </div>
-                    <textarea class="ex-notes-field" placeholder="Notes (kept for next time)" oninput="window.updateExNote(${index},${i},this.value)">${exData.notes}</textarea>
+                    <textarea class="ex-notes-field" placeholder="Notes (kept for next time)" oninput="window.updateExNote(${index},${i},this.value)">${esc(exData.notes)}</textarea>
                   </div>
                 </div>
                 <div class="ex-sets-chip">${variantSets}</div>
@@ -1407,7 +1422,7 @@
           }).join('')}
         </div>
         <div style="padding:0 26px 22px;">
-          <textarea class="notes-area" id="dayNotes" placeholder="Day notes...">${notesText}</textarea>
+          <textarea class="notes-area" id="dayNotes" placeholder="Day notes...">${esc(notesText)}</textarea>
           <button class="day-save-btn" onclick="window.finishDay(${index})">✓ FINISH &amp; SAVE TO HISTORY</button>
         </div>
       </div>
