@@ -10,7 +10,7 @@ const assert = require('node:assert')
 const fs = require('fs')
 const path = require('path')
 const vm = require('vm')
-const { makeLocalStorage } = require('./load-app')
+const { makeLocalStorage, loadScripts } = require('./load-app')
 
 const HTML = fs.readFileSync(path.join(__dirname, '..', 'apps', 'gym-5day.html'), 'utf8')
 const APP_JS = [...HTML.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
@@ -47,6 +47,7 @@ function loadGym(nowMs = NOW, seed = {}) {
   }
   const sandbox = { window, document, localStorage, console, JSON, Math, Date: fakeDate(nowMs), setTimeout, clearTimeout }
   vm.createContext(sandbox)
+  loadScripts(sandbox, ['dates.js'])
   vm.runInContext(APP_JS, sandbox, { filename: 'gym-5day.html (inline script)' })
   const read = k => JSON.parse(localStorage.getItem(k) || 'null')
   return { w: window, read }

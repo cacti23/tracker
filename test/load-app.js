@@ -46,6 +46,12 @@ function extractInlineScript(html) {
   return biggest[1].replace(/\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\//g, '')
 }
 
+// The plain <script src> files index.html loads before its inline script, in page order.
+const PAGE_SCRIPTS = ['dates.js', 'data.js']
+function loadScripts(sandbox, files = PAGE_SCRIPTS) {
+  for (const f of files) vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'), sandbox, { filename: f })
+}
+
 function fakeElement() {
   const noop = () => {}
   return {
@@ -86,8 +92,7 @@ function loadApp() {
   }
   vm.createContext(sandbox)
 
-  const dataJs = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8')
-  vm.runInContext(dataJs, sandbox, { filename: 'data.js' })
+  loadScripts(sandbox)
 
   const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
   const appJs = extractInlineScript(indexHtml)
@@ -154,8 +159,7 @@ function loadAppWithDom() {
   }
   vm.createContext(sandbox)
 
-  const dataJs = fs.readFileSync(path.join(ROOT, 'js', 'data.js'), 'utf8')
-  vm.runInContext(dataJs, sandbox, { filename: 'data.js' })
+  loadScripts(sandbox)
 
   const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
   const appJs = extractInlineScript(indexHtml)
@@ -191,4 +195,4 @@ function nQuestions(sandbox, topicKey, n) {
   return evalIn(sandbox, `Object.keys(TOPIC_MODULES[${JSON.stringify(topicKey)}].questions).slice(0, ${n})`)
 }
 
-module.exports = { loadApp, loadAppWithDom, makeLocalStorage, evalIn, anyQuestion, nQuestions }
+module.exports = { loadScripts, loadApp, loadAppWithDom, makeLocalStorage, evalIn, anyQuestion, nQuestions }

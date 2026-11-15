@@ -315,6 +315,7 @@
   <div id="contentArea"></div>
 </div>
 
+<script src="../js/dates.js"></script>
 <script src="../js/sync.js"></script>
 <script>
 (function() {
@@ -1059,12 +1060,6 @@
     return userData[key].sets[setIdx].done;
   }
 
-  // Stamp the device's local calendar day, not UTC: toISOString() files a late-night (or, in
-  // IST, a pre-05:30) workout under the wrong day and can merge two sessions into one entry.
-  function localToday() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
 
   const prStorageKey = 'gym5day_pr_v1';
   function getPRData() {
@@ -1109,7 +1104,7 @@
     if (isPR(dayIdx, exIdx, w, r)) {
       const prData = getPRData();
       const exName = getExerciseName(dayIdx, exIdx);
-      prData[exName] = { weight: w.toString(), reps: r.toString(), date: localToday() };
+      prData[exName] = { weight: w.toString(), reps: r.toString(), date: LocalDate.key() };
       savePRData(prData);
     }
   }
@@ -1134,7 +1129,7 @@
     const cur = prData[exName];
     const prev = cur ? { weight: cur.weight, reps: cur.reps, date: cur.date } : null;
     prData[exName] = {
-      weight: w.toString(), reps: r.toString(), date: localToday(),
+      weight: w.toString(), reps: r.toString(), date: LocalDate.key(),
       prev, src: { key: exKey(dayIdx, exIdx), setIdx }
     };
     savePRData(prData);
@@ -1186,7 +1181,7 @@
   }
   function saveDayToHistory(dayIdx) {
     const day = days[dayIdx];
-    const today = localToday();
+    const today = LocalDate.key();
     const all = getHistoryData();
     let saved = 0;
     day.exercises.forEach((baseEx, exIdx) => {

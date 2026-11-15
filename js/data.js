@@ -175,31 +175,99 @@ function toggleQuestionPin(lcKey) {
   return !!pins[lcKey]
 }
 
-// Per-question practice solve counts (persisted in localStorage)
-// shape: { [lcKey]: number }
-const SOLVE_COUNT_KEY = 'dsa-solve-counts-v1'
-function getSolveCount(lcKey) {
-  try { return JSON.parse(localStorage.getItem(SOLVE_COUNT_KEY) || '{}')[lcKey] || 0 } catch { return 0 }
+// ─── PRACTICE RECORDS ─────────────────────────────────────────────────────────
+// Small per-question maps, each one localStorage key holding { [lcKey]: value }. They are
+// re-read on every call (no cache), so a write never overwrites a newer value from another tab.
+// read() returns null when the stored JSON is corrupt, and the write helpers then do nothing:
+// a bad value is left for a person to look at instead of being replaced with an empty map.
+function _jsonMap(key) {
+  function read() {
+    try { return JSON.parse(localStorage.getItem(key) || '{}') } catch { return null }
+  }
+  return {
+    get(lcKey) { const m = read(); return m ? m[lcKey] : undefined },
+    // fn(old) → new value for one entry; undefined/null deletes it. Returns the new value.
+    put(lcKey, fn) {
+      const m = read()
+      if (!m) return undefined
+      const v = fn(m[lcKey])
+      if (v == null) delete m[lcKey]; else m[lcKey] = v
+      try { localStorage.setItem(key, JSON.stringify(m)) } catch {}
+      return v
+    },
+  }
 }
-function incSolveCount(lcKey) {
-  try {
-    const counts = JSON.parse(localStorage.getItem(SOLVE_COUNT_KEY) || '{}')
-    counts[lcKey] = (counts[lcKey] || 0) + 1
-    localStorage.setItem(SOLVE_COUNT_KEY, JSON.stringify(counts))
-    return counts[lcKey]
-  } catch { return 0 }
+
+// Solve counts — shape: { [lcKey]: number }
+const SOLVE_COUNT_KEY = 'dsa-solve-counts-v1'
+const _solveCounts = _jsonMap(SOLVE_COUNT_KEY)
+function getSolveCount(lcKey) { return _solveCounts.get(lcKey) || 0 }
+function incSolveCount(lcKey) { return _solveCounts.put(lcKey, n => (n || 0) + 1) || 0 }
+// The ring's −/+ buttons and a same-day grade correction. Never below 0.
+function adjustSolveCount(lcKey, delta) { return _solveCounts.put(lcKey, n => Math.max(0, (n || 0) + delta)) || 0 }
+
+// Last practiced — shape: { [lcKey]: ISO timestamp }
+const LAST_PRACTICED_KEY = 'dsa-last-practiced-v1'
+const _lastPracticed = _jsonMap(LAST_PRACTICED_KEY)
+function getLastPracticed(lcKey) { return _lastPracticed.get(lcKey) || null }
+function markPracticed(lcKey) {
+  _lastPracticed.put(lcKey, () => new Date().toISOString())
+  _updateStreak()
+}
+// Same-day correction: put back exactly what was there (null = never practiced).
+function _restoreLastPracticed(lcKey, iso) { _lastPracticed.put(lcKey, () => iso) }
+
+// Code cooldown — shape: { [lcKey]: days }. After you SOLVE a question it "rests" this many days
+// before it can reappear in practice. Default 1 so the first solve bumps to the first rung (2).
+const REVIEW_INTERVAL_KEY = 'dsa-review-interval-v1'
+const _reviewIntervals = _jsonMap(REVIEW_INTERVAL_KEY)
+function getReviewInterval(lcKey) { return _reviewIntervals.get(lcKey) || 1 }
+function setReviewInterval(lcKey, days) { _reviewIntervals.put(lcKey, () => days) }
+// Cooldown ladder: each clean solve pushes the next reappearance further out, capped at 14 days.
+const REVIEW_LADDER = [2, 4, 7, 14]
+function bumpReviewInterval(lcKey) {
+  const cur  = getReviewInterval(lcKey)
+  const next = REVIEW_LADDER.find(d => d > cur) ?? REVIEW_LADDER[REVIEW_LADDER.length - 1]
+  setReviewInterval(lcKey, next)
+  return next
+}
+function resetReviewInterval(lcKey) {
+  setReviewInterval(lcKey, REVIEW_LADDER[0])
+  return REVIEW_LADDER[0]
+}
+// The stored value (undefined = never set), so a same-day correction can put back exactly what
+// was there. getReviewInterval's default of 1 must not get written as a real value.
+function _rawReviewInterval(lcKey) { return _reviewIntervals.get(lcKey) }
+function _restoreReviewInterval(lcKey, days) { _reviewIntervals.put(lcKey, () => days) }
+
+// Practice streak — shape: { date: 'YYYY-MM-DD', streak, longest } (one object, not a map).
+const STREAK_KEY = 'dsa-streak-v1'
+function _readStreak() {
+  try { return JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}') } catch { return null }
+}
+function _updateStreak() {
+  const data = _readStreak()
+  if (!data) return
+  const today = LocalDate.key()
+  if (data.date === today) return  // already counted today
+  const yesterday  = LocalDate.key(LocalDate.addDays(new Date(), -1))
+  const newStreak  = data.date === yesterday ? (data.streak || 0) + 1 : 1
+  const newLongest = Math.max(newStreak, data.longest || 0)
+  try { localStorage.setItem(STREAK_KEY, JSON.stringify({ date: today, streak: newStreak, longest: newLongest })) } catch {}
+}
+function getStreak() {
+  const data = _readStreak()
+  if (!data) return { streak: 0, longest: 0, today: false }
+  const today     = LocalDate.key()
+  const yesterday = LocalDate.key(LocalDate.addDays(new Date(), -1))
+  if (data.date !== today && data.date !== yesterday) return { streak: 0, longest: data.longest || 0, today: false }
+  return { streak: data.streak || 0, longest: data.longest || 0, today: data.date === today }
 }
 
 // Per-question "Seen / revised" marker — INDEPENDENT of status and of the solve count.
 // Tracks the last time you looked at a problem: it is "fresh" for SEEN_FRESH_DAYS days,
 // then turns to "review again" (it never disappears). `count` = number of distinct days seen.
 // shape: { [lcKey]: { last: ISOdate, count: number } }
-// Local calendar day as YYYY-MM-DD. Do NOT use toISOString().slice(0,10) for "which day is it":
-// that is the UTC date, so in IST (UTC+5:30) the day would roll over at 5:30 AM, not midnight.
-function _localDay(d) {
-  const x = d || new Date()
-  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0')
-}
 const SEEN_KEY = 'dsa-seen-v1'
 const SEEN_FRESH_DAYS = 15
 function getSeen(lcKey) {
@@ -210,7 +278,7 @@ function markSeen(lcKey) {
     const d = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')
     const cur = d[lcKey] || { count: 0, last: null }
     const now = new Date()
-    const sameDay = cur.last && _localDay(new Date(cur.last)) === _localDay(now)
+    const sameDay = cur.last && LocalDate.key(new Date(cur.last)) === LocalDate.key(now)
     d[lcKey] = { last: now.toISOString(), count: (cur.count || 0) + (sameDay ? 0 : 1) }
     localStorage.setItem(SEEN_KEY, JSON.stringify(d))
     return d[lcKey]
