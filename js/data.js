@@ -231,19 +231,24 @@ function getSeenState(lcKey) {
 //     higher-volume active-recall pass on a SHORTER ladder, graded Solid / Shaky / Forgot.
 // A clean cold solve advances BOTH queues; a recall grade advances only this one. They never
 // share a counter (the old 👀 eye used to also credit a solve — that fusion is removed).
-// shape: { [lcKey]: { interval: days, last: ISO, grade: 'solid'|'shaky'|'forgot' } }
+// shape: { [lcKey]: { interval: days, last: ISO, grade: 'solid'|'shaky'|'forgot', base?: {...} } }
+// `base` is the question's state from before the day's FIRST grade (see gradeRevise in index.html):
+// a second grade the same day is a correction, so it rewinds to `base` instead of stacking.
 const REVISE_KEY = 'dsa-revise-v1'
 const REVISE_LADDER = [1, 2, 4, 8, 16]   // days — deliberately shorter than the code ladder (1,3,7,14,30)
 function _reviseAll() { try { return JSON.parse(localStorage.getItem(REVISE_KEY) || '{}') } catch { return {} } }
 function getRevise(lcKey) { return _reviseAll()[lcKey] || null }
-function markRevised(lcKey, grade) {
+// With `base`, the ladder steps from base.rev (the record before today's first grade) rather than
+// from the stored record, and `base` is kept on the record for the next same-day correction.
+function markRevised(lcKey, grade, base) {
   const all = _reviseAll()
-  const cur = all[lcKey] || { interval: 0 }
+  const cur = (base ? base.rev : all[lcKey]) || { interval: 0 }
   let interval
   if (grade === 'solid')      interval = REVISE_LADDER.find(d => d > (cur.interval || 0)) ?? REVISE_LADDER[REVISE_LADDER.length - 1]
   else if (grade === 'shaky') interval = REVISE_LADDER[1]   // keep it in a short ~2-day loop
   else                        interval = REVISE_LADDER[0]   // 'forgot' → back tomorrow
   all[lcKey] = { interval, last: new Date().toISOString(), grade }
+  if (base) all[lcKey].base = base
   try { localStorage.setItem(REVISE_KEY, JSON.stringify(all)) } catch {}
   return all[lcKey]
 }
@@ -284,7 +289,7 @@ function logRecent(lcKey, grade) {
 // ─── CODE-FORCE FLAG ──────────────────────────────────────────────────────────
 // When a recall pass is graded "forgot", the problem is force-queued back into the CODE
 // queue (re-code it cold) no matter where it sits on the code ladder. Cleared on the next
-// clean cold solve. shape: { [lcKey]: true }
+// clean cold solve (a ✓ in Graded / a solve list), never by a later recall grade. shape: { [lcKey]: true }
 const CODE_FORCE_KEY = 'dsa-code-force-v1'
 function _codeForceAll() { try { return JSON.parse(localStorage.getItem(CODE_FORCE_KEY) || '{}') } catch { return {} } }
 function isCodeForced(lcKey) { return !!_codeForceAll()[lcKey] }
