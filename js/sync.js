@@ -175,15 +175,28 @@
     } catch (e) {}
     return null;
   }
+  // null = no file. A file that exists but isn't a valid payload comes back as an empty copy
+  // carrying its raw text in `unreadable`: there is nothing in it to pull or merge, and
+  // pushApp keeps that text as the .prev backup before replacing it. A failed download of a
+  // large file throws instead, so a network blip can never look like "the cloud is empty".
+  function readPayload(text) {
+    var p = parsePayload(text);
+    if (p) return p;
+    if (text == null || String(text).trim() === '') return null;
+    return { updatedAt: null, data: {}, unreadable: String(text) };
+  }
   function readAppFile(g, appId) {
     var file = g && g.files && g.files[appId + '.json'];
     if (!file) return Promise.resolve(null);
     if (file.truncated && file.raw_url) {
       // large file: gist inlines only ~1MB; fetch the full content (private
       // gists are reachable via their signed raw_url without an auth header)
-      return fetch(file.raw_url).then(function (r) { return r.text(); }).then(parsePayload);
+      return fetch(file.raw_url).then(function (r) {
+        if (!r.ok) throw new Error('could not download the cloud copy (HTTP ' + r.status + ')');
+        return r.text();
+      }).then(readPayload);
     }
-    return Promise.resolve(parsePayload(file.content));
+    return Promise.resolve(readPayload(file.content));
   }
   function gistVersion(g) { return (g && g.history && g.history[0] && g.history[0].version) || null; }
   // The cloud copy plus the gist revision it was read from, so a push can tell whether
@@ -223,7 +236,9 @@
     return withGist(function (id) {
       var body = { files: {} };
       body.files[appId + '.json'] = { content: payload };
-      if (prevRemote && prevRemote.data && Object.keys(prevRemote.data).length > 0 && !sameData(prevRemote.data, data)) {
+      if (prevRemote && prevRemote.unreadable) {
+        body.files[appId + '.prev.json'] = { content: prevRemote.unreadable };
+      } else if (prevRemote && prevRemote.data && Object.keys(prevRemote.data).length > 0 && !sameData(prevRemote.data, data)) {
         body.files[appId + '.prev.json'] = {
           content: JSON.stringify({ updatedAt: prevRemote.updatedAt, backedUpAt: updatedAt, data: prevRemote.data })
         };
@@ -818,6 +833,9 @@
     autoSync: autoSync,
     pushSoon: pushSoon,
     pullLatest: pullLatest,
+    // Save the synced keys as the newest "-presync" snapshot. For other ways of replacing
+    // local data (a backup import), so they keep the same undo copy a sync pull keeps.
+    snapshot: function () { if (cfg.appId) snapshotLocal(cfg.appId, cfg.keys); },
     isConfigured: function () { return !!getToken(); }
   };
 })();
