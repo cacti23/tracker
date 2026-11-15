@@ -21,7 +21,8 @@
       // Same for the sidebar: a closed sidebar must not flash open (and re-open on every reload).
       // <html> carries the state until the sidebar exists, then #sidebar.collapsed takes over.
       try {
-        if (localStorage.getItem('dsa-sidebar-collapsed') === '1') {
+        // On a phone the sidebar is a drawer over the page, so it always starts closed.
+        if (localStorage.getItem('dsa-sidebar-collapsed') === '1' || matchMedia('(max-width: 768px)').matches) {
           document.documentElement.classList.add('sidebar-collapsed')
           document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('sidebar')?.classList.add('collapsed')
@@ -173,6 +174,23 @@
     }
     #sidebar.collapsed, .sidebar-collapsed #sidebar { width: 0; overflow: hidden; }
     #sidebar nav { padding: 0.6rem; overflow-y: auto; flex: 1; }
+
+    /* Phones and small tablets: the sidebar is a drawer over the page. In the flex row it
+       squeezed the page into a sliver. The backdrop closes it on a tap outside. */
+    #sidebar-backdrop { display: none; }
+    @media (max-width: 768px) {
+      #sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0; height: auto; z-index: 1040; max-width: 85vw;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); overscroll-behavior: contain;
+      }
+      #sidebar.collapsed, .sidebar-collapsed #sidebar { box-shadow: none; }
+      #sidebar:not(.collapsed) + #sidebar-backdrop {
+        display: block; position: fixed; inset: 0; z-index: 1030; background: rgba(0, 0, 0, 0.55);
+      }
+      .sidebar-collapsed #sidebar-backdrop { display: none !important; }
+      main { padding: 1rem !important; }
+      header #global-search-input { width: auto !important; min-width: 0; margin: 0 0.5rem !important; flex: 1 1 0; }
+    }
 
     .sidebar-brand {
       padding: 1rem 1.1rem; border-bottom: 1px solid var(--border);
@@ -1086,6 +1104,7 @@
 
     <div class="sidebar-footer">v29 · DSA Notebook</div>
   </aside>
+  <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
   <!-- ═══ MAIN ═══ -->
   <div id="main-col" class="flex-grow-1 d-flex flex-column">
@@ -1495,6 +1514,7 @@ window.addEventListener('scroll', () => {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   syncThemeIcon()
+  document.getElementById('sidebar')?.addEventListener('click', _closeDrawerOnPick)
   _loadQpState()
   buildNav()
   try { if (localStorage.getItem('dsa-sidebar-apps-open') === '1') document.getElementById('sidebar-apps').open = true } catch (e) {}
@@ -4584,8 +4604,19 @@ function _qpSyncTimerDisplay() {
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 function toggleSidebar() {
   const collapsed = document.getElementById('sidebar').classList.toggle('collapsed')
+  if (_isPhoneLayout()) return  // the phone drawer always starts closed; nothing to remember
   // Per-device UI preference on purpose: not in BACKUP_KEYS, so a phone and a laptop keep their own.
   try { localStorage.setItem('dsa-sidebar-collapsed', collapsed ? '1' : '0') } catch (e) {}
+}
+// Same breakpoint as the drawer CSS (max-width: 768px).
+function _isPhoneLayout() {
+  return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches)
+}
+// On a phone, picking a destination closes the drawer so the page underneath is visible.
+function _closeDrawerOnPick(e) {
+  if (_isPhoneLayout() && e.target.closest && e.target.closest('.nav-link')) {
+    document.getElementById('sidebar').classList.add('collapsed')
+  }
 }
 
 // ─── THEME TOGGLE ─────────────────────────────────────────────────────────────
