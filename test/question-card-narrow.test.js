@@ -13,11 +13,11 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { startServer, openBrowser, SKIP } = require('./prod-server')
 
-async function measure(width) {
+async function measure(width, sidebarCollapsed = '0') {
   const { server, base } = await startServer()
   const { browser, context } = await openBrowser()
   try {
-    await context.addInitScript(() => localStorage.setItem('dsa-sidebar-collapsed', '0'))
+    await context.addInitScript(v => localStorage.setItem('dsa-sidebar-collapsed', v), sidebarCollapsed)
     const page = await context.newPage()
     await page.setViewportSize({ width, height: 900 })
     await page.goto(base + '/index.html')
@@ -50,3 +50,15 @@ for (const width of [700, 390]) {
     assert.ok(m.actionsOverflow <= 0, 'buttons fit inside the card')
   })
 }
+
+test('any window under 900px stacks, even with the sidebar closed and a wide card', { skip: SKIP }, async () => {
+  const m = await measure(880, '1')
+  assert.ok(m.item > 760, 'precondition: the card itself is wider than the card rule')
+  assert.equal(m.actionsBelowTitle, true, 'buttons sit under the title')
+  assert.ok(m.title >= m.item * 0.7, `title is ${Math.round(m.title)}px of a ${Math.round(m.item)}px card`)
+})
+
+test('at 900px and above a wide card keeps the buttons beside the title', { skip: SKIP }, async () => {
+  const m = await measure(900, '1')
+  assert.equal(m.actionsBelowTitle, false)
+})
