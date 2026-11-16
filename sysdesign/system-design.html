@@ -4044,10 +4044,9 @@ if (left &lt; roll * rebuildMs)
 
 <section class="card" id="sd-shard-what" data-topic="Sharding" data-course="hi-sd" data-lesson="sharding">
   <h2 class="cap"><b>🧩 Sharding ①: Partitioning · Sharding · Shard Key · Range, Hash, Directory</b></h2>
-  <p class="hook">Your app keeps growing: more traffic, more sign-ups, a bigger database. First you move to a bigger machine with more CPU, memory and storage. That works for a while. Then one machine hits its ceiling: queries slow down, writes bottleneck, storage runs out. Even Amazon Aurora maxes out around <b>256 TiB</b>. When one database can't keep up, there's only one real option: <b>split your data across multiple machines</b>.</p>
-  <p class="tldr">💡 <b>Partitioning</b> splits a big table into pieces <b>inside one database</b>: more rooms in one library. <b>Sharding</b> splits it across <b>many machines</b>: new library branches across the city. Two decisions: the <b>shard key</b> (which field decides where a row goes) and the <b>strategy</b>: 📏 range, #️⃣ hash (⭐ the default) or 📒 directory. What goes wrong: <a href="#sd-shard-challenges">card ②</a>. Real databases and the interview script: <a href="#sd-shard-interview">card ③</a>. Explained below 👇</p>
-  <div class="info"><b>ℹ️ Note</b> People often use "partitioning" and "sharding" as if they meant the same thing. Technically, partitioning usually means splitting data <b>inside one database instance</b>, and sharding means splitting it <b>across machines</b>. Don't get hung up on the word: just be clear whether your data lives on one machine or many.</div>
-  <p class="figcap"><span class="add">➕ fact-check</span> Aurora's limit depends on the engine version: 128 TiB on older versions, 256 TiB on newer ones.</p>
+  <p class="hook">Your app keeps growing: more traffic, more sign-ups, a bigger database. First you move to a bigger machine with more CPU, memory and storage. That works for a while. Then one machine hits its ceiling: queries slow down, writes bottleneck, storage runs out. Even Amazon Aurora maxes out around <b>256 TiB</b> (128 TiB on older versions). When one database can't keep up, there's only one real option: <b>split your data across multiple machines</b>.</p>
+  <p class="tldr">💡 <b>Partitioning</b> splits a big table into pieces <b>inside one database</b>: more rooms in one library. <b>Sharding</b> splits it across <b>many machines</b>: new library branches across the city. Two decisions: the <b>shard key</b> (which field decides where a row goes) and the <b>strategy</b>: 📏 range, #️⃣ hash (⭐ the default) or 📒 directory. Explained below 👇</p>
+  <div class="info"><b>ℹ️ Note</b> People mix up the two words. Don't get hung up on them: just be clear whether your data lives on <b>one machine or many</b>.</div>
 
   <h4>🗂️ First, what is Partitioning?</h4>
   <p class="bridge">Splitting one large table into smaller pieces <b>inside a single database</b>. No new machines: the data is just organized so the database works on one piece at a time.</p>
@@ -4075,7 +4074,7 @@ if (left &lt; roll * rebuildMs)
   <p class="ana">🏛️ The city library is full, so it opens three branches. Each branch has its own building, staff and doors. Now someone has to decide which books go to which branch, and tell readers where to go.</p>
 
   <h4>🔑 Choosing Your Shard Key</h4>
-  <p class="bridge">Sharding means two decisions that work together: <b>what to shard by</b> (the field that groups the data) and <b>how to distribute it</b> (the rule that assigns groups to shards, next sections). In interviews you'll say "I'm going to shard by [field]". The skill is knowing which field, and why.</p>
+  <p class="bridge">Decision one: <b>what to shard by</b>. In interviews you'll say "I'm going to shard by [field]". The skill is knowing which field, and why.</p>
   <div class="s3">
     <div class="k-blue"><div class="big">🔢<small>MANY</small></div><div><b>High cardinality: many unique values</b>
       user_id with millions of users leaves plenty of room.
@@ -4090,7 +4089,7 @@ if (left &lt; roll * rebuildMs)
   <p class="figcap">🧠 Many · Even · Matches. <span class="add">➕ mnemonic not in the article</span></p>
   <div class="grid2">
     <div class="k-green"><b>🟢 Good keys</b><div class="chk"><b>user_id</b> for a user-centric app: millions of values, even, and most queries are "this user's data". Perfect fit.</div><div class="chk"><b>order_id</b> for an orders table: millions of values, queries are about one order, orders spread evenly over time.</div></div>
-    <div class="k-red"><b>🔴 Bad keys</b><div class="chk"><b>is_premium</b>: 2 values = 2 shards, and the free-user shard is overloaded.</div><div class="chk"><b>created_at</b> on a growing table: every new write goes to the newest shard, while old shards sit idle.</div></div>
+    <div class="k-red"><b>🔴 Bad keys</b><div class="chk"><b>is_premium</b>: 2 values = 2 shards, and the free-user shard is overloaded.</div><div class="chk"><b>created_at</b> on a growing table: the newest shard takes every write (⚠️ in Range below).</div></div>
   </div>
   <p class="ana">🏛️ Deciding which branch gets which books: by author (thousands of authors, spread evenly, and readers usually look for one author) beats by "hardback or paperback" (two branches, one packed).</p>
 
@@ -4140,7 +4139,7 @@ User 204  → Shard 2</pre>
   </div>
   <ul class="lines roomy heads">
     <li><b class="hd">✅ Maximum flexibility</b>A user generates a lot of traffic? Move them to a dedicated shard by changing one row. Any logic a hash can't express is possible.</li>
-    <li><b class="hd">❌ An extra lookup on every request, and a critical dependency</b>Latency on every request, and if the directory goes down, everything stops. Most systems start with hash or range, and use a directory only when a requirement demands it.</li>
+    <li><b class="hd">❌ An extra lookup on every request, and a critical dependency</b>Most systems start with hash or range, and add a directory only when a requirement demands it.</li>
   </ul>
   <div class="warn"><b>⚠️ Watch out</b> Realistically, directory-based sharding is valid for dynamic use cases but is <b>rarely the answer in an interview</b>. It adds a single point of failure and latency on every request, which invites follow-up questions that can derail the conversation.</div>
   <p class="ana">🛎️ A receptionist who knows which room everyone sits in. Very flexible (people can change rooms any time), but every visitor queues at the desk first, and if the receptionist is out, nobody finds anyone.</p>
@@ -4170,12 +4169,13 @@ User 204  → Shard 2</pre>
   <p class="figcap">🖼️ The lesson's picture: "This shard has Taylor Swift on it!"</p>
   <ul class="lines roomy heads">
     <li><b class="hd">🌟 Celebrity: some keys are simply busier</b>Shard users by user_id, and every profile view, like and message for Taylor Swift hits one shard: 1000× a normal user. Hashing doesn't help: the problem isn't the strategy, it's one very active key.</li>
-    <li><b class="hd">📅 Time-based: the newest shard takes every write</b>Shard by creation date, and all new writes go to the latest shard, while older shards only serve the odd read of old data.</li>
+    <li><b class="hd">📅 Time-based: the newest shard takes every write</b>The created_at trap from <a href="#sd-shard-what--range-based-sharding">Range-Based Sharding</a>.</li>
     <li><b class="hd">📈 Spot it with per-shard metrics</b>Query latency, CPU, request volume. One shard always higher than the rest = a hot spot.</li>
   </ul>
   <p>🩹 Three ways to handle it:</p>
   <h5>🏝️ Isolate hot keys to dedicated shards</h5>
-  <p>Move Taylor Swift's account to a shard that holds only celebrity accounts. That shard is still busy, but it's sized for it (bigger machine, more replicas), and normal users on the other shards stop suffering. Knowing who lives where needs a directory, which is when directory sharding earns its place, though you wouldn't start there.</p>
+  <p>Move Taylor Swift to a celebrity-only shard, sized for it (bigger machine, more replicas). Normal users stop suffering.</p>
+  <p>🧭 Knowing who lives where needs a directory: this is when directory sharding earns its place.</p>
   <h5>🧩 Use compound shard keys</h5>
   <p>Shard by <code>hash(user_id + date)</code> instead of user_id alone. One user's data spreads over several shards, one day at a time:</p>
   <div class="hk" role="img" aria-label="With a compound key of user id plus date, Taylor Swift's Monday data goes to shard 3, Tuesday's to shard 1, Wednesday's to shard 2.">
@@ -4185,25 +4185,29 @@ User 204  → Shard 2</pre>
   </div>
   <p>⚠️ The catch (several readers): "all of user X's posts this week" now hits 7 shards, for <b>every</b> user, which breaks "matches the queries". Use it only for known hot users, kept in a small list, while everyone else stays on <code>hash(user_id)</code>.</p>
   <h5>✂️ Dynamic shard splitting</h5>
-  <p>Some databases split a shard that gets too big or too hot. MongoDB's balancer splits and moves chunks <b>automatically</b> (also with a hashed shard key). Vitess supports online resharding, but <b>operators</b> start and manage it.</p>
-  <p class="ana">🏛️ One branch holds the famous author everyone wants. Give that author a branch of their own with more staff (isolate), spread their books across branches by year (compound key), or split a packed branch in two (splitting). For reads, a copy at the front desk helps most: see <a href="#sd-cache-problems--hot-keys">Caching: hot keys</a>.</p>
+  <p>Some databases split a shard that gets too big or too hot. MongoDB's balancer moves chunks between shards <b>automatically</b>, by data size (also with a hashed shard key). Vitess supports online resharding, but <b>operators</b> start and manage it.</p>
+  <p class="ana">🏛️ One branch holds the famous author. Give them their own branch (isolate), spread their books by year (compound key), or split the branch (splitting). For reads: <a href="#sd-cache-problems--hot-keys">Caching: hot keys</a>.</p>
 
   <h4>🕸️ Cross-Shard Operations</h4>
   <p class="bridge">Any query that needs data from more than one shard gets expensive: query several shards, wait for all of them, merge the results yourself. It happens when a query doesn't match the shard key. Users sharded by user_id: "get user 12345's profile" is one shard. "Top 10 most popular posts globally" is every shard. ▶️</p>
   <div class="seq" data-seq="scatter"></div>
   <p class="figcap">🖼️ The lesson's picture: "aggregate all 30, rank, return top 10".</p>
-  <p>📏 With 64 shards that's 64× the network calls. <span class="add">➕ fact-check</span> Latency is <b>not</b> 64×: the calls run in parallel, so you wait for the <b>slowest</b> of the 64, plus the merge (a reader pointed this out). But the more shards you ask, the likelier one of them is slow.</p>
+  <p>📏 With 64 shards that's 64× the network calls. <span class="add">➕ fact-check</span> Latency is <b>not</b> 64×: the calls run in parallel, so you wait for the <b>slowest</b> one, plus the merge. More shards = more chances one is slow.</p>
   <p>🩹 You can't remove cross-shard queries, but you can make them rare:</p>
   <ul class="lines roomy heads">
     <li><b class="hd">🗃️ Cache the result</b>Cache "top 10 posts" for 5 minutes: the first query asks 64 shards, the next thousand hit the cache. Perfect for things that don't need to be real-time: leaderboards, trending content, aggregate stats.</li>
-    <li><b class="hd">📋 Denormalize to keep related data together</b>Copy data onto the shard where it's read: duplicated data and harder updates, but the query touches one shard. E.g. a post shows its author's name and photo, so copy them onto the post row instead of asking the users shard every time. <span class="add">➕ example not in the article</span> (Readers found the lesson's wording confusing: denormalizing doesn't fix a global top 10. It fixes queries that need two shards for one item.)</li>
+    <li><b class="hd">📋 Denormalize to keep related data together</b>Copy data onto the shard where it's read. Cost: duplicated data, harder updates.<br>🧪 A post shows its author's name and photo: copy them onto the post row. <span class="add">➕ example not in the article</span><br>⚠️ It fixes "two shards for one item", not a global top 10.</li>
     <li><b class="hd">🐢 Accept the hit for rare queries</b>An admin dashboard with "total users across all shards", loaded a few times a day, can be slow. That's fine.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> In interviews, cross-shard queries often signal that something in your design needs rethinking. If you hear yourself say "we'll query all shards and aggregate" for a <b>common</b> request, pause: can I denormalize? Cache it? Precompute it with a background job? Interviewers expect you to minimize them, not accept them as inevitable.</div>
   <p class="ana">🏛️ "The 10 most borrowed books in the city" means phoning every branch and merging the lists. So keep a printed list at the main desk, updated every evening (cache / precompute).</p>
 
   <h4>🤝 Maintaining Consistency</h4>
-  <p class="bridge">On one database, transactions are easy. Deduct inventory and create the order inside one transaction: both succeed or both fail, and the database guarantees it. Sharding breaks this: with the account on shard 1 and the order on shard 2, there is no shared transaction. Two independent databases don't know about each other.</p>
+  <p class="bridge">On one database, transactions are easy. Sharding breaks this.</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ One database</b><div class="chk">Deduct inventory + create the order in <b>one transaction</b>: both succeed or both fail.</div></div>
+    <div class="k-red"><b>❌ Two shards</b><div class="chk">Account on shard 1, order on shard 2: <b>no shared transaction</b>. The two databases don't know about each other.</div></div>
+  </div>
   <h5>🐌 The textbook answer: two-phase commit (2PC)</h5>
   <p>A coordinator asks every shard to <b>prepare</b>, waits for all of them to say ready, then tells them all to <b>commit</b>. ▶️</p>
   <div class="seq" data-seq="twopc"></div>
@@ -4221,7 +4225,7 @@ User 204  → Shard 2</pre>
   <h5>3️⃣ Accept eventual consistency</h5>
   <p>Often strict consistency isn't needed. A user's follower count copied onto several shards for fast profile reads can differ for a few seconds; they all converge. Much simpler than a distributed transaction.</p>
   <div class="rem"><b>✅ Remember</b> TL;DR: most apps can be designed to avoid cross-shard transactions entirely. If you keep needing distributed transactions, you probably picked the wrong shard key or the wrong shard boundaries.</div>
-  <p class="ana">🏦 Moving money between two banks. 2PC: both managers hold the money frozen on the phone until a third person says "go", and if that person hangs up, both wait. Saga: bank A sends it now; if bank B rejects it, bank A refunds it. Simplest of all: keep both accounts at the same bank.</p>
+  <p class="ana">🏦 Moving money between two banks. 2PC: both freeze it until a third person says "go". Saga: bank A sends now, refunds if B rejects. Best: keep both accounts at one bank.</p>
 </section>
 
 <section class="card" id="sd-shard-interview" data-topic="Sharding" data-course="hi-sd" data-lesson="sharding">
@@ -4233,11 +4237,11 @@ User 204  → Shard 2</pre>
   <p class="bridge">You set a partition key; the database spreads the data, routes queries and rebalances when you add capacity. The mechanics differ: <span class="aws">☁️ AWS: DynamoDB · Aurora PostgreSQL Limitless Database</span></p>
   <div class="grid2">
     <div class="k-blue"><b>👁️ Cassandra</b><div class="chk">A partitioner (Murmur3) with virtual nodes: a form of <b>consistent hashing</b> onto token ranges</div></div>
-    <div class="k-amber"><b>🟧 DynamoDB</b><div class="chk">Hashes the partition key to internal partitions, and <b>splits/merges</b> them as they grow. Not a ring you can see</div></div>
-    <div class="k-green"><b>🍃 MongoDB</b><div class="chk"><b>Range chunks</b> on the shard key (or on its hash). A balancer splits and moves chunks automatically</div></div>
+    <div class="k-amber"><b>🟧 DynamoDB</b><div class="chk">Hashes the partition key to internal partitions, and <b>splits</b> them as they grow (it never merges them back). Not a ring you can see</div></div>
+    <div class="k-green"><b>🍃 MongoDB</b><div class="chk"><b>Range chunks</b> on the shard key (or on its hash). A balancer moves chunks between shards automatically, by data size</div></div>
     <div class="k-red"><b>🐬 Vitess · 🐘 Citus</b><div class="chk">Open-source sharding layers in front of MySQL / Postgres: routing, cross-shard queries, resharding</div></div>
   </div>
-  <p>☁️ Cloud distributed SQL with built-in sharding: AWS Aurora and Google Cloud Spanner.</p>
+  <p>☁️ Cloud distributed SQL with built-in sharding: AWS Aurora and Google Cloud Spanner. <span class="add">➕ fact-check</span> Plain Aurora isn't sharded (one writer); only <b>Aurora Limitless</b> is.</p>
   <div class="rem"><b>✅ Remember</b> In interviews it's enough to say <i>"We'll use DynamoDB with user_id as the partition key"</i> or <i>"We'll shard using Vitess on user_id and plan for operator-driven online resharding."</i> You don't need the internals unless asked.</div>
   <p class="ana">🏛️ You don't build the library branches yourself: you hire a library chain that already has them. You just tell it how to sort the books (the key).</p>
 
@@ -4266,7 +4270,7 @@ User 204  → Shard 2</pre>
     <li><b class="hd">1️⃣ Propose a shard key based on your access pattern</b><span class="say">🗣️ "Most queries are user-centric: loading a feed means their posts, their followers, their likes, all scoped to one user. So I'd shard by user_id."</span></li>
     <li><b class="hd">2️⃣ Choose your distribution strategy</b><span class="say">🗣️ "Hash-based sharding with consistent hashing: hash the user_id to spread users evenly."</span></li>
     <li><b class="hd">3️⃣ Call out the trade-offs</b><span class="say">🗣️ "Global queries get expensive: trending posts across all users means asking every shard. So we cache trending content and precompute it with a background job, not on every request."</span></li>
-    <li><b class="hd">4️⃣ Address how you'll handle growth</b><span class="say">🗣️ "We'll start with 64 shards, which leaves room to grow. With consistent hashing, adding shards later moves only a fraction of the data."</span>➕ "64 shards" usually means 64 <b>logical</b> shards on a few machines (a reader's point). When load grows, you move whole shards to new machines instead of re-splitting data, which is far easier.</li>
+    <li><b class="hd">4️⃣ Address how you'll handle growth</b><span class="say">🗣️ "We'll start with 64 shards, which leaves room to grow. With consistent hashing, adding shards later moves only a fraction of the data."</span>➕ Why 64? See <a href="#sd-shard-interview--what-we-learned-from-the-comments">💬 the comments box</a> below.</li>
   </ul>
   <p class="ana">🏛️ Like proposing branches to the city council: how readers search (key), how books are assigned (strategy), what gets harder (trade-offs), and how you'll open more branches later (growth).</p>
 
@@ -4284,7 +4288,7 @@ User 204  → Shard 2</pre>
     <ul><li>Evan King (admin): good practical knowledge, but caveat it. Limits: 4 MB total, one account and region, and a capped number of items (now 100). They use optimistic concurrency, so high-contention workloads see many cancelled and retried transactions.</li>
     <li>A reader's framing for interviews: "yes, managed distributed ACID exists here, but only within narrow operating bounds." Dropbox wrote up cross-shard transactions at 10M requests/s.</li></ul>
     <h5>🌟 "Won't the celebrity shard be the hot one?"</h5>
-    <ul><li>Yes, on purpose: it's isolated and sized for it (a bigger machine, more replicas), so normal users aren't hurt. A reader's numbers: one server handles 50K rps; 50K normal users at 1 rps each + 2 celebrities at 25K rps → one server for the normal users, one celebrity shard for the two.</li>
+    <ul><li>Yes, on purpose (see <b>Isolate hot keys</b>). A reader's numbers: one server handles 50K rps; 50K normal users at 1 rps each + 2 celebrities at 25K rps → one server for the normal users, one celebrity shard for the two.</li>
     <li>It needs a directory, and when someone becomes famous (Ellen's Oscar selfie), their data has to migrate.</li></ul>
     <h5>📅 Sharding by date can be right</h5>
     <ul><li>The Strava breakdown shards activities by date. It works because there sharding is about <b>data size</b>, not traffic: it keeps an activity's data together and lets old data move to cheaper storage. "Archive shards" for old orders are the same idea.</li></ul>
