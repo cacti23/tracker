@@ -1,5 +1,5 @@
 const CACHE = 'habits-cache-v5';
-const ASSETS = ['habits.html', '../js/sync.js', '../js/back-button.js', 'habits-manifest.json', '../icons/icon-192.png', '../icons/icon-512.png'];
+const ASSETS = ['habits.html', '../js/dates.js', '../js/sync.js', '../js/back-button.js', 'habits-manifest.json', '../icons/icon-192.png', '../icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

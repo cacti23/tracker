@@ -1164,6 +1164,7 @@
 
 <!-- ═══ SCRIPT ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="js/dates.js"></script>
 <script src="js/data.js"></script>
 <script src="js/sync.js"></script>
 <script>
@@ -1341,47 +1342,6 @@ function _psLoadSession(topicKey) {
 // never wipes the dashboard session progress.
 let _qpDoneThisSession      = new Set()  // keys marked done on the dashboard qp panel
 
-// ─── LAST-PRACTICED TRACKING ─────────────────────────────────────────────────
-// shape: { [lcKey]: ISO timestamp }
-const LAST_PRACTICED_KEY = 'dsa-last-practiced-v1'
-function getLastPracticed(lcKey) {
-  try { return JSON.parse(localStorage.getItem(LAST_PRACTICED_KEY) || '{}')[lcKey] || null } catch { return null }
-}
-function markPracticed(lcKey) {
-  try {
-    const d = JSON.parse(localStorage.getItem(LAST_PRACTICED_KEY) || '{}')
-    d[lcKey] = new Date().toISOString()
-    localStorage.setItem(LAST_PRACTICED_KEY, JSON.stringify(d))
-  } catch {}
-  _updateStreak()
-}
-
-// ─── CODE COOLDOWN INTERVALS ──────────────────────────────────────────────────
-// shape: { [lcKey]: days }. After you SOLVE a question it "rests" this many days before it can
-// reappear in practice (the cooldown). Default 1 so the first solve bumps to the first rung (2).
-const REVIEW_INTERVAL_KEY = 'dsa-review-interval-v1'
-function getReviewInterval(lcKey) {
-  try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] || 1 } catch { return 1 }
-}
-function setReviewInterval(lcKey, days) {
-  try {
-    const d = JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')
-    d[lcKey] = days
-    localStorage.setItem(REVIEW_INTERVAL_KEY, JSON.stringify(d))
-  } catch {}
-}
-// Cooldown ladder: each clean solve pushes the next reappearance further out, capped at 14 days.
-const REVIEW_LADDER = [2, 4, 7, 14]
-function bumpReviewInterval(lcKey) {
-  const cur  = getReviewInterval(lcKey)
-  const next = REVIEW_LADDER.find(d => d > cur) ?? REVIEW_LADDER[REVIEW_LADDER.length - 1]
-  setReviewInterval(lcKey, next)
-  return next
-}
-function resetReviewInterval(lcKey) {
-  setReviewInterval(lcKey, REVIEW_LADDER[0])
-  return REVIEW_LADDER[0]
-}
 // Give a ✓ Solid grade in Graded the same "clean solve" credit the old click-to-solve row gave:
 // push the code-cooldown ladder further out, timestamp it as practiced, clear a ✗'s must-code
 // flag (this is the cold solve it asked for), and mark the question Solved if it isn't already.
@@ -1394,51 +1354,6 @@ function _psCreditCleanSolve(lcKey) {
   _refreshReviseOnSolve(lcKey)
   if (getStatus(lcKey) !== 'Solved') setQuestionStatus(lcKey, 'Solved')
 }
-// Raw stored values (undefined / null = never set), so a same-day correction can put back
-// exactly what was there — getReviewInterval's default of 1 must not get written as a real value.
-function _rawReviewInterval(lcKey) {
-  try { return JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')[lcKey] } catch { return undefined }
-}
-function _restoreReviewInterval(lcKey, days) {
-  try {
-    const d = JSON.parse(localStorage.getItem(REVIEW_INTERVAL_KEY) || '{}')
-    if (days == null) delete d[lcKey]; else d[lcKey] = days
-    localStorage.setItem(REVIEW_INTERVAL_KEY, JSON.stringify(d))
-  } catch {}
-}
-function _restoreLastPracticed(lcKey, iso) {
-  try {
-    const d = JSON.parse(localStorage.getItem(LAST_PRACTICED_KEY) || '{}')
-    if (iso == null) delete d[lcKey]; else d[lcKey] = iso
-    localStorage.setItem(LAST_PRACTICED_KEY, JSON.stringify(d))
-  } catch {}
-}
-
-// ─── STREAK TRACKING ──────────────────────────────────────────────────────────
-const STREAK_KEY = 'dsa-streak-v1'
-// n calendar days before now (setDate keeps it correct across DST, unlike subtracting 86400000 ms)
-function _daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d }
-function _updateStreak() {
-  try {
-    const today = _localDay()
-    const data  = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}')
-    if (data.date === today) return  // already counted today
-    const yesterday = _localDay(_daysAgo(1))
-    const newStreak  = data.date === yesterday ? (data.streak || 0) + 1 : 1
-    const newLongest = Math.max(newStreak, data.longest || 0)
-    localStorage.setItem(STREAK_KEY, JSON.stringify({ date: today, streak: newStreak, longest: newLongest }))
-  } catch {}
-}
-function getStreak() {
-  try {
-    const data      = JSON.parse(localStorage.getItem(STREAK_KEY) || '{"date":"","streak":0,"longest":0}')
-    const today     = _localDay()
-    const yesterday = _localDay(_daysAgo(1))
-    if (data.date !== today && data.date !== yesterday) return { streak: 0, longest: data.longest || 0, today: false }
-    return { streak: data.streak || 0, longest: data.longest || 0, today: data.date === today }
-  } catch { return { streak: 0, longest: 0, today: false } }
-}
-
 // A question is "due" if never practiced OR last practiced > N days ago (N = per-key review interval)
 function isDue(lcKey) {
   const last = getLastPracticed(lcKey)
@@ -2803,11 +2718,11 @@ function gradeRevise(lcKey, grade, el) {
   // solve count, and only on an explicit positive grade (unlike the old eye, which bumped on every
   // passive click). Status is untouched here beyond the 📋→🚧 nudge below.
   const prev  = getRevise(lcKey)
-  const today = _localDay()
+  const today = LocalDate.key()
   const shownStatus = getStatus(lcKey)
   let base = prev && prev.base && prev.base.day === today ? prev.base : null
   // A ✓ from today saved before records carried a `base` was already credited; don't credit again.
-  const legacySolidToday = !base && prev && prev.grade === 'solid' && prev.last && _localDay(new Date(prev.last)) === today
+  const legacySolidToday = !base && prev && prev.grade === 'solid' && prev.last && LocalDate.key(new Date(prev.last)) === today
   if (base) {
     if (base.credited) _adjSolveCount(lcKey, -1)
     _restoreReviewInterval(lcKey, base.interval)
@@ -4159,10 +4074,7 @@ function _solveRingTitle(n) {
 }
 
 function _adjSolveCount(lcKey, delta) {
-  const counts = JSON.parse(localStorage.getItem(SOLVE_COUNT_KEY) || '{}')
-  counts[lcKey] = Math.max(0, (counts[lcKey] || 0) + delta)
-  localStorage.setItem(SOLVE_COUNT_KEY, JSON.stringify(counts))
-  const n = counts[lcKey]
+  const n = adjustSolveCount(lcKey, delta)
   const ring = document.querySelector('[data-solve-key="' + lcKey + '"]')
   if (ring) {
     ring.className   = 'solve-ring ' + _solveRingCls(n)
@@ -4776,7 +4688,7 @@ function exportData() {
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
   a.href     = url
-  a.download = `dsa-notebook-backup-${new Date().toISOString().slice(0,10)}.json`
+  a.download = `dsa-notebook-backup-${LocalDate.key()}.json`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

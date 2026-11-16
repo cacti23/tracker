@@ -9,8 +9,8 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 
 ## How the code is organised
 
-- **App logic is one big inline `<script>` in `index.html`.** Data and localStorage helpers are in `js/data.js`. `data.js` holds data and data-access helpers only, with no rendering or DOM code.
-- Tests load the app by taking the **largest inline `<script>` block** from `index.html` (`test/load-app.js`). Don't split the inline script into several large blocks, and don't add a bigger inline block, without updating that loader.
+- **App logic is one big inline `<script>` in `index.html`.** Data and localStorage helpers are in `js/data.js`. `data.js` holds data and data-access helpers only, with no rendering or DOM code; that includes the per-question practice records (solve counts, last practiced, cooldown ladder, streak), built on its `_jsonMap` helper. `js/dates.js` (`LocalDate.key`, `LocalDate.addDays`) is the one local-date helper for all three apps: never use `toISOString().slice(0, 10)` for a day.
+- Tests load the app by taking the **largest inline `<script>` block** from `index.html` (`test/load-app.js`), after the `js/` files listed in `PAGE_SCRIPTS` there. Don't split the inline script into several large blocks, and don't add a bigger inline block, without updating that loader.
 - Top-level `let`/`const` in the inline script are not reachable as globals from the tests. Use `evalIn` in `test/load-app.js`.
 - Adding a topic: add it to `TOPICS` and `TOPIC_MODULES` in `js/data.js` (the module schema is documented in that file), and add a cheatsheet in `dsa/`.
 - `escHtml()` should wrap any user or data text put into `innerHTML`.

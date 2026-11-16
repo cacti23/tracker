@@ -59,9 +59,9 @@ test('solid-grade solve credit is once per LOCAL day (not per UTC day)', () => {
   assert.equal(ev(`getSolveCount('${k}')`), 2)
 })
 
-test('_localDay is the local calendar date', () => {
+test('LocalDate.key is the local calendar date', () => {
   at(2026, 9, 22, 0, 30)
-  assert.equal(ev('_localDay()'), '2026-09-22')
+  assert.equal(ev('LocalDate.key()'), '2026-09-22')
 })
 
 // ── Cross-listed questions are counted once ────────────────────────────────────────────────────
