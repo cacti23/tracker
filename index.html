@@ -2118,14 +2118,14 @@ let _noteQuery = ''   // live search filter; reset on topic switch
 
 function _openNoteSet(notes) {
   try {
-    const all = JSON.parse(localStorage.getItem(NOTES_OPEN_KEY) || '{}')
+    const all = _readMap(NOTES_OPEN_KEY)
     if (Object.prototype.hasOwnProperty.call(all, currentTopicKey)) return new Set(all[currentTopicKey])
   } catch {}
   return new Set(notes.filter(n => n.pinned).map(n => n.id))
 }
 function _saveOpenNoteSet(set) {
   try {
-    const all = JSON.parse(localStorage.getItem(NOTES_OPEN_KEY) || '{}')
+    const all = _readMap(NOTES_OPEN_KEY)
     all[currentTopicKey] = [...set]
     localStorage.setItem(NOTES_OPEN_KEY, JSON.stringify(all))
   } catch {}
@@ -2161,17 +2161,20 @@ function _hlNoteTitle(title, q) {
 }
 
 function noteAccItem(n, isOpen, q) {
+  // n.id comes from storage, and storage can be filled by an imported backup or the gist, so it
+  // is escaped like any other data: as an HTML attribute, and as a JS string inside onclick.
+  const idAttr = escHtml(n.id), idArg = _jsArg(n.id)
   const date = n.updatedAt ? new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
-  return '<div class="note-acc' + (isOpen ? ' open' : '') + (n.pinned ? ' pinned' : '') + '" id="note-card-' + n.id + '">' +
-    '<div class="note-acc-head" onclick="toggleNoteOpen(\'' + n.id + '\')">' +
+  return '<div class="note-acc' + (isOpen ? ' open' : '') + (n.pinned ? ' pinned' : '') + '" id="note-card-' + idAttr + '">' +
+    '<div class="note-acc-head" onclick="toggleNoteOpen(' + idArg + ')">' +
     '<span class="note-acc-chev">▶</span>' +
     '<span class="note-acc-title">' + (n.pinned ? '📌 ' : '') + _hlNoteTitle(n.title || 'Untitled', q) + '</span>' +
     '<span class="note-acc-meta">' + date + '</span>' +
     '<span class="note-card-actions" onclick="event.stopPropagation()">' +
-    '<button title="' + (n.pinned ? 'Unpin' : 'Pin to top') + '" onclick="toggleTopicNotePin(\'' + n.id + '\')">📌</button>' +
-    '<button title="Print" onclick="printTopicNote(\'' + n.id + '\')">🖨️</button>' +
-    '<button title="Edit" onclick="editTopicNote(\'' + n.id + '\')">✏️</button>' +
-    '<button title="Delete" onclick="removeTopicNote(\'' + n.id + '\')">🗑️</button>' +
+    '<button title="' + (n.pinned ? 'Unpin' : 'Pin to top') + '" onclick="toggleTopicNotePin(' + idArg + ')">📌</button>' +
+    '<button title="Print" onclick="printTopicNote(' + idArg + ')">🖨️</button>' +
+    '<button title="Edit" onclick="editTopicNote(' + idArg + ')">✏️</button>' +
+    '<button title="Delete" onclick="removeTopicNote(' + idArg + ')">🗑️</button>' +
     '</span></div>' +
     '<div class="note-acc-body"><div class="note-card-body">' + renderNoteBody(n.body) + '</div></div>' +
     '</div>'
@@ -4632,8 +4635,11 @@ function setActiveNav(key) {
 
 function escHtml(str) {
   if (!str) return ''
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
 }
+// A value as a quoted JS string argument inside an onclick="..." attribute: JSON quoting for the
+// JS, then HTML escaping for the attribute (the browser undoes the HTML escaping first).
+function _jsArg(v) { return escHtml(JSON.stringify(String(v))) }
 
 // ── DATA BACKUP / RESTORE ────────────────────────────────────────────────────
 const BACKUP_KEYS = [
@@ -4703,6 +4709,9 @@ function importData(input) {
     try {
       const backup = JSON.parse(e.target.result)
       if (typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Invalid backup format')
+      // Keep the data being replaced, like a sync pull does: it becomes the newest
+      // "dsa-presync" snapshot (the older two rotate down).
+      DataSync.snapshot()
       // Only restore known keys to avoid arbitrary data injection
       let restored = 0
       BACKUP_KEYS.forEach(key => {

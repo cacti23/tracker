@@ -35,12 +35,20 @@ const TOPICS = [
 ];
 
 // Per-question user progress (persisted in localStorage)
+// One stored { key: value } map. Anything that parses but isn't a plain object ("null", a number,
+// an array: possible from an imported backup or the gist) reads as an empty map, so a bad value
+// can't make every getter throw. Corrupt JSON still throws; each caller decides what to do.
+function _readMap(key) {
+  const v = JSON.parse(localStorage.getItem(key) || '{}')
+  return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+}
+
 // shape: { [lcKey]: { status: 'Solved'|'In Progress'|'Pending' } }
 const PROGRESS_KEY = 'dsa-progress-v1'
 let _progressCache = null
 function loadProgress() {
   if (_progressCache) return _progressCache
-  try { _progressCache = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') } catch { _progressCache = {} }
+  try { _progressCache = _readMap(PROGRESS_KEY) } catch { _progressCache = {} }
   return _progressCache
 }
 function saveProgress(p) { _progressCache = p; localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)) }
@@ -57,7 +65,7 @@ const NOTES_KEY = 'dsa-notes-v1';
 let _notesCache = null;
 function loadNotes() {
   if (_notesCache) return _notesCache;
-  try { _notesCache = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}'); } catch { _notesCache = {}; }
+  try { _notesCache = _readMap(NOTES_KEY); } catch { _notesCache = {}; }
   return _notesCache;
 }
 function saveNotes(n) { _notesCache = n; localStorage.setItem(NOTES_KEY, JSON.stringify(n)); }
@@ -77,7 +85,7 @@ const TOPIC_NOTES_KEY = 'dsa-topic-notes-v1';
 let _topicNotesCache = null;
 function loadTopicNotes() {
   if (_topicNotesCache) return _topicNotesCache;
-  try { _topicNotesCache = JSON.parse(localStorage.getItem(TOPIC_NOTES_KEY) || '{}'); } catch { _topicNotesCache = {}; }
+  try { _topicNotesCache = _readMap(TOPIC_NOTES_KEY); } catch { _topicNotesCache = {}; }
   return _topicNotesCache;
 }
 function saveTopicNotes(n) { _topicNotesCache = n; localStorage.setItem(TOPIC_NOTES_KEY, JSON.stringify(n)); }
@@ -105,7 +113,7 @@ const MAX_SUBMISSIONS = 3;
 let _submissionsCache = null;
 function loadSubmissions() {
   if (_submissionsCache) return _submissionsCache;
-  try { _submissionsCache = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '{}'); } catch { _submissionsCache = {}; }
+  try { _submissionsCache = _readMap(SUBMISSIONS_KEY); } catch { _submissionsCache = {}; }
   return _submissionsCache;
 }
 function saveSubmissions(s) { _submissionsCache = s; localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(s)); }
@@ -132,7 +140,7 @@ const ANIMATIONS_KEY = 'dsa-animations-v1';
 let _animationsCache = null;
 function loadAnimations() {
   if (_animationsCache) return _animationsCache;
-  try { _animationsCache = JSON.parse(localStorage.getItem(ANIMATIONS_KEY) || '{}'); } catch { _animationsCache = {}; }
+  try { _animationsCache = _readMap(ANIMATIONS_KEY); } catch { _animationsCache = {}; }
   return _animationsCache;
 }
 function getAnimation(lcKey) { return loadAnimations()[lcKey] || null; }
@@ -165,7 +173,7 @@ window.addEventListener('storage', (e) => {
 // shape: { [lcKey]: pinnedAt ms }
 const QUESTION_PINS_KEY = 'dsa-question-pins-v1'
 function getQuestionPins() {
-  try { return JSON.parse(localStorage.getItem(QUESTION_PINS_KEY) || '{}') || {} } catch { return {} }
+  try { return _readMap(QUESTION_PINS_KEY) || {} } catch { return {} }
 }
 function isQuestionPinned(lcKey) { return !!getQuestionPins()[lcKey] }
 function toggleQuestionPin(lcKey) {
@@ -182,7 +190,7 @@ function toggleQuestionPin(lcKey) {
 // a bad value is left for a person to look at instead of being replaced with an empty map.
 function _jsonMap(key) {
   function read() {
-    try { return JSON.parse(localStorage.getItem(key) || '{}') } catch { return null }
+    try { return _readMap(key) } catch { return null }
   }
   return {
     get(lcKey) { const m = read(); return m ? m[lcKey] : undefined },
@@ -271,11 +279,11 @@ function getStreak() {
 const SEEN_KEY = 'dsa-seen-v1'
 const SEEN_FRESH_DAYS = 15
 function getSeen(lcKey) {
-  try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')[lcKey] || null } catch { return null }
+  try { return _readMap(SEEN_KEY)[lcKey] || null } catch { return null }
 }
 function markSeen(lcKey) {
   try {
-    const d = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')
+    const d = _readMap(SEEN_KEY)
     const cur = d[lcKey] || { count: 0, last: null }
     const now = new Date()
     const sameDay = cur.last && LocalDate.key(new Date(cur.last)) === LocalDate.key(now)
@@ -304,7 +312,7 @@ function getSeenState(lcKey) {
 // a second grade the same day is a correction, so it rewinds to `base` instead of stacking.
 const REVISE_KEY = 'dsa-revise-v1'
 const REVISE_LADDER = [1, 2, 4, 8, 16]   // days — deliberately shorter than the code ladder (1,3,7,14,30)
-function _reviseAll() { try { return JSON.parse(localStorage.getItem(REVISE_KEY) || '{}') } catch { return {} } }
+function _reviseAll() { try { return _readMap(REVISE_KEY) } catch { return {} } }
 function getRevise(lcKey) { return _reviseAll()[lcKey] || null }
 // With `base`, the ladder steps from base.rev (the record before today's first grade) rather than
 // from the stored record, and `base` is kept on the record for the next same-day correction.
@@ -343,7 +351,7 @@ function getReviseState(lcKey) {
 // practice", not the full revise history). shape: [{ lcKey, grade, ts: ISO }, ...] newest first.
 const RECENT_LOG_KEY = 'dsa-recent-log-v1'
 const RECENT_LOG_MAX = 150
-function _recentLogAll() { try { return JSON.parse(localStorage.getItem(RECENT_LOG_KEY) || '[]') } catch { return [] } }
+function _recentLogAll() { try { const v = JSON.parse(localStorage.getItem(RECENT_LOG_KEY) || '[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
 function getRecentLog() { return _recentLogAll() }
 // Re-grading the same question moves it back to the top instead of duplicating.
 function logRecent(lcKey, grade) {
@@ -359,7 +367,7 @@ function logRecent(lcKey, grade) {
 // queue (re-code it cold) no matter where it sits on the code ladder. Cleared on the next
 // clean cold solve (a ✓ in Graded / a solve list), never by a later recall grade. shape: { [lcKey]: true }
 const CODE_FORCE_KEY = 'dsa-code-force-v1'
-function _codeForceAll() { try { return JSON.parse(localStorage.getItem(CODE_FORCE_KEY) || '{}') } catch { return {} } }
+function _codeForceAll() { try { return _readMap(CODE_FORCE_KEY) } catch { return {} } }
 function isCodeForced(lcKey) { return !!_codeForceAll()[lcKey] }
 function setCodeForced(lcKey, on) {
   const all = _codeForceAll()
@@ -372,7 +380,7 @@ function setCodeForced(lcKey, on) {
 ;(function _migrateSeenToRevise() {
   try {
     if (localStorage.getItem('dsa-revise-migrated-v1')) return
-    const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}')
+    const seen = _readMap(SEEN_KEY)
     const rev  = _reviseAll()
     Object.entries(seen).forEach(([k, s]) => {
       if (!rev[k] && s && s.last) rev[k] = { interval: REVISE_LADDER[2], last: s.last, grade: 'solid' }

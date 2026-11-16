@@ -595,6 +595,14 @@
   function refreshIfDayChanged() {
     if (renderedDay !== null && LocalDate.key() !== renderedDay) renderHabits();
   }
+  // `state` is a copy of storage that saveState() writes back whole. When another tab (or another
+  // tab's sync) changes the stored copy, take it over and redraw, or this tab's next save would
+  // put back its stale copy and erase that change.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORAGE_KEY) return;
+    state = loadState();
+    renderHabits();
+  });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfDayChanged(); });
   window.addEventListener('focus', refreshIfDayChanged);
   setInterval(refreshIfDayChanged, 60000);
