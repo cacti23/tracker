@@ -5496,41 +5496,66 @@ const GLOSSARY = [
   // Every card title, section, subheading, point headline and text block is indexed once, on first search.
   // Rank: where the word sits (title > section > subheading > point > text), then how exactly it matches.
   let index = null
-  const clean = n => { const c = n.cloneNode(true); c.querySelectorAll('.quiz-btn, .add, .aws').forEach(x => x.remove()); return c.textContent.replace(/\s+/g, ' ').trim() }
-  const BODY = 'p, li, .chk, .star, .bx, td, .figcap, q, pre'
+  // Every text node belongs to its nearest block, so boxes, tables, diagrams and Remember notes are all searchable.
+  const SKIP = '.quiz-btn, .add, .cap, script, style, svg, .seq'
+  const BLOCK = 'h4, h5, .hd, summary, .grid2 > div > b:first-child, p, li, td, th, caption, pre, .figcap, div'
+  const lvlOf = n => n.matches('h4') ? 1 : n.matches('h5') ? 2 : n.matches('.hd, summary, .grid2 > div > b:first-child') ? 3 : 4
   const buildIndex = () => {
     index = []
+    // Two text pieces glue only when nothing but inline tags sits between them: "<b>JWT</b>s" stays one word,
+    // while side-by-side boxes, pills and <br> lines get a space. Glossary buttons count as inline text.
+    const inline = new Map(), isInline = e => {
+      if (!inline.has(e)) { const d = getComputedStyle(e).display; inline.set(e, d === 'inline' || (d === 'inline-block' && e.matches('.gl-link, .term'))) }
+      return inline.get(e)
+    }
+    const glued = (a, b, blk) => {
+      const up = n => { const out = []; for (let e = n.parentElement; e && e !== blk; e = e.parentElement) out.push(e); return out }
+      const ua = up(a), ub = up(b), common = new Set(ua.filter(e => ub.includes(e)))
+      if ([...ua, ...ub].some(e => !common.has(e) && !isInline(e))) return false
+      for (let n = b; n && !n.contains(a); n = n.previousSibling || n.parentElement) if (n.nodeName === 'BR') return false
+      return true
+    }
     cards.forEach(card => {
-      const title = cardTitle(card)
+      const title = cardTitle(card), blocks = new Map()
       index.push({ el: card, lvl: 0, text: title, path: card.dataset.topic || '' })
+      const w = document.createTreeWalker(card, NodeFilter.SHOW_TEXT)
+      let last = null
+      for (let t; (t = w.nextNode());) {
+        const p = t.parentElement
+        if (p.closest(SKIP)) continue // keep blank pieces: they are the spaces between words
+        const blk = p.closest(BLOCK)
+        if (!blk || !card.contains(blk)) continue
+        const gap = blk === last?.blk && glued(last.t, t, blk) ? '' : ' '
+        blocks.set(blk, (blocks.get(blk) || '') + gap + t.data); last = { blk, t }
+      }
       let h4 = '', h5 = ''
-      card.querySelectorAll('h4, h5, .hd, ' + BODY).forEach(n => {
-        if (n.matches('h4')) { h4 = clean(n); h5 = ''; index.push({ el: n, lvl: 1, text: h4, path: title }); return }
-        if (n.matches('h5')) { h5 = clean(n); index.push({ el: n, lvl: 2, text: h5, path: title + (h4 ? ' › ' + h4 : '') }); return }
-        const path = [title, h4, h5].filter(Boolean).join(' › ')
-        if (n.matches('.hd')) { index.push({ el: n, lvl: 3, text: clean(n), path }); return }
-        if (n.querySelector(BODY) || n.closest('.hd')) return // leaves only, so text isn't counted twice
-        const hd = n.querySelector('.hd'), text = clean(n).replace(hd ? clean(hd) : '', '').trim()
-        if (text) index.push({ el: n, lvl: 4, text, path })
+      blocks.forEach((raw, n) => { // first-text order = reading order, so each point gets the right section
+        const text = raw.replace(/\s+/g, ' ').trim(), lvl = lvlOf(n)
+        if (!text) return
+        if (lvl === 1) { h4 = text; h5 = '' } else if (lvl === 2) h5 = text
+        const path = [title, lvl > 1 && h4, lvl > 2 && h5].filter(Boolean).join(' › ')
+        index.push({ el: n, lvl, text, path })
       })
     })
   }
-  const wordRe = w => new RegExp('(^|[^a-z0-9])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+  const escRe = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const wordRe = w => new RegExp('(^|[^a-z0-9])' + escRe(w), 'i')
+  const wholeRe = w => new RegExp('(^|[^a-z0-9])' + escRe(w) + '($|[^a-z0-9])', 'i')
   const searchNotes = words => {
     if (!index) buildIndex()
-    const re = words.map(wordRe)
+    const re = words.map(wordRe), whole = words.map(wholeRe), phrase = words.join(' ')
     const seen = new Set(), hits = []
     index.forEach(it => {
       if (!re.every(r => r.test(it.text))) return
-      const t = it.text.toLowerCase(), w = words.join(' ')
+      const flat = it.text.toLowerCase().replace(/[^a-z0-9]+/g, ' ')
       let score = [100, 80, 60, 40, 10][it.lvl]
-      if (it.lvl < 4 && t.replace(/[^a-z0-9 ]/g, ' ').trim().split(/\s+/).join(' ').includes(w)) score += 15
+      if (words.length > 1 && flat.includes(phrase)) score += it.lvl < 4 ? 15 : 5 // words side by side
       if (it.lvl < 4) score += Math.max(0, 20 - it.text.length / 6) // short heading = about this word
-      if (words.every(x => new RegExp('(^|[^a-z0-9])' + x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^a-z0-9])', 'i').test(it.text))) score += 25 // "nat" the word beats "naturally"
+      if (whole.every(r => r.test(it.text))) score += 25 // "nat" the word beats "naturally"
       hits.push({ ...it, score })
     })
     hits.sort((a, b) => b.score - a.score)
-    return hits.filter(h => { if (h.lvl < 4) return true; const k = h.path; if (seen.has(k)) return false; seen.add(k); return true }).slice(0, 40)
+    return hits.filter(h => { if (h.lvl < 4) return true; if (seen.has(h.path)) return false; seen.add(h.path); return true }).slice(0, 40)
   }
   const snippet = (text, word) => {
     const i = text.search(wordRe(word)), from = Math.max(0, i - 40)
@@ -5538,13 +5563,14 @@ const GLOSSARY = [
   }
   const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
   const mark = (text, words) => { // wrap each word-start match in <mark>, escaping everything else
-    const re = new RegExp('(^|[^a-z0-9])(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi')
+    const re = new RegExp('(^|[^a-z0-9])(' + words.map(escRe).join('|') + ')', 'gi')
     let out = '', at = 0, m
     while ((m = re.exec(text))) { const s = m.index + m[1].length; out += esc(text.slice(at, s)) + '<mark>' + esc(m[2]) + '</mark>'; at = s + m[2].length; if (!m[0].length) re.lastIndex++ }
     return out + esc(text.slice(at))
   }
   const jump = n => {
     panel.hidden = true
+    n = n.closest('[hidden]')?.parentElement || n // e.g. a design step not on screen: go to its diagram
     if (n.closest('section.card')?.hidden) setView('topics')
     for (let d = n.closest('details'); d; d = d.parentElement.closest('details')) d.open = true
     n.scrollIntoView({ block: 'center' })
@@ -5553,12 +5579,15 @@ const GLOSSARY = [
   const ICON = ['', '', '', '', '📄 '] // headings bring their own emoji
   const list = () => {
     back.hidden = true; q.hidden = false
-    const words = q.value.toLowerCase().trim()
-    const hits = GLOSSARY.filter(g => !words || (g.t + ' ' + (g.ctx || '') + ' ' + g.aka + ' ' + g.s).toLowerCase().includes(words))
-      .sort((a, b) => a.t.localeCompare(b.t))
+    const words = q.value.toLowerCase().replace(/[\s,;:?!]+/g, ' ').trim() // "port, many" = "port many"
+    const ws = words.split(/\s+/), all = (txt, mk) => ws.every(w => mk(w).test(txt))
+    // Glossary: same word-start rule as the notes; the term's own name ranks above its aka and summary
+    const gScore = g => { const t = g.t + ' ' + (g.ctx || ''); return all(t, wholeRe) ? 3 : all(t, wordRe) ? 2 : all(g.aka, wordRe) ? 1 : 0 }
+    const hits = GLOSSARY.filter(g => !words || all(g.t + ' ' + (g.ctx || '') + ' ' + g.aka + ' ' + g.s, wordRe))
+      .map(g => [words ? gScore(g) : 0, g]).sort((a, b) => b[0] - a[0] || a[1].t.localeCompare(b[1].t)).map(x => x[1])
     body.innerHTML = ''
     if (words) {
-      const ws = words.split(/\s+/), notes = searchNotes(ws)
+      const notes = searchNotes(ws)
       body.appendChild(el('div', 'sr-group', `📍 In the notes · ${notes.length}${notes.length === 40 ? '+' : ''}`))
       if (!notes.length) body.appendChild(el('p', 'gl-empty', 'Not in the notes yet.'))
       notes.forEach(h => {
