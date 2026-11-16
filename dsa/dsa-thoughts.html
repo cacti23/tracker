@@ -91,10 +91,10 @@
      a line to the topic's "Must Remember" box if it's a rule worth recalling. Cross-links: "#3" in the same topic,
      "Recursion #3" across topics. Old #tN and #dp-N anchors stay so earlier links still land. -->
 <div class="chips" id="chips">
-  <button data-g="all" class="on">📚 All · 59</button>
+  <button data-g="all" class="on">📚 All · 60</button>
   <button data-g="graph">🕸️ Graph · 23</button>
   <button data-g="tree">🌳 Trees · 7</button>
-  <button data-g="rec">🔀 Recursion, Backtracking &amp; DP · 16</button>
+  <button data-g="rec">🔀 Recursion, Backtracking &amp; DP · 17</button>
   <button data-g="bs">🎯 Binary Search · 3</button>
   <button data-g="arr">🪟 Arrays &amp; Strings · 10</button>
   <button data-g="math">🔢 Math · 5</button>
@@ -188,6 +188,7 @@
   <a href="#rec-12"><b>12</b>Palindrome min cuts</a>
   <a href="#rec-13"><b>13</b>Dungeon Game: need ahead − cell</a>
   <a href="#rec-14"><b>14</b>Stone Game family shapes</a>
+  <a href="#rec-15"><b>15</b>"At least": clamp the need at 0</a>
   <a href="#math-4"><b>Math · 04</b>XOR range = memo size</a>
 </nav>
 </div>
@@ -844,6 +845,7 @@ available.insert(server)                             // free again: O(log k)</co
 <li>✂️ <b>Min cuts</b> = min pieces − 1 (<a href="#rec-12">#12</a>)</li>
 <li>🗡️ <b>Dungeon:</b> need here = <code>max(1, need ahead − cell)</code> (<a href="#rec-13">#13</a>)</li>
 <li>🎲 <b>Stone games:</b> copy the move rule, not the code (<a href="#rec-14">#14</a>)</li>
+<li>🎯 <b>"At least" target?</b> Overshoot is fine: clamp the need at 0, keep every move (<a href="#rec-15">#15</a>)</li>
 </ul>
 </section>
 
@@ -1374,6 +1376,29 @@ return Math.max(1, neededAhead - dungeon[r][c])</code></pre>
 }</code></pre>
 <div class="box key"><b class="tag">🎯 When prefix/suffix?</b> Only when a move's value is a RANGE. SG2 takes a chunk, SG7 scores the stretch that's left. SG1 takes one pile, so there is nothing to sum.</div>
 <div class="box key"><b class="tag">📌</b> The MOVE RULE decides the shape — copy the move rule, not the code.</div>
+</section>
+
+<section data-g="rec">
+<h2 id="rec-15">15 · 🎯 "At Least" Targets — Overshoot Is Fine, So Clamp the Need at 0</h2>
+<p>🎯 State = the needs left, like <code>(need1, need2)</code>. "Exactly" must hit the number. <b>"At least" may pass it.</b> Extra is wasted, but allowed.</p>
+<figure class="calls"><svg viewBox="0 0 330 150" role="img" aria-label="A combo move takes need1 from 0 to minus 1, and the clamp turns it back to 0" style="max-width:440px"><text x="165" y="18" class="tt">🎁 Combo when need1 is already 0</text><rect x="8" y="34" width="80" height="30" rx="6"/><text x="48" y="54" class="n">(0, 2)</text><line x1="88" y1="49" x2="112" y2="49"/><polygon class="ah" points="112,44 122,49 112,54"/><text x="102" y="30" class="c">combo</text><rect x="124" y="34" width="80" height="30" rx="6"/><text x="164" y="54" class="bad">(−1, 1)</text><line x1="204" y1="49" x2="228" y2="49"/><polygon class="ah" points="228,44 238,49 228,54"/><text x="218" y="30" class="c">clamp</text><rect class="win" x="240" y="34" width="80" height="30" rx="6"/><text x="280" y="54" class="ok">(0, 1)</text><text x="165" y="92" class="c">need1 is done, but the combo still lowers need2</text><text x="165" y="112" class="c">−1 means "over by 1". That is allowed.</text><text x="165" y="136" class="ok">Math.max(0, need − x)</text></svg></figure>
+<pre class="language-tsx"><code class="language-tsx">const dfs = (n1: number, n2: number): number =&gt; {   // needs left, never below 0
+  if (n1 === 0 &amp;&amp; n2 === 0) return 0                // ✅ both met
+  let best = costBoth + dfs(Math.max(0, n1 - 1), Math.max(0, n2 - 1))  // 🎁 combo: no guard
+  if (n1 &gt; 0) best = Math.min(best, cost1 + dfs(n1 - 1, n2))          // 🛡️ guard
+  if (n2 &gt; 0) best = Math.min(best, cost2 + dfs(n1, n2 - 1))          // 🛡️ guard
+  return best
+}</code></pre>
+<ul>
+<li>🔧 <b>Clamp:</b> <code>Math.max(0, need − x)</code>. Then every state has needs ≥ 0 and the memo key is safe.</li>
+<li>🍔 <b>Keep every move.</b> A combo can be cheaper than one single item, even when one need is done. Example: <code>cost2 = 5</code>, <code>costBoth = 1</code>, <code>need = (0, 3)</code> → 3 combos cost 3, not 15.</li>
+<li>🛡️ <b>Single moves need <code>if (need &gt; 0)</code>.</b> At need 0 the state stays the same, so the recursion loops forever.</li>
+<li>🎁 <b>The combo needs no guard.</b> The base case already removed "both 0". So the combo always lowers a need that is still open.</li>
+<li>💥 <b>Skip the clamp:</b> a 2D <code>memo[-1][x]</code> throws a <code>TypeError</code>. A 1D <code>memo[-1]</code> gives <code>undefined</code>. Python wraps to the last item, with no error.</li>
+</ul>
+<p>🔗 Same shape: LC 2742 Painting the Walls (remaining walls, clamped at 0). Cousin: <a href="#rec-13">#13</a> clamps at 1 instead.</p>
+<p class="hint">Checked in Node: the clamp DP matches a brute force and the O(1) formula on 4,000 random cases of LC 3789. Look at the limits too: <code>need</code> up to 10<sup>9</sup> makes the <code>n1 × n2</code> memo far too big. LC 3789 wants case analysis: <code>min(all singles, all combos, combos for the overlap + singles for the rest)</code>. Use this DP when the needs are small.</p>
+<div class="box key"><b class="tag">📌</b> <b>"At least" → overshoot is fine → clamp the need at 0 and keep every move.</b></div>
 </section>
 
 
