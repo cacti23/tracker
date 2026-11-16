@@ -1306,13 +1306,19 @@ $ curl -s ifconfig.me  # after NAT
   <div class="grid2" role="img" aria-label="Through NAT: private EC2, NAT Gateway, Internet Gateway, then S3's public address; works but every GB pays the NAT fee. Through a Gateway endpoint: private EC2, the route table sends S3's address list to the endpoint, then S3 directly on AWS's network; free, no NAT, no Internet Gateway.">
     <div class="k-amber"><b>🔁 Through NAT</b><div class="star">Works, but pays a toll</div>
       <div class="vflow"><div class="bx">🖥️ Private EC2</div><div class="ar">⬇️ route: anywhere → NAT</div><div class="bx">🔁 NAT Gateway<small>💸 charged per GB</small></div><div class="ar">⬇️</div><div class="bx">🚪 Internet Gateway</div><div class="ar">⬇️</div><div class="bx">🪣 S3<small>at its public address</small></div></div>
-      <div class="chk">💸 Backups, logs, images: terabytes × NAT fee</div></div>
+      <div class="chk">💸 5 TB a day to S3 ≈ $225 a day in NAT fees ($0.045/GB, us-east-1)</div></div>
     <div class="k-green"><b>🛤️ Through a Gateway endpoint</b><div class="star">⭐ Free, private, shorter</div>
       <div class="vflow"><div class="bx">🖥️ Private EC2</div><div class="ar">⬇️ route: S3's address list → endpoint</div><div class="bx">🛤️ Gateway endpoint<small>just a route table line</small></div><div class="ar">⬇️</div><div class="bx">🪣 S3<small>on AWS's own network</small></div></div>
       <div class="chk">✅ No NAT, no Internet Gateway, no internet needed</div></div>
   </div>
   <ul class="lines roomy heads">
-    <li><b class="hd">🛣️ The route table picks the road, and the most specific route wins</b>The private subnet has 2 lines: <code>0.0.0.0/0 → NAT</code> and <code>S3's IP list → endpoint</code>. S3's addresses match the narrower line, so S3 traffic takes the endpoint and everything else (Stripe) still takes NAT. Your code doesn't change.</li>
+    <li><b class="hd">🛣️ The route table picks the road, and the most specific route wins</b>Creating the endpoint adds one line to the private subnet's route table:
+      <table class="cidr-t ver-t" role="img" aria-label="Private subnet route table: 10.0.0.0/16 goes local, S3's address list goes to the S3 Gateway endpoint, 0.0.0.0/0 anywhere goes to the NAT Gateway.">
+        <thead><tr><th>Destination</th><th>Goes to</th></tr></thead>
+        <tbody><tr><td>10.0.0.0/16 (inside the VPC)</td><td>🏠 local</td></tr>
+          <tr class="best"><td>S3's address list</td><td>🛤️ S3 Gateway endpoint</td></tr>
+          <tr><td>0.0.0.0/0 (anywhere)</td><td>🔁 NAT Gateway</td></tr></tbody>
+      </table>S3 matches the narrower line, so S3 traffic takes the endpoint. Everything else (Stripe) still takes NAT. Your code doesn't change.</li>
     <li><b class="hd">🆓 Gateway endpoints exist only for S3 and DynamoDB, and they are free</b>Other AWS services (SQS, Secrets Manager…) use an <b>Interface endpoint</b> (PrivateLink): a private IP in your subnet, charged per hour and per GB, but still cheaper and safer than NAT.</li>
     <li><b class="hd">🔐 Bonus: lock the bucket to your VPC</b>A bucket policy can say "allow only through this endpoint", so a leaked key used from a laptop gets nothing. Gateway endpoints work for buckets in the same Region.</li>
   </ul>
