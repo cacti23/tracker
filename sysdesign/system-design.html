@@ -251,6 +251,11 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 /* context chip: the same word can mean different things (stub in gRPC vs in testing) */
 .gl-ctx { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; background: var(--chip); color: var(--accent); font-size: 11px; font-weight: 600; vertical-align: 2px; }
 .gl-note pre { font-size: 12px; overflow-x: auto; }
+.sr-group { margin: 12px 0 2px; font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .4px; }
+.sr-item .sr-t { display: block; font-size: 14px; line-height: 1.4; }
+.sr-item mark { background: var(--amber-bg); color: var(--amber-fg); border-radius: 3px; padding: 0 1px; }
+.sr-flash { animation: srflash 1.6s ease-out; border-radius: 6px; }
+@keyframes srflash { 0%, 30% { box-shadow: 0 0 0 4px var(--amber-fg); background: var(--amber-bg); } 100% { box-shadow: 0 0 0 0 transparent; } }
 .gl-empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
 @media (min-width: 1000px) { .gl, .gl-fab { zoom: 1.15; } }
 /* OSI stack */
@@ -4256,10 +4261,10 @@ User 204  → Shard 2</pre>
 </div>
 </div>
 
-<button type="button" class="gl-fab" id="gl-open" aria-label="Open glossary (shortcut: / or ⌘K)" title="Shortcut: / or ⌘K / Ctrl+K">📖 Glossary <kbd>/</kbd></button>
-<aside class="gl" id="gl" hidden aria-label="Glossary">
-  <div class="gl-head"><button type="button" id="gl-back" hidden>←</button><b>📖 Glossary</b><button type="button" id="gl-close" aria-label="Close glossary">✕</button></div>
-  <input id="gl-q" type="search" placeholder="Search a term… (IP, port, NAT) · Esc to close" autocomplete="off">
+<button type="button" class="gl-fab" id="gl-open" aria-label="Search the notes and glossary (shortcut: / or ⌘K)" title="Shortcut: / or ⌘K / Ctrl+K">🔍 Search <kbd>/</kbd></button>
+<aside class="gl" id="gl" hidden aria-label="Search and glossary">
+  <div class="gl-head"><button type="button" id="gl-back" hidden>←</button><b>🔍 Search · 📖 Glossary</b><button type="button" id="gl-close" aria-label="Close">✕</button></div>
+  <input id="gl-q" type="search" placeholder="Search notes + glossary… (NAT, socket, CIDR)" autocomplete="off">
   <div class="gl-body" id="gl-body"></div>
 </aside>
 <script>
@@ -5487,12 +5492,112 @@ const GLOSSARY = [
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
   const back = document.getElementById('gl-back')
   const byId = Object.fromEntries(GLOSSARY.map(g => [g.id, g]))
+  // 🔍 Notes search (Adi, 2026-11-16): Ctrl+F can't rank and misses cards the current view hides.
+  // Every card title, section, subheading, point headline and text block is indexed once, on first search.
+  // Rank: where the word sits (title > section > subheading > point > text), then how exactly it matches.
+  let index = null
+  // Every text node belongs to its nearest block, so boxes, tables, diagrams and Remember notes are all searchable.
+  const SKIP = '.quiz-btn, .add, .cap, script, style, svg, .seq'
+  const BLOCK = 'h4, h5, .hd, summary, .grid2 > div > b:first-child, p, li, td, th, caption, pre, .figcap, div'
+  const lvlOf = n => n.matches('h4') ? 1 : n.matches('h5') ? 2 : n.matches('.hd, summary, .grid2 > div > b:first-child') ? 3 : 4
+  const buildIndex = () => {
+    index = []
+    // Two text pieces glue only when nothing but inline tags sits between them: "<b>JWT</b>s" stays one word,
+    // while side-by-side boxes, pills and <br> lines get a space. Glossary buttons count as inline text.
+    const inline = new Map(), isInline = e => {
+      if (!inline.has(e)) { const d = getComputedStyle(e).display; inline.set(e, d === 'inline' || (d === 'inline-block' && e.matches('.gl-link, .term'))) }
+      return inline.get(e)
+    }
+    const glued = (a, b, blk) => {
+      const up = n => { const out = []; for (let e = n.parentElement; e && e !== blk; e = e.parentElement) out.push(e); return out }
+      const ua = up(a), ub = up(b), common = new Set(ua.filter(e => ub.includes(e)))
+      if ([...ua, ...ub].some(e => !common.has(e) && !isInline(e))) return false
+      for (let n = b; n && !n.contains(a); n = n.previousSibling || n.parentElement) if (n.nodeName === 'BR') return false
+      return true
+    }
+    cards.forEach(card => {
+      const title = cardTitle(card), blocks = new Map()
+      index.push({ el: card, lvl: 0, text: title, path: card.dataset.topic || '' })
+      const w = document.createTreeWalker(card, NodeFilter.SHOW_TEXT)
+      let last = null
+      for (let t; (t = w.nextNode());) {
+        const p = t.parentElement
+        if (p.closest(SKIP)) continue // keep blank pieces: they are the spaces between words
+        const blk = p.closest(BLOCK)
+        if (!blk || !card.contains(blk)) continue
+        const gap = blk === last?.blk && glued(last.t, t, blk) ? '' : ' '
+        blocks.set(blk, (blocks.get(blk) || '') + gap + t.data); last = { blk, t }
+      }
+      let h4 = '', h5 = ''
+      blocks.forEach((raw, n) => { // first-text order = reading order, so each point gets the right section
+        const text = raw.replace(/\s+/g, ' ').trim(), lvl = lvlOf(n)
+        if (!text) return
+        if (lvl === 1) { h4 = text; h5 = '' } else if (lvl === 2) h5 = text
+        const path = [title, lvl > 1 && h4, lvl > 2 && h5].filter(Boolean).join(' › ')
+        index.push({ el: n, lvl, text, path })
+      })
+    })
+  }
+  const escRe = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const wordRe = w => new RegExp('(^|[^a-z0-9])' + escRe(w), 'i')
+  const wholeRe = w => new RegExp('(^|[^a-z0-9])' + escRe(w) + '($|[^a-z0-9])', 'i')
+  const searchNotes = words => {
+    if (!index) buildIndex()
+    const re = words.map(wordRe), whole = words.map(wholeRe), phrase = words.join(' ')
+    const seen = new Set(), hits = []
+    index.forEach(it => {
+      if (!re.every(r => r.test(it.text))) return
+      const flat = it.text.toLowerCase().replace(/[^a-z0-9]+/g, ' ')
+      let score = [100, 80, 60, 40, 10][it.lvl]
+      if (words.length > 1 && flat.includes(phrase)) score += it.lvl < 4 ? 15 : 5 // words side by side
+      if (it.lvl < 4) score += Math.max(0, 20 - it.text.length / 6) // short heading = about this word
+      if (whole.every(r => r.test(it.text))) score += 25 // "nat" the word beats "naturally"
+      hits.push({ ...it, score })
+    })
+    hits.sort((a, b) => b.score - a.score)
+    return hits.filter(h => { if (h.lvl < 4) return true; if (seen.has(h.path)) return false; seen.add(h.path); return true }).slice(0, 40)
+  }
+  const snippet = (text, word) => {
+    const i = text.search(wordRe(word)), from = Math.max(0, i - 40)
+    return (from ? '…' : '') + text.slice(from, from + 120) + (from + 120 < text.length ? '…' : '')
+  }
+  const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+  const mark = (text, words) => { // wrap each word-start match in <mark>, escaping everything else
+    const re = new RegExp('(^|[^a-z0-9])(' + words.map(escRe).join('|') + ')', 'gi')
+    let out = '', at = 0, m
+    while ((m = re.exec(text))) { const s = m.index + m[1].length; out += esc(text.slice(at, s)) + '<mark>' + esc(m[2]) + '</mark>'; at = s + m[2].length; if (!m[0].length) re.lastIndex++ }
+    return out + esc(text.slice(at))
+  }
+  const jump = n => {
+    panel.hidden = true
+    n = n.closest('[hidden]')?.parentElement || n // e.g. a design step not on screen: go to its diagram
+    if (n.closest('section.card')?.hidden) setView('topics')
+    for (let d = n.closest('details'); d; d = d.parentElement.closest('details')) d.open = true
+    n.scrollIntoView({ block: 'center' })
+    n.classList.remove('sr-flash'); void n.offsetWidth; n.classList.add('sr-flash')
+  }
+  const ICON = ['', '', '', '', '📄 '] // headings bring their own emoji
   const list = () => {
     back.hidden = true; q.hidden = false
-    const words = q.value.toLowerCase().trim()
-    const hits = GLOSSARY.filter(g => !words || (g.t + ' ' + (g.ctx || '') + ' ' + g.aka + ' ' + g.s).toLowerCase().includes(words))
-      .sort((a, b) => a.t.localeCompare(b.t))
+    const words = q.value.toLowerCase().replace(/[\s,;:?!]+/g, ' ').trim() // "port, many" = "port many"
+    const ws = words.split(/\s+/), all = (txt, mk) => ws.every(w => mk(w).test(txt))
+    // Glossary: same word-start rule as the notes; the term's own name ranks above its aka and summary
+    const gScore = g => { const t = g.t + ' ' + (g.ctx || ''); return all(t, wholeRe) ? 3 : all(t, wordRe) ? 2 : all(g.aka, wordRe) ? 1 : 0 }
+    const hits = GLOSSARY.filter(g => !words || all(g.t + ' ' + (g.ctx || '') + ' ' + g.aka + ' ' + g.s, wordRe))
+      .map(g => [words ? gScore(g) : 0, g]).sort((a, b) => b[0] - a[0] || a[1].t.localeCompare(b[1].t)).map(x => x[1])
     body.innerHTML = ''
+    if (words) {
+      const notes = searchNotes(ws)
+      body.appendChild(el('div', 'sr-group', `📍 In the notes · ${notes.length}${notes.length === 40 ? '+' : ''}`))
+      if (!notes.length) body.appendChild(el('p', 'gl-empty', 'Not in the notes yet.'))
+      notes.forEach(h => {
+        const b = el('button', 'gl-item sr-item'); b.type = 'button'
+        const t = el('span', 'sr-t'); t.innerHTML = ICON[h.lvl] + mark(h.lvl < 4 ? h.text : snippet(h.text, ws[0]), ws); b.appendChild(t)
+        if (h.path) b.appendChild(el('small', '', h.path))
+        b.onclick = () => jump(h.el); body.appendChild(b)
+      })
+      body.appendChild(el('div', 'sr-group', `📖 Glossary · ${hits.length}`))
+    }
     if (!hits.length) body.appendChild(el('p', 'gl-empty', 'No term yet. Ask in the thread and it gets added.'))
     hits.forEach(g => { const b = el('button', 'gl-item', g.t); b.type = 'button'; if (g.ctx) b.appendChild(el('span', 'gl-ctx', g.ctx)); b.appendChild(el('small', '', g.s)); b.onclick = () => show(g.id); body.appendChild(b) })
   }
