@@ -4297,6 +4297,12 @@ User 204  → Shard 2</pre>
     <ul><li>Asked, not answered. Replicas first: they're simpler. Shard when every replica would still need the full dataset and every write, i.e. when storage or write load is the real limit. <span class="add">➕ my answer</span></li></ul>
     <h5>🐦 Timelines across shards</h5>
     <ul><li>With users sharded by user_id, the people you follow live on other shards. Precompute timelines with fan-out on write and keep them in Redis; celebrities are pulled at read time (see <a href="#sd-dm-schema--scaling-and-sharding">Data Modeling: sharding</a>).</li></ul>
+    <h5>🔢 "Why start at 64 shards, not 3?"</h5>
+    <ul><li>Asked, not answered. 64 <b>logical</b> shards can sit on 4 machines (16 each). To grow, move whole shards to new machines (8 machines × 8): a copy, no rehashing. Start with 3 and growing means re-splitting the data. 64 divides evenly as you double machines. The cost: a cross-shard query now asks 64. <span class="add">➕ my answer</span></li></ul>
+    <h5>🛒 "order_id or user_id for orders?"</h5>
+    <ul><li>Pick by the busiest query. "My order history" → <code>user_id</code>: one shard. "Get or update this order" (payments, warehouse) → <code>order_id</code>, but "my orders" now asks every shard. Senior trick: put the user's shard number inside the order ID (Instagram's IDs carry a shard ID), so both lookups hit one shard. <span class="add">➕ my answer</span></li></ul>
+    <h5>📐 "Vertical partitioning vs separate tables?"</h5>
+    <ul><li>Nearly the same thing: split a wide table into two 1:1 tables, hot columns (name, status) in one, big rarely-read ones (bio, PDF) in the other, so hot reads touch fewer pages. Postgres already moves big values out of the row by itself (TOAST). Rarely matters in an interview. <span class="add">➕ my answer</span></li></ul>
     <h5>✏️ Errata</h5>
     <ul><li>Diagram 1: the third shard should be 20M–30M. The lesson once said "4 strategies": Evan King (admin) said geographic sharding was cut and the count would be fixed.</li></ul>
   </div>
