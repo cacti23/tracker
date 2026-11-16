@@ -517,6 +517,7 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .cidr-t th, .cidr-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
 .sock-t td:first-child, .sock-t th:first-child { font-family: inherit !important; text-align: left; } .sock-t tr.diff td { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; } .sock-t tr.res td { font-weight: 700; color: var(--green-fg); }
 .cidr-t th:first-child, .cidr-t td:first-child { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ver-t th, .ver-t td { text-align: left !important; vertical-align: top; } .ver-t th:first-child { font-family: inherit !important; } .ver-t td:first-child { font-family: inherit !important; font-weight: 700; white-space: nowrap; } .ver-t tr.best td { background: var(--green-bg); }
 .steps-c { margin: 6px 0; padding-left: 20px; } .steps-c li { margin: 6px 0; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: 12.5px; }
@@ -1612,6 +1613,28 @@ Flags [R.]  # RST: refused</pre>
   </ul>
   <p class="ana">🏪 HTTP/1.1 = <b>6 checkout counters</b>, one customer each. HTTP/2 = <b>one conveyor belt</b> with everyone's items mixed: one item falls off, the whole belt stops. HTTP/3 = <b>one belt with separate lanes</b>: only the lane with the fallen item stops. <span class="add">➕ analogy not in the article</span> <span class="aws">☁️ CloudFront serves HTTP/2 and HTTP/3</span></p>
   <div class="rem"><b>✅ Remember</b> 🎤 "HTTP/2 multiplexes many requests on one TCP connection, but a lost packet blocks them all. HTTP/3 on QUIC keeps streams independent, which helps users on lossy mobile networks."</div>
+
+  <h5>🧭 Which HTTP version, when? <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
+  <p class="bridge">You rarely pick a version by hand: browser and server agree on the best one both speak. Your job is to know where each one wins, and which hop speaks which.</p>
+  <table class="cidr-t ver-t" role="img" aria-label="HTTP/1.0: a new connection per request, legacy only. HTTP/1.1: one request at a time, fine for simple calls, load balancer to server, webhooks. HTTP/2: many files from one site on a good network, web pages, CDNs, gRPC. HTTP/3: lossy or changing networks, mobile, Wi-Fi to 4G, video.">
+    <thead><tr><th>Version</th><th>✅ Wins when</th><th>📍 You see it</th></tr></thead>
+    <tbody>
+      <tr><td>1.0</td><td>Never by choice: a new TCP connection for every request</td><td>Old clients; nginx → backend by default</td></tr>
+      <tr><td>1.1</td><td>Few requests, one at a time is fine (keep-alive reuses the line)</td><td>LB → servers, webhooks, curl, health checks</td></tr>
+      <tr><td>2</td><td>Many files from one site on a <b>clean</b> network</td><td>Web pages + CDN (40 images), gRPC between services</td></tr>
+      <tr class="best"><td>3</td><td><b>Lossy or changing</b> networks: mobile, Wi-Fi → 4G, far users</td><td>Mobile apps, video (YouTube), CDN edge</td></tr>
+    </tbody>
+  </table>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📱 User on the metro, Wi-Fi → 4G → Wi-Fi: HTTP/3</b>Two wins. A lost packet stalls only its own stream, not the whole page. And the connection survives the network switch: QUIC names it by a <b>connection ID</b>, not IP + port, so there is no new handshake. ⚠️ Senior catch: the server side must route by that ID too. A plain L4 load balancer hashes IP + port, so the moved connection lands on a server that has never seen it.</li>
+    <li><b class="hd">🖼️ Page with 40 images from a CDN: HTTP/2 (HTTP/3 if offered)</b>One connection, all 40 at once, one handshake, compressed headers. 6 HTTP/1.1 queues become 1 shared road. Drop domain sharding.</li>
+    <li><b class="hd">🏢 Service → service inside one data center: HTTP/2 (gRPC) or HTTP/1.1 keep-alive</b>The network is clean and under 1 ms, so HTTP/3's loss and migration wins barely matter. gRPC needs HTTP/2. Plain REST calls are fine on HTTP/1.1 with a reused connection.</li>
+    <li><b class="hd">⚖️ One request, different versions per hop</b>Client ↔ CDN or load balancer: HTTP/3 or HTTP/2. Load balancer ↔ your servers: often HTTP/1.1. The edge ends the client's connection and opens its own, so the fast version matters most on the slow, far hop: the user's last mile. <span class="aws">☁️ ALB: HTTP/2 to clients, HTTP/1.1 to targets by default</span></li>
+    <li><b class="hd">🧱 UDP blocked (corporate Wi-Fi): HTTP/3 fails, HTTP/2 takes over</b>HTTP/3 runs on UDP, and some firewalls drop it. The browser quietly falls back to HTTP/2 over TCP. So never serve HTTP/3 alone.</li>
+    <li><b class="hd">🆕 First visit is HTTP/2, the next one HTTP/3</b>The browser can't know a server speaks HTTP/3. The first response says so in an <code>Alt-Svc</code> header (or a DNS record), and the browser switches on the next connection.</li>
+  </ul>
+  <p class="ana">🚚 Choosing a delivery service. 1.0 = a <b>new taxi per parcel</b>. 1.1 = <b>one taxi, one parcel per trip</b>. 2 = <b>one truck with everything</b>: great on a smooth highway, but one pothole stops the whole truck. 3 = <b>bikes with a tracking number</b>: bumpy city roads are fine, and if you move house the courier still finds you. <span class="add">➕ analogy not in the article</span></p>
+  <div class="rem"><b>✅ Remember</b> 🎤 "At the CDN edge I'd serve HTTP/3 for mobile users (lossy networks, Wi-Fi → 4G switches) with HTTP/2 as the fallback. Inside the data center, gRPC over HTTP/2 or HTTP/1.1 keep-alive is enough."</div>
 
   <h5>📎 multipart/form-data ≠ S3 multipart upload <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Both say "multipart". One is a body format inside <b>one</b> request. The other sends one file as <b>many</b> requests.</p>
