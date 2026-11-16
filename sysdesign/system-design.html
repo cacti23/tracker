@@ -510,6 +510,7 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .ipr .nw { --c: var(--blue-fg); --bg-c: var(--blue-bg); } .ipr .us { --c: var(--green-fg); --bg-c: var(--green-bg); } .ipr .bc { --c: var(--amber-fg); --bg-c: var(--amber-bg); }
 .cidr-t { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0; }
 .cidr-t th, .cidr-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+.sock-t td:first-child, .sock-t th:first-child { font-family: inherit !important; text-align: left; } .sock-t tr.diff td { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; } .sock-t tr.res td { font-weight: 700; color: var(--green-fg); }
 .cidr-t th:first-child, .cidr-t td:first-child { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .steps-c { margin: 6px 0; padding-left: 20px; } .steps-c li { margin: 6px 0; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
@@ -954,7 +955,7 @@ GET  /v1/feed        → Tweet[]</pre>
     <tr><td>🚪 <b>Port</b></td><td>which app on that machine. 0–65535; 443 = HTTPS, 53 = DNS.</td><td>the flat number in the building</td></tr>
   </table>
   <ul class="lines">
-    <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP for its public one on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
+    <li>🏠 A <button type="button" class="gl-link" data-g="router">router</button> joins two networks, so it has two IPs: <b>private</b> inside (192.168.1.1) and <b>public</b> outside (from your ISP). It swaps your private IP and port for its public IP and a new port on the way out: <button type="button" class="gl-link" data-g="nat">NAT</button>.</li>
     <li>📣 To find the router's MAC, your phone shouts "who has 192.168.1.1?" and only the router answers: <button type="button" class="gl-link" data-g="arp">ARP</button>.</li>
   </ul>
   <h5>🔌 IP, port, socket: what a socket really is <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
@@ -997,7 +998,21 @@ GET  /v1/feed        → Tweet[]</pre>
     <li><b class="hd">🔌 A socket = an OS object for one conversation</b>Both addresses + an inbox + an outbox. Your program gets a number for it (#7).</li>
     <li><b class="hd">✍️ The program only reads and writes it</b><code>read(#7)</code> gets the client's bytes. <code>write(#7)</code> sends bytes back. The OS handles packets and TCP.</li>
     <li><b class="hd">👂 One listening socket per port, one connected socket per client</b>The listening socket only accepts newcomers. Each newcomer gets a new socket. All of them use port 8080.</li>
-    <li><b class="hd">🏷️ The "them" address picks the socket</b>Every packet carries the client's IP + port. The OS puts its bytes in the socket with that "them".</li>
+  </ul>
+  <p>🔑 <b>Which socket does a packet belong to?</b> The OS reads <b>4 values</b> from it. Same 4 = same socket. <b>Any one different = a different socket.</b> Two tabs on your laptop, both talking to the server:</p>
+  <table class="cidr-t sock-t" role="img" aria-label="Tab 1 and tab 2 share source IP 1.1.1.1, destination IP 10.0.2.15 and destination port 8080. Only the source port differs, 51234 versus 51240, so the server has two sockets.">
+    <thead><tr><th></th><th>Tab 1</th><th>Tab 2</th></tr></thead>
+    <tbody>
+      <tr><td>Source IP (your laptop)</td><td>1.1.1.1</td><td>1.1.1.1</td></tr>
+      <tr class="diff"><td>Source port (picked by your OS)</td><td>51234</td><td>51240</td></tr>
+      <tr><td>Destination IP (server)</td><td>10.0.2.15</td><td>10.0.2.15</td></tr>
+      <tr><td>Destination port (server)</td><td>8080</td><td>8080</td></tr>
+      <tr class="res"><td>Server socket</td><td>#7</td><td>#9</td></tr>
+    </tbody></table>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎲 Your OS gives each new connection a new source port</b>That's why two connections from one laptop never collide: 3 of the 4 values match, the source port doesn't, so the server makes 2 sockets.</li>
+    <li><b class="hd">🔗 One socket per TCP connection, not per tab</b>A tab with its own connection = its own socket, so 2 tabs = 2 sockets. But a browser can also share one connection across tabs on the same site (HTTP/2), giving 1 socket, or open up to ~6 for one page (HTTP/1.1). Count connections, not tabs.</li>
+    <li><b class="hd">🏷️ Add the protocol and it's the 5-tuple</b>TCP and UDP can use the same port number without clashing, so the full key is the 4 values + TCP/UDP.</li>
   </ul>
 <pre>// 👂 listening socket on 8080
 net.createServer(sock => {
@@ -1027,7 +1042,15 @@ net.createServer(sock => {
   <p class="bridge">Your phone has a private IP. The internet can't route it. So the router swaps it on the way out, every time. <span class="aws">☁️ AWS NAT Gateway: lets private servers reach the internet</span></p>
   <div class="seq" data-seq="nat"></div>
   <ul class="lines roomy heads">
-    <li><b class="hd">✅ Every packet to the internet is rewritten, both ways</b>Out: the source becomes the router's public IP + a port. Back: the destination becomes your private IP again.</li>
+    <li><b class="hd">🔁 NAT changes two things: the IP and the port</b>Going out, the source IP becomes the router's public IP <b>and</b> the source port becomes a free port the router picks. It writes the pair in its NAT table. Coming back, it swaps both again.
+      <div class="vflow" role="img" aria-label="Phone sends from 192.168.1.23 port 51234; the router rewrites it to 203.0.113.7 port 40001. A laptop that also used port 51234 gets 40002. Replies to 40001 go to the phone, replies to 40002 go to the laptop.">
+        <div class="bx">📱 Phone · from <code>192.168.1.23 : 51234</code></div><div class="ar">⬇️ router rewrites IP + port</div><div class="bx">🌍 Internet sees <code>203.0.113.7 : 40001</code></div>
+      </div>
+      <table class="cidr-t sock-t"><thead><tr><th>Device (inside)</th><th>Public side</th></tr></thead><tbody>
+        <tr><td>📱 192.168.1.23 : 51234</td><td>203.0.113.7 : 40001</td></tr>
+        <tr><td>💻 192.168.1.40 : 51234</td><td>203.0.113.7 : 40002</td></tr>
+      </tbody></table>
+      Why the port too? Every device shares one public IP, and two devices can even pick the same source port. The new port is the only thing that tells their replies apart. This IP-and-port kind is what home routers, CGNAT and AWS NAT Gateway all do (also called PAT, "port address translation").</li>
     <li><b class="hd">🏠 Inside the home there is no NAT</b>Phone → printer stays on the local network, private IP to private IP.</li>
     <li><b class="hd">🆕 IPv6 usually needs no NAT</b>It has enough addresses for every device to get a public one.</li>
     <li><b class="hd">🏢 A whole office can look like one IP</b>The server sees only the router's public IP. Rate limits or IP hash by IP treat 500 staff as one client.</li>
@@ -5126,9 +5149,9 @@ const GLOSSARY = [
   { id: 'dns', t: 'DNS', aka: 'domain name system lookup resolve', s: 'Turns a name like google.com into an IP.',
     an: 'The phone book: name in, number out.',
     b: '<p>Your device asks a DNS server "what is the IP of hellointerview.com?" and caches the answer for a while (its <b>TTL</b>). Runs on port 53: UDP for normal lookups, TCP for big answers.</p><p>🏢 An office DNS answers only inside the office or VPN, and can give a different answer inside than outside (split-horizon).</p><p>☁️ <b>On AWS:</b> Route 53</p>', see: ['ip', 'udp', 'private'] },
-  { id: 'nat', t: 'NAT', aka: 'network address translation', s: 'The router swaps private IPs for its one public IP.',
+  { id: 'nat', t: 'NAT', aka: 'network address translation pat port address translation napt nat table', s: 'The router swaps a device\'s private IP and port for its public IP and a free port, and remembers the pair.',
     an: 'The building reception: posts every flat\'s letters under the building address, and hands replies back to the right flat.',
-    b: '<p>All devices at home share one public IP. Going out, the router rewrites the source to its public IP + a port it picks, and remembers the mapping. Replies come back to that port and get sent to the right device.</p><p>Side effect: outsiders can\'t start a connection to you, which is why video calls need STUN/TURN.</p><p>☁️ <b>On AWS:</b> NAT Gateway (managed NAT for private subnets)</p>', see: ['private', 'router'] },
+    b: '<p>All devices at home share one public IP. Going out, the router rewrites <b>two</b> things: the source IP (→ its public IP) and the source port (→ a free port it picks), and remembers the pair.</p><p>🧪 <code>192.168.1.23:51234</code> → <code>203.0.113.7:40001</code>. Your laptop, also on port 51234, gets <code>:40002</code>. Replies to 40001 go to the phone, to 40002 to the laptop.</p><p>The port is what tells devices apart behind one IP (also called PAT).</p><p>Side effect: outsiders can\'t start a connection to you, which is why video calls need STUN/TURN.</p><p>☁️ <b>On AWS:</b> NAT Gateway (managed NAT for private subnets)</p>', see: ['private', 'router'] },
   { id: 'vpc', t: 'VPC (Virtual Private Cloud)', aka: 'virtual private cloud vnet private network cloud subnet', s: 'Your own isolated private network inside a cloud provider.',
     an: 'A gated office campus: one main gate, a reception lobby, and badge-only offices.',
     b: '<ul><li>🧩 You pick the IP range (e.g. <code>10.0.0.0/16</code>) and cut it into subnets.</li><li>🟢 Public subnets hold what the internet must reach: load balancer, NAT Gateway.</li><li>🔒 Private subnets hold everything else: services, databases, caches.</li><li>🧱 Security Groups (per server) and Network ACLs (per subnet) control traffic.</li></ul><p>Azure calls the same thing a VNet.</p><p>☁️ <b>On AWS:</b> Amazon VPC</p>', see: ['subnet', 'igw', 'cidr', 'nat'] },
