@@ -1328,7 +1328,7 @@ $ curl -s ifconfig.me  # after NAT
   <ul class="lines roomy heads">
     <li><b class="hd">☁️ A VPC is your own private network inside the cloud</b>You pick its IP range (a <button type="button" class="gl-link" data-g="cidr">CIDR</button> block like <code>10.0.0.0/16</code> = 65,536 addresses), cut it into subnets, and set the routes and firewalls. Other customers can't see in. The cloud still runs the hardware; you control the network rules.</li>
     <li><b class="hd">🧩 A subnet is a slice of the VPC, in one Availability Zone</b><code>10.0.1.0/24</code> = 256 addresses (AWS keeps 5). Real setups repeat public + private subnets in 2–3 Availability Zones, so one data center failing doesn't take you down.</li>
-    <li><b class="hd">🛣️ The route table makes a subnet public, not its name</b>Public = has a route to the <button type="button" class="gl-link" data-g="igw">Internet Gateway</button>. Private = no such route; it goes out through a NAT Gateway, or not at all.</li>
+    <li><b class="hd">🛣️ The route table makes a subnet public, not its name or its IPs</b>Public = has a route to the <button type="button" class="gl-link" data-g="igw">Internet Gateway</button>. Private = no such route; it goes out through a NAT Gateway, or not at all. Give a server in a private subnet a public IP and it is still unreachable: no road leads out.</li>
     <li><b class="hd">🔒 Only the front door is public</b>The load balancer takes traffic in. The servers behind it stay private too, not only the databases.</li>
     <li><b class="hd">🧱 Per-server firewall = Security Group · per-subnet firewall = Network ACL</b>
       <div class="grid2" style="margin: 6px 0">
@@ -1338,7 +1338,7 @@ $ curl -s ifconfig.me  # after NAT
     <li><b class="hd">🔗 Private paths to everything else</b>AWS services: VPC endpoints (above). VPC peering or Transit Gateway: VPC to VPC. Site-to-Site VPN or Direct Connect: office to VPC.</li>
   </ul>
   <p class="ana">🏢 A VPC is a <b>gated office campus</b>. The Internet Gateway is the main gate. The public subnet is the reception lobby, where visitors are let in. The private subnet is the badge-only offices: staff can step out for coffee (NAT), but no stranger walks in. Route tables are the signposts. <span class="add">➕ analogy not in the article</span></p>
-  <div class="rem"><b>✅ Remember</b> 🎤 Say it in a design: "One VPC across 2–3 Availability Zones. Only the load balancer sits in public subnets. Services, databases and caches sit in private subnets and reach the internet through a NAT Gateway."</div>
+  <div class="rem"><b>✅ Remember</b> 🛣️ A subnet is public because its route table points to the Internet Gateway, not because its servers have public IPs.<br>🎤 Say it in a design: "One VPC across 2–3 Availability Zones. Only the load balancer sits in public subnets. Services, databases and caches sit in private subnets and reach the internet through a NAT Gateway."</div>
   <h5>🏢 Office DNS: answers only people inside <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">So a private IP in DNS is useless on the internet. Inside an office, it is exactly right.</p>
   <div class="dg" role="img" aria-label="In the office or on VPN the office DNS answers wiki.corp with a private IP. From home without VPN it cannot be reached or refuses">
