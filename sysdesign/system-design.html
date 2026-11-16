@@ -321,6 +321,9 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .smap .lane .n { --c: inherit; border-color: var(--line); }
 .smap .lr { --c: var(--blue-fg); } .smap .lw { --c: var(--amber-fg); } .smap .ls { --c: var(--purple-fg); }
 .smap .end { --c: var(--red-fg); --bg-c: var(--red-bg); text-align: center; }
+.smap .fx { margin: 4px 0 2px; } .smap .fx span { display: inline-block; margin: 1px 2px 1px 0; padding: 0 6px; border-radius: 999px; border: 1px dashed var(--line); font-size: 11px; color: var(--muted); opacity: .45; }
+.smap .fx span.on { opacity: 1; border-style: solid; border-color: var(--green-fg); background: var(--green-bg); color: var(--green-fg); font-weight: 600; }
+.smap .key { text-align: center; font-size: 11.5px; color: var(--muted); }
 @media (max-width: 700px) { .smap .all, .smap .lanes { grid-template-columns: 1fr; } }
 .vflow { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-top: 8px; font-size: 13px; }
 .vflow .bx { padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); text-align: center; }
@@ -4272,31 +4275,36 @@ User 204  → Shard 2</pre>
   <h5>🗺️ The scale map: what to try before sharding <span class="add">➕ reader's notes, expanded; not in the article</span></h5>
   <p class="bridge">"Make it scale" almost always means "make the <b>database</b> keep up": app servers you can just copy, the data you can't. So don't pick a fix first. Ask <b>what hurts</b>, then read the map top-down: cheap fixes first, sharding last.</p>
   <div class="smap" role="img" aria-label="Scale map. Step 1: measure what hurts. Step 2, for any pain, three cheap fixes: fix the query or add an index, pool connections, use a bigger machine. Step 3, pick the lane: reads slow, use a cache then read replicas; writes slow, queue the spikes; disk full, partition and archive old data. Step 4: if it still hurts, with numbers, shard. Sharding is the only fix for heavy writes and huge data.">
-    <div class="n q"><b>🔍 1. What hurts? Measure first</b><small>Slow-query log + <code>EXPLAIN</code> · CPU · disk · connections · storage</small></div>
+    <div class="n q"><b>🔍 1. What hurts? Measure first</b><small>Slow-query log + <code>EXPLAIN</code> · CPU · disk · connections · storage. The answer picks your fix; guessing picks the wrong one.</small></div>
+    <div class="key">Chips = what each fix scales (lit = yes) · 👀 reach for it when · ⚠️ the catch</div>
     <div class="ar">⬇️</div>
     <div class="lbl">2. Any pain: try the cheap three first</div>
     <div class="all">
-      <div class="n"><b>🗂️ Fix the query</b><small>Add an index, stop the full scan</small></div>
-      <div class="n"><b>🔌 Pool connections</b><small>"Too many connections" while CPU is fine <span class="aws">☁️ RDS Proxy</span></small></div>
-      <div class="n"><b>💪 Bigger machine</b><small>Quick win today, but it has a ceiling</small></div>
+      <div class="n"><b>🗂️ Fix the query</b><div class="fx"><span class="on">📖 reads</span><span>✍️ writes</span><span>💾 storage</span></div><small>👀 One query is slow; <code>EXPLAIN</code> shows a full table scan → add an index</small><small>⚠️ Each index slows every write a little and takes space</small></div>
+      <div class="n"><b>🔌 Pool connections</b><div class="fx"><span class="on">📖 reads</span><span class="on">✍️ writes</span><span>💾 storage</span></div><small>👀 "Too many connections" errors while CPU is fine</small><small>⚠️ One more piece to run <span class="aws">☁️ RDS Proxy</span></small></div>
+      <div class="n"><b>💪 Bigger machine</b><div class="fx"><span class="on">📖 reads</span><span class="on">✍️ writes</span><span class="on">💾 storage</span></div><small>👀 CPU or RAM is maxed and you need a fix today</small><small>⚠️ Hits a ceiling, costs grow fast, still one machine to fail</small></div>
     </div>
     <div class="ar">⬇️ still hurts? 3. Pick your lane</div>
     <div class="lanes">
       <div class="lane lr"><div class="h">📖 Reads slow</div>
-        <div class="n"><b>⚡ Cache</b><small>Same keys read again and again · ⚠️ stale data</small></div>
+        <div class="n"><b>⚡ Cache</b><div class="fx"><span class="on">📖 reads</span><span>✍️ writes</span><span>💾 storage</span></div><small>👀 The <b>same</b> keys read again and again (profiles, feeds)</small><small>⚠️ Stale data, invalidation, stampedes (🔗 <a href="#sd-cache-problems">Caching ③</a>)</small></div>
         <div class="ar">⬇️ still slow</div>
-        <div class="n"><b>📑 Read replicas</b><small>Many different rows read · ⚠️ replica lag</small></div></div>
+        <div class="n"><b>📑 Read replicas</b><div class="fx"><span class="on">📖 reads</span><span>✍️ writes</span><span>💾 storage</span></div><small>👀 Reads ≫ writes, spread over many <b>different</b> rows</small><small>⚠️ Replica lag: you may read old data. Every replica still takes every write</small></div></div>
       <div class="lane lw"><div class="h">✍️ Writes slow</div>
-        <div class="n"><b>📬 Queue the spikes</b><small>Accept now, write in batches · ⚠️ only smooths peaks <span class="aws">☁️ SQS</span></small></div>
+        <div class="n"><b>📬 Queue the spikes</b><div class="fx"><span>📖 reads</span><span class="on">✍️ writes</span><span>💾 storage</span></div><small>👀 Writes come in <b>spikes</b> (flash sale, live event): accept now, write in batches</small><small>⚠️ Only smooths peaks; the DB must still keep up on average. Data lands late <span class="aws">☁️ SQS</span></small></div>
         <div class="ar">⬇️ steady flood?</div>
         <div class="n"><small>😬 No cheap fix left: a single database has just one writer</small></div></div>
       <div class="lane ls"><div class="h">💾 Disk full</div>
-        <div class="n"><b>🗃️ Partition + archive</b><small>Split big tables, move old rows to cheap storage · ⚠️ still one machine's limit</small></div></div>
+        <div class="n"><b>🗃️ Partition + archive</b><div class="fx"><span class="on">📖 reads</span><span>✍️ writes</span><span class="on">💾 storage</span></div><small>👀 Huge tables, but queries touch only recent rows (last month's orders)</small><small>⚠️ Old data is slower to reach; still one machine's limit</small></div></div>
     </div>
     <div class="ar">⬇️ still too much, <b>with numbers</b>? 4.</div>
-    <div class="n end"><b>🧩 Shard</b><small>The only fix for heavy writes and huge data · ⚠️ the biggest cost, forever: shard key, hot spots, cross-shard queries</small></div>
+    <div class="n end"><b>🧩 Shard</b><div class="fx"><span class="on">📖 reads</span><span class="on">✍️ writes</span><span class="on">💾 storage</span></div><small>👀 Sustained writes or total data are beyond one machine, <b>with numbers</b></small><small>⚠️ The biggest cost, forever: shard key, hot spots, cross-shard queries and transactions</small></div>
   </div>
-  <p class="figcap">👀 Look at the lanes: reads get two cheap fixes, writes get almost none. That's why "50K writes/s" is the classic reason to shard.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 Match the fix to what hurts, not to the order</b>Too many connections? Pooling, even if CPU is idle. Disk filling with old orders? Archive, not replicas. "Cheapest first" only among the fixes that hit <b>your</b> bottleneck.</li>
+    <li><b class="hd">📖 Reads have many cheap fixes; ✍️ writes have almost none</b>Look at the lanes. Writes can only be smoothed (queue) or given a bigger box, until the one real fix: split them across machines. That's why "50K writes/s" is the classic reason to shard.</li>
+    <li><b class="hd">🔀 Cache or replicas? Look at how reads repeat</b>The same few keys again and again → cache (cheaper, faster). Many different rows, each read now and then → replicas (a cache would miss).</li>
+  </ul>
   <p class="ana">🏛️ A busy library. First find what's actually slow. Then the cheap three: sort the shelves (index), a ticket system at the door (pooling), a bigger building. Too many readers? Bestsellers at the front (cache), photocopy desks (replicas). Too many returns? A returns bin, shelved later (queue). Shelves full? Old books to the basement (archive). Open new branches (shard) only when one building truly can't cope. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> 🎤 "First I'd find what hurts. Reads I can scale cheaply with indexes, a cache and replicas. Only if writes or total data outgrow one machine, with numbers, would I shard."</div>
 
