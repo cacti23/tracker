@@ -510,6 +510,7 @@ section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
 .ipr .nw { --c: var(--blue-fg); --bg-c: var(--blue-bg); } .ipr .us { --c: var(--green-fg); --bg-c: var(--green-bg); } .ipr .bc { --c: var(--amber-fg); --bg-c: var(--amber-bg); }
 .cidr-t { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0; }
 .cidr-t th, .cidr-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+.sock-t td:first-child { font-family: inherit !important; text-align: left; } .sock-t tr.diff td { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; } .sock-t tr.res td { font-weight: 700; color: var(--green-fg); }
 .cidr-t th:first-child, .cidr-t td:first-child { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .steps-c { margin: 6px 0; padding-left: 20px; } .steps-c li { margin: 6px 0; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
@@ -997,7 +998,21 @@ GET  /v1/feed        → Tweet[]</pre>
     <li><b class="hd">🔌 A socket = an OS object for one conversation</b>Both addresses + an inbox + an outbox. Your program gets a number for it (#7).</li>
     <li><b class="hd">✍️ The program only reads and writes it</b><code>read(#7)</code> gets the client's bytes. <code>write(#7)</code> sends bytes back. The OS handles packets and TCP.</li>
     <li><b class="hd">👂 One listening socket per port, one connected socket per client</b>The listening socket only accepts newcomers. Each newcomer gets a new socket. All of them use port 8080.</li>
-    <li><b class="hd">🏷️ The "them" address picks the socket</b>Every packet carries the client's IP + port. The OS puts its bytes in the socket with that "them".</li>
+  </ul>
+  <p>🔑 <b>Which socket does a packet belong to?</b> The OS reads <b>4 values</b> from it. Same 4 = same socket. <b>Any one different = a different socket.</b> Two tabs on your laptop, both talking to the server:</p>
+  <table class="cidr-t sock-t" role="img" aria-label="Tab 1 and tab 2 share source IP 1.1.1.1, destination IP 10.0.2.15 and destination port 8080. Only the source port differs, 51234 versus 51240, so the server has two sockets.">
+    <thead><tr><th></th><th>Tab 1</th><th>Tab 2</th></tr></thead>
+    <tbody>
+      <tr><td>Source IP (your laptop)</td><td>1.1.1.1</td><td>1.1.1.1</td></tr>
+      <tr class="diff"><td>Source port (picked by your OS)</td><td>51234</td><td>51240</td></tr>
+      <tr><td>Destination IP (server)</td><td>10.0.2.15</td><td>10.0.2.15</td></tr>
+      <tr><td>Destination port (server)</td><td>8080</td><td>8080</td></tr>
+      <tr class="res"><td>Server socket</td><td>#7</td><td>#9</td></tr>
+    </tbody></table>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎲 Your OS gives each new connection a new source port</b>That's why two connections from one laptop never collide: 3 of the 4 values match, the source port doesn't, so the server makes 2 sockets.</li>
+    <li><b class="hd">🔗 One socket per TCP connection, not per tab</b>A tab with its own connection = its own socket, so 2 tabs = 2 sockets. But a browser can also share one connection across tabs on the same site (HTTP/2), giving 1 socket, or open up to ~6 for one page (HTTP/1.1). Count connections, not tabs.</li>
+    <li><b class="hd">🏷️ Add the protocol and it's the 5-tuple</b>TCP and UDP can use the same port number without clashing, so the full key is the 4 values + TCP/UDP.</li>
   </ul>
 <pre>// 👂 listening socket on 8080
 net.createServer(sock => {
