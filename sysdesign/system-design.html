@@ -731,6 +731,36 @@ body.map-on .wrap { max-width: 1640px; }
   .am-ctl { flex-wrap: wrap; } .am-ctl .sp { display: none; }
   .am-ctl:first-child .am-tabs { flex: 1 1 100%; }
 }
+/* ⭕ Hash ring player (Consistent Hashing) */
+.chr { border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 10px; margin: 6px 0 10px; background: var(--bg); }
+.chr-main { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 14px; align-items: center; }
+.chr svg { width: 100%; height: auto; display: block; cursor: pointer; }
+.chr-arc { fill: none; stroke: var(--c); stroke-width: 13; }
+.chr-mv { fill: none; stroke: var(--red-fg); stroke-width: 5; stroke-linecap: round; animation: chrPulse 1.4s ease-in-out infinite; }
+@keyframes chrPulse { 50% { opacity: .3; } }
+.chr-dot { fill: var(--c); } .chr-dot.mv { stroke: var(--red-fg); stroke-width: 2.2; }
+.chr-pt circle { fill: var(--c); stroke: var(--bg); stroke-width: 2; }
+.chr-pt text, .chr-dead text { fill: var(--bg); font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+.chr-dead circle { fill: var(--card); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.chr-dead text { fill: var(--red-fg); font-size: 11px; }
+.chr-tk { fill: var(--muted); font-size: 8.5px; text-anchor: middle; dominant-baseline: central; }
+.chr-mid { fill: var(--text); font-size: 14px; font-weight: 700; text-anchor: middle; }
+.chr-mid2 { fill: var(--muted); font-size: 11.5px; text-anchor: middle; }
+.chr-tr { fill: none; stroke: var(--text); stroke-width: 2; stroke-dasharray: 4 3; }
+.chr-ah { fill: var(--text); }
+.chr-key { fill: var(--text); stroke: var(--bg); stroke-width: 1.5; }
+.chr-h { font-size: 12px; color: var(--muted); font-weight: 600; margin: 0 0 6px; }
+.chr-ld { display: grid; grid-template-columns: auto 1fr 38px; gap: 6px 8px; align-items: center; font-size: 13px; }
+.chr-ld b { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.chr-ld b i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.chr-ld .bar { height: 10px; border-radius: 99px; background: var(--chip); overflow: hidden; }
+.chr-ld .bar i { display: block; height: 100%; border-radius: 99px; background: var(--c); transition: width .35s; }
+.chr-ld .gone { color: var(--muted); text-decoration: line-through; }
+.chr-ld span:last-child, .chr-ld .v { text-align: right; font-variant-numeric: tabular-nums; }
+.chr-mvd { margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--red-fg); min-height: 1.4em; }
+.chr-mvd.none { color: var(--muted); font-weight: 400; }
+@media (max-width: 560px) { .chr-main { grid-template-columns: 1fr; } .chr svg { max-width: 300px; margin: 0 auto; } }
+@media (prefers-reduced-motion: reduce) { .chr-mv { animation: none; } .chr-ld .bar i { transition: none; } }
 </style>
 </head>
 <body>
@@ -2965,7 +2995,7 @@ likes:    user_id (FK → users.id),
   </ul>
   <div class="grid2">
     <div class="k-green"><b>✅ Keep foreign keys</b><div class="chk">No orphan rows, ever: the database guarantees it</div><div class="chk">Every insert and update pays for the check</div><div class="chk">⭐ The default: most systems, and your interview</div></div>
-    <div class="k-amber"><b>⚡ Drop them, check in code</b><div class="chk">Faster writes</div><div class="chk">A bug can leave orphans (a like on a deleted post), so you need clean-up jobs</div><div class="chk">For very large scale. Also once data is sharded: a foreign key can't point to another machine <span class="add">➕</span></div></div>
+    <div class="k-amber"><b>⚡ Drop them, check in code</b><div class="chk">Faster writes</div><div class="chk">A bug can leave orphans (a like on a deleted post), so you need clean-up jobs</div><div class="chk">For very large scale. Also once data is sharded: a foreign key can't point to another machine <span class="add">➕ not in the article</span></div></div>
   </div>
   <p>🎤 Say it in one line, since the article says mentioning this trade-off shows understanding: <i>"Foreign keys stop likes pointing to deleted posts. At very large scale, or once we shard, I'd drop them and check in the service."</i></p>
   <p class="ana">💂 A guard at the office door checks every ID: nobody unknown gets in, but there's a queue at rush hour. Some huge offices drop the guard and trust badge checks upstairs: faster, but now and then a stranger slips in. <span class="add">➕ analogy not in the article</span></p>
@@ -4266,7 +4296,7 @@ User 123 → hash(123) % 4 = Shard 1</pre>
   </div>
   <p class="figcap">🖼️ Green stays, red moves: <b>80% of the data moves</b> just to add one shard. <span class="add">➕ example not in the article</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">🔄 The fix: consistent hashing</b>It replaces the plain modulo so that adding a shard moves only a small slice of the data (about 1/5 here, instead of 4/5). It's the next lesson. Hash sharding works great as long as you have a plan for resharding.</li>
+    <li><b class="hd">🔄 The fix: consistent hashing</b>It replaces the plain modulo so that adding a shard moves only a small slice of the data (about 1/5 here, instead of 4/5): see <a href="#sd-ch-ring">⭕ Consistent Hashing</a>, the next lesson. Hash sharding works great as long as you have a plan for resharding.</li>
   </ul>
   <div class="info"><b>ℹ️ Note</b> Hash-based sharding is the default and most common strategy. It's also what your interviewer will assume you're using unless you say otherwise.</div>
   <p class="ana">🃏 Dealing cards into 4 piles by "number mod 4" gives fair piles. Add a 5th pile and redeal by "mod 5", and almost every card changes pile.</p>
@@ -4483,6 +4513,223 @@ User 204  → Shard 2</pre>
     <ul><li>Nearly the same thing: split a wide table into two 1:1 tables, hot columns (name, status) in one, big rarely-read ones (bio, PDF) in the other, so hot reads touch fewer pages. Postgres already moves big values out of the row by itself (TOAST). Rarely matters in an interview. <span class="add">➕ my answer</span></li></ul>
     <h5>✏️ Errata</h5>
     <ul><li>Diagram 1: the third shard should be 20M–30M. The lesson once said "4 strategies": Evan King (admin) said geographic sharding was cut and the count would be fixed.</li></ul>
+  </div>
+</section>
+
+<section class="card" id="sd-ch-ring" data-topic="Consistent Hashing" data-course="hi-sd" data-lesson="consistent-hashing">
+  <h2 class="cap"><b>⭕ Consistent Hashing ①: Modulo Hashing · The Hash Ring · Virtual Nodes</b></h2>
+  <p class="hook">Hash sharding spreads data evenly, until the number of servers changes. With <code>hash % N</code>, adding or losing <b>one</b> database moves almost <b>all</b> the data, and every database drowns in the copying. Consistent hashing is the fix: when a server joins or leaves, only a small slice moves. The author's take: there are thousands of explanations online and most are too academic, so this one covers only the problem, how it works, and how to use it in an interview.</p>
+  <p class="tldr">💡 ➗ <b>Modulo</b> picks a database with <code>hash(id) % N</code>: change N and nearly every key gets a new home. ⭕ <b>The hash ring</b> puts keys and databases on one circle, and a key belongs to the first database clockwise, so a new database takes only the slice just before it. 🎭 <b>Virtual nodes</b> put each database at many points, so a lost database's load spreads over all the others, not one neighbour. Think of houses on a ring road, each served by the next depot along. Explained below 👇</p>
+
+  <h4>🎫 Consistent Hashing via an Example</h4>
+  <p class="bridge">You're designing a ticketing site like TicketMaster. At first it's simple: one database holds every event, and everything works. Then it gets popular, one database can't take the load, and you <b>shard</b> the events across three.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>1️⃣ Day one</b><div class="flow"><span>🖥️ Client</span><i>⇄</i><span>🧠 Server</span><i>⇄</i><span>🗄️ Database</span></div></div>
+    <div class="k-green"><b>2️⃣ Sharded</b><div class="flow"><span>🖥️ Client</span><i>⇄</i><span>🧠 Server</span><i>⇄</i><span>🗄️ DB 1</span><span>🗄️ DB 2</span><span>🗄️ DB 3</span></div></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's first two pictures. Now the real question: <b>how do we know which events to store on which database?</b></p>
+  <p class="ana">🛣️ The analogy for this whole lesson: a delivery company. Events are houses, databases are depots, and the question is which depot delivers to which house. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>➗ First Attempt: Simple Modulo Hashing</h4>
+  <p class="bridge">The most straightforward way to spread data across several databases, in three steps:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Run the event ID through a hash function</b>It turns the ID into a number.</li>
+    <li><b class="hd">2️⃣ Take that number modulo (%) the number of databases</b></li>
+    <li><b class="hd">3️⃣ The result says which database stores the event</b></li>
+  </ul>
+<pre>database_id = hash(event_id) % number_of_databases
+
+Event #1234 → hash(1234) % 3 = 1 → Database 1
+Event #5678 → hash(5678) % 3 = 0 → Database 0
+Event #9012 → hash(9012) % 3 = 2 → Database 2</pre>
+  <p>🔢 <code>% 3</code> can only give 0, 1 or 2, so the databases are really numbered 0–2 (the lesson's pictures say 1–3). This works well until the number of databases changes. Events 0–11, taking <code>hash(k) = k</code> to keep it simple: <span class="add">➕ example not in the article</span></p>
+  <div class="grid2">
+    <div class="k-blue"><b>➕ Add a 4th database: % 3 → % 4</b>
+      <div class="mv" style="grid-template-columns: repeat(4, 1fr)" role="img" aria-label="Events 0 to 11 under modulo 3 and then modulo 4. Only events 0, 1 and 2 stay. The other 9 move.">
+        <span class="st">0<small>0→0</small></span><span class="st">1<small>1→1</small></span><span class="st">2<small>2→2</small></span><span class="mo">3<small>0→3</small></span><span class="mo">4<small>1→0</small></span><span class="mo">5<small>2→1</small></span><span class="mo">6<small>0→2</small></span><span class="mo">7<small>1→3</small></span><span class="mo">8<small>2→0</small></span><span class="mo">9<small>0→1</small></span><span class="mo">10<small>1→2</small></span><span class="mo">11<small>2→3</small></span>
+      </div>
+      <div class="chk"><b>9 of 12 move (75%)</b>, between all the databases, not just onto the new one.</div></div>
+    <div class="k-amber"><b>💥 Database 2 dies: % 3 → % 2</b>
+      <div class="mv" style="grid-template-columns: repeat(4, 1fr)" role="img" aria-label="Events 0 to 11 under modulo 3 and then modulo 2. Events 0, 1, 6 and 7 stay. The other 8 move, including events that lived on the healthy databases 0 and 1.">
+        <span class="st">0<small>0→0</small></span><span class="st">1<small>1→1</small></span><span class="mo">2<small>2→0</small></span><span class="mo">3<small>0→1</small></span><span class="mo">4<small>1→0</small></span><span class="mo">5<small>2→1</small></span><span class="st">6<small>0→0</small></span><span class="st">7<small>1→1</small></span><span class="mo">8<small>2→0</small></span><span class="mo">9<small>0→1</small></span><span class="mo">10<small>1→0</small></span><span class="mo">11<small>2→1</small></span>
+      </div>
+      <div class="chk"><b>8 of 12 move (67%)</b>. Half of DB 0's and DB 1's events move too, though those databases are fine.</div></div>
+  </div>
+  <p class="figcap">🖼️ Green stays, red moves (old database → new). The lesson draws this as red arrows between every database: "All data from all databases is potentially redistributed".</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Push <code>% 4</code> to production and database activity goes through the roof, on every database</b>The new modulus doesn't only move the events that belong on the new database: it changes the home of almost every event. #1234 lived on database 1; now <code>hash(1234) % 4 = 0</code>, so it must move to database 0. That's massive, unnecessary data movement, so load spikes and users can't reach their data or get slow responses.</li>
+    <li><b class="hd">💥 Losing a database is the same problem</b>A hardware failure or a bug takes one down. You remove it and redistribute its data until a new one is online, so <code>% 3</code> becomes <code>% 2</code>, and again data on <b>all</b> databases moves, not just the dead one's.</li>
+  </ul>
+  <p>👉 The author's verdict: simple modulo hashing isn't enough. Enter consistent hashing. (The same maths with <code>% 4 → % 5</code> moves 80%: <a href="#sd-shard-what--hash-based-sharding-default">Sharding ①</a>.)</p>
+  <p class="ana">🛣️ With modulo, the depot is picked by "house number % 3". Open a 4th depot and switch to "% 4", and almost every house gets a new depot, not just the houses near the new building. Every van is re-routed for one new depot.</p>
+
+  <h4>⭕ Consistent Hashing</h4>
+  <p class="bridge">Consistent hashing solves this redistribution problem. The key insight: arrange <b>both</b> the data and the databases on one circle, the <b>hash ring</b>. Step through it with ⏭ (or tap the ring):</p>
+  <div class="chr" data-ring="basic"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Create a hash ring with a fixed number of points</b>The lesson uses 100 to keep it simple.</li>
+    <li><b class="hd">2️⃣ Place the database nodes on the ring</b>With 4 databases, at points 0, 25, 50 and 75. <span class="add">➕ a reader's point</span> Real systems don't place them by hand: they hash the node's name, <code>hash("db-1")</code>.</li>
+    <li><b class="hd">3️⃣ Hash the event as before, then walk clockwise to the first database</b>Instead of <code>% N</code>, find the hash on the ring and move clockwise until you reach a database. <span class="add">➕ a reader's question</span> Placing the key is still a modulo, <code>% ring size</code>. The difference: the ring size never changes, while N does.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> In reality a hash ring usually has a hash space of 0 to 2<sup>32</sup> − 1, not 0–100, but the concept is the same.</div>
+  <h5>➕ Adding a Database (Database 5)</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📍 DB5 at 90: only events in (75, 90] move</b>They used to walk on to DB1 at 0; now they stop at DB5. All other events stay exactly where they are.</li>
+    <li><b class="hd">🧮 About 15% of all events move, instead of almost all</b>(75, 90] is 15 of DB1's 25-point slice: 60% of DB1's events, 15% of everything. Modulo moved 75%.</li>
+  </ul>
+  <h5>❌ Removing a Database</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📍 DB2 (at 25) fails: only its events move, all to DB3 (at 50)</b>Its slice (0, 25] now walks on to DB3. Everything else stays put.</li>
+  </ul>
+  <p class="ana">🛣️ Houses on a ring road, each served by the next depot along, driving clockwise. Open a new depot, and only the houses on the stretch just before it switch. Close one, and only its houses go to the next depot on. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎭 Virtual Nodes</h4>
+  <p class="bridge">One problem remains. When DB2 failed, <b>all</b> its events went to DB3, so DB3 now has 2× the load of DB1 and DB4. We'd rather spread them, so no single database is overloaded. The solution is <b>virtual nodes</b>: put each database at many points on the ring, by hashing different versions of its name.</p>
+  <div class="chr" data-ring="vnodes"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎭 Hash "DB1-vn1", "DB1-vn2", "DB1-vn3"… instead of just "DB1"</b>They land at, say, 20, 35 and 65. Do it for every database, and their points interleave round the ring. <span class="add">➕ from the comments</span> One hash function is enough: what changes is the name, node id + virtual node number.</li>
+    <li><b class="hd">❌ A failed database's load spreads over all the others</b>Events on "DB2-vn1" go to Database 1, "DB2-vn2" to Database 3, "DB2-vn3" to Database 4, and so on: each slice to the next point clockwise. The more virtual nodes per database, the more even the spread.</li>
+    <li><b class="hd">➕ A new database takes a small slice from many databases</b>Without virtual nodes it takes load only from its one clockwise neighbour. With them, its points are spread round the ring, so the cluster is balanced from the start, not just one overloaded neighbour relieved.</li>
+    <li><b class="hd">🧹 Only virtual nodes go on the ring</b>The lesson's picture also keeps DB1–DB4 at 0, 25, 50, 75, which confused readers. Real systems place only the virtual nodes, each tagged with its real database (the players above do the same). <span class="add">➕ from the comments</span></li>
+  </ul>
+  <h5>🔍 What the ring really is: a sorted list <span class="add">➕ a reader's write-up, not in the article</span></h5>
+  <p>No circle exists anywhere. The ring is a small table in memory, sorted by position. The data itself lives only on the real databases:</p>
+<pre>position  virtual node  real database
+   17       DB2-vn1        DB2
+   20       DB1-vn1        DB1
+   29       DB3-vn2        DB3
+   35       DB1-vn2        DB1   ← "user_42" hashes to 33 → first position ≥ 33 → DB1</pre>
+  <p>🔎 Finding the owner = "first position ≥ hash, else wrap to the start": Binary Search #1, O(log V) for V virtual nodes.</p>
+<pre>// ring = [{ pos, db }] sorted by pos
+function owner(key) {
+  const h = hash(key) % RING_SIZE
+  let low = 0, high = ring.length - 1, ans = 0   // nothing ≥ h → wrap to ring[0]
+  while (low &lt;= high) {
+    const mid = Math.floor((low + high) / 2)
+    if (ring[mid].pos &gt;= h) { ans = mid; high = mid - 1 } else low = mid + 1
+  }
+  return ring[ans].db
+}</pre>
+  <div class="rem"><b>✅ Remember</b> Modulo asks "how many servers?", and that number changes. The ring asks "which point?", on a ring whose size never changes. That's why only a slice moves. (Daniel J., comments)</div>
+  <p class="ana">🛣️ Each delivery company runs 4 small depots scattered round the ring road instead of one big one. Close a company, and its 4 stretches of road go to different neighbours, not all to one. <span class="add">➕ analogy not in the article</span></p>
+</section>
+
+<section class="card" id="sd-ch-use" data-topic="Consistent Hashing" data-course="hi-sd" data-lesson="consistent-hashing">
+  <h2 class="cap"><b>⭕ Consistent Hashing ②: Hot Spots · Data Movement · Real World · Interviews</b></h2>
+  <p class="hook">The ring spreads <b>keys</b> evenly. Three practical questions are left: what if one key is far busier than the rest, what really happens to the data when a node dies, and when should you bring any of this up in an interview?</p>
+  <p class="tldr">💡 🔥 <b>Hot spots</b>: the ring balances keys, not traffic, so give a busy key copies (replicas) or split it (salting). 🚚 <b>Data movement</b>: when a node dies, a replica takes over and nothing moves; data moves only on planned changes. 🌍 <b>Real world</b>: Cassandra uses a ring; Redis Cluster uses 16,384 fixed slots instead. 🎤 <b>Interview</b>: usually just say "the database does this"; go deep only when you design a distributed database, cache or message broker. Explained below 👇</p>
+
+  <h4>🔥 Addressing Hot Spots</h4>
+  <p class="bridge">Even with virtual nodes spreading data evenly, one node can get far more traffic than the rest, because some keys are much more popular. A Taylor Swift concert gets 100× the reads of any other event. Consistent hashing doesn't solve this on its own: it spreads <b>keys</b> evenly, not <b>traffic</b>.</p>
+  <div class="hk" role="img" aria-label="Three nodes own equal slices of the ring. Node A also holds the Taylor Swift event and gets 100 times the reads.">
+    <div class="hot">🗄️ Node A<small>⅓ of the ring<br>🔥 taylor-swift: 100× reads</small></div>
+    <div class="ok">🗄️ Node B<small>⅓ of the ring<br>normal traffic</small></div>
+    <div class="ok">🗄️ Node C<small>⅓ of the ring<br>normal traffic</small></div>
+  </div>
+  <p class="figcap">🖼️ Equal slices, unequal traffic. <span class="add">➕ diagram not in the article</span></p>
+  <p>🩹 Strategies real systems use:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📑 Read replicas: copy popular keys to several nodes and spread their reads (the most common approach)</b>Each read goes to any copy. <span class="add">➕ not in the article</span> Databases replicate whole shards, not single keys, so per-key copies are usually made by the app in a cache: <code>taylor-swift#1…#3</code>, read a random one (<a href="#sd-cache-problems--hot-keys">Caching: hot keys</a>).</li>
+    <li><b class="hd">🧂 Key-space salting: add a random suffix to a hot key so it hashes to different nodes</b><code>taylor-swift-0</code> … <code>taylor-swift-9</code> land on up to 10 nodes. Reads then scatter across those nodes, and the results are combined.</li>
+    <li><b class="hd">🤖 Adaptive rebalancing: watch traffic in real time and move hot key ranges off busy nodes</b>Operationally complex, but some systems do it automatically, like DynamoDB. <span class="aws">☁️ AWS: DynamoDB adaptive capacity</span></li>
+  </ul>
+  <p>🧂 Salting confused many readers ("doesn't it just add reads?"). It works two ways, and the lesson's "reads scatter and get combined" is the write-hot one: <span class="add">➕ from the comments</span></p>
+  <div class="grid2">
+    <div class="k-amber"><b>✍️ Write-hot key</b><div class="star">A celebrity's like counter</div><div class="chk">✍️ Write: add +1 to <b>one</b> random suffix (0–9)</div><div class="chk">📖 Read: ask <b>all 10</b>, add them up</div></div>
+    <div class="k-green"><b>📖 Read-hot key</b><div class="star">The concert page</div><div class="chk">✍️ Write: update <b>all 10</b> copies</div><div class="chk">📖 Read: pick <b>one</b> random copy</div></div>
+  </div>
+  <p>⚠️ Salt only the few known hot keys (a list the app keeps, from metrics), and keep the suffix range fixed, so a reader knows all 10 names. Not for seat booking: two buyers of one seat must hit the same row, so the seat itself stays the key.</p>
+  <div class="rem"><b>✅ Remember</b> The key interview distinction: <b>virtual nodes</b> prevent <b>structural</b> imbalance (uneven key distribution), while <b>replication and key salting</b> prevent <b>workload</b> imbalance (uneven traffic).</div>
+  <p class="ana">🛣️ Every depot has the same length of road, but one house orders 100× more parcels. Lend that house extra vans from other depots (replicas), or split its orders into 10 labelled bundles sent to 10 depots (salting). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🚚 Data Movement in Practice</h4>
+  <p class="bridge">The ring tells you where data <b>should</b> live. It doesn't magically teleport terabytes of data when a node goes down.</p>
+  <div class="info"><b>ℹ️ Note</b> In practice, most distributed databases use <b>replication</b> alongside consistent hashing, so they handle failures without moving data at all.</div>
+  <div class="grid2">
+    <div class="k-green"><b>💥 Unplanned: a node fails</b><div class="chk">Every key already lives on several nodes</div><div class="chk">A replica takes over: <b>nothing moves</b></div></div>
+    <div class="k-amber"><b>🛠️ Planned: add capacity, or replace a node for good</b><div class="chk">Data <b>does</b> move (to restore the replica count)</div><div class="chk">Only a bounded slice is re-replicated, never the whole dataset</div></div>
+  </div>
+  <div class="flow" role="img" aria-label="Key K walks clockwise and is stored on the first three distinct databases it meets: DB2, DB3 and DB4."><span>🔑 key K</span><i>→ clockwise →</i><span>🗄️ DB2</span><span>🗄️ DB3</span><span>🗄️ DB4</span><i>= K's 3 replicas</i></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">👁️ Cassandra replicates each key to N consecutive nodes round the ring</b>DB2 down? Reads and writes for K are served by DB3 and DB4.</li>
+    <li><b class="hd">🟧 DynamoDB replicates each partition across three Availability Zones</b>When the primary fails, a replica is promoted through a consensus algorithm, and no data moves. <span class="add">➕ fact-check</span> The lesson says "like Raft"; DynamoDB's 2022 paper says Multi-Paxos, which plays the same role. <span class="aws">☁️ AWS: DynamoDB</span></li>
+  </ul>
+  <p class="ana">🛣️ Each house's parcels are kept at the next 3 depots along. One depot burns down: the next one already has copies, and nothing is trucked anywhere. Trucks roll only when you open a depot or close one for good. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🌍 Consistent Hashing in the Real World</h4>
+  <p class="bridge">The example scaled a database, but consistent hashing works wherever you spread data across a cluster: databases, caches, message brokers, or just a set of application servers. It (or a variation of it) runs in many heavily used systems:</p>
+  <div class="grid3">
+    <div class="k-blue"><b>1️⃣ 👁️ Apache Cassandra</b><div class="chk">Uses consistent hashing to spread data round the ring.</div><div class="chk"><span class="add">➕ not in the article</span> Murmur3 tokens + virtual nodes (16 per node by default since 4.0).</div></div>
+    <div class="k-amber"><b>2️⃣ 🟧 Amazon DynamoDB</b><div class="chk">The lesson: consistent hashing under the hood for partition placement.</div><div class="chk"><span class="add">➕ fact-check</span> ⚠️ AWS documents only "hash the partition key to a partition, split partitions as they grow". The 2007 Dynamo paper used a ring; DynamoDB doesn't say. Safer: "hash partitioning".</div></div>
+    <div class="k-green"><b>3️⃣ 🌐 CDNs</b><div class="chk">Decide which edge server should cache a given piece of content.</div><div class="chk"><span class="add">➕ not in the article</span> Consistent hashing was invented for exactly this (Karger et al., 1997, web caches); its authors went on to found Akamai.</div></div>
+  </div>
+  <div class="info"><b>ℹ️ Note</b> Not every distributed system uses consistent hashing. <b>Redis Cluster</b> uses fixed hash slots: <code>CRC16(key) mod 16384</code> picks one of 16,384 slots, and each node owns ranges of slots. Simpler to reason about, but rebalancing needs more coordination. Ring vs fixed slots is a real design trade-off you can discuss in an interview. <span class="aws">☁️ AWS: ElastiCache / MemoryDB cluster mode</span></div>
+  <h5>⚖️ Ring vs fixed slots <span class="add">➕ not in the article</span></h5>
+  <div class="grid2">
+    <div class="k-blue"><b>⭕ Ring</b><div class="star">key → point → next node clockwise</div><div class="chk">✅ A node that joins takes its slices by itself</div><div class="chk">⚠️ Needs many virtual nodes to be even</div><div class="chk">Cassandra, Dynamo-style stores, memcached clients (ketama)</div></div>
+    <div class="k-green"><b>🎰 Fixed slots</b><div class="star">key → slot (never changes) → slot map → node</div><div class="chk">✅ Even, and easy to see who owns what</div><div class="chk">⚠️ Someone keeps the slot map and moves slots on purpose</div><div class="chk">Redis Cluster (16,384), Elasticsearch, Citus, our <a href="#sd-shard-interview--what-we-learned-from-the-comments">64 logical shards</a></div></div>
+  </div>
+  <p class="ana">🛣️ Ring: each depot claims the road by where it stands. Fixed slots: the road is pre-cut into 16,384 numbered plots that never change, and a ledger says which depot owns each plot; a new depot is handed some plots. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎤 When to use Consistent Hashing in an Interview</h4>
+  <p class="bridge">Most modern distributed systems handle sharding and data distribution for you. Designing with DynamoDB or Cassandra? Just mention that they use consistent hashing (or a form of it) under the hood to scale. It becomes crucial only in infrastructure interviews, where you build the distributed system yourself:</p>
+  <div class="grid2">
+    <div class="k-green"><b>🛍️ Product design (most interviews)</b><div class="chk">Name the database and its key</div><div class="chk">One line: "it uses consistent hashing, or a form of it, to scale"</div></div>
+    <div class="k-amber"><b>🏗️ Infrastructure design: go deep</b><div class="chk">1️⃣ Design a distributed database</div><div class="chk">2️⃣ Design a distributed cache</div><div class="chk">3️⃣ Design a distributed message broker</div></div>
+  </div>
+  <p>In those deep interviews, be ready to explain these five (one-line answers ➕):</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Why consistent hashing beats simple modulo sharding</b>Going from 10 to 11 nodes, modulo moves about 10/11 of the data; the ring moves about 1/11.</li>
+    <li><b class="hd">2️⃣ How virtual nodes improve load balancing across the cluster</b>Each node sits at many points, so a lost node's load spreads over all the others, and a new node takes a little from each.</li>
+    <li><b class="hd">3️⃣ Strategies for handling node failures and additions</b>Failure: a replica takes over and nothing moves. Addition: the new node takes about 1/(N + 1) of the data, from many nodes.</li>
+    <li><b class="hd">4️⃣ How hot spots arise, and how to fix them (replication, key salting)</b>Popular keys, not uneven keys. Copy them, or split them with a suffix.</li>
+    <li><b class="hd">5️⃣ How consistent hashing and replication work together for fault tolerance</b>The ring says where a key lives, and its replicas are the next N nodes along. Replication keeps it readable when one of them dies.</li>
+  </ul>
+  <p class="say">🗣️ "Keys go on a hash ring with a few hundred virtual nodes per server, so adding a server moves about 1/N of the data, taken evenly from all of them. Each key is stored on the next 3 distinct servers clockwise, so a failure promotes a replica instead of moving data. Hot keys get read copies or salting." <span class="add">➕ sample answer</span></p>
+  <div class="take">⭐ The key is knowing when to go deep and when to just say that existing systems handle it. Most system design interviews fall into the second group.</div>
+  <p class="ana">🛣️ If you hire a delivery company (DynamoDB), you don't explain how it plans its routes. If you <b>are</b> the delivery company (you're designing the cache), you'd better. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔚 Conclusion</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💡 Consistent hashing changed distributed systems by solving a simple-looking problem</b>Spread data across servers while moving as little as possible when the number of servers changes.</li>
+    <li><b class="hd">⭕ The details can get complex; the core idea is simple: arrange everything in a circle and walk clockwise</b>It's built into systems we use daily, from DynamoDB to Cassandra (see the DynamoDB fact-check above).</li>
+    <li><b class="hd">⚠️ The name is used loosely</b>As Martin Kleppmann points out in <i>Designing Data-Intensive Applications</i>, some systems that claim consistent hashing really use hash partitioning with fixed slot ranges. What matters is the principle, moving as little data as possible when rebalancing, even if the implementation isn't the textbook ring.</li>
+  </ul>
+  <div class="take">⭐ In your next interview you usually don't need to implement consistent hashing. Know when it's working under the hood, and save the deep dive for infrastructure-heavy questions where it really matters.</div>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🎭 "How are virtual node positions decided? Many hash functions?"</h5>
+    <ul><li>Ravindra: one hash function, as in Cassandra, Dynamo and memcached. A virtual node's position = hash(physical node id + virtual node id).</li>
+    <li>Evan King (admin) agreed the picture was unclear: if the virtual nodes repeat in the same order (DB1, DB2, DB3…), DB2's load still all goes to DB3. Their order has to be mixed, which hashing does.</li>
+    <li>Readers (sdpks, garvitarora, Siva, sensei): only virtual nodes sit on the ring, each tagged with its real database; the ring is just a routing table. See "What the ring really is" in ①.</li></ul>
+    <h5>🚚 "When a node dies, is its data moved?"</h5>
+    <ul><li>Evan King (admin): no. Consistent hashing only says where new requests go (the next node clockwise). You need a separate replication or backup strategy, and you promote a replica. Consistent hashing isn't used for replication, but it <b>is</b> used in load balancing, to spread requests across servers.</li>
+    <li>vinay s: on a managed service like DynamoDB, all of this is hidden from you. Right.</li></ul>
+    <h5>🔁 "A node is down for 5 minutes, then comes back. How does data move back?"</h5>
+    <ul><li>A reader: data never lives on one node. Key K's replicas are the first 3 distinct nodes clockwise, {DB2, DB3, DB4}; with DB2 down, the write still succeeds on DB3 and DB4.</li>
+    <li>The rest of the answer <span class="add">➕ not in the comments</span>: a briefly-down node is <b>not</b> removed from the ring, only marked down. In Cassandra, the coordinator keeps a "hint" of each write it missed and replays it when the node returns (hinted handoff), and repair fixes anything older. Nothing moves back; the ring changes only when you remove a node for good.</li></ul>
+    <h5>🧂 Salting: the most-asked thread</h5>
+    <ul><li>Write-hot vs read-hot (Utkarsh, Rishi): the grid in Hot Spots above. Example of write-hot: like counts on a celebrity's comments.</li>
+    <li>"Where does the logic live?" The app keeps a small list of hot keys; only they get a suffix, and the range is fixed (0–9), so reads know all the names. Two suffixes can land on the same node; with 10 of them on a big cluster most spread out, which is the goal.</li>
+    <li>"Won't salting a seat booking allow double booking?" Yes, so don't: the seat stays the key. Booking contention is per seat, and seats spread out on their own. <span class="add">➕ my answer</span></li></ul>
+    <h5>📑 "Which products replicate just the hot keys?"</h5>
+    <ul><li>Asked, not answered. Databases replicate whole shards. Per-key copies are usually made by the app in a cache (<code>key#1…#3</code>), or by a cache in front, like DAX for DynamoDB. It's not directory sharding (another reader asked): each copy's name is hashed like any other key. <span class="add">➕ my answer</span></li></ul>
+    <h5>🎰 "Why not 1024 fixed buckets instead?"</h5>
+    <ul><li>A reader: hash to 1024 buckets and keep a bucket → server map. Adding a 5th server reassigns about 205 buckets (20%), and a key never changes bucket. Stefan Mai (admin): that's exactly how Redis Cluster works, an alternative with its own pros and cons.</li>
+    <li>Andrew H: MongoDB and Postgres-based sharding (Citus) use partitions, not a ring, and they're used more. Plain Postgres doesn't shard at all (another reader asked). See "Ring vs fixed slots" above.</li></ul>
+    <h5>🧮 The quiz: add an 11th node, how much moves?</h5>
+    <ul><li>Expected answer 1/11, which a reader doubted. With enough virtual nodes, the new node ends up with its fair share, 1/11 of the data, all taken from the others, and nothing else moves. The reader's 1/20 is the case <b>without</b> virtual nodes: one point takes half of one neighbour's 1/10.</li></ul>
+    <h5>🗣️ Framings worth keeping</h5>
+    <ul><li>Daniel J.: the real point is that you hash on something that doesn't change, the ring size.</li>
+    <li>pilotpocket: forget the circle; the hash space is cut into intervals, and each server owns several intervals.</li>
+    <li>chakradhar, Daniel Adeyemi: consistent hashing limits how much data moves when nodes change; replication keeps data available when a node fails (promote a replica, nothing moves).</li></ul>
+    <h5>✏️ Errata</h5>
+    <ul><li>Oleg E: "between 75 and 90" means (75, 90]; 75 itself belongs to DB4.</li>
+    <li>"2× the load of database 1 and database 4" is right (a reader thought it should be DB1 and DB3): DB3 owns 50%, DB1 and DB4 25% each.</li>
+    <li>The video says Redis uses consistent hashing; it doesn't (16,384 slots), and the text's note is right.</li>
+    <li>Papa J.: the DynamoDB claim is overstated (fact-check in Real World). The modulo example says "Database 0", the pictures 1–3.</li>
+    <li>"What about two threads writing one key?" Not consistent hashing's job: one key always lives on one node (plus its replicas), and that database's own locking or version checks decide. <span class="add">➕ my answer</span></li></ul>
   </div>
 </section>
 
@@ -5429,6 +5676,133 @@ function buildSeq(box) {
 }
 document.querySelectorAll('.seq[data-seq]').forEach(buildSeq)
 
+// ⭕ Hash ring player (Consistent Hashing). A frame lists only the points on the ring; who owns which arc, each
+// database's load and how much moved are computed from those points, so the numbers can't drift from the picture.
+;(() => {
+  const COL = { DB1: 'blue', DB2: 'green', DB3: 'amber', DB4: 'purple', DB5: 'teal' }
+  // Same idea as a real ring: a name hashes to a spot on 0–100 (FNV-1a + a final mix so nearby names spread)
+  const spot = s => { let h = 0x811c9dc5; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0; h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995) >>> 0; h ^= h >>> 15; return (h >>> 0) / 2 ** 32 * 100 }
+  const vn = o => Object.entries(o).flatMap(([db, ps]) => ps.map(p => [p, db]))
+  const ONE = [[0, 'DB1'], [25, 'DB2'], [50, 'DB3'], [75, 'DB4']]
+  // Hand-placed so DB1 sits at the lesson's 20, 35, 65, and DB2's slices go to DB1, DB3, DB4 as the lesson says
+  const VN4 = vn({ DB1: [20, 35, 65, 84], DB2: [17, 58, 38, 89], DB3: [9, 29, 62, 73], DB4: [3, 42, 49, 92] })
+  const VN64 = ['DB1', 'DB2', 'DB3', 'DB4'].flatMap(db => Array.from({ length: 64 }, (_, i) => [spot(`${db}-vn${i + 1}`), db]))
+  // 40 events, one in each 2.5-wide band, so the share of dots that move matches the share of the ring
+  const EV = Array.from({ length: 40 }, (_, i) => 2.5 * i + 0.4 + (spot('event' + i) % 1) * 1.7)
+  const pc = v => Math.round(v) + '%'
+  const range = L => { const v = Object.values(L).filter(x => x > 0); return `${pc(Math.min(...v))}–${pc(Math.max(...v))}` }
+  const RINGS = {
+    basic: [
+      { pts: ONE, mid: ['4 databases', '25% each'], cap: '⭕ A ring of points 0–99, with DB1–DB4 at 0, 25, 50 and 75. Each coloured arc is what one database owns: every point after the previous database, up to and including itself, walking <b>clockwise</b>. The dots are events.' },
+      { pts: ONE, trace: 62, mid: ['#5678 → 62', 'lives on DB4'], cap: '🔎 Event #5678 hashes to <b>62</b>. Walk clockwise from 62: the first database you meet is <b>DB4 at 75</b>, so that\'s where #5678 lives.' },
+      { pts: [...ONE, [90, 'DB5']], base: ONE, mid: ['+ DB5 at 90', '15% moves'], cap: '➕ Add <b>DB5 at 90</b>. Only events in <b>(75, 90]</b> change owner (red): they used to walk on to DB1 at 0, and now stop at DB5. That\'s 15 of DB1\'s 25 points (60% of DB1), <b>15% of all events</b>. Everything else stays.' },
+      { pts: ONE, dead: ['DB2'], base: ONE, mid: ['DB2 fails', 'DB3 doubles'], cap: '❌ Back to 4 databases, and <b>DB2 (at 25) fails</b>. Only its slice <b>(0, 25]</b> moves, to the next database clockwise: DB3 at 50. ⚠️ DB3 now owns 50% of the ring, <b>2× DB1 and DB4</b>. Virtual nodes fix this 👇' },
+    ],
+    vnodes: [
+      { pts: VN4, mid: ['4 points each', 'about 25% each'], cap: '🎭 The same 4 databases, each at <b>4 points</b>, by hashing "DB1-vn1", "DB1-vn2"… DB1 lands at 20, 35, 65 and 84. The slices interleave, and each database still owns about a quarter. Only virtual nodes are on the ring.' },
+      { pts: VN4, dead: ['DB2'], base: VN4, mid: ['DB2 fails', L => 'busiest: ' + pc(Math.max(...Object.values(L)))], cap: '❌ <b>DB2 fails</b>. Each of its 4 slices goes to the next point clockwise: DB2-vn1 → DB1, DB2-vn2 → DB3, DB2-vn3 and DB2-vn4 → DB4. The busiest database ends at 36%, not 50%.' },
+      { pts: [...VN4, ...vn({ DB5: [6, 46, 54, 79] })], base: VN4, mid: ['+ DB5, 4 points', '18% moves'], cap: '➕ Add <b>DB5 with 4 points</b> (6, 46, 54, 79). Each takes a small slice from a <b>different</b> database: DB3, DB4, DB2 and DB1. 18% of events move, and every old database gives a little instead of one neighbour giving it all.' },
+      { pts: VN64, mid: ['64 points each', L => range(L)], cap: L => `📈 Real systems use many points per node, placed by the hash, not by hand (Cassandra 4.0: 16 per node by default). With 64 each, the four loads land at <b>${range(L)}</b>: close to 25% without anyone choosing positions. More points = more even. <span class="add">➕ not in the article</span>` },
+      { pts: VN64, dead: ['DB2'], base: VN64, mid: ['DB2 fails', L => range(L)], cap: L => `❌ DB2 fails again. Its 64 small slices scatter over all three others, which end at <b>${range(L)}</b>. Nobody takes the whole hit. <span class="add">➕ not in the article</span>` },
+    ],
+  }
+  const C = 150, R = 118, NS = 'http://www.w3.org/2000/svg'
+  const xy = (p, r) => { const a = p / 50 * Math.PI - Math.PI / 2; return [C + r * Math.cos(a), C + r * Math.sin(a)] }
+  const f1 = n => n.toFixed(1)
+  const arc = (a, b, r) => { // clockwise from a to b (0–100 units, a < b)
+    if (b - a > 99.9) return arc(a, a + 50, r) + ' ' + arc(a + 50, b, r)
+    const [x1, y1] = xy(a, r), [x2, y2] = xy(b, r)
+    return `M${f1(x1)} ${f1(y1)}A${r} ${r} 0 ${b - a > 50 ? 1 : 0} 1 ${f1(x2)} ${f1(y2)}`
+  }
+  // owner = first point at or after h, else wrap to the first point
+  const owner = (pts, h) => pts.find(p => p[0] >= h) || pts[0]
+  const study = fr => {
+    const live = fr.pts.filter(p => !(fr.dead || []).includes(p[1])).sort((a, b) => a[0] - b[0])
+    const load = {}
+    fr.pts.forEach(p => { load[p[1]] = 0 })
+    live.forEach((p, i) => { const prev = i ? live[i - 1][0] : live.at(-1)[0] - 100; load[p[1]] += p[0] - prev })
+    let moved = 0, segs = []
+    if (fr.base) {
+      const base = [...fr.base].sort((a, b) => a[0] - b[0])
+      const cuts = [...new Set([0, 100, ...base.map(p => p[0]), ...live.map(p => p[0])])].sort((a, b) => a - b)
+      for (let i = 1; i < cuts.length; i++) {
+        const a = cuts[i - 1], b = cuts[i], m = (a + b) / 2
+        if (owner(base, m)[1] !== owner(live, m)[1]) { moved += b - a; const l = segs.at(-1); if (l && l[1] === a) l[1] = b; else segs.push([a, b]) }
+      }
+    }
+    return { live, load, moved, segs, base: fr.base && [...fr.base].sort((a, b) => a[0] - b[0]) }
+  }
+  const val = (v, L) => typeof v === 'function' ? v(L) : v
+
+  function buildRing(box) {
+    const frames = RINGS[box.dataset.ring], last = frames.length - 1
+    const main = el('div', 'chr-main')
+    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 300 300'); svg.setAttribute('role', 'img')
+    const side = el('div')
+    side.appendChild(el('p', 'chr-h', '📊 Share of the ring (= of the events)'))
+    const ld = el('div', 'chr-ld'), mvd = el('div', 'chr-mvd')
+    side.append(ld, mvd); main.append(svg, side)
+    const ctl = el('div', 'seq-ctl')
+    const btn = (t, label) => { const b = el('button', '', t); b.type = 'button'; b.setAttribute('aria-label', label); ctl.appendChild(b); return b }
+    const prev = btn('⏮', 'Previous step'), play = btn('▶️', 'Play'), next = btn('⏭', 'Next step')
+    const count = el('span', 'n'); ctl.appendChild(count)
+    const cap = el('p', 'seq-cap')
+    box.append(main, ctl, cap)
+    const aid = 'chr-ah-' + box.dataset.ring
+
+    let cur = 0, timer = null
+    const show = i => {
+      cur = Math.max(0, Math.min(last, i))
+      const fr = frames[cur], S = study(fr), many = fr.pts.length > 40
+      let g = `<defs><marker id="${aid}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="chr-ah" d="M0 0L10 5L0 10z"/></marker></defs>`
+      for (let t = 0; t < 100; t += 5) { const [x, y] = xy(t, R - 32); g += `<text class="chr-tk" x="${f1(x)}" y="${f1(y)}">${t}</text>` }
+      S.live.forEach((p, i) => {
+        const a = i ? S.live[i - 1][0] : S.live.at(-1)[0] - 100, c = `style="--c:var(--${COL[p[1]]}-fg)"`
+        g += a < 0 ? `<path class="chr-arc" ${c} d="${arc(a + 100, 100, R)}"/><path class="chr-arc" ${c} d="${arc(0, p[0], R)}"/>` : `<path class="chr-arc" ${c} d="${arc(a, p[0], R)}"/>`
+      })
+      S.segs.forEach(([a, b]) => { g += `<path class="chr-mv" d="${arc(a, b, R + 12)}"/>` })
+      EV.forEach(h => {
+        const o = owner(S.live, h)[1], mv = S.base && owner(S.base, h)[1] !== o, [x, y] = xy(h, R - 17)
+        g += `<circle class="chr-dot${mv ? ' mv' : ''}" style="--c:var(--${COL[o]}-fg)" cx="${f1(x)}" cy="${f1(y)}" r="3.3"/>`
+      })
+      fr.pts.forEach(p => {
+        const [x, y] = xy(p[0], R), dead = (fr.dead || []).includes(p[1])
+        if (many) return // 256 markers would hide the arcs; the striped arcs are the picture
+        g += dead ? `<g class="chr-dead"><circle cx="${f1(x)}" cy="${f1(y)}" r="9"/><text x="${f1(x)}" y="${f1(y)}">✕</text></g>`
+          : `<g class="chr-pt" style="--c:var(--${COL[p[1]]}-fg)"><circle cx="${f1(x)}" cy="${f1(y)}" r="${fr.pts.length > 5 ? 8 : 10}"/><text x="${f1(x)}" y="${f1(y)}">${p[1].slice(2)}</text></g>`
+      })
+      if (fr.trace != null) {
+        const o = owner(S.live, fr.trace), [kx, ky] = xy(fr.trace, R - 17)
+        g += `<path class="chr-tr" marker-end="url(#${aid})" d="${arc(fr.trace + 1.5, o[0] - 1.5, R - 48)}"/>`
+        g += `<path class="chr-key" d="M${f1(kx)} ${f1(ky - 7)}L${f1(kx + 7)} ${f1(ky)}L${f1(kx)} ${f1(ky + 7)}L${f1(kx - 7)} ${f1(ky)}z"/>`
+      }
+      g += `<text class="chr-mid" x="${C}" y="${C - 4}">${val(fr.mid[0], S.load)}</text><text class="chr-mid2" x="${C}" y="${C + 14}">${val(fr.mid[1], S.load)}</text>`
+      svg.innerHTML = g
+      ld.innerHTML = Object.keys(COL).filter(db => db in S.load).map(db => {
+        const gone = (fr.dead || []).includes(db), v = S.load[db]
+        return `<b class="${gone ? 'gone' : ''}" style="--c:var(--${COL[db]}-fg)"><i></i>${db}</b><span class="bar" style="--c:var(--${COL[db]}-fg)"><i style="width:${v}%"></i></span><span class="v">${gone ? '✕' : pc(v)}</span>`
+      }).join('')
+      mvd.className = 'chr-mvd' + (fr.base ? '' : ' none')
+      mvd.textContent = fr.base ? `🚚 Moved: ${pc(S.moved)} of all events (red)` : '🚚 Nothing has moved yet'
+      cap.innerHTML = val(fr.cap, S.load)
+      svg.setAttribute('aria-label', cap.textContent)
+      count.textContent = `${cur} / ${last}`
+    }
+    const stop = () => { clearInterval(timer); timer = null; play.textContent = '▶️'; play.setAttribute('aria-label', 'Play') }
+    const start = () => {
+      if (cur >= last) show(0)
+      stop(); play.textContent = '⏸'; play.setAttribute('aria-label', 'Pause')
+      timer = setInterval(() => { if (cur >= last) stop(); else show(cur + 1) }, 3600)
+    }
+    play.onclick = () => timer ? stop() : start()
+    prev.onclick = () => { stop(); show(cur - 1) }
+    next.onclick = () => { stop(); show(cur + 1) }
+    svg.onclick = next.onclick
+    show(0) // no autoplay: ▶️ only (Adi, 2026-10-29)
+  }
+  document.querySelectorAll('.chr[data-ring]').forEach(buildRing)
+})()
+
 // 📘 Primers: tap a dotted term to open its 1–2 line explanation under the line it sits in
 document.querySelectorAll('.term').forEach(t => {
   t.onclick = () => {
@@ -5785,7 +6159,7 @@ const GLOSSARY = [
     b: '<p>A feed cached for 60 s expires at 12:01:00 → 1,000 misses → 1,000 identical database queries → the database is overwhelmed.</p><ul><li>⭐ Request coalescing (single flight): one request rebuilds, the rest wait for it.</li><li>🌡️ Cache warming: refresh before expiry (TTL-based only).</li><li>🎲 Probabilistic early expiration: one request refreshes a little early.</li></ul>', see: ['ttl', 'hotkey'] },
   { id: 'hotkey', t: 'Hot key', aka: 'celebrity key viral content', s: 'One cache key gets far more traffic than the rest and overloads the one node holding it.',
     an: 'A celebrity book signing: one table, an endless queue.',
-    b: '<p><code>user:taylorswift</code>: millions of reads a second, all on one Redis node, even with a perfect hit rate.</p><ul><li>📑 Replicate it: <code>…#1</code> to <code>#3</code> on different nodes, read a random copy.</li><li>🧠 Keep a local in-process copy.</li><li>🚦 Rate limit.</li></ul><p>Stampede = traffic slams the database (a miss). Hot key = traffic slams the cache (a hit).</p>', see: ['stampede', 'hotshard', 'inproc'] },
+    b: '<p><code>user:taylorswift</code>: millions of reads a second, all on one Redis node, even with a perfect hit rate.</p><ul><li>📑 Replicate it: <code>…#1</code> to <code>#3</code> on different nodes, read a random copy.</li><li>🧠 Keep a local in-process copy.</li><li>🚦 Rate limit.</li></ul><p>Stampede = traffic slams the database (a miss). Hot key = traffic slams the cache (a hit).</p>', see: ['stampede', 'hotshard', 'inproc', 'salting'] },
   { id: 'invalidation', t: 'Cache invalidation', aka: 'invalidate stale cache consistency delete key', s: 'Removing a cached value when the real data changes, so nobody reads the old one.',
     an: 'Wiping the old price off the café menu board the moment it changes.',
     b: '<p>Alice changes her photo → <code>UPDATE</code> the database → <code>DEL user:alice</code>. Bob\'s next read misses and loads the new photo.</p><p>Delete instead of overwriting (racing writers can leave an older value), and delete <b>after</b> the database write. The other options: a short TTL, or accept eventual consistency.</p>', see: ['ttl', 'consistency', 'cacheaside'] },
@@ -5797,7 +6171,7 @@ const GLOSSARY = [
     b: '<p>✅ Range scans hit one shard ("orders from March").</p><p>⚠️ Hot spots when keys grow over time: every new id or today\'s date lands on the last shard. Good for multi-tenant (one company = one range).</p>', see: ['hashshard', 'hotshard', 'shardkey'] },
   { id: 'hashshard', t: 'Hash-based sharding', aka: 'hash partitioning modulo sharding strategy', s: 'shard = hash(key) % N: rows spread evenly, with no hot range.',
     an: 'A shuffled deck dealt to the players: everyone gets about the same number of cards.',
-    b: '<p>⭐ The default. <code>hash(user_id) % 4</code> → shard 0–3.</p><p>⚠️ Going from 4 to 5 shards moves about 80% of the keys. Consistent hashing fixes that. Range queries must ask every shard.</p>', see: ['rangeshard', 'shardkey', 'scatter'] },
+    b: '<p>⭐ The default. <code>hash(user_id) % 4</code> → shard 0–3.</p><p>⚠️ Going from 4 to 5 shards moves about 80% of the keys. Consistent hashing fixes that. Range queries must ask every shard.</p>', see: ['conhash', 'rangeshard', 'shardkey', 'scatter'] },
   { id: 'dirshard', t: 'Directory-based sharding', aka: 'lookup table sharding strategy shard map', s: 'A lookup table says which shard each key lives on.',
     an: 'A front desk with a ledger: "Ravi\'s file is in branch 3".',
     b: '<p>✅ Most flexible: move a celebrity to their own shard by editing one row.</p><p>⚠️ An extra lookup per request, and the directory must never go down. In practice clients cache the map.</p>', see: ['hashshard', 'rangeshard'] },
@@ -5810,6 +6184,18 @@ const GLOSSARY = [
   { id: 'saga', t: 'Saga', aka: 'sagas compensating transaction distributed transaction', s: 'A chain of local transactions; on failure, earlier steps are undone by compensating steps.',
     an: 'A trip booked step by step: flight, then hotel. Hotel full? Cancel the flight.',
     b: '<p>₹500 transfer: ① deduct from A (commits) → ② add to B fails → ③ refund A.</p><p>✅ No cross-shard locks. ⚠️ Eventually consistent: for a moment A shows ₹500 less.</p>', see: ['twopc', 'consistency'] },
+  { id: 'conhash', t: 'Consistent hashing', aka: 'hash ring consistent hash ring ketama clockwise', s: 'Keys and servers sit on one ring; a key belongs to the first server clockwise, so adding or removing a server moves only one slice.',
+    an: 'Houses on a ring road, each served by the next depot along. A new depot takes over only the houses just before it.',
+    b: '<p>🧪 <b>See it:</b> 4 servers, add a 5th. <code>% 4 → % 5</code> moves 80% of the keys. On a ring, the new server takes only its own share (about 1/5), and nothing else moves.</p><p>⚠️ Needs virtual nodes to be even. Doesn\'t fix one busy key (a hot key). Not in Redis Cluster (hash slots) or plain Postgres.</p>', see: ['vnode', 'hashslot', 'hashshard'] },
+  { id: 'vnode', t: 'Virtual node', aka: 'vnodes virtual nodes tokens num_tokens', s: 'One server placed at many points on the hash ring, by hashing "DB1-vn1", "DB1-vn2"…',
+    an: 'A delivery company running several small depots round the ring road instead of one big one.',
+    b: '<p>🧪 <b>See it:</b> DB2 dies. With one point per database, all its keys go to DB3, which jumps to 50%. With 4 points each, its 4 slices go to DB1, DB3 and DB4, and the busiest ends near 36%.</p><p>📈 More points = more even. Cassandra 4.0 uses 16 per node by default.</p>', see: ['conhash', 'hotshard'] },
+  { id: 'hashslot', t: 'Hash slots', aka: 'redis cluster crc16 16384 fixed partitions slot map', s: 'A fixed number of slots (Redis Cluster: 16,384). A key\'s slot never changes; each node owns ranges of slots.',
+    an: 'A road pre-cut into numbered plots that never change, plus a ledger saying which depot owns each plot.',
+    b: '<p>🧪 <b>See it:</b> <code>CRC16(key) % 16384</code> = slot 5000, and the slot map says node B. Add node D: hand it some slots, and only their keys move. No key ever changes slot.</p><p>☁️ <b>On AWS:</b> ElastiCache / MemoryDB with cluster mode</p>', see: ['conhash', 'extcache'] },
+  { id: 'salting', t: 'Key salting', aka: 'key-space salting salt suffix hot key split', s: 'Add a suffix (0–9) to one hot key, so it becomes 10 keys that land on different nodes.',
+    an: 'One celebrity\'s fan mail split into 10 labelled sacks, sent to 10 sorting offices.',
+    b: '<ul><li>✍️ Write-hot (a like counter): write to <b>one</b> random suffix; to read, ask <b>all 10</b> and add up.</li><li>📖 Read-hot: write <b>all 10</b> copies; read <b>one</b> at random.</li></ul><p>⚠️ Only for the few known hot keys, with a fixed suffix range so readers know every name.</p>', see: ['hotkey', 'hotshard', 'conhash'] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -5965,7 +6351,7 @@ const GLOSSARY = [
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
-    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
+    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i,
     extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
@@ -5975,7 +6361,7 @@ const GLOSSARY = [
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
     .map(([id, re]) => [id, new RegExp(`(?<![\\w/+-])(?:${re.source})(?![\\w+-])`, re.flags)])
-  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .add, .tag, kbd, .grid2 > div > b'
+  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .chr, .add, .tag, kbd, .grid2 > div > b'
   const link = (node, seen) => {
     while (node) {
       let best = null
