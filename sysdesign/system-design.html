@@ -772,6 +772,19 @@ body.map-on .wrap { max-width: 1640px; }
 .nl-ax .nl-t, .nl-ft .nl-t { background: none; height: 14px; }
 .nl-ax em, .nl-ft em { position: absolute; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; }
 .nl-ax em:first-child { transform: none; } .nl-ft em { transform: translateX(-100%); }
+.nzone { display: grid; gap: 8px; margin: 6px 0 10px; font-size: 13px; }
+.nz-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.nz-h { font-weight: 600; align-self: center; }
+.nz-bar { display: flex; gap: 3px; min-width: 0; }
+.nz-s { flex: 1; min-width: 0; padding: 6px 9px; background: var(--bg-c); border: 1.5px solid var(--c); }
+.nz-s:first-child { border-radius: 10px 0 0 10px; } .nz-s:last-child { border-radius: 0 10px 10px 0; }
+.nz-s b { display: block; color: var(--c); } .nz-s small { display: block; color: var(--text); font-size: 12px; margin-top: 2px; }
+.nz-g { --c: var(--green-fg); --bg-c: var(--green-bg); } .nz-a { --c: var(--amber-fg); --bg-c: var(--amber-bg); } .nz-r { --c: var(--red-fg); --bg-c: var(--red-bg); }
+.nscen .chk { font-size: 12.5px; }
+@media (max-width: 560px) {
+  .nz-row { grid-template-columns: 1fr; gap: 4px; }
+  .nz-bar { flex-direction: column; } .nz-s:first-child { border-radius: 10px 10px 0 0; } .nz-s:last-child { border-radius: 0 0 10px 10px; }
+}
 .ncalc { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin: 6px 0 4px; background: var(--bg); font-size: 13px; }
 .nc-pre { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; color: var(--muted); }
 .nc-pre button { font: inherit; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
@@ -5056,7 +5069,38 @@ function owner(key) {
     <div class="k-amber"><b>🖥️ App servers</b><div class="star">📏 100k+ connections · 8–64 cores @ 2–4 GHz · 64–512 GB RAM, up to 2 TB</div><div class="chk">📈 CPU &gt; 70%</div><div class="chk">📈 Latency &gt; SLA</div><div class="chk">📈 Connections near 100k per instance</div><div class="chk">📈 Memory &gt; 80%</div></div>
     <div class="k-purple"><b>📬 Message queues</b><div class="star">📏 Up to 1M msgs/s per broker · &lt; 5 ms end to end · up to 50 TB</div><div class="chk">📈 Throughput near 800k msgs/s</div><div class="chk">📈 ~200k <span class="nogl">partitions</span> per cluster</div><div class="chk">📈 Growing consumer lag</div></div>
   </div>
-  <p class="bridge">🧮 Try it: type a dataset and its traffic, and see how much of one machine it uses. <span class="add">➕ not in the article</span></p>
+  <h5>🧠 Make it stick: four rulers <span class="add">➕ not in the article</span></h5>
+  <p class="bridge">In an interview you hear one number ("500 GB", "20k writes a second"). Find its zone on the ruler, and the zone gives the design:</p>
+  <div class="nzone">
+    <div class="nz-row"><div class="nz-h">📦 How big is the data?</div><div class="nz-bar">
+      <div class="nz-s nz-g"><b>up to ~1 TB</b><small>🧠 fits in RAM: one big cache box holds all of it</small></div>
+      <div class="nz-s nz-a"><b>1–50 TB</b><small>🗄️ one database on disk; cache only the hot part</small></div>
+      <div class="nz-s nz-r"><b>over ~50 TB</b><small>🧩 shard the database (or archive old data)</small></div></div></div>
+    <div class="nz-row"><div class="nz-h">✍️ Writes per second</div><div class="nz-bar">
+      <div class="nz-s nz-g"><b>up to ~10k</b><small>🗄️ one database (simple inserts reach 20k+)</small></div>
+      <div class="nz-s nz-r"><b>over ~10k, steady</b><small>🧩 shard the writes; a queue only smooths spikes</small></div></div></div>
+    <div class="nz-row"><div class="nz-h">📖 Reads per second</div><div class="nz-bar">
+      <div class="nz-s nz-g"><b>up to ~50k</b><small>🗄️ one database</small></div>
+      <div class="nz-s nz-a"><b>over ~50k</b><small>⚡ add a cache (~100k ops/s per node) and read replicas</small></div></div></div>
+    <div class="nz-row"><div class="nz-h">📬 Queue messages per second</div><div class="nz-bar">
+      <div class="nz-s nz-g"><b>up to ~1M</b><small>📬 one Kafka broker (plan at 800k)</small></div>
+      <div class="nz-s nz-a"><b>over ~1M</b><small>➕ more brokers and <span class="nogl">partitions</span></small></div></div></div>
+  </div>
+  <div class="rem"><b>🔑 One line to remember</b> <b>1 TB</b> in RAM · <b>50 TB</b> on disk · <b>10k</b> writes · <b>50k</b> reads · <b>100k</b> cache ops · <b>1M</b> queue messages. Sizes: 1 → 50. Speeds climb from the slowest job (a durable write) to the fastest (appending to a log): 10k → 50k → 100k → 1M.</div>
+
+  <h5>🎯 Interview scenarios: hear a number, give the answer <span class="add">➕ not in the article</span></h5>
+  <div class="grid2 nscen">
+    <div class="k-green"><b>📦 "We have 50 GB of data"</b><div class="star">Tiny: fits in RAM easily</div><div class="chk">🗣️ "50 GB fits in memory on one cache node, so I'd cache all of it. One database holds it many times over."</div></div>
+    <div class="k-green"><b>📦 "We have 500 GB of data"</b><div class="star">Still fits in RAM</div><div class="chk">🗣️ "Under 1 TB, so one big cache box can hold all of it. On ElastiCache that's 2 nodes (~420 GB each). No sharding for the database."</div></div>
+    <div class="k-amber"><b>📦 "We have 5 TB of data"</b><div class="star">Too big for one cache, fine for one DB</div><div class="chk">🗣️ "5 TB sits well under one database's ~50 TB. I'd cache only the hot part: if 20% is hot, that's 1 TB in cache."</div></div>
+    <div class="k-red"><b>📦 "We have 100 TB of data"</b><div class="star">Past one machine: shard</div><div class="chk">🗣️ "100 TB is about twice what one database holds, so I'd shard it, or archive old data if only recent data is read."</div></div>
+    <div class="k-green"><b>✍️ "5k writes per second"</b><div class="star">One database, no queue</div><div class="chk">🗣️ "5k is under the ~10k a single Postgres handles for simple writes, so writes go straight to the database."</div></div>
+    <div class="k-red"><b>✍️ "50k writes per second, all day"</b><div class="star">5× one database: shard the writes</div><div class="chk">🗣️ "That's well past ~10k, and steady, so a queue won't help. I'd shard by user_id, or use a write-heavy store like Cassandra."</div></div>
+    <div class="k-amber"><b>📖 "200k reads per second"</b><div class="star">Cache in front: 2–3 nodes</div><div class="chk">🗣️ "200k ÷ 100k per node = 2 cache nodes; I'd run 3 for headroom. The database only sees the misses."</div></div>
+    <div class="k-amber"><b>📬 "2M events per second"</b><div class="star">Kafka with ~3 brokers</div><div class="chk">🗣️ "At ~800k per broker to stay safe, 2M ÷ 800k ≈ 3 brokers, with the topic split into many <span class="nogl">partitions</span>."</div></div>
+  </div>
+  <p class="figcap">🖼️ Green = one machine is enough · amber = add a cache or a few nodes · red = split the data. The "20% is hot" is a guess you state out loud.</p>
+  <p class="bridge">🧮 Try your own numbers: type a dataset and its traffic, and see how much of one machine it uses. <span class="add">➕ not in the article</span></p>
   <div class="ncalc">
     <div class="nc-pre"><span>Try:</span><button type="button" data-p="yelp">🍽️ Yelp</button><button type="button" data-p="lc">🏆 LeetCode leaderboard</button><button type="button" data-p="w5k">✍️ 5k writes/s</button></div>
     <div class="nc-in">
