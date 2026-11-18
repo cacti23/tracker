@@ -762,6 +762,41 @@ body.map-on .wrap { max-width: 1640px; }
 .chr-mvd.none { color: var(--muted); font-weight: 400; }
 @media (max-width: 560px) { .chr-main { grid-template-columns: 1fr; } .chr svg { max-width: 300px; margin: 0 auto; } }
 @media (prefers-reduced-motion: reduce) { .chr-mv { animation: none; } .chr-ld .bar i { transition: none; } }
+.k-purple { background: var(--purple-bg); border-color: var(--purple-fg) !important; } .k-purple b { color: var(--purple-fg); }
+.nlad { margin: 6px 0 4px; font-size: 12.5px; display: grid; gap: 5px; }
+.nl-r { display: grid; grid-template-columns: 170px minmax(0, 1fr) 76px; gap: 8px; align-items: center; }
+.nl-t { position: relative; height: 12px; border-radius: 99px; background: linear-gradient(90deg, transparent calc(var(--m) - 1px), var(--muted) calc(var(--m) - 1px), var(--muted) var(--m), transparent var(--m)), var(--chip); }
+.nl-t i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--c); }
+.nl-g { --c: var(--green-fg); } .nl-a { --c: var(--amber-fg); } .nl-rr { --c: var(--red-fg); }
+.nl-v { font-variant-numeric: tabular-nums; text-align: right; color: var(--c, var(--muted)); font-weight: 600; }
+.nl-ax .nl-t, .nl-ft .nl-t { background: none; height: 14px; }
+.nl-ax em, .nl-ft em { position: absolute; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.nl-ax em:first-child { transform: none; } .nl-ft em { transform: translateX(-100%); }
+.ncalc { border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin: 6px 0 4px; background: var(--bg); font-size: 13px; }
+.nc-pre { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; color: var(--muted); }
+.nc-pre button { font: inherit; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+.nc-pre button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.nc-in { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; }
+.nc-in label { min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; font-size: 11.5px; color: var(--muted); }
+.nc-in input { font: inherit; font-size: 13px; padding: 5px 7px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--text); min-width: 0; width: 100%; box-sizing: border-box; }
+.nc-in input.bad { border-color: var(--red-fg); }
+.nc-out { display: grid; gap: 6px; }
+.nc-row { display: grid; grid-template-columns: 180px minmax(0, 1fr) 200px; gap: 10px; align-items: center; }
+.nc-out .bar { height: 10px; border-radius: 99px; background: var(--chip); overflow: hidden; }
+.nc-out .bar i { display: block; height: 100%; min-width: 3px; border-radius: 99px; background: var(--c); transition: width .3s; }
+.nc-out .v { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; text-align: right; }
+.nc-out .v b { color: var(--c); }
+.nc-ok { --c: var(--green-fg); } .nc-warn { --c: var(--amber-fg); } .nc-over { --c: var(--red-fg); }
+.nc-v { margin: 10px 0 0; font-weight: 600; }
+@media (max-width: 560px) {
+  .nl-r { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l v" "t t"; gap: 2px 8px; }
+  .nl-l { grid-area: l; } .nl-v { grid-area: v; } .nl-t { grid-area: t; }
+  .nl-ax, .nl-ft { grid-template-areas: "t t"; } .nl-ax .nl-l, .nl-ax .nl-v, .nl-ft .nl-l, .nl-ft .nl-v { display: none; }
+  .nc-in { grid-template-columns: 1fr 1fr; }
+  .nc-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l v" "b b"; gap: 3px 8px; }
+  .nc-row > span:first-child { grid-area: l; } .nc-row .bar { grid-area: b; } .nc-row .v { grid-area: v; }
+}
+@media (prefers-reduced-motion: reduce) { .nc-out .bar i { transition: none; } }
 </style>
 </head>
 <body>
@@ -965,7 +1000,7 @@ Reread the page once more from top to bottom and compare it with your output. Lo
         </ul>
         <p class="bridge">Many guides tell you to do the math now. Don't, unless the answer changes a decision.</p>
         <div class="vs"><div class="bad">❌ DAU, QPS, storage → "ok, it's a lot". It only shows you can do arithmetic.</div><div class="good">✅ TopK trending: number of topics → one min-heap or sharded?</div></div>
-        <p>🎤 Say: "I'll skip estimates and do the math when it changes the design."</p>
+        <p>🎤 Say: "I'll skip estimates and do the math when it changes the design." (🔢 The limits to compare against: <a href="#sd-num-use">Numbers to Know</a>.)</p>
 </div></details>
     <details><summary><span class="num">2</span><span>🧱 Core Entities</span><span class="tm">~2 min</span><span class="bar" style="width:12%"></span></summary>
       <div class="body">
@@ -2097,7 +2132,7 @@ es.onmessage = e => show(e.data)
     <div class="r"><span class="lbl">⬆️ Vertical scaling</span><span class="bx">Server</span><span class="ar">→ Scale To →</span><span class="bx big">Bigger Server</span></div>
     <div class="r"><span class="lbl">➡️ Horizontal scaling</span><span class="bx">Server</span><span class="ar">→ Scale To →</span><span class="stack"><span class="bx">Server 1</span><span class="bx">Server 2</span><span class="bx">Server 3</span></span></div>
   </div>
-  <p>🧑‍🏫 The author scales <b>vertically</b> wherever possible: modern hardware is incredibly powerful, and the days of thousands of tiny servers are over (🔗 Numbers to Know). ⭐ But in <b>interviews</b>, horizontal scaling is the most common pattern. <span class="aws">☁️ AWS: bigger EC2 instance (vertical) · EC2 Auto Scaling (horizontal)</span></p>
+  <p>🧑‍🏫 The author scales <b>vertically</b> wherever possible: modern hardware is incredibly powerful, and the days of thousands of tiny servers are over (🔗 <a href="#sd-num-hw">Numbers to Know</a>). ⭐ But in <b>interviews</b>, horizontal scaling is the most common pattern. <span class="aws">☁️ AWS: bigger EC2 instance (vertical) · EC2 Auto Scaling (horizontal)</span></p>
   <p class="ana">🍽️ <b>Vertical</b> = give your one chef a bigger stove. <b>Horizontal</b> = hire more chefs. A bigger stove has a ceiling, and if that chef gets sick, nobody eats. <span class="add">➕ analogy not in the article</span></p>
   <p class="bridge">Adding boxes to the whiteboard doesn't help if clients don't know which one to call.</p>
   <div class="dg"><div class="r"><span class="bx">💻 Client</span><span class="ar">→ ❓</span><span class="stack"><span class="bx">Server1</span><span class="bx">Server2</span><span class="bx">Server3</span></span></div></div>
@@ -4169,7 +4204,7 @@ if (left &lt; roll * rebuildMs)
     <div class="k-green"><b>⏱️ Latency requirements</b><div class="star">The API needs sub-10 ms responses</div><div class="chk">Database queries take 30–50 ms</div><div class="chk">⚡ "We have to cache."</div></div>
   </div>
   <p>🔢 Sanity check: 200M reads a day ÷ 86,400 seconds ≈ <b>2,300 reads a second</b> on average, more at peak. <span class="add">➕ not in the article</span></p>
-  <div class="rem"><b>✅ Remember</b> The pattern is simple: <b>identify</b> the performance problem → <b>quantify</b> it with rough numbers → <b>explain</b> how caching solves it. Numbers to Know gives reasonable database and cache latencies.</div>
+  <div class="rem"><b>✅ Remember</b> The pattern is simple: <b>identify</b> the performance problem → <b>quantify</b> it with rough numbers → <b>explain</b> how caching solves it. <a href="#sd-num-hw">Numbers to Know</a> gives reasonable database and cache latencies.</div>
   <p class="ana">🩺 A doctor names the symptom and measures it before prescribing. "Add a cache" with no measured bottleneck is a prescription without a diagnosis. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>🪜 How to Introduce Caching</h4>
@@ -4432,7 +4467,7 @@ User 204  → Shard 2</pre>
     <div class="k-green"><b>📖 Read throughput</b><div class="star">100M daily users, many queries each</div><div class="chk">Even with read replicas, the reads need spreading</div></div>
     <div class="k-amber"><b>🧮 The formula</b><div class="chk">1️⃣ Identify the bottleneck</div><div class="chk">2️⃣ Explain why one database won't scale</div><div class="chk">3️⃣ Propose sharding</div></div>
   </div>
-  <div class="warn"><b>⚠️ Watch out</b> By far the <b>number one sharding mistake</b> the author sees in interviews: introducing sharding before proving it's needed. Slow down, do the math, make sure it's needed, and only then explain how.</div>
+  <div class="warn"><b>⚠️ Watch out</b> By far the <b>number one sharding mistake</b> the author sees in interviews: introducing sharding before proving it's needed. Slow down, do the math, make sure it's needed, and only then explain how. 🔢 The limits to compare against: <a href="#sd-num-hw--databases">Numbers to Know</a>.</div>
   <h5>🗺️ The scale map: what to try before sharding <span class="add">➕ reader's notes, expanded; not in the article</span></h5>
   <p class="bridge">"Make it scale" almost always means "make the <b>database</b> keep up": app servers you can just copy, the data you can't. So don't pick a fix first. Ask <b>what hurts</b>, then read the map top-down: cheap fixes first, sharding last.</p>
   <div class="smap" role="img" aria-label="Scale map. Step 1: measure what hurts. Step 2, for any pain, three cheap fixes: fix the query or add an index, pool connections, use a bigger machine. Step 3, pick the lane: reads slow, use a cache then read replicas; writes slow, queue the spikes; disk full, partition and archive old data. Step 4: if it still hurts, with numbers, shard. Sharding is the only fix for heavy writes and huge data.">
@@ -4886,6 +4921,220 @@ function owner(key) {
     <h5>✏️ Quiz and wording</h5>
     <ul><li>"Ticket booking should prioritize availability" is <b>false</b>: booking needs consistency, even if browsing stays available (qiong yu found it vague).</li>
     <li>An event's location changes: a few seconds of eventual consistency is still fine. Mixing CP and AP per field or feature is normal (Jayakrishna). Shortcuts: money or a booking → consistency (Arin, Rocktim).</li></ul>
+  </div>
+</section>
+
+<section class="card" id="sd-num-hw" data-topic="Numbers to Know" data-course="hi-sd" data-lesson="numbers-to-know">
+  <h2 class="cap"><b>🔢 Numbers to Know ①: Modern Hardware · Caching · Databases · App Servers · Queues</b></h2>
+  <p class="hook">Hardware moves fast. A book from a few years ago still teaches good patterns, but its numbers can be off by orders of magnitude. Running your scale maths with numbers from 2015 (or even 2020!) is one of the biggest signs of book knowledge without hands-on experience, and it leads to over-engineered designs.</p>
+  <p class="tldr">💡 One modern machine is huge: 🧠 up to 24 TB of RAM, 💽 60 TB of local SSD, 🌐 25–100 Gbps. So ⚡ one cache holds about 1 TB and does 100k+ ops/s. 🗄️ One database holds about 64 TiB and does 50k reads/s and 10–20k writes/s. 🖥️ On an app server, CPU runs out before memory. 📬 One Kafka broker moves about 1M messages/s. Scale only when you pass these numbers, and show the maths. It's like an old cookbook: the recipes still work, but the kitchen has grown ten times. Explained below 👇</p>
+
+  <h4>🖥️ Modern Hardware Limits</h4>
+  <p class="bridge">Modern servers pack serious computing power. One tile per resource:</p>
+  <div class="grid3">
+    <div class="k-blue"><b>🧠 Memory</b><div class="chk">General purpose: M6i.32xlarge = 128 vCPUs + 512 GiB</div><div class="chk">Memory-optimized: X1e.32xlarge ≈ 4 TB, U-24tb1.metal = 24 TB</div></div>
+    <div class="k-green"><b>💽 Storage</b><div class="chk">i3en.24xlarge: 60 TB of local SSD</div><div class="chk">D3en.12xlarge: 336 TB of HDD</div><div class="chk">S3: effectively unlimited; petabytes are standard</div></div>
+    <div class="k-amber"><b>🌐 Network</b><div class="chk">25 Gbps is common inside a datacenter; 50–100 Gbps+ on high-performance instances</div><div class="chk">Between AZs, only the instance's own network limits you</div></div>
+  </div>
+  <p class="figcap">🖼️ <span class="add">➕ fact-check</span> All five sizes match AWS's pages (X1e is 3,904 GiB, rounded to 4 TB). Newer general-purpose machines (M7i, M8g) reach 192 vCPUs and 768 GiB.</p>
+  <p class="bridge">Latency stays predictable too. Every latency in this lesson on one ruler (each step is 10×):</p>
+  <div class="nlad" style="--m:90.9%" role="img" aria-label="Latency ruler, log scale from 0.1 to 200 ms: cache read and a hop within one AZ under 1 ms; indexed SSD row lookup under 1 to 3 ms; hop across AZs 1 to 2 ms; queue end to end 1 to 5 ms; cached database read 1 to 5 ms; database commit 5 to 15 ms; database read from disk 5 to 30 ms; hop to another region 50 to 150 ms.">
+    <div class="nl-r nl-ax"><span class="nl-l"></span><span class="nl-t"><em style="left:0.0%">0.1 ms</em><em style="left:30.3%">1 ms</em><em style="left:60.6%">10 ms</em><em style="left:90.9%">100 ms</em></span><span class="nl-v"></span></div>
+    <div class="nl-r nl-g"><span class="nl-l">⚡ Cache read</span><span class="nl-t"><i style="left:0.0%;width:30.3%"></i></span><span class="nl-v">&lt; 1 ms</span></div>
+    <div class="nl-r nl-g"><span class="nl-l">🌐 Hop in one AZ</span><span class="nl-t"><i style="left:0.0%;width:30.3%"></i></span><span class="nl-v">&lt; 1 ms</span></div>
+    <div class="nl-r nl-a"><span class="nl-l">🔎 Indexed row on SSD</span><span class="nl-t"><i style="left:14.5%;width:30.3%"></i></span><span class="nl-v">&lt; 1–3 ms</span></div>
+    <div class="nl-r nl-g"><span class="nl-l">🌐 Hop across AZs</span><span class="nl-t"><i style="left:30.3%;width:9.1%"></i></span><span class="nl-v">1–2 ms</span></div>
+    <div class="nl-r nl-a"><span class="nl-l">📬 Queue, end to end</span><span class="nl-t"><i style="left:30.3%;width:21.2%"></i></span><span class="nl-v">1–5 ms</span></div>
+    <div class="nl-r nl-a"><span class="nl-l">🗄️ DB read, cached</span><span class="nl-t"><i style="left:30.3%;width:21.2%"></i></span><span class="nl-v">1–5 ms</span></div>
+    <div class="nl-r nl-a"><span class="nl-l">✍️ DB commit</span><span class="nl-t"><i style="left:51.5%;width:14.5%"></i></span><span class="nl-v">5–15 ms</span></div>
+    <div class="nl-r nl-a"><span class="nl-l">💽 DB read from disk</span><span class="nl-t"><i style="left:51.5%;width:23.6%"></i></span><span class="nl-v">5–30 ms</span></div>
+    <div class="nl-r nl-rr"><span class="nl-l">🌍 Hop to another region</span><span class="nl-t"><i style="left:81.8%;width:14.5%"></i></span><span class="nl-v">50–150 ms</span></div>
+    <div class="nl-r nl-ft"><span class="nl-l"></span><span class="nl-t"><em style="left:90.9%">👤 ~100 ms: people start to notice <span class="add">➕</span></em></span><span class="nl-v"></span></div>
+  </div>
+  <p class="figcap">🖼️ Green = memory and network inside a region · amber = database and queue · red = another region. <span class="add">➕ the lesson's numbers, drawn as one picture</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ Many applications that once needed distributed systems now run on one machine</b>This is a step change, not a small improvement. When textbooks split databases at 100 GB or avoid large objects in memory, they are working from outdated limits.</li>
+    <li><b class="hd">💽 The days of storage being the main constraint are largely behind us</b></li>
+    <li><b class="hd">📏 Inside one region, a hop is about a millisecond; another region costs 50–150 ms</b>Sub-1 ms within one AZ, 1–2 ms across AZs. This consistent performance is what makes reliable distributed design possible. <span class="add">➕</span> A cross-region hop costs as much as 100 local hops, so keep one request's chain of calls inside one region.</li>
+  </ul>
+  <p class="ana">🍳 The old cookbook says "your fridge holds two days of food, so shop every day". Today's kitchen has a walk-in fridge bigger than the old restaurant. The recipes (patterns) still work; the shopping plan (the numbers) is out of date. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>⚡ Caching</h4>
+  <p class="bridge">Now, how these numbers change your decisions in an interview, one component at a time. First, caches: they have grown hugely in size and power. Gone are the 32–64 GB Redis instances that needed careful memory management and partial caching. Today one cache holds terabytes at single-digit ms and does hundreds of thousands of operations per second.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📏 Numbers to know</b><div class="chk">🧠 Memory: up to 1 TB on memory-optimized instances (some setups go beyond)</div><div class="chk">⏱️ Reads &lt; 1 ms in the same region · writes &lt; 1 ms in the same AZ, 1–2 ms across AZs</div><div class="chk">🚀 100k–200k+ ops/s per instance (ElastiCache Redis on Graviton); simple reads and writes cost about the same</div></div>
+    <div class="k-amber"><b>📈 When to scale</b><div class="chk">💾 Data approaching 1 TB</div><div class="chk">🚀 Sustained 100k+ ops/s</div><div class="chk">⏱️ Reads must stay below 0.5 ms</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ "Cache everything" often beats choosing what to cache</b>If the whole database fits in memory, even at hundreds of GB, you can often skip complex partial-caching schemes. It looks like brute force, but it usually costs less than the engineering time spent on selective caching logic.</li>
+    <li><b class="hd">🔄 When you do scale, the limit is usually ops/s or network bandwidth, not memory size</b>That's the reverse of a few years ago.</li>
+    <li><b class="hd">🧵 Why CPU runs out first <span class="add">➕ from the comments</span></b>Redis runs every command on one thread (Stefan Mai, admin), so one core is full long before 1 TB is. Sharding then adds cores, not memory. Big instances are also slower to back up, copy and recover (Evan King, admin). Redis 6 (2020) added I/O threads, but commands still run on one.</li>
+  </ul>
+  <div class="info"><b>ℹ️ Fact-check</b> <span class="add">➕ not in the article</span> ElastiCache's biggest node holds about 420 GB (cache.r7g.16xlarge), so "1 TB" means a cache you run yourself on a big EC2 machine, or a cluster. AWS says one r7g.4xlarge node can serve over 1M requests/s (ElastiCache 7.1, small values). Evan King: true under the right conditions, but in an interview stay with the 100k order of magnitude.</div>
+  <p class="ana">🧊 The kitchen fridge used to hold a few shelves, so cooks argued about what to keep in it. Now it's a walk-in: put the whole pantry in. What slows service is the one cook handing items out (ops/s), not shelf space.</p>
+
+  <h4>🗄️ Databases</h4>
+  <p class="bridge">The raw power of modern databases surprises even experienced engineers. One PostgreSQL or MySQL instance routinely holds dozens of terabytes with millisecond responses, and does tens of thousands of transactions per second on one primary. The limit is often operations (backups, upgrades), not speed.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📏 Numbers to know</b><div class="chk">💾 Up to 64 TiB per instance for most engines; Aurora up to 256 TiB</div><div class="chk">⏱️ Reads: 1–5 ms cached, 5–30 ms from disk (tuned RDS / Aurora)</div><div class="chk">✍️ Writes: 5–15 ms per commit</div><div class="chk">🚀 One node: reads up to 50k TPS, writes 10–20k TPS</div><div class="chk">🔌 5–20k concurrent connections</div></div>
+    <div class="k-amber"><b>📈 When to consider sharding</b><div class="chk">💾 Data approaching or above 50 TiB</div><div class="chk">✍️ Writes consistently above 10k TPS</div><div class="chk">⏱️ Uncached reads must be below 5 ms</div><div class="chk">🌍 Cross-region replication or distribution</div><div class="chk">🗄️ Backups take hours or become impractical</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ Many candidates jump to distributed solutions too early</b>The largest systems (social networks, e-commerce giants) absolutely need sharding. But for millions or even tens of millions of users, one well-tuned database can often handle the load.</li>
+    <li><b class="hd">🤔 When you do scale, name what drives it</b>Pure data volume? Operations, like backup windows? Or geography? Each has a different fix.</li>
+    <li><b class="hd">🧾 These are relational numbers <span class="add">➕ from the comments</span></b>Evan King (admin): DynamoDB hides them behind RCU/WCU (capacity units you buy), and Cassandra takes more writes on the same hardware.</li>
+    <li><b class="hd">🔗 A check against Sharding ③ <span class="add">➕ my note</span></b>Its storage example says 500M users × 5 KB = 2.5 TB, and 10× growth needs sharding. 10× is 25 TB, still half the 50 TiB trigger. So shard that system for its writes or its operations, not its size. (I left that card as it is.) <a href="#sd-shard-interview--when-to-mention-sharding">→ Sharding ③</a></li>
+  </ul>
+  <div class="info"><b>ℹ️ Info</b> A "single instance" doesn't mean a single point of failure. You'd still run a primary with read replicas for availability (for example, Aurora's multi-AZ failover). Replication for high availability is a separate concern from splitting the data for scale.</div>
+  <div class="grid2">
+    <div class="k-green"><b>🪞 Replica = a full copy</b><div class="chk">Takes over if the primary dies, and serves reads</div><div class="chk">Every copy still holds all the data and takes every write</div></div>
+    <div class="k-blue"><b>🧩 Shard = a slice</b><div class="chk">Each machine holds only part of the data</div><div class="chk">Adds write and storage capacity</div></div>
+  </div>
+  <p class="figcap">🖼️ Copies are for safety; slices are for size. A single database still gets a replica. <span class="add">➕ not in the article</span></p>
+  <div class="warn"><b>⚠️ Watch out</b> More often than not, candidates reach for scaling too quickly. They have 500 GB or a couple of terabytes and start explaining how they'd shard. Slow down, do the maths, and make sure sharding is needed before you explain how.</div>
+  <p class="ana">📒 One storeroom ledger can now list every ingredient the restaurant will ever buy. Keep a photocopy in the back office in case of fire (replica). Open a second storeroom (shard) only when one clerk can't write fast enough.</p>
+
+  <h4>🖥️ Application Servers</h4>
+  <p class="bridge">The servers that run your code. Making them stateless helps scaling, but don't forget how much memory each one has.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📏 Numbers to know</b><div class="chk">🔌 100k+ concurrent connections (tuned setups)</div><div class="chk">🧮 8–64 cores</div><div class="chk">🧠 Hundreds of GB of RAM are common; multi-TB machines exist</div><div class="chk">🌐 25 Gbps standard, 50–100 Gbps high-performance</div><div class="chk">⏳ Start-up: tens of seconds to minutes (containers)</div></div>
+    <div class="k-amber"><b>📈 When to add servers</b><div class="chk">🧮 CPU consistently above 70–80%</div><div class="chk">⏱️ Latency past the SLA</div><div class="chk">🧠 Memory trending above 70–80%</div><div class="chk">🌐 Bandwidth near the instance limit</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ CPU is almost always your first bottleneck, not memory</b>So don't avoid memory-heavy optimizations when they make sense: local caching, in-memory computation, session handling.</li>
+    <li><b class="hd">⏱️ New servers start in tens of seconds to minutes</b>That makes auto-scaling a real alternative to over-provisioning. Powerful machines plus fast scaling give high performance with simple architectures. <span class="aws">☁️ AWS: EC2 Auto Scaling</span></li>
+  </ul>
+  <p class="ana">👨‍🍳 A chef with a huge counter has space for everything (memory). What runs out first is hands (CPU). When the hands are full, call in another chef; one arrives within minutes.</p>
+
+  <h4>📬 Message Queues</h4>
+  <p class="bridge">Queues have grown from simple task hand-off into fast data highways. Kafka moves millions of messages per second at single-digit ms, and keeps weeks or months of data.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📏 Numbers to know</b><div class="chk">🚀 Up to 1M messages/s per broker</div><div class="chk">⏱️ 1–5 ms end to end within a region</div><div class="chk">📦 Messages of 1 KB–10 MB handled well</div><div class="chk">💾 Up to 50 TB per broker</div><div class="chk">🗓️ Keeps weeks to months of data</div></div>
+    <div class="k-amber"><b>📈 When to scale</b><div class="chk">🚀 Nearing 800k messages/s per broker</div><div class="chk">🧩 Approaching 200k <span class="nogl">partitions</span> per cluster</div><div class="chk">📈 Consumer lag growing steadily</div><div class="chk">🌍 Copies needed in another region</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ At under 5 ms, a queue fits inside a synchronous request</b>You get reliable delivery and decoupling without making the API async, as long as there's no backlog. With almost unlimited storage, queues also become the backbone for event sourcing, real-time analytics and data integration that used to need special systems.</li>
+  </ul>
+  <div class="flow"><span>🙋 API gets a request</span><i>→</i><span>📬 request queue</span><i>→</i><span>⚙️ worker</span><i>→</i><span>📮 reply queue</span><i>→</i><span>🙋 API answers</span></div>
+  <p class="figcap">🖼️ A synchronous call over queues: the API waits for the reply that matches its request ID (RabbitMQ's RPC pattern, which Evan King linked in the comments). <span class="add">➕ not in the article</span></p>
+  <div class="info"><b>ℹ️ Fact-check</b> <span class="add">➕ not in the article</span> LinkedIn's 2M writes/s ran on 3 cheap machines (2014) ✓. The 200k-partition limit comes from the ZooKeeper era. KRaft (ready for production in Kafka 3.3, 2022; the only mode in Kafka 4.0, 2025) supports far more. Managed queues have per-shard limits: one Kinesis shard takes 1 MB/s or 1,000 records/s (cst labs). <span class="aws">☁️ AWS: Amazon MSK (Kafka) · Kinesis Data Streams</span></div>
+  <p class="ana">🎫 The ticket rail in a kitchen: waiters clip orders, cooks take them. Today's rail is so fast that a waiter can clip an order and wait at the pass for the plate. Only a growing pile of tickets (consumer lag) means trouble.</p>
+</section>
+
+<section class="card" id="sd-num-use" data-topic="Numbers to Know" data-course="hi-sd" data-lesson="numbers-to-know">
+  <h2 class="cap"><b>🔢 Numbers to Know ②: Cheat Sheet · Common Mistakes · Costs</b></h2>
+  <p class="hook">Numbers only help when you use them: do the maths, hold it against the cheat sheet, and let the result choose the design.</p>
+  <p class="tldr">💡 📋 The cheat sheet: four building blocks, each with its limits and the signs it needs scaling. 🧮 Do the maths before you shard: Yelp is 100 GB and a LeetCode leaderboard is 400 GB, and both fit one machine. 🚫 Three common mistakes: sharding too early, thinking an indexed SSD lookup is slow, adding a queue for 5k writes/s. 💸 Costs: ask "one machine or a hundred?", and don't memorize price lists. Like checking the storeroom before you build a second one. Explained below 👇</p>
+
+  <h4>📋 Cheat Sheet</h4>
+  <p class="bridge">A one-stop shop for 2026: typical values for well-tuned systems. Your numbers will vary with workload, hardware and setup, so use these as a starting point for capacity planning, not as hard limits. Cloud providers update their offerings often.</p>
+  <div class="grid2 ncheat">
+    <div class="k-green"><b>⚡ Caching</b><div class="star">📏 ~1 ms · 100k+ ops/s · memory-bound (up to 1 TB)</div><div class="chk">📈 Hit rate &lt; 80%</div><div class="chk">📈 Latency &gt; 1 ms</div><div class="chk">📈 Memory use &gt; 80%</div><div class="chk">📈 Cache churn (thrashing)</div></div>
+    <div class="k-blue"><b>🗄️ Databases</b><div class="star">📏 Up to 50k TPS · cached reads &lt; 5 ms · 64 TiB+</div><div class="chk">📈 Writes &gt; 10k TPS</div><div class="chk">📈 Uncached reads &gt; 5 ms <span class="add">➕ from the comments</span> Evan King (admin): too strict. For most systems 5–30 ms is fine, so scale when it stays above ~30 ms.</div><div class="chk">📈 Needs to be in several regions</div></div>
+    <div class="k-amber"><b>🖥️ App servers</b><div class="star">📏 100k+ connections · 8–64 cores @ 2–4 GHz · 64–512 GB RAM, up to 2 TB</div><div class="chk">📈 CPU &gt; 70%</div><div class="chk">📈 Latency &gt; SLA</div><div class="chk">📈 Connections near 100k per instance</div><div class="chk">📈 Memory &gt; 80%</div></div>
+    <div class="k-purple"><b>📬 Message queues</b><div class="star">📏 Up to 1M msgs/s per broker · &lt; 5 ms end to end · up to 50 TB</div><div class="chk">📈 Throughput near 800k msgs/s</div><div class="chk">📈 ~200k <span class="nogl">partitions</span> per cluster</div><div class="chk">📈 Growing consumer lag</div></div>
+  </div>
+  <p class="bridge">🧮 Try it: type a dataset and its traffic, and see how much of one machine it uses. <span class="add">➕ not in the article</span></p>
+  <div class="ncalc">
+    <div class="nc-pre"><span>Try:</span><button type="button" data-p="yelp">🍽️ Yelp</button><button type="button" data-p="lc">🏆 LeetCode leaderboard</button><button type="button" data-p="w5k">✍️ 5k writes/s</button></div>
+    <div class="nc-in">
+      <label>📦 Items<input data-k="n" value="10M" inputmode="text" aria-label="Number of items, like 10M"></label>
+      <label>📏 Size of one<input data-k="b" value="1 KB" aria-label="Bytes per item, like 1 KB"></label>
+      <label>✖️ Extra × (reviews…)<input data-k="x" value="10" aria-label="Multiplier"></label>
+      <label>✍️ Writes/s<input data-k="w" value="100" aria-label="Writes per second"></label>
+      <label>📖 Reads/s<input data-k="r" value="5k" aria-label="Reads per second"></label>
+    </div>
+    <div class="nc-out" aria-live="polite"></div>
+    <p class="nc-v"></p>
+  </div>
+  <p class="figcap">🖼️ Limits are the cheat sheet's scale triggers. The presets use the lesson's sizes; their traffic numbers are my guesses.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 Know the order of magnitude, not the exact value <span class="add">➕ from the comments</span></b>Stefan Mai (admin): interviewers won't ask which instance has how much RAM. Knowing "about 1 TB" or "about 10k writes/s" is enough to estimate; the rest is lookup material.</li>
+  </ul>
+  <p class="ana">📋 The capacity chart on the kitchen wall: the fridge holds this much, the storeroom that much, one cook plates this many per minute. Check it before you order a second storeroom.</p>
+
+  <h4>🚫 Common Mistakes In Interviews</h4>
+  <p class="bridge">Three mistakes, all caused by wrong estimates.</p>
+  <h5>🧩 Premature sharding</h5>
+  <p>The single biggest mistake the author sees: assuming sharding is always needed. Candidates introduce a data model and immediately name the column they'd shard on. It comes up almost every time with Design Yelp:</p>
+  <div class="flow"><span>🏪 10M businesses × 1 KB</span><i>=</i><span>10 GB</span><i>→ × 10 for reviews (same DB) =</i><span><b>100 GB</b></span><i>→</i><span>✅ one database (trigger ~50 TiB)</span></div>
+  <p>Only 100 GB: why would you shard? Caches get the same treatment. A LeetCode leaderboard with 100k competitions and up to 100k users each:</p>
+  <div class="flow"><span>🏆 100k × 100k × (36 B ID + 4 B rating)</span><i>=</i><span><b>400 GB</b></span><i>→</i><span>✅ one large cache (~1 TB)</span></div>
+  <p>More than Yelp's data on disk, and it still fits one large cache: no need to shard! <span class="add">➕ fact-check</span> The maths is right. But 400 GB is at the edge of ElastiCache's biggest node (~420 GB), and every replica doubles the memory bill (cst labs). "One big node, or a small cluster" is a safe answer.</p>
+  <h5>⏱️ Overestimating latency</h5>
+  <p>This shows up most with SSDs. Candidates vastly overestimate how long a simple key or row lookup in the database takes. With an index it takes sub-millisecond to a few milliseconds. It's fast! So adding a cache "to cut latency" in front of a simple row lookup is extra infrastructure for nothing.</p>
+  <div class="vs"><div class="bad">❌ "Get a user by ID? I'll put Redis in front to make it fast."</div><div class="good">✅ "An indexed lookup is about 1 ms, so no cache. I'd cache the expensive feed query instead." <span class="add">➕ example</span></div></div>
+  <div class="warn"><b>⚠️ Watch out</b> This is only for simple row lookups with an index. It's still wise to cache expensive queries.</div>
+  <h5>✍️ Over-engineering for a high write throughput</h5>
+  <p>Wrong estimates lead to over-engineering. Picture 5k writes per second: candidates often add a message queue to buffer this "high" load. They don't need to. A well-tuned Postgres doing simple writes handles 20k+ writes per second.</p>
+  <div class="grid3">
+    <div class="k-red"><b>🐢 What really limits writes</b><div class="chk">Complex transactions across several tables</div><div class="chk">Too many indexes (each write updates them all)</div><div class="chk">Writes that set off costly cascading updates</div><div class="chk">Heavy reads competing with the writes</div></div>
+    <div class="k-blue"><b>🛠️ Try first</b><div class="chk">Batch the writes</div><div class="chk">Fix the schema and indexes</div><div class="chk">Use connection pooling well</div><div class="chk">Async commits for writes that aren't critical</div></div>
+    <div class="k-green"><b>📬 When a queue earns its place</b><div class="chk">Guaranteed delivery when downstream fails</div><div class="chk">Event sourcing</div><div class="chk">Spikes above what the DB can take (20k+ WPS on one Postgres)</div><div class="chk">Decoupling producers from consumers</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ Understand your actual write pattern before you add infrastructure</b>Queues add complexity, so a real requirement must justify one. Modern databases are incredibly capable, and simple designs often perform better than you'd expect.</li>
+    <li><b class="hd">🤨 A reader's doubt <span class="add">➕ from the comments</span></b>cst labs doesn't believe 20k writes/s in practice: it only holds for simple inserts with few indexes, which the article also says. With many indexes expect fewer, but 5k is still well within reach.</li>
+  </ul>
+  <p class="ana">🧾 5k orders an hour sounds like a rush, so a new manager installs a second ticket rail. But the cook could already handle 20k. First check what slows the cook down (too many side dishes = too many indexes), then decide whether a rail helps.</p>
+
+  <h4>💸 What about costs?</h4>
+  <p class="bridge">In a real design, cost is often a major factor: you estimate usage, multiply by price tables, and compare the options' TCO (total cost of ownership).</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📉 Interviews rarely focus on cost</b>Few people memorize price tables (and RAM and SSD prices change <i>constantly</i>). Interview estimates aim for an order of magnitude, not a dollar amount.</li>
+    <li><b class="hd">🚩 But a wasteful design still raises a flag</b>100 machines when 1 will do, or a bank of in-memory caches when users are happy to wait hundreds of milliseconds.</li>
+    <li><b class="hd">⭐ The author wouldn't memorize AWS price tables: spend your time elsewhere</b></li>
+    <li><b class="hd">🏢 At a startup, cost matters more <span class="add">➕ from the comments</span></b>Evan King (admin): worth one sentence in an interview, but it plays a far smaller role in interview decisions than in real life.</li>
+  </ul>
+  <p class="ana">🍽️ Nobody quizzes a chef on today's price of flour. But buying a hundred ovens for one café gets noticed.</p>
+
+  <h4>🔚 Conclusion</h4>
+  <p class="bridge">Modern hardware has changed the maths of system design. The world's largest apps still need distributed systems and horizontal scaling, but many systems can be much simpler than old wisdom says:</p>
+  <div class="flow"><span>🗄️ one DB holds terabytes</span><span>⚡ one cache holds the whole dataset</span><span>📬 queues are fast enough for sync calls (no backlog!)</span><span>🖥️ app servers have memory for local tricks</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ The key insight isn't that vertical scaling is always the answer: it's knowing where the real limits are</b>That helps you avoid premature optimization and build simple systems that can grow. Showing it in an interview proves you balance theory with practice, a crucial skill at senior levels.</li>
+  </ul>
+  <p class="bridge">🎤 How to say it:</p>
+  <ul class="lines">
+    <li><span class="say">🗣️ "10M businesses at 1 KB is 10 GB; with reviews, 100 GB. One Postgres holds that with plenty of room, so no sharding. I'd add a replica for failover."</span></li>
+    <li><span class="say">🗣️ "5k writes/s is well within one Postgres for simple inserts, so writes go straight to the database. I'd add a queue only to absorb spikes or decouple a slow consumer."</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Do the maths → compare with the cheat sheet → scale only what crosses a line. A single machine still gets a replica.</div>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>📬 "Add numbers for pub/sub, SQS and Flink" (top comment)</h5>
+    <ul><li>Not in the article yet. <span class="add">➕ my fact-checked quick list</span> SQS standard: nearly unlimited throughput. SQS FIFO: 300 messages/s, 3,000 with batching (high-throughput mode goes much higher). Kinesis: 1 MB/s or 1,000 records/s in, per shard. Redis pub/sub: fire and forget, nothing stored; same 100k-ops order as Redis. Flink: no single number; it scales with parallelism.</li></ul>
+    <h5>📅 "How old are these numbers?"</h5>
+    <ul><li>Readers asked for a date on the article. Evan King: to stay current, watch what the big cloud providers release.</li>
+    <li>ARPAD posted a Gemini summary of what changed. ⚠️ It's AI output with no links. The parts I could confirm: Redis 6 (2020) added I/O threads; Kafka KRaft lifts the partition limit; general-purpose EC2 now reaches 192 vCPUs and 768 GiB. The rest (Valkey/Redis ops figures, M9g) I couldn't check, so treat it as unconfirmed.</li></ul>
+    <h5>🧠 "24 TB of RAM exists, so why stop Redis at 1 TB?"</h5>
+    <ul><li>Evan King: no strict rule; big instances are harder to back up, copy and recover. Stefan Mai: Redis is single-threaded, so it runs out of CPU first (Dragonfly uses many threads).</li>
+    <li>A reader's maths: backing up 1 TB at 160 MB/s takes about 6,250 s, almost 2 hours.</li></ul>
+    <h5>🚀 "100k or 1M ops/s for Redis?"</h5>
+    <ul><li>Evan King: up to 1M with small values and the right setup; in an interview use the 100k order. A reader asked how much headroom to leave. <span class="add">➕ my answer</span> The article's own triggers sit at 70–80%: that gap is the headroom for spikes, failover and p99.</li>
+    <li>"Why does a Kafka broker do 1M/s but Redis 100k?" (unanswered) <span class="add">➕ my answer</span> Kafka appends messages in big batches to a log on disk, written in order and served from the OS's memory; Redis handles one command per network round trip on one thread. Redis with pipelining (many commands per trip) also goes much higher.</li></ul>
+    <h5>🔁 "Give an example of a queue in a synchronous flow"</h5>
+    <ul><li>Evan King: still rare, but growing; linked RabbitMQ's RPC tutorial (the picture in ① 📬). Harika Reddy uses these blocking calls between services. cst labs: useful when the work needs a slow external service.</li></ul>
+    <h5>🗃️ "When should high writes push me to Cassandra?"</h5>
+    <ul><li>A follow-up to "relational numbers" in ① 🗄️. <span class="add">➕ my answer</span> When writes are heavy and mostly appends, the queries are known in advance, and you don't need transactions across rows. Cassandra spreads those writes over many nodes by design.</li></ul>
+    <h5>🔢 "15k or 100k connections?"</h5>
+    <ul><li>An earlier version said "scale at 15k connections" next to "100k+ per server". Evan King: he changed one number and forgot the other. The cheat sheet now says near 100k.</li></ul>
+    <h5>📏 "Why TiB and not TB?"</h5>
+    <ul><li>A TiB is 2<sup>40</sup> bytes, about 10% more than a TB (10<sup>12</sup>). Providers quote memory and disk limits in binary units, so TiB is the exact one. In an interview, treat them as equal.</li></ul>
+    <h5>💥 "Fewer big databases = a bigger blast radius?"</h5>
+    <ul><li>Amulya Sharma: one big database failing hurts more than one of ten small ones. Stefan Mai: overall availability is the same, since ten databases are ten things that can fail. But to keep tenants from hurting each other, a cell-based architecture helps.</li></ul>
+    <h5>🧮 "The Delivery Framework says skip estimates. This lesson says do the maths?"</h5>
+    <ul><li>Stefan Mai: the short answer is intuition. Until you have it, practise every calculation you can think of; you'll soon see 80% don't change anything. Interviewers check for sensible designs built on realistic assumptions, not mental arithmetic.</li>
+    <li><span class="add">➕ my take</span> Both hold: do the maths in your head, and say it out loud only when it changes a decision (<a href="#sd-delivery-framework">Delivery Framework</a>).</li></ul>
+    <h5>🛡️ "A single machine means no failover?"</h5>
+    <ul><li>Cathy Liu and Stefan Mai: no. The article says what one machine can do. Say up front that you'd run active-passive with replicas; some horizontal scaling stays either way.</li></ul>
+    <h5>🖥️ App server questions</h5>
+    <ul><li>"100k connections, even for WebSockets?" (Kevin Do). Stefan Mai: no benchmark to hand; he offered to pay the AWS bill for anyone who tests it.</li>
+    <li>Disk space on app servers: not worth discussing (Stefan Mai). They have 100 GB+ by default, and data belongs in S3 or a database. The one exception: local NVMe.</li>
+    <li>"What does 'sharding' mean for app servers or queues?" <span class="add">➕ my answer</span> For app servers, just more servers (horizontal scaling). For caches and queues, splitting the keys or <span class="nogl">partitions</span> across nodes.</li></ul>
+    <h5>📚 Extra resources</h5>
+    <ul><li>Vitaly Pushkar's <a href="https://gist.github.com/vitaly-pushkar/1f0cea2efdf913deb0e7f10877768e45" target="_blank" rel="noopener">flashcards of these numbers</a> (Obsidian spaced repetition). Real AWS latencies between regions: <a href="https://www.cloudping.co" target="_blank" rel="noopener">cloudping.co</a>.</li></ul>
   </div>
 </section>
 
@@ -5975,6 +6224,58 @@ document.querySelectorAll('.seq[data-seq]').forEach(buildSeq)
   document.querySelectorAll('.chr[data-ring]').forEach(buildRing)
 })()
 
+// 🧮 "Does it fit on one box?" (Numbers to Know). The limits are the cheat sheet's scale triggers. Bars are linear on
+// purpose: a sliver of a bar is the lesson's point, most interview datasets use a sliver of one machine.
+;(() => {
+  const LIM = [
+    ['💾 Data in one database', 'size', 50 * 2 ** 40, '~50 TiB'],
+    ['⚡ Data in one cache', 'size', 1e12, '~1 TB'],
+    ['✍️ Writes on one database', 'w', 1e4, '~10k/s'],
+    ['📖 Reads on one database', 'r', 5e4, '~50k/s'],
+  ]
+  const PRE = {
+    yelp: { n: '10M', b: '1 KB', x: '10', w: '100', r: '5k' },
+    lc: { n: '10B', b: '40', x: '1', w: '2k', r: '20k' },
+    w5k: { n: '100M', b: '500', x: '2', w: '5k', r: '10k' },
+  }
+  // "10M" → 1e7, "2.5k" → 2500; b = billion here (bytes live in their own field)
+  const count = s => { const m = String(s).trim().replace(/,/g, '').match(/^(\d*\.?\d+(?:e\d+)?)\s*([kmbt]?)$/i); return m ? +m[1] * { '': 1, k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[2].toLowerCase()] : NaN }
+  const bytes = s => { const m = String(s).trim().replace(/,/g, '').match(/^(\d*\.?\d+(?:e\d+)?)\s*([kmgt]?)(i?)b?$/i); if (!m) return NaN; const p = ' kmgt'.indexOf(m[2].toLowerCase() || ' '); return +m[1] * (m[3] ? 1024 : 1000) ** p }
+  const sig = v => v >= 100 ? Math.round(v) : v >= 10 ? +v.toFixed(1) : +v.toFixed(2)
+  const fmtB = v => { const u = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']; let i = 0; while (v >= 1000 && i < u.length - 1) { v /= 1000; i++ } return sig(v) + ' ' + u[i] }
+  const fmtN = v => { const u = ['', 'k', 'M', 'B']; let i = 0; while (v >= 1000 && i < u.length - 1) { v /= 1000; i++ } return sig(v) + u[i] + '/s' }
+  const fmtP = p => p < 0.1 ? '&lt; 0.1%' : p < 10 ? p.toFixed(1) + '%' : Math.round(p) + '%'
+  function build(box) {
+    const ins = {}; box.querySelectorAll('input[data-k]').forEach(i => { ins[i.dataset.k] = i })
+    const out = box.querySelector('.nc-out'), verdict = box.querySelector('.nc-v'), btns = box.querySelectorAll('.nc-pre button')
+    function run() {
+      const v = { n: count(ins.n.value), b: bytes(ins.b.value), x: count(ins.x.value), w: count(ins.w.value), r: count(ins.r.value) }
+      for (const k in ins) ins[k].classList.toggle('bad', !(v[k] >= 0))
+      if (Object.values(v).some(x => !(x >= 0))) { verdict.textContent = '✏️ Use numbers like 10M, 1 KB, 5k.'; return }
+      v.size = v.n * v.b * v.x
+      const pct = LIM.map(([, k, lim]) => v[k] / lim * 100)
+      out.innerHTML = LIM.map(([label, k, , limTxt], i) => {
+        const p = pct[i], cls = p >= 100 ? 'nc-over' : p >= 70 ? 'nc-warn' : 'nc-ok'
+        const val = k === 'size' ? fmtB(v.size) : fmtN(v[k])
+        return '<div class="nc-row ' + cls + '"><span>' + label + '</span><span class="bar"><i style="width:' + Math.min(p, 100).toFixed(2) + '%"></i></span><span class="v"><b>' + val + '</b> of ' + limTxt + ' · ' + fmtP(p) + '</span></div>'
+      }).join('')
+      const [db, cache, w, r] = pct, say = []
+      if (db >= 100) say.push('🧩 The data passes ~50 TiB: shard it (or archive old rows).')
+      else if (cache >= 100) say.push('⚡ Too big for one cache: cache only the hot part, or use a cache cluster.')
+      if (w >= 100) say.push('✍️ Writes pass ~10k/s: check what kind (simple inserts reach 20k+), then shard the writes or queue the spikes.')
+      if (r >= 100) say.push('📖 Reads pass ~50k/s: add a cache and read replicas first.')
+      verdict.textContent = say.length ? say.join(' ') : '✅ One database is enough (plus a replica for failover). No sharding.' + (cache < 70 ? ' The whole dataset even fits in one cache.' : '')
+    }
+    box.querySelectorAll('input').forEach(i => i.addEventListener('input', () => { btns.forEach(b => b.setAttribute('aria-pressed', 'false')); run() }))
+    btns.forEach(b => b.addEventListener('click', () => {
+      const p = PRE[b.dataset.p]; for (const k in p) ins[k].value = p[k]
+      btns.forEach(x => x.setAttribute('aria-pressed', String(x === b))); run()
+    }))
+    btns[0].setAttribute('aria-pressed', 'true'); run()
+  }
+  document.querySelectorAll('.ncalc').forEach(build)
+})()
+
 // 📘 Primers: tap a dotted term to open its 1–2 line explanation under the line it sits in
 document.querySelectorAll('.term').forEach(t => {
   t.onclick = () => {
@@ -6389,6 +6690,24 @@ const GLOSSARY = [
   { id: 'quorum', t: 'Quorum', aka: 'majority read write r w n', s: 'A majority of copies must agree. With N copies, write to W and read from R: if R + W > N, every read sees the latest write.',
     an: 'A decision counts only if most of the board votes for it.',
     b: '<p>🧪 <b>See it:</b> N = 3, W = 2, R = 2. Any 2 copies you read include at least one that has the latest write.</p><p>During a partition, only the side holding a majority can keep going: that\'s CP in action.</p>', see: ['cap', 'consistency', 'replica'] },
+  { id: 'vscale', t: 'Vertical vs horizontal scaling', aka: 'scale up scale out bigger machine more machines', s: 'Vertical = move to a bigger machine. Horizontal = add more machines that share the work.',
+    an: 'One bigger oven, or more ovens.',
+    b: '<p>🧪 <b>See it:</b> the database CPU sits at 90%. Vertical: move from 16 to 64 cores. Horizontal: split the users across 4 databases.</p><p>✅ Vertical needs no code change, until you hit the biggest machine. ✅ Horizontal has no ceiling, but the data must be split.</p><p>⭐ Modern machines are huge, so for data try vertical first. Stateless app servers scale horizontally with no effort.</p><p>☁️ <b>On AWS:</b> change the instance type · EC2 Auto Scaling</p>', see: ['shard', 'stateless', 'replica'] },
+  { id: 'tps', t: 'TPS · QPS · WPS · RPS', aka: 'transactions queries writes requests per second ops throughput', s: 'Throughput: how many transactions (TPS), queries (QPS), writes (WPS) or requests (RPS) per second.',
+    an: 'Plates leaving the kitchen per minute.',
+    b: '<p>🧪 <b>See it:</b> 1M daily users × 10 requests ÷ 86,400 s ≈ 115 RPS on average. Plan for the peak, not the average.</p><p>📏 One database: ~50k reads/s, 10–20k writes/s. One cache: 100k+ ops/s. One Kafka broker: ~1M msgs/s.</p>', see: ['latency', 'vscale'] },
+  { id: 'tib', t: 'TB vs TiB', aka: 'tebibyte terabyte gib gigabyte binary decimal units', s: 'TB = 10^12 bytes (decimal). TiB = 2^40 bytes ≈ 1.1 TB (binary). Memory and disk limits are usually quoted in binary units.',
+    an: 'A dozen and a baker\'s dozen: close, but not the same.',
+    b: '<p>🧪 64 TiB ≈ 70 TB. 512 GiB ≈ 550 GB. The gap grows with each step: KiB 2%, GiB 7%, TiB 10%.</p><p>⭐ In an interview only the order of magnitude matters, so treat them as equal.</p>', see: [] },
+  { id: 'lag', t: 'Consumer lag', aka: 'backlog offset behind kafka queue depth', s: 'How far the readers of a queue are behind its writers: messages written but not yet processed.',
+    an: 'The pile of order tickets the cooks haven\'t started.',
+    b: '<p>🧪 <b>See it:</b> producers write 10k msgs/s, consumers handle 8k/s. Lag grows by 2k a second: 7.2M messages behind after an hour.</p><p>📈 Small and steady = fine. Growing every minute = add consumers (and partitions).</p><p>☁️ <b>On AWS:</b> SQS ApproximateAgeOfOldestMessage · MSK MaxOffsetLag</p>', see: ['tps'] },
+  { id: 'rcuwcu', t: 'RCU / WCU', aka: 'read capacity unit write capacity unit dynamodb provisioned throughput', s: 'DynamoDB\'s throughput units. 1 RCU = one strongly consistent read per second of up to 4 KB (or two eventually consistent ones). 1 WCU = one write per second of up to 1 KB.',
+    an: 'Renting a fixed number of lanes on a toll road.',
+    b: '<p>🧪 <b>See it:</b> 1,000 writes/s of 2 KB items = 2,000 WCU.</p><p>⭐ DynamoDB hides the hardware: you think in capacity units, not machines. On-demand mode scales them for you.</p>', see: ['tps'] },
+  { id: 'tco', t: 'TCO (total cost of ownership)', aka: 'cost pricing price budget', s: 'Everything a design costs over time: machines, plus licences, network, storage and the people who run it.',
+    an: 'A car\'s price plus fuel, insurance and repairs.',
+    b: '<p>🎤 In interviews think in orders of magnitude ("1 machine or 100?"), not dollars.</p>', see: [] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -6547,6 +6866,7 @@ const GLOSSARY = [
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
     partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
+    vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
     extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
     cacheaside: /cache-aside/i, readthrough: /read-through/i, writethrough: /write-through/i, writebehind: /write-behind|write-back/i, writearound: /write-around/i,
     lru: /LRU/, lfu: /LFU/, ttl: /TTLs?/, stampede: /cache stampedes?|request coalescing|single flight/i, hotkey: /hot keys?/i, invalidation: /(?:cache )?invalidat(?:e|es|ed|ion|ing)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
@@ -6554,7 +6874,7 @@ const GLOSSARY = [
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
     .map(([id, re]) => [id, new RegExp(`(?<![\\w/+-])(?:${re.source})(?![\\w+-])`, re.flags)])
-  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .chr, .add, .tag, kbd, .grid2 > div > b'
+  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .chr, .add, .tag, kbd, .grid2 > div > b, .nogl, .ncalc'
   const link = (node, seen) => {
     while (node) {
       let best = null
