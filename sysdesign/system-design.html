@@ -772,6 +772,23 @@ body.map-on .wrap { max-width: 1640px; }
 .nl-ax .nl-t, .nl-ft .nl-t { background: none; height: 14px; }
 .nl-ax em, .nl-ft em { position: absolute; transform: translateX(-50%); font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; }
 .nl-ax em:first-child { transform: none; } .nl-ft em { transform: translateX(-100%); }
+.pmap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 6px 0 4px; }
+.pmap a { display: block; text-decoration: none; color: var(--text); border: 1.5px solid var(--c); background: var(--bg-c); border-radius: 12px; padding: 8px 10px; font-size: 12.5px; min-width: 0; }
+.pmap a:hover { filter: brightness(1.08); }
+.pmap .l { font-size: 22px; font-weight: 800; color: var(--c); line-height: 1; } .pmap .w { color: var(--muted); font-size: 12px; font-style: italic; }
+.pmap b { display: block; color: var(--c); font-size: 13.5px; margin-top: 4px; } .pmap small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+.pm1 { --c: var(--blue-fg); --bg-c: var(--blue-bg); } .pm2 { --c: var(--teal-fg); --bg-c: var(--teal-bg); } .pm3 { --c: var(--red-fg); --bg-c: var(--red-bg); } .pm4 { --c: var(--green-fg); --bg-c: var(--green-bg); }
+.pm5 { --c: var(--amber-fg); --bg-c: var(--amber-bg); } .pm6 { --c: var(--purple-fg); --bg-c: var(--purple-bg); } .pm7 { --c: var(--coral-fg); --bg-c: var(--coral-bg); } .pm8 { --c: var(--gray-fg); --bg-c: var(--gray-bg); }
+.pkc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; font-size: 12.5px; }
+.pkc > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); min-width: 0; }
+.pkc .h { display: block; margin-bottom: 6px; font-size: 13.5px; } .pk-okh { color: var(--green-fg); } .pk-noh { color: var(--red-fg); }
+.pk-r { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 8px; align-items: center; margin: 6px 0; }
+.pk-t { position: relative; height: 14px; border-radius: 99px; background: var(--chip); }
+.pk-t::after { content: ""; position: absolute; left: 75%; top: -4px; bottom: -4px; border-left: 2px dashed var(--text); }
+.pk-t i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--c); }
+.pk-g { --c: var(--green-fg); } .pk-x { --c: var(--red-fg); } .pk-s { --c: var(--muted); }
+.pk-cap { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+@media (max-width: 560px) { .pmap { grid-template-columns: 1fr 1fr; } .pkc { grid-template-columns: 1fr; } }
 .nzone { display: grid; gap: 8px; margin: 6px 0 10px; font-size: 13px; }
 .nz-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px; align-items: stretch; }
 .nz-h { font-weight: 600; align-self: center; }
@@ -5204,6 +5221,201 @@ function owner(key) {
   </div>
 </section>
 
+<section class="card" id="sd-pat-map" data-topic="Patterns" data-course="hi-sd" data-lesson="common-patterns">
+  <h2 class="cap"><b>🧩 Common Patterns ①: The Map · Realtime Updates · Long Tasks · Contention · Scaling Reads</b></h2>
+  <p class="hook">You've learned the bricks: databases, caches, queues, sharding. An interview is too short to invent a design from bricks. What wins is spotting the <b>pattern</b> a problem needs, then using its known best practices and known pitfalls.</p>
+  <p class="tldr">💡 Eight patterns cover most designs: 📡 push realtime updates, ⏳ long-running tasks, 🎟️ contention, 📖 scaling reads, ✍️ scaling writes, 🎞️ large blobs, 🔗 multi-step processes, 📍 proximity search. They mix: one system often uses three or four. For each, the move is the same: start simple, add the heavy tool only when a requirement forces it. It's like a toolbox: you don't build a hammer, you know when to pick it up. Explained below 👇</p>
+
+  <h4>🗺️ The 8 Patterns at a Glance</h4>
+  <p class="bridge">The patterns below are common building blocks. They aren't exclusive: you'll often combine several in one system. Each problem breakdown names the patterns it uses, so you can see what problems have in common.</p>
+  <div class="rem"><b>💡 Tip</b> Spotting and applying patterns often separates senior engineers from junior ones in a system design interview. Patterns tell you what's interesting and what isn't, and they show you the usual failure modes instead of making you discover them on the spot.</div>
+  <p class="bridge">🐱 A reader's mnemonic (Satyam, in the comments): <b>"Please Leave Cats Running Wild Behind My Porch"</b>. Tap a tile to jump to it:</p>
+  <div class="pmap">
+    <a class="pm1" href="#sd-pat-map--pushing-realtime-updates"><span class="l">P</span> <span class="w">Please</span><b>📡 Realtime updates</b><small>👂 chat, live scores, notifications, dashboards</small></a>
+    <a class="pm2" href="#sd-pat-map--managing-long-running-tasks"><span class="l">L</span> <span class="w">Leave</span><b>⏳ Long-running tasks</b><small>👂 video encoding, reports, bulk jobs: anything over a few seconds</small></a>
+    <a class="pm3" href="#sd-pat-map--dealing-with-contention"><span class="l">C</span> <span class="w">Cats</span><b>🎟️ Contention</b><small>👂 last ticket, auction bid, booking a seat</small></a>
+    <a class="pm4" href="#sd-pat-map--scaling-reads"><span class="l">R</span> <span class="w">Running</span><b>📖 Scaling reads</b><small>👂 feeds, profiles, "millions of views"</small></a>
+    <a class="pm5" href="#sd-pat-more--scaling-writes"><span class="l">W</span> <span class="w">Wild</span><b>✍️ Scaling writes</b><small>👂 likes, clicks, sensor data, write spikes</small></a>
+    <a class="pm6" href="#sd-pat-more--handling-large-blobs"><span class="l">B</span> <span class="w">Behind</span><b>🎞️ Large blobs</b><small>👂 upload or download videos, photos, files</small></a>
+    <a class="pm7" href="#sd-pat-more--multi-step-processes"><span class="l">M</span> <span class="w">My</span><b>🔗 Multi-step processes</b><small>👂 order → pay → ship, onboarding, payments</small></a>
+    <a class="pm8" href="#sd-pat-more--proximity-based-services"><span class="l">P</span> <span class="w">Porch</span><b>📍 Proximity search</b><small>👂 nearby drivers, restaurants, stores</small></a>
+  </div>
+  <p class="figcap">🖼️ 👂 = the words in a problem that hint at the pattern. <span class="add">➕ the hints are mine, not in the article</span></p>
+  <p class="ana">🧰 A carpenter doesn't invent a tool for each job. They hear "hang a picture" and reach for the hammer. Patterns are your toolbox: hear "live scores", reach for realtime updates. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📡 Pushing Realtime Updates</h4>
+  <p class="bridge">Many systems must push updates to users the moment they happen: chat apps, notifications, live dashboards. A normal API just answers a request; here the server has to speak first. That raises two separate questions:</p>
+  <div class="flow"><span>📱 Client</span><i>⬅ ① how do updates reach the client? ⬅</i><span>🖥️ Server</span><i>⬅ ② how does the server learn of an update? ⬅</i><span>🔔 Update</span></div>
+  <p class="figcap">🖼️ The lesson's picture: two hops, two problems.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>① Client side: the protocol</b><div class="chk">🔁 <b>HTTP polling</b>: the simplest, not the most efficient</div><div class="chk">📬 <b>SSE</b> and 🔌 <b>WebSockets</b>: built for realtime, but their infrastructure is tricky to get right</div><div class="chk">Full comparison: <a href="#sd-net-realtime">Networking: Real-time</a></div></div>
+    <div class="k-green"><b>② Server side: the trigger</b><div class="chk">📢 <b>Pub/Sub</b>: decouples who publishes from who listens (the WhatsApp breakdown)</div><div class="chk">💍 <b>Stateful servers in a consistent hash ring</b>: for heavier processing per user or document (the Google Docs breakdown)</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ Start with HTTP polling; move to SSE or WebSockets only when it stops serving your needs</b>That's the general recommendation. Polling every few seconds is easy to build, cache and scale.</li>
+  </ul>
+  <p class="ana">🚪 Polling is walking to the door every minute to check for guests. SSE or WebSockets is a doorbell. Question ① is how the bell rings in your house; question ② is how the bell knows someone pressed it. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>⏳ Managing Long-Running Tasks</h4>
+  <p class="bridge">Some work takes too long to do while the user waits: video encoding, report generation, bulk operations, anything over a few seconds. The pattern splits it in two: an <b>instant acknowledgment</b>, and the real work in the <b>background</b>. ▶️</p>
+  <div class="seq" data-seq="long-task"></div>
+  <p class="figcap">🖼️ The lesson's picture as a step-through. In the original, the arrow between queue and workers points at the queue, but workers <b>pull</b> jobs (a reader spotted it); here it's drawn the right way.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Three wins: fast replies, separate scaling, fault isolation</b>Web servers and workers scale on their own, and a crashing report job can't take the website down.</li>
+    <li><b class="hd">🧰 The key parts: a message queue to hand out jobs, a pool of workers to do them</b>Around them you must handle job status tracking, retries and failures, such as a dead letter queue for "poison" messages that fail every time.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Many candidates are quick to put processing behind a queue, and that's often a bad decision. For short jobs, returning the result in the same request makes the architecture far simpler, gives clearer back-pressure, and a better user experience.</div>
+  <p class="ana">👔 A dry cleaner doesn't make you wait while they clean your suit. They give you a ticket (job ID) at once; the cleaning happens in the back; you check later. But you'd never get a ticket for "please hand me a hanger": short jobs are done on the spot. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎟️ Dealing with Contention</h4>
+  <p class="bridge">When several users grab the same thing at once (the last concert ticket, an auction item), you need a way to stop race conditions and keep the data correct. ▶️</p>
+  <div class="seq" data-seq="race"></div>
+  <p class="figcap">🖼️ The lesson's race-condition timeline as a step-through. Its picture runs time right to left (a reader found that odd); here time runs top to bottom.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🗄️ Inside one database</b><div class="chk">⚛️ <b>Atomic updates and transactions</b>: check and write in one step</div><div class="chk">🔒 <b>Pessimistic locking</b>: lock the row first, others wait</div><div class="chk">🔢 <b>Optimistic concurrency control</b>: no lock; the write fails if someone changed the row since you read it</div></div>
+    <div class="k-amber"><b>🌐 Across several machines</b><div class="chk">🔐 Distributed locks</div><div class="chk">🤝 Two-phase commit (<a href="#sd-shard-challenges">Sharding ②</a>)</div><div class="chk">📬 Queue-based serialization: one queue puts every request in a single line</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 The key skill: knowing when atomic updates and transactions are enough, and when you need explicit locks</b></li>
+    <li><b class="hd">⚖️ The trade-off: speed vs consistency guarantees, simple database fixes vs complex distributed coordination</b>Most problems start with a one-database solution before moving to distributed ones.</li>
+  </ul>
+  <div class="rem"><b>💡 Tip</b> Databases are built around contention problems. When you split your data across several databases, you take on every challenge those systems were designed to solve. That can be the right call, but be careful doing it too early: interviewers like to check that you understand everything you give up by breaking your data apart.</div>
+  <p class="ana">🎬 Two people reach for the last cinema seat. Without coordination, both sit on it. The fix is one usher holding the only ticket: whoever reaches the usher first gets it, the other hears "sold out". <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📖 Scaling Reads</h4>
+  <p class="bridge">As an app grows from hundreds to millions of users, reads are often the first bottleneck. Writes create data, reads consume it, and reads grow much faster.</p>
+  <div class="grid2">
+    <div class="k-green"><b>📖 Reads: dozens per visit</b><div class="star">📸 Instagram: open the app</div><div class="chk">Dozens of photos → hundreds of queries for metadata, users, likes</div></div>
+    <div class="k-blue"><b>✍️ Writes: rare</b><div class="star">📸 You post once a day</div><div class="chk">One write</div></div>
+  </div>
+  <p class="figcap">🖼️ Reads to writes usually start around 10:1 and often reach 100:1 or more.</p>
+  <p class="bridge">The fix follows a natural order, cheapest first:</p>
+  <div class="flow"><span>1️⃣ optimize the database: indexes, denormalization</span><i>→</i><span>2️⃣ scale out: read replicas</span><i>→</i><span>3️⃣ add caches: Redis, CDNs</span></div>
+  <div class="flow"><span>🖥️ Server</span><i>→ ① check the cache first →</i><span>⚡ Cache</span><i>→ ② on a miss, the database →</i><span>🗄️ Database</span></div>
+  <p class="figcap">🖼️ The lesson's picture: cache first, database only on a cache miss. The same ladder in more detail: the <a href="#sd-shard-interview--when-to-mention-sharding">🗺️ scale map in Sharding ③</a>.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Three things to manage: cache invalidation, replication lag, hot keys</b>Stale caches (<a href="#sd-cache-problems">Caching ③</a>), replicas a little behind the primary, and millions of users asking for the same viral item at once (<a href="#sd-cache-problems--hot-keys">hot keys</a>).</li>
+  </ul>
+  <p class="ana">📚 A library with one copy of a bestseller: first shelve it better (index), then buy photocopies (replicas), then put a stack at the front door (cache). <span class="add">➕ analogy not in the article</span></p>
+</section>
+
+
+<section class="card" id="sd-pat-more" data-topic="Patterns" data-course="hi-sd" data-lesson="common-patterns">
+  <h2 class="cap"><b>🧩 Common Patterns ②: Scaling Writes · Large Blobs · Multi-Step · Proximity · Picking Patterns</b></h2>
+  <p class="hook">The second half of the toolbox: too many writes, files too big for your servers, workflows that must survive failures, and "what's near me?".</p>
+  <p class="tldr">💡 ✍️ Too many writes → split them across machines with a key that spreads load evenly, and absorb bursts with queues, batching and load shedding. 🎞️ Big files → the client uploads straight to blob storage with a presigned URL; downloads come from a CDN. 🔗 Multi-step workflows → events or a workflow engine (Temporal) that remembers every step. 📍 Location search → a geospatial index, but only past ~100k items. 🧭 Then combine, starting simple. Explained below 👇</p>
+
+  <h4>✍️ Scaling Writes</h4>
+  <p class="bridge">As an app grows to millions of writes per second, one database server hits hard limits. The core strategies:</p>
+  <div class="grid3">
+    <div class="k-blue"><b>🧩 Horizontal sharding</b><div class="chk">Spread the rows across several servers (<a href="#sd-shard-what">Sharding ①</a>)</div></div>
+    <div class="k-purple"><b>🗂️ Vertical partitioning</b><div class="chk">Put different <b>kinds</b> of data on different servers (<a href="#sd-shard-what--first-what-is-partitioning">what partitioning is</a>)</div></div>
+    <div class="k-amber"><b>🌊 Handling write bursts</b><div class="chk">📬 A write queue buffers short spikes</div><div class="chk">🪫 Load shedding drops less important writes during overload</div><div class="chk">📦 Batching groups writes to cut per-write overhead</div></div>
+  </div>
+  <p class="bridge">The key decision is the partition key: it must spread load evenly while keeping related data together.</p>
+  <div class="pkc" role="img" aria-label="Good key, hash of user ID: three user ranges each use about half of a server's capacity. Bad key, country: China needs far more than one server's capacity, New Zealand almost none.">
+    <div><b class="h pk-okh">✅ Good key: hash(user_id)</b>
+      <div class="pk-r pk-g"><span>👥 users 1xx–2xx</span><span class="pk-t"><i style="width:52%"></i></span></div>
+      <div class="pk-r pk-g"><span>👥 users 3xx–4xx</span><span class="pk-t"><i style="width:56%"></i></span></div>
+      <div class="pk-r pk-g"><span>👥 users 5xx–6xx</span><span class="pk-t"><i style="width:50%"></i></span></div></div>
+    <div><b class="h pk-noh">❌ Bad key: country</b>
+      <div class="pk-r pk-x"><span>🇨🇳 China</span><span class="pk-t"><i style="width:100%"></i></span></div>
+      <div class="pk-r pk-s"><span>🇳🇿 New Zealand</span><span class="pk-t"><i style="width:3%"></i></span></div>
+      <div class="pk-cap">┆ = one server's capacity · China runs far past it</div></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's chart. Hashing the user ID keeps every server under capacity; partitioning by country gives China one overloaded server and New Zealand an idle one.</p>
+  <p class="ana">🛒 A supermarket with five checkouts. Sending shoppers by surname letter keeps every line short. Sending them by city sends the whole capital to one till. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎞️ Handling Large Blobs</h4>
+  <p class="bridge">Large files (videos, images, documents) need special handling. Instead of pushing gigabytes through your app servers, the client sends them <b>straight to blob storage</b> with a presigned URL, and downloads come from a CDN. ▶️</p>
+  <div class="seq" data-seq="presign"></div>
+  <p class="figcap">🖼️ The lesson's picture ("transfer 2 GB just once!") as a step-through.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Your servers stop being the bottleneck</b>You also get resumable uploads, progress tracking and worldwide delivery.</li>
+    <li><b class="hd">⚠️ The hard parts: keeping database metadata and blob storage in sync, upload failures, and the lifecycle of big files</b>Event notifications from the storage service keep your app's state consistent.</li>
+  </ul>
+  <p class="ana">📦 A parcel locker. The shop doesn't carry your parcel; it texts you a one-time code (presigned URL). You drop the parcel straight into the locker, and the locker tells the shop it's arrived. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔗 Multi-Step Processes</h4>
+  <p class="bridge">Some business processes span several services and slow steps, and must survive failures, retries and outside systems: order fulfillment, user onboarding, payments. The event-driven version, from the lesson's picture ▶️</p>
+  <div class="seq" data-seq="order-flow"></div>
+  <p class="figcap">🖼️ The lesson's picture (event store with Order · Payment · Inventory · Shipping topics, four worker groups, a payment webhook) as a step-through.</p>
+  <div class="flow"><span>🖥️ one server runs the steps</span><i>→</i><span>📚 event sourcing: each step emits an event</span><i>→</i><span>⚙️ workflow engine: Temporal, AWS Step Functions</span></div>
+  <p class="figcap">🖼️ The range of solutions, simplest first.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ The key insight: stop scattering state and error handling across services; declare the workflow, and let the system run each step once and keep a full audit trail</b>Modern workflow engines handle state, failure recovery and retries for you.</li>
+    <li><b class="hd">🔍 Fact-check: "exactly once" is for the workflow, not for outside calls <span class="add">➕ not in the article</span></b>Temporal records each step's result, so a crash resumes where it stopped. But a call to an outside service (an "activity") can run again on retry: at least once. So make those calls idempotent, for example with an idempotency key on the payment.</li>
+  </ul>
+  <p class="ana">🏃 A relay race with a logbook. Each runner writes "baton passed" in the book. If a runner trips, the next one reads the book and starts from the last entry, not from the start line. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>📍 Proximity-Based Services</h4>
+  <p class="bridge">Designs like Uber or Gopuff must find things by location. Geospatial indexes are the key (<a href="#sd-idx-geo-text--geospatial-indexes">Database Indexing ②</a>): the map is split into regions, things are indexed within regions, and whole empty areas are skipped at once.</p>
+  <div class="grid3">
+    <div class="k-blue"><b>🐘 PostgreSQL + PostGIS</b><div class="chk">An extension for a normal database</div></div>
+    <div class="k-red"><b>⚡ Redis geospatial</b><div class="chk">A built-in data type</div></div>
+    <div class="k-amber"><b>🔎 Elasticsearch geo-queries</b><div class="chk">A dedicated search engine</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🙋 Most users want what's near them, not results from the whole world</b>So searches stay local, which keeps them small.</li>
+  </ul>
+  <div class="rem"><b>💡 Tip</b> Geospatial indexes only really pay off with hundreds of thousands or millions of items. To search a map of 1,000 items, scanning all of them beats the overhead of a special index or service.</div>
+  <p class="ana">🗺️ Looking for a café: you check the few streets around you, not every street in the country. With only 10 cafés in town, you'd just read the whole list. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧭 Pattern Selection</h4>
+  <p class="bridge">These patterns often work together. A video platform, for example:</p>
+  <div class="flow"><span>🎞️ upload: Large Blobs</span><i>→</i><span>⏳ transcode: Long-Running Tasks</span><i>→</i><span>📡 progress: Realtime Updates</span></div>
+  <p class="figcap">🖼️ …with 🔗 Multi-Step Processes coordinating the whole workflow.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 Recognize which patterns fit, and know their trade-offs</b></li>
+    <li><b class="hd">🐢 Start simple (polling, one server running the steps); add complexity only when a requirement demands it</b></li>
+    <li><b class="hd">⭐ Naming the patterns early shows architectural maturity</b>It also keeps you on the parts of the design that matter, instead of getting lost in implementation details.</li>
+  </ul>
+  <p class="bridge">🎤 How to say it:</p>
+  <ul class="lines">
+    <li><span class="say">🗣️ "Uploads are large blobs, so clients upload straight to S3 with a presigned URL. Transcoding is a long-running task on a worker queue, and I'll push progress to the client, starting with polling."</span></li>
+    <li><span class="say">🗣️ "Booking the last seat is a contention problem. On one database, an atomic conditional update is enough; I'd add locks only if the data were split."</span></li>
+  </ul>
+  <p class="ana">🧱 Lego: a castle is the same few bricks combined. Name the bricks you're using, and the interviewer sees the castle. <span class="add">➕ analogy not in the article</span></p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🤖 "Add a pattern for GenAI / LLM products" (top comment, 293 votes)</h5>
+    <ul><li>Evals, golden data sets, prompt engineering, RAG, third-party APIs. A reader: isn't that the ML design interview? Stefan Mai (admin): it would need renaming every 3–4 months.</li></ul>
+    <h5>🔀 "Add CQRS"</h5>
+    <ul><li><span class="add">➕ what it is</span> Command Query Responsibility Segregation: one model for writes, a separate one for reads (say, writes go to Postgres, and a search index built from them via CDC serves the reads).</li>
+    <li>A reader: great, but few real uses (linked Martin Fowler's note). Another saw it removed once its author left, because it added upkeep without solving a real problem. Another: it's asked often, along with Saga and 2PC.</li></ul>
+    <h5>⏱️ Temporal fans</h5>
+    <ul><li>Tim and Prashanth brought Temporal to their companies after reading about it here. Evan King: Hello Interview uses it a lot (their blog, lesson #4). Stefan Mai: a deep dive may come later.</li>
+    <li>"Which engine guarantees exactly-once?" (Nicholas Lydon): see the fact-check in ② 🔗. Kafka or Flink for multi-step jobs? core2extremist: Temporal is the standard for multi-step work with state; Flink is for always-on streaming; adding state and steps to Kafka means rebuilding Temporal.</li></ul>
+    <h5>📬 "Kafka vs SQS is about throughput, not replay" (Abhi)</h5>
+    <ul><li>Kafka keeps a log you can replay. SQS can resend failed messages from its dead letter queue. Abhi's point: choose by throughput and ordering needs.</li>
+    <li><span class="add">➕ fact-check</span> SQS FIFO: 300 messages/s per API action, 3,000 with batching, and much more in high-throughput mode. Moving messages from the DLQ back to the queue is now built into SQS (DLQ redrive), with no Lambda needed.</li></ul>
+    <h5>🧩 "Missing patterns?"</h5>
+    <ul><li>Flavio Araujo: "don't lose messages" (outbox pattern + CDC) and "don't duplicate messages" (dedup + idempotency keys). Arunprasaath: video processing. core2extremist: that's Multi-Step + Long-Running Tasks + Large Blobs combined.</li>
+    <li>"Why a database in the job pattern?" To track each job's state: idempotency, re-queuing failed runs, and reporting (Arunprasaath, core2extremist).</li></ul>
+    <h5>🚪 "Aren't the load balancer and API gateway single points of failure?"</h5>
+    <ul><li>Stefan Mai: they're redundant too. <code>dig hellointerview.com</code> returns 4 IPs; the client picks one, which spreads load before any load balancer. AWS API Gateway includes its own load balancing; a self-built gateway may need a "load balancer sandwich" (LB → gateway → LB per service). His advice: don't stress about the boxes unless you're asked for detail.</li>
+    <li>core2extremist: managed load balancers (AWS ELB) are highly available, and gateways run stateless. Draw "LB + gateway" as one box; the interesting parts come later.</li></ul>
+    <h5>🏁 Contention vs race condition</h5>
+    <ul><li>Zhao Zhang: contention is competition for the same resource. A race condition is the bug that happens when that competition isn't coordinated: a result of contention, not a type of it.</li>
+    <li>"What's queue-based serialization?" (xf58). core2extremist: put every request in one line. Two ₹100 transfers from an account holding ₹100: in a queue, the first passes the balance check, and the second fails it.</li></ul>
+    <h5>📡 "When polling, SSE or WebSockets?" (Audrey Jin)</h5>
+    <ul><li><span class="add">➕ my answer</span> Polling: updates every few seconds are fine (order status). SSE: the server streams, and the client only listens (live scores, LLM tokens). WebSockets: both sides talk all the time (chat, multiplayer games, shared editing). Details: <a href="#sd-net-realtime">Networking: Real-time</a>.</li></ul>
+    <h5>⏳ "A task takes 3 seconds: sync or async?" (Samruddh Shah)</h5>
+    <ul><li>A reader: weighing the trade-off is the signal interviewers want. <span class="add">➕ my answer</span> Go async when the work could pass a timeout (AWS API Gateway stops waiting at 29 s by default), needs retries, or the user doesn't need the result to carry on. Otherwise stay sync.</li>
+    <li>"Queue in the high-level design, or later?" (Noam Shvacher). <span class="add">➕ my answer</span> If the requirements already say the task takes minutes (transcoding), draw the queue straight away. If not, start sync and bring it in during the deep dive.</li></ul>
+    <h5>🔁 "With Kafka, won't another worker grab a job that's half done?" (Dmitry Grigorenko)</h5>
+    <ul><li><span class="add">➕ my answer</span> No. In a consumer group, each partition is read by only one worker at a time. The worker commits its position (offset) as it goes; if it crashes, another worker takes over the partition and resumes from the last commit.</li></ul>
+    <h5>🧱 "Why split two stages into two services?" (vinay s)</h5>
+    <ul><li>Stefan Mai: they don't have to be, but they often scale differently. A vector database that finds candidates is stateful and needs lots of RAM; an ML ranker needs GPUs but is stateless and scales easily.</li></ul>
+    <h5>🌀 "Sharding is vertical, partitioning is horizontal?"</h5>
+    <ul><li><span class="add">➕ fact-check</span> The other way round. Sharding = horizontal partitioning: rows spread over several servers, by a shard (partition) key. Vertical partitioning = splitting by columns or tables (<a href="#sd-shard-what--first-what-is-partitioning">Sharding ①</a>).</li></ul>
+    <h5>💭 Is this page useful?</h5>
+    <ul><li>Some found it a list of random terms and prefer the pattern lessons themselves. Others call it a great recap once you've done the deep dives. One reader wanted about 50% more detail, so it tells a story on its own.</li>
+    <li>Take: use it as the map. Each pattern gets its own lesson next, starting with Scaling Reads.</li></ul>
+  </div>
+</section>
+
 </div>
 <div id="mapview" hidden>
 <section class="card map-card" id="sd-aws-map">
@@ -5322,7 +5534,8 @@ const COURSES = {
           ['cap-theorem', 'CAP Theorem'], ['numbers-to-know', 'Numbers to Know']] },
       ] },
       { title: 'Part 2 · The Patterns', sections: [
-        { n: '', id: 'common-patterns', title: 'Common Patterns' },
+        { n: '', id: 'common-patterns', title: 'Common Patterns', lessons: [
+          ['common-patterns', 'Common Patterns']] },
         { n: '04', id: 'scaling-reads', title: 'Scaling Reads' },
         { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
         { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
@@ -6037,6 +6250,62 @@ const SEQS = {
       { f: 0, t: 1, m: 'commit', k: 'tcp', cap: '② Everyone said yes, so the coordinator says <b>commit</b>.' },
       { f: 0, t: 2, m: 'commit', k: 'tcp', cap: 'Both shards apply the change and release the locks. Strong consistency ✅' },
       { at: 0, m: '💥 crash between ① and ②?', k: 'err', cap: '⚠️ If the coordinator dies after "ready", both shards hold their locks and wait, unsure whether to commit. Slow, fragile, and the reason 2PC is avoided at scale.' },
+    ],
+  },
+  'long-task': {
+    lanes: ['👤 Client', '🖥️ Server', '🗄️ DB', '📬 Queue', '⚙️ Worker'],
+    key: [['http', 'request / write'], ['tcp', 'reply / done'], ['lb', 'job handed out']],
+    frames: [
+      { cap: 'A user asks for a big report: minutes of work. Watch one request split into a fast reply and slow background work 👇' },
+      { f: 0, t: 1, m: 'POST /reports', k: 'http', cap: '① The client asks for the report. The server checks the request at once.' },
+      { f: 1, t: 2, m: 'job 42: queued', k: 'http', cap: '② It records the job in the database with status "queued", so anyone can ask about it later.' },
+      { f: 1, t: 3, m: 'push job 42', k: 'http', cap: '③ It puts the job on a queue (Redis, Kafka, SQS).' },
+      { f: 1, t: 0, m: 'job id 42 (in ms)', k: 'tcp', cap: '④ It replies within milliseconds with the job ID. The user isn\'t stuck waiting for minutes.' },
+      { f: 3, t: 4, m: 'worker pulls job 42', k: 'lb', cap: '⑤ A worker pulls the next job off the queue. Workers pull; the queue doesn\'t push.' },
+      { at: 4, m: 'builds the report…', k: 'lb', cap: '⑥ The worker does the slow work. More jobs? Add workers; the web servers don\'t change.' },
+      { f: 4, t: 2, m: 'job 42: done ✅', k: 'tcp', cap: '⑦ When it\'s finished, the worker updates the job\'s status in the database. If a job fails every time (a "poison message"), after a few retries it goes to a dead letter queue instead of blocking the line.' },
+      { f: 0, t: 1, m: 'GET /jobs/42 → done', k: 'tcp', bi: 1, cap: '⑧ The client checks the status (or the server pushes it: see Realtime Updates) and downloads the report.' },
+    ],
+  },
+  'race': {
+    lanes: ['👩 Alice', '🗄️ DB · 1 seat left', '👨 Bob'],
+    key: [['tcp', 'read'], ['http', 'write'], ['err', 'wrong result']],
+    frames: [
+      { cap: 'One seat left for a concert. Alice and Bob try to book it at the same moment 👇' },
+      { f: 0, t: 1, m: 'read: 1 seat ✅', k: 'tcp', bi: 1, cap: '① Alice reads: 1 seat available.' },
+      { f: 2, t: 1, m: 'read: 1 seat ✅', k: 'tcp', bi: 1, cap: '② A moment later Bob reads too. Still 1 seat, because Alice hasn\'t booked yet.' },
+      { at: 0, m: 'pays 💳', k: 'http', cap: '③ Alice pays.' },
+      { at: 2, m: 'pays 💳', k: 'http', cap: '④ Bob pays too. Both believe the seat is theirs.' },
+      { f: 0, t: 1, m: 'seats = 1 − 1 = 0', k: 'http', cap: '⑤ Alice\'s booking saves seats = 0.' },
+      { f: 2, t: 1, m: 'seats = 0 − 1 = −1 ❌', k: 'err', cap: '⑥ Bob\'s booking saves seats = −1. One seat, two paid tickets: a <b>race condition</b>. Two people wanting one seat is contention; nobody coordinating them is the bug.' },
+      { note: '✅ UPDATE … SET seats = seats − 1 WHERE seats > 0', cap: '➕ One fix: make "check and take" a single atomic step, and do it <b>before</b> payment. The database runs the two updates one after another; Bob\'s finds 0 seats, changes nothing, and Bob hears "sold out" before he pays.' },
+    ],
+  },
+  'presign': {
+    lanes: ['👤 Client', '🖥️ Server', '🪣 S3', '🌍 CDN'],
+    key: [['http', 'request / upload'], ['tcp', 'reply'], ['lb', 'event']],
+    frames: [
+      { cap: 'A user uploads a 2 GB video. The naive way sends it through your server: 2 GB in, then 2 GB out again to storage. The presigned way 👇' },
+      { f: 0, t: 1, m: 'I want to upload video.mp4', k: 'http', cap: '① The client asks the server (through the API gateway) for permission to upload.' },
+      { at: 1, m: 'sign a URL with its own keys', k: 'lb', cap: '② The server makes a <b>presigned URL</b> with its own credentials: a link that allows one action (PUT), on one file name, for a short time. No file moves yet.' },
+      { f: 1, t: 0, m: 'presigned URL', k: 'tcp', cap: '③ The client gets the URL.' },
+      { f: 0, t: 2, m: 'PUT 2 GB, just once!', k: 'http', cap: '④ The client sends the file straight to S3. Your servers never touch the 2 GB. ➕ Big files go up in parts (S3 multipart upload), so a dropped connection retries one part, not the whole file.' },
+      { f: 2, t: 1, m: 'event: upload done', k: 'lb', cap: '⑤ S3 sends an event notification. The server marks the file "uploaded" in its database, so metadata and storage stay in sync.' },
+      { f: 0, t: 3, m: 'GET with a signed URL', k: 'tcp', bi: 1, cap: '⑥ Downloads come from a CDN close to the user, with signed URLs for access control.' },
+    ],
+  },
+  'order-flow': {
+    lanes: ['👤 Client · API', '📚 Event store', '⚙️ Workers', '💳 Payment service'],
+    key: [['http', 'write event / call'], ['lb', 'worker reads event'], ['tcp', 'callback']],
+    frames: [
+      { cap: 'An order needs payment, stock and shipping, and any step can fail. In the event-driven version, every step writes an event that starts the next 👇' },
+      { f: 0, t: 1, m: 'OrderPlaced', k: 'http', cap: '① The API server writes the order as an event to the event store (topic: Order).' },
+      { f: 1, t: 2, m: 'payment worker reads it', k: 'lb', cap: '② A payment worker picks up OrderPlaced.' },
+      { f: 2, t: 3, m: 'charge ₹1,999', k: 'http', cap: '③ It asks the outside payment service to charge the card.' },
+      { f: 3, t: 2, m: 'webhook: paid ✅', k: 'tcp', cap: '④ Some time later, the payment service calls back with a webhook.' },
+      { f: 2, t: 1, m: 'PaymentDone', k: 'http', cap: '⑤ The worker writes PaymentDone. The inventory workers are waiting for exactly that event…' },
+      { f: 1, t: 2, m: 'inventory → shipping → email', k: 'lb', cap: '⑥ …and the chain goes on: stock reserved → shipped → email sent. Each step is a group of workers with its own topic.' },
+      { note: '📜 every event kept = a full audit trail', cap: '⭐ If a worker crashes, its event is still in the store and another worker retries it. A workflow engine (Temporal, AWS Step Functions) gives the same safety, with the steps written as ordinary code.' },
     ],
   },
   'cache-cpu': {
@@ -6787,6 +7056,39 @@ const GLOSSARY = [
   { id: 'tco', t: 'TCO (total cost of ownership)', aka: 'cost pricing price budget', s: 'Everything a design costs over time: machines, plus licences, network, storage and the people who run it.',
     an: 'A car\'s price plus fuel, insurance and repairs.',
     b: '<p>🎤 In interviews think in orders of magnitude ("1 machine or 100?"), not dollars.</p>', see: [] },
+  { id: 'pubsub', t: 'Pub/Sub (publish–subscribe)', aka: 'publish subscribe topic channel fan out broadcast', s: 'Senders publish messages to a topic; everyone subscribed to that topic gets a copy. Senders don\'t know who listens.',
+    an: 'A radio station: it broadcasts once, and every radio tuned in hears it.',
+    b: '<p>🧪 <b>See it:</b> a chat server publishes "new message in room 7"; the 3 servers holding users of room 7 are subscribed and push it to their users.</p><p>⚠️ Plain pub/sub (Redis) keeps nothing: a subscriber that was offline misses the message. A queue or log (Kafka) keeps it.</p><p>☁️ <b>On AWS:</b> SNS · ElastiCache (Redis) pub/sub</p>', see: ['dlq'] },
+  { id: 'dlq', t: 'Dead letter queue (DLQ)', aka: 'poison message retry failed messages redrive', s: 'A side queue for messages that keep failing, so they stop blocking the main queue and can be inspected or retried later.',
+    an: 'The post office\'s "undeliverable" shelf.',
+    b: '<p>🧪 <b>See it:</b> a job crashes the worker every time. After 5 tries it moves to the DLQ; the queue moves on, and an alert fires.</p><p>☁️ <b>On AWS:</b> SQS dead-letter queues, with redrive back to the main queue</p>', see: ['pubsub'] },
+  { id: 'race', t: 'Race condition', aka: 'contention double booking concurrent lost update', s: 'A bug where the result depends on which of two simultaneous actions happens first, because nothing coordinated them.',
+    an: 'Two people sitting on the last cinema seat at once.',
+    b: '<p>🧪 <b>See it:</b> Alice and Bob both read "1 seat left", both book, seats = −1.</p><p>✅ Fixes: an atomic conditional update, a transaction with a lock, or optimistic concurrency.</p>', see: ['occ', 'pesslock', 'acid'] },
+  { id: 'occ', t: 'Optimistic concurrency control', aka: 'occ optimistic locking version number compare and set cas', s: 'No lock while you read. When you write, you check that nobody changed the row since you read it; if someone did, your write fails and you retry.',
+    an: 'Editing a shared doc that warns "someone saved a newer version" when you try to save.',
+    b: '<p>🧪 <b>See it:</b> read row (version 7) → <code>UPDATE … SET seats = 0, version = 8 WHERE id = 1 AND version = 7</code>. If 0 rows change, someone beat you: re-read and retry.</p><p>✅ Fast when conflicts are rare. ⚠️ Lots of retries when they\'re common: use a lock then.</p>', see: ['pesslock', 'race'] },
+  { id: 'pesslock', t: 'Pessimistic locking', aka: 'select for update row lock exclusive lock', s: 'Lock the row before you change it; anyone else who wants it waits until you finish.',
+    an: 'Taking the only key to the meeting room: others wait outside.',
+    b: '<p>🧪 <b>See it:</b> <code>SELECT … FOR UPDATE</code> locks the seat row; Bob\'s request waits, then sees 0 seats.</p><p>✅ Safe when conflicts are common. ⚠️ Slower, and held locks can cause waits or deadlocks.</p>', see: ['occ', 'race'] },
+  { id: 'loadshed', t: 'Load shedding', aka: 'drop requests overload shed 503 priority', s: 'When overloaded, deliberately reject or drop less important work so the important work still succeeds.',
+    an: 'A crowded emergency room treats emergencies first and asks small cuts to come back later.',
+    b: '<p>🧪 <b>See it:</b> at 3× normal writes, keep payments, drop "last seen" updates, return 503 to analytics pings.</p>', see: ['ratelimit'] },
+  { id: 'presign', t: 'Presigned URL', aka: 'signed url s3 direct upload temporary credentials', s: 'A link your server signs with its own keys that lets the holder do one action (upload or download one file) for a short time, straight with the storage service.',
+    an: 'A one-time parcel locker code.',
+    b: '<p>🧪 <b>See it:</b> server signs <code>PUT /videos/abc.mp4</code>, valid 15 min → client uploads 2 GB straight to S3 → your servers never carry the file.</p><p>☁️ <b>On AWS:</b> S3 presigned URLs · CloudFront signed URLs for downloads</p>', see: ['cdn'] },
+  { id: 'evsrc', t: 'Event sourcing', aka: 'event store events log audit trail append only', s: 'Store every change as an event in an append-only log, and build current state by replaying the events.',
+    an: 'A bank statement: the balance is the sum of every line, and no line is ever erased.',
+    b: '<p>🧪 <b>See it:</b> OrderPlaced → PaymentDone → Shipped. The order\'s status is the latest event; the whole history is the audit trail.</p><p>✅ Full history, easy replays. ⚠️ Harder to query "current state"; usually paired with read views (CQRS).</p>', see: ['cqrs', 'durable'] },
+  { id: 'durable', t: 'Durable execution (workflow engine)', aka: 'temporal step functions workflow orchestrator cadence airflow', s: 'A workflow engine that records each step\'s result, so a multi-step process survives crashes and resumes where it stopped.',
+    an: 'A relay race with a logbook: a new runner starts from the last entry, not the start line.',
+    b: '<p>🧪 <b>See it:</b> charge card ✅ → reserve stock ✅ → server crashes → on restart the engine skips the two done steps and ships.</p><p>⚠️ Outside calls (activities) may run again on retry: make them idempotent.</p><p>☁️ <b>On AWS:</b> Step Functions</p>', see: ['evsrc', 'saga', 'idem'] },
+  { id: 'cqrs', t: 'CQRS', aka: 'command query responsibility segregation read model write model', s: 'Command Query Responsibility Segregation: one model (often one database) for writes, a separate one shaped for reads.',
+    an: 'A kitchen takes orders on tickets, but the menu board out front is a separate, simpler view.',
+    b: '<p>🧪 <b>See it:</b> writes go to Postgres; CDC feeds a search index and a cache that serve every read.</p><p>⚠️ Two models to keep in sync; worth it only when reads and writes truly differ.</p>', see: ['cdc', 'evsrc'] },
+  { id: 'outbox', t: 'Outbox pattern', aka: 'transactional outbox dual write lost message', s: 'Write the business change and the message to send in the same database transaction; a separate process then publishes the message from the outbox table.',
+    an: 'Putting the letter in the office out-tray in the same moment you file the paperwork; the courier collects the tray.',
+    b: '<p>🧪 <b>See it:</b> one transaction saves the order <b>and</b> an "OrderPlaced" outbox row → a relay (or CDC) publishes it to Kafka. No lost or phantom events, even on a crash.</p>', see: ['cdc', 'idem'] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -6946,6 +7248,7 @@ const GLOSSARY = [
     partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
+    pubsub: /pub\/sub|publish[- ]subscribe/i, dlq: /dead[- ]letter queues?|DLQs?/i, race: /race conditions?/i, occ: /optimistic concurrency(?: control)?|optimistic locking/i, pesslock: /pessimistic lock(?:ing|s)?/i, loadshed: /load shedding/i, presign: /pre-?signed URLs?/i, evsrc: /event sourcing/i, durable: /durable execution|workflow engines?|Temporal\b/, cqrs: /CQRS/, outbox: /outbox pattern/i,
     extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
     cacheaside: /cache-aside/i, readthrough: /read-through/i, writethrough: /write-through/i, writebehind: /write-behind|write-back/i, writearound: /write-around/i,
     lru: /LRU/, lfu: /LFU/, ttl: /TTLs?/, stampede: /cache stampedes?|request coalescing|single flight/i, hotkey: /hot keys?/i, invalidation: /(?:cache )?invalidat(?:e|es|ed|ion|ing)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
