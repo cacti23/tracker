@@ -949,7 +949,7 @@ Reread the page once more from top to bottom and compare it with your output. Lo
         <p>🔎 <b>How to find them</b>: walk this checklist, so you don't blank. Remember it as <b>FCC + SLEDS</b> <span class="cm">💬</span>. For each letter, ask its question; keep the 3–5 that really matter for <b>this</b> system.</p>
         <table class="tbl">
           <tr><td><b class="big">F</b> 🛡️ Fault tolerance</td><td>A server or region dies: must it keep working?</td></tr>
-          <tr><td><b class="big">C</b> 🔀 CAP</td><td>When the network splits, stay <b>consistent</b> or stay <b>available</b>? (Partition tolerance is a given.)</td></tr>
+          <tr><td><b class="big">C</b> 🔀 CAP</td><td>When the network splits, stay <b>consistent</b> or stay <b>available</b>? (Partition tolerance is a given.) <a href="#sd-cap-what">→ CAP Theorem</a></td></tr>
           <tr><td><b class="big">C</b> 📜 Compliance</td><td>Any legal or industry rules on the data? (e.g. payments, personal data)</td></tr>
           <tr><td><b class="big">S</b> 📈 Scalability</td><td>How many users and requests? Bursty (events, holidays)? Read-heavy or write-heavy?</td></tr>
           <tr><td><b class="big">L</b> ⚡ Latency</td><td>Which requests must be fast, and how fast? Focus on the heavy ones (e.g. Yelp search)</td></tr>
@@ -4734,6 +4734,161 @@ function owner(key) {
   </div>
 </section>
 
+<section class="card" id="sd-cap-what" data-topic="CAP Theorem" data-course="hi-sd" data-lesson="cap-theorem">
+  <h2 class="cap"><b>🔀 CAP Theorem ①: What It Is · An Example · Consistency or Availability</b></h2>
+  <p class="hook">CAP theorem confuses many candidates, yet it shapes your whole design: it's the first non-functional requirement to settle. When the copies of your data can't talk to each other, do you refuse to answer, or answer with what you have?</p>
+  <p class="tldr">💡 Your data lives on several servers. 🔌 Some day the network between them breaks (a <b>partition</b>). That will happen, so you must handle it, and then each request gets one of two answers. 🔒 <b>Consistency</b>: refuse unless you're sure it's the latest, because an error beats a wrong answer. 🟢 <b>Availability</b>: answer from the copy you have, because an old answer beats none. Pick 🔒 when stale data would be a disaster (seats, stock, money), 🟢 for almost everything else. Like two shop counters that sync their notebooks by phone, when the phone line goes dead. Explained below 👇</p>
+
+  <h4>🧩 What is CAP Theorem?</h4>
+  <p class="bridge">In a distributed system you can only have <b>two of these three</b> properties:</p>
+  <div class="grid3">
+    <div class="k-blue"><b>🔒 Consistency</b><div class="chk">All nodes see the same data at the same time.</div><div class="chk">After a write to one node, every later read, from <b>any</b> node, returns that new value.</div></div>
+    <div class="k-green"><b>🟢 Availability</b><div class="chk">Every request to a node that hasn't failed gets a response.</div><div class="chk">No promise that the response holds the latest data.</div></div>
+    <div class="k-amber"><b>🔌 Partition tolerance</b><div class="chk">The system keeps working when messages between its parts are lost or a part fails: a <b>network partition</b>.</div><div class="chk"><span class="add">➕ from the comments</span> Both nodes are up; they just can't talk. A network split, not a shard.</div></div>
+  </div>
+  <div class="warn"><b>⚠️ Watch out</b> Consistency in CAP is quite different from the consistency ACID databases guarantee. The author: "Confusing, I know."</div>
+  <div class="grid2">
+    <div class="k-amber"><b>📏 ACID's C</b><div class="chk">One database keeps its rules: no negative balance, no broken foreign key.</div><div class="chk">About one transaction.</div></div>
+    <div class="k-blue"><b>🔒 CAP's C</b><div class="chk">Every copy returns the latest write.</div><div class="chk">About copies on several machines.</div></div>
+  </div>
+  <p class="figcap">🖼️ Same letter, two meanings. <span class="add">➕ not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ In any distributed system, partition tolerance is a must</b>Network failures will happen (a cut cable, a crashed router), and your system must handle them. "No network partitions" isn't an option you can pick.</li>
+    <li><b class="hd">🎯 So CAP boils down to one choice: consistency or availability, when a partition happens</b>This is the key insight that makes CAP simple in an interview. <span class="add">➕ not in the article</span> While the network is healthy, you get both; the choice only bites while the link is down.</li>
+  </ul>
+  <p class="ana">🏪 Two shop counters, each with a notebook of the stock, kept in sync by phone. The phone line will go dead some day (P is a given). Then a customer asks one counter a question: refuse until the line is back (C), or answer from its own notebook, which may be old (A). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🌍 Understanding CAP Theorem Through an Example</h4>
+  <p class="bridge">A website with two servers, one in the USA and one in Europe, each with a copy of the data. User A changes their public display name. ▶️</p>
+  <div class="seq" data-seq="cap-split"></div>
+  <p class="figcap">🖼️ The lesson's two pictures (replicate, then a red ✕ on the replicate link) as one animation.</p>
+  <p>💥 The critical decision: when User B asks for User A's profile during the partition, should we…</p>
+  <div class="grid2">
+    <div class="k-red"><b>🅰️ Option A: return an error</b><div class="star">choosing consistency</div><div class="chk">We can't guarantee the data is up to date, so we don't answer.</div></div>
+    <div class="k-green"><b>🅱️ Option B: show possibly stale data</b><div class="star">choosing availability</div><div class="chk">User B sees the old name, but sees something.</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ Here the answer is fairly clear: show the old name</b>We'd rather show a user in Europe User A's old name than an error. A stale name beats no name at all.</li>
+  </ul>
+  <p class="ana">🏪 The phone line is dead, and a customer at the Europe counter asks for A's name. The counter can read it out of its notebook (A), or say "sorry, can't check, come back later" (C). For a name, just read it out.</p>
+
+  <h4>🔒 When to Choose Consistency</h4>
+  <p class="bridge">Some systems absolutely require consistency, even at the cost of availability, because stale data does real damage:</p>
+  <div class="grid3">
+    <div class="k-red"><b>✈️ Ticket booking</b><div class="chk">User A books seat 6A. During a partition, User B still sees 6A as free and books it too. Two people show up for one seat!</div></div>
+    <div class="k-red"><b>🪥 E-commerce inventory</b><div class="chk">Amazon has one toothbrush left. Shown as available to several users during a partition, it gets oversold.</div></div>
+    <div class="k-red"><b>📈 Financial systems</b><div class="chk">A stock trading platform must show an accurate, up-to-date order book. Stale data leads to trades at the wrong price.</div></div>
+  </div>
+  <p class="ana">🏪 The last toothbrush: the Europe counter can't reach the USA counter, so it says "can't sell it right now" rather than risk selling it twice.</p>
+
+  <h4>🟢 When to Choose Availability</h4>
+  <p class="bridge">Most systems can tolerate some inconsistency, and should prioritize availability. Eventual consistency is fine: the system <b>becomes</b> consistent, but that may take a few seconds or minutes.</p>
+  <div class="grid3">
+    <div class="k-green"><b>📸 Social media</b><div class="chk">User A changes their profile picture. It's perfectly fine if User B sees the old one for a few minutes.</div></div>
+    <div class="k-green"><b>🎬 Content (Netflix)</b><div class="chk">Someone updates a movie description. Showing the old one to some users for a while isn't catastrophic.</div></div>
+    <div class="k-green"><b>🍽️ Review sites (Yelp)</b><div class="chk">A restaurant changes its hours. Slightly old info for a short time beats no info.</div></div>
+  </div>
+  <div class="rem"><b>✅ Remember</b> The key question: <b>"Would it be catastrophic if users briefly saw inconsistent data?"</b> Yes → choose consistency. No → choose availability.</div>
+  <p>🧠 A readers' shortcut: money or a booking changes hands → consistency; otherwise → availability. <span class="add">➕ from the comments</span></p>
+  <p class="ana">🏪 The opening hours on the shop door can be a few minutes out of date. The last item on the shelf can't be sold twice.</p>
+</section>
+
+<section class="card" id="sd-cap-interview" data-topic="CAP Theorem" data-course="hi-sd" data-lesson="cap-theorem">
+  <h2 class="cap"><b>🔀 CAP Theorem ②: In Interviews · Advanced · Levels of Consistency</b></h2>
+  <p class="hook">CAP should be one of the first things you discuss in an interview, because it changes how you design the system. At senior level, the answer is rarely one word for the whole system.</p>
+  <p class="tldr">💡 🎤 In the non-functional requirements, ask first: "consistency or availability?" 🔒 <b>Consistency</b> → one copy, or copies kept in step (one database, two-phase commit), at a latency cost. 🟢 <b>Availability</b> → many copies, updated in the background (replicas, CDC). 🎭 <b>Senior</b>: pick per feature (booking a seat = consistent, browsing = available). 📶 Consistency isn't on/off: strong, causal, read-your-own-writes, eventual. Explained below 👇</p>
+
+  <h4>🎤 CAP Theorem in System Design Interviews</h4>
+  <p class="bridge">You first align on functional requirements (features), then define non-functional ones (system qualities). CAP is the starting point of the non-functional part (the 🔀 C of FCC + SLEDS in the <a href="#sd-delivery-framework">Delivery Framework</a>). Ask the all-important question: <b>"Does this system need to prioritize consistency or availability?"</b> The answer changes your design:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🔒 Prioritize consistency</b>
+      <div class="chk">🔗 <b>Distributed transactions</b>: keep several stores (say, cache and database) in sync with two-phase commit. More complex, and users see higher latency, but every node agrees.</div>
+      <div class="chk">1️⃣ <b>Single-node solutions</b>: one database, so nothing has to propagate: one source of truth. It limits scale.</div>
+      <div class="chk">🛠️ PostgreSQL, MySQL · Google Spanner · DynamoDB in strong consistency mode</div></div>
+    <div class="k-green"><b>🟢 Prioritize availability</b>
+      <div class="chk">📑 <b>Multiple replicas</b>: more read replicas with asynchronous replication. Any replica can answer, even if slightly behind. Faster reads and higher availability, at the cost of staleness.</div>
+      <div class="chk">🔄 <b>Change data capture (CDC)</b>: follow the changes in the primary and push them, in the background, to replicas, caches and other systems. The primary stays available while updates flow.</div>
+      <div class="chk">🛠️ Cassandra · DynamoDB (multi-AZ) · Redis clusters</div></div>
+  </div>
+  <div class="rem"><b>✅ Remember</b> Most modern distributed databases can be configured for consistency or for availability. The key is knowing which one your use case needs.</div>
+  <h5>🔍 Fact-checks on that list <span class="add">➕ not in the article</span></h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🐘 PostgreSQL and MySQL are consistent only on the primary</b>ACID transactions don't keep replicas in step: an async read replica can still return old data (a reader's point). Read from the primary when it must be fresh.</li>
+    <li><b class="hd">🟧 DynamoDB: strong or eventual is a switch on each read</b>Reads are eventually consistent by default (and cost half). <code>ConsistentRead=true</code> gives a strong read. Every table is already spread over 3 AZs, so "multi-AZ" isn't a setting you pick; the availability-first options are eventual reads and global tables (copies in several Regions). <span class="aws">☁️ AWS: DynamoDB</span></li>
+    <li><b class="hd">🔗 Two-phase commit picks consistency, and pays for it</b>It's all-or-nothing across stores. If a store or the coordinator can't be reached, it waits with rows locked instead of answering. That's why <a href="#sd-shard-challenges--maintaining-consistency">Sharding ②</a> calls it slow and fragile, and prefers designs that avoid it.</li>
+    <li><b class="hd">1️⃣ A single node isn't distributed, so CAP doesn't apply to it</b>One copy can't disagree with itself; if it's down, everyone gets errors. Stefan Mai (admin): one node plus a hot standby you fail over to meets most products' availability goals.</li>
+    <li><b class="hd">🌐 Spanner is CP, but almost never unavailable</b>Google's private network makes network partitions so rare that Google calls Spanner "effectively CA" (Eric Brewer, 2017).</li>
+  </ul>
+  <p class="ana">🏪 Consistency: one counter only, or counters that phone each other before every sale (slower). Availability: many counters, each with its own notebook, and a runner who carries every change around (CDC). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎭 Advanced CAP Theorem Considerations</h4>
+  <div class="warn"><b>⚠️ Watch out</b> If you're a junior or mid-level candidate, card ① and the section above are enough for most interviews. This part is for senior and staff-level discussions.</div>
+  <p class="bridge">As systems grow, the choice isn't always binary. Real systems often need <b>both</b> availability and consistency, just for different features:</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🎫 Ticketmaster</b><div class="chk">🔒 <b>Booking a seat</b>: strong consistency, to prevent double booking</div><div class="chk">🟢 <b>Viewing event details</b>: availability; a slightly outdated description is fine</div><p class="say">🗣️ "For this ticketing system, I'll prioritize consistency for booking transactions but optimize for availability when users are browsing and viewing events."</p></div>
+    <div class="k-blue"><b>💘 Tinder</b><div class="chk">🔒 <b>Matching</b>: if both users swipe right at about the same time, both should see the match immediately</div><div class="chk">🟢 <b>Viewing a profile</b>: availability; a slightly old photo is fine</div><p class="say">🗣️ "For this dating app, I'll prioritize consistency for matching but optimize for availability when users are viewing profiles."</p></div>
+  </div>
+  <p>⚠️ Many readers found the Tinder case forced. What must never break is "two right swipes → <b>exactly one</b> match", a write that must not be lost or duplicated. Seeing it instantly is a product wish; real Tinder is eventually consistent. If the interviewer says "matches must show immediately", that's your cue for consistency. <span class="add">➕ from the comments</span></p>
+  <p class="ana">🏪 One shop, two rules: the till phones head office before selling the last item (consistent), while the price list in the window can be a few minutes old (available).</p>
+
+  <h4>📶 Different Levels of Consistency</h4>
+  <p class="bridge">When people say "consistency" in CAP, they usually mean <b>strong</b> consistency: every read reflects the most recent write. But it's a spectrum, and knowing it lets you make finer design choices. Strictest first:</p>
+  <div class="vflow" role="img" aria-label="Four consistency levels from strictest to most relaxed: strong, causal, read your own writes, eventual.">
+    <div class="bx" style="border-color: var(--blue-fg)"><b>🔒 Strong: all reads reflect the most recent write</b><small>The most expensive in performance, but needed for absolute accuracy, like bank account balances. What the lesson has meant so far.</small></div>
+    <div class="ar">⬇️ more relaxed, cheaper</div>
+    <div class="bx" style="border-color: var(--purple-fg)"><b>🔗 Causal: related events appear in the same order to everyone</b><small>A comment on a post always appears after the post. ➕ Built by tracking what each write depends on (Lamport or vector clocks).</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--teal-fg)"><b>🪞 Read-your-own-writes: you always see your own updates at once; others may see older versions</b><small>Common in social media: you change your profile and expect to see it right away. ➕ Built by sending your reads to the primary for a few seconds after you write, or to a replica that has caught up to your write.</small></div>
+    <div class="ar">⬇️</div>
+    <div class="bx" style="border-color: var(--green-fg)"><b>⏳ Eventual: consistent over time, maybe not right now</b><small>The most relaxed, used in systems like DNS. The default of most distributed databases, and what you implicitly choose when you prioritize availability.</small></div>
+  </div>
+  <p class="ana">🏪 Strong: every counter phones the others before answering. Causal: a reply is never pinned up before the question it answers. Read-your-own-writes: the cashier you just paid remembers your purchase. Eventual: all the notebooks match by closing time. <span class="add">➕ analogy not in the article</span></p>
+  <h5>⏱️ PACELC: the trade-off when nothing is broken <span class="add">➕ the most-asked comment, not in the article</span></h5>
+  <p>CAP only talks about the rare moment the network is split. PACELC adds the everyday case: if <b>P</b>artition → <b>A</b>vailability or <b>C</b>onsistency; <b>E</b>lse → <b>L</b>atency or <b>C</b>onsistency. Keeping copies in step costs waiting even on a healthy network.</p>
+  <div class="grid2">
+    <div class="k-green"><b>⚡ PA/EL</b><div class="star">Cassandra, DynamoDB (default reads)</div><div class="chk">Answer fast from the nearest copy, partition or not</div></div>
+    <div class="k-blue"><b>🔒 PC/EC</b><div class="star">Spanner, HBase</div><div class="chk">Wait until the copies agree, partition or not</div></div>
+  </div>
+  <p class="say">🗣️ "Network partitions are rare; the cost we pay every day is latency. Eventual reads (PA/EL) for the feed, strong reads (PC/EC) for payments." <span class="add">➕ sample answer</span></p>
+
+  <h4>🔚 Conclusion</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ CAP theorem is important: it sets the stage for your design and should not be overlooked</b></li>
+    <li><b class="hd">🙂 But it doesn't need to be complicated</b>Just ask yourself: "Does every read need to read the most recent write?" Yes → prioritize consistency. No → you can prioritize availability.</li>
+  </ul>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🔌 "What exactly is partition tolerance?" (top comment)</h5>
+    <ul><li>Hari Prasanna: the cluster keeps working when there's a communication break between two nodes that are both up. Rocktim: you can't prevent hardware failures or router crashes, so it isn't optional.</li>
+    <li>It's a <b>network</b> partition, not a shard or a table partition: same word, different thing.</li></ul>
+    <h5>🛑 "If CP returns errors, how is it partition tolerant?"</h5>
+    <ul><li>Manu Sinha: it keeps working in part. In CP, the side that still has a majority (a quorum) keeps reading and writing, and the cut-off side refuses. In AP, both sides keep accepting writes and settle conflicts later.</li>
+    <li>"Some CP systems refuse writes; the lesson's refuses a read. Which is right?" Both are CP. What matters is that nobody is served a value that might be wrong. If the USA accepts writes without Europe, Europe must refuse reads to stay consistent, which is exactly Option A. <span class="add">➕ my answer</span></li></ul>
+    <h5>📡 "How does Europe know the link is down?"</h5>
+    <ul><li>Evan King (admin): heartbeats, timeouts and replication-lag monitoring. During a partition each region keeps serving its local data. DynamoDB handles this for you.</li></ul>
+    <h5>🔁 "Consistent = synchronous replication, available = async?"</h5>
+    <ul><li>A reader: roughly, but not always. Another reader: replicas for availability can be sync or async.</li>
+    <li>Quorums are the middle way: keep N copies, write to W of them and read from R. If R + W &gt; N, every read includes a copy with the latest write (Cassandra's QUORUM). Read repair fixes stale copies as they're read. <span class="add">➕ not in the comments</span></li></ul>
+    <h5>🔗 "The Sharding lesson called 2PC fragile; here it 'guarantees consistency'?"</h5>
+    <ul><li>Both are true: it keeps stores in step by blocking, and blocking is the fragility (see the fact-check above). Another reader: distributed transactions are about writing atomically across stores (ACID), more than about replica reads. What 2PC is: the <a href="#sd-shard-challenges--maintaining-consistency">2PC animation in Sharding ②</a>.</li></ul>
+    <h5>🧭 "Should CAP really come first?" (a dissent)</h5>
+    <ul><li>Luis Gutierrez: "a seat can't be sold twice" is a product rule. On one database with an async backup, an atomic conditional write enforces it, and no partition forces a CAP choice. CAP matters only once your design has copies serving the same data.</li>
+    <li>Take: both are right. Ask "consistency or availability?" early (the course), but phrase it as the product rule ("never double-book"), then pick the design that keeps it. <span class="add">➕ my answer</span></li></ul>
+    <h5>🐘 "Can I use Postgres if I prioritize availability?"</h5>
+    <ul><li>Evan King (admin): "yah, for sure". Postgres with async read replicas is a valid availability-first design; NoSQL isn't required.</li>
+    <li>"Which default should I pick?" Availability with eventual consistency, then name the few features that need strong consistency. <span class="add">➕ my answer</span></li></ul>
+    <h5>💘 Tinder, again</h5>
+    <ul><li>Several readers (vinay s, kartech11): a match is like a like, so why strong? A reader: in the real world Tinder is eventually consistent; the example tests whether you can handle the interviewer's twist. The page's AI tutor: what's needed is one correct match when both swipes exist, which can be created asynchronously.</li></ul>
+    <h5>🔗 Causal consistency, in real life</h5>
+    <ul><li>Group chats: nobody sees "I do!" before "Who wants pizza?" (Prateek, Rishi). Code review: a comment never shows before the commit it's about. Behind it: Lamport's "happened-before" (Divyam linked the paper).</li>
+    <li>⚠️ Not the "last laptop" example: selling the last item needs <b>strong</b> consistency, not causal (Sergey).</li></ul>
+    <h5>✏️ Quiz and wording</h5>
+    <ul><li>"Ticket booking should prioritize availability" is <b>false</b>: booking needs consistency, even if browsing stays available (qiong yu found it vague).</li>
+    <li>An event's location changes: a few seconds of eventual consistency is still fine. Mixing CP and AP per field or feature is normal (Jayakrishna). Shortcuts: money or a booking → consistency (Arin, Rocktim).</li></ul>
+  </div>
+</section>
+
 </div>
 <div id="mapview" hidden>
 <section class="card map-card" id="sd-aws-map">
@@ -5569,6 +5724,22 @@ const SEQS = {
       { at: 0, m: '💥 crash between ① and ②?', k: 'err', cap: '⚠️ If the coordinator dies after "ready", both shards hold their locks and wait, unsure whether to commit. Slow, fragile, and the reason 2PC is avoided at scale.' },
     ],
   },
+  'cap-split': {
+    lanes: ['👤 User A', '🇺🇸 USA server', '🇪🇺 Europe server', '👤 User B'],
+    key: [['http', 'write / replicate'], ['tcp', 'read'], ['err', 'partition / error'], ['lb', 'stale answer']],
+    frames: [
+      { cap: 'Two servers, one in the USA and one in Europe, each holding a copy of the data. Watch one name change travel 👇' },
+      { f: 0, t: 1, m: 'name = "Riya K"', k: 'http', cap: '① User A connects to the closest server (USA) and changes their display name.' },
+      { f: 1, t: 2, m: 'replicate "Riya K"', k: 'http', cap: '② The update is replicated to the server in Europe.' },
+      { f: 3, t: 2, m: 'view A → "Riya K" ✅', k: 'tcp', bi: 1, cap: '③ User B in Europe views User A\'s profile and sees the new name. Everything works.' },
+      { note: '✂️ USA ↔ Europe link down', cap: '💥 A <b>network partition</b>: the link between the USA and Europe goes down. Both servers are still running.' },
+      { f: 0, t: 1, m: 'name = "Riya Kapoor"', k: 'http', cap: 'User A changes the name again. The USA server takes the write, but can\'t pass it on.' },
+      { at: 2, m: 'still "Riya K" (old)', k: 'err', cap: 'Europe still holds the old name, and has no way to know it\'s old.' },
+      { f: 3, t: 2, m: '❌ error: can\'t confirm', k: 'err', bi: 1, cap: '🅰️ <b>Option A, choose consistency</b>: Europe refuses to answer, because it can\'t guarantee the data is up to date. Never wrong, but User B gets an error.' },
+      { f: 3, t: 2, m: '"Riya K" (stale)', k: 'lb', bi: 1, cap: '🅱️ <b>Option B, choose availability</b>: Europe answers from its own copy. User B sees the old name, but sees <i>something</i>. The lesson picks this one: a stale name beats no name.' },
+      { f: 1, t: 2, m: 'link back: sync "Riya Kapoor"', k: 'http', cap: '🔁 When the link comes back, the copies catch up, and B now sees "Riya Kapoor". That\'s <b>eventual consistency</b>. ➕ not in the article' },
+    ],
+  },
   'saga': {
     lanes: ['🧭 Saga runner', '🗄️ Shard 1 · A', '🗄️ Shard 2 · B'],
     key: [['http', 'step'], ['tcp', 'done'], ['err', 'failure'], ['lb', 'undo']],
@@ -6109,7 +6280,7 @@ const GLOSSARY = [
     b: '<p>🧪 <b>Do it twice:</b> without a pool, each request opens a connection (TCP + TLS + login, several ms) and closes it. With a pool of 20, a request borrows one and gives it back.</p><p>It also caps connections: each Postgres connection is its own process, so thousands of them slow it down. In Node: <code>new Pool({ max: 20 })</code> from <code>pg</code>.</p><p>☁️ <b>On AWS:</b> RDS Proxy</p>', see: ['handshake', 'replica'] },
   { id: 'consistency', t: 'Strong vs eventual consistency', aka: 'consistent eventually stale cap acid', s: 'Strong: every read sees the latest write. Eventual: reads may be old for a moment, then catch up.',
     an: 'Strong = a shared Google Doc, edits show at once. Eventual = news spreading by WhatsApp forwards: everyone hears it, a bit later.',
-    b: '<p>🧪 <b>See it:</b></p><ul><li>🔒 You pay, refresh, and the balance must already show it → strong.</li><li>⏳ A like count shows 99 for three seconds after your like → fine, eventual.</li></ul><p>⚠️ Not the C in ACID. ACID\'s C = the database keeps its rules. CAP\'s C = every copy agrees. Say which one you mean.</p>', see: ['acid', 'replica'] },
+    b: '<p>🧪 <b>See it:</b></p><ul><li>🔒 You pay, refresh, and the balance must already show it → strong.</li><li>⏳ A like count shows 99 for three seconds after your like → fine, eventual.</li></ul><p>⚠️ Not the C in ACID. ACID\'s C = the database keeps its rules. CAP\'s C = every copy agrees. Say which one you mean.</p>', see: ['cap', 'acid', 'replica'] },
   { id: 'fanout', t: 'Fan-out on write vs on read', aka: 'fanout timeline feed push pull celebrity hybrid', s: 'Build each feed when a post is written (copy it to every follower) or when the feed is read (collect from everyone followed).',
     an: 'On write: the newspaper delivers a copy to every subscriber\'s door. On read: each reader visits every writer to collect the news.',
     b: '<p>🧪 <b>See it:</b> Alice has 300 followers and posts.</p><ul><li>✍️ On write: 300 small inserts into followers\' timelines; reading a feed = 1 lookup.</li><li>📖 On read: Bob follows 200 people → 200 lookups (maybe on 200 shards) and a merge, every time he opens the app.</li></ul><p>🌟 A celebrity with 10M followers → hybrid: pull their posts at read time and merge them in.</p>', see: ['shard', 'consistency'] },
@@ -6197,6 +6368,27 @@ const GLOSSARY = [
   { id: 'salting', t: 'Key salting', aka: 'key-space salting salt suffix hot key split', s: 'Add a suffix (0–9) to one hot key, so it becomes 10 keys that land on different nodes.',
     an: 'One celebrity\'s fan mail split into 10 labelled sacks, sent to 10 sorting offices.',
     b: '<ul><li>✍️ Write-hot (a like counter): write to <b>one</b> random suffix; to read, ask <b>all 10</b> and add up.</li><li>📖 Read-hot: write <b>all 10</b> copies; read <b>one</b> at random.</li></ul><p>⚠️ Only for the few known hot keys, with a fixed suffix range so readers know every name.</p>', see: ['hotkey', 'hotshard', 'conhash'] },
+  { id: 'cap', t: 'CAP theorem', aka: 'consistency availability partition tolerance cp ap brewer', s: 'When the network between copies breaks, a system must choose: refuse to answer (consistency) or answer with possibly old data (availability).',
+    an: 'Two shop counters that sync their notebooks by phone, when the phone line goes dead.',
+    b: '<p>🧪 <b>See it:</b> the USA and Europe servers lose their link. Europe gets a read: return an error (CP) or the old value (AP).</p><p>⭐ Partitions will happen, so P is a must: the real choice is C or A, and only during a partition.</p><p>⚠️ CAP\'s C is not ACID\'s C.</p>', see: ['netpart', 'consistency', 'pacelc'] },
+  { id: 'netpart', t: 'Network partition', ctx: 'CAP', aka: 'partition tolerance network split split brain', s: 'The network between nodes breaks: both sides are up, but can\'t talk to each other.',
+    an: 'The phone line between two branches goes dead; both branches are still open.',
+    b: '<p>🧪 A cut cable, a crashed router, a link between two regions down. Messages are lost, not just slow.</p><p>⚠️ Not a shard or a table partition: same word, a different thing.</p>', see: ['cap', 'partition'] },
+  { id: 'causal', t: 'Causal consistency', aka: 'happened-before lamport vector clock order', s: 'Events that depend on each other are seen in the same order by everyone.',
+    an: 'A reply is never pinned up before the question it answers.',
+    b: '<p>🧪 "Who wants pizza?" then "I do!": nobody sees "I do!" first. Unrelated messages may still arrive in any order.</p><p>🛠️ Built by tracking what each write depends on (Lamport or vector clocks).</p>', see: ['consistency', 'ryow'] },
+  { id: 'ryow', t: 'Read-your-own-writes', aka: 'read your writes ryw session consistency', s: 'You always see your own updates at once; other users may see an older version for a while.',
+    an: 'The cashier you just paid remembers it, even if head office hasn\'t heard yet.',
+    b: '<p>🧪 You change your profile photo and refresh: you see the new one. A friend may see the old one for a minute.</p><p>🛠️ Send your reads to the primary for a few seconds after you write, or to a replica that has caught up to your write.</p>', see: ['consistency', 'replica', 'causal'] },
+  { id: 'pacelc', t: 'PACELC', aka: 'latency consistency abadi pa el pc ec', s: 'CAP plus the everyday case: if Partition, choose A or C; Else, choose Latency or Consistency.',
+    an: 'Even with the phone line working, phoning the other counter before every answer makes the queue slower.',
+    b: '<p>🧪 Cassandra and DynamoDB default reads = PA/EL: fast, maybe stale. Spanner = PC/EC: waits for agreement, always.</p><p>⭐ Partitions are rare; the latency cost of consistency is paid on every request.</p>', see: ['cap', 'consistency'] },
+  { id: 'cdc', t: 'Change data capture (CDC)', aka: 'cdc debezium binlog wal stream changes', s: 'Read the database\'s own change log and send each change to other systems: replicas, caches, search, analytics.',
+    an: 'A runner who copies every new line of the main ledger to the other branches.',
+    b: '<p>🧪 <b>See it:</b> an order row changes → the change lands in the WAL / binlog → a CDC tool (Debezium) publishes it → the search index and the cache update a moment later.</p><p>✅ The primary isn\'t slowed down. ⚠️ The copies lag behind: eventual consistency.</p><p>☁️ <b>On AWS:</b> DynamoDB Streams · DMS (ongoing replication)</p>', see: ['wal', 'replica', 'consistency'] },
+  { id: 'quorum', t: 'Quorum', aka: 'majority read write r w n', s: 'A majority of copies must agree. With N copies, write to W and read from R: if R + W > N, every read sees the latest write.',
+    an: 'A decision counts only if most of the board votes for it.',
+    b: '<p>🧪 <b>See it:</b> N = 3, W = 2, R = 2. Any 2 copies you read include at least one that has the latest write.</p><p>During a partition, only the side holding a majority can keep going: that\'s CP in action.</p>', see: ['cap', 'consistency', 'replica'] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -6353,8 +6545,8 @@ const GLOSSARY = [
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
-    partition: /partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
-    consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i,
+    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
+    consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
     cacheaside: /cache-aside/i, readthrough: /read-through/i, writethrough: /write-through/i, writebehind: /write-behind|write-back/i, writearound: /write-around/i,
     lru: /LRU/, lfu: /LFU/, ttl: /TTLs?/, stampede: /cache stampedes?|request coalescing|single flight/i, hotkey: /hot keys?/i, invalidation: /(?:cache )?invalidat(?:e|es|ed|ion|ing)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
