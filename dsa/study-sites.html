@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Sites</title>
+<style>
+  :root{ --accent:#4338ca; --accent-soft:#4338ca14; --accent-line:#4338ca40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; }
+  *{box-sizing:border-box}
+  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  h1{font-size:2.2rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 1em}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 1.2em}
+  .chips button{font:600 .82rem/1 inherit;padding:7px 11px;border-radius:20px;cursor:pointer;
+    border:1px solid var(--accent-line);background:#fff;color:var(--accent)}
+  .chips button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .chips button:focus-visible,.tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  h2{font-size:1.15rem;margin:1.4em 0 .5em;padding-top:.5em;border-top:1px solid var(--rule)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+  .tile{display:grid;gap:6px;align-content:start;padding:12px 14px;border:1px solid var(--rule);border-left:3px solid var(--accent);
+    border-radius:9px;background:#fff;color:var(--ink);text-decoration:none;min-width:0;transition:background-color .12s}
+  .tile:hover{background:var(--accent-soft)}
+  .tile b{font-size:1rem;overflow-wrap:anywhere}
+  .tile .what{font-size:.88rem;color:var(--muted)}
+  .tile .pill{justify-self:start;font-size:.72rem;font-weight:600;color:var(--accent);background:var(--accent-soft);
+    border:1px solid var(--accent-line);border-radius:20px;padding:.05em .6em}
+  .tile .host{font-size:.75rem;color:var(--muted);overflow-wrap:anywhere}
+  @media screen{
+    [data-theme="dark"] .tile,[data-theme="dark"] .chips button{background:#1c1c1f}
+    [data-theme="dark"] .chips button.on{background:var(--accent);color:#121214}
+  }
+</style>
+<link rel="stylesheet" href="notes-dark.css"/>
+<script src="../js/notes-theme.js"></script>
+</head>
+<body>
+
+<h1>🔖 Study Sites</h1>
+<p class="sub">Useful sites for prep, one tile each. Tap a tile to open the site in a new tab.</p>
+<div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+<main id="list"></main>
+
+<script>
+// To add a site: add one line here. cat = category (becomes a filter chip), sub = subcategory.
+const SITES = [
+  { name: 'Designed to Scale', url: 'https://designed-to-scale.vercel.app/', cat: 'System Design', sub: 'Interactive course',
+    what: 'Free visual course with about 40 lessons. Animated diagrams show how a request travels, latency, throughput, scaling, load balancing, sharding and consistent hashing, then full builds like news feed, chat and URL shortener.' },
+]
+
+const chips = document.getElementById('chips')
+const list = document.getElementById('list')
+const cats = [...new Set(SITES.map(s => s.cat))]
+let current = 'All'
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e }
+
+function render() {
+  chips.replaceChildren(...['All', ...cats].map(c => {
+    const b = el('button', c === current ? 'on' : '', c === 'All' ? `All ${SITES.length}` : c)
+    b.type = 'button'
+    b.setAttribute('aria-pressed', c === current)
+    b.onclick = () => { current = c; render() }
+    return b
+  }))
+  list.replaceChildren(...cats.filter(c => current === 'All' || c === current).map(c => {
+    const sec = el('section')
+    sec.append(el('h2', '', c))
+    const grid = el('div', 'grid')
+    for (const s of SITES.filter(s => s.cat === c)) {
+      const a = el('a', 'tile')
+      a.href = s.url
+      a.target = '_blank'
+      a.rel = 'noopener'
+      a.append(el('b', '', s.name), el('span', 'pill', `${s.cat} › ${s.sub}`), el('span', 'what', s.what), el('span', 'host', new URL(s.url).host))
+      grid.append(a)
+    }
+    sec.append(grid)
+    return sec
+  }))
+}
+render()
+</script>
+<script src="../js/back-button.js"></script>
+</body></html>
