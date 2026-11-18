@@ -109,6 +109,7 @@ test('index.html links out to every moved sub-app with the correct folder prefix
     'dsa/dsa-thoughts.html',
     'dsa/js-builtins.html',
     'sysdesign/system-design.html',
+    'dsa/study-sites.html',
     'apps/gym-5day.html',
     'apps/habits.html',
   ]
@@ -139,7 +140,7 @@ test('dsa-master-map.html links back to the tracker root and to every pattern ch
   // deep-link to. This catches both a broken link AND a new cheatsheet
   // silently added without a link to it.
   const dsaDir = path.join(ROOT, 'dsa')
-  const standaloneReferencePages = new Set(['dsa-master-map.html', 'dsa-thoughts.html', 'js-builtins.html'])
+  const standaloneReferencePages = new Set(['dsa-master-map.html', 'dsa-thoughts.html', 'js-builtins.html', 'study-sites.html'])
   const patternFiles = fs.readdirSync(dsaDir)
     .filter((f) => f.endsWith('.html') && !standaloneReferencePages.has(f))
   assert.ok(patternFiles.length > 0, 'expected at least one pattern cheatsheet in dsa/')
