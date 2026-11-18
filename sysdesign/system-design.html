@@ -4960,18 +4960,36 @@ function owner(key) {
   <p class="ana">🍳 The old cookbook says "your fridge holds two days of food, so shop every day". Today's kitchen has a walk-in fridge bigger than the old restaurant. The recipes (patterns) still work; the shopping plan (the numbers) is out of date. <span class="add">➕ analogy not in the article</span></p>
 
   <h4>⚡ Caching</h4>
-  <p class="bridge">Now, how these numbers change your decisions in an interview, one component at a time. First, caches: they have grown hugely in size and power. Gone are the 32–64 GB Redis instances that needed careful memory management and partial caching. Today one cache holds terabytes at single-digit ms and does hundreds of thousands of operations per second.</p>
+  <p class="bridge">Now, how these numbers change your decisions in an interview, one part at a time. First, caches. A few years ago a Redis box had 32–64 GB, so you had to choose carefully what to keep in it. Today one cache holds about 1 TB at under 1 ms, and does hundreds of thousands of operations per second.</p>
   <div class="grid2">
     <div class="k-blue"><b>📏 Numbers to know</b><div class="chk">🧠 Memory: up to 1 TB on memory-optimized instances (some setups go beyond)</div><div class="chk">⏱️ Reads &lt; 1 ms in the same region · writes &lt; 1 ms in the same AZ, 1–2 ms across AZs</div><div class="chk">🚀 100k–200k+ ops/s per instance (ElastiCache Redis on Graviton); simple reads and writes cost about the same</div></div>
     <div class="k-amber"><b>📈 When to scale</b><div class="chk">💾 Data approaching 1 TB</div><div class="chk">🚀 Sustained 100k+ ops/s</div><div class="chk">⏱️ Reads must stay below 0.5 ms</div></div>
   </div>
   <ul class="lines roomy heads">
-    <li><b class="hd">⭐ "Cache everything" often beats choosing what to cache</b>If the whole database fits in memory, even at hundreds of GB, you can often skip complex partial-caching schemes. It looks like brute force, but it usually costs less than the engineering time spent on selective caching logic.</li>
-    <li><b class="hd">🔄 When you do scale, the limit is usually ops/s or network bandwidth, not memory size</b>That's the reverse of a few years ago.</li>
-    <li><b class="hd">🧵 Why CPU runs out first <span class="add">➕ from the comments</span></b>Redis runs every command on one thread (Stefan Mai, admin), so one core is full long before 1 TB is. Sharding then adds cores, not memory. Big instances are also slower to back up, copy and recover (Evan King, admin). Redis 6 (2020) added I/O threads, but commands still run on one.</li>
+    <li><b class="hd">⭐ "Cache everything" often beats choosing what to cache</b>If the whole database fits in memory, even at hundreds of GB, you can often skip complex partial caching. It looks like brute force, but it usually costs less than the engineering time spent on selective caching logic.</li>
   </ul>
+  <div class="grid2">
+    <div class="k-red"><b>🗓️ Before: a 64 GB cache</b><div class="star">🛒 200 GB product catalog</div><div class="chk">Only a third fits, so you build rules: which products are hot, what to evict, when to reload</div><div class="chk">Every miss goes to the database</div></div>
+    <div class="k-green"><b>🆕 Now: a ~1 TB cache</b><div class="star">🛒 the same 200 GB catalog</div><div class="chk">Load all of it. Every read is a hit</div><div class="chk">The rules, and their bugs, disappear</div></div>
+  </div>
+  <p class="figcap">🖼️ <span class="add">➕ example not in the article</span> A reader (aditya.bhardwaja) built exactly those eviction and hot/cold reload features five years ago, for data over 200 GB. Today they're unnecessary.</p>
+  <p class="ana">🧊 The kitchen fridge used to hold a few shelves, so cooks argued about what to keep in it. Now it's a walk-in: put the whole pantry in. <span class="add">➕ analogy not in the article</span></p>
+
+  <h5>🧵 Why the CPU runs out before the memory</h5>
+  <p class="bridge">When you do need to scale a cache, the limit is usually operations per second (or network bandwidth), not memory. That's the reverse of a few years ago. The reason: Redis runs every command on <b>one thread</b> (Stefan Mai, admin, in the comments). Step through 10,000 requests ▶️</p>
+  <div class="seq" data-seq="cache-cpu"></div>
+  <p class="figcap">🖼️ <span class="add">➕ not in the article</span> 10 µs per command is a round number: it's what "about 100k ops/s per instance" works out to (1 s ÷ 100k).</p>
+  <div class="grid2">
+    <div class="k-red"><b>🧠 Buy more RAM</b><div class="star">still ~100k ops/s</div><div class="chk">Same one thread, same speed</div><div class="chk">More room for data that already fits</div></div>
+    <div class="k-green"><b>🧵🧵🧵 Split into 3 shards</b><div class="star">~300k ops/s</div><div class="chk">Each shard is its own Redis, with its own thread on its own core</div><div class="chk">150k requests/s → 50k each: every thread half busy</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔀 So caches shard for speed, not for space</b>Adding shards adds threads (cores), and threads are what ran out. Memory was never the problem.</li>
+    <li><b class="hd">🌐 With big values, the network fills up first</b>100k ops/s × 10 KB values = 1 GB/s ≈ 8 Gbps, a third of a 25 Gbps link. With 30 KB values it's ~24 Gbps: the link is full before the thread is. <span class="add">➕ my maths</span></li>
+    <li><b class="hd">🧪 "Doesn't Redis 6 have threads?" Only for the network</b>Redis 6 (2020) added I/O threads: they read requests and write replies in parallel. The commands themselves still run one at a time on the main thread. Multi-threaded caches like Dragonfly (Stefan Mai's example) lift that limit. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <p class="ana">🧑‍🍳 One cook at a walk-in fridge, and 10,000 orders arrive. The fridge has room for everything, yet the queue grows, because there's one pair of hands. A bigger fridge changes nothing. Three cooks at three fridges (shards) clear the queue three times faster. <span class="add">➕ analogy not in the article</span></p>
   <div class="info"><b>ℹ️ Fact-check</b> <span class="add">➕ not in the article</span> ElastiCache's biggest node holds about 420 GB (cache.r7g.16xlarge), so "1 TB" means a cache you run yourself on a big EC2 machine, or a cluster. AWS says one r7g.4xlarge node can serve over 1M requests/s (ElastiCache 7.1, small values). Evan King: true under the right conditions, but in an interview stay with the 100k order of magnitude.</div>
-  <p class="ana">🧊 The kitchen fridge used to hold a few shelves, so cooks argued about what to keep in it. Now it's a walk-in: put the whole pantry in. What slows service is the one cook handing items out (ops/s), not shelf space.</p>
 
   <h4>🗄️ Databases</h4>
   <p class="bridge">The raw power of modern databases surprises even experienced engineers. One PostgreSQL or MySQL instance routinely holds dozens of terabytes with millisecond responses, and does tens of thousands of transactions per second on one primary. The limit is often operations (backups, upgrades), not speed.</p>
@@ -5971,6 +5989,19 @@ const SEQS = {
       { f: 0, t: 1, m: 'commit', k: 'tcp', cap: '② Everyone said yes, so the coordinator says <b>commit</b>.' },
       { f: 0, t: 2, m: 'commit', k: 'tcp', cap: 'Both shards apply the change and release the locks. Strong consistency ✅' },
       { at: 0, m: '💥 crash between ① and ②?', k: 'err', cap: '⚠️ If the coordinator dies after "ready", both shards hold their locks and wait, unsure whether to commit. Slow, fragile, and the reason 2PC is avoided at scale.' },
+    ],
+  },
+  'cache-cpu': {
+    lanes: ['👥 Clients', '🧵 1 Redis thread', '🧠 RAM (1 TB)'],
+    key: [['http', 'request'], ['lb', 'find key'], ['tcp', 'reply'], ['err', 'waiting']],
+    frames: [
+      { cap: 'One Redis server on a big machine: 64 cores, 1 TB of RAM. But Redis runs every command on <b>one thread</b>, so one core does all the work and 63 cores sit idle. Watch 10,000 requests arrive 👇' },
+      { f: 0, t: 1, m: '10,000 GETs at once', k: 'http', cap: '① 10,000 requests arrive in the same instant. They wait in a line, because the one thread can only handle one at a time.' },
+      { f: 1, t: 2, m: 'GET #1: find key', k: 'lb', cap: '② The thread takes request #1 and finds the key in RAM. The lookup itself is quick (a hash table).' },
+      { f: 1, t: 0, m: 'reply #1 · ~10 µs', k: 'tcp', cap: '③ It sends the reply. Reading the request, finding the key and writing the reply take about <b>10 µs</b> of CPU. So 1 s ÷ 10 µs ≈ <b>100k commands per second</b>: this thread\'s ceiling, however much RAM there is.' },
+      { at: 1, m: '#2, #3 … #10,000, one by one', k: 'err', cap: '④ Then #2, #3, … strictly in order. Nothing runs in parallel.' },
+      { f: 1, t: 0, m: 'reply #10,000 after ~100 ms', k: 'err', cap: '⑤ The last request waits 10,000 × 10 µs = <b>100 ms</b>. And the RAM for those 10,000 values (1 KB each)? 10 MB out of 1 TB: almost nothing.' },
+      { note: '🧵 CPU 100% busy · 🧠 RAM ~1% used', cap: '⑥ Now send 150k requests every second. The thread clears 100k, so 50k more pile up each second and replies get slower and slower, while RAM is still nearly empty. <b>The one thread (CPU) is the bottleneck, not memory.</b>' },
     ],
   },
   'cap-split': {
