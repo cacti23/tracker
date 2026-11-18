@@ -4,30 +4,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Study Sites</title>
 <style>
-  :root{ --accent:#4338ca; --accent-soft:#4338ca14; --accent-line:#4338ca40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; }
+  :root{ --accent:#4338ca; --accent-soft:#4338ca14; --accent-line:#4338ca40; --ink:#37352f; --muted:#6b675e; --rule:#ebe9e4; --code-bg:#f6f8f8; --card:#fff; }
   *{box-sizing:border-box}
-  body{margin:2.2em auto;max-width:900px;padding:0 18px;color:var(--ink);
-    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
-  h1{font-size:2.2rem;font-weight:800;margin:0 0 .1em;letter-spacing:-.02em}
-  .sub{color:var(--muted);margin:0 0 1em}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 1.2em}
+  body{margin:2.2em auto;max-width:1100px;padding:0 18px 80px;color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  h1{font-size:2rem;font-weight:800;margin:0 0 .6em;letter-spacing:-.02em}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 1.4em}
   .chips button{font:600 .82rem/1 inherit;padding:7px 11px;border-radius:20px;cursor:pointer;
-    border:1px solid var(--accent-line);background:#fff;color:var(--accent)}
+    border:1px solid var(--accent-line);background:var(--card);color:var(--accent);touch-action:manipulation}
   .chips button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .chips button span{opacity:.7;font-variant-numeric:tabular-nums}
   .chips button:focus-visible,.tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  h2{font-size:1.15rem;margin:1.4em 0 .5em;padding-top:.5em;border-top:1px solid var(--rule)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-  .tile{display:grid;gap:6px;align-content:start;padding:12px 14px;border:1px solid var(--rule);border-left:3px solid var(--accent);
-    border-radius:9px;background:#fff;color:var(--ink);text-decoration:none;min-width:0;transition:background-color .12s}
-  .tile:hover{background:var(--accent-soft)}
-  .tile b{font-size:1rem;overflow-wrap:anywhere}
-  .tile .what{font-size:.88rem;color:var(--muted)}
-  .tile .pill{justify-self:start;font-size:.72rem;font-weight:600;color:var(--accent);background:var(--accent-soft);
-    border:1px solid var(--accent-line);border-radius:20px;padding:.05em .6em}
-  .tile .host{font-size:.75rem;color:var(--muted);overflow-wrap:anywhere}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .tile{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:12px;overflow:hidden;
+    background:var(--card);color:var(--ink);text-decoration:none;min-width:0;
+    transition:transform .15s,box-shadow .15s,border-color .15s}
+  .tile:hover{transform:translateY(-2px);border-color:var(--accent-line);box-shadow:0 6px 20px #0000001a}
+  /* Screenshot: 16:10, top of the page, so the site's header shows */
+  .shot{position:relative;aspect-ratio:16/10;background:var(--code-bg);border-bottom:1px solid var(--rule);overflow:hidden}
+  .shot img.full{width:100%;height:100%;object-fit:cover;object-position:top;display:block;opacity:0;transition:opacity .3s}
+  .shot img.full.ready{opacity:1}
+  .shot .fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:2.4rem}
+  .body{padding:10px 12px 12px;display:grid;gap:4px;min-width:0}
+  .name{display:flex;align-items:center;gap:7px;font-weight:700;min-width:0}
+  .name img{width:16px;height:16px;flex:none;border-radius:3px}
+  .name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tag{font-size:.72rem;font-weight:600;color:var(--accent)}
+  .use{font-size:.86rem;color:var(--muted)}
+  @media (prefers-reduced-motion:reduce){.tile,.shot img.full{transition:none}.tile:hover{transform:none}}
   @media screen{
-    [data-theme="dark"] .tile,[data-theme="dark"] .chips button{background:#1c1c1f}
-    [data-theme="dark"] .chips button.on{background:var(--accent);color:#121214}
+    [data-theme="dark"]{--card:#1c1c1f}
+    [data-theme="dark"] .chips button.on{color:#121214}
+    [data-theme="dark"] .tile:hover{box-shadow:0 6px 20px #00000066}
   }
 </style>
 <link rel="stylesheet" href="notes-dark.css"/>
@@ -36,15 +44,25 @@
 <body>
 
 <h1>🔖 Study Sites</h1>
-<p class="sub">Useful sites for prep, one tile each. Tap a tile to open the site in a new tab.</p>
 <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
-<main id="list"></main>
+<main class="grid" id="list"></main>
 
 <script>
-// To add a site: add one line here. cat = category (becomes a filter chip), sub = subcategory.
+// To add a site: add one line. cat = filter chip, sub = subcategory, use = one short line (what you use it for).
 const SITES = [
-  { name: 'Designed to Scale', url: 'https://designed-to-scale.vercel.app/', cat: 'System Design', sub: 'Interactive course',
-    what: 'Free visual course with about 40 lessons. Animated diagrams show how a request travels, latency, throughput, scaling, load balancing, sharding and consistent hashing, then full builds like news feed, chat and URL shortener.' },
+  { name: 'Designed to Scale', url: 'https://designed-to-scale.vercel.app/', cat: 'System Design', sub: 'Course', icon: '🏗️', use: 'Animated lessons: scaling, caching, sharding' },
+  { name: 'BreakStack', url: 'https://breakstack.dev/', cat: 'System Design', sub: 'Sandbox', icon: '💥', use: 'Follow requests, add caches, break things' },
+  { name: 'System Design Simulator', url: 'https://systemdesignsimulator.org/', cat: 'System Design', sub: 'Walkthroughs', icon: '🧭', use: '27 interview designs, step by step' },
+  { name: 'Hello Interview', url: 'https://www.hellointerview.com/learn/system-design/in-a-hurry/introduction', cat: 'System Design', sub: 'Interview guide', icon: '👋', use: 'Interview framework + classic designs, free' },
+  { name: 'Fanout', url: 'https://fanout.sh/', cat: 'System Design', sub: 'Labs', icon: '🌐', use: 'Interactive SD labs, course and roadmap' },
+  { name: 'Excalidraw', url: 'https://excalidraw.com/', cat: 'System Design', sub: 'Whiteboard', icon: '✏️', use: 'Practise drawing designs like in the interview' },
+  { name: 'Latency Numbers', url: 'https://philbogle.github.io/interactive-latency-numbers/', cat: 'System Design', sub: 'Numbers', icon: '⏱️', use: 'How slow is RAM vs disk vs network' },
+  { name: 'The Secret Lives of Data', url: 'https://thesecretlivesofdata.com/', cat: 'Distributed Systems', sub: 'Consensus', icon: '🗳️', use: 'Raft leader election, animated' },
+  { name: 'Protocol Explorer', url: 'https://protocolexplorer.org/', cat: 'Networking', sub: 'Protocols', icon: '📡', use: 'TCP, HTTP, DNS, TLS packet flows' },
+  { name: 'pgviz', url: 'https://pgviz.com/', cat: 'Databases', sub: 'PostgreSQL', icon: '🐘', use: 'Read EXPLAIN ANALYZE plans visually' },
+  { name: 'Tech Interview Handbook', url: 'https://www.techinterviewhandbook.org/behavioral-interview/', cat: 'Behavioral', sub: 'Guide', icon: '🗣️', use: 'STAR stories + 30 common questions' },
+  { name: 'VisuAlgo', url: 'https://visualgo.net/en', cat: 'DSA', sub: 'Visualizer', icon: '🌳', use: 'Animate sorting, trees, graphs' },
+  { name: 'AlgoVision', url: 'https://www.algovision.dev/', cat: 'DSA', sub: 'LeetCode', icon: '🎞️', use: 'Step through LeetCode solutions' },
 ]
 
 const chips = document.getElementById('chips')
@@ -54,29 +72,60 @@ let current = 'All'
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e }
 
+// Screenshots come live from WordPress mShots (free, no key). The first request for a site
+// returns a small "generating" placeholder, so retry a few times until the real 800px shot arrives.
+const SHOT_W = 800, SHOT_H = 500
+function shot(s) {
+  const box = el('div', 'shot')
+  const fb = el('div', 'fallback', s.icon)
+  const img = el('img', 'full')
+  img.alt = ''
+  img.loading = 'lazy'
+  img.width = SHOT_W
+  img.height = SHOT_H
+  let tries = 0
+  const src = () => `https://s.wordpress.com/mshots/v1/${encodeURIComponent(s.url)}?w=${SHOT_W}&h=${SHOT_H}` + (tries ? `&r=${tries}` : '')
+  img.onload = () => {
+    if (img.naturalWidth === SHOT_W) { img.classList.add('ready'); fb.remove() }
+    else if (++tries <= 6) setTimeout(() => { img.src = src() }, 3000)
+  }
+  img.src = src()
+  box.append(fb, img)
+  return box
+}
+
+function tile(s) {
+  const a = el('a', 'tile')
+  a.href = s.url
+  a.target = '_blank'
+  a.rel = 'noopener'
+  a.setAttribute('aria-label', `${s.name}: ${s.use}`)
+  const body = el('div', 'body')
+  const name = el('div', 'name')
+  const fav = el('img')
+  fav.alt = ''
+  fav.width = fav.height = 16
+  fav.src = `https://www.google.com/s2/favicons?domain=${new URL(s.url).host}&sz=32`
+  fav.onerror = () => fav.remove()
+  name.append(fav, el('span', '', s.name))
+  body.append(name, el('div', 'tag', `${s.cat} › ${s.sub}`), el('div', 'use', s.use))
+  a.append(shot(s), body)
+  return a
+}
+
+const tiles = new Map(SITES.map(s => [s, tile(s)]))
+
 function render() {
   chips.replaceChildren(...['All', ...cats].map(c => {
-    const b = el('button', c === current ? 'on' : '', c === 'All' ? `All ${SITES.length}` : c)
+    const n = c === 'All' ? SITES.length : SITES.filter(s => s.cat === c).length
+    const b = el('button', c === current ? 'on' : '', c + ' ')
+    b.append(el('span', '', String(n)))
     b.type = 'button'
     b.setAttribute('aria-pressed', c === current)
     b.onclick = () => { current = c; render() }
     return b
   }))
-  list.replaceChildren(...cats.filter(c => current === 'All' || c === current).map(c => {
-    const sec = el('section')
-    sec.append(el('h2', '', c))
-    const grid = el('div', 'grid')
-    for (const s of SITES.filter(s => s.cat === c)) {
-      const a = el('a', 'tile')
-      a.href = s.url
-      a.target = '_blank'
-      a.rel = 'noopener'
-      a.append(el('b', '', s.name), el('span', 'pill', `${s.cat} › ${s.sub}`), el('span', 'what', s.what), el('span', 'host', new URL(s.url).host))
-      grid.append(a)
-    }
-    sec.append(grid)
-    return sec
-  }))
+  list.replaceChildren(...SITES.filter(s => current === 'All' || s.cat === current).map(s => tiles.get(s)))
 }
 render()
 </script>
