@@ -2020,11 +2020,45 @@ GET  /users/{id}/posts  → [Post] (nested =
   </div>
   <p>⭐ <b>REST for public-facing APIs, gRPC for internal service-to-service</b>, especially with binary data or when performance is critical. In many interviews, REST for both is fine. Build from there as the problem and the interviewer push.</p>
   <h5>🌐 Why can't a browser call gRPC directly?</h5>
-  <p class="bridge"><span class="add">➕ not in the article</span> Browsers <b>do</b> speak HTTP/2. The problem is lower down: the browser handles HTTP/2 itself and gives a page's JavaScript only a simple request → response view (<code>fetch</code>). gRPC needs control that view doesn't give:</p>
+  <p class="bridge"><span class="add">➕ not in the article</span> Browsers <b>do</b> speak HTTP, HTTP/2 included. A page's JavaScript makes its calls with <code>fetch</code>, which gives a simple view: send a request, get back a status, headers and a body. For REST and GraphQL that is all you need. gRPC needs <b>more control</b> than <code>fetch</code> gives. First, what one gRPC call looks like on the wire:</p>
+<pre>→ POST /UserService/GetUser          HTTP/2 · content-type: application/grpc
+→ body: [protobuf] id = "123"
+← 200 OK                              ← 200 even when the call fails
+← body: [protobuf] User { id, name }
+← trailers: grpc-status: 0            ← the real result: 0 = OK, 5 = NOT_FOUND, 14 = UNAVAILABLE …</pre>
+  <p class="figcap">🖼️ A gRPC call is an HTTP/2 POST. The real result comes <b>last</b>, as a trailer: a header sent <b>after</b> the body.</p>
+  <p class="bridge">Now the three gaps, each as "what gRPC needs ↔ what fetch gives":</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">1️⃣ gRPC sends the call's result in HTTP trailers, and browser JavaScript can't read trailers</b>The status (<code>grpc-status: 0</code> = OK, or an error code) comes as headers <b>after</b> the body. <code>fetch</code> never shows them, so the page can't even tell whether the call worked.</li>
-    <li><b class="hd">2️⃣ A page can't choose HTTP/2 or touch its frames</b>The browser picks HTTP/1.1, 2 or 3 on its own. JavaScript can't open a stream, send a frame or cancel a stream itself.</li>
-    <li><b class="hd">3️⃣ No two-way streaming</b><code>fetch</code> can't keep sending a request body while it reads the response, so gRPC's client streaming and two-way streaming don't fit.</li>
+    <li><b class="hd">1️⃣ gRPC puts the result in a trailer, and fetch can't read trailers</b></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-blue"><b>🧬 What gRPC needs</b><div class="chk">To read <code>grpc-status</code> from the trailer after the body: OK, NOT_FOUND, PERMISSION_DENIED …</div></div>
+    <div class="k-amber"><b>🌐 What fetch gives</b><div class="chk"><code>response.status</code>, headers and the body. No way to read trailers: the browser drops them.</div></div>
+  </div>
+  <p class="figcap">🖼️ Result: a stream of live prices breaks halfway and ends with <code>grpc-status: 14</code> (UNAVAILABLE) in the trailer. The page sees "200 OK" and some prices, and can't tell "finished" from "broke". A gRPC client treats a missing status as an error, so it can't work without trailers.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">2️⃣ gRPC must run on HTTP/2, and fetch can't promise which HTTP version it uses</b></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-blue"><b>🧬 What gRPC needs</b><div class="chk">HTTP/2 end to end. Each call is one HTTP/2 stream on a shared connection; trailers only exist in HTTP/2.</div></div>
+    <div class="k-amber"><b>🌐 What fetch gives</b><div class="chk">The <b>browser</b> picks HTTP/1.1, 2 or 3 for each connection (a company proxy may force 1.1). The page can't ask for HTTP/2, and can't touch streams or frames.</div></div>
+  </div>
+  <p class="figcap">🖼️ Result: even if the trailer problem were solved, the page can't guarantee the call goes out the way gRPC requires.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">3️⃣ gRPC can stream in both directions at once, and fetch can't</b></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-blue"><b>🧬 What gRPC offers: 4 call types</b><div class="chk">1 request → 1 reply (GetUser)</div><div class="chk">1 request → many replies (live price feed)</div><div class="chk">many requests → 1 reply (upload sensor readings)</div><div class="chk">many ↔ many at the same time (chat)</div></div>
+    <div class="k-amber"><b>🌐 What fetch gives</b><div class="chk">Send one request body, then read the reply. The reply can arrive in pieces, so "1 → many" works.</div><div class="chk">Keep sending while reading? Not supported. So "many → 1" and "many ↔ many" don't fit.</div></div>
+  </div>
+  <p class="bridge">So the fix is never "connect harder". Something must <b>translate</b> between what the browser can do and what gRPC needs. Two ways:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Fix 1: gRPC-Web + a translating proxy (Envoy): the browser keeps gRPC, in a fetch-friendly shape</b>gRPC-Web is a browser version of gRPC. Its client library (generated from the same <code>.proto</code>) sends a normal POST over whatever HTTP the browser picks. The proxy turns it into native gRPC, and on the way back it moves the trailer <b>into the end of the body</b>, where fetch can read it ▶️</li>
+  </ul>
+  <div class="seq" data-seq="grpc-web"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Fix 1's limit: only 1 → 1 and 1 → many calls</b>The browser still uses fetch, so "many → 1" and "many ↔ many" streams stay out. 🎯 Use it when your own web app talks to gRPC services and you want the same <code>.proto</code> types in the browser.</li>
+    <li><b class="hd">✅ Fix 2: REST (JSON) at the edge, gRPC inside: the browser never sees gRPC</b>Map each gRPC method to a REST route in the <code>.proto</code> (for example <code>GET /v1/users/{id}</code> → <code>GetUser</code>). A gateway (grpc-gateway, Envoy's JSON transcoder) turns the JSON request into protobuf, calls the service, and turns the reply back into JSON, with <code>grpc-status: 5</code> becoming a normal <b>404</b>. The browser uses plain fetch. 🎯 Use it for public APIs and any client you don't control.</li>
   </ul>
   <div class="dg" role="img" aria-label="A plain load balancer only forwards, so it fails. gRPC-Web through a translating proxy such as Envoy works. A REST gateway that transcodes JSON to gRPC also works.">
     <div class="r"><span class="bx">🌐 Browser</span><span class="ar" style="--c: var(--red-fg)">⇄ native gRPC ❌</span><span class="bx">⚖️ Plain load balancer</span><span class="ar" style="--c: var(--muted)">only forwards</span><span class="bx">🖥️ gRPC service</span></div>
@@ -2032,13 +2066,11 @@ GET  /users/{id}/posts  → [Post] (nested =
     <div class="r"><span class="bx">🌐 Browser</span><span class="ar" style="--c: var(--green-fg)">⇄ REST / JSON ✅</span><span class="bx">🚪 Gateway that transcodes</span><span class="ar" style="--c: var(--blue-fg)">⇄ native gRPC</span><span class="bx">🖥️ gRPC service</span></div>
   </div>
   <ul class="lines roomy heads">
-    <li><b class="hd">✅ Fix 1: gRPC-Web + a translating proxy</b>gRPC-Web is a browser-friendly version of gRPC: plain HTTP requests, and the status goes <b>inside the response body</b> instead of in trailers. A proxy (Envoy's gRPC-Web filter, or middleware in the server) turns it into native gRPC. ⚠️ Only one-shot calls and server streaming: no client streaming, no two-way streaming.</li>
-    <li><b class="hd">✅ Fix 2: REST (JSON) at the edge, gRPC inside</b>A gateway transcodes JSON ↔ protobuf from the same <code>.proto</code> (grpc-gateway, Envoy's JSON transcoder). This is the "REST outside, gRPC inside" picture above.</li>
-    <li><b class="hd">❌ A plain load balancer doesn't fix it: it forwards, it doesn't translate</b>Even one that supports gRPC (AWS ALB) passes native gRPC through unchanged. The browser still can't read the trailers, so something has to change the protocol.</li>
-    <li><b class="hd">🔌 Need real two-way streaming in the browser? Use WebSockets</b>See the next card.</li>
+    <li><b class="hd">❌ A plain load balancer doesn't fix it: it forwards, it doesn't translate</b>Even one that supports gRPC (AWS ALB) passes native gRPC through unchanged. The trailer still arrives as a trailer, and the browser still drops it.</li>
+    <li><b class="hd">🔌 Need real "many ↔ many" streaming in the browser? Use WebSockets</b>See the next card.</li>
   </ul>
-  <p class="ana">📦 gRPC sticks the "delivered OK" receipt on the <b>outside</b> of the parcel, after it arrives (a trailer). The browser's mailroom hands the page only the box and throws the sticker away, so the page never knows if the delivery succeeded. gRPC-Web puts the receipt <b>inside</b> the box. The proxy is the clerk who repacks parcels between the two styles; a plain load balancer is a conveyor belt that just moves the box along. <span class="add">➕ analogy</span></p>
-  <div class="rem"><b>🎤 Say it</b> "Browsers speak HTTP/2, but browser JavaScript can't read HTTP trailers or control HTTP/2 streams, and gRPC puts its status in trailers and streams both ways. So the browser uses gRPC-Web through a translating proxy like Envoy (one-shot calls and server streaming only), or REST at the edge with gRPC inside. A plain load balancer only forwards; it doesn't translate."</div>
+  <p class="ana">📦 gRPC sticks the "delivered OK" receipt on the <b>outside</b> of the parcel, after it arrives (a trailer). The browser's mailroom hands the page only the box and throws the sticker away, so the page never knows if the delivery worked. Fix 1: a clerk (the proxy) repacks every parcel with the receipt <b>inside</b> the box. Fix 2: a front desk swaps the parcel for an ordinary letter the page already knows how to read. A plain load balancer is a conveyor belt: it moves the box, sticker and all. <span class="add">➕ analogy</span></p>
+  <div class="rem"><b>🎤 Say it</b> "Browsers speak HTTP/2, but page JavaScript only gets fetch. gRPC puts its result in HTTP trailers, needs HTTP/2 end to end, and streams both ways; fetch can't read trailers, can't pick the HTTP version, and can't stream both ways. So the browser uses gRPC-Web through a translating proxy like Envoy, which moves the status into the body (1 → 1 and server streaming only), or REST at the edge with a gateway transcoding to gRPC inside. A plain load balancer only forwards; it doesn't translate."</div>
   <div class="rem"><b>✅ Remember</b> Interviewers want to see how you think and react to new constraints, not an optimal whiteboard drawing. Don't hyper-optimise your RPC protocol before handling the real bottlenecks. "Premature optimization is the root of all evil!"</div>
   <p class="bridge">So: HTTP carries it, REST shapes it, GraphQL and gRPC are for specific needs. All of them are the client asking. Next: when the server has to speak first.</p>
 
@@ -6719,6 +6751,18 @@ const SEQS = {
       { at: 0, m: 'hands out 1, 2, 3 … from memory', k: 'lb', cap: '⑤ A uses its numbers locally: no network call per link, only a local lock inside A. When the batch runs out, it asks again.' },
       { at: 0, m: 'crash after 500 💥', k: 'err', cap: '⑥ A crashes after using 500. Numbers 501–1000 are never used.' },
       { note: 'gap 501–1000 = harmless', cap: '⑦ We need unique codes, not continuous ones, so the gap doesn\'t matter. On restart A asks for a fresh batch (2001–3000). The database\'s UNIQUE constraint on short_code is the final safety net.' },
+    ],
+  },
+  'grpc-web': {
+    lanes: ['🌐 Browser', '🔁 Envoy proxy', '🖥️ UserService'],
+    key: [['http', 'request'], ['tcp', 'reply'], ['lb', 'proxy repacks'], ['gray', 'trailer']],
+    frames: [
+      { cap: 'The page calls GetUser("123") through gRPC-Web 👇' },
+      { f: 0, t: 1, m: 'POST GetUser · grpc-web', k: 'http', cap: '① The page\'s gRPC-Web library sends an ordinary POST with fetch, over whatever HTTP version the browser picked. Body: the protobuf request.' },
+      { f: 1, t: 2, m: 'native gRPC · HTTP/2', k: 'http', cap: '② Envoy turns it into a real gRPC call on HTTP/2 to the service.' },
+      { f: 2, t: 1, m: 'User · trailer: status 0', k: 'gray', cap: '③ The service answers the gRPC way: HTTP 200, the user in the body, then the result in a <b>trailer</b>: 0 = OK.' },
+      { at: 1, m: 'trailer → into body', k: 'lb', cap: '④ Envoy repacks: it writes the trailer as a final chunk <b>inside the response body</b>.' },
+      { f: 1, t: 0, m: 'body: User + status 0', k: 'tcp', cap: '⑤ Fetch can read bodies, so the library finds the status at the end and the page knows the call really succeeded. Had it failed, it would read 5 (NOT_FOUND) the same way.' },
     ],
   },
   'cache-cpu': {
