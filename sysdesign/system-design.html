@@ -779,6 +779,11 @@ body.map-on .wrap { max-width: 1640px; }
 .pmap b { display: block; color: var(--c); font-size: 13.5px; margin-top: 4px; } .pmap small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 3px; }
 .pm1 { --c: var(--blue-fg); --bg-c: var(--blue-bg); } .pm2 { --c: var(--teal-fg); --bg-c: var(--teal-bg); } .pm3 { --c: var(--red-fg); --bg-c: var(--red-bg); } .pm4 { --c: var(--green-fg); --bg-c: var(--green-bg); }
 .pm5 { --c: var(--amber-fg); --bg-c: var(--amber-bg); } .pm6 { --c: var(--purple-fg); --bg-c: var(--purple-bg); } .pm7 { --c: var(--coral-fg); --bg-c: var(--coral-bg); } .pm8 { --c: var(--gray-fg); --bg-c: var(--gray-bg); }
+/* read:write ratio bars (Bitly) */
+.rw { display: grid; grid-template-columns: max-content 1fr max-content; gap: 6px 10px; align-items: center; margin: 6px 0 8px; font-size: 12.5px; }
+.rw .t { height: 14px; border-radius: 7px; background: var(--chip); border: 1px solid var(--line); overflow: hidden; }
+.rw .t i { display: block; height: 100%; border-radius: 7px; min-width: 4px; }
+.rw .r i { background: var(--green-fg); } .rw .w i { background: var(--blue-fg); }
 .pkc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; font-size: 12.5px; }
 .pkc > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); min-width: 0; }
 .pkc .h { display: block; margin-bottom: 6px; font-size: 13.5px; } .pk-okh { color: var(--green-fg); } .pk-noh { color: var(--red-fg); }
@@ -1080,8 +1085,8 @@ GET  /v1/feed        → Tweet[]</pre>
         <p class="bridge">Now draw. The trick: don't design "Twitter". Satisfy <b>one endpoint at a time</b>, and the design builds itself 👇</p>
         <div class="hld" id="hld-twitter">
           <div class="hld-btns">
-            <button type="button" data-s="1">1 · POST /v1/tweets</button><button type="button" data-s="2">2 · GET /v1/tweets/:id</button>
-            <button type="button" data-s="3">3 · POST /v1/follows</button><button type="button" data-s="4">4 · GET /v1/feed</button>
+            <button type="button" data-s="1" data-cap="✏️ Post a tweet: Gateway → Tweet CRUD → Tweet DB. Media lives in S3, and the DB keeps the links.">1 · POST /v1/tweets</button><button type="button" data-s="2" data-cap="👀 Read one tweet by id: same service, same DB.">2 · GET /v1/tweets/:id</button>
+            <button type="button" data-s="3" data-cap="➕ Follow someone: a new Follower Service stores one row (userId1 → userId2).">3 · POST /v1/follows</button><button type="button" data-s="4" data-cap="📰 Feed: get the people I follow, then their tweets. It works, but it's slow → fixed in Deep Dives. (The course calls it getFollowers(); it means the people <i>you</i> follow. Its image shows POST and singular /tweet. It should be <b>GET</b> and /tweets.)">4 · GET /v1/feed</button>
           </div>
           <div class="row" data-at="1" data-use="1 2 3 4"><span class="box">📱 Client</span><i>→</i><span class="box">🚪 API Gateway</span></div>
           <div class="row" data-at="1" data-use="1 2 4"><span class="box">✏️ Tweet CRUD Service</span><i>→</i><span class="box db">🗄️ Tweet DB (Postgres)<small>id · authorId · text · media: s3Links[]</small></span></div>
@@ -5416,6 +5421,331 @@ function owner(key) {
   </div>
 </section>
 
+<section class="card" id="sd-bitly-setup" data-topic="Designs" data-course="hi-sd" data-lesson="review-bitly">
+  <h2 class="cap"><b>🔗 Review: Bitly ①: Understanding the Problem · The Set Up · High-Level Design</b></h2>
+  <p class="hook">Bit.ly turns long URLs into short, manageable links, and gives analytics on them. A URL shortener is a very common beginner system design question, often called entry-level. That doesn't make it trivial. This breakdown goes slower than the others and teaches what they take for granted. Asked at Amazon, Microsoft and 23 more.</p>
+  <p class="tldr">💡 Two features: make a short link, and open it. The twist is the numbers: about <b>1,000 clicks for every 1 new link</b>, 1 billion links, 100 million daily users. So the design is built for reading. Step by step, the way the Delivery Framework runs: 📋 requirements → 🧱 entities → 🔌 API → 🏗️ a simple design that works (this card) → 🔬 three deep dives that make it good (cards ②–④). Think of a theatre cloakroom: hand in a long coat, get a tiny ticket; show the ticket, get the coat. Explained below 👇</p>
+
+  <h4>📋 Functional Requirements</h4>
+  <p class="bridge">First step of every interview (<a href="#sd-delivery-framework">Delivery Framework</a>): a clear picture of what the system must do. Sometimes the interviewer gives you the features; sometimes you work them out. If you don't know the product, ask. The key is to zero in on the top 3–4 features and not get distracted by bells and whistles.</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Core requirements</b><div class="chk">1️⃣ Users can submit a long URL and receive a shortened version</div><div class="chk">↳ optional: a custom alias (<code>short.ly/my-custom-alias</code>)</div><div class="chk">↳ optional: an expiration date</div><div class="chk">2️⃣ Users can access the original URL by using the shortened URL</div></div>
+    <div class="k-amber"><b>⬇️ Below the line (out of scope)</b><div class="chk">🔐 User authentication and account management</div><div class="chk">📊 Analytics on link clicks (click counts, geographic data)</div></div>
+  </div>
+  <div class="rem"><b>💡 Tip</b> These features are "below the line" because they add complexity without being core to a URL shortener. In a real interview you might discuss them with the interviewer and decide together whether they're in.</div>
+  <p class="ana">🧥 The cloakroom does two things: take a coat and give a ticket, and swap a ticket back for the coat. Loyalty cards and "which coats are popular" reports can wait. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>⚙️ Non-Functional Requirements</h4>
+  <p class="bridge">Next, how the system must behave: scale, latency, availability. Say them as concrete numbers ("100 million daily active users", "under 200 ms"), not adjectives.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Every short code is unique: one code maps to exactly one long URL</b>Two links sharing a code would send people to the wrong page.</li>
+    <li><b class="hd">2️⃣ Redirects are fast: under 100 ms</b>The whiteboard picture just says "low latency redirection".</li>
+    <li><b class="hd">3️⃣ Reliable and available 99.99% of the time: availability over consistency</b>A new link that shows up a second late is fine; links that don't open are not. <span class="add">➕ 99.99% ≈ 52 minutes of downtime a year</span></li>
+    <li><b class="hd">4️⃣ Scale to 1B shortened URLs and 100M DAU</b>These two numbers drive every deep dive.</li>
+  </ul>
+  <div class="flow"><span>⬇️ below the line:</span><span>📊 consistency of real-time analytics</span><span>🛡️ spam detection and malicious URL filtering</span></div>
+  <div class="rw" role="img" aria-label="For every 1 new short link there are about 1000 clicks.">
+    <span>👀 Reads (clicks)</span><span class="t r"><i style="width:100%"></i></span><b>1,000</b>
+    <span>✍️ Writes (new links)</span><span class="t w"><i style="width:0.1%"></i></span><b>1</b>
+  </div>
+  <div class="rem"><b>💡 Tip</b> The most important fact here: reads and writes are hugely unbalanced. People open short links all the time, and create new ones rarely: maybe 1,000 clicks for every new link. This shapes the whole design: the caching strategy, the database choice and the architecture.</div>
+  <p class="ana">🧥 A theatre lets out: a thousand guests collect coats in ten minutes, but they handed them in slowly all evening. You staff the cloakroom for the rush to collect. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🧱 Defining the Core Entities</h4>
+  <p class="bridge">Start with a short list of the main things the system stores. Columns come later, in the high-level design. Tell the interviewer that's your plan, so you're on the same page.</p>
+  <div class="pills"><span class="big">🔗 Original URL</span><span>the long URL the user wants to shorten</span><span class="big">✂️ Short URL</span><span>the short link the user gets and shares</span><span class="big">👤 User</span><span>who created the short URL</span></div>
+  <p class="figcap">🖼️ The lesson's whiteboard is exactly this list. In the interview a short list is enough; just talk it through.</p>
+  <p class="ana">🧥 Coat, ticket, guest. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔌 The API</h4>
+  <p class="bridge">The API is the contract between client and server, and the first thing the design builds on. Go through the functional requirements one by one; endpoints usually map 1:1 to them. 9 times out of 10 it's REST, and the job is picking the right verb:</p>
+  <div class="pills"><span class="big">POST</span><span>create</span><span class="big">GET</span><span>read</span><span class="big">PUT</span><span>update</span><span class="big">DELETE</span><span>delete</span></div>
+  <pre>// Shorten a URL: POST, because it creates a new row (long URL ↔ short code)
+POST /urls
+{
+  "long_url": "https://www.example.com/some/very/long/url",
+  "custom_alias": "optional_custom_alias",
+  "expiration_date": "optional_expiration_date"
+}
+-> { "short_url": "http://short.ly/abc123" }
+
+// Redirect: GET, because it only reads the long URL for a short code
+GET /{short_code}
+-> HTTP 302 Redirect to the original long URL</pre>
+  <div class="info"><b>ℹ️ Note</b> Which status code to send (301 or 302) is decided in the high-level design below.</div>
+  <p class="ana">🧥 Two windows at the cloakroom: "drop off" (POST) and "collect" (GET). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>✂️ 1) Users should be able to submit a long URL and receive a shortened version</h4>
+  <p class="bridge">Now the high-level design: one functional requirement at a time, simplest system that works, depth later. Three parts: the <b>Client</b> (web or mobile app), a <b>Primary Server</b> with all the business logic, and a <b>Database</b> mapping short codes to long URLs. ▶️</p>
+  <div class="seq" data-seq="bitly-create"></div>
+  <p class="figcap">🖼️ The lesson's picture as a step-through: Client ⇄ Primary Server ("1) generate short url 2) save to DB") ⇄ Database.</p>
+  <div class="flow"><span>🗄️ <b>Urls</b></span><span>short url code (or custom alias)</span><span>original url</span><span>creationTime</span><span>expirationTime?</span><span>createdBy</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">♻️ Deduplication is a trade-off: storage vs features</b>Returning the same code for the same long URL saves space. But most shorteners give a new code each time, so different users can have their own expiry, analytics and alias.</li>
+  </ul>
+  <p class="ana">🧥 The attendant checks the coat is really a coat, tears off a ticket, writes "ticket 42 → blue coat, until Sunday" in the ledger, and hands you the ticket. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>↪️ 2) Users should be able to access the original URL by using the shortened URL</h4>
+  <p class="bridge">The short link lives on a domain we own (<code>short.ly/abc123</code>), so every click reaches our Primary Server first. ▶️</p>
+  <div class="seq" data-seq="bitly-redirect"></div>
+  <p class="figcap">🖼️ The lesson's picture adds "Read: 1) look up original url in DB 2) return with 302 redirect" under the Primary Server.</p>
+  <p class="bridge">Which redirect? There are two:</p>
+  <div class="grid2">
+    <div class="k-amber"><b>301 Moved Permanently</b><code>HTTP/1.1 301 Moved Permanently<br>Location: https://www.original-long-url.com</code><div class="chk">🧠 Browsers usually <b>cache</b> it</div><div class="chk">⏭️ Later clicks may jump straight to the long URL and <b>skip our server</b></div></div>
+    <div class="k-green"><b>302 Found</b><code>HTTP/1.1 302 Found<br>Location: https://www.original-long-url.com</code><div class="chk">🚫 Browsers <b>don't cache</b> it</div><div class="chk">🔁 Every click goes <b>through our server</b> first</div></div>
+  </div>
+  <p class="figcap">🖼️ Either way the browser follows the redirect on its own; the user never notices.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ A 302 is often preferred for a URL shortener, for three reasons</b></li>
+    <li><b class="hd">🎛️ More control: links can be changed or expired later</b></li>
+    <li><b class="hd">🧹 No cached redirect stuck in browsers if the link must change or be deleted</b></li>
+    <li><b class="hd">📊 Every click can be counted for analytics</b>Even though analytics is out of scope here.</li>
+    <li><b class="hd">🧽 Expired links: a periodic job deletes them, or the rows just stay with their date</b>More important: set the cache TTL equal to or shorter than the link's expiration, so stale entries leave the cache on their own.</li>
+  </ul>
+  <p class="ana">🧥 A 301 is telling the guest "your coat is always on rack 7, fetch it yourself next time": quick, but if you move the coat, they go to the wrong rack. A 302 is "come to the desk every time": you stay in control. <span class="add">➕ analogy not in the article</span></p>
+  <p class="bridge">🔚 A working system: one server, one database, two endpoints. It meets the functional requirements but not yet the non-functional ones. Next: make the short codes unique (②), the redirects fast (③), and the whole thing scale (④).</p>
+</section>
+
+<section class="card" id="sd-bitly-unique" data-topic="Designs" data-course="hi-sd" data-lesson="review-bitly">
+  <h2 class="cap"><b>🔗 Review: Bitly ②: Deep Dive 1 · How can we ensure short urls are unique?</b></h2>
+  <p class="hook">The basic design works, but it hid the hardest part behind a "magic function". The deep dives go back to the non-functional requirements and fix what isn't met yet. First: where do short codes come from?</p>
+  <p class="tldr">💡 A code must be unique, as short as possible, and cheap to make. ❌ Cutting the first letters of the URL repeats codes. ✅ Hashing the URL gives random-looking codes, but they can collide, so you check and retry. ✅ A shared counter (1, 2, 3 … written in base62) never collides, but every server must share it. Explained below 👇</p>
+  <div class="pills"><span class="big">1️⃣ Unique</span><span class="big">2️⃣ As short as possible</span><span class="big">3️⃣ Generated efficiently</span></div>
+  <p class="figcap">🖼️ The three constraints every option is judged by.</p>
+
+  <h4>❌ Bad Solution: Long Url Prefix</h4>
+  <p class="bridge">The silliest way: take the first N characters (say 8) of the long URL as the code.</p>
+  <pre><b>www.link</b>edin.com/in/evan-king-40072280/  →  short.ly/www.link
+<b>www.link</b>edin.com/in/stefanmai/          →  short.ly/www.link  ❌ same code</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💥 Breaks constraint 1: any two URLs with the same first N characters get the same code</b>A click on <code>short.ly/www.link</code> can't tell which of countless LinkedIn profiles you meant.</li>
+  </ul>
+  <p class="ana">🧥 Ticket = the first letters of the coat's brand. Every Zara coat gets ticket "ZARA". <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>✅ Great Solution: Hash Function</h4>
+  <p class="bridge">Unique codes need <b>entropy</b> (randomness). A random number generator (<code>Math.random()</code> or a cryptographic one) is one source; the article prefers a hash function like SHA-256: high entropy, fixed size, and deterministic (the same input always gives the same output).</p>
+  <div class="flow"><span>🔗 long URL</span><i>→</i><span>🧹 canonicalize</span><i>→</i><span>#️⃣ SHA-256</span><i>→</i><span>🔤 base62</span><i>→</i><span>✂️ first 8 chars</span><i>→</i><span>abc12345</span></div>
+  <pre>input_url = "https://www.example.com/some/very/long/url"
+# Canonicalize URL first (lowercase host, strip default ports, normalize trailing slash, etc.)
+canonical_url = canonicalize(input_url)
+hash_code = hash_function(canonical_url)
+short_code_encoded = base62_encode(hash_code)
+short_code = short_code_encoded[:8] # 8 characters</pre>
+  <div class="grid2">
+    <div class="k-green"><b>🔤 Why base62</b><div class="chk">a–z, A–Z, 0–9 = 62 characters, all safe in a URL</div><div class="chk">8 characters → 62⁸ ≈ <b>218 trillion</b> codes</div></div>
+    <div class="k-red"><b>🚫 Why not base64</b><div class="chk">It adds <code>+</code> and <code>/</code></div><div class="chk"><code>/</code> splits URL paths; <code>+</code> can be read as a space in query strings</div></div>
+  </div>
+  <p class="figcap">🖼️ The lesson's picture: a "Hash Function" box inside the Primary Server. <span class="add">➕ not in the article</span> base64url swaps those two for - and _; base62 keeps codes to letters and digits.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔁 Deterministic: the same long URL always gets the same code, with no database lookup</b>Good if you want deduplication. If you need several codes per URL, or want codes nobody can predict, add a secret salt or nonce (HMAC).</li>
+    <li><b class="hd">💥 The catch: codes can still collide, and more often as the table fills</b>With |S| possible codes and n already used, the next new code collides with chance n ÷ |S|.</li>
+  </ul>
+  <div class="grid2">
+    <div class="k-blue"><b>8 characters, 1B links stored</b><div class="chk">1B ÷ 218 trillion</div><div class="star">≈ 1 collision in 218,000 inserts</div></div>
+    <div class="k-amber"><b>6 characters, 1B links stored</b><div class="chk">1B ÷ 56.8 billion</div><div class="star">≈ 1 collision in 57 inserts</div></div>
+  </div>
+  <p class="figcap">🖼️ <span class="add">➕ my numbers</span> Same formula, two code lengths. Fewer characters = more collisions.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚖️ Unique, short, efficient: hard to get all three at once</b>Fewer collisions need longer codes, which defeats a shortener. Catching collisions needs a database check on each insert: more latency, more complexity.</li>
+    <li><b class="hd">🛡️ The fix: a UNIQUE constraint on short_code, then retry a few times</b>On a duplicate the database rejects the insert; retry with a random salt added to the hash, at most 3–5 times, then fall back to another strategy or return an error.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> The article says a random generator "doesn't give enough entropy". In fact a good random code collides exactly as often as a hash of the same length (the same n ÷ |S|). The real difference: a hash is deterministic, so the same URL gives the same code.</div>
+  <p class="ana">🧥 The ticket number comes from the coat's fingerprint. Two different coats rarely get the same number, but with a billion coats in the ledger it happens, so the attendant checks the ledger and re-rolls. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>✅ Great Solution: Unique Counter with Base62 Encoding</h4>
+  <p class="bridge">The way to guarantee no collisions: count. Each new URL takes the next number, written in base62 to keep it short. Redis fits the counter: it runs one command at a time on a single thread, and <code>INCR</code> adds 1 and returns the new value in one atomic step. ▶️</p>
+  <div class="seq" data-seq="bitly-incr"></div>
+  <p class="figcap">🖼️ The lesson's picture: a "Counter" box inside the Primary Server.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Every number is unique, so collisions are impossible without any extra check</b>Incrementing and encoding are cheap, so throughput is high. A code can also be decoded back to its number if needed.</li>
+    <li><b class="hd">⚠️ Challenge 1: one global counter is hard to share across many servers</b>Every Primary Server must agree on the next value. Solved in ④ when we scale.</li>
+    <li><b class="hd">⚠️ Challenge 2: counting makes codes predictable, so someone can walk through them all (enumeration)</b>Holding <code>g8</code> tells you <code>g9</code> exists. If that matters, scramble the number first (for example XOR with a secret key) before base62. Or accept it: short URLs are usually shared publicly anyway.</li>
+    <li><b class="hd">⚠️ Challenge 3: codes get longer over time, but slowly. Do the math</b>See the ladder below.</li>
+  </ul>
+  <div class="flow"><span>1B URLs = <b>6 chars</b> (1,000,000,000 = "15ftgG")</span><i>→</i><span>62⁶ ≈ <b>56.8 billion</b> before a 7th char</span><i>→</i><span>62⁷ ≈ <b>3.5 trillion</b> with 7 chars</span></div>
+  <p class="figcap">🖼️ Even a billion links stay at 6 characters.</p>
+  <p class="bridge">🎤 How to say the trade-off:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>#️⃣ Hash</b><div class="chk">✅ No shared state: any server makes codes alone</div><div class="chk">⚠️ Collisions → UNIQUE constraint + retry</div></div>
+    <div class="k-green"><b>🔢 Counter</b><div class="chk">✅ Never collides, shortest codes</div><div class="chk">⚠️ Coordination: one shared counter; predictable codes</div></div>
+  </div>
+  <ul class="lines">
+    <li><span class="say">🗣️ "I'll use a global counter in Redis, base62-encoded: 1 billion links fit in 6 characters and there are no collisions to handle. The cost is coordination, which I'll fix with batching when we scale."</span></li>
+  </ul>
+  <p class="ana">🧥 A ticket roll printed 1, 2, 3: two guests can never get the same ticket. But if your ticket is 42, you know 41 exists. <span class="add">➕ analogy not in the article</span></p>
+</section>
+
+<section class="card" id="sd-bitly-fast" data-topic="Designs" data-course="hi-sd" data-lesson="review-bitly">
+  <h2 class="cap"><b>🔗 Review: Bitly ③: Deep Dive 2 · How can we ensure that redirects are fast?</b></h2>
+  <p class="hook">With no help, the database checks every row to find one short code: a <b>full table scan</b>. With millions or billions of links, that is far too slow for a 100 ms redirect.</p>
+  <p class="tldr">💡 Three steps, cheapest first. 🟡 An index finds one code in a few steps instead of scanning everything; but at peak we expect ~600,000 clicks a second, too many for one database. ✅ An in-memory cache (Redis) answers popular codes from RAM, about 1,000× faster than an SSD. ✅ A CDN with edge functions answers popular codes in a city near the user, so the click never reaches our servers. Explained below 👇</p>
+  <div class="info"><b>📖 Pattern: Scaling Reads</b> URL shorteners show the extreme read-to-write ratio that makes scaling reads critical. With potentially millions of clicks per short URL, aggressive caching becomes essential. The pattern: <a href="#sd-pat-map--scaling-reads">Common Patterns ① · Scaling Reads</a>.</div>
+
+  <h4>🟡 Good Solution: Add an Index</h4>
+  <p class="bridge">An index is like a book's table of contents or a library card catalog: you find something without flipping through every page. Here it is a separate sorted list of short codes, each pointing to where its full row lives.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🌳 B-tree index on short_code</b><div class="chk">Most relational databases use B-trees by default</div><div class="chk">O(log n) lookups: fast even for huge tables</div></div>
+    <div class="k-green"><b>🔑 Make short_code the primary key</b><div class="chk">Creates the index automatically</div><div class="chk">And the database enforces uniqueness: indexing plus data integrity in one step</div></div>
+  </div>
+  <p class="figcap">🖼️ More on how indexes work: <a href="#sd-idx-core">Database Indexing ①</a>.</p>
+  <p class="bridge">Now the database finds the row almost instantly. SSDs aren't slow either: a typical SSD handles about 100,000 IOPS. The real problem is the <b>volume</b> of reads:</p>
+  <div class="flow"><span>👥 100M DAU × 5 redirects</span><i>=</i><span>500M redirects/day</span><i>÷ 86,400 s ≈</i><span><b>5,787 /s</b> on average</span><i>× 100 for peaks ≈</i><span><b>~600k reads/s</b></span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📈 Traffic isn't spread evenly over the day: design for the peaks</b>The article multiplies by 100 for spikes. <span class="add">➕ 100× is a generous margin; it is the safe side to err on</span></li>
+    <li><b class="hd">⚠️ Even indexed, one database instance may struggle with that volume</b>Slower responses, timeouts, and the read load hurts other work, like creating short URLs.</li>
+  </ul>
+  <p class="ana">📇 The article's own analogy: a library card catalog. Sorted cards find the book in seconds; but if 600,000 people queue at one catalog every second, the catalog is the bottleneck.</p>
+
+  <h4>✅ Great Solution: Implementing an In-Memory Cache (e.g., Redis)</h4>
+  <p class="bridge">Put an in-memory cache, Redis <span class="aws">☁️ AWS ElastiCache</span> or Memcached, between the server and the database. It holds popular mappings: key = short code, value = long URL. ▶️</p>
+  <div class="seq" data-seq="bitly-cache"></div>
+  <p class="figcap">🖼️ The lesson's picture: "Cache (redis) · key: short_code · value: original_url", with "1. check cache 2. check DB". (Its server box says "Random num generator"; that's a leftover from the earlier picture.)</p>
+  <p class="bridge">The whole point: read from memory instead of disk.</p>
+  <div class="grid3">
+    <div class="k-green"><b>🧠 Memory</b><div class="chk">~100 ns (0.0001 ms)</div><div class="chk">millions of reads/s</div></div>
+    <div class="k-blue"><b>💾 SSD</b><div class="chk">~0.1 ms</div><div class="chk">~100,000 IOPS</div></div>
+    <div class="k-red"><b>🐌 HDD</b><div class="chk">~10 ms</div><div class="chk">~100–200 IOPS</div></div>
+  </div>
+  <p class="figcap">🖼️ Memory is about 1,000× faster than an SSD and 100,000× faster than an HDD.</p>
+  <div class="info"><b>➕ Fact-check: "millions of reads per second"?</b> A reader spotted that Numbers to Know says 100k–200k ops/s per Redis instance. Both are true: RAM itself can do millions, but one Redis node is limited by its single command thread and the network (<a href="#sd-num-use">Numbers to Know ②</a>). So the ~600k/s peak needs a few cache nodes or read replicas, or a CDN in front taking the popular links.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Invalidation: tricky on updates and deletes, but rare here because links seldom change</b></li>
+    <li><b class="hd">⚠️ Warm-up: early requests still hit the database until the cache fills</b></li>
+    <li><b class="hd">⚠️ Memory limits: decide the size, the eviction policy (e.g. LRU) and what to store</b></li>
+    <li><b class="hd">⚠️ One more moving part: discuss the trade-offs and invalidation with the interviewer</b></li>
+  </ul>
+  <p class="ana">🧥 The most-collected coats hang right behind the desk; only rare ones need a trip to the back room. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>✅ Great Solution: Leveraging Content Delivery Networks (CDNs) and Edge Computing</h4>
+  <p class="bridge">Go one step closer to the user. Serve the short-link domain through a CDN with Points of Presence (PoPs) around the world. Each PoP caches short code → long URL. Put the redirect logic itself at the edge (Cloudflare Workers, AWS Lambda@Edge <span class="aws">☁️ AWS CloudFront + Lambda@Edge</span>), and the redirect happens in the CDN.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🌍 Without a CDN</b><div class="chk">👤 user in Mumbai → our server far away → 302</div><div class="chk">Every click crosses the world and loads our servers</div></div>
+    <div class="k-green"><b>⚡ With a CDN + edge function</b><div class="chk">👤 user in Mumbai → PoP in Mumbai → 302</div><div class="chk">Popular codes never reach the Primary Server</div></div>
+  </div>
+  <p class="figcap">🖼️ <span class="add">➕ my example</span> The same click, two paths.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Keeping every CDN node invalidated and consistent is complex</b></li>
+    <li><b class="hd">⚠️ Edge setup needs extra configuration and knowing serverless at the edge</b></li>
+    <li><b class="hd">💸 Cost: CDNs and edge computing get expensive at high traffic</b></li>
+    <li><b class="hd">⚠️ Edge functions are limited in run time, memory and libraries: keep the redirect logic lean</b></li>
+    <li><b class="hd">🔍 Debugging and monitoring are harder than on central servers</b></li>
+    <li><b class="hd">⭐ "You trade cost and complexity for performance"</b>Worth it or not depends on the company's price sensitivity, user-experience needs and traffic patterns.</li>
+  </ul>
+  <p class="ana">🧥 Small coat desks at every theatre entrance: guests collect near their door, the main cloakroom stays calm. But every desk must hear when a coat moves. <span class="add">➕ analogy not in the article</span></p>
+  <ul class="lines">
+    <li><span class="say">🗣️ "Index first, with short_code as the primary key. Peak reads are around 600k a second, so I add Redis in front for popular links, and for global latency a CDN with edge redirects."</span></li>
+  </ul>
+</section>
+
+<section class="card" id="sd-bitly-scale" data-topic="Designs" data-course="hi-sd" data-lesson="review-bitly">
+  <h2 class="cap"><b>🔗 Review: Bitly ④: Deep Dive 3 · Scale to 1B URLs and 100M DAU · Final Design · Levels</b></h2>
+  <p class="hook">The cache already scales the reads. What's left: is one database big enough, what if it dies, and how do many servers share one counter?</p>
+  <p class="tldr">💡 💾 1B links × 500 bytes = 500 GB: one Postgres holds it, and writes are only ~1 per second. 🔀 Split the server into a Read Service and a Write Service, each scaled on its own. 🔢 All write servers share one Redis counter, and take numbers in batches of 1,000 so they rarely call it. Then the final picture, and what each level is expected to say. Explained below 👇</p>
+
+  <h4>💾 The Database: Size, Choice, Failures</h4>
+  <p class="bridge">First, how big is the data? Add up one row:</p>
+  <div class="flow"><span>short code ~8 B</span><i>+</i><span>long URL ~100 B</span><i>+</i><span>creationTime ~8 B</span><i>+</i><span>custom alias ~100 B</span><i>+</i><span>expiration ~8 B</span><i>≈</i><span>~200 B, round up to <b>500 B</b></span></div>
+  <div class="flow"><span>1B rows × 500 B</span><i>=</i><span><b>500 GB</b></span><i>→</i><span>✅ well within one modern SSD</span></div>
+  <p class="figcap">🖼️ The extra 300 B per row leaves room for metadata like creator id and analytics id.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📏 Growth stays modest: the number of URLs on the internet is the upper bound</b>Hit a hardware limit and you could shard, but for now a single Postgres instance is enough.</li>
+    <li><b class="hd">✍️ Writes are tiny: ~100k new URLs a day ≈ 1 row per second</b>Heavy reads go to the cache, so almost any database works: Postgres, MySQL, DynamoDB. "Pick whichever you know best; with no hands-on experience, go with Postgres." <span class="aws">☁️ AWS RDS / Aurora PostgreSQL</span></li>
+  </ul>
+  <p class="bridge">What if the database goes down? Always worth asking. Two high-availability tools:</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🪞 Database replication</b><div class="chk">Several identical copies on different servers; if one dies, switch to another</div><div class="chk">⚠️ The server must handle replicas correctly: tricky, more operations work</div></div>
+    <div class="k-purple"><b>📸 Database backup</b><div class="chk">Snapshot the database regularly and store it elsewhere</div><div class="chk">⚠️ The server must be able to work from the backup: same extra work</div></div>
+  </div>
+  <p class="ana">🧥 The whole ledger fits in one notebook. Keep a photocopy in the next room (replica) and a copy at home (backup). <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔀 The Primary Server: Split Reads and Writes</h4>
+  <p class="bridge">Reads far outnumber writes, so scale them separately. Split the Primary Server into two microservices:</p>
+  <div class="flow"><span>📱 Client</span><i>→</i><span>🚪 API Gateway</span><i>→</i><span>✏️ Write Service × few</span><i>·</i><span>👀 Read Service × many</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✏️ Write Service creates short URLs; 👀 Read Service handles redirects</b>Each scales on its own demand. Readers call this a small example of CQRS.</li>
+    <li><b class="hd">📈 Both scale horizontally: more instances, each request routed to a random one</b>Many requests a second, and no single server overloaded.</li>
+  </ul>
+  <p class="ana">🧥 A busy cloakroom opens separate drop-off and pick-up counters, and puts more staff on pick-up. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🔢 What About the Counter?</h4>
+  <p class="bridge">Many Write Service instances cause one big problem: globally unique codes need <b>one source of truth</b> for the counter that every instance can reach. One answer: a central Redis holding the counter. Single-threaded, very fast, atomic increments. Is the extra network call per write a worry? "Probably not": network calls are fast. Still, <b>counter batching</b> cuts them. ▶️</p>
+  <div class="seq" data-seq="bitly-batch"></div>
+  <div class="info"><b>➕ Fact-check</b> The article says Redis "returns the start of the batch". <code>INCRBY counter 1000</code> returns the new value, which is the <b>end</b> of the batch: a reply of 2000 means you own 1001–2000.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Batching keeps codes unique across instances and cuts Redis load and network calls</b></li>
+    <li><b class="hd">🛟 Keep the counter alive with Redis Sentinel or Redis Cluster (automatic failover)</b>One Redis instance handles 100k+ operations a second, far more than link creation needs, especially with batching.</li>
+    <li><b class="hd">🌍 Multi-region: give each region its own counter range (A: 0–1B, B: 1B–2B)</b>No cross-region coordination. Writes use the local Redis; reads are served everywhere through distributed caches.</li>
+    <li><b class="hd">💥 If Redis dies before copying the latest value, a few numbers are lost, and that's fine</b>We need uniqueness, not continuity. The database's UNIQUE constraint on <code>short_code</code> is the final safety net.</li>
+  </ul>
+  <p class="ana">🧥 Each attendant takes a roll of 1,000 tickets from the master roll. If an attendant goes home with half a roll, those numbers are simply skipped; no two guests ever share a ticket. A second theatre prints from its own range. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🏁 Final Design</h4>
+  <p class="bridge">Putting it all together. Tap through to watch the design grow from the first box to the final picture:</p>
+  <div class="hld" id="hld-bitly">
+    <div class="hld-btns">
+      <button type="button" data-s="1" data-cap="✂️ <b>Create</b>: the Primary Server validates the URL, makes a short code and saves the row.">1 · POST /urls</button><button type="button" data-s="2" data-cap="↪️ <b>Redirect</b>: look the code up in the Urls table and answer <b>302</b> (410 Gone if expired).">2 · GET /{short_code}</button>
+      <button type="button" data-s="3" data-cap="🔢 <b>Deep dive 1</b>: codes come from a counter in Redis (INCR → base62), so they never collide.">3 · + unique codes</button><button type="button" data-s="4" data-cap="⚡ <b>Deep dive 2</b>: index on short_code, and a Redis cache in front of the database for popular links (plus a CDN at the edge).">4 · + fast redirects</button>
+      <button type="button" data-s="5" data-cap="🏁 <b>Final · create</b>: the API Gateway routes to the Write Service, which takes counter values from the Global Counter in batches and writes to the database.">5 · Final: create</button><button type="button" data-s="6" data-cap="🏁 <b>Final · redirect</b>: the API Gateway routes to the Read Service: cache first, database on a miss, then 302.">6 · Final: redirect</button>
+    </div>
+    <div class="row" data-at="1" data-to="4" data-use="1 2 3 4"><span class="box">📱 Client</span><i>→</i><span class="box">🖥️ Primary Server</span></div>
+    <div class="row" data-at="1" data-to="4" data-use="1 2 3 4"><span class="box">🖥️ Primary Server</span><i>→</i><span class="box db">🗄️ Database<small>Urls: short_code · original_url · creationTime · expirationTime? · createdBy</small></span></div>
+    <div class="row" data-at="3" data-to="4" data-use="3"><span class="box">🖥️ Primary Server</span><i>→</i><span class="box">🔢 Counter<small>Redis INCR → base62</small></span></div>
+    <div class="row" data-at="4" data-to="4" data-use="4"><span class="box">🖥️ Primary Server</span><i>→</i><span class="box db">⚡ Cache (redis)<small>key: short_code · value: original_url</small></span></div>
+    <div class="row" data-at="5" data-use="5 6"><span class="box">📱 Client</span><i>→</i><span class="box">🚪 API Gateway<small>route to the correct microservice</small></span></div>
+    <div class="row" data-at="5" data-use="5"><span class="box">✏️ Write Service</span><i>→</i><span class="box">🔢 Global Counter<small>get latest count (batch of 1,000)</small></span></div>
+    <div class="row" data-at="5" data-use="5"><span class="box">✏️ Write Service</span><i>→</i><span class="box db">🗄️ Database<small>Urls table</small></span></div>
+    <div class="row" data-at="5" data-use="6"><span class="box">👀 Read Service</span><i>→</i><span class="box db">⚡ Cache (redis)<small>miss → 🗄️ Database → 302</small></span></div>
+    <p class="hld-cap"></p>
+  </div>
+  <p class="figcap">🖼️ Steps 5–6 are the lesson's final picture: Client ⇄ API Gateway ⇄ Write Service (⇄ Global Counter, → Database) and Read Service (⇄ Cache, ⇄ Database). <span class="aws">☁️ AWS API Gateway</span></p>
+  <p class="ana">🧥 The finished cloakroom: a greeter at the door (gateway), a drop-off counter with ticket rolls, a pick-up counter with popular coats behind it, and one ledger in the back. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🎯 What is Expected at Each Level?</h4>
+  <p class="bridge">An entry-level question, but not a trivial one. What the author looks for:</p>
+  <div class="grid3">
+    <div class="k-green"><b>🌱 Mid-level</b><div class="chk">A working design for shortening and redirecting</div><div class="chk">Knows codes must be unique; proposes hashing or a counter</div><div class="chk">Understands why 302 (even without knowing the code by heart)</div><div class="chk">Basic indexing; with prompting, sees a cache helps</div></div>
+    <div class="k-blue"><b>🌿 Senior</b><div class="chk">Drives the talk; names the challenges: unique codes at scale, fast redirects, horizontal scaling</div><div class="chk">Hash (collisions) vs counter (coordination) trade-offs, unprompted</div><div class="chk">Caching in detail, including invalidation for expired links</div><div class="chk">Justifies a database; splits read and write services; scales the counter with Redis</div></div>
+    <div class="k-purple"><b>🌳 Staff+</b><div class="chk">Beyond the textbook: real production concerns</div><div class="chk">Read-heavy design from the start</div><div class="chk">Unprompted: multi-region, counter ranges, Redis failover with batching</div><div class="chk">Security of predictable codes; alias collisions; expiry cleanup; how the system evolves and is operated</div></div>
+  </div>
+  <p class="ana">🎻 Same piece, three players: the student plays the right notes, the professional shapes the phrasing, the soloist hears the hall and adjusts. <span class="add">➕ analogy not in the article</span></p>
+  <p class="bridge">🎤 How to say it:</p>
+  <ul class="lines">
+    <li><span class="say">🗣️ "It's 1,000 reads per write, so I design for reads: short_code as primary key, Redis in front, CDN at the edge for hot links."</span></li>
+    <li><span class="say">🗣️ "Storage is 1B × 500 bytes = 500 GB and writes are about one a second, so one Postgres with a replica is plenty. No sharding yet."</span></li>
+    <li><span class="say">🗣️ "Write servers take counter batches of 1,000 from Redis. A crash loses a few numbers, which is fine; the UNIQUE constraint is the safety net."</span></li>
+  </ul>
+  <p class="bridge">🔚 The whole design is one idea repeated: reads dwarf writes, so make the read path short (cache, edge), keep the write path simple (one counter, one database), and guard uniqueness with the database itself.</p>
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>↪️ 301 or 302? (top thread, 52 votes)</h5>
+    <ul><li>The API once showed a 301, contradicting the design; Evan King (admin) fixed it to 302.</li>
+    <li>"No analytics in scope, so use 301: browsers cache it, it's faster" (Noam, Aditya Goyal: YAGNI, switch to 302 later). Replies: clicks already cached as 301 are lost to analytics forever; and a shortener is an <b>indirection</b> service, so giving up control of the redirect defeats it: fix a typo'd link and users still go to the old one until they clear their cache (rodstewart). With expiry, a 301 needs Cache-Control set, and proxies may ignore it; to be strict, use 302 (eigenben).</li>
+    <li>A third way: 301 with <code>Cache-Control: no-cache, no-store</code> keeps SEO benefits and still counts every click (Damian J, AgreedScarletFish843). <span class="add">➕ fact-check</span> Real Bitly is widely reported to answer with 301 (I couldn't test it from here). Google has said since 2016 that 301 and 302 redirects pass page ranking alike, so the "302 hurts SEO" worry is mostly old.</li></ul>
+    <h5>🔴 "What if the Redis counter dies?"</h5>
+    <ul><li>Evan King: turn on replication. Readers: replication is asynchronous, so a promoted replica can be a bit behind. Fix: if an insert fails because the code already exists, fetch a new batch and retry (Vinayak Mishra). If Redis is fully lost, Evan: decode the largest short code in the database to find the last number.</li>
+    <li>Batch values left unused after a crash: "lost forever, but no big deal": a trillion numbers fit before codes reach 7 characters (Evan). Each server manages its own batch with a local lock only; Redis INCR keeps batches apart, so no distributed lock (Evan).</li>
+    <li>Several readers (and Evan: "a good option") would keep the counter in the database for durability: a Postgres <code>SEQUENCE</code> is built in and caches numbers in memory (FantasticCyanOcelot197); at ~1 write per second, plain auto-increment + base62 also works on one database (LeftAmethystMite819). Its limit: once the database is sharded, each shard counts on its own (aniu.reg).</li></ul>
+    <h5>🆔 Other ID sources</h5>
+    <ul><li>❄️ <b>Snowflake IDs</b>: made locally on each server, no shared counter. Cost: 64 bits = 11 base62 characters instead of ~7 (Priyansh Agrawal), and machine IDs still need some coordination. Evan likened it to the hash solution.</li>
+    <li>🎲 <b>UUID</b>: practically never collides, but 128 bits = 22 base62 characters (Stefan Mai: "Trying to keep the URLs short!"). Cutting it to 7 characters brings collisions back.</li>
+    <li>📦 <b>Pre-generated key pool</b>: Evan: worse. The counter guarantees uniqueness for ~0.1 ms per request; a key pool adds distribution, storage and coordination work.</li>
+    <li>🦓 <b>ZooKeeper</b>: one interviewer wanted it. Most readers: overkill ("the interviewer saw a YouTube video", 68 votes); a counter service handing out ranges, saved in a database, does the same.</li></ul>
+    <h5>🕵️ "Can people guess the URLs?"</h5>
+    <ul><li>Evan: don't shorten private URLs, and say so in the product. If private links become a requirement: scramble the sequential ID (hash it, or Stefan Mai: a fixed-width block cipher, which can't collide), use a bigger ID space, add rate limiting and monitoring. He worries more about competitors learning how many URLs you have.</li></ul>
+    <h5>🏷️ Custom aliases and duplicates</h5>
+    <ul><li>A counter could produce a code someone took as an alias. Evan: separate paths, <code>bit.ly/c/{alias}</code> for aliases and <code>bit.ly/{code}</code> for generated codes, so generated codes need no check.</li>
+    <li>"Should the same long URL get the same code?" Readers: no need; each short URL has its own expiry and analytics, and a new code doesn't reveal that someone else shortened it. If you do deduplicate, add an index on the long URL (Rudraksha Gupta).</li></ul>
+    <h5>🗄️ Database questions</h5>
+    <ul><li>DynamoDB works too: lookups are by short code (Simrit Singh). A relational primary takes 5–20 s to fail over (RadicalAquaBedbug232). <span class="add">➕ note</span> One reply assumed 100M writes a day; the article's number is 100k a day, so writes are no problem for Postgres.</li>
+    <li>Read-after-write: share a new link at once, and a lagging replica may not have it yet. Readers: read-your-own-writes, or track the write's log position. MemoryDB instead of Redis + database? Evan: it can work, but keep durable storage.</li></ul>
+    <h5>🧾 Small corrections</h5>
+    <ul><li>Uniqueness feels like a functional requirement (Banipreet Singh Raheja). Stefan Mai: "almost no interviewer will nitpick this".</li>
+    <li>"When would you decode a code back to its number?" (Yilei Li). <span class="add">➕ my answer</span> Rarely: short_code is the primary key, so a lookup needs no decoding. It helps when recovering the counter (above).</li>
+    <li>A quiz says caching doesn't lower "network latency"; a reader says it lowers end-to-end latency instead (the hop to Redis is still a network hop).</li>
+    <li>"How do we prove the &lt; 100 ms?" (NormalAmethystAnglerfish726). <span class="add">➕ my answer</span> A cache hit is under a millisecond plus one network round trip; even an indexed database read is a few milliseconds. Both sit far inside 100 ms.</li></ul>
+  </div>
+</section>
+
 </div>
 <div id="mapview" hidden>
 <section class="card map-card" id="sd-aws-map">
@@ -5536,7 +5866,8 @@ const COURSES = {
       { title: 'Part 2 · The Patterns', sections: [
         { n: '', id: 'common-patterns', title: 'Common Patterns', lessons: [
           ['common-patterns', 'Common Patterns']] },
-        { n: '04', id: 'scaling-reads', title: 'Scaling Reads' },
+        { n: '04', id: 'scaling-reads', title: 'Scaling Reads', lessons: [
+          ['review-bitly', 'Review: Bitly']] },
         { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
         { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
         { n: '07', id: 'dealing-with-contention', title: 'Dealing with Contention' },
@@ -5659,23 +5990,17 @@ function setView(view) {
 }
 document.querySelectorAll('#views button').forEach(b => { b.onclick = () => setView(b.dataset.view) })
 document.querySelectorAll('[data-go-view]').forEach(b => { b.onclick = () => { setView(b.dataset.goView); document.getElementById('views').scrollIntoView() } })
-// Step-through diagrams: rows appear when their endpoint is introduced and light up while it's in use
+// Step-through diagrams: rows appear at their step (data-at), leave after data-to, and light up while in use
 document.querySelectorAll('.hld').forEach(box => {
-  const caps = {
-    1: '✏️ Post a tweet: Gateway → Tweet CRUD → Tweet DB. Media lives in S3, and the DB keeps the links.',
-    2: '👀 Read one tweet by id: same service, same DB.',
-    3: '➕ Follow someone: a new Follower Service stores one row (userId1 → userId2).',
-    4: '📰 Feed: get the people I follow, then their tweets. It works, but it\'s slow → fixed in Deep Dives. (The course calls it getFollowers(); it means the people <i>you</i> follow. Its image shows POST and singular /tweet. It should be <b>GET</b> and /tweets.)',
-  }
   const show = n => {
     box.querySelectorAll('.row').forEach(r => {
-      r.hidden = +r.dataset.at > n
+      r.hidden = +r.dataset.at > n || ('to' in r.dataset && n > +r.dataset.to)
       const on = r.dataset.use.split(' ').includes(String(n))
       r.classList.toggle('on', on)
       r.classList.toggle('dim', !on)
     })
     box.querySelectorAll('.hld-btns button').forEach(b => b.classList.toggle('on', +b.dataset.s === n))
-    box.querySelector('.hld-cap').innerHTML = caps[n]
+    box.querySelector('.hld-cap').innerHTML = box.querySelector(`.hld-btns button[data-s="${n}"]`).dataset.cap
   }
   box.querySelectorAll('.hld-btns button').forEach(b => { b.onclick = () => show(+b.dataset.s) })
   show(1)
@@ -6306,6 +6631,74 @@ const SEQS = {
       { f: 2, t: 1, m: 'PaymentDone', k: 'http', cap: '⑤ The worker writes PaymentDone. The inventory workers are waiting for exactly that event…' },
       { f: 1, t: 2, m: 'inventory → shipping → email', k: 'lb', cap: '⑥ …and the chain goes on: stock reserved → shipped → email sent. Each step is a group of workers with its own topic.' },
       { note: '📜 every event kept = a full audit trail', cap: '⭐ If a worker crashes, its event is still in the store and another worker retries it. A workflow engine (Temporal, AWS Step Functions) gives the same safety, with the steps written as ordinary code.' },
+    ],
+  },
+  'bitly-create': {
+    lanes: ['📱 Client', '🖥️ Primary Server', '🗄️ Database'],
+    key: [['http', 'request / write'], ['tcp', 'reply'], ['lb', 'server work']],
+    frames: [
+      { cap: 'A user pastes a long link and wants a short one 👇' },
+      { f: 0, t: 1, m: 'POST /urls {long_url, alias?, expiry?}', k: 'http', cap: '① The client sends the long URL, plus an optional custom alias and expiration date.' },
+      { at: 1, m: 'validate the URL', k: 'lb', cap: '② The server checks the URL format (a library like is-url, or simple checks). It <i>could</i> look for this exact URL and return its old code (deduplication); most shorteners don\'t (see below).' },
+      { at: 1, m: 'make a short code', k: 'lb', cap: '③ Generate a short code: for now a "magic function", long URL in, short code out (card ② opens it). A custom alias becomes the code, after checking nobody has it yet.' },
+      { f: 1, t: 2, m: 'INSERT abc123 → long URL, expiry', k: 'http', cap: '④ Save the row: short code (or alias), long URL, expiration date.' },
+      { f: 1, t: 0, m: 'short.ly/abc123', k: 'tcp', cap: '⑤ Return the short URL.' },
+      { note: '⚠️ alias "abc123" vs a future generated "abc123"?', cap: '⑥ A custom alias could clash with a code the system generates later. Fix: give generated codes a prefix aliases can\'t use, or keep the two in separate namespaces.' },
+    ],
+  },
+  'bitly-redirect': {
+    lanes: ['🌐 Browser', '🖥️ Primary Server', '🗄️ Database', '🌍 Original site'],
+    key: [['http', 'request'], ['tcp', 'reply'], ['lb', 'check'], ['err', 'expired']],
+    frames: [
+      { cap: 'Someone clicks short.ly/abc123. The domain is ours, so the click lands on our Primary Server 👇' },
+      { f: 0, t: 1, m: 'GET /abc123', k: 'http', cap: '① The browser asks for the short code.' },
+      { f: 1, t: 2, m: 'look up abc123', k: 'tcp', bi: 1, cap: '② The server looks the code up in the database.' },
+      { at: 1, m: 'found? not expired?', k: 'lb', cap: '③ Found, and today is before its expiration date: we have the long URL.' },
+      { at: 1, m: 'expired → 410 Gone', k: 'err', cap: '④ (If it had expired, the answer would be <b>410 Gone</b>.)' },
+      { f: 1, t: 0, m: '302 · Location: long URL', k: 'tcp', cap: '⑤ The server answers with a redirect: a status code and a Location header with the long URL.' },
+      { f: 0, t: 3, m: 'GET the long URL', k: 'http', cap: '⑥ The browser follows the redirect on its own. The user never notices it.' },
+    ],
+  },
+  'bitly-incr': {
+    lanes: ['🖥️ Server A', '🔴 Redis · counter = 999', '🖥️ Server B'],
+    key: [['http', 'INCR'], ['tcp', 'new value'], ['lb', 'Redis']],
+    frames: [
+      { cap: 'Two servers need a new code at the same instant. Can they get the same number? 👇' },
+      { f: 0, t: 1, m: 'INCR url_counter', k: 'http', cap: '① Server A sends INCR.' },
+      { f: 2, t: 1, m: 'INCR url_counter', k: 'http', cap: '② At the same instant, Server B sends INCR.' },
+      { at: 1, m: 'one command at a time', k: 'lb', cap: '③ Redis runs commands one by one on a single thread. INCR reads, adds 1 and saves in one step, so nothing can slip in between.' },
+      { f: 1, t: 0, m: '1000', k: 'tcp', cap: '④ A gets 1000.' },
+      { f: 1, t: 2, m: '1001', k: 'tcp', cap: '⑤ B gets 1001. Never the same number twice.' },
+      { note: '1000 → base62 → "g8" · 1001 → "g9"', cap: '⑥ Each server writes its number in base62: unique number in, unique short code out, no collision check. <span class="add">➕ shown with the alphabet 0–9 a–z A–Z</span>' },
+    ],
+  },
+  'bitly-cache': {
+    lanes: ['🌐 Browser', '🖥️ Server', '⚡ Redis cache', '🗄️ Database'],
+    key: [['http', 'request'], ['tcp', 'reply'], ['err', 'cache miss'], ['lb', 'fill the cache']],
+    frames: [
+      { cap: 'Two clicks: a popular link, then one nobody opened lately 👇' },
+      { f: 0, t: 1, m: 'GET /abc123', k: 'http', cap: '① A click on a popular link.' },
+      { f: 1, t: 2, m: 'GET abc123 → hit ✅', k: 'tcp', bi: 1, cap: '② Check the cache first. A <b>hit</b>: the long URL comes straight from memory.' },
+      { f: 1, t: 0, m: '302 → long URL', k: 'tcp', cap: '③ Redirect. The database was never touched.' },
+      { f: 0, t: 1, m: 'GET /xyz789', k: 'http', cap: '④ A click on a rarely used link.' },
+      { f: 1, t: 2, m: 'GET xyz789 → miss', k: 'err', cap: '⑤ Not in the cache: a <b>cache miss</b>.' },
+      { f: 1, t: 3, m: 'SELECT … WHERE short_code = xyz789', k: 'tcp', bi: 1, cap: '⑥ Read it from the database (quick, thanks to the index).' },
+      { f: 1, t: 2, m: 'SET xyz789 · TTL ≤ expiry', k: 'lb', cap: '⑦ Store it in the cache for next time. Keep the TTL no longer than the link\'s expiration, so expired links fall out on their own.' },
+      { f: 1, t: 0, m: '302 → long URL', k: 'tcp', cap: '⑧ Redirect. The next click on xyz789 is a hit.' },
+    ],
+  },
+  'bitly-batch': {
+    lanes: ['✏️ Write service A', '🔴 Redis · counter = 0', '✏️ Write service B'],
+    key: [['http', 'INCRBY 1000'], ['tcp', 'new value'], ['lb', 'local work'], ['err', 'crash']],
+    frames: [
+      { cap: 'Instead of one Redis call per new link, each server takes 1,000 numbers at once 👇' },
+      { f: 0, t: 1, m: 'INCRBY counter 1000', k: 'http', cap: '① A asks for a batch.' },
+      { f: 1, t: 0, m: '1000', k: 'tcp', cap: '② Redis adds 1,000 in one atomic step and returns the new value. A now owns 1–1000.' },
+      { f: 2, t: 1, m: 'INCRBY counter 1000', k: 'http', cap: '③ B asks too.' },
+      { f: 1, t: 2, m: '2000', k: 'tcp', cap: '④ B gets 2000, so it owns 1001–2000. No overlap, and no locks between servers.' },
+      { at: 0, m: 'hands out 1, 2, 3 … from memory', k: 'lb', cap: '⑤ A uses its numbers locally: no network call per link, only a local lock inside A. When the batch runs out, it asks again.' },
+      { at: 0, m: 'crash after 500 💥', k: 'err', cap: '⑥ A crashes after using 500. Numbers 501–1000 are never used.' },
+      { note: 'gap 501–1000 = harmless', cap: '⑦ We need unique codes, not continuous ones, so the gap doesn\'t matter. On restart A asks for a fresh batch (2001–3000). The database\'s UNIQUE constraint on short_code is the final safety net.' },
     ],
   },
   'cache-cpu': {
@@ -7089,6 +7482,42 @@ const GLOSSARY = [
   { id: 'outbox', t: 'Outbox pattern', aka: 'transactional outbox dual write lost message', s: 'Write the business change and the message to send in the same database transaction; a separate process then publishes the message from the outbox table.',
     an: 'Putting the letter in the office out-tray in the same moment you file the paperwork; the courier collects the tray.',
     b: '<p>🧪 <b>See it:</b> one transaction saves the order <b>and</b> an "OrderPlaced" outbox row → a relay (or CDC) publishes it to Kafka. No lost or phantom events, even on a crash.</p>', see: ['cdc', 'idem'] },
+  { id: 'base62', t: 'Base62', aka: 'base 62 encoding short code alphabet base64', s: 'Writing a number with 62 symbols (a–z, A–Z, 0–9), so big numbers become short, URL-safe codes.',
+    an: 'Like a car number plate: letters and digits pack far more combinations into a few spaces than digits alone.',
+    b: '<p>🧪 <b>See it:</b> 1,000,000,000 in base 10 = 10 digits; in base62 = 6 characters. 7 characters cover 62⁷ ≈ 3.5 trillion codes.</p><p>⚠️ Not base64: its <code>+</code> and <code>/</code> break URLs.</p>', see: ['hashfn', 'ctrbatch'] },
+  { id: 'redirect', t: 'HTTP redirect: 301 vs 302', aka: 'redirect 301 302 moved permanently found location header', s: 'A reply that tells the browser "go to this other URL" (Location header). 301 = moved for good, browsers may cache it; 302 = for now, browsers ask again every time.',
+    an: 'A 301 is a "we moved" sign on a shop: you remember and go straight to the new place. A 302 is a note "back in 5 min, ask next door": you come back and check each time.',
+    b: '<p>🧪 <b>See it:</b> click short.ly/abc twice. With 301, the 2nd click may skip short.ly entirely. With 302, both clicks hit short.ly, so you can count them, change the target or expire it.</p>', see: ['http', 'base62'] },
+  { id: 'hashfn', t: 'Hash function', aka: 'sha-256 md5 hash collision digest deterministic', s: 'A function that turns any input into a fixed-size, random-looking output. The same input always gives the same output; different inputs can rarely give the same one (a collision).',
+    an: 'A fingerprint: every coat has one, the same coat always gives the same print, and with billions of coats two prints may match.',
+    b: '<p>🧪 <b>See it:</b> SHA-256("short.ly test") → 64 hex characters; run it again → identical. Keep only 7–8 characters and collisions become likely as the table grows (chance ≈ codes used ÷ codes possible).</p><p>🛡️ Catch them with a UNIQUE constraint and retry with a salt.</p>', see: ['base62', 'pk'] },
+  { id: 'snowflake', t: 'Snowflake ID', aka: 'twitter snowflake unique id generator 64-bit timestamp machine id', s: 'A 64-bit ID made locally on each server from the time in milliseconds + a machine number + a per-millisecond sequence. Unique without asking any shared counter.',
+    an: 'A receipt number printed as "date-till-number": two tills can never print the same receipt.',
+    b: '<p>🧪 <b>See it:</b> 41 bits of milliseconds (~69 years) + 10 bits of machine id + 12 bits of sequence. In base62 it is 11 characters: longer than a counter\'s 6–7.</p>', see: ['uuid', 'base62'] },
+  { id: 'uuid', t: 'UUID', aka: 'uuid4 guid universally unique identifier random 128-bit', s: 'A 128-bit random identifier anyone can generate alone, with practically no chance of a repeat.',
+    an: 'Picking a random grain of sand on all the world\'s beaches: two people won\'t pick the same one.',
+    b: '<p>🧪 <b>See it:</b> 550e8400-e29b-41d4-a716-446655440000 (36 characters). In base62 still 22 characters: too long for a short link. Cut it to 7 and collisions come back.</p>', see: ['snowflake', 'base62'] },
+  { id: 'fullscan', t: 'Full table scan', aka: 'sequential scan seq scan no index', s: 'The database reads every row to find a match, because no index can point it straight to the row.',
+    an: 'Finding a word by reading the whole book instead of using its index.',
+    b: '<p>🧪 <b>See it:</b> 1B rows with no index on short_code: one lookup reads 1B rows. With a B-tree index: a handful of page reads.</p>', see: ['dbindex', 'btree'] },
+  { id: 'iops', t: 'IOPS', aka: 'input output operations per second disk ssd hdd throughput', s: 'Input/Output Operations Per Second: how many separate reads or writes a disk can do each second.',
+    an: 'How many times a librarian can fetch a book from the shelves each second.',
+    b: '<p>🧪 <b>See it:</b> HDD ~100–200 IOPS (a needle must move) · SSD ~100,000 IOPS · RAM: millions of reads a second.</p><p>☁️ <b>On AWS:</b> EBS volumes (gp3, io2) are sold by IOPS</p>', see: ['latency'] },
+  { id: 'dau', t: 'DAU (Daily Active Users)', aka: 'daily active users mau monthly active users traffic estimate', s: 'How many different users use the product on a given day. The starting number for traffic estimates.',
+    an: 'How many different people walk into the shop each day, not how many times the door opens.',
+    b: '<p>🧪 <b>See it:</b> 100M DAU × 5 clicks = 500M a day ÷ 86,400 s ≈ 5,800 a second on average; peaks are much higher.</p>', see: ['tps'] },
+  { id: 'nines', t: 'Availability "nines"', aka: '99.9 99.99 99.999 uptime sla downtime', s: 'Uptime as a percentage. Each extra 9 cuts allowed downtime by 10×.',
+    an: 'A shop promising to be open "99.99% of the time" may be shut only about 52 minutes a year.',
+    b: '<p>🧪 <b>See it:</b> 99.9% ≈ 8.8 h down a year · 99.99% ≈ 52 min · 99.999% ≈ 5 min.</p>', see: ['cap'] },
+  { id: 'ctrbatch', t: 'Counter batching', aka: 'id range allocation block of ids hi lo incrby', s: 'Each server takes a block of IDs (say 1,000) from a shared counter in one call, then hands them out locally.',
+    an: 'Each cashier takes a whole roll of numbered tickets instead of asking the manager for every ticket.',
+    b: '<p>🧪 <b>See it:</b> <code>INCRBY counter 1000</code> → 2000 means "you own 1001–2000". 1,000 new links, 1 network call. A crash skips some numbers, which is harmless when you only need uniqueness.</p>', see: ['base62', 'extcache'] },
+  { id: 'edgefn', t: 'Edge computing (edge functions)', aka: 'lambda@edge cloudflare workers cloudfront functions serverless at the edge pop', s: 'Running small pieces of your code inside the CDN\'s locations near users, so a request can be answered without reaching your servers.',
+    an: 'A shop counter at every station instead of one store downtown.',
+    b: '<p>🧪 <b>See it:</b> a click from Mumbai hits the Mumbai CDN location; an edge function looks up the short code there and answers the redirect.</p><p>⚠️ Limited run time, memory and libraries; harder to debug.</p><p>☁️ <b>On AWS:</b> Lambda@Edge, CloudFront Functions</p>', see: ['cdn'] },
+  { id: 'urlenum', t: 'Enumeration (guessable IDs)', aka: 'enumeration attack sequential ids predictable guessing scraping', s: 'Walking through IDs in order (1, 2, 3 …) to find every record, possible when IDs are sequential.',
+    an: 'Trying every hotel room number on a floor once you know yours is 214.',
+    b: '<p>🧪 <b>See it:</b> your link is short.ly/g8 → try g9, ga, gb … and see other people\'s links, plus how many links exist.</p><p>🛡️ Scramble the number before encoding (XOR with a secret, a block cipher), use a bigger code space, rate-limit.</p>', see: ['base62', 'ratelimit'] },
 ]
 ;(() => {
   const panel = document.getElementById('gl'), body = document.getElementById('gl-body'), q = document.getElementById('gl-q')
@@ -7249,6 +7678,7 @@ const GLOSSARY = [
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
     pubsub: /pub\/sub|publish[- ]subscribe/i, dlq: /dead[- ]letter queues?|DLQs?/i, race: /race conditions?/i, occ: /optimistic concurrency(?: control)?|optimistic locking/i, pesslock: /pessimistic lock(?:ing|s)?/i, loadshed: /load shedding/i, presign: /pre-?signed URLs?/i, evsrc: /event sourcing/i, durable: /durable execution|workflow engines?|Temporal\b/, cqrs: /CQRS/, outbox: /outbox pattern/i,
+    base62: /base62/i, redirect: /(?<![\d,.])30[12](?![\d,])(?: redirects?)?/, hashfn: /hash functions?/i, snowflake: /snowflake(?: IDs?)?/i, uuid: /UUIDs?/, fullscan: /full table scans?/i, iops: /\bIOPS\b/, dau: /\bDAU\b/, nines: /99\.99+%/, ctrbatch: /counter batching/i, edgefn: /edge computing|edge functions?|Lambda@Edge|Cloudflare Workers/, urlenum: /enumerat(?:ion|e|ing)/i,
     extcache: /external cach(?:e|es|ing)|Redis|Memcached/, cdn: /CDNs?/, clientcache: /client-side cach(?:e|es|ing)/i, inproc: /in-process cach(?:e|es|ing)/i,
     cacheaside: /cache-aside/i, readthrough: /read-through/i, writethrough: /write-through/i, writebehind: /write-behind|write-back/i, writearound: /write-around/i,
     lru: /LRU/, lfu: /LFU/, ttl: /TTLs?/, stampede: /cache stampedes?|request coalescing|single flight/i, hotkey: /hot keys?/i, invalidation: /(?:cache )?invalidat(?:e|es|ed|ion|ing)/i, fanout: /fan-?out[ -]on[ -](?:write|read)/i, serial: /(?:\(de\)|de)?seriali[sz](?:ation|e[ds]?|ing)/i,
