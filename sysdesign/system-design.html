@@ -240,7 +240,7 @@ details.more li { margin: 2px 0; }
 .gl-head button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
 .gl input { margin: 0 14px 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
 .gl-body { overflow-y: auto; padding: 0 14px 20px; flex: 1; }
-section.card, section.card h4, h3.lesson { scroll-margin-top: 12px; }
+section.card, section.card h4, section.card h5, h3.lesson { scroll-margin-top: 12px; }
 .gl-t { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
 .gl-t th, .gl-t td { border: 1px solid var(--line); padding: 5px 6px; text-align: left; vertical-align: top; }
 .gl-t th { background: var(--chip); }
@@ -7838,9 +7838,10 @@ setView(startView)
 
 // The URL follows the section you're reading, so a refresh or a shared link lands on the same spot.
 // Section headings get ids from their text (card id + slug), so links survive edits elsewhere on the page.
+// h5 sub-headings get one too, so a link can land on a sub-part deep inside a long section.
 ;(() => {
   const used = new Set([...document.querySelectorAll('[id]')].map(e => e.id))
-  cards.forEach(c => c.querySelectorAll('h4').forEach(h => {
+  cards.forEach(c => c.querySelectorAll('h4, h5').forEach(h => {
     if (h.id) return
     const slug = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'part'
     let id = `${c.id}--${slug}`, n = 2
@@ -7850,16 +7851,21 @@ setView(startView)
   const marks = () => [...list.querySelectorAll('section.card, section.card h4, h3.lesson')]
     .filter(e => !e.closest('[hidden]') && e.getClientRects().length && e.getBoundingClientRect().height)
 
-  // On load: open whatever hides the target, then jump to it once layout has settled
+  // On load, and when a link changes the hash of an open page: open whatever hides the target, then jump to it once layout has settled
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-  const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
-  if (target) {
+  const goToHash = () => {
+    const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
+    if (!target) return
     if (target.closest('#mapview')) setView('map')
     else if (target.closest('section.card')?.hidden || list.hidden) setView('topics')
     for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) d.open = true
     const jump = () => target.scrollIntoView({ block: 'start' })
-    jump(); requestAnimationFrame(jump); window.addEventListener('load', jump, { once: true })
+    jump(); requestAnimationFrame(jump)
+    return jump
   }
+  const firstJump = goToHash()
+  if (firstJump) window.addEventListener('load', firstJump, { once: true })
+  window.addEventListener('hashchange', () => { last = location.hash; goToHash() })
 
   let last = location.hash, ticking = false
   const update = () => {
