@@ -1598,6 +1598,15 @@ $ curl -s ifconfig.me  # after NAT
   <p class="figcap">🖼️ Three subnets, one VPC (<code>10.0.0.0/16</code>). Only the last line differs, and that line decides what the subnet is.</p>
   <ul class="lines roomy heads">
     <li><b class="hd">🎯 The most specific matching rule wins</b>A public server sends to <code>10.0.2.20</code> (the database): it matches <code>10.0.0.0/16</code> and <code>0.0.0.0/0</code>; the <code>/16</code> is narrower, so it goes <b>local</b>. It sends to Stripe at <code>54.187.x.x</code>: only <code>0.0.0.0/0</code> matches, so it goes to the Internet Gateway.</li>
+    <li><b class="hd">🔁 The NAT Gateway is only for private servers going out to the internet</b>Public servers never use it: they have their own public IP and go straight to the Internet Gateway. Traffic inside the VPC never uses it either.
+      <table class="cidr-t ver-t" role="img" aria-label="Which road each trip takes. Public to private inside the VPC: local route, no NAT. Public to internet: Internet Gateway directly. Private to internet: NAT Gateway then Internet Gateway. Isolated to internet: no road. Internet starting a new call to a private server: dropped.">
+        <thead><tr><th>Trip</th><th>Road</th></tr></thead>
+        <tbody><tr><td>Public ↔ private</td><td>🏠 local, no NAT (LB → app, app → DB)</td></tr>
+          <tr><td>Public → internet</td><td>🚪 Internet Gateway, directly</td></tr>
+          <tr class="best"><td>Private → internet</td><td>🔁 NAT Gateway → 🚪 Internet Gateway</td></tr>
+          <tr><td>Isolated → internet</td><td>❌ no road</td></tr>
+          <tr><td>Internet → private</td><td>❌ new calls dropped; only replies come back</td></tr></tbody>
+      </table></li>
     <li><b class="hd">🏠 The "local" rule is always there and can't be deleted</b>That's why every subnet in a VPC can reach every other one; Security Groups and NACLs decide whether it's allowed.</li>
     <li><b class="hd">🔗 Each subnet uses exactly one route table</b>If you don't pick one, it uses the VPC's <b>main</b> table. Many subnets can share one table.</li>
     <li><b class="hd">✅ Public = <code>0.0.0.0/0 → Internet Gateway</code>, but a server also needs a public IP</b>The route opens the road; the public IP (auto-assigned, or an Elastic IP) is the address the internet replies to; the Security Group must allow the traffic. All three, or no connection. (For IPv6 the rule is <code>::/0 → igw</code>.)</li>
