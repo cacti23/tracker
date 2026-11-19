@@ -2019,6 +2019,26 @@ GET  /users/{id}/posts  → [Post] (nested =
     <div class="r"><span class="bx">⚡ High Performance Computation Server</span><span class="ar" style="--c: var(--blue-fg)">⇄ gRPC</span><span class="bx">🔒 Internal APIs</span></div>
   </div>
   <p>⭐ <b>REST for public-facing APIs, gRPC for internal service-to-service</b>, especially with binary data or when performance is critical. In many interviews, REST for both is fine. Build from there as the problem and the interviewer push.</p>
+  <h5>🌐 Why can't a browser call gRPC directly?</h5>
+  <p class="bridge"><span class="add">➕ not in the article</span> Browsers <b>do</b> speak HTTP/2. The problem is lower down: the browser handles HTTP/2 itself and gives a page's JavaScript only a simple request → response view (<code>fetch</code>). gRPC needs control that view doesn't give:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ gRPC sends the call's result in HTTP trailers, and browser JavaScript can't read trailers</b>The status (<code>grpc-status: 0</code> = OK, or an error code) comes as headers <b>after</b> the body. <code>fetch</code> never shows them, so the page can't even tell whether the call worked.</li>
+    <li><b class="hd">2️⃣ A page can't choose HTTP/2 or touch its frames</b>The browser picks HTTP/1.1, 2 or 3 on its own. JavaScript can't open a stream, send a frame or cancel a stream itself.</li>
+    <li><b class="hd">3️⃣ No two-way streaming</b><code>fetch</code> can't keep sending a request body while it reads the response, so gRPC's client streaming and two-way streaming don't fit.</li>
+  </ul>
+  <div class="dg" role="img" aria-label="A plain load balancer only forwards, so it fails. gRPC-Web through a translating proxy such as Envoy works. A REST gateway that transcodes JSON to gRPC also works.">
+    <div class="r"><span class="bx">🌐 Browser</span><span class="ar" style="--c: var(--red-fg)">⇄ native gRPC ❌</span><span class="bx">⚖️ Plain load balancer</span><span class="ar" style="--c: var(--muted)">only forwards</span><span class="bx">🖥️ gRPC service</span></div>
+    <div class="r"><span class="bx">🌐 Browser</span><span class="ar" style="--c: var(--green-fg)">⇄ gRPC-Web ✅</span><span class="bx">🔁 Translating proxy (Envoy)</span><span class="ar" style="--c: var(--blue-fg)">⇄ native gRPC</span><span class="bx">🖥️ gRPC service</span></div>
+    <div class="r"><span class="bx">🌐 Browser</span><span class="ar" style="--c: var(--green-fg)">⇄ REST / JSON ✅</span><span class="bx">🚪 Gateway that transcodes</span><span class="ar" style="--c: var(--blue-fg)">⇄ native gRPC</span><span class="bx">🖥️ gRPC service</span></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Fix 1: gRPC-Web + a translating proxy</b>gRPC-Web is a browser-friendly version of gRPC: plain HTTP requests, and the status goes <b>inside the response body</b> instead of in trailers. A proxy (Envoy's gRPC-Web filter, or middleware in the server) turns it into native gRPC. ⚠️ Only one-shot calls and server streaming: no client streaming, no two-way streaming.</li>
+    <li><b class="hd">✅ Fix 2: REST (JSON) at the edge, gRPC inside</b>A gateway transcodes JSON ↔ protobuf from the same <code>.proto</code> (grpc-gateway, Envoy's JSON transcoder). This is the "REST outside, gRPC inside" picture above.</li>
+    <li><b class="hd">❌ A plain load balancer doesn't fix it: it forwards, it doesn't translate</b>Even one that supports gRPC (AWS ALB) passes native gRPC through unchanged. The browser still can't read the trailers, so something has to change the protocol.</li>
+    <li><b class="hd">🔌 Need real two-way streaming in the browser? Use WebSockets</b>See the next card.</li>
+  </ul>
+  <p class="ana">📦 gRPC sticks the "delivered OK" receipt on the <b>outside</b> of the parcel, after it arrives (a trailer). The browser's mailroom hands the page only the box and throws the sticker away, so the page never knows if the delivery succeeded. gRPC-Web puts the receipt <b>inside</b> the box. The proxy is the clerk who repacks parcels between the two styles; a plain load balancer is a conveyor belt that just moves the box along. <span class="add">➕ analogy</span></p>
+  <div class="rem"><b>🎤 Say it</b> "Browsers speak HTTP/2, but browser JavaScript can't read HTTP trailers or control HTTP/2 streams, and gRPC puts its status in trailers and streams both ways. So the browser uses gRPC-Web through a translating proxy like Envoy (one-shot calls and server streaming only), or REST at the edge with gRPC inside. A plain load balancer only forwards; it doesn't translate."</div>
   <div class="rem"><b>✅ Remember</b> Interviewers want to see how you think and react to new constraints, not an optimal whiteboard drawing. Don't hyper-optimise your RPC protocol before handling the real bottlenecks. "Premature optimization is the root of all evil!"</div>
   <p class="bridge">So: HTTP carries it, REST shapes it, GraphQL and gRPC are for specific needs. All of them are the client asking. Next: when the server has to speak first.</p>
 
@@ -2044,7 +2064,7 @@ GET  /users/{id}/posts  → [Post] (nested =
     <h5>⚡ gRPC</h5>
     <ul><li>RPC = calling a function on another server as if it were local: <code>userService.getUser("123")</code>.</li>
       <li>Write the schema once in a <code>.proto</code> file, then generate client and server code in many languages.</li>
-      <li>gRPC inside + REST outside means something has to translate between them.</li></ul>
+      <li>gRPC inside + REST outside means something has to translate between them. Why the browser needs that translation: see 🌐 above.</li></ul>
   </div>
 </section>
 
@@ -7185,6 +7205,9 @@ const GLOSSARY = [
   { id: 'n1', t: 'N+1 query problem', aka: 'n plus one dataloader batching orm graphql resolver', s: '1 query for a list, then 1 more query per item: N+1 in total.',
     an: 'A waiter who goes to the kitchen once for the menu, then once more per table. The fix: collect every table\'s order, make one trip.',
     b: '<p>🧪 <b>How to spot it:</b> count the database queries for one request. 100 events with their venues:</p><ul><li>❌ 1 (events) + 100 (one venue each) = <b>101</b> queries</li><li>✅ 1 (events) + 1 (<code>WHERE id IN (…)</code>) = <b>2</b> queries</li></ul><p>GraphQL makes it easy to hit, because each field has its own resolver. ORMs do it too (lazy loading in a loop). Fix: batching (dataloader) or a join.</p>', see: ['http'] },
+  { id: 'grpcweb', t: 'gRPC-Web', aka: 'grpc web browser envoy proxy trailers transcoding', s: 'A browser-friendly version of gRPC: plain HTTP requests, with the call status put inside the response body instead of in HTTP trailers. A proxy translates it to native gRPC.',
+    an: 'Putting the delivery receipt inside the parcel, because the browser\'s mailroom throws away stickers on the outside.',
+    b: '<p>🧪 <b>See it:</b> native gRPC ends a reply with trailer <code>grpc-status: 0</code>; browser <code>fetch</code> can\'t read trailers. gRPC-Web sends the same status as a last chunk of the body → Envoy turns it back into native gRPC for the service.</p><p>⚠️ One-shot calls and server streaming only; no client or two-way streaming.</p>', see: ['protobuf', 'stub-rpc'] },
   { id: 'protobuf', t: 'Protocol Buffers (protobuf)', aka: 'proto grpc serialization binary schema', s: 'A compact binary format, described by a typed .proto contract.',
     an: 'A pre-printed form with numbered boxes. Both sides know box 1 = event_id, so you send just the numbers and values, not the labels.',
     b: '<p>🧪 <b>See the difference:</b> JSON sends <code>{"event_id": "123"}</code>, field names and all, as text. Protobuf sends <i>field 1 = "123"</i> as a few bytes. Smaller and faster to parse.</p><p>The <code>.proto</code> file is the contract. gRPC generates typed client and server code from it, so a wrong field is a compile error, not a 3am bug.</p>', see: ['stub-rpc', 'http'] },
@@ -7669,7 +7692,7 @@ const GLOSSARY = [
     flow: /flow control/i, congestion: /congestion control/i, udp: /UDP/, http: /HTTP/, tls: /HTTPS|TLS/,
     eavesdrop: /eavesdrop(?:ping)?/i, mitm: /man-in-the-middle|MITM/i, auth: /authentication|authorization|auth[NZ]/i,
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
-    updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, apikey: /API keys?/,
+    updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, grpcweb: /gRPC-Web/, apikey: /API keys?/,
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
