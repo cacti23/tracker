@@ -227,3 +227,13 @@ test('plan rules: at most one leg move on an upper-body day, both weeks', () => 
     }
   }
 })
+
+test('plan rules: abs 3 times a week and forearms twice, in both weeks', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'apps', 'gym-5day.html'), 'utf8')
+  const days = vm.runInNewContext('(' + html.match(/const days = (\[[\s\S]*?\n  \]);/)[1] + ')')
+  for (const wk of ['A', 'B']) {
+    const tags = days.map(d => d.exercises.map(e => (wk === 'B' && e.altB ? { ...e, ...e.altB } : e).tag).join(' '))
+    assert.strictEqual(tags.filter(t => /CORE/.test(t)).length, 3, `abs days, week ${wk}`)
+    assert.strictEqual(tags.filter(t => /FOREARMS/.test(t)).length, 2, `forearm days, week ${wk}`)
+  }
+})
