@@ -401,7 +401,8 @@
             sets: "3 × 6–8",
             note: "Week B: lean forward = lower-chest stretch under load.",
             variants: [
-              { name: "Decline Dumbbell Press", sets: "3 × 8–10", note: "No dip station needed" }
+              { name: "Decline Dumbbell Press", sets: "3 × 8–10", note: "No dip station needed" },
+              { name: "Assisted Dip (machine)", sets: "3 × 8–10", note: "Same movement with help — while bodyweight dips are still hard after the break" }
             ]
           }
         },
@@ -558,7 +559,8 @@
           rest: "60s",
           note: "Biceps long-head stretch. Your one direct biceps touch on this side of the week — full stretch at the bottom, squeeze at the top.",
           variants: [
-            { name: "Standing Dumbbell Curl", sets: "3 × 10–12", note: "Supination emphasis" }
+            { name: "Standing Dumbbell Curl", sets: "3 × 10–12", note: "Supination emphasis" },
+            { name: "Bayesian Cable Curl", sets: "3 × 10–12", note: "Cable behind you, arm back: the same long-head stretch as the incline curl, tension all the way" }
           ],
           altB: {
             name: "EZ-Bar Curl",
@@ -928,6 +930,7 @@
           rest: "2–3 min",
           note: "Heavy. Full depth, brace, explosive up, ~3s down. Your leg progression lift.",
           variants: [
+            { name: "Hack Squat", sets: "4 × 6–8", note: "Machine: same quad growth, back stays out of it — for a day the lower back is tired" },
             { name: "Front Squat", sets: "4 × 5–7", note: "More quad, upright torso" },
             { name: "Smith Squat", sets: "4 × 6–8", note: "Fixed path, quad bias" }
           ]
@@ -1140,7 +1143,7 @@
     if (!ex) return "";
     const r = resolveEx(ex);
     const opts = [{ sets: r.sets }, ...(r.variants || [])];
-    return rampSets((opts[variantIdx || 0] || opts[0]).sets, r);
+    return (opts[variantIdx || 0] || opts[0]).sets;
   }
   // An exercise you haven't touched opens with the prescribed number of set rows.
   function getExerciseData(dayIdx, exIdx) {
@@ -1402,18 +1405,7 @@
     return `${r(work * 0.5)}kg × 8 → ${r(work * 0.75)}kg × 4`;
   }
 
-  // Comeback ramp after the 2-month break: until RAMP_END, main lifts cap at 3 sets and FST-7
-  // finishers at 4, so week 1 builds the habit instead of wrecking you with soreness.
-  const RAMP_END = "2026-12-06";
-  function rampSets(sets, ex) {
-    if (!sets || LocalDate.key() > RAMP_END) return sets;
-    const m = String(sets).match(/^(\d+)(\s*×.*)$/);
-    if (!m) return sets;
-    const cap = /FST/.test(ex && ex.tag || "") ? 4 : (ex && ex.priority ? 3 : +m[1]);
-    return Math.min(+m[1], cap) + m[2];
-  }
-
-  // Rough session length for the full plan (ramp ignored): each set's work, the top of its rest
+  // Rough session length for the full plan: each set's work, the top of its rest
   // range, ~90 s to set up each exercise, ~4 min of warm-up per primary lift.
   function estimateMinutes(dayIdx, week) {
     let t = 0;
@@ -1571,7 +1563,6 @@
   window.restSeconds = restSeconds;
   window.warmupLine = warmupLine;
   window.estimateMinutes = estimateMinutes;
-  window.rampSets = rampSets;
   window.weekFor = weekFor;
   window.renderExerciseHistory = renderExerciseHistory;
 
@@ -1644,7 +1635,7 @@
       <button class="back-btn" onclick="window._goBack()">← BACK TO SPLIT</button>
       <div class="expanded-card">
         <div class="expanded-header" style="background:linear-gradient(135deg, ${day.color}${isDark?'18':'0c'} 0%, transparent 60%);">
-          <div class="expanded-day-num">DAY ${day.num} of 7 · ⏱ ~${estimateMinutes(index, currentWeek)} min${LocalDate.key() <= RAMP_END ? " · 🔁 comeback weeks: main lifts 3 sets, FST-7 4 sets, stop 3 reps short" : ""}</div>
+          <div class="expanded-day-num">DAY ${day.num} of 7 · ⏱ ~${estimateMinutes(index, currentWeek)} min</div>
           <div class="expanded-day-tag" style="color:${day.color};">${day.tag}</div>
           <div class="expanded-notes" style="border-left-color:${day.color}60;">💡 ${day.notes}</div>
         </div>
@@ -1660,7 +1651,7 @@
             const currentVariant = exData.variant || 0;
             const selectedOption = variantOptions[currentVariant] || variantOptions[0];
             const variantName = selectedOption.name;
-            const variantSets = rampSets(selectedOption.sets, ex);
+            const variantSets = selectedOption.sets;
             const isFST = (ex.tag||'').indexOf('FST') !== -1;
             const tagBg = isFST ? '#e05a2b22' : '#9333ea22';
             const tagFg = isFST ? '#e05a2b' : '#9333ea';
