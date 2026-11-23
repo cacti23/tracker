@@ -138,7 +138,7 @@ test('Week A/B comes from the calendar, and the toggle shifts the whole rotation
 
 test('an untouched exercise opens with the prescribed sets, and writing set 3 leaves no holes', () => {
   const { w, read } = loadGym()
-  assert.strictEqual(w.getExerciseData(0, 0).sets.length, 4)   // Incline Barbell Press 4 × 6–8
+  assert.strictEqual(w.getExerciseData(0, 0).sets.length, 3)   // Incline Barbell Press 4 × 6–8, capped at 3 in the comeback ramp
   w.setExerciseSetRep(0, 0, 2, 'reps', '8')
   assert.ok(read('gym5day_data')['X-0-0'].sets.every(s => s && typeof s === 'object'))
 })
@@ -235,5 +235,24 @@ test('plan rules: abs 3 times a week and forearms twice, in both weeks', () => {
     const tags = days.map(d => d.exercises.map(e => (wk === 'B' && e.altB ? { ...e, ...e.altB } : e).tag).join(' '))
     assert.strictEqual(tags.filter(t => /CORE/.test(t)).length, 3, `abs days, week ${wk}`)
     assert.strictEqual(tags.filter(t => /FOREARMS/.test(t)).length, 2, `forearm days, week ${wk}`)
+  }
+})
+
+test('comeback ramp caps main lifts at 3 sets and FST-7 at 4 until 6 Dec, then the full plan', () => {
+  const { w } = loadGym()
+  assert.strictEqual(w.rampSets('4 × 6–8', { priority: true, tag: 'PRIMARY' }), '3 × 6–8')
+  assert.strictEqual(w.rampSets('7 × 10–15', { priority: false, tag: 'FST-7' }), '4 × 10–15')
+  assert.strictEqual(w.rampSets('3 × 12–15', { priority: false, tag: 'ISOLATION' }), '3 × 12–15')
+  const later = loadGym(Date.parse('2026-12-07T06:00:00Z')).w
+  assert.strictEqual(later.rampSets('4 × 6–8', { priority: true, tag: 'PRIMARY' }), '4 × 6–8')
+})
+
+test('plan rules: every training day fits in 90 minutes, both weeks', () => {
+  const { w } = loadGym()
+  for (const wk of ['A', 'B']) {
+    for (const d of [0, 1, 3, 4, 5]) {
+      const m = w.estimateMinutes(d, wk)
+      assert.ok(m > 30 && m <= 90, `day ${d} week ${wk}: ${m} min`)
+    }
   }
 })
