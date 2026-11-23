@@ -80,6 +80,13 @@ details.more summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 details.more h5 { margin: 10px 0 2px; font-size: 13px; }
 details.more ul { margin: 0; padding-left: 18px; font-size: 14px; }
 details.more li { margin: 2px 0; }
+/* 📑 In this card: every section and sub-heading, one tap away (Adi, 2026-11-23: sub-topics were impossible to find) */
+details.toc { margin: 6px 0 12px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; background: var(--card); }
+details.toc summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details.toc ol { margin: 6px 0 2px; padding-left: 20px; font-size: 14px; line-height: 1.5; }
+details.toc ol ol { margin: 0 0 4px; padding-left: 16px; list-style: disc; font-size: 13px; }
+details.toc a { color: inherit; text-decoration: none; } details.toc a:hover { text-decoration: underline; }
+details.toc ol ol a { color: var(--muted); }
 .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 4px; font-size: 13px; }
 .flow span { padding: 5px 10px; border-radius: 99px; background: var(--chip); border: 1px solid var(--line); }
 .flow i { font-style: normal; color: var(--muted); }
@@ -7653,7 +7660,7 @@ const GLOSSARY = [
   // Rank: where the word sits (title > section > subheading > point > text), then how exactly it matches.
   let index = null
   // Every text node belongs to its nearest block, so boxes, tables, diagrams and Remember notes are all searchable.
-  const SKIP = '.quiz-btn, .add, .cap, script, style, svg, .seq'
+  const SKIP = '.quiz-btn, .add, .cap, .toc, script, style, svg, .seq'
   const BLOCK = 'h4, h5, .hd, summary, .grid2 > div > b:first-child, p, li, td, th, caption, pre, .figcap, div'
   const lvlOf = n => n.matches('h4') ? 1 : n.matches('h5') ? 2 : n.matches('.hd, summary, .grid2 > div > b:first-child') ? 3 : 4
   const buildIndex = () => {
@@ -7811,7 +7818,7 @@ const GLOSSARY = [
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
     .map(([id, re]) => [id, new RegExp(`(?<![\\w/+-])(?:${re.source})(?![\\w+-])`, re.flags)])
-  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .seq, .chr, .add, .tag, kbd, .grid2 > div > b, .nogl, .ncalc'
+  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .toc, .seq, .chr, .add, .tag, kbd, .grid2 > div > b, .nogl, .ncalc'
   const link = (node, seen) => {
     while (node) {
       let best = null
@@ -7857,6 +7864,28 @@ setView(startView)
     while (used.has(id)) id = `${c.id}--${slug}-${n++}`
     used.add(id); h.id = id
   }))
+  // 📑 In this card: sections (h4) with their sub-headings (h5) nested, built from the ids above
+  const label = h => { const k = h.cloneNode(true); k.querySelectorAll('.add, .quiz-btn').forEach(e => e.remove()); return k.textContent.trim() }
+  cards.forEach(c => {
+    const top = []
+    c.querySelectorAll('h4, h5').forEach(h => {
+      if (h.matches('h4') || !top.length) top.push({ h, kids: [] })
+      else top[top.length - 1].kids.push(h)
+    })
+    const n = top.reduce((a, t) => a + 1 + t.kids.length, 0)
+    if (n < 2) return // one heading needs no contents list
+    const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e }
+    const item = h => { const li = mk('li'), a = mk('a', '', label(h)); a.href = '#' + h.id; li.append(a); return li }
+    const toc = mk('details', 'toc'), ol = mk('ol')
+    toc.append(mk('summary', '', `📑 In this card · ${top.length} sections${n > top.length ? `, ${n - top.length} sub-topics` : ''}`), ol)
+    top.forEach(t => {
+      const li = item(t.h)
+      if (t.kids.length) { const sub = mk('ol'); t.kids.forEach(k => sub.append(item(k))); li.append(sub) }
+      ol.append(li)
+    })
+    const after = c.querySelector(':scope > .tldr') || c.querySelector(':scope > .hook') || c.querySelector(':scope > .cap')
+    after.after(toc)
+  })
   const marks = () => [...list.querySelectorAll('section.card, section.card h4, section.card h5, h3.lesson')]
     .filter(e => !e.closest('[hidden]') && e.getClientRects().length && e.getBoundingClientRect().height)
 
