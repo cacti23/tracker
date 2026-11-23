@@ -5865,6 +5865,340 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   </div>
 </section>
 
+<section class="card" id="sd-reads-db" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
+  <h2 class="cap"><b>📖 Scaling Reads ①: The Problem · Optimize Within Your Database · Scale Horizontally</b></h2>
+  <p class="hook">Writes create data, reads consume it, and reads grow much faster. As an app goes from hundreds of users to millions, the read load is usually the first thing to break the database. This pattern is how you serve massive read traffic without overwhelming your primary database, and almost every interview about a content app ends up here.</p>
+  <p class="tldr">💡 Reads swamp writes (100 reads for 1 photo posted), and at some point the database simply runs out of CPU, memory and disk. The fix is a ladder, cheapest rung first: <b>1️⃣ make the one database faster</b> (indexes, bigger hardware, store data ready to read), <b>2️⃣ add more databases</b> (read replicas, sharding), <b>3️⃣ put caches in front</b> (Redis, CDNs). 📚 Like a busy library: catalog the shelves, then open branches, then keep bestsellers at the front desk. Rungs 1 and 2 are on this card, 3 on the next, the interview follow-ups on the third. Explained below 👇</p>
+
+  <h4>🧱 The Problem</h4>
+  <p class="bridge">Open Instagram and dozens of photos appear at once. Each one needs several queries: image metadata, the poster, like counts, comment previews. That's <b>100+ reads</b> to load one feed. You post maybe one photo a day: <b>1 write</b>.</p>
+  <div class="rw" role="img" aria-label="Loading one Instagram feed takes over 100 reads; posting a photo is 1 write.">
+    <span>👀 Reads: open your feed</span><span class="t r"><i style="width:100%"></i></span><b>100+</b>
+    <span>✍️ Writes: post a photo</span><span class="t w"><i style="width:1%"></i></span><b>1</b>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📈 Reads to writes start at 10:1 and often reach 100:1 or more</b>Every tweet is read by thousands. Every Amazon product is browsed by hundreds. YouTube serves billions of views a day but only millions of uploads.</li>
+    <li><b class="hd">⚛️ "It's physics": you can't debug your way out of it</b>A CPU runs only so many instructions a second, RAM holds only so much, a disk reads only so fast. Once the database hits those limits, more code won't help. You need a different shape.</li>
+  </ul>
+  <div class="flow"><span>🧩 Breakdowns that use this pattern:</span><span>Bitly</span><span>Ticketmaster</span><span>Instagram</span><span>FB News Feed</span><span>YouTube</span><span>YouTube Top K</span><span>Yelp</span><span>News Aggregator</span><span>Distributed Cache</span><span>Rate Limiter</span><span>FB Post Search</span><span>Local Delivery</span><span>Metrics Monitoring</span></div>
+  <p class="ana">📚 A library where 100 people come to read for every one who donates a book. The front desk is fine on day one; at 1,000 readers an hour, the one librarian can't walk the shelves fast enough, however hard they try. <span class="add">➕ analogy not in the article</span></p>
+
+  <h4>🪜 The Solution</h4>
+  <p class="bridge">Read scaling follows a natural order, from simple tuning to complex distributed systems. Climb only as high as the numbers force you.</p>
+  <div class="flow"><span>1️⃣ Optimize within your database</span><i>→</i><span>2️⃣ Scale your database horizontally</span><i>→</i><span>3️⃣ Add external caching layers</span></div>
+  <p class="figcap">🖼️ Each rung costs more to run than the one before. ⚠️ Most candidates jump straight to rung 3.</p>
+  <p class="ana">📚 Catalog the shelves → open more branches → keep bestsellers stacked at the front desk. <span class="add">➕ analogy</span></p>
+
+  <h4>🗂️ Optimize Within Your Database</h4>
+  <p class="bridge">Before adding servers, there's usually plenty of headroom left in the database you have. Most read scaling problems are solved with good tuning and smart data modeling.</p>
+
+  <h5>📇 Indexing</h5>
+  <p class="bridge">An index is a sorted lookup table that points to rows in your actual data, like the index at the back of a book: look up "database", get the page numbers, skip the rest.</p>
+  <div class="flow" role="img" aria-label="Step 1: get the index from disk into memory. Step 2: look up the right page in the index. Step 3: fetch only that page from disk."><span>💾 Disk: Index + Page 1…7</span><i>→ ① get the index →</i><span>🧠 Memory: ② look up the right page</span><i>→ ③ fetch the page →</i><span>📄 Page 7 only</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔍 No index = a full table scan: read every row to find a match</b>An index turns <code>O(n)</code> into <code>O(log n)</code>: scanning 1 million rows vs checking about 20 index entries (log₂ 1M ≈ 20). <span class="add">➕ B-tree</span> Each page holds hundreds of keys, so a real lookup is only 3–4 page reads.</li>
+    <li><b class="hd">🌳 B-tree is the default; hash for exact matches; special indexes for text and maps</b>Details in <a href="#sd-idx-core">Database Indexing ①</a>.</li>
+    <li><b class="hd">🎯 First move: index the columns you query, join on, or sort by</b>Users search posts by hashtag → index <code>hashtag</code>. Products sorted by price → index <code>price</code>.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Old resources warn that "too many indexes" slow writes. The overhead is real, but the fear is "dramatically overblown" for most apps. In interviews, add indexes for your query patterns with confidence: "under-indexing kills more applications than over-indexing ever will".</div>
+  <p class="ana">📚 The library's card catalog: look up the title, get the shelf number, walk straight there. <span class="add">➕ analogy</span></p>
+
+  <h5>💪 Hardware Upgrades</h5>
+  <p class="bridge">Sometimes the answer is just a bigger machine. "Boring, but effective."</p>
+  <div class="grid2" role="img" aria-label="Vertical scaling: a db.m6g.large database with 8 GB RAM and 100 GB disk replaced by a db.r6g.4xlarge with 128 GB RAM and 16 TB disk.">
+    <div class="k-amber"><b>🐣 Before: db.m6g.large</b><div class="chk">🧠 8 GB RAM</div><div class="chk">💾 100 GB disk</div></div>
+    <div class="k-green"><b>🦍 After: db.r6g.4xlarge</b><div class="chk">🧠 128 GB RAM: 16× more of the data sits in memory</div><div class="chk">💾 16 TB disk</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💽 Spinning disk → SSD: 10–100× faster random reads</b><span class="add">➕ checked</span> A disk seek is ~10 ms, an SSD read ~0.1 ms. More RAM keeps more of the dataset off disk; more cores run more queries at once.</li>
+    <li><b class="hd">⏱️ It won't solve everything, but it's often the fastest way to buy breathing room</b></li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> Mention that you'd consider bigger hardware, but it's "rarely what the interviewer is looking for": it more or less sidesteps the question.</div>
+  <p class="ana">📚 Move the library to a bigger building with longer reading tables. It helps, but it isn't a plan. <span class="add">➕ analogy</span></p>
+
+  <h5>🧩 Denormalization Strategies</h5>
+  <p class="bridge">Or organize the data inside the one database better. Normalization splits data into tables so nothing is stored twice; it saves space but needs joins to put things back together. Denormalization does the opposite: store the same data twice, so a read needs no join.</p>
+  <div class="grid2" role="img" aria-label="Normalized: separate users, orders and products tables, so one order page needs a join over them. Denormalized: one orders table where each row carries the user details and product details inline, so one order page is one row.">
+    <div class="k-amber"><b>🧩 Normalized: 3 tables</b><div class="chk">👤 users: Evan · Seattle</div><div class="chk">🧾 orders: Evan · Table · 1</div><div class="chk">📦 products: Table · $100</div><div class="chk">➡️ one order page = a join across all of them</div></div>
+    <div class="k-green"><b>📄 Denormalized: 1 table</b><div class="chk">🧾 order_summary: Table · 1 · {Evan, Seattle} · {Table, $100}</div><div class="chk">➡️ one order page = one row, no join</div><div class="chk">⚠️ Evan renames → update every one of his orders</div></div>
+  </div>
+<pre>-- Normalized: 4 tables joined, thousands of times a second
+SELECT u.name, o.order_date, p.product_name, p.price
+FROM users u
+JOIN orders o ON u.id = o.user_id
+JOIN order_items oi ON o.id = oi.order_id
+JOIN products p ON oi.product_id = p.id
+WHERE o.id = 12345;
+
+-- Denormalized: one table
+SELECT user_name, order_date, product_name, price
+FROM order_summary
+WHERE order_id = 12345;</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚖️ Trade storage and write effort for read speed</b>Yes, Evan's name is now stored once per order. A name change is rare; viewing orders happens all day. For a read-heavy system, that's worth it.</li>
+    <li><b class="hd">🧮 Materialized views precompute the expensive aggregations</b>Don't average every product's ratings on each page load. Compute them once (a background job) and store the result. Especially powerful for analytics over big datasets.</li>
+  </ul>
+<pre>-- Instead of this on every page load:
+SELECT p.id, AVG(r.rating) AS avg_rating
+FROM products p JOIN reviews r ON p.id = r.product_id
+GROUP BY p.id;
+
+-- Precompute and store it:
+CREATE MATERIALIZED VIEW product_ratings AS
+SELECT p.id, AVG(r.rating) AS avg_rating
+FROM products p JOIN reviews r ON p.id = r.product_id
+GROUP BY p.id;</pre>
+  <p class="figcap">🖼️ <span class="add">➕ Postgres detail</span> A materialized view is a saved snapshot: it goes stale until you run <code>REFRESH MATERIALIZED VIEW</code> (often on a schedule).</p>
+  <div class="warn"><b>⚠️ Watch out</b> Denormalization is the classic "faster reads, harder writes" trade: every copy must be updated. Always check your read/write ratio first. If writes are frequent, the complexity may not be worth it.</div>
+  <p class="ana">📚 A ready-made reading pack for the most-asked topic: photocopies of the right chapters in one folder. Quick to hand out; when a chapter changes, every pack needs a new copy. <span class="add">➕ analogy</span></p>
+
+  <h4>↔️ Scale Your Database Horizontally</h4>
+  <p class="bridge">When one database server hits its limits, add more servers. "This is where things get interesting, and complex."</p>
+  <div class="rem"><b>📏 Rule of thumb</b> Scale out (or add a cache) once you pass <b>50,000–100,000 reads per second</b>, assuming good indexes already. See <a href="#sd-num-hw">Numbers to Know</a>.</div>
+  <div class="warn"><b>⚠️ Watch out</b> A very rough estimate: the real number depends on your read patterns, data model and hardware. In an interview, a rough estimate is usually enough to justify the decision.</div>
+
+  <h5>📚 Read Replicas</h5>
+  <p class="bridge">The first step past one database. Replicas copy the primary's data onto more servers: <b>all writes go to the primary, reads can go to any replica</b>, so read load spreads out.</p>
+  <div class="dg" role="img" aria-label="Leader-follower replication: the leader holds all data and takes all writes; it copies every change to three followers, each with all data, asynchronously or synchronously for strong consistency. Reads go to the followers.">
+    <div class="r"><span class="bx big">✍️ Leader (all data)<small>takes every write</small></span><span class="ar" style="--c: var(--blue-fg)">→ copies, async or sync →</span><span class="stack"><span class="bx">📖 Follower 1 (all data)</span><span class="bx">📖 Follower 2 (all data)</span><span class="bx">📖 Follower 3 (all data)</span></span></div>
+  </div>
+  <div class="grid2">
+    <div class="k-green"><b>🐢 Synchronous</b><div class="star">Slower but consistent</div><div class="chk">The leader waits until the follower has the change before saying "saved"</div><div class="chk">Every write pays that wait</div></div>
+    <div class="k-amber"><b>🐇 Asynchronous</b><div class="star">Faster but possibly stale</div><div class="chk">The leader says "saved" at once and copies later</div><div class="chk">A follower can be a moment behind</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🛟 Bonus: redundancy</b>If the primary fails, promote a replica to be the new primary, with little downtime.</li>
+    <li><b class="hd">⏳ The key challenge is replication lag: users may not see their own change</b>Step through it ▶️</li>
+  </ul>
+  <div class="seq" data-seq="replica-lag"></div>
+  <div class="warn"><b>⚠️ Watch out</b> Replication lag is a common interview question. Know the trade-off: synchronous keeps data consistent but adds latency; asynchronous is faster but data can be inconsistent for a while.</div>
+  <p class="ana">📚 Photocopied branch libraries: the main library gets every new book first and sends copies out by van. Read anywhere; a book bought this morning may not be on a branch shelf yet. <span class="add">➕ analogy</span></p>
+
+  <h5>🧱 Database Sharding</h5>
+  <p class="bridge">Replicas spread the load but every one still holds <b>all</b> the data. If the dataset is so big that even indexed queries are slow, sharding splits the data across databases. For reads it helps twice: smaller datasets make each query faster, and the load spreads over more machines. Two ways to split: functional sharding and geographic sharding.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🗂️ Functional sharding: split by feature</b><div class="star">Different kinds of data, different databases</div>
+      <div class="vflow" role="img" aria-label="The client asks the server to load a post. The server fetches the post from DB1 Posts, the user from DB2 Users and the likes from DB3 Likes."><div class="bx">📱 Client<small>"Load Post"</small></div><div class="ar">⬇️</div><div class="bx">🖥️ Server</div><div class="ar">⬇️ fetch post · fetch user · fetch likes</div><div class="bx">🔴 DB1 Posts · 🔵 DB2 Users · 🟢 DB3 Likes</div></div>
+      <div class="chk">A profile request only touches the smaller users database</div></div>
+    <div class="k-green"><b>🌍 Geographic sharding: split by region</b><div class="star">Data lives near its users</div>
+      <div class="vflow" role="img" aria-label="Regional databases: US DB, LATAM DB, AFRICA DB and ASIA DB, each placed in its region."><div class="bx">🇺🇸 US DB · 🌎 LATAM DB</div><div class="bx">🌍 AFRICA DB · 🌏 ASIA DB</div></div>
+      <div class="chk">Faster reads from nearby servers, and no one database takes all the load</div></div>
+  </div>
+  <div class="warn"><b>⚠️ Watch out</b> Sharding adds a lot of operational complexity and is <b>primarily a write scaling technique</b>. For most read problems, caching is more effective and easier. More in <a href="#sd-shard-what">Sharding ①</a>.</div>
+  <p class="ana">📚 Separate libraries: science in one building, history in another (functional), or one library per city (geographic). Each is smaller and quieter, but now someone has to know which library has which book. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Rungs 1 and 2 make the database itself go further. When it still can't keep up, stop asking it: rung 3, caching, is the next card.</p>
+</section>
+
+<section class="card" id="sd-reads-cache" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
+  <h2 class="cap"><b>📖 Scaling Reads ②: Add External Caching Layers · When to Use in Interviews</b></h2>
+  <p class="hook">The database is tuned and replicated, and reads still pile up. Rung 3 stops asking the database at all for the data everyone wants. Then the interview side: where to bring this up, the four classic scenarios, and when <b>not</b> to.</p>
+  <p class="tldr">💡 Most traffic asks for the <b>same few things</b> (the viral tweet, the popular product). Keep those in RAM: an app cache (Redis) answers in under a millisecond, a CDN answers from a city near the user. The hard part is keeping copies fresh when data changes. 📚 Bestsellers stacked at the front desk, and a mini-library in every town. Explained below 👇</p>
+
+  <h4>⚡ Add External Caching Layers</h4>
+  <p class="bridge">With the database optimized, two options spread read load: more read replicas, or caching. Both work, but caches usually win for read-heavy workloads, because access is <b>skewed</b>: millions read the same viral tweets, thousands view the same products. You keep asking the database for identical data that rarely changes.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🗄️ Database</b><div class="chk">Reads from disk and runs the query</div><div class="chk">⏱️ tens of ms, even well optimized</div></div>
+    <div class="k-green"><b>⚡ Cache</b><div class="chk">Serves a ready result from RAM</div><div class="chk">⏱️ under 1 ms</div></div>
+  </div>
+
+  <h5>🟥 Application-Level Caching</h5>
+  <p class="bridge">In-memory caches like Redis or Memcached sit between the app and the database: check the cache first; on a hit, sub-millisecond; on a miss, query the database and store the result for next time. <span class="aws">☁️ AWS ElastiCache</span></p>
+  <div class="flow" role="img" aria-label="Client to server. The server first checks the cache; only on a cache miss does it check the database."><span>📱 Client</span><i>→</i><span>🖥️ Server</span><i>→ 1. check cache first →</i><span>⚡ Cache</span><i>→ 2. check DB on cache miss →</i><span>🗄️ Database</span></div>
+  <p class="figcap">🖼️ Popular data stays cached by itself: a celebrity's profile is read constantly, so it never leaves. An inactive user's profile is cached only when someone looks, then expires after its TTL. Step by step: <a href="#sd-cache-patterns--cache-aside-lazy-loading">Caching ② · Cache-Aside</a>.</p>
+  <p class="bridge">⭐ <b>Cache invalidation remains the main challenge</b>: when data changes, the cache must not keep serving the old copy. Five common strategies:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Time-based expiration (TTL): every entry dies after a fixed time</b>Simple, but you serve possibly stale data until it expires. Good for data with predictable updates.</li>
+    <li><b class="hd">2️⃣ Write-through invalidation: update or delete the cache entry in the same write</b>Consistent, but every write gets slower and needs careful error handling.</li>
+    <li><b class="hd">3️⃣ Write-behind invalidation: queue the invalidation and process it later</b>Writes stay fast, but there's a window where stale data is served.</li>
+    <li><b class="hd">4️⃣ Tagged invalidation: tag entries (<code>user:123:posts</code>) and clear a whole tag at once</b>Powerful when one change touches many entries; you must keep the tags right.</li>
+    <li><b class="hd">5️⃣ Versioned keys: put a version number in the key, bump it on update</b>Old entries are simply never read again. Simple and reliable, but you must track versions. Deep dive on <a href="#sd-reads-deep">card ③</a>.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Most production systems combine them: a <b>short TTL (5–15 minutes) as a safety net</b>, plus active invalidation for critical data like user profiles or inventory counts. Less critical data (recommendation scores) can rely on TTL alone.</div>
+  <div class="rem"><b>💡 Tip</b> Let the non-functional requirements set the TTL. "Search results no more than 30 seconds stale" → TTL 30 s. Profiles can be 5 minutes stale → TTL 5 min. That bounds your consistency and makes the cache decisions easy.</div>
+  <p class="ana">📚 The front desk keeps a stack of this week's bestsellers. Readers grab a copy without anyone walking to the stacks. When a new edition arrives, someone has to swap the desk copies, or readers get the old one. <span class="add">➕ analogy</span></p>
+
+  <h5>🌍 CDN and Edge Caching</h5>
+  <p class="bridge">CDNs take caching out of your data center to edge servers around the world. Built for static files, modern CDNs also cache dynamic content: API responses and query results. <span class="aws">☁️ AWS CloudFront</span></p>
+  <div class="dg" role="img" aria-label="A client in Asia reads from the closest CDN edge instead of the faraway origin server in North America.">
+    <div class="r"><span class="bx">📱 Client in Tokyo</span><span class="ar" style="--c: var(--green-fg)">→ read from closest CDN · &lt; 10 ms ✅</span><span class="bx">🌏 CDN edge, Tokyo</span></div>
+    <div class="r"><span class="bx">📱 Client in Tokyo</span><span class="ar" style="--c: var(--red-fg)">→ round trip to the origin · ~200 ms</span><span class="bx">🖥️ Server in Virginia</span></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📉 A CDN can cut origin load by 90% or more</b>Cached requests never reach your servers at all. Candidates: product pages, public profiles, search results, anything many users request.</li>
+    <li><b class="hd">🧹 The cost: invalidation across "scores of edge locations"</b>Usually worth it for the speed.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Watch out</b> A CDN only helps for data <b>many users</b> read. Don't cache personal preferences, private messages or account settings at the edge: only one person ever asks, so there's no hit rate. Cache content that's naturally shared: public posts, catalogs, search results.</div>
+  <p class="ana">📚 A mini-library in every town with copies of the bestsellers. Nobody drives to the capital for them, and the main library gets quiet. <span class="add">➕ analogy</span></p>
+
+  <h4>🎤 When to Use in Interviews</h4>
+  <p class="bridge">Almost every interview ends with scaling, and for read-heavy apps that starts here. The method: go through your API endpoints one by one, and for each high-volume one, work out how to optimize it. Start with query optimization, then caching and read replicas.</p>
+  <div class="rem"><b>🗣️ A strong candidate spots read bottlenecks early</b> While sketching the API, pause at the endpoints that will get hammered: <span class="say">"This user profile endpoint gets hit every time someone views a profile. With millions of users, that's potentially billions of reads a day. Let me address that in my deep dive."</span></div>
+
+  <h5>🧪 Common Interview Scenarios</h5>
+  <div class="grid2">
+    <div class="k-green"><b>🔗 Bitly / URL shortener</b><div class="star">"A caching dream scenario"</div><div class="chk">Shortened once, read millions of times</div><div class="chk">Cache short → long in Redis with <b>no expiry</b>: URLs don't change</div><div class="chk">CDN for global traffic; the database only sees misses for unpopular links</div></div>
+    <div class="k-amber"><b>🎟️ Ticketmaster</b><div class="star">Thousands refresh the same event page</div><div class="chk">Cache event details, venue info, seating charts aggressively</div><div class="chk">⚠️ <b>Never cache seat availability</b>, or you oversell</div><div class="chk">Replicas for browsing; the primary for the actual purchase</div></div>
+    <div class="k-blue"><b>📰 News feeds (Facebook, LinkedIn, Twitter)</b><div class="star">Feed generation is read-intensive</div><div class="chk">Precompute feeds for active users; cache recent posts from people they follow</div><div class="chk">Paginate: users read only the first few items, so caching recent content "pays off massively"</div></div>
+    <div class="k-purple"><b>🎬 YouTube / video platforms</b><div class="star">Metadata makes surprising read load</div><div class="chk">Every homepage visit: recommendations, channel info, view counts</div><div class="chk">Cache titles, descriptions, thumbnails; view counts can be a few minutes behind</div><div class="chk">CDNs for thumbnail images</div></div>
+  </div>
+
+  <h5>🚫 When NOT to Use</h5>
+  <div class="grid2">
+    <div class="k-red"><b>✍️ Write-heavy systems</b><div class="chk">Uber location tracking: drivers update every few seconds, reads to writes maybe 2:1 or 1:1</div><div class="chk">→ solve write scaling first</div></div>
+    <div class="k-red"><b>🐣 Small scale</b><div class="chk">"Design for 1,000 users": a well-indexed single database handles thousands of QPS fine</div><div class="chk">→ solve the actual problem, not an imagined one</div></div>
+    <div class="k-red"><b>🏦 Strong consistency needed</b><div class="chk">Payments, inventory: stale data causes real damage</div><div class="chk">→ still possible, with aggressive invalidation and short TTLs</div></div>
+    <div class="k-red"><b>✏️ Real-time collaboration</b><div class="chk">Google Docs: every keystroke must show at once</div><div class="chk">→ caching actively hurts; you need real-time updates instead</div></div>
+  </div>
+  <div class="info"><b>ℹ️ Note</b> Read scaling is about <b>reducing database load</b>, not only speed. If the database copes fine but you need lower latency, that's a different problem: edge computing (run code at CDN locations) or service mesh tuning (faster service-to-service calls) (Evan King, in the comments).</div>
+  <p class="ana">📚 Don't stack bestsellers at the desk of a library nobody visits, or of a library where every book is rewritten hourly. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Cache what many people read and rarely changes; keep what must be exact on the database. The next card is what interviewers ask once you've said "cache".</p>
+</section>
+
+<section class="card" id="sd-reads-deep" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
+  <h2 class="cap"><b>📖 Scaling Reads ③: Common Deep Dives · Conclusion</b></h2>
+  <p class="hook">Interviewers love the edge cases of read scaling. These four follow-ups come up most, each a real failure story with a number attached.</p>
+  <p class="tldr">💡 Four ways reads break things: 1️⃣ queries slow down as data grows (fix: indexes), 2️⃣ millions want the <b>same</b> cached item (fix: coalesce requests, copy the key), 3️⃣ a popular entry expires and everyone rebuilds it at once (fix: refresh early), 4️⃣ a change must show up at once (fix: versioned cache keys). 📚 Same library: a lost catalog, a queue for one book, the desk copy recalled, and a new edition. Explained below 👇</p>
+
+  <h4>🐌 "What happens when your queries start taking longer as your dataset grows?"</h4>
+  <p class="bridge">Launch with 10,000 users: snappy. Now 10 million, and a simple lookup takes 30 seconds. Database CPU sits at 100% doing basic things: find a user by email, fetch order history.</p>
+  <div class="flow"><span>🔑 Login: find by email</span><i>→ no index →</i><span>read all 10M rows × 200 bytes</span><i>=</i><span>💾 2 GB scanned for 1 user</span><i>× hundreds of logins</i><span>🔥 the database just reads disk</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔗 Joins make it worse</b>A user's orders without indexes: scan all users, then all orders for matches. Potentially billions of comparisons for a simple lookup.</li>
+    <li><b class="hd">✅ The fix is straightforward: index the columns you query often</b>EXPLAIN shows the database's plan before and after:</li>
+  </ul>
+<pre>EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
+-- Seq Scan on users (cost=0.00..412,000.00 rows=1)        ← every row
+
+CREATE INDEX idx_users_email ON users(email);
+
+EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
+-- Index Scan using idx_users_email (cost=0.43..8.45 rows=1) ← a few lookups</pre>
+  <p class="bridge">🧩 For queries on two columns, the <b>order</b> inside a composite index matters. An index on <code>(status, created_at)</code>:</p>
+  <table class="cidr-t ver-t" role="img" aria-label="Index on status then created_at: a query on status alone uses it; a query on status and created_at uses it; a query on created_at alone does not.">
+    <thead><tr><th>Query filters on…</th><th>Uses the index?</th></tr></thead>
+    <tbody><tr class="best"><td>status</td><td>✅ yes</td></tr>
+      <tr class="best"><td>status + created_at</td><td>✅ yes</td></tr>
+      <tr><td>created_at only</td><td>❌ no: it isn't the first column</td></tr></tbody>
+  </table>
+  <div class="rem"><b>💡 Tip</b> When you sketch the schema in an interview, say which columns you'll index. It shows you're thinking ahead.</div>
+  <p class="ana">📚 A library without a catalog: to find one book, a librarian walks every shelf. With 10× more books, every request takes 10× longer. <span class="add">➕ analogy</span></p>
+
+  <h4>🔥 "How do you handle millions of concurrent reads for the same cached data?"</h4>
+  <p class="bridge">A celebrity posts and millions read it at once. A cache server that normally handles 50,000 requests a second now gets <b>500,000 a second for one key</b>. It times out, requests fail, the site goes down, from reads alone. Caching assumes load spreads over many keys; here everyone wants the same one, and even from RAM, sending it 500,000 times a second swamps one server's CPU and network.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🤝 Fix 1, request coalescing: same key, one fetch per server</b>When many requests want the same key, one goes to the backend and the rest wait for its answer.</li>
+  </ul>
+<pre># Request coalescing: one in-flight fetch per key
+async def get(self, key):
+    if key in self.inflight:              # someone is already fetching it
+        return await self.inflight[key]   # wait for their answer
+    future = asyncio.Future()
+    self.inflight[key] = future           # I'm the one fetching
+    try:
+        value = await fetch_from_backend(key)
+        future.set_result(value)
+        return value
+    finally:
+        del self.inflight[key]</pre>
+  <div class="dg" role="img" aria-label="A million users ask for the same key; each of 100 app servers coalesces them, so the backend receives only 100 requests.">
+    <div class="r"><span class="bx">👥 1,000,000 users<small>same key, same moment</small></span><span class="ar">→</span><span class="bx">🖥️ 100 app servers<small>each coalesces</small></span><span class="ar" style="--c: var(--green-fg)">→ 1 each →</span><span class="bx">🗄️ Backend<small>100 requests</small></span></div>
+  </div>
+  <div class="rem"><b>💡 Tip</b> Coalescing cuts backend load from "potentially infinite" (every user) to exactly <b>N</b>, the number of app servers. Animated step by step: <a href="#sd-cache-problems--request-coalescing-single-flight-the-mos">Caching ③ · Request coalescing</a>.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📑 Fix 2, cache key fanout: store the hot value under 10 keys</b>When coalescing isn't enough, spread the load itself. Store copies as <code>feed:taylor-swift:1</code> … <code>feed:taylor-swift:10</code>; each reader picks one at random.</li>
+  </ul>
+  <div class="grid2" role="img" aria-label="One hot key gets 500,000 requests a second and overloads its cache server. Ten copies of the key get 50,000 a second each, which cache servers can handle.">
+    <div class="k-red"><b>❌ One key</b><div class="chk">🔑 <code>feed:taylor-swift</code></div><div class="chk">📈 500,000 req/s on one server</div><div class="chk">💥 timeouts</div></div>
+    <div class="k-green"><b>✅ Ten keys</b><div class="chk">🔑 <code>feed:taylor-swift:1</code> … <code>:10</code></div><div class="chk">📉 50,000 req/s each</div><div class="chk">🙂 a load cache servers handle</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚖️ The cost: more memory and harder invalidation</b>Ten copies to store and ten to clear on a change. For a hot key that threatens availability, "a small price for staying online".</li>
+    <li><b class="hd">🧭 Fanout works because the copies land on different cache nodes</b>The total stays 500,000/s; what changes is that no single server takes it all (Josh Rosen, comments). Same idea as <a href="#sd-cache-problems--replicate-hot-keys-copies-of-the-value-n">Caching ③ · Replicate hot keys</a>.</li>
+  </ul>
+  <p class="ana">📚 One copy of a bestseller and a queue of thousands. Coalescing: one person per table walks to the desk and reads it aloud to their table. Fanout: put ten copies on ten different desks. <span class="add">➕ analogy</span></p>
+
+  <h4>🐃 "What happens when multiple requests try to rebuild an expired cache entry simultaneously?"</h4>
+  <p class="bridge">The homepage gets <b>100,000 requests a second</b>, all from cache, with a <b>1-hour TTL</b>. At minute 60 the entry expires, and all 100,000 miss at the same instant and go to the database, which is sized for maybe <b>1,000 queries a second</b> of normal misses. "Like a DDoS attack from your own application." This is a <b>cache stampede</b>.</p>
+  <div class="flow"><span>⏰ minute 60: expired</span><i>→</i><span>❌ 100,000 misses at once</span><i>→</i><span>🗄️ DB built for 1,000/s</span><i>→</i><span>💥 crawl or crash</span></div>
+  <p class="figcap">🖼️ Expiry is binary: there one moment, gone the next. Popular entries cause bigger stampedes, and expensive rebuilds (10-table joins, external APIs) multiply it. The basic picture: <a href="#sd-cache-problems--cache-stampede-thundering-herd">Caching ③ · Cache Stampede</a>.</p>
+  <div class="grid3">
+    <div class="k-amber"><b>🔒 Distributed lock</b><div class="chk">Only the first request rebuilds; the rest wait</div><div class="chk">⚠️ If the rebuild fails or is slow, thousands time out</div><div class="chk">Needs complex timeouts and fallbacks: "fragile under load"</div></div>
+    <div class="k-green"><b>🎲 Probabilistic early refresh</b><div class="chk">Keep serving the cached value; as it ages, each request has a small chance to refresh it in the background</div><div class="chk">Refreshes spread over the last 10–15 minutes instead of one instant</div></div>
+    <div class="k-blue"><b>⏰ Background refresh</b><div class="chk">For the most critical data: a job refreshes it every 50 minutes, so it never expires</div><div class="chk">Cost: more moving parts, and refreshing data nobody asked for</div></div>
+  </div>
+  <p class="bridge">🎲 How the early refresh spreads out (1-hour TTL, the article's numbers):</p>
+  <div class="rw" role="img" aria-label="Chance that a request refreshes the entry: about 0 when fresh, 1 percent at minute 50, 5 percent at minute 55, up to 20 percent at minute 59.">
+    <span>🟢 Minutes 0–49</span><span class="t r"><i style="width:0%"></i></span><b>~0%</b>
+    <span>🟡 Minute 50</span><span class="t r"><i style="width:5%"></i></span><b>1%</b>
+    <span>🟠 Minute 55</span><span class="t r"><i style="width:25%"></i></span><b>5%</b>
+    <span>🔴 Minute 59</span><span class="t r"><i style="width:100%"></i></span><b>20%</b>
+  </div>
+  <p class="figcap">🖼️ <span class="add">➕ why it works</span> At 100,000 requests a second, even a 1% chance means about 1,000 requests a second could refresh, so in practice the entry is renewed long before minute 60 and almost nobody waits. Caching ③ animates this (<a href="#sd-cache-problems--probabilistic-early-expiration-one-reque">probabilistic early expiration</a>) and the background job (<a href="#sd-cache-problems--cache-warming-refresh-popular-keys-befor">cache warming</a>).</p>
+  <p class="ana">📚 The desk copy of the bestseller is recalled at noon sharp, and the whole queue runs to the stacks at once. Better: a librarian quietly swaps in a fresh copy before noon. <span class="add">➕ analogy</span></p>
+
+  <h4>🏷️ "How do you handle cache invalidation when data updates need to be immediately visible?"</h4>
+  <p class="bridge">Some data can't be "eventually" right. An organizer changes the venue address; attendees must not see the old one for another hour. And the data may sit in several caches: Redis, CDN edges, browsers. "Invalidating all of them is famously hard."</p>
+  <p class="bridge">❌ The naive way, delete the cache entry after the write, raises three problems:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Which caches? The app cache, the CDN, the browser?</b></li>
+    <li><b class="hd">2️⃣ What if the delete request fails?</b></li>
+    <li><b class="hd">3️⃣ A race: a request between the delete and the new write caches the old data again</b>Watch it happen ▶️</li>
+  </ul>
+  <div class="seq" data-seq="ver-race"></div>
+  <p class="bridge">✅ Better for single records: <b>cache versioning</b> (cache key versioning). Don't delete old entries; make them irrelevant by changing the key whenever the data changes. Each record keeps a <b>version number in the database</b>, bumped in the same transaction as the update.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>📖 On read</b><div class="chk">1️⃣ Read the version from a small "version key" in the cache (or the database)</div><div class="chk">2️⃣ Build the key: <code>event:123:v42</code></div><div class="chk">3️⃣ Read the data under that key</div><div class="chk">4️⃣ On a miss: load from the database, store under the same key</div></div>
+    <div class="k-green"><b>✍️ On write</b><div class="chk">1️⃣ Begin a database transaction</div><div class="chk">2️⃣ Update the row</div><div class="chk">3️⃣ <code>version = version + 1</code></div><div class="chk">4️⃣ Commit, then write the new data under <code>event:123:v43</code></div></div>
+  </div>
+  <div class="seq" data-seq="ver-fix"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧭 Readers move to v43 as soon as the version changes</b>No invalidation broadcasts, no guessing which caches to clear. Old <code>v42</code> entries are never deleted; nobody reads them, and a TTL cleans them up. CDN and browser copies go stale harmlessly when the version is part of the URL.</li>
+    <li><b class="hd">🛡️ Why it works: a late writer can't overwrite new data</b>Each version's value never changes, so a slow request can only write to an old key. No partial invalidation (you route around caches instead of deleting them), and version bumps are atomic in the database, so keys never collide.</li>
+    <li><b class="hd">⚖️ The costs: two lookups per read, old versions pile up, and it suits single records only</b>Great for profiles and product details; little help for search results or feeds, where one change touches many entries.</li>
+  </ul>
+  <div class="warn"><b>⚠️ What versioning doesn't fix (the most-asked question in the comments)</b> The writer must still move the version key in the cache. If that write fails or is late, readers keep using the old version until the key expires. Evan King: "Whoever writes to the DB also updates the cache, just as with invalidation"; the win is that a late read from a replica "can't overwrite" the current value. So: <b>versioning stops stale data from poisoning the cache; on its own it doesn't make updates instantly visible.</b></div>
+  <p class="bridge">🗑️ When versioning doesn't fit (search results, feeds), keep a <b>deleted items cache</b>: a small set of recently deleted, hidden or changed IDs.</p>
+  <div class="flow" role="img" aria-label="A cached feed is read, then filtered against the small deleted-items cache, so a deleted post is hidden at once while the big cached feeds are fixed in the background."><span>📰 Cached feed (big, maybe stale)</span><i>→ filter →</i><span>🗑️ Deleted items cache: post 812</span><i>→</i><span>✅ feed without post 812</span><i>· later:</i><span>🧹 rebuild the big caches calmly</span></div>
+  <p class="figcap">🖼️ Mostly-correct data served at once, with time to fix the big structures in the background. Small and fast, so it's ideal for content moderation and privacy changes.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🌍 With CDNs, you clear hundreds of edge locations, and that takes time</b>Critical updates can use cache headers to skip the CDN entirely (consistency over speed). Less critical data: short TTLs at the edge, longer ones in the app cache.</li>
+    <li><b class="hd">🎚️ Different data, different needs: design per data type</b>Profiles: 5 minutes stale is fine. Event venues: update at once. Don't apply one strategy everywhere.</li>
+  </ul>
+  <p class="ana">📚 Edition numbers on books. The catalog says "current: 3rd edition". A slow volunteer re-shelving a 2nd edition can't replace the 3rd; it just sits on the old shelf. But someone still has to update the catalog card. <span class="add">➕ analogy</span></p>
+
+  <h4>🏁 Conclusion</h4>
+  <p class="bridge">Read scaling is the most common scaling challenge in interviews, in virtually every content app from social media to e-commerce. Reads grow far faster than writes, and "physics eventually wins".</p>
+  <div class="flow"><span>1️⃣ Indexes + denormalization</span><i>→</i><span>2️⃣ Read replicas</span><i>→</i><span>3️⃣ Caching layers</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Most candidates jump straight to distributed caching</b>Exhaust the simpler options first: "modern databases handle far more load than most engineers realize" when properly indexed.</li>
+    <li><b class="hd">🎯 Show both sides of every tool</b>Aggressive caching for content that rarely changes; read replicas for data that must stay fresh.</li>
+  </ul>
+  <div class="rem"><b>🎤 Say it</b> "Reads outnumber writes 100 to 1 here. First I index the hot queries and denormalize where reads dominate. Past ~50–100k reads a second I add read replicas, and in front of them a Redis cache with TTLs from our staleness requirement, plus a CDN for public content. For the celebrity key I coalesce requests and fan the key out; for expiring hot entries I refresh early."</div>
+  <p class="bridge">🔚 Catalog first, branches second, front-desk copies third, and always know which copies might be old.</p>
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🏷️ "How does cache versioning actually help?" (by far the biggest thread)</h5>
+    <ul><li>The cache holds two kinds of entries: a pointer <code>user:42:version → v9</code> and immutable values <code>user:42:v9 → data</code> (NakedIvoryMarmoset636, 80 votes). Evan King: keep the active version in the cache, no database hit needed.</li>
+    <li>What it fixes: writes arriving <b>out of order</b>. Price goes ₹100 → ₹120; a slow reader that read ₹100 writes it back late. Plain cache: the cache ends at ₹100 ❌. Versioned: the late write lands on <code>product:7:v12</code> and can't touch <code>v13 → ₹120</code> ✅ (sachin behl). The classic trigger is a cache miss refilled from a <b>lagging read replica</b> (Kwan-I Lee, 51 votes; zip753).</li>
+    <li>What it doesn't fix: the pointer itself is a cache write. If the writer crashes between the database commit and the pointer update, readers stay on the old version until it expires; making both atomic would need distributed transactions, and Redis doesn't do XA (CreativePinkViper854, Leo, Baiyang Li). Verdict from several readers: versioning stops stale writes from <b>spreading</b>; it doesn't guarantee fresh reads (PaulSolid's interview line: "versioning prevents cache races, but on its own it doesn't make updates instantly visible").</li>
+    <li>Stefan Mai (admin): it shines when the key comes from the content itself. They render Excalidraw drawings to images and store each image under a <b>hash of the drawing</b>: a lookup can never return the wrong image, and a miss means "not rendered yet, show a spinner". With retries and a fixed key, a failed render could show the wrong image for a long time.</li>
+    <li>Why not write-through instead? Updating the database and the cache together needs 2PC to be strictly safe, which is slow under many concurrent writes; versioning costs one extra cache read instead (Eric Li).</li></ul>
+    <h5>🔥 Hot keys: coalescing vs fanout</h5>
+    <ul><li>"When isn't coalescing enough?" It cuts load to N, the number of app servers; with a huge fleet, N itself is large (jake.atwell).</li>
+    <li>Fanout doesn't lower the total: 10 keys × 50k is still 500k a second. It works because caches handle 500k spread over many keys and nodes, not 500k on one key (Josh Rosen).</li>
+    <li>A local LRU/LFU cache in each API server also caps a hot key at N requests to Redis (prakash reddy). In Node: the <code>lru-cache</code> package (Shivang Khandelwal). Same as Caching's in-process fallback.</li>
+    <li>Coalescing also stops a stampede on expiry, though this lesson doesn't list it there (Lior Asis, PrimaryWhiteLungfish283). <span class="add">➕ note</span> Caching ③ calls it the most effective fix.</li></ul>
+    <h5>🧭 Order and scope</h5>
+    <ul><li>The lesson lists replicas before caching, but its advice says "query optimization, then caching and read replicas" (Nikita). ruslan.zinovyev: no strict order. Optimize queries first, then pick by bottleneck: a few hot keys → cache (maybe a CDN); load spread broadly over the primary → replicas. Sharding last: it's driven more by data size or writes.</li>
+    <li>Partitioning? Split a big table into partitions inside one database; shard when the pieces must live on different servers (Pranav). See <a href="#sd-shard-what">Sharding ①</a>.</li>
+    <li>Latency without load is a different problem: edge computing runs code at CDN locations; a service mesh tunes service-to-service calls (Evan King).</li>
+    <li>Also worth a mention: connection pools (defaults are low, often around 10), and client bugs that hammer your own API, like a React re-render loop (Diego Pacheco).</li></ul>
+    <h5>🧩 "Isn't denormalization bad design in a relational database?" (Justin Duda)</h5>
+    <ul><li>Stefan Mai (admin): only in exceptional cases. With a relational database, normalize where you can; the skill is spotting where that can't meet the scale, and breaking the rule only there.</li></ul>
+  </div>
+</section>
+
+
 </div>
 <div id="mapview" hidden>
 <section class="card map-card" id="sd-aws-map">
@@ -5986,7 +6320,7 @@ const COURSES = {
         { n: '', id: 'common-patterns', title: 'Common Patterns', lessons: [
           ['common-patterns', 'Common Patterns']] },
         { n: '04', id: 'scaling-reads', title: 'Scaling Reads', lessons: [
-          ['review-bitly', 'Review: Bitly']] },
+          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads']] },
         { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
         { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
         { n: '07', id: 'dealing-with-contention', title: 'Dealing with Contention' },
@@ -6832,6 +7166,49 @@ const SEQS = {
       { f: 1, t: 0, m: 'body: User + status 0', k: 'tcp', cap: '⑤ Fetch can read bodies, so the library finds the status at the end and the page knows the call really succeeded. Had it failed, it would read 5 (NOT_FOUND) the same way.' },
     ],
   },
+  'replica-lag': {
+    lanes: ['👤 Alice', '🖥️ App', '✍️ Primary', '📖 Replica'],
+    key: [['http', 'write'], ['tcp', 'read'], ['err', 'stale'], ['gray', 'copy'], ['lb', 'the fix']],
+    frames: [
+      { cap: 'All writes go to the primary, reads go to a replica, and replication is <b>asynchronous</b>. Alice renames herself from "Ann" to "Anna" 👇' },
+      { f: 0, t: 1, m: 'rename → "Anna"', k: 'http', cap: '① Alice saves her new name.' },
+      { f: 1, t: 2, m: 'UPDATE name = "Anna"', k: 'http', cap: '② Every write goes to the primary.' },
+      { f: 2, t: 1, m: '✅ saved', k: 'http', cap: '③ Async: the primary says "saved" at once, <b>before</b> the replica has the change.' },
+      { f: 0, t: 1, m: 'reload profile', k: 'tcp', cap: '④ Alice reloads her profile right away.' },
+      { f: 1, t: 3, m: 'SELECT → "Ann" ❌', k: 'err', bi: 1, cap: '⑤ Reads go to a replica that hasn\'t caught up: Alice sees her <b>old</b> name. That\'s replication lag.' },
+      { f: 2, t: 3, m: 'copy "Anna" (later)', k: 'gray', cap: '⑥ A moment later the change reaches the replica. Everyone sees "Anna" from now on.' },
+      { f: 1, t: 2, m: 'Alice\'s reads → primary', k: 'lb', bi: 1, cap: '✅ Fixes: <b>synchronous</b> replication (the primary waits for the replica before saying "saved": consistent, but every write is slower), or <span class="add">➕</span> read-your-own-writes: for a few seconds after a write, send that user\'s reads to the primary.' },
+    ],
+  },
+  'ver-race': {
+    lanes: ['🐢 Slow reader', '✍️ Writer', '🟥 Cache', '🗄️ Database'],
+    key: [['tcp', 'read'], ['http', 'write'], ['err', 'stale']],
+    frames: [
+      { cap: 'One cache key, <code>user:123</code>. The cached name just expired. A slow reader and a writer arrive at almost the same time 👇' },
+      { f: 0, t: 2, m: 'GET user:123 → miss', k: 'tcp', bi: 1, cap: '① The reader misses the cache.' },
+      { f: 0, t: 3, m: 'SELECT → "Ann" (old)', k: 'tcp', bi: 1, cap: '② It reads the old name "Ann" (from the database just before the write, or from a lagging replica). Then it stalls: a slow network, a GC pause.' },
+      { f: 1, t: 3, m: 'UPDATE name = "Anna"', k: 'http', cap: '③ Meanwhile the writer saves the new name.' },
+      { f: 1, t: 2, m: 'SET user:123 = "Anna"', k: 'http', cap: '④ The writer refreshes the cache too. Correct, for now.' },
+      { f: 0, t: 2, m: 'SET user:123 = "Ann" ❌', k: 'err', cap: '⑤ The slow reader wakes up and stores what it read: the old "Ann", <b>on top of</b> the new value.' },
+      { at: 2, m: '"Ann" until the TTL', k: 'err', cap: '⑥ Every reader now gets "Ann" until the entry expires. One slow request poisoned the cache, and deleting instead of updating in ④ has the same hole.' },
+    ],
+  },
+  'ver-fix': {
+    lanes: ['🐢 Slow reader', '✍️ Writer', '🟥 Cache', '🗄️ Database'],
+    key: [['tcp', 'read'], ['http', 'write'], ['gray', 'harmless'], ['lb', 'fresh'], ['err', 'the limit']],
+    frames: [
+      { cap: 'Same race with <b>versioned keys</b>: a small pointer <code>user:123:ver</code> says which version is current, and each version\'s value has its own key 👇' },
+      { f: 0, t: 2, m: 'GET user:123:ver → v1', k: 'tcp', bi: 1, cap: '① The reader reads the pointer: current is v1.' },
+      { f: 0, t: 2, m: 'GET user:123:v1 → miss', k: 'tcp', bi: 1, cap: '② Then the value under <code>user:123:v1</code>: a miss.' },
+      { f: 0, t: 3, m: 'SELECT → "Ann", version 1', k: 'tcp', bi: 1, cap: '③ It reads "Ann", version 1. Then it stalls.' },
+      { f: 1, t: 3, m: 'UPDATE, version = 2', k: 'http', cap: '④ The writer updates the row and bumps its version to 2, in one transaction.' },
+      { f: 1, t: 2, m: 'SET user:123:v2 = "Anna"', k: 'http', cap: '⑤ It stores the new value under the <b>new</b> key…' },
+      { f: 1, t: 2, m: 'SET user:123:ver = v2', k: 'http', cap: '…and moves the pointer to v2.' },
+      { f: 0, t: 2, m: 'SET user:123:v1 = "Ann"', k: 'gray', cap: '⑥ The slow reader wakes up and stores "Ann", but under the <b>old</b> key v1. Nobody reads v1 any more; it just expires with its TTL.' },
+      { at: 2, m: 'next reader: v2 → "Anna" ✅', k: 'lb', cap: '⑦ The next reader reads the pointer (v2) and gets "Anna". The late write couldn\'t poison the current value.' },
+      { at: 1, m: '⚠️ pointer write lost?', k: 'err', cap: '⚠️ The limit: the pointer update in ⑤ is still a cache write. If the writer crashes before it, readers stay on v1 until the pointer expires. Versioning stops <b>stale overwrites</b>; on its own it doesn\'t make updates instantly visible.' },
+    ],
+  },
   'cache-cpu': {
     lanes: ['👥 Clients', '🧵 1 Redis thread', '🧠 RAM (1 TB)'],
     key: [['http', 'request'], ['lb', 'find key'], ['tcp', 'reply'], ['err', 'waiting']],
@@ -7460,6 +7837,39 @@ const GLOSSARY = [
   { id: 'hotshard', t: 'Hot shard', aka: 'hot partition hotspot skew uneven load', s: 'One shard gets far more traffic than the others.',
     an: 'Everyone queues at one billing counter while the other counters sit empty.',
     b: '<p>🧪 <b>See it:</b> shard posts by month. Every post written today goes to the "November" shard; the other 11 sit idle. The same happens with ranges of growing ids, or with one celebrity on a user_id shard.</p><p>🛠️ Fix: a key that spreads writes, often a hash of the id.</p>', see: ['shard', 'partition'] },
+  { id: 'replag', t: 'Replication lag', aka: 'replica lag async replication stale read behind primary', s: 'The delay between a write on the primary and the same change showing up on a replica.',
+    an: 'The main library buys a book this morning; the van brings the copy to the branch this afternoon.',
+    b: '<p>🧪 <b>See it:</b> rename yourself, reload at once, and your read lands on a replica that is 200 ms behind: you see your <b>old</b> name. A second later it\'s right.</p><p>🛠️ Fixes: synchronous replication (slower writes), or read-your-own-writes (your reads go to the primary for a few seconds after you write).</p>', see: ['replica', 'ryow', 'consistency'] },
+  { id: 'matview', t: 'Materialized view', aka: 'materialized view precomputed aggregate refresh snapshot', s: 'A query whose result is computed once and stored as a table, instead of recomputed on every read.',
+    an: 'The library posts this month\'s "top 10 books" list on the wall, instead of counting loans every time someone asks.',
+    b: '<p>🧪 <b>See it:</b> <code>AVG(rating)</code> over 50M reviews on every product page = a heavy query per view. <code>CREATE MATERIALIZED VIEW product_ratings AS …</code> stores one row per product; pages read that.</p><p>⚠️ It\'s a snapshot: in Postgres it stays stale until <code>REFRESH MATERIALIZED VIEW</code> runs (often on a schedule).</p>', see: ['normalize', 'dbindex'] },
+  { id: 'funcshard', t: 'Functional sharding', aka: 'functional partitioning split by feature domain vertical split', s: 'Different kinds of data in different databases: users in one, posts in another, likes in a third.',
+    an: 'Science books in one building, history in another.',
+    b: '<p>🧪 <b>See it:</b> loading a post = fetch the post from DB1 Posts, the author from DB2 Users, the likes from DB3 Likes. A profile page only ever touches the small users database.</p><p>⚠️ Joins across them become app code.</p>', see: ['shard', 'geoshard'] },
+  { id: 'geoshard', t: 'Geographic sharding', aka: 'geo sharding regional database data residency', s: 'Split data by region, so each user\'s data sits in a database near them.',
+    an: 'One library per city: you borrow from the one in your town.',
+    b: '<p>🧪 <b>See it:</b> US users → US DB, European users → EU DB. A reader in Paris queries a database a few ms away instead of one across the ocean, and no single database takes all the load.</p>', see: ['shard', 'funcshard', 'cdn'] },
+  { id: 'xfetch', t: 'Probabilistic early refresh', aka: 'probabilistic early expiration xfetch early recompute stampede', s: 'As a cache entry gets old, each read has a small, growing chance to refresh it in the background, so it\'s renewed before it expires.',
+    an: 'A librarian who, the closer the due date, is more likely to quietly swap in a fresh copy.',
+    b: '<p>🧪 <b>See it:</b> TTL 60 min, 100,000 reads a second. At minute 50 the chance is 1% per read, at 55 it\'s 5%, at 59 about 20%. Even 1% of 100,000/s is ~1,000 reads a second that could refresh, so the entry is renewed long before minute 60 and the 100,000-request stampede never happens.</p>', see: ['stampede', 'ttl', 'hotkey'] },
+  { id: 'verkey', t: 'Cache versioning (versioned keys)', aka: 'versioned keys cache key versioning version pointer immutable value', s: 'Put a version in the cache key (event:123:v42). A change bumps the version, so readers move to a new key instead of anyone deleting the old one.',
+    an: 'Edition numbers: the catalog says "3rd edition is current"; a stray 2nd edition on the old shelf hurts nobody.',
+    b: '<p>🧪 <b>See it:</b> a slow request read the old price ₹100 and writes it back late. Plain key: it overwrites ₹120 ❌. Versioned: it lands on <code>product:7:v12</code> while readers use <code>product:7:v13 → ₹120</code> ✅.</p><p>⚠️ The pointer (<code>product:7:version → v13</code>) is still a cache write. If it fails, readers stay on v12 until it expires: versioning stops stale overwrites; it doesn\'t make changes instantly visible.</p>', see: ['invalidation', 'race', 'replag'] },
+  { id: 'taginv', t: 'Tagged invalidation', aka: 'cache tags tag-based invalidation surrogate keys purge by tag', s: 'Tag cache entries (user:123:posts) and clear every entry with a tag in one go.',
+    an: 'Every book about one author gets a red sticker; when the author changes their name, pull every red-sticker book.',
+    b: '<p>🧪 <b>See it:</b> user 123 edits their name. Their profile, 40 post pages and 3 comment threads are cached, all tagged <code>user:123</code>. One "clear tag user:123" removes all 44.</p><p>⚠️ You must keep the tags right, or something stays stale.</p>', see: ['invalidation', 'verkey'] },
+  { id: 'delcache', t: 'Deleted items cache', aka: 'tombstone cache recently deleted ids filter moderation', s: 'A small cache of recently deleted or hidden IDs, used to filter big cached results until they\'re rebuilt.',
+    an: 'A "withdrawn" list taped to the desk: hand out the old reading packs, but pull out any page on the list.',
+    b: '<p>🧪 <b>See it:</b> post 812 is removed by moderators. It\'s inside thousands of cached feeds. Instead of rebuilding them all now, every feed read is filtered against the tiny set {812, …}: it disappears at once, and the feeds are fixed in the background.</p>', see: ['invalidation', 'fanout'] },
+  { id: 'explain', t: 'EXPLAIN (query plan)', aka: 'explain analyze query plan seq scan index scan cost', s: 'A SQL command that shows how the database will run a query: full scan or index, and the estimated cost.',
+    an: 'Asking the librarian "how will you find it?" before they go.',
+    b: '<p>🧪 <b>See it:</b> <code>EXPLAIN SELECT * FROM users WHERE email = …</code> → <code>Seq Scan … cost=0.00..412,000</code> (every row). Add <code>CREATE INDEX … (email)</code> → <code>Index Scan … cost=0.43..8.45</code>. <code>EXPLAIN ANALYZE</code> also runs it and shows the real time.</p>', see: ['dbindex', 'fullscan'] },
+  { id: 'compidx', t: 'Composite index', aka: 'compound index multi-column index leftmost prefix column order', s: 'One index over several columns, sorted by the first, then the second. It helps queries that use its columns from the left.',
+    an: 'A phone book sorted by surname, then first name: easy to find "Shah", or "Shah, Aditya"; useless for everyone named "Aditya".',
+    b: '<p>🧪 <b>See it:</b> index on <code>(status, created_at)</code>. <code>WHERE status = \'paid\'</code> ✅. <code>WHERE status = \'paid\' AND created_at &gt; …</code> ✅. <code>WHERE created_at &gt; …</code> alone ❌: it isn\'t the first column.</p>', see: ['dbindex', 'btree', 'covidx'] },
+  { id: 'distlock', t: 'Distributed lock', aka: 'distributed lock redis lock lease mutex across servers', s: 'A lock that many servers share (often in Redis), so only one of them does a task at a time.',
+    an: 'One key to the stockroom, hanging at the front desk: whoever holds it goes in; everyone else waits.',
+    b: '<p>🧪 <b>See it:</b> a hot cache entry expires. Server A takes the lock <code>rebuild:home</code> (with a 10 s lease) and rebuilds; servers B–Z see the lock and wait or serve old data.</p><p>⚠️ If A is slow or dies, everyone waits until the lease runs out: that\'s why the lesson calls it fragile under load.</p>', see: ['stampede', 'race', 'pesslock'] },
   { id: 'replica', t: 'Read replica', aka: 'replica replication primary follower lag read scaling', s: 'A copy of the database that serves reads. The primary takes the writes and copies them over.',
     an: 'A teacher writes on the main board, and assistants copy it onto boards in other rooms so more students can read.',
     b: '<p>🧪 <b>See it:</b> 1 primary + 3 replicas → about 4× the read capacity. ⚠️ Copying takes a moment (replication lag), so a read just after a write may show old data. It doesn\'t add write capacity: that\'s what sharding is for.</p><p>☁️ <b>On AWS:</b> RDS / Aurora read replicas</p>', see: ['shard', 'consistency'] },
@@ -7819,8 +8229,8 @@ const GLOSSARY = [
     oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, routetable: /route tables?/i, dnsrec: /DNS records?|\bCNAMEs?\b/, r53resolver: /Route 53 Resolver/, route53: /Route 53(?! (?:private|public) hosted| Resolver)/, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
-    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
-    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, connpool: /connection pool(?:ing|s)?/i,
+    normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting|cache key fan-?out/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
+    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
     pubsub: /pub\/sub|publish[- ]subscribe/i, dlq: /dead[- ]letter queues?|DLQs?/i, race: /race conditions?/i, occ: /optimistic concurrency(?: control)?|optimistic locking/i, pesslock: /pessimistic lock(?:ing|s)?/i, loadshed: /load shedding/i, presign: /pre-?signed URLs?/i, evsrc: /event sourcing/i, durable: /durable execution|workflow engines?|Temporal\b/, cqrs: /CQRS/, outbox: /outbox pattern/i,
