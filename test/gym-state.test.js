@@ -207,3 +207,23 @@ test('matching an old record is not shown as a new PR', () => {
   logSet(w, 1, '60', '9')
   assert.strictEqual(w.isRecordSet(0, 0, 1), true)
 })
+
+test('warm-up ramp: 50% × 8 then 75% × 4 of today\'s work weight, bodyweight lifts get their own', () => {
+  const { w } = loadGym()
+  const rx = w.parsePrescription('4 × 6–8')
+  assert.strictEqual(w.warmupLine('Incline Barbell Press', { w: 60, r: 7 }, rx), '30kg × 8 → 45kg × 4')
+  assert.strictEqual(w.warmupLine('Incline Barbell Press', { w: 60, r: 8 }, rx), '32.5kg × 8 → 47.5kg × 4')   // today is 62.5
+  assert.strictEqual(w.warmupLine('Weighted Pull-up', null, rx), 'BW × 5 → then add the belt')
+})
+
+test('plan rules: at most one leg move on an upper-body day, both weeks', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'apps', 'gym-5day.html'), 'utf8')
+  const days = vm.runInNewContext('(' + html.match(/const days = (\[[\s\S]*?\n  \]);/)[1] + ')')
+  for (const day of days.filter(d => d.type === 'push' || d.type === 'pull')) {
+    for (const wk of ['A', 'B']) {
+      const names = day.exercises.map(e => (wk === 'B' && e.altB ? e.altB : e).name)
+      const legs = names.filter(n => /leg press|squat|lunge|calf|leg curl|leg extension/i.test(n))
+      assert.ok(legs.length <= 1, `${day.tag} week ${wk}: ${legs.join(', ')}`)
+    }
+  }
+})
