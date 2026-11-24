@@ -1516,34 +1516,37 @@
           </div>
           <div class="note warn">⚠️ The post doesn&rsquo;t define &ldquo;lucky&rdquo;. This assumes the classic definition: <strong>only digits 4 and 7</strong> (4, 7, 44, 47, &hellip;), the one that comes with &ldquo;next lucky number&rdquo; in Codeforces 121A. Ask the interviewer first. Not LC 1380 (Lucky Numbers in a Matrix).</div>
           <div class="note">💡 Generate lucky numbers instead of scanning the range. There are only 2<sup>d</sup> of each length, and a BFS from 4 and 7 yields them in increasing order, so one generator answers parts 2 and 3.</div>
-          <div class="note">⏱️ TC: isLucky O(d) for d digits; next and between O(2<sup>D</sup>), D = digits of the bound<br>📦 SC: O(2<sup>D</sup>) for the generated list<br>🧪 Checked against brute force: 0 mismatches.</div>
 
           <div class="code-wrap">
             <div class="code-label"><span>luckyNumbers.ts</span><button class="copy-btn" data-copy-target="code-e5-lucky">Copy</button></div>
-            <pre id="code-e5-lucky"><span class="kw">function</span> luckyNumbers() {
-  <span class="kw">const</span> isLucky = (n: <span class="kw">number</span>): <span class="kw">boolean</span> =&gt; <span class="str">/^[47]+$/</span>.test(String(n));
+            <pre id="code-e5-lucky"><span class="cmt">// 🍀 LUCKY NUMBERS: only digits 4 and 7 (4, 7, 44, 47, ...)</span>
+<span class="cmt">// ⏱️ TC: isLucky O(d), next / between O(2^D) where D = digits of the bound</span>
+<span class="cmt">// 📦 SC: O(2^D) → the generated list</span>
+<span class="kw">function</span> luckyNumbers() {
+    <span class="kw">const</span> isLucky = (n: number): boolean =&gt; /^[47]+$/.test(String(n));
 
-  <span class="cmt">// BFS from 4, 7 yields lucky numbers in increasing order</span>
-  <span class="kw">const</span> luckyUpTo = (limit: <span class="kw">number</span>): <span class="kw">number</span>[] =&gt; {
-    <span class="kw">const</span> out: <span class="kw">number</span>[] = [];
-    <span class="kw">const</span> queue = [4, 7];
-    <span class="kw">for</span> (<span class="kw">let</span> i = 0; i &lt; queue.length; i++) {
-      <span class="kw">const</span> cur = queue[i];
-      <span class="kw">if</span> (cur &gt; limit) <span class="kw">break</span>; <span class="cmt">// everything after is bigger</span>
-      out.push(cur);
-      queue.push(cur * 10 + 4, cur * 10 + 7);
-    }
-    <span class="kw">return</span> out;
-  };
+    <span class="cmt">// 🌊 BFS from 4 and 7: add a 4 or a 7 at the end → numbers come out in increasing order</span>
+    <span class="kw">const</span> luckyUpTo = (limit: number): number[] =&gt; {
+        <span class="kw">const</span> result: number[] = [];
+        <span class="kw">const</span> queue: number[] = [4, 7];
+        <span class="kw">let</span> front = 0;
+        <span class="kw">while</span> (front &lt; queue.length) {
+            <span class="kw">const</span> num = queue[front++];
+            <span class="kw">if</span> (num &gt; limit) <span class="kw">break</span>;   <span class="cmt">// 🛑 queue is sorted, so everything after is bigger</span>
+            result.push(num);
+            queue.push(num * 10 + 4, num * 10 + 7);
+        }
+        <span class="kw">return</span> result;
+    };
 
-  <span class="cmt">// next lucky has at most one more digit than n</span>
-  <span class="kw">const</span> nextLucky = (n: <span class="kw">number</span>): <span class="kw">number</span> =&gt;
-    luckyUpTo(10 ** (String(n).length + 1)).find((x) =&gt; x &gt; n)!;
+    <span class="cmt">// ➡️ next lucky has at most one more digit than n</span>
+    <span class="kw">const</span> nextLucky = (n: number): number =&gt;
+        luckyUpTo(10 ** (String(n).length + 1)).find((x) =&gt; x &gt; n)!;
 
-  <span class="kw">const</span> luckyBetween = (a: <span class="kw">number</span>, b: <span class="kw">number</span>): <span class="kw">number</span>[] =&gt;
-    luckyUpTo(b).filter((x) =&gt; x &gt;= a);
+    <span class="kw">const</span> luckyBetween = (a: number, b: number): number[] =&gt;
+        luckyUpTo(b).filter((x) =&gt; x &gt;= a);
 
-  <span class="kw">return</span> { isLucky, nextLucky, luckyBetween };
+    <span class="kw">return</span> { isLucky, nextLucky, luckyBetween };
 }</pre>
           </div>
         </div>
