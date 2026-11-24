@@ -5629,10 +5629,7 @@ GET /{short_code}
   </div>
   <p class="figcap">🖼️ Either way the browser follows the redirect on its own; the user never notices.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⭐ A 302 is often preferred for a URL shortener, for three reasons</b></li>
-    <li><b class="hd">🎛️ More control: links can be changed or expired later</b></li>
-    <li><b class="hd">🧹 No cached redirect stuck in browsers if the link must change or be deleted</b></li>
-    <li><b class="hd">📊 Every click can be counted for analytics</b>Even though analytics is out of scope here.</li>
+    <li><b class="hd">⭐ A 302 is often preferred for a URL shortener, for three reasons</b>1️⃣ <b>More control:</b> links can be changed or expired later. The browser doesn't remember a 302, so every click asks our server again, and we can send it somewhere new.<br>2️⃣ <b>No stuck redirect:</b> a 301 is cached by the browser, maybe for good. If the link changes or is deleted, that user keeps landing on the old page and we can't fix it.<br>3️⃣ <b>Analytics:</b> every click passes through us, so each one can be counted (out of scope here).</li>
     <li><b class="hd">🧽 Expired links: a periodic job deletes them, or the rows just stay with their date</b>More important: set the cache TTL equal to or shorter than the link's expiration, so stale entries leave the cache on their own.</li>
   </ul>
   <p class="ana">🧥 A 301 is telling the guest "your coat is always on rack 7, fetch it yourself next time": quick, but if you move the coat, they go to the wrong rack. A 302 is "come to the desk every time": you stay in control. <span class="add">➕ analogy not in the article</span></p>
@@ -5732,7 +5729,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <h4>✅ Great Solution: Implementing an In-Memory Cache (e.g., Redis)</h4>
   <p class="bridge">Put an in-memory cache, Redis <span class="aws">☁️ AWS ElastiCache</span> or Memcached, between the server and the database. It holds popular mappings: key = short code, value = long URL. ▶️</p>
   <div class="seq" data-seq="bitly-cache"></div>
-  <p class="figcap">🖼️ The lesson's picture: "Cache (redis) · key: short_code · value: original_url", with "1. check cache 2. check DB". (Its server box says "Random num generator"; that's a leftover from the earlier picture.)</p>
+  <p class="figcap">🖼️ The lesson's picture: "Cache (redis) · key: short_code · value: original_url", with two steps:<br>1️⃣ Check the cache<br>2️⃣ On a miss, check the database<br>(Its server box says "Random num generator"; that's a leftover from the earlier picture.)</p>
   <p class="bridge">The whole point: read from memory instead of disk.</p>
   <div class="grid3">
     <div class="k-green"><b>🧠 Memory</b><div class="chk">~100 ns (0.0001 ms)</div><div class="chk">millions of reads/s</div></div>
@@ -5741,11 +5738,13 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   </div>
   <p class="figcap">🖼️ Memory is about 1,000× faster than an SSD and 100,000× faster than an HDD.</p>
   <div class="info"><b>➕ Fact-check: "millions of reads per second"?</b> A reader spotted that Numbers to Know says 100k–200k ops/s per Redis instance. Both are true: RAM itself can do millions, but one Redis node is limited by its single command thread and the network (<a href="#sd-num-use">Numbers to Know ②</a>). So the ~600k/s peak needs a few cache nodes or read replicas, or a CDN in front taking the popular links.</div>
+  <p class="bridge">⚖️ <b>Ups and downs.</b> If you propose the cache, say the downsides too. <span class="add">➕ short explanations</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⚠️ Invalidation: tricky on updates and deletes, but rare here because links seldom change</b></li>
-    <li><b class="hd">⚠️ Warm-up: early requests still hit the database until the cache fills</b></li>
-    <li><b class="hd">⚠️ Memory limits: decide the size, the eviction policy (e.g. LRU) and what to store</b></li>
-    <li><b class="hd">⚠️ One more moving part: discuss the trade-offs and invalidation with the interviewer</b></li>
+    <li><b class="hd">✅ Up: clicks are answered from memory, not disk</b>About 1,000× faster than an SSD, and popular links never touch the database.</li>
+    <li><b class="hd">1️⃣ Invalidation is tricky on updates and deletes, but rare here because links seldom change</b>Edit or delete a link and the cache can still hand out the old URL. So delete the cache entry whenever the link changes.</li>
+    <li><b class="hd">2️⃣ Warm-up: early requests still hit the database until the cache fills</b>A fresh or restarted cache is empty, so at first every click goes to the database, until the popular links are loaded again.</li>
+    <li><b class="hd">3️⃣ Memory is limited: decide the size, the eviction policy (e.g. LRU) and what to store</b>RAM can't hold all 1 billion links. Keep only the popular ones; LRU drops the link clicked least recently when the cache is full.</li>
+    <li><b class="hd">4️⃣ One more moving part to run</b>Another system to set up, watch and keep in sync with the database. The article: discuss these trade-offs and your invalidation plan with the interviewer.</li>
   </ul>
   <p class="ana">🧥 The most-collected coats hang right behind the desk; only rare ones need a trip to the back room. <span class="add">➕ analogy not in the article</span></p>
 
@@ -5756,12 +5755,14 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
     <div class="k-green"><b>⚡ With a CDN + edge function</b><div class="chk">👤 user in Mumbai → PoP in Mumbai → 302</div><div class="chk">Popular codes never reach the Primary Server</div></div>
   </div>
   <p class="figcap">🖼️ <span class="add">➕ my example</span> The same click, two paths.</p>
+  <p class="bridge">⚖️ <b>Ups and downs.</b> If you propose the CDN, say the downsides too. <span class="add">➕ short explanations</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⚠️ Keeping every CDN node invalidated and consistent is complex</b></li>
-    <li><b class="hd">⚠️ Edge setup needs extra configuration and knowing serverless at the edge</b></li>
-    <li><b class="hd">💸 Cost: CDNs and edge computing get expensive at high traffic</b></li>
-    <li><b class="hd">⚠️ Edge functions are limited in run time, memory and libraries: keep the redirect logic lean</b></li>
-    <li><b class="hd">🔍 Debugging and monitoring are harder than on central servers</b></li>
+    <li><b class="hd">✅ Up: the redirect happens in a city near the user</b>Faster for users everywhere, and popular codes never reach our servers.</li>
+    <li><b class="hd">1️⃣ Keeping every CDN node invalidated and consistent is complex</b>Change or delete a link and hundreds of PoPs may still hold the old one, until each copy is cleared or expires.</li>
+    <li><b class="hd">2️⃣ Edge setup needs extra configuration and knowing serverless at the edge</b>Edge functions are their own kind of code, with their own setup, deploys and tools.</li>
+    <li><b class="hd">3️⃣ Cost: CDNs and edge computing get expensive at high traffic</b>You pay per request, and a popular shortener serves billions of clicks.</li>
+    <li><b class="hd">4️⃣ Edge functions are limited in run time, memory and libraries</b>So keep the redirect logic lean: look up the code, return a 302, nothing more.</li>
+    <li><b class="hd">5️⃣ Debugging and monitoring are harder than on central servers</b>Logs and errors are spread over hundreds of locations instead of one place.</li>
     <li><b class="hd">⭐ "You trade cost and complexity for performance"</b>Worth it or not depends on the company's price sensitivity, user-experience needs and traffic patterns.</li>
   </ul>
   <p class="ana">🧥 Small coat desks at every theatre entrance: guests collect near their door, the main cloakroom stays calm. But every desk must hear when a coat moves. <span class="add">➕ analogy not in the article</span></p>
@@ -5805,7 +5806,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <div class="seq" data-seq="bitly-batch"></div>
   <div class="info"><b>➕ Fact-check</b> The article says Redis "returns the start of the batch". <code>INCRBY counter 1000</code> returns the new value, which is the <b>end</b> of the batch: a reply of 2000 means you own 1001–2000.</div>
   <ul class="lines roomy heads">
-    <li><b class="hd">✅ Batching keeps codes unique across instances and cuts Redis load and network calls</b></li>
+    <li><b class="hd">✅ Batching keeps codes unique across instances and cuts Redis load and network calls</b>Each Write Service takes a block of 1,000 numbers at once, so it calls Redis once per 1,000 links instead of once per link, and no two instances ever get the same number.</li>
     <li><b class="hd">🛟 Keep the counter alive with Redis Sentinel or Redis Cluster (automatic failover)</b>One Redis instance handles 100k+ operations a second, far more than link creation needs, especially with batching.</li>
     <li><b class="hd">🌍 Multi-region: give each region its own counter range (A: 0–1B, B: 1B–2B)</b>No cross-region coordination. Writes use the local Redis; reads are served everywhere through distributed caches.</li>
     <li><b class="hd">💥 If Redis dies before copying the latest value, a few numbers are lost, and that's fine</b>We need uniqueness, not continuity. The database's UNIQUE constraint on <code>short_code</code> is the final safety net.</li>
