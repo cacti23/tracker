@@ -5557,7 +5557,7 @@ function owner(key) {
 <section class="card" id="sd-bitly-setup" data-topic="Designs" data-course="hi-sd" data-lesson="review-bitly">
   <h2 class="cap"><b>🔗 Review: Bitly ①: Understanding the Problem · The Set Up · High-Level Design</b></h2>
   <p class="hook">Bit.ly turns long URLs into short, manageable links, and gives analytics on them. A URL shortener is a very common beginner system design question, often called entry-level. That doesn't make it trivial. This breakdown goes slower than the others and teaches what they take for granted. Asked at Amazon, Microsoft and 23 more.</p>
-  <p class="tldr">💡 Two features: make a short link, and open it. The twist is the numbers: about <b>1,000 clicks for every 1 new link</b>, 1 billion links, 100 million daily users. So the design is built for reading. Step by step, the way the Delivery Framework runs: 📋 requirements → 🧱 entities → 🔌 API → 🏗️ a simple design that works (this card) → 🔬 three deep dives that make it good (cards ②–④). Think of a theatre cloakroom: hand in a long coat, get a tiny ticket; show the ticket, get the coat. Explained below 👇</p>
+  <p class="tldr">💡 Two features: make a short link, and open it. The twist is the numbers: about <b>1,000 clicks for every 1 new link</b>, 1 billion links, 100 million daily users. So the design is built for reading. Step by step, the way the Delivery Framework runs:<br>1️⃣ Requirements<br>2️⃣ Entities<br>3️⃣ API<br>4️⃣ A simple design that works (this card)<br>5️⃣ Three deep dives that make it good (cards ②–④)<br>Think of a theatre cloakroom: hand in a long coat, get a tiny ticket; show the ticket, get the coat. Explained below 👇</p>
 
   <h4>📋 Functional Requirements</h4>
   <p class="bridge">First step of every interview (<a href="#sd-delivery-framework">Delivery Framework</a>): a clear picture of what the system must do. Sometimes the interviewer gives you the features; sometimes you work them out. If you don't know the product, ask. The key is to zero in on the top 3–4 features and not get distracted by bells and whistles.</p>
@@ -5611,7 +5611,7 @@ GET /{short_code}
   <h4>✂️ 1) Users should be able to submit a long URL and receive a shortened version</h4>
   <p class="bridge">Now the high-level design: one functional requirement at a time, simplest system that works, depth later. Three parts: the <b>Client</b> (web or mobile app), a <b>Primary Server</b> with all the business logic, and a <b>Database</b> mapping short codes to long URLs. ▶️</p>
   <div class="seq" data-seq="bitly-create"></div>
-  <p class="figcap">🖼️ The lesson's picture as a step-through: Client ⇄ Primary Server ("1) generate short url 2) save to DB") ⇄ Database.</p>
+  <p class="figcap">🖼️ The lesson's picture as a step-through: Client ⇄ Primary Server ⇄ Database. The server does two steps:<br>1️⃣ Generate the short URL<br>2️⃣ Save it to the database</p>
   <div class="flow"><span>🗄️ <b>Urls</b></span><span>short url code (or custom alias)</span><span>original url</span><span>creationTime</span><span>expirationTime?</span><span>createdBy</span></div>
   <ul class="lines roomy heads">
     <li><b class="hd">♻️ Deduplication is a trade-off: storage vs features</b>Returning the same code for the same long URL saves space. But most shorteners give a new code each time, so different users can have their own expiry, analytics and alias.</li>
@@ -5621,7 +5621,7 @@ GET /{short_code}
   <h4>↪️ 2) Users should be able to access the original URL by using the shortened URL</h4>
   <p class="bridge">The short link lives on a domain we own (<code>short.ly/abc123</code>), so every click reaches our Primary Server first. ▶️</p>
   <div class="seq" data-seq="bitly-redirect"></div>
-  <p class="figcap">🖼️ The lesson's picture adds "Read: 1) look up original url in DB 2) return with 302 redirect" under the Primary Server.</p>
+  <p class="figcap">🖼️ The lesson's picture adds the read steps under the Primary Server:<br>1️⃣ Look up the original URL in the database<br>2️⃣ Return it with a 302 redirect</p>
   <p class="bridge">Which redirect? There are two:</p>
   <div class="grid2">
     <div class="k-amber"><b>301 Moved Permanently</b><code>HTTP/1.1 301 Moved Permanently<br>Location: https://www.original-long-url.com</code><div class="chk">🧠 Browsers usually <b>cache</b> it</div><div class="chk">⏭️ Later clicks may jump straight to the long URL and <b>skip our server</b></div></div>
@@ -5629,21 +5629,18 @@ GET /{short_code}
   </div>
   <p class="figcap">🖼️ Either way the browser follows the redirect on its own; the user never notices.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⭐ A 302 is often preferred for a URL shortener, for three reasons</b></li>
-    <li><b class="hd">🎛️ More control: links can be changed or expired later</b></li>
-    <li><b class="hd">🧹 No cached redirect stuck in browsers if the link must change or be deleted</b></li>
-    <li><b class="hd">📊 Every click can be counted for analytics</b>Even though analytics is out of scope here.</li>
+    <li><b class="hd">⭐ A 302 is often preferred for a URL shortener, for three reasons</b>1️⃣ <b>More control:</b> links can be changed or expired later. The browser doesn't remember a 302, so every click asks our server again, and we can send it somewhere new.<br>2️⃣ <b>No stuck redirect:</b> a 301 is cached by the browser, maybe for good. If the link changes or is deleted, that user keeps landing on the old page and we can't fix it.<br>3️⃣ <b>Analytics:</b> every click passes through us, so each one can be counted (out of scope here).</li>
     <li><b class="hd">🧽 Expired links: a periodic job deletes them, or the rows just stay with their date</b>More important: set the cache TTL equal to or shorter than the link's expiration, so stale entries leave the cache on their own.</li>
   </ul>
   <p class="ana">🧥 A 301 is telling the guest "your coat is always on rack 7, fetch it yourself next time": quick, but if you move the coat, they go to the wrong rack. A 302 is "come to the desk every time": you stay in control. <span class="add">➕ analogy not in the article</span></p>
-  <p class="bridge">🔚 A working system: one server, one database, two endpoints. It meets the functional requirements but not yet the non-functional ones. Next: make the short codes unique (②), the redirects fast (③), and the whole thing scale (④).</p>
+  <p class="bridge">🔚 A working system: one server, one database, two endpoints. It meets the functional requirements but not yet the non-functional ones. Next:<br>② Make the short codes unique<br>③ Make the redirects fast<br>④ Make the whole thing scale</p>
 </section>
 
 <section class="card" id="sd-bitly-unique" data-topic="Designs" data-course="hi-sd" data-lesson="review-bitly">
   <h2 class="cap"><b>🔗 Review: Bitly ②: Deep Dive 1 · How can we ensure short urls are unique?</b></h2>
   <p class="hook">The basic design works, but it hid the hardest part behind a "magic function". The deep dives go back to the non-functional requirements and fix what isn't met yet. First: where do short codes come from?</p>
   <p class="tldr">💡 A code must be unique, as short as possible, and cheap to make. ❌ Cutting the first letters of the URL repeats codes. ✅ Hashing the URL gives random-looking codes, but they can collide, so you check and retry. ✅ A shared counter (1, 2, 3 … written in base62) never collides, but every server must share it. Explained below 👇</p>
-  <div class="pills"><span class="big">1️⃣ Unique</span><span class="big">2️⃣ As short as possible</span><span class="big">3️⃣ Generated efficiently</span></div>
+  <div class="vflow"><div class="bx">1️⃣ Unique</div><div class="bx">2️⃣ As short as possible</div><div class="bx">3️⃣ Generated efficiently</div></div>
   <p class="figcap">🖼️ The three constraints every option is judged by.</p>
 
   <h4>❌ Bad Solution: Long Url Prefix</h4>
@@ -5657,7 +5654,7 @@ GET /{short_code}
 
   <h4>✅ Great Solution: Hash Function</h4>
   <p class="bridge">Unique codes need <b>entropy</b> (randomness). A random number generator (<code>Math.random()</code> or a cryptographic one) is one source; the article prefers a hash function like SHA-256: high entropy, fixed size, and deterministic (the same input always gives the same output).</p>
-  <div class="flow"><span>🔗 long URL</span><i>→</i><span>🧹 canonicalize</span><i>→</i><span>#️⃣ SHA-256</span><i>→</i><span>🔤 base62</span><i>→</i><span>✂️ first 8 chars</span><i>→</i><span>abc12345</span></div>
+  <div class="vflow"><div class="bx">🔗 long URL</div><div class="ar">⬇️ 1️⃣ canonicalize</div><div class="bx">🧹 clean URL</div><div class="ar">⬇️ 2️⃣ SHA-256</div><div class="bx">#️⃣ long hash</div><div class="ar">⬇️ 3️⃣ base62</div><div class="bx">🔤 letters and digits</div><div class="ar">⬇️ 4️⃣ keep the first 8 chars</div><div class="bx">✂️ <code>abc12345</code></div></div>
   <pre>input_url = "https://www.example.com/some/very/long/url"
 # Canonicalize URL first (lowercase host, strip default ports, normalize trailing slash, etc.)
 canonical_url = canonicalize(input_url)
@@ -5680,7 +5677,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <p class="figcap">🖼️ <span class="add">➕ my numbers</span> Same formula, two code lengths. Fewer characters = more collisions.</p>
   <ul class="lines roomy heads">
     <li><b class="hd">⚖️ Unique, short, efficient: hard to get all three at once</b>Fewer collisions need longer codes, which defeats a shortener. Catching collisions needs a database check on each insert: more latency, more complexity.</li>
-    <li><b class="hd">🛡️ The fix: a UNIQUE constraint on short_code, then retry a few times</b>On a duplicate the database rejects the insert; retry with a random salt added to the hash, at most 3–5 times, then fall back to another strategy or return an error.</li>
+    <li><b class="hd">🛡️ The fix: a UNIQUE constraint on short_code, then retry a few times</b>1️⃣ The database rejects the duplicate insert<br>2️⃣ Add a random salt, hash again, and retry (at most 3–5 times)<br>3️⃣ Still clashing? Fall back to another strategy, or return an error</li>
   </ul>
   <div class="info"><b>➕ Fact-check</b> The article says a random generator "doesn't give enough entropy". In fact a good random code collides exactly as often as a hash of the same length (the same n ÷ |S|). The real difference: a hash is deterministic, so the same URL gives the same code.</div>
   <p class="ana">🧥 The ticket number comes from the coat's fingerprint. Two different coats rarely get the same number, but with a billion coats in the ledger it happens, so the attendant checks the ledger and re-rolls. <span class="add">➕ analogy not in the article</span></p>
@@ -5732,7 +5729,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <h4>✅ Great Solution: Implementing an In-Memory Cache (e.g., Redis)</h4>
   <p class="bridge">Put an in-memory cache, Redis <span class="aws">☁️ AWS ElastiCache</span> or Memcached, between the server and the database. It holds popular mappings: key = short code, value = long URL. ▶️</p>
   <div class="seq" data-seq="bitly-cache"></div>
-  <p class="figcap">🖼️ The lesson's picture: "Cache (redis) · key: short_code · value: original_url", with "1. check cache 2. check DB". (Its server box says "Random num generator"; that's a leftover from the earlier picture.)</p>
+  <p class="figcap">🖼️ The lesson's picture: "Cache (redis) · key: short_code · value: original_url", with two steps:<br>1️⃣ Check the cache<br>2️⃣ On a miss, check the database<br>(Its server box says "Random num generator"; that's a leftover from the earlier picture.)</p>
   <p class="bridge">The whole point: read from memory instead of disk.</p>
   <div class="grid3">
     <div class="k-green"><b>🧠 Memory</b><div class="chk">~100 ns (0.0001 ms)</div><div class="chk">millions of reads/s</div></div>
@@ -5741,11 +5738,13 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   </div>
   <p class="figcap">🖼️ Memory is about 1,000× faster than an SSD and 100,000× faster than an HDD.</p>
   <div class="info"><b>➕ Fact-check: "millions of reads per second"?</b> A reader spotted that Numbers to Know says 100k–200k ops/s per Redis instance. Both are true: RAM itself can do millions, but one Redis node is limited by its single command thread and the network (<a href="#sd-num-use">Numbers to Know ②</a>). So the ~600k/s peak needs a few cache nodes or read replicas, or a CDN in front taking the popular links.</div>
+  <p class="bridge">⚖️ <b>Ups and downs.</b> If you propose the cache, say the downsides too. <span class="add">➕ short explanations</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⚠️ Invalidation: tricky on updates and deletes, but rare here because links seldom change</b></li>
-    <li><b class="hd">⚠️ Warm-up: early requests still hit the database until the cache fills</b></li>
-    <li><b class="hd">⚠️ Memory limits: decide the size, the eviction policy (e.g. LRU) and what to store</b></li>
-    <li><b class="hd">⚠️ One more moving part: discuss the trade-offs and invalidation with the interviewer</b></li>
+    <li><b class="hd">✅ Up: clicks are answered from memory, not disk</b>About 1,000× faster than an SSD, and popular links never touch the database.</li>
+    <li><b class="hd">1️⃣ Invalidation is tricky on updates and deletes, but rare here because links seldom change</b>Edit or delete a link and the cache can still hand out the old URL. So delete the cache entry whenever the link changes.</li>
+    <li><b class="hd">2️⃣ Warm-up: early requests still hit the database until the cache fills</b>A fresh or restarted cache is empty, so at first every click goes to the database, until the popular links are loaded again.</li>
+    <li><b class="hd">3️⃣ Memory is limited: decide the size, the eviction policy (e.g. LRU) and what to store</b>RAM can't hold all 1 billion links. Keep only the popular ones; LRU drops the link clicked least recently when the cache is full.</li>
+    <li><b class="hd">4️⃣ One more moving part to run</b>Another system to set up, watch and keep in sync with the database. The article: discuss these trade-offs and your invalidation plan with the interviewer.</li>
   </ul>
   <p class="ana">🧥 The most-collected coats hang right behind the desk; only rare ones need a trip to the back room. <span class="add">➕ analogy not in the article</span></p>
 
@@ -5756,12 +5755,14 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
     <div class="k-green"><b>⚡ With a CDN + edge function</b><div class="chk">👤 user in Mumbai → PoP in Mumbai → 302</div><div class="chk">Popular codes never reach the Primary Server</div></div>
   </div>
   <p class="figcap">🖼️ <span class="add">➕ my example</span> The same click, two paths.</p>
+  <p class="bridge">⚖️ <b>Ups and downs.</b> If you propose the CDN, say the downsides too. <span class="add">➕ short explanations</span></p>
   <ul class="lines roomy heads">
-    <li><b class="hd">⚠️ Keeping every CDN node invalidated and consistent is complex</b></li>
-    <li><b class="hd">⚠️ Edge setup needs extra configuration and knowing serverless at the edge</b></li>
-    <li><b class="hd">💸 Cost: CDNs and edge computing get expensive at high traffic</b></li>
-    <li><b class="hd">⚠️ Edge functions are limited in run time, memory and libraries: keep the redirect logic lean</b></li>
-    <li><b class="hd">🔍 Debugging and monitoring are harder than on central servers</b></li>
+    <li><b class="hd">✅ Up: the redirect happens in a city near the user</b>Faster for users everywhere, and popular codes never reach our servers.</li>
+    <li><b class="hd">1️⃣ Keeping every CDN node invalidated and consistent is complex</b>Change or delete a link and hundreds of PoPs may still hold the old one, until each copy is cleared or expires.</li>
+    <li><b class="hd">2️⃣ Edge setup needs extra configuration and knowing serverless at the edge</b>Edge functions are their own kind of code, with their own setup, deploys and tools.</li>
+    <li><b class="hd">3️⃣ Cost: CDNs and edge computing get expensive at high traffic</b>You pay per request, and a popular shortener serves billions of clicks.</li>
+    <li><b class="hd">4️⃣ Edge functions are limited in run time, memory and libraries</b>So keep the redirect logic lean: look up the code, return a 302, nothing more.</li>
+    <li><b class="hd">5️⃣ Debugging and monitoring are harder than on central servers</b>Logs and errors are spread over hundreds of locations instead of one place.</li>
     <li><b class="hd">⭐ "You trade cost and complexity for performance"</b>Worth it or not depends on the company's price sensitivity, user-experience needs and traffic patterns.</li>
   </ul>
   <p class="ana">🧥 Small coat desks at every theatre entrance: guests collect near their door, the main cloakroom stays calm. But every desk must hear when a coat moves. <span class="add">➕ analogy not in the article</span></p>
@@ -5805,7 +5806,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <div class="seq" data-seq="bitly-batch"></div>
   <div class="info"><b>➕ Fact-check</b> The article says Redis "returns the start of the batch". <code>INCRBY counter 1000</code> returns the new value, which is the <b>end</b> of the batch: a reply of 2000 means you own 1001–2000.</div>
   <ul class="lines roomy heads">
-    <li><b class="hd">✅ Batching keeps codes unique across instances and cuts Redis load and network calls</b></li>
+    <li><b class="hd">✅ Batching keeps codes unique across instances and cuts Redis load and network calls</b>Each Write Service takes a block of 1,000 numbers at once, so it calls Redis once per 1,000 links instead of once per link, and no two instances ever get the same number.</li>
     <li><b class="hd">🛟 Keep the counter alive with Redis Sentinel or Redis Cluster (automatic failover)</b>One Redis instance handles 100k+ operations a second, far more than link creation needs, especially with batching.</li>
     <li><b class="hd">🌍 Multi-region: give each region its own counter range (A: 0–1B, B: 1B–2B)</b>No cross-region coordination. Writes use the local Redis; reads are served everywhere through distributed caches.</li>
     <li><b class="hd">💥 If Redis dies before copying the latest value, a few numbers are lost, and that's fine</b>We need uniqueness, not continuity. The database's UNIQUE constraint on <code>short_code</code> is the final safety net.</li>
