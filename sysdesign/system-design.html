@@ -1595,6 +1595,27 @@ $ curl -s ifconfig.me  # after NAT
   </ul>
   <p class="ana">🏢 A VPC is a <b>gated office campus</b>. The Internet Gateway is the main gate. The public subnet is the reception lobby, where visitors are let in. The private subnet is the badge-only offices: staff can step out for coffee (NAT), but no stranger walks in. Route tables are the signposts. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> 🛣️ A subnet is public because its route table points to the Internet Gateway, not because its servers have public IPs.<br>🎤 Say it in a design: "One VPC across 2–3 Availability Zones. Only the load balancer sits in public subnets. Services, databases and caches sit in private subnets and reach the internet through a NAT Gateway."</div>
+  <h5>🧠 Stateful vs stateless: which firewall remembers? <span class="add">➕ not in the article</span></h5>
+  <p class="bridge">Both firewalls check every packet. The difference is <b>memory</b>: does it remember the request when the reply comes back? Follow one call. An app server (<code>10.0.1.25</code>) calls Stripe on port <code>443</code>. Its OS picks a random return port, say <code>50123</code> (an <b>ephemeral port</b>), and the reply must come back to it.</p>
+  <div class="dg" role="img" aria-label="The request goes out from port 50123 to Stripe on port 443. The reply comes back from 443 to port 50123.">
+    <div class="r"><span class="lbl">➡️ Request</span><span class="bx">🖥️ 10.0.1.25<small>port 50123</small></span><span class="ar" style="--c: var(--blue-fg)">→ out</span><span class="bx">💳 Stripe<small>port 443</small></span></div>
+    <div class="r"><span class="lbl">⬅️ Reply</span><span class="bx">💳 Stripe<small>port 443</small></span><span class="ar" style="--c: var(--green-fg)">→ back</span><span class="bx">🖥️ 10.0.1.25<small>port 50123</small></span></div>
+  </div>
+  <p class="figcap">🖼️ The reply comes in on <b>50123</b>, not 443. To a firewall with no memory, it looks like a stranger knocking on a random port.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🔐 Security Group = <button type="button" class="gl-link" data-g="fwstate">stateful</button></b><div class="star">Remembers every connection it let through</div><div class="chk">Outbound rule: allow 443 ✅ and it notes "50123 ↔ Stripe:443"</div><div class="chk">Reply arrives on 50123 → "that's the answer to my call" → in ✅</div><div class="chk">No inbound rule needed for replies</div></div>
+    <div class="k-amber"><b>🚧 NACL = <span class="nogl">stateless</span></b><div class="star">Judges every packet alone, remembers nothing</div><div class="chk">Outbound rule: allow 443 ✅, notes nothing</div><div class="chk">Reply arrives on 50123 → "who are you?" → checks inbound rules</div><div class="chk">Needs inbound <b>allow 1024–65535</b>, or the reply is dropped ❌</div></div>
+  </div>
+  <div class="seq" data-seq="fw-state"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔢 Why the whole 1024–65535 range?</b>The return port is random, and each OS picks from its own range (Linux 32768–60999, Windows 49152–65535; a NAT Gateway uses 1024–65535). You can't know it in advance, so AWS suggests opening the whole range for replies.</li>
+    <li><b class="hd">↔️ It cuts both ways</b>A user calls your load balancer on 443: the NACL needs inbound 443 <b>and</b> outbound 1024–65535, so your answer can leave to the user's random port. The Security Group needs only inbound 443.</li>
+    <li><b class="hd">⏳ The symptom is a timeout, not an error</b>A NACL drops the reply silently. The app waits, then times out, though the request reached the server. Security Groups never have this bug.</li>
+    <li><b class="hd">🟢 The default NACL allows everything</b>So this bites only when you write a custom NACL. A new custom NACL denies everything until you add rules.</li>
+  </ul>
+  <div class="rem"><b>🪝 Hook</b> A Security <b>Group</b> is a guard who remembers faces. An ACL is an Access Control <b>List</b>, and a printed list can't remember anyone.</div>
+  <p class="ana">🏢 The Security Group is the receptionist who saw you step out for coffee and waves you back in. The NACL is the floor guard with a printed list: going out or coming in, you're checked against the list every time, as if you'd never met. <span class="add">➕ analogy</span></p>
+  <div class="rem"><b>🎤 Say it</b> "Security Groups are stateful: allow the request and the reply comes back by itself. NACLs are <span class="nogl">stateless</span>: every packet is checked alone, so I also allow the ephemeral range, 1024–65535, for replies. I keep the real rules in Security Groups and use the NACL as a coarse subnet fence, or to deny a bad IP range."</div>
   <h5>🛣️ What is a route table?</h5>
   <p class="bridge"><span class="add">➕ not in the article</span> Every packet leaving a server asks one question: "where do I go next?" The subnet's <b>route table</b> answers it. It is a short list of rules: <b>destination</b> (an address range) → <b>target</b> (where to send it).</p>
   <div class="grid3">
@@ -7166,6 +7187,21 @@ const SEQS = {
       { f: 1, t: 0, m: 'body: User + status 0', k: 'tcp', cap: '⑤ Fetch can read bodies, so the library finds the status at the end and the page knows the call really succeeded. Had it failed, it would read 5 (NOT_FOUND) the same way.' },
     ],
   },
+  'fw-state': {
+    lanes: ['🖥️ App server', '🔐 Security Group', '🚧 NACL', '💳 Stripe'],
+    key: [['http', 'request'], ['tcp', 'reply'], ['err', 'dropped'], ['lb', 'the fix']],
+    frames: [
+      { cap: 'The app server calls Stripe on port 443. Its OS picks a random return port, <b>50123</b>. Watch what each firewall remembers 👇' },
+      { f: 0, t: 1, m: ':50123 → :443', k: 'http', cap: '① The Security Group\'s outbound rule allows 443. 🧠 It also writes down: "50123 is talking to Stripe:443".' },
+      { f: 1, t: 2, m: ':50123 → :443', k: 'http', cap: '② The NACL\'s outbound rule allows 443 too. 🙈 It writes nothing down.' },
+      { f: 2, t: 3, m: ':50123 → :443', k: 'http', cap: '③ Stripe gets the request and answers.' },
+      { f: 3, t: 2, m: 'reply → :50123', k: 'tcp', cap: '④ The reply comes back to port <b>50123</b>. The NACL doesn\'t remember the request, so it checks its inbound rules like for any stranger.' },
+      { at: 2, m: '❌ no rule: dropped', k: 'err', cap: '⑤ Only 443 is allowed in, so the reply is dropped silently. The app waits… and times out.' },
+      { f: 3, t: 2, m: '1024–65535 ✅', k: 'lb', cap: '⑥ The fix: an inbound NACL rule for the whole return range, 1024–65535. Now the reply passes the subnet border.' },
+      { f: 2, t: 1, m: 'reply → :50123', k: 'tcp', cap: '⑦ The Security Group checks its notes: "the answer to the call I let out". In it goes, with no inbound rule at all.' },
+      { f: 1, t: 0, m: '✅ 200 OK', k: 'tcp', cap: '⑧ The app gets its answer. Stateful remembers the request; stateless needs a rule for the reply.' },
+    ],
+  },
   'replica-lag': {
     lanes: ['👤 Alice', '🖥️ App', '✍️ Primary', '📖 Replica'],
     key: [['http', 'write'], ['tcp', 'read'], ['err', 'stale'], ['gray', 'copy'], ['lb', 'the fix']],
@@ -7729,6 +7765,9 @@ const GLOSSARY = [
   { id: 'cursor', t: 'Cursor pagination', aka: 'cursor offset pagination next_cursor keyset', s: 'Page by "continue after this record", not "skip N rows".',
     an: 'A bookmark: you carry on after the exact page you left, however many pages get added at the front.',
     b: '<p>🧪 <b>Do it twice:</b> page 1 shows E1–E3. A new event arrives at the top.</p><ul><li>🔢 Offset 3 → E3, E4, E5: <b>E3 again</b>.</li><li>🔖 Cursor "after E3" → E4, E5, E6: correct.</li></ul><p>⚡ Also faster on deep pages: the DB jumps to the cursor through the index instead of walking and throwing away every skipped row. Cost: no "jump to page 5".</p><p>☁️ <b>On AWS:</b> DynamoDB returns <code>LastEvaluatedKey</code>: a cursor</p>', see: ['stateless'] },
+  { id: 'fwstate', t: 'Stateful vs stateless firewall', ctx: 'Firewall', aka: 'stateful stateless security group nacl network acl ephemeral port reply connection tracking', s: 'Stateful remembers each connection and lets its reply back in. Stateless checks every packet alone, so replies need their own rule.',
+    an: 'The receptionist who saw you step out waves you back in (stateful). The guard with a printed list checks you every time (stateless).',
+    b: '<p>🧪 <b>Test:</b> allow only outbound 443. Does the reply (to your random port, e.g. 50123) get back in?</p><table><tr><th></th><th>Reply gets in?</th></tr><tr><td>🔐 Security Group (stateful)</td><td>✅ yes, it remembers the call</td></tr><tr><td>🚧 NACL (stateless)</td><td>❌ only with a rule for 1024–65535</td></tr></table><p>Forget that rule and requests time out, though they reached the server.</p>', see: ['port', 'stateless'] },
   { id: 'stateless', t: 'Stateless API', aka: 'stateless stateful session server memory scaling', s: 'Every request carries everything needed; the server remembers nothing between requests.',
     an: 'You show your ticket at every gate, so any guard can let you in. Stateful = only the guard who saw you earlier remembers you.',
     b: '<p>🧪 <b>Test:</b> send request 2 to a different server than request 1. Still works? Stateless.</p><p>Why it matters: any server can take any request, so scaling out is just "add servers behind the load balancer". Tokens like JWTs carry the "who" with each request.</p>', see: ['jwt', 'session'] },
@@ -8226,7 +8265,7 @@ const GLOSSARY = [
     eavesdrop: /eavesdrop(?:ping)?/i, mitm: /man-in-the-middle|MITM/i, auth: /authentication|authorization|auth[NZ]/i,
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, grpcweb: /gRPC-Web/, apikey: /API keys?/,
-    oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, stateless: /stateless/i, rbac: /RBAC/,
+    oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, fwstate: /stateful firewalls?|stateless firewalls?|connection tracking/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, routetable: /route tables?/i, dnsrec: /DNS records?|\bCNAMEs?\b/, r53resolver: /Route 53 Resolver/, route53: /Route 53(?! (?:private|public) hosted| Resolver)/, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting|cache key fan-?out/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
