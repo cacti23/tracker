@@ -845,10 +845,67 @@ body.map-on .wrap { max-width: 1640px; }
   .nc-row > span:first-child { grid-area: l; } .nc-row .bar { grid-area: b; } .nc-row .v { grid-area: v; }
 }
 @media (prefers-reduced-motion: reduce) { .nc-out .bar i { transition: none; } }
+/* ── Design review 2026-11-25, part 1: wayfinding and calmer headers ──────────────────────
+   🧭 1.1 "You are here": a rail of the notes on wide screens (it uses the empty left margin; the
+   card keeps its full width), and a sticky one-line trail on narrower ones that opens the same
+   rail as a drawer. Both light up the card and section you are reading. */
+.rail { display: none; font-size: 13px; line-height: 1.4; }
+.rail-h { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.rail ol { list-style: none; margin: 0; padding: 0; }
+.rail .g { margin: 14px 0 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.rail .g:first-child { margin-top: 0; }
+.rail a { display: block; padding: 4px 8px; border-radius: 6px; color: var(--text); text-decoration: none; border-left: 2px solid transparent; }
+.rail a:hover { background: var(--chip); }
+.rail li.cur > a { background: var(--chip); border-left-color: var(--accent); font-weight: 600; }
+.rail ol ol { margin: 2px 0 6px 10px; }
+.rail ol ol a { color: var(--muted); padding: 3px 8px; }
+.rail ol ol li.cur > a { color: var(--text); background: transparent; }
+.rail-x { display: none; }
+@media (min-width: 1280px) {
+  .rail { display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; overflow-y: auto; overscroll-behavior: contain;
+    padding: 20px 12px 72px 16px; border-right: 1px solid var(--line); background: var(--bg); }
+  body:not(.map-on) { padding-left: 260px; }
+  body.map-on .rail { display: none; }
+  .here { display: none !important; }
+}
+@media (min-width: 1000px) { .rail { zoom: 1.15; } }
+/* the trail: sticky at the top of the page, one line, tap to open the rail */
+.here { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; width: calc(100% + 32px); margin: 0 -16px 12px;
+  padding: 8px 16px; border: 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 94%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font: inherit; font-size: 13px; color: var(--muted); text-align: left; cursor: pointer; }
+.here[hidden] { display: none; }
+.here span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.here b { color: var(--text); font-weight: 600; }
+.here .sep { flex: none; opacity: .6; }
+.here .last { flex: 1 1 0; }
+@media (max-width: 1279.98px) {
+  .rail.open { display: block; position: fixed; top: 0; left: 0; bottom: 0; z-index: 70; width: min(340px, 86vw); overflow-y: auto; overscroll-behavior: contain;
+    padding: 16px 12px 40px 16px; background: var(--card); border-right: 1px solid var(--line); box-shadow: 0 0 40px rgba(0,0,0,.35); }
+  .rail.open .rail-x { display: block; position: sticky; top: 0; float: right; z-index: 1; margin: -6px -4px 0 8px; font: inherit; font-size: 15px; padding: 2px 9px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  .rail-scrim { position: fixed; inset: 0; z-index: 69; background: rgba(0,0,0,.4); }
+}
+.rail-scrim[hidden], .chips[hidden] { display: none; }
+/* 1.2 Card header: the title on its own line, then one quiet line of where it belongs + the two practice buttons */
+.cap { display: block; margin-bottom: 4px; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
+.meta .where { margin-right: auto; }
+.meta .quiz-btn { margin-left: 0; vertical-align: 0; }
+/* 1.3 Section bands: the practice buttons shrink to two small icons, full strength only when you point at the band */
+.card > h4 .quiz-btn.ico { margin-left: 6px; padding: 1px 7px; font-size: 13px; opacity: .55; transition: opacity .15s; }
+.card > h4:hover .quiz-btn.ico, .card > h4:focus-within .quiz-btn.ico, .card > h4 .quiz-btn.ico.done { opacity: 1; }
+@media (hover: none) { .card > h4 .quiz-btn.ico { opacity: .85; } }
 </style>
 </head>
 <body>
+<nav class="rail" id="rail" aria-label="Notes map: where you are">
+  <button type="button" class="rail-x" id="rail-x" aria-label="Close the notes map">✕</button>
+  <p class="rail-h">🧭 You are here</p>
+  <ol id="rail-list"></ol>
+</nav>
+<div class="rail-scrim" id="rail-scrim" hidden></div>
 <div class="wrap">
+<button type="button" class="here" id="here" hidden aria-controls="rail" aria-expanded="false"></button>
 <header>
   <h1>🏛️ System Design</h1>
   <p>Notes from our discussions. One idea per card, shown by topic or by course.</p>
@@ -872,7 +929,7 @@ body.map-on .wrap { max-width: 1640px; }
   data-lesson is a lesson id from COURSES (or a section id when the section has no lessons listed yet).
   A note that isn't from a course leaves data-course and data-lesson out.
 -->
-<details class="index" id="index" open><summary>🗂️ Index</summary><div id="index-body"></div></details>
+<details class="index" id="index"><summary>🗂️ Index</summary><div id="index-body"></div></details>
 
 <div id="list">
 
@@ -6375,13 +6432,17 @@ const VIEW_KEY = 'sd-view-v1'
 const indexBody = document.getElementById('index-body')
 const cardTitle = c => c.querySelector('.cap b').textContent
 
-// Each card carries its topic and course lesson as tags, so you can see both in either view
+// Each card says where it belongs (topic · course lesson) on one quiet line under its title, so
+// you can see both in either view. The practice buttons join that line later (🧠 Quiz me below).
 cards.forEach(c => {
   const cap = c.querySelector('.cap')
-  const tag = (text, cls) => { const t = document.createElement('span'); t.className = 'tag' + (cls ? ' ' + cls : ''); t.textContent = text; cap.appendChild(t) }
-  if (c.dataset.topic && c.dataset.topic !== 'Start') tag(c.dataset.topic)
+  const where = []
+  if (c.dataset.topic && c.dataset.topic !== 'Start') where.push(c.dataset.topic)
   const node = COURSES[c.dataset.course] && courseNodes(c.dataset.course).find(n => n.id === c.dataset.lesson)
-  if (node) tag(`🎓 ${node.sec.n ? node.sec.n + ' · ' : ''}${node.title}`, 'course')
+  if (node) where.push(`🎓 ${node.sec.n ? node.sec.n + ' · ' : ''}${node.title}`)
+  const meta = document.createElement('div'); meta.className = 'meta'
+  const w = document.createElement('span'); w.className = 'where'; w.textContent = where.join(' · ')
+  meta.appendChild(w); cap.after(meta)
 })
 
 function link(href, text) { const a = document.createElement('a'); a.href = href; a.textContent = text; return a }
@@ -6400,6 +6461,8 @@ function setChips(names, onPick, current) {
 }
 
 function clearGenerated() { list.querySelectorAll('.lesson, .lesson-empty').forEach(h => h.remove()) }
+// Tell the 🧭 rail that the visible cards changed (view, topic or course switch)
+const listChanged = () => document.dispatchEvent(new Event('sd-list'))
 
 function showTopics(topic = 'All') {
   clearGenerated()
@@ -6415,6 +6478,7 @@ function showTopics(topic = 'All') {
     cards.filter(c => c.dataset.topic === t).forEach(c => { const li = el('li'); li.appendChild(link('#' + c.id, cardTitle(c))); ul.appendChild(li) })
     indexBody.appendChild(ul)
   })
+  listChanged()
 }
 
 function showCourse(course = Object.keys(COURSES)[0]) {
@@ -6448,6 +6512,7 @@ function showCourse(course = Object.keys(COURSES)[0]) {
   })
   if (!mine.length) list.appendChild(el('p', 'lesson-empty empty', 'No notes from this course yet. Lessons light up in the index as notes come in.'))
   setChips(Object.entries(COURSES).map(([k, v]) => [k, v.name]), showCourse, course)
+  listChanged()
 }
 
 // 🗺️ AWS map: its own tab. The notes, chips and index step aside; the map lives in sysdesign/aws-map.js.
@@ -6461,6 +6526,7 @@ function setView(view) {
   if (map) { if (window.AWSMAP) AWSMAP.mount(mapView.querySelector('.am')) }
   else view === 'courses' ? showCourse() : showTopics()
   try { localStorage.setItem(VIEW_KEY, view) } catch (e) {}
+  listChanged()
 }
 document.querySelectorAll('#views button').forEach(b => { b.onclick = () => setView(b.dataset.view) })
 document.querySelectorAll('[data-go-view]').forEach(b => { b.onclick = () => { setView(b.dataset.goView); document.getElementById('views').scrollIntoView() } })
@@ -8128,7 +8194,7 @@ const GLOSSARY = [
   // Rank: where the word sits (title > section > subheading > point > text), then how exactly it matches.
   let index = null
   // Every text node belongs to its nearest block, so boxes, tables, diagrams and Remember notes are all searchable.
-  const SKIP = '.quiz-btn, .add, .cap, .toc, script, style, svg, .seq'
+  const SKIP = '.quiz-btn, .add, .cap, .meta, .toc, script, style, svg, .seq'
   const BLOCK = 'h4, h5, .hd, summary, .grid2 > div > b:first-child, p, li, td, th, caption, pre, .figcap, div'
   const lvlOf = n => n.matches('h4') ? 1 : n.matches('h5') ? 2 : n.matches('.hd, summary, .grid2 > div > b:first-child') ? 3 : 4
   const buildIndex = () => {
@@ -8286,7 +8352,7 @@ const GLOSSARY = [
   const ids = new Set(GLOSSARY.map(g => g.id))
   const RX = Object.entries(WORDS).filter(([id]) => ids.has(id))
     .map(([id, re]) => [id, new RegExp(`(?<![\\w/+-])(?:${re.source})(?![\\w+-])`, re.flags)])
-  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .toc, .seq, .chr, .add, .tag, kbd, .grid2 > div > b, .nogl, .ncalc'
+  const SKIP = 'pre, code, a, button, h3, h4, h5, summary, .cap, .meta, .toc, .seq, .chr, .add, .tag, kbd, .grid2 > div > b, .nogl, .ncalc'
   const link = (node, seen) => {
     while (node) {
       let best = null
@@ -8351,7 +8417,7 @@ setView(startView)
       if (t.kids.length) { const sub = mk('ol'); t.kids.forEach(k => sub.append(item(k))); li.append(sub) }
       ol.append(li)
     })
-    const after = c.querySelector(':scope > .tldr') || c.querySelector(':scope > .hook') || c.querySelector(':scope > .cap')
+    const after = c.querySelector(':scope > .tldr') || c.querySelector(':scope > .hook') || c.querySelector(':scope > .meta') || c.querySelector(':scope > .cap')
     after.after(toc)
   })
   const marks = () => [...list.querySelectorAll('section.card, section.card h4, section.card h5, h3.lesson')]
@@ -8631,7 +8697,7 @@ No score, no grade.`
     try { await navigator.clipboard.writeText(text) } catch (e) {
       const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove()
     }
-    const was = btn.textContent; btn.textContent = '✓ Copied: paste in the thread'; btn.classList.add('done')
+    const was = btn.textContent; btn.textContent = btn.classList.contains('ico') ? '✓' : '✓ Copied: paste in the thread'; btn.classList.add('done')
     setTimeout(() => { btn.textContent = was; btn.classList.remove('done') }, 2500)
   }
   // Two modes per part: ⚡ Drill (fast, many small questions) and 🧠 Quiz me (the long, deep quiz)
@@ -8644,13 +8710,16 @@ No score, no grade.`
   const DRILL_TIP = 'Copy a fast drill prompt: 20–50 small questions + scenarios in small steps'
   const QUIZ_TIP = 'Copy the full quiz prompt: 20 quick checks + 5 deep questions'
   cards.forEach(c => {
-    const title = cardTitle(c), cap = c.querySelector('.cap'), whole = `${title} (whole card)`
-    cap.appendChild(quizBtn('⚡ Drill this card', DRILL_TIP, drillPrompt, whole, c.id, c.id))
-    cap.appendChild(quizBtn('🧠 Quiz me on this card', QUIZ_TIP, quizPrompt, whole, c.id, c.id))
+    const title = cardTitle(c), meta = c.querySelector(':scope > .meta'), whole = `${title} (whole card)`
+    meta.appendChild(quizBtn('⚡ Drill this card', DRILL_TIP, drillPrompt, whole, c.id, c.id))
+    meta.appendChild(quizBtn('🧠 Quiz me on this card', QUIZ_TIP, quizPrompt, whole, c.id, c.id))
+    // Sections get the same two modes as small icons, so 200+ bands don't shout while you read
     c.querySelectorAll(':scope > h4').forEach(h => {
       const where = `${title} › ${h.textContent.trim()}`
-      h.appendChild(quizBtn('⚡ Drill', DRILL_TIP, drillPrompt, where, c.id, h.id))
-      h.appendChild(quizBtn('🧠 Quiz me', QUIZ_TIP, quizPrompt, where, c.id, h.id))
+      const d = quizBtn('⚡', DRILL_TIP, drillPrompt, where, c.id, h.id), q = quizBtn('🧠', QUIZ_TIP, quizPrompt, where, c.id, h.id)
+      d.classList.add('ico'); q.classList.add('ico')
+      d.setAttribute('aria-label', 'Drill this section: copy the prompt'); q.setAttribute('aria-label', 'Quiz me on this section: copy the prompt')
+      h.append(d, q)
     })
   })
 
@@ -8658,6 +8727,103 @@ No score, no grade.`
   let armed = false
   for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) window.addEventListener(ev, () => { armed = true }, { once: true, passive: true })
   window.addEventListener('scroll', () => { if (armed && !ticking) { ticking = true; requestAnimationFrame(update) } }, { passive: true })
+})()
+
+// 🧭 You are here (design review 1.1): the rail lists the cards on show, grouped by topic (or by
+// lesson in the Courses view); the card you are reading opens to its sections, and both light up as
+// you scroll. Below 1280px the rail is a drawer, opened from the one-line trail at the top.
+;(() => {
+  const rail = document.getElementById('rail'), rl = document.getElementById('rail-list')
+  const here = document.getElementById('here'), scrim = document.getElementById('rail-scrim')
+  const wide = matchMedia('(min-width: 1280px)')
+  const LINE = 110 // px from the top: the card and section you are reading start above this line
+  const label = h => { const k = h.cloneNode(true); k.querySelectorAll('.add, .quiz-btn').forEach(e => e.remove()); return k.textContent.trim() }
+  const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e }
+  let shown = [], groups = new Map(), items = new Map(), curCard = null, curSec = null
+
+  const build = () => {
+    rl.innerHTML = ''; items = new Map(); curCard = curSec = null
+    shown = []; groups = new Map()
+    let group = null, lesson = null
+    for (const e of list.children) {
+      if (e.matches('h3.lesson')) { lesson = e.textContent; continue }
+      if (!e.matches('section.card') || e.hidden) continue
+      shown.push(e); groups.set(e, lesson || e.dataset.topic || '') // Courses view: the lesson; Topics view: the topic
+    }
+    shown.forEach(c => {
+      const g = groups.get(c)
+      if (g !== group) { group = g; rl.appendChild(mk('li', 'g', g)) }
+      const li = mk('li'), a = mk('a', '', cardTitle(c)); a.href = '#' + c.id
+      li.appendChild(a); rl.appendChild(li); items.set(c, li)
+    })
+    track()
+  }
+  const setCur = (c, h) => {
+    if (c !== curCard) {
+      if (curCard) { const old = items.get(curCard); old?.classList.remove('cur'); old?.querySelector('ol')?.remove(); old?.querySelector('a')?.removeAttribute('aria-current') }
+      curCard = c; curSec = null
+      const li = c && items.get(c)
+      if (li) {
+        li.classList.add('cur'); li.querySelector('a').setAttribute('aria-current', 'location')
+        const secs = [...c.querySelectorAll(':scope > h4')]
+        if (secs.length > 1) {
+          const ol = mk('ol')
+          secs.forEach(s => { const sl = mk('li'), a = mk('a', '', label(s)); a.href = '#' + s.id; a.dataset.sec = s.id; sl.appendChild(a); ol.appendChild(sl) })
+          li.appendChild(ol)
+        }
+        // keep the lit card in view inside the rail, without moving the page
+        if (wide.matches) {
+          // offsets, not screen rects: the rail is zoomed on wide screens, and offsets stay in its own units
+          const top = li.offsetTop, bottom = top + li.offsetHeight
+          if (top < rail.scrollTop + 40 || bottom > rail.scrollTop + rail.clientHeight - 60) rail.scrollTop = top - rail.clientHeight / 3
+        }
+      }
+    }
+    if (h !== curSec) {
+      curSec = h
+      const li = c && items.get(c)
+      li?.querySelectorAll('ol li').forEach(x => { const on = !!h && x.firstChild.dataset.sec === h.id; x.classList.toggle('cur', on); on ? x.firstChild.setAttribute('aria-current', 'location') : x.firstChild.removeAttribute('aria-current') })
+    }
+    // the one-line trail: topic › card › section
+    if (!c) { here.hidden = true; return }
+    here.hidden = false
+    here.textContent = ''
+    const parts = [groups.get(c), cardTitle(c), h ? label(h) : ''].filter(Boolean)
+    here.appendChild(mk('span', 'sep', '📍'))
+    parts.forEach((p, i) => {
+      if (i) here.appendChild(mk('span', 'sep', '›'))
+      const sp = mk('span', i === parts.length - 1 ? 'last' : '')
+      if (i === 1) { const b = mk('b', '', p); sp.appendChild(b) } else sp.textContent = p
+      here.appendChild(sp)
+    })
+    here.setAttribute('aria-label', 'You are here: ' + parts.join(', ') + '. Open the notes map')
+  }
+  // Only the card tops are measured on every scroll; sections are measured inside the lit card alone
+  const track = () => {
+    ticking = false
+    if (list.hidden || !shown.length) { setCur(null, null); return }
+    let c = null
+    for (const x of shown) { if (x.getBoundingClientRect().top <= LINE) c = x; else break }
+    let h = null
+    if (c) for (const s of c.querySelectorAll(':scope > h4')) { if (s.getBoundingClientRect().top <= LINE) h = s; else break }
+    setCur(c, h)
+  }
+  let ticking = false
+  window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(track) } }, { passive: true })
+  document.addEventListener('sd-list', build)
+  // the drawer (narrow screens)
+  const open = on => {
+    rail.classList.toggle('open', on); scrim.hidden = !on; here.setAttribute('aria-expanded', String(on))
+    if (on) { const cur = rail.querySelector('li.cur > a') || rail.querySelector('a'); cur?.focus({ preventScroll: true }); cur?.scrollIntoView({ block: 'center' }) }
+    else if (!wide.matches) here.focus({ preventScroll: true })
+  }
+  here.addEventListener('click', () => open(true))
+  scrim.addEventListener('click', () => open(false))
+  document.getElementById('rail-x').addEventListener('click', () => open(false))
+  rail.addEventListener('click', e => { if (e.target.closest('a') && rail.classList.contains('open')) open(false) })
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && rail.classList.contains('open')) open(false) })
+  wide.addEventListener('change', () => { if (wide.matches) open(false); track() })
+  build()
 })()
 </script>
 <script src="../js/back-button.js"></script>
