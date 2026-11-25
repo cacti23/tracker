@@ -17,11 +17,11 @@ test('the System Design switch opens the notes in-pane, and a reload stays there
   assert.equal(mode(sandbox), 'dsa')
   evalIn(sandbox, "switchHub('sd')")
   assert.equal(mode(sandbox), 'sd')
-  assert.equal(getElement('page-frame').getAttribute('src'), 'sysdesign/system-design.html')
+  assert.equal(getElement('sysdesign-frame').getAttribute('src'), 'sysdesign/system-design.html')
   assert.equal(evalIn(sandbox, "localStorage.getItem('dsa-hub-mode')"), 'sd')
   const again = loadAppWithDom({ 'dsa-current-view-v1': 'sysdesign', 'dsa-hub-mode': 'sd' })
   assert.equal(mode(again.sandbox), 'sd')
-  assert.equal(again.getElement('page-frame').getAttribute('src'), 'sysdesign/system-design.html')
+  assert.equal(again.getElement('sysdesign-frame').getAttribute('src'), 'sysdesign/system-design.html')
 })
 
 test('the DSA switch goes back to the dashboard', () => {
@@ -42,6 +42,17 @@ test('a DSA page opened from System Design (search, a link) switches the sidebar
   assert.equal(mode(sandbox), 'dsa')
 })
 
+// Adi, 2026-11-25: switching felt slow. The page is ~1 MB; sharing a frame with Study Sites meant
+// every Study Sites ↔ notes hop reloaded it. Its own frame loads it once per visit to the hub.
+test('System Design keeps its own frame, so a hop to Study Sites and back does not reload it', () => {
+  const { sandbox, getElement } = loadAppWithDom()
+  evalIn(sandbox, "switchHub('sd')")
+  evalIn(sandbox, "loadEmbed('sites')")
+  assert.equal(getElement('page-frame').getAttribute('src'), 'dsa/study-sites.html')
+  assert.equal(getElement('sysdesign-frame').getAttribute('src'), 'sysdesign/system-design.html')
+  assert.match(HTML, /<div id="view-sysdesign" class="d-none">\s*<iframe id="sysdesign-frame"/)
+})
+
 test('an unknown stored mode falls back to DSA', () => {
   const { sandbox } = loadAppWithDom({ 'dsa-hub-mode': 'nope' })
   assert.equal(mode(sandbox), 'dsa')
@@ -58,6 +69,12 @@ test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now 
   for (const id of ['nav-papers', 'nav-sites']) assert.doesNotMatch(HTML, new RegExp(`id="${id}"[^>]*data-hub=`), id + ' is shared')
   assert.doesNotMatch(HTML, /<a href="sysdesign\/system-design\.html"/, 'System Design is no longer an app link')
   assert.match(HTML, /<summary[^>]*>🌱 Life<\/summary>/)
+})
+
+test('the System Design page skips layout for off-screen cards (it shares the hub\'s thread)', () => {
+  const sd = fs.readFileSync(path.join(ROOT, 'sysdesign', 'system-design.html'), 'utf8')
+  assert.match(sd, /section\.card \{ content-visibility: auto;/)
+  assert.match(sd, /@media print \{ section\.card \{ content-visibility: visible; \} \}/)
 })
 
 test('the System Design page follows the hub theme live when embedded', () => {
