@@ -23,6 +23,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 - `DataSync.init` options: `autoPush` (upload shortly after each edit; works by hooking `Storage.prototype.setItem/removeItem` for the synced keys), `noiseKeys` (keys rewritten on every load, such as the streak, which don't count as edits), `maxKeys` (counter objects where a conflict keeps the larger number), `deepKeys` (`{ key: idField }`: merge that key recursively, arrays unioned by `idField`). Keep `noiseKeys` up to date if you add a key that is rewritten on page load, or a stale device will look edited and merge instead of fast-forwarding.
 - `data.js` caches parsed objects in memory and writes the whole object back on save, so after sync changes localStorage the page must reload (sync does this itself on pull and merge). Don't write synced keys behind its back.
 - Never commit tokens. The sync token lives only in the browser's localStorage.
+- Sign in with GitHub: `api/github-oauth.js` (Vercel function; env `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`) returns the token in the `#tracker-signin=` fragment, which `sync.js` reads and wipes on load. Tests: `test/github-signin.test.js`. `sw.js` must never cache `/api/`.
 
 ## Deploy
 
