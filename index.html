@@ -285,7 +285,13 @@
     body.embed-view > .d-flex { height: 100vh; }
     body.embed-view #main-col { min-height: 0; height: 100vh; }
     body.embed-view main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals, body.embed-view #view-page, body.embed-view #view-sysdesign { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    /* The title/tag search finds tracker questions: it belongs to the DSA pages, not embedded ones. */
+    body.embed-view #global-search-input { display: none; }
+    /* Embedded pages: the top bar tucks away while you scroll down and returns on scroll up. */
+    body.embed-view.header-tucked header { display: none; }
+    .site-open { font-size: var(--fs-xs); white-space: nowrap; }
+    .site-open a, .site-open button { color: var(--accent); text-decoration: none; background: none; border: 0; padding: 0 0.35rem; font: inherit; cursor: pointer; }
+    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals, body.embed-view #view-page, body.embed-view #view-sysdesign, body.embed-view #view-site { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .embed-frame { width: 100%; flex: 1 1 auto; min-height: 0; height: calc(100vh - 8rem);
       border: 1px solid var(--border, #2a2f3d); border-radius: 12px; background: transparent; }
     /* Google is one page now: no box, no empty tab-row gap, so it fills the space like the dashboard */
@@ -1207,7 +1213,7 @@
     </a>
     </details>
 
-    <div class="sidebar-footer">v583 · Interview Prep Hub</div>
+    <div class="sidebar-footer">v585 · Interview Prep Hub</div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
@@ -1290,6 +1296,10 @@
       <!-- Its own frame: the notes are ~1 MB, so they stay loaded while you visit other pages. -->
       <div id="view-sysdesign" class="d-none">
         <iframe id="sysdesign-frame" class="embed-frame" title="System Design notes"></iframe>
+      </div>
+      <!-- A Study Sites tile opens here. Other sites, so sandboxed (they keep their own origin). -->
+      <div id="view-site" class="d-none">
+        <iframe id="site-frame" class="embed-frame" title="Study site" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" referrerpolicy="no-referrer"></iframe>
       </div>
 
     </main>
@@ -1871,6 +1881,7 @@ function loadGoogle(tab) {
       onclick="loadGoogle('${t.key}')">${t.label}</button></li>`
   ).join('')
   const frame = document.getElementById('google-frame')
+  _watchEmbedScroll(frame)
   const want = GOOGLE_TABS.find(t => t.key === currentGoogleTab).src
   if (frame.getAttribute('src') !== want) frame.setAttribute('src', want)
 }
@@ -1925,7 +1936,48 @@ function loadEmbed(key) {
   currentTopicKey = null
   _saveCurrentView(key)
   const frame = document.getElementById(e.frame)
+  _watchEmbedScroll(frame)
   if (frame.getAttribute('src') !== e.src) frame.setAttribute('src', e.src)
+}
+
+// ─── STUDY SITE IN-PANE ──────────────────────────────────────────────────────
+// Study Sites (dsa/study-sites.html, embedded) calls this for a tile. The site shows in the pane,
+// the sidebar steps aside (☰ brings it back; not saved as a preference), and the header names the
+// site with a link to open it in its own tab, for sites that refuse to be shown inside a page.
+function openSite(site) {
+  const url = site && String(site.url || '')
+  if (!/^https?:\/\//i.test(url)) return
+  showView('view-site')
+  _stopTimer()
+  _qpStopTimer()
+  document.getElementById('page-title').textContent = (site.icon ? site.icon + ' ' : '') + String(site.name || 'Study site')
+  document.getElementById('header-tabs').innerHTML =
+    '<span class="site-open"><button type="button" onclick="loadEmbed(\'sites\')">← Study Sites</button>' +
+    '<a href="' + escHtml(url) + '" target="_blank" rel="noopener">↗ Open ' + escHtml(site.name || 'site') + ' in a new tab</a></span>'
+  clearActiveNav()
+  const nav = document.getElementById('nav-sites')
+  if (nav) nav.classList.add('active')
+  if (!_isPhoneLayout()) document.getElementById('sidebar').classList.add('collapsed')
+  const frame = document.getElementById('site-frame')
+  if (frame.getAttribute('src') !== url) frame.setAttribute('src', url)
+}
+
+// Same-origin embedded pages: tuck the top bar away while scrolling down, bring it back on the
+// way up. Re-attached on every load (a new page means a new window). Other sites can't be watched.
+function _watchEmbedScroll(frame) {
+  if (!frame || frame.dataset.scrollWatch) return
+  frame.dataset.scrollWatch = '1'
+  frame.addEventListener('load', () => {
+    let win
+    try { win = frame.contentWindow; void win.scrollY } catch { return }
+    let last = 0
+    win.addEventListener('scroll', () => {
+      const y = win.scrollY
+      if (Math.abs(y - last) < 8) return
+      document.body.classList.toggle('header-tucked', y > last && y > 60)
+      last = y
+    }, { passive: true })
+  })
 }
 function loadPapers() { loadEmbed('papers') }
 function loadVisuals() { loadEmbed('visuals') }
@@ -4647,11 +4699,12 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals' || id === 'view-page' || id === 'view-sysdesign'
+  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals' || id === 'view-page' || id === 'view-sysdesign' || id === 'view-site'
   document.body.classList.toggle('embed-view', embed)
+  document.body.classList.remove('header-tucked')
   // html has smooth scrolling; a scrolled page would shift the locked frame
   if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
-  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign']
+  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign', 'view-site']
   views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {

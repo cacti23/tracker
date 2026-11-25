@@ -96,6 +96,13 @@ function tile(s) {
   a.target = '_blank'
   a.rel = 'noopener noreferrer'
   a.setAttribute('aria-label', `${s.name}: ${s.use}`)
+  // Inside the hub, the site opens in the hub's pane instead of a new tab (Adi, 2026-11-25).
+  a.onclick = (e) => {
+    if (window.top !== window.self && typeof window.top.openSite === 'function') {
+      e.preventDefault()
+      window.top.openSite({ name: s.name, url: s.url, icon: s.icon })
+    }
+  }
   const body = el('div', 'body')
   const name = el('div', 'name')
   const fav = el('img')
