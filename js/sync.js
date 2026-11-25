@@ -47,6 +47,7 @@
   // ── config / meta ──────────────────────────────────────────────────────
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
   function setTokenValue(t) {
+    whoAmI = null;   // a new token may belong to another account
     if (t) localStorage.setItem(TOKEN_KEY, t);
     else localStorage.removeItem(TOKEN_KEY);
   }
@@ -593,6 +594,43 @@
       });
     });
   }
+  // ── whose data is this? ────────────────────────────────────────────────
+  // Signing out leaves this device's progress in place. If a DIFFERENT GitHub account then
+  // signs in (a shared browser), a plain sync would upload that progress into the new
+  // account's gist as if it were its own. So the meta remembers the account the local data
+  // was last synced with (lastLogin), and a switch asks first. The token is shared by every
+  // app on the origin, so each app checks on its own next sync, not only the sign-in page.
+  var whoAmI = null;
+  function currentLogin() {
+    var l = localStorage.getItem(LOGIN_KEY);
+    if (l) return Promise.resolve(l);
+    if (!whoAmI) whoAmI = api('/user').then(function (u) { rememberLogin(u.login); return u.login; }, function () { whoAmI = null; return null; });
+    return whoAmI;
+  }
+  function guardAccount(appId, keys) {
+    return currentLogin().then(function (login) {
+      if (!login) return;                        // unknown: the sync itself will fail or stay in-account
+      var m = getMeta(appId), owner = m.lastLogin;
+      if (owner === login) return;
+      if (!owner) { m.lastLogin = login; setMeta(appId, m); return; }   // synced before this check existed
+      var hasData = Object.keys(collect(keys)).length > 0;
+      var loadTheirs = !hasData || typeof confirm !== 'function' || confirm(
+        'This device holds tracker progress from @' + owner + ', and you are now signed in as @' + login + '.\n\n' +
+        'OK: load @' + login + "'s own progress here (recommended). @" + owner + "'s progress is kept on this device as an undo copy and is not uploaded.\n" +
+        'Cancel: keep this device\'s progress and add it to @' + login + "'s account.");
+      // Fresh bookkeeping either way: the old meta describes the other account's gist. With no
+      // lastSyncedAt, the reconcile pulls (local now empty) or merges with the cloud preferred.
+      setMeta(appId, { lastLogin: login });
+      if (!loadTheirs || !hasData) return;
+      writeGate = 'sync-writing';
+      try {
+        snapshotLocal(appId, keys);
+        keys.forEach(function (k) { localStorage.removeItem(k); });
+      } finally { writeGate = 'reload-pending'; }
+      scheduleReload();   // the page still holds the old progress in memory
+    });
+  }
+
   // One reconcile at a time: a background push firing while the user taps Sync (or two
   // quick edits) must not interleave two pull/merge/push cycles. A request that arrives
   // mid-flight shares the running one and schedules a single follow-up run; so does a run
@@ -600,7 +638,7 @@
   var inflight = null, rerun = false;
   function reconcile(appId, keys) {
     if (inflight) { rerun = true; return inflight; }
-    inflight = doReconcile(appId, keys).then(function (r) {
+    inflight = guardAccount(appId, keys).then(function () { return doReconcile(appId, keys); }).then(function (r) {
       inflight = null;
       if (rerun || r.followUp) { rerun = false; reconcile(appId, keys).catch(function () {}); }
       return r;
@@ -763,7 +801,8 @@
     if (!confirm('This will overwrite the data on THIS device with whatever is currently in the cloud. Continue?')) return;
     status('pulling…');
     localStorage.removeItem(GISTID_KEY);   // never trust a cached gist id for a manual pull
-    withGist(function () { return pullApp(cfg.appId); }).then(function (remote) {
+    var login = null;
+    currentLogin().then(function (l) { login = l; return withGist(function () { return pullApp(cfg.appId); }); }).then(function (remote) {
       var gid = localStorage.getItem(GISTID_KEY) || '?';
       var gistLabel = 'gist …' + gid.slice(-6);
       if (!remote || !remote.data || Object.keys(remote.data).length === 0) {
@@ -776,6 +815,8 @@
         return;
       }
       applyPull(cfg.appId, cfg.keys, remote);
+      // Local data is now this account's, whoever's it was before (see guardAccount).
+      if (login) { var m = getMeta(cfg.appId); m.lastLogin = login; setMeta(cfg.appId, m); }
       status('pulled ✓');
       alert('Pulled ' + Object.keys(remote.data).length + ' keys from ' + gistLabel +
             ' (cloud copy saved ' + remote.updatedAt + ').');
