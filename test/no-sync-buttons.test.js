@@ -25,6 +25,6 @@ for (const f of ['index.html', 'apps/habits.html', 'apps/gym-5day.html']) {
 test('the hub is named Interview Prep Hub', () => {
   const html = read('index.html')
   assert.match(html, /<title>Interview Prep Hub<\/title>/)
-  assert.match(html, /class="sidebar-footer">v\d+ · Interview Prep Hub</)
+  assert.match(html, /class="sidebar-footer">[\s\S]*?<span>v\d+ · Interview Prep Hub<\/span>/)
   assert.equal(JSON.parse(read('manifest.json')).name, 'Interview Prep Hub')
 })
