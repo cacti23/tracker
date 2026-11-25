@@ -90,14 +90,14 @@ test('dashboard Graded shows a ~ shaky question even while it is resting (same a
   ev(`markPracticed('${k}'); bumpReviewInterval('${k}'); gradeRevise('${k}', 'shaky')`)
   ev(`_psMode = 'graded'`)
   assert.ok(ev(`_psModePool('trees', 50).map(([x]) => x).includes('${k}')`), 'per-topic Graded shows it')
-  ev(`_qpRevised = true; _qpMock = false; _qpTopics = new Set(); _qpCount = 50; _qpGenerate()`)
+  ev(`_qpRevised = true; _qpTopics = new Set(); _qpCount = 50; _qpGenerate()`)
   assert.ok(ev(`_qpResults.map(([x]) => x).includes('${k}')`), 'dashboard Graded must show it too')
 })
 
 test('a resting ✓ solid question still waits for its revise ladder in dashboard Graded', () => {
   const k = 'LC_104'
   ev(`markPracticed('${k}'); bumpReviewInterval('${k}'); gradeRevise('${k}', 'solid')`)
-  ev(`_qpRevised = true; _qpMock = false; _qpTopics = new Set(); _qpCount = 50; _qpGenerate()`)
+  ev(`_qpRevised = true; _qpTopics = new Set(); _qpCount = 50; _qpGenerate()`)
   assert.ok(!ev(`_qpResults.map(([x]) => x).includes('${k}')`))
 })
 
@@ -106,7 +106,7 @@ test('pins are gone: a just-solved question rests even if an old pin is still st
   ctx.sandbox.localStorage.setItem('dsa-pins-v1', JSON.stringify([k]))   // legacy data from before the removal
   ev(`setStatus('${k}', 'Solved'); markPracticed('${k}'); bumpReviewInterval('${k}')`)
   assert.equal(ev(`_onCooldown('${k}')`), true)
-  ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpMock = false; _qpCount = 50; _qpGenerate()`)
+  ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpCount = 50; _qpGenerate()`)
   assert.ok(!ev(`_qpResults.map(([x]) => x).includes('${k}')`), 'legacy pin must not force it into the set')
 })
 
@@ -121,12 +121,12 @@ test('legacy pin data is untouched and still travels with export/import/sync', (
 test('a resting question is still hidden from a normal generated set', () => {
   const k = 'LC_104'
   ev(`setStatus('${k}', 'Solved'); markPracticed('${k}'); bumpReviewInterval('${k}')`)
-  ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpMock = false; _qpCount = 50; _qpGenerate()`)
+  ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpCount = 50; _qpGenerate()`)
   assert.ok(!ev(`_qpResults.map(([x]) => x).includes('${k}')`))
 })
 
 test('the "max N from selected" limit counts overlapping topics once', () => {
-  ev(`_qpTopics = new Set(['sorting','intervals']); _qpRevised = false; _qpMock = false; _qpCount = 500; _qpGenerate()`)
+  ev(`_qpTopics = new Set(['sorting','intervals']); _qpRevised = false; _qpCount = 500; _qpGenerate()`)
   assert.equal(ev('_qpResults.length'), ev(`_uniqueQuestionKeys(['sorting','intervals']).size`))
   ev('_qpCount = 1')
   for (let i = 0; i < 500; i++) ev('_qpAdjCount(1)')

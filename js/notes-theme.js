@@ -8,6 +8,15 @@
   try { t = localStorage.getItem('dsa-theme') || 'dark' } catch (e) {}
   root.dataset.theme = t === 'light' ? 'light' : 'dark'
 
+  // Shown inside the hub (an iframe): the hub's own button sets the theme, so follow it live
+  // (a 'storage' event reaches every other same-origin document) and add no second button.
+  if (window.top !== window.self) {
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'dsa-theme') root.dataset.theme = e.newValue === 'light' ? 'light' : 'dark'
+    })
+    return
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var b = document.createElement('button')
     b.type = 'button'
