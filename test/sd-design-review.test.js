@@ -98,3 +98,16 @@ test('card header: title alone, then one meta line with the two buttons; section
     assert.equal(m.indexOpen, false, 'the Index starts closed, so the first card is on the first screen')
   })
 })
+
+test('the lit card is scrolled into view inside the rail', { skip: SKIP }, async () => {
+  await withPage(1440, async page => {
+    for (const id of ['sd-net-request', 'sd-reads-deep', 'sd-what-sd-tests']) {
+      await scrollTo(page, id, 200)
+      const inView = await page.evaluate(() => {
+        const r = document.querySelector('#rail li.cur > a').getBoundingClientRect()
+        return r.top >= 0 && r.bottom <= innerHeight
+      })
+      assert.equal(inView, true, `${id}: lit rail item is on screen`)
+    }
+  })
+})

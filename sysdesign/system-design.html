@@ -8773,8 +8773,9 @@ No score, no grade.`
         }
         // keep the lit card in view inside the rail, without moving the page
         if (wide.matches) {
-          const r = li.getBoundingClientRect(), box = rail.getBoundingClientRect()
-          if (r.top < box.top + 40 || r.bottom > box.bottom - 60) rail.scrollTop += r.top - box.top - box.height / 3
+          // offsets, not screen rects: the rail is zoomed on wide screens, and offsets stay in its own units
+          const top = li.offsetTop, bottom = top + li.offsetHeight
+          if (top < rail.scrollTop + 40 || bottom > rail.scrollTop + rail.clientHeight - 60) rail.scrollTop = top - rail.clientHeight / 3
         }
       }
     }
