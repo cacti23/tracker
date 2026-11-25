@@ -217,10 +217,6 @@
     .sidebar-apps > summary::after { content: '▸'; font-size: var(--fs-sm); transition: transform 0.15s; }
     .sidebar-apps[open] > summary::after { transform: rotate(90deg); }
     .sidebar-apps > summary:hover { color: var(--text-primary); }
-    .sidebar-apps-group {
-      font-size: var(--fs-2xs); font-weight: 600; color: var(--text-muted); font-family: var(--font-body);
-      margin: 0.55rem 0.75rem 0.1rem; padding-left: 0.1rem; white-space: nowrap;
-    }
     .sidebar-gym-link {
       display: flex; align-items: center; gap: 0.6rem;
       padding: 0.5rem 0.75rem; margin: 0.4rem 0.6rem;
@@ -231,16 +227,20 @@
       transition: background 0.14s, color 0.14s, border-color 0.14s;
     }
     .sidebar-gym-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
-    .sidebar-dsa-link {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.5rem 0.75rem; margin: 0.4rem 0.6rem;
-      border-radius: var(--radius); border: 1px solid var(--border);
-      background: transparent; text-decoration: none;
-      font-size: var(--fs-sm); font-weight: 500; font-family: var(--font-body);
-      color: var(--text-muted); white-space: nowrap;
-      transition: background 0.14s, color 0.14s, border-color 0.14s;
+    /* DSA | System Design switch: one named mode on <body data-hub-mode>, set by setHubMode(). */
+    .hub-switch {
+      display: flex; gap: 0.25rem; margin: 0 0.7rem 0.6rem; padding: 0.2rem;
+      border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-hover);
     }
-    .sidebar-dsa-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
+    .hub-switch button {
+      flex: 1 1 50%; border: 0; border-radius: calc(var(--radius) - 2px); background: transparent;
+      padding: 0.4rem 0.3rem; min-height: 32px; white-space: nowrap; cursor: pointer;
+      font: 600 var(--fs-xs) var(--font-body); color: var(--text-muted);
+    }
+    .hub-switch button:hover { color: var(--text-primary); }
+    .hub-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+    body[data-hub-mode="sd"] #sidebar [data-hub="dsa"],
+    body[data-hub-mode="dsa"] #sidebar [data-hub="sd"] { display: none !important; }
 
     /* ── 6. SIDEBAR NAV BUTTONS ─────────────────────────────────────────────── */
     /* Scoped to button.nav-link (topics, tabs) AND a.nav-link (external links, e.g. the
@@ -1107,7 +1107,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha512-SkmBfuA2hqjzEVpmnMt/LINrjop3GKWqsuLSSB3e7iBmYK7JuWw4ldmmxwD9mdm2IRTTi0OxSAfEGvgEi0i2Kw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script>
 </head>
 
-<body>
+<body data-hub-mode="dsa">
 <a class="skip-link" href="#main-content">Skip to content</a>
 <div class="d-flex">
 
@@ -1131,19 +1131,29 @@
       </button>
     </div>
 
+    <!-- Two notebooks; the sidebar shows the picked one's pages (data-hub), shared pages have none. -->
+    <div class="hub-switch" role="group" aria-label="Notebook">
+      <button type="button" data-mode="dsa" aria-pressed="true" onclick="switchHub('dsa')">🧩 DSA</button>
+      <button type="button" data-mode="sd" aria-pressed="false" onclick="switchHub('sd')">🏛️ System Design</button>
+    </div>
+
     <nav class="flex-grow-1 p-2 pb-3 overflow-auto sidebar-nav">
-      <button type="button" id="nav-dashboard" onclick="loadDashboard()"
+      <button type="button" id="nav-dashboard" data-hub="dsa" onclick="loadDashboard()"
         class="nav-link">
         <span class="nav-topic-icon">🏠</span>
         <span class="nav-topic-label">Dashboard</span>
       </button>
+      <button type="button" id="nav-sysdesign" data-hub="sd" onclick="loadEmbed('sysdesign')" class="nav-link" title="System Design notes: lessons, designs, the AWS map and the glossary">
+        <span class="nav-topic-icon" aria-hidden="true">🏛️</span>
+        <span class="nav-topic-label">System Design notes</span>
+      </button>
       <!-- Study tools, always in view. All open in-pane (loadEmbed). -->
       <p class="sidebar-section-label">Study tools</p>
-      <button type="button" id="nav-thoughts" onclick="loadEmbed('thoughts')" class="nav-link" title="DSA Thoughts: short insights per topic, each with a diagram">
+      <button type="button" id="nav-thoughts" data-hub="dsa" onclick="loadEmbed('thoughts')" class="nav-link" title="DSA Thoughts: short insights per topic, each with a diagram">
         <span class="nav-topic-icon" aria-hidden="true">🧠</span>
         <span class="nav-topic-label">DSA Thoughts</span>
       </button>
-      <button type="button" id="nav-jsbuiltins" onclick="loadEmbed('jsbuiltins')" class="nav-link" title="JS Built-ins: the JavaScript methods worth knowing cold for interviews">
+      <button type="button" id="nav-jsbuiltins" data-hub="dsa" onclick="loadEmbed('jsbuiltins')" class="nav-link" title="JS Built-ins: the JavaScript methods worth knowing cold for interviews">
         <span class="nav-topic-icon" aria-hidden="true">📋</span>
         <span class="nav-topic-label">JS Built-ins</span>
       </button>
@@ -1155,32 +1165,26 @@
         <span class="nav-topic-icon">📚</span>
         <span class="nav-topic-label">Paper Club</span>
       </button>
-      <button type="button" id="nav-visuals" onclick="loadEmbed('visuals')" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
+      <button type="button" id="nav-visuals" data-hub="dsa" onclick="loadEmbed('visuals')" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
         <span class="nav-topic-icon">🖼️</span>
         <span class="nav-topic-label">Visuals</span>
       </button>
       <!-- One entry per company; add the next company here. -->
-      <p class="sidebar-section-label">Interview experiences</p>
-      <button type="button" id="nav-google" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
+      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
+      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
         <span class="nav-topic-icon">🔍</span>
         <span class="nav-topic-label">Google</span>
       </button>
-      <p class="sidebar-section-label">Topics</p>
-      <div id="nav-topics"></div>
+      <p class="sidebar-section-label" data-hub="dsa">Topics</p>
+      <div id="nav-topics" data-hub="dsa"></div>
 
 
     </nav>
 
-    <!-- Apps: standalone pages that open on their own (Google, Papers and Visuals stay in-pane above). -->
-    <!-- Closed by default so the topic list gets the room; open/closed is remembered per device. -->
+    <!-- Life apps: standalone pages that open on their own. Closed by default so the nav gets
+         the room; open/closed is remembered per device. -->
     <details id="sidebar-apps" class="sidebar-apps" ontoggle="try { localStorage.setItem('dsa-sidebar-apps-open', this.open ? '1' : '0') } catch (e) {}">
-    <summary class="sidebar-section-label sidebar-apps-label">🧩 Apps</summary>
-    <p class="sidebar-apps-group">🎯 Prep</p>
-    <a href="sysdesign/system-design.html" class="sidebar-dsa-link">
-      <span class="nav-topic-icon">🏛️</span>
-      <span class="nav-topic-label">System Design</span>
-    </a>
-    <p class="sidebar-apps-group">🌱 Life</p>
+    <summary class="sidebar-section-label sidebar-apps-label">🌱 Life</summary>
     <a href="apps/habits.html" class="sidebar-gym-link">
       <span class="nav-topic-icon">✓</span>
       <span class="nav-topic-label">Habits</span>
@@ -1191,7 +1195,7 @@
     </a>
     </details>
 
-    <div class="sidebar-footer">v578 · Interview Prep Hub</div>
+    <div class="sidebar-footer">v579 · Interview Prep Hub</div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
@@ -1607,6 +1611,8 @@ document.addEventListener('DOMContentLoaded', () => {
   _loadQpState()
   buildNav()
   try { if (localStorage.getItem('dsa-sidebar-apps-open') === '1') document.getElementById('sidebar-apps').open = true } catch (e) {}
+  // Before _restoreView: a shared page (Paper Club, Study Sites) keeps the notebook it was opened in.
+  try { setHubMode(localStorage.getItem(HUB_MODE_KEY)) } catch { setHubMode('dsa') }
   _restoreView()
 })
 
@@ -1703,6 +1709,7 @@ function handleGlobalSearch() {
 }
 
 function renderSearchResults(results) {
+  setHubMode('dsa')
   showView('view-search-results')
   document.getElementById('page-title').textContent = '🔍 Search Results'
   
@@ -1832,6 +1839,7 @@ const GOOGLE_TABS = [
 let currentGoogleTab = 'log'
 function loadGoogle(tab) {
   if (tab) currentGoogleTab = tab
+  setHubMode('dsa')
   showView('view-google')
   _stopTimer()
   _qpStopTimer()
@@ -1861,12 +1869,31 @@ const EMBEDS = {
   thoughts:   { view: 'view-page',    frame: 'page-frame',    title: '🧠 DSA Thoughts', src: 'dsa/dsa-thoughts.html' },
   jsbuiltins: { view: 'view-page',    frame: 'page-frame',    title: '📋 JS Built-ins', src: 'dsa/js-builtins.html' },
   sites:      { view: 'view-page',    frame: 'page-frame',    title: '🔖 Study Sites',  src: 'dsa/study-sites.html' },
+  sysdesign:  { view: 'view-page',    frame: 'page-frame',    title: '🏛️ System Design', src: 'sysdesign/system-design.html', hub: 'sd' },
+}
+for (const k of ['visuals', 'thoughts', 'jsbuiltins']) EMBEDS[k].hub = 'dsa'   // papers and sites are shared
+
+// ─── NOTEBOOK SWITCH (DSA | System Design) ────────────────────────────────────
+// One named mode, kept per device (not synced). Opening a page that belongs to one notebook
+// switches to it, so a search hit or link never leaves the other notebook's sidebar showing.
+const HUB_MODE_KEY = 'dsa-hub-mode'
+const HUB_MODES = ['dsa', 'sd']
+function setHubMode(m) {
+  if (!HUB_MODES.includes(m)) m = 'dsa'
+  document.body.dataset.hubMode = m
+  document.querySelectorAll('.hub-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)))
+  try { localStorage.setItem(HUB_MODE_KEY, m) } catch {}
+}
+function switchHub(m) {
+  if (m === 'sd') loadEmbed('sysdesign')
+  else loadDashboard()
 }
 const PAPERS_SRC = EMBEDS.papers.src
 const VISUALS_SRC = EMBEDS.visuals.src
 function loadEmbed(key) {
   const e = EMBEDS[key]
   if (!e) return loadDashboard()
+  if (e.hub) setHubMode(e.hub)
   showView(e.view)
   _stopTimer()
   _qpStopTimer()
@@ -1884,6 +1911,7 @@ function loadPapers() { loadEmbed('papers') }
 function loadVisuals() { loadEmbed('visuals') }
 
 function loadDashboard() {
+  setHubMode('dsa')
   showView('view-dashboard')
   _stopTimer()       // stop per-topic timer if navigating here from a topic page
   document.getElementById('page-title').textContent = '🏠 Dashboard'
@@ -2059,6 +2087,7 @@ function loadTopic(key) {
   if (!topic) return
 
   _parkNoteDraft()                // keep an unsaved note edit from the prior topic for when you come back
+  setHubMode('dsa')
   currentTopicKey = key
   _saveCurrentView(key)
   currentTab = TOPIC_TABS[0].key  // always start on first tab

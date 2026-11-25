@@ -63,7 +63,7 @@ test('on a phone the sidebar starts closed and opens over the page, not beside i
   assert.deepEqual(await state(), { collapsed: true, position: 'fixed', backdrop: 'none' })
   await page.click('.header-menu-btn[aria-label="Toggle sidebar"]')
   assert.deepEqual(await state(), { collapsed: false, position: 'fixed', backdrop: 'block' })
-  await page.click('#sidebar button.nav-link >> nth=1')   // pick a topic
+  await page.click('#sidebar button.nav-link:visible >> nth=1')   // pick a topic
   assert.equal((await state()).collapsed, true, 'picking a destination closes the drawer')
   await page.click('.header-menu-btn[aria-label="Toggle sidebar"]')
   await page.click('#sidebar-backdrop', { position: { x: 370, y: 400 } })
@@ -77,7 +77,7 @@ test('on a desktop the sidebar stays in the row and keeps its saved open/closed 
   if (skipReason) return t.skip(skipReason)
   let { ctx, page, state } = await open(1280)
   assert.deepEqual(await state(), { collapsed: false, position: 'sticky', backdrop: 'none' })
-  await page.click('#sidebar button.nav-link >> nth=1')
+  await page.click('#sidebar button.nav-link:visible >> nth=1')
   assert.equal((await state()).collapsed, false, 'picking a topic leaves it open')
   await ctx.close()
   ;({ ctx, state } = await open(1280, { 'dsa-sidebar-collapsed': '1' }))
