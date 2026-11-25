@@ -155,3 +155,53 @@ for (const theme of ['dark', 'light']) {
     } finally { await browser.close(); server.close() }
   })
 }
+
+// Part 3: motion, small labels, structure and phones.
+test('no text rule under 12px (SVG text scales with its drawing and is left out)', () => {
+  const small = SD_CSS.split('\n').filter(l => !/fill:/.test(l))
+    .flatMap(l => (l.match(/font(-size)?: *(\d{3} )?([0-9.]+)px/g) || []).map(m => parseFloat(m.replace(/.*?([0-9.]+)px$/, '$1'))))
+    .filter(n => n < 12)
+  assert.deepEqual(small, [])
+})
+
+test('a sequence player shows the whole story faded at step 0, then steps as before', { skip: SKIP }, async () => {
+  await withPage(1440, async page => {
+    await page.evaluate(() => document.querySelector('#sd-bitly-fast .seq').scrollIntoView())
+    const op = () => page.evaluate(() => [...document.querySelectorAll('#sd-bitly-fast .seq')[0].querySelectorAll('.seq-row')].map(r => getComputedStyle(r).opacity))
+    const at0 = await op()
+    assert.ok(at0.length > 2 && at0.every(o => +o > 0.2 && +o < 0.5), `step 0 rows faded, got ${at0}`)
+    await page.click('#sd-bitly-fast .seq .seq-ctl button[aria-label="Next step"]')
+    await page.waitForTimeout(400)
+    const at1 = await op()
+    assert.equal(+at1[0], 1, 'step 1 row lit')
+    assert.ok(at1.slice(1).every(o => +o === 0), 'later rows hidden again once you start')
+    const glyphs = await page.evaluate(() => [...document.querySelectorAll('#sd-bitly-fast .seq .seq-ctl button')].map(b => b.textContent))
+    assert.ok(glyphs.every(g => !g.includes('▶️') && !g.includes('🔁')), 'no colour emoji in the player buttons')
+  })
+})
+
+test('structure: skip link first, main landmark, heading levels, pressed state on chips and views', { skip: SKIP }, async () => {
+  await withPage(1440, async page => {
+    await page.keyboard.press('Tab')
+    const m = await page.evaluate(() => ({
+      first: document.activeElement.textContent,
+      main: !!document.querySelector('[role=main], main'),
+      h4: document.querySelector('#sd-net-request > h4').getAttribute('aria-level'),
+      h5: document.querySelector('#sd-net-request > h5').getAttribute('aria-level'),
+      chips: [...document.querySelectorAll('#chips button')].map(b => b.getAttribute('aria-pressed')).filter(v => v === 'true').length,
+      views: document.querySelector('#views button[data-view=topics]').getAttribute('aria-pressed'),
+    }))
+    assert.deepEqual(m, { first: 'Skip to the notes', main: true, h4: '3', h5: '4', chips: 1, views: 'true' })
+  })
+})
+
+test('phone: the floating pills slide away while scrolling down and come back on scroll up', { skip: SKIP }, async () => {
+  await withPage(390, async page => {
+    const away = () => page.evaluate(() => document.body.classList.contains('fabs-away'))
+    await page.evaluate(() => scrollTo(0, 3000)); await page.waitForTimeout(150)
+    await page.evaluate(() => scrollBy(0, 400)); await page.waitForTimeout(150)
+    assert.equal(await away(), true)
+    await page.evaluate(() => scrollBy(0, -200)); await page.waitForTimeout(150)
+    assert.equal(await away(), false)
+  })
+})
