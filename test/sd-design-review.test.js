@@ -111,3 +111,47 @@ test('the lit card is scrolled into view inside the rail', { skip: SKIP }, async
     }
   })
 })
+
+// Part 2: reading comfort and colour. Body text 17px (about 91 characters a line at full card
+// width), the hub's font and surfaces, a small type scale, and selected chips that pass contrast.
+const fs = require('fs')
+const path = require('path')
+const SD_CSS = (() => { const h = fs.readFileSync(path.join(__dirname, '..', 'sysdesign', 'system-design.html'), 'utf8'); return h.slice(h.indexOf('<style>'), h.indexOf('</style>')) })()
+
+function contrast(a, b) {
+  const lum = c => { const [r, g, bl] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl }
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p)
+  return (x + 0.05) / (y + 0.05)
+}
+
+test('the page uses the hub tokens and font, and only a small type scale at 12px and up', () => {
+  const head = fs.readFileSync(path.join(__dirname, '..', 'sysdesign', 'system-design.html'), 'utf8').slice(0, 2000)
+  assert.match(head, /href="\.\.\/css\/hub\.css"/)
+  assert.match(SD_CSS, /--bg: var\(--bg-base\)/)
+  assert.doesNotMatch(SD_CSS, /--accent: #/, 'the accent comes from the hub')
+  // SVG text (fill:) scales with its drawing, and the one arrow glyph is decoration: both keep fixed sizes
+  const textRules = SD_CSS.split('\n').filter(l => !/fill:|\.gh-ar/.test(l)).join('\n')
+  const sizes = new Set((textRules.match(/font-size: *([0-9.]+)px/g) || []).map(s => parseFloat(s.split(':')[1])).filter(n => n >= 12 && n <= 19))
+  assert.deepEqual([...sizes], [], 'text from 12px up uses the type scale tokens')
+})
+
+for (const theme of ['dark', 'light']) {
+  test(`${theme}: body text is 17px and selected chips and tabs pass 4.5:1`, { skip: SKIP }, async () => {
+    const { server, base } = await startServer()
+    const { browser, context } = await openBrowser()
+    try {
+      await context.addInitScript(t => localStorage.setItem('dsa-theme', t), theme)
+      const page = await context.newPage()
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await page.goto(base + '/sysdesign/system-design.html')
+      const m = await page.evaluate(() => {
+        const cs = e => getComputedStyle(e)
+        const p = document.querySelector('#sd-bitly-fast .bridge') || document.querySelector('#sd-bitly-fast p')
+        const on = [document.querySelector('#chips button.on'), document.querySelector('#views button.on')]
+        return { body: cs(p).fontSize, pairs: on.map(e => [cs(e).color, cs(e).backgroundColor]) }
+      })
+      assert.equal(m.body, '17px')
+      for (const [fg, bg] of m.pairs) assert.ok(contrast(fg, bg) >= 4.5, `${fg} on ${bg} is ${contrast(fg, bg).toFixed(2)}:1`)
+    } finally { await browser.close(); server.close() }
+  })
+}
