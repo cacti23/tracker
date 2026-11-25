@@ -34,6 +34,29 @@ const TOPICS = [
   { key: 'design',              icon: '🏗️', label: 'Design',                 cheatsheetUrl: 'dsa/design.html' },
 ];
 
+// Every save of user data goes through here. A full browser storage (about 5 MB) used to throw
+// out of the save with no message, so the edit looked saved but was gone on reload. The older
+// sync snapshots ("-presync-2", "-presync-3") are full copies kept only for undo: drop them to
+// make room and try once more; if it still does not fit, say so once per page load.
+let _storageFullWarned = false
+function _store(key, value) {
+  try { localStorage.setItem(key, value); return true } catch (e) {}
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i)
+      if (/-presync-[23]$/.test(k)) localStorage.removeItem(k)
+    }
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    if (!_storageFullWarned && typeof alert === 'function') {
+      _storageFullWarned = true
+      alert('⚠ This browser\'s storage is full, so your last change was NOT saved.\n\nYour synced copy on GitHub is safe. Delete some long notes, or free space in the browser\'s site settings, then try again.')
+    }
+    return false
+  }
+}
+
 // Per-question user progress (persisted in localStorage)
 // One stored { key: value } map. Anything that parses but isn't a plain object ("null", a number,
 // an array: possible from an imported backup or the gist) reads as an empty map, so a bad value
@@ -51,7 +74,7 @@ function loadProgress() {
   try { _progressCache = _readMap(PROGRESS_KEY) } catch { _progressCache = {} }
   return _progressCache
 }
-function saveProgress(p) { _progressCache = p; localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)) }
+function saveProgress(p) { _progressCache = p; _store(PROGRESS_KEY, JSON.stringify(p)) }
 function getStatus(lcKey) { return loadProgress()[lcKey]?.status ?? 'Pending' }
 function setStatus(lcKey, status) {
   const p = loadProgress()
@@ -68,7 +91,7 @@ function loadNotes() {
   try { _notesCache = _readMap(NOTES_KEY); } catch { _notesCache = {}; }
   return _notesCache;
 }
-function saveNotes(n) { _notesCache = n; localStorage.setItem(NOTES_KEY, JSON.stringify(n)); }
+function saveNotes(n) { _notesCache = n; _store(NOTES_KEY, JSON.stringify(n)); }
 function getNote(lcKey) {
   return loadNotes()[lcKey] || '';
 }
@@ -88,7 +111,7 @@ function loadTopicNotes() {
   try { _topicNotesCache = _readMap(TOPIC_NOTES_KEY); } catch { _topicNotesCache = {}; }
   return _topicNotesCache;
 }
-function saveTopicNotes(n) { _topicNotesCache = n; localStorage.setItem(TOPIC_NOTES_KEY, JSON.stringify(n)); }
+function saveTopicNotes(n) { _topicNotesCache = n; _store(TOPIC_NOTES_KEY, JSON.stringify(n)); }
 // Returns a sorted COPY: pinned first, then most-recently-updated.
 function getTopicNotes(topicKey) {
   const list = loadTopicNotes()[topicKey] || [];
@@ -116,7 +139,7 @@ function loadSubmissions() {
   try { _submissionsCache = _readMap(SUBMISSIONS_KEY); } catch { _submissionsCache = {}; }
   return _submissionsCache;
 }
-function saveSubmissions(s) { _submissionsCache = s; localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(s)); }
+function saveSubmissions(s) { _submissionsCache = s; _store(SUBMISSIONS_KEY, JSON.stringify(s)); }
 function getSubmissions(lcKey) { return loadSubmissions()[lcKey] || []; }
 function addSubmission(lcKey, url) {
   const all = loadSubmissions();
@@ -147,12 +170,12 @@ function getAnimation(lcKey) { return loadAnimations()[lcKey] || null; }
 function setAnimation(lcKey, url) {
   const all = loadAnimations();
   all[lcKey] = { url, addedAt: Date.now() };
-  _animationsCache = all; localStorage.setItem(ANIMATIONS_KEY, JSON.stringify(all));
+  _animationsCache = all; _store(ANIMATIONS_KEY, JSON.stringify(all));
 }
 function removeAnimationAt(lcKey) {
   const all = loadAnimations();
   delete all[lcKey];
-  _animationsCache = all; localStorage.setItem(ANIMATIONS_KEY, JSON.stringify(all));
+  _animationsCache = all; _store(ANIMATIONS_KEY, JSON.stringify(all));
 }
 
 // Invalidate caches on cross-tab updates
@@ -179,7 +202,7 @@ function isQuestionPinned(lcKey) { return !!getQuestionPins()[lcKey] }
 function toggleQuestionPin(lcKey) {
   const pins = getQuestionPins()
   if (pins[lcKey]) delete pins[lcKey]; else pins[lcKey] = Date.now()
-  localStorage.setItem(QUESTION_PINS_KEY, JSON.stringify(pins))
+  _store(QUESTION_PINS_KEY, JSON.stringify(pins))
   return !!pins[lcKey]
 }
 
@@ -288,7 +311,7 @@ function markSeen(lcKey) {
     const now = new Date()
     const sameDay = cur.last && LocalDate.key(new Date(cur.last)) === LocalDate.key(now)
     d[lcKey] = { last: now.toISOString(), count: (cur.count || 0) + (sameDay ? 0 : 1) }
-    localStorage.setItem(SEEN_KEY, JSON.stringify(d))
+    _store(SEEN_KEY, JSON.stringify(d))
     return d[lcKey]
   } catch { return null }
 }
@@ -385,7 +408,7 @@ function setCodeForced(lcKey, on) {
     Object.entries(seen).forEach(([k, s]) => {
       if (!rev[k] && s && s.last) rev[k] = { interval: REVISE_LADDER[2], last: s.last, grade: 'solid' }
     })
-    localStorage.setItem(REVISE_KEY, JSON.stringify(rev))
+    _store(REVISE_KEY, JSON.stringify(rev))
     localStorage.setItem('dsa-revise-migrated-v1', '1')
   } catch {}
 })()

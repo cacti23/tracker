@@ -12,13 +12,19 @@
 // server or stored in a service-worker cache, and sync.js removes it from the address bar at
 // once. Nothing is stored here; each user's data stays in their own private gist.
 //
+//   POST /api/github-oauth?action=revoke              → cancels the caller's token at GitHub
+//        (Authorization: Bearer <token>)                (sign-out and "Delete my data")
+//
 // Setup (once): create a GitHub OAuth App with callback URL https://<site>/api/github-oauth,
 // then set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in the Vercel project's environment variables.
+// Optional PUBLIC_ORIGIN (e.g. https://tracker-roan-nine.vercel.app) fixes the callback host
+// instead of reading it from the request.
 
 const crypto = require('crypto')
 
 const AUTHORIZE_URL = 'https://github.com/login/oauth/authorize'
 const TOKEN_URL = 'https://github.com/login/oauth/access_token'
+const REVOKE_URL = (id) => `https://api.github.com/applications/${encodeURIComponent(id)}/token`
 const COOKIE = 'tracker_oauth'
 const COOKIE_ATTRS = 'Path=/api/github-oauth; HttpOnly; Secure; SameSite=Lax'
 
@@ -66,8 +72,11 @@ module.exports = async function handler(req, res) {
   if (!clientId || !secret) return page(res, 500, 'GitHub sign-in is not set up on this site yet. You can still sync by pasting a token.')
 
   const host = req.headers['x-forwarded-host'] || req.headers.host
-  const callback = `https://${host}/api/github-oauth`
+  const origin = (process.env.PUBLIC_ORIGIN || `https://${host}`).replace(/\/+$/, '')
+  const callback = `${origin}/api/github-oauth`
   const q = new URL(req.url, callback).searchParams
+
+  if (q.get('action') === 'revoke') return revoke(req, res, { clientId, secret, origin, host })
 
   // Step 1: send the user to GitHub. The random state, kept in a short-lived cookie, proves the
   // callback belongs to a sign-in this browser started (stops a forged callback logging the
@@ -106,6 +115,33 @@ module.exports = async function handler(req, res) {
     return redirect(res, `${back}#tracker-signin-error=${encodeURIComponent((body && body.error) || 'token_exchange_failed')}`, clear)
   }
   return redirect(res, `${back}#tracker-signin=${encodeURIComponent(body.access_token)}`, clear)
+}
+
+// Sign-out: OAuth App tokens never expire, so deleting one from the browser is not enough. A
+// copied or stolen token would keep working. Only the app's own secret can cancel it, so the
+// browser asks this function. Only POSTs from this site's own pages are served.
+async function revoke(req, res, { clientId, secret, origin, host }) {
+  const done = (status) => { res.statusCode = status; res.setHeader('Cache-Control', 'no-store'); res.end() }
+  if (req.method !== 'POST') return done(405)
+  const from = req.headers.origin
+  if (from && from !== origin && from !== `https://${host}`) return done(403)
+  const m = /^Bearer (gho_[A-Za-z0-9_]{1,255})$/.exec(req.headers.authorization || '')
+  if (!m) return done(400)   // a pasted personal token is not this app's to cancel
+  try {
+    const r = await fetch(REVOKE_URL(clientId), {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: 'Basic ' + Buffer.from(`${clientId}:${secret}`).toString('base64'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ access_token: m[1] }),
+    })
+    // 404: already cancelled, or not issued by this app. Either way it no longer works here.
+    return done(r.status === 204 || r.status === 404 ? 204 : 502)
+  } catch (e) {
+    return done(502)
+  }
 }
 
 module.exports.safeReturn = safeReturn

@@ -14,7 +14,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 - Top-level `let`/`const` in the inline script are not reachable as globals from the tests. Use `evalIn` in `test/load-app.js`.
 - Adding a topic: add it to `TOPICS` and `TOPIC_MODULES` in `js/data.js` (the module schema is documented in that file), and add a cheatsheet in `dsa/`.
 - `escHtml()` should wrap any user or data text put into `innerHTML`.
-- Third-party scripts and stylesheets are pinned with SRI hashes and limited by the CSP in `vercel.json` (the sync token sits in localStorage, shared by every page on the origin). `test/security.test.js` checks this, so a new CDN include needs an `integrity` hash.
+- No script or stylesheet loads from another site: Bootstrap 5.3.3 and Prism 1.29.0 are self-hosted in `vendor/` (the sync token sits in localStorage, shared by every page on the origin, so the CSP in `vercel.json` allows scripts from `'self'` only). `test/security.test.js` checks this. Add a new library under `vendor/`, never as a CDN link.
 
 ## Data and sync
 
@@ -25,6 +25,8 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 - Never commit tokens. The sync token lives only in the browser's localStorage.
 - Account switch: the sync meta's `lastLogin` remembers which GitHub account the local data belongs to. When a different account syncs on this device, `guardAccount` asks first: load that account's own progress (the old progress is snapshotted and never uploaded), or merge this device's progress into it. Tests: `test/sync-account-switch.test.js`.
 - Sign in with GitHub: `api/github-oauth.js` (Vercel function; env `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`) returns the token in the `#tracker-signin=` fragment, which `sync.js` reads and wipes on load. Tests: `test/github-signin.test.js`. `sw.js` must never cache `/api/`.
+- Sign-out (`DataSync.account`) cancels a `gho_` token through `POST /api/github-oauth?action=revoke` and offers to erase this browser (`localStorage.clear()`). `dsa/privacy.html` (sidebar 🔒 Privacy & data) explains what is stored and runs `DataSync.deleteMyData`. Saves in `data.js` go through `_store`, which frees the old sync snapshots and warns once when storage is full. Tests: `test/security-launch.test.js`.
+- CI: `.github/workflows/tests.yml` runs the whole suite on every PR.
 
 ## Deploy
 

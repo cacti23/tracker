@@ -686,14 +686,65 @@
   }
 
   // Account button: signed out → Sign in with GitHub; signed in → offer to sign out.
+  // Sign-out cancels the token at GitHub (a sign-in token never expires on its own, so a copied
+  // one would keep working), then offers to erase this browser's progress: on a shared or public
+  // computer, the next person would otherwise be able to read it.
   function account() {
     if (!getToken()) return startSignIn();
     var login = localStorage.getItem(LOGIN_KEY);
-    if (!confirm('Signed in' + (login ? ' as @' + login : '') + '.\n\nSign out on this device? Your data stays here and in your gist.')) return;
+    if (!confirm('Signed in' + (login ? ' as @' + login : '') + '.\n\nSign out on this device? Your synced copy stays in your GitHub gist.')) return;
+    var erase = confirm('Also erase your progress and notes from THIS browser?\n\n' +
+      'OK: erase (choose this on a shared or public computer).\nCancel: keep them here.');
+    var token = getToken();
     setTokenValue('');
     localStorage.removeItem(GISTID_KEY);
     localStorage.removeItem(LOGIN_KEY);
     refreshBtnState();
+    return revokeToken(token).then(function () {
+      if (!erase) return;
+      eraseDevice();
+      if (typeof location !== 'undefined' && location.reload) location.reload();
+    });
+  }
+
+  // Cancel a "Sign in with GitHub" token (gho_…) through api/github-oauth.js, which holds the
+  // app secret GitHub requires. A pasted personal token is the user's own to manage, so it is
+  // left alone. Never rejects: signing out must not depend on the network.
+  function revokeToken(token) {
+    if (!/^gho_/.test(token || '') || typeof fetch !== 'function') return Promise.resolve(false);
+    return fetch('/api/github-oauth?action=revoke', { method: 'POST', keepalive: true, headers: { Authorization: 'Bearer ' + token } })
+      .then(function (r) { return !!r && (r.status === 204 || r.ok); }, function () { return false; });
+  }
+
+  // Every app of the hub keeps its data in this one origin's localStorage, so erasing "this
+  // device" means all of it: progress, notes, snapshots and sync state of every app.
+  function eraseDevice() {
+    try { localStorage.clear(); } catch (e) {}
+  }
+
+  // "Delete my data" (privacy.html): deletes this account's tracker gists, cancels the token
+  // and erases this browser. Resolves to a short report for the page to show.
+  function deleteMyData() {
+    var token = getToken();
+    var typed = prompt('This deletes your synced progress from GitHub (the "' + GIST_DESC + '" gist) and erases it from this browser.\n' +
+      'Other devices keep their own copy until you erase them too.\n\nType DELETE to confirm.', '');
+    if (typed === null || typed.trim().toUpperCase() !== 'DELETE') return Promise.resolve('Nothing was deleted.');
+    var gone = token ? listTrackerGists().then(function (list) {
+      return Promise.all(list.map(function (g) {
+        return fetch(API + '/gists/' + g.id, { method: 'DELETE', headers: headers() }).then(function (r) {
+          if (!(r.status === 204 || r.status === 404)) throw new Error('GitHub API ' + r.status);
+        });
+      })).then(function () { return list.length; });
+    }) : Promise.resolve(0);
+    return gone.then(function (n) {
+      return revokeToken(token).then(function () {
+        eraseDevice();
+        if (!token) return 'Done. This browser is erased. You were not signed in, so nothing on GitHub was touched: sign in first to delete your synced copy too.';
+        return 'Done. Deleted ' + n + ' synced gist' + (n === 1 ? '' : 's') + ', signed out and erased this browser.';
+      });
+    }, function (e) {
+      return 'Could not delete your gist (' + e.message + '). Nothing was erased; try again, or delete it at gist.github.com.';
+    });
   }
 
   // ── Sign in with GitHub ────────────────────────────────────────────────
@@ -954,6 +1005,7 @@
     setToken: setToken,
     signIn: startSignIn,
     account: account,
+    deleteMyData: deleteMyData,
     autoSync: autoSync,
     pushSoon: pushSoon,
     pullLatest: pullLatest,
