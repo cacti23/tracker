@@ -832,7 +832,16 @@
   // holds edits that never reached the cloud (its tab was closed before the debounced
   // push fired, or the device was offline), or opts.everyOpen asks for a check on every
   // open.
+  // onReturn: also check when the person comes back to the tab, so a page left open (an
+  // installed PWA) picks up another device's edits without a Sync or Pull button.
+  var returnHooked = false;
   function autoSync(opts) {
+    if (opts && opts.onReturn && !returnHooked && typeof document !== 'undefined' && document.addEventListener) {
+      returnHooked = true;
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') autoSync({ everyOpen: true });
+      });
+    }
     if (!getToken()) return;
     var meta = getMeta(cfg.appId);
     var last = meta.lastCheckAt ? Date.parse(meta.lastCheckAt) : 0;

@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="DSA Notebook — curated patterns, templates and questions for FAANG interview preparation.">
+  <meta name="description" content="Interview Prep Hub — curated patterns, templates and questions for FAANG interview preparation.">
   <meta name="theme-color" content="#1c2723">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DSA Notebook">
+  <meta name="apple-mobile-web-app-title" content="Interview Prep Hub">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>DSA Notebook</title>
+  <title>Interview Prep Hub</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>⚡</text></svg>">
@@ -191,10 +191,6 @@
     .sidebar-footer {
       padding: 0.65rem 1.1rem; border-top: 1px solid var(--border);
       font-size: var(--fs-2xs); color: var(--text-faint); white-space: nowrap;
-    }
-    .sidebar-data-btns {
-      display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.5rem 0.7rem;
-      border-top: 1px solid var(--border);
     }
     .sidebar-data-btn {
       flex: 1 1 calc(50% - 0.2rem); display: flex; align-items: center; justify-content: center; gap: 0.35rem;
@@ -1011,7 +1007,6 @@
     }
     .btn-accent:hover, .btn-accent:focus-visible { background: var(--accent); color: var(--on-accent); filter: brightness(1.08); }
     #global-search-input { width: clamp(160px, 28vw, 320px) !important; }
-    .sidebar-data-title { width: 100%; margin: 0; font-size: var(--fs-xs); color: var(--text-faint); }
 
     /* Bootstrap components (accordion, outline buttons) read these; point them at our tokens. */
     [data-bs-theme] {
@@ -1124,7 +1119,7 @@
     <div class="sidebar-brand">
       <div class="sidebar-brand-name">
         <span class="bolt">⚡</span>
-        DSA Notebook
+        Interview Prep Hub
       </div>
       <button type="button" onclick="toggleSidebar()" class="sidebar-close-btn" title="Close sidebar" aria-label="Close sidebar">✕</button>
     </div>
@@ -1196,27 +1191,7 @@
     </a>
     </details>
 
-    <div class="sidebar-data-btns" role="group" aria-labelledby="sidebar-data-title">
-      <p class="sidebar-data-title" id="sidebar-data-title">Backup and sync</p>
-      <button type="button" class="sidebar-data-btn" onclick="exportData()" title="Download all progress, notes and links as a JSON backup file">
-        ⬇ Export
-      </button>
-      <button type="button" class="sidebar-data-btn" onclick="document.getElementById('import-file-input').click()" title="Restore progress from a previously exported JSON backup file">
-        ⬆ Import
-      </button>
-      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
-      <button type="button" id="dataSyncBtn" class="sidebar-data-btn" onclick="DataSync.syncNow()" title="Sync progress to/from the cloud (GitHub gist) so it follows you across devices">
-        ☁ Sync
-      </button>
-      <button type="button" class="sidebar-data-btn" onclick="DataSync.pullLatest()" title="Force-pull the cloud's current data onto THIS device, overwriting local — use this if Sync isn't bringing your progress in">
-        ⬇ Pull
-      </button>
-      <button type="button" id="dataTokenBtn" class="sidebar-data-btn" onclick="DataSync.setToken()" title="Set or change the GitHub token used for cloud sync (stored only in this browser)">
-        ⚙ Token
-      </button>
-    </div>
-
-    <div class="sidebar-footer">v577 · DSA Notebook</div>
+    <div class="sidebar-footer">v578 · Interview Prep Hub</div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
@@ -4662,14 +4637,14 @@ function escHtml(str) {
 // JS, then HTML escaping for the attribute (the browser undoes the HTML escaping first).
 function _jsArg(v) { return escHtml(JSON.stringify(String(v))) }
 
-// ── DATA BACKUP / RESTORE ────────────────────────────────────────────────────
+// ── SYNCED KEYS ─────────────────────────────────────────────────────────────
 const BACKUP_KEYS = [
   'dsa-progress-v1',
   'dsa-notes-v1',
   'dsa-topic-notes-v1',
   'dsa-submissions-v1',
   'dsa-animations-v1',
-  'dsa-pins-v1',   // legacy: pins UI was removed, kept so old pins survive export/import/sync
+  'dsa-pins-v1',   // legacy: pins UI was removed, kept so old pins survive sync
   'dsa-question-pins-v1',   // 📌 bookmark pins (the topic's Pinned list); no logic reads them
   'dsa-solve-counts-v1',
   'dsa-seen-v1',
@@ -4701,53 +4676,9 @@ if (window.DataSync) {
     noiseKeys: ['dsa-streak-v1', 'dsa-theme', 'dsa-qp-state-v1', 'dsa-practice-session-v1'],
     maxKeys: ['dsa-solve-counts-v1', 'google-log-reviews-v1']   // on conflict keep the larger count
   })
-  DataSync.autoSync()   // runs at most once / 24h if a token is set
-}
-
-function exportData() {
-  const backup = {}
-  BACKUP_KEYS.forEach(key => {
-    const val = localStorage.getItem(key)
-    if (val !== null) backup[key] = val
-  })
-  const json = JSON.stringify(backup, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = `dsa-notebook-backup-${LocalDate.key()}.json`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
-function importData(input) {
-  const file = input.files[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = function(e) {
-    try {
-      const backup = JSON.parse(e.target.result)
-      if (!backup || typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Invalid backup format')
-      // Only restore known keys to avoid arbitrary data injection
-      const keys = BACKUP_KEYS.filter(key => Object.prototype.hasOwnProperty.call(backup, key) && typeof backup[key] === 'string')
-      // Checked before the snapshot: each snapshot pushes out the oldest undo copy.
-      if (!keys.length) throw new Error('It holds none of the notebook\'s data.')
-      // Keep the data being replaced, like a sync pull does: it becomes the newest
-      // "dsa-presync" snapshot (the older two rotate down).
-      DataSync.snapshot()
-      keys.forEach(key => localStorage.setItem(key, backup[key]))
-      const restored = keys.length
-      input.value = '' // reset so same file can be re-imported if needed
-      alert(`✅ Restored ${restored} data entr${restored === 1 ? 'y' : 'ies'}. The page will now reload.`)
-      location.reload()
-    } catch (err) {
-      input.value = ''
-      alert('❌ Import failed: the file does not appear to be a valid DSA Notebook backup.\n\n' + err.message)
-    }
-  }
-  reader.readAsText(file)
+  // No Sync or Pull button: check the cloud on every open and whenever the person comes back
+  // to the tab, so another device's edits show up by themselves (edits upload via autoPush).
+  DataSync.autoSync({ everyOpen: true, onReturn: true })
 }
 
 /* ]]> */

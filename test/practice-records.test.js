@@ -111,14 +111,3 @@ test('a ✓ grade then a same-day change of mind leaves the records as they were
   assert.strictEqual(sandbox._rawReviewInterval(lcKey), undefined)
   assert.strictEqual(sandbox.getLastPracticed(lcKey), null)
 })
-
-test('the backup file is named after the local day, not the UTC day', () => {
-  const { sandbox } = loadApp()
-  at(sandbox, '2026-11-15T19:00:00Z')  // 00:30 on 16 Nov in IST
-  let a = null
-  sandbox.document.createElement = () => (a = { click() {} })
-  sandbox.document.body.removeChild = () => {}
-  sandbox.URL = { createObjectURL: () => 'blob:x', revokeObjectURL() {} }
-  sandbox.exportData()
-  assert.strictEqual(a.download, 'dsa-notebook-backup-2026-11-16.json')
-})
