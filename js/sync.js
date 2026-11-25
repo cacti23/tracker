@@ -143,9 +143,10 @@
       return api('/gists', { method: 'POST', body: JSON.stringify(body) }).then(function (g) {
         localStorage.setItem(GISTID_KEY, g.id);
         if (typeof alert === 'function') {
-          alert('⚠️ No existing synced data was found for this GitHub token — a brand-new, EMPTY sync store was just created.\n\n' +
-                'If you expected to see your existing progress here, this token almost certainly belongs to a DIFFERENT GitHub account (or a fine-grained PAT scoped to the wrong "resource owner") than the device that already has your data.\n\n' +
-                'Fix: go to ⚙ Token, clear it, and paste a token generated while signed into the SAME GitHub account used on your other device.');
+          // A first sign-in lands here too, so this reads as a receipt, not a warning; the
+          // wrong-account hint stays for someone who expected their data to be there.
+          alert('☁ Sync is on. A new private gist was created in your GitHub account to hold your progress.\n\n' +
+                'Already use the tracker on another device? Sign out here and sign in with the GitHub account that device uses, or your progress will not appear.');
         }
         return g.id;
       });
