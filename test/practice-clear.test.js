@@ -12,7 +12,7 @@ let ctx
 beforeEach(() => { ctx = loadApp() })
 const ev = code => evalIn(ctx.sandbox, code)
 const gradeQ = (k, g) => ev(`gradeRevise(${JSON.stringify(k)}, ${JSON.stringify(g)})`)
-const qpSetup = () => ev(`_qpTopics = new Set(['trees']); _qpCount = 5; _qpMock = false; _qpRevised = false; _qpGenerate()`)
+const qpSetup = () => ev(`_qpTopics = new Set(['trees']); _qpCount = 5; _qpRevised = false; _qpGenerate()`)
 const panel = topic => ev(`_buildPracticePanel(${JSON.stringify(topic)}, TOPIC_MODULES[${JSON.stringify(topic)}])`)
 // Graded / By Pattern only draw from questions you have graded — seed some (✗ forgot always appears; backdated so By Pattern sees them as due).
 const seedGraded = (topic, n) => {

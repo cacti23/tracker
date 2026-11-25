@@ -81,7 +81,7 @@ test('Graded pool only includes questions that have actually been graded', () =>
   const [a, b] = nQuestions(ctx.sandbox, 'sliding-window', 2)
   grade(a, 'shaky')
   // b is left ungraded
-  evalIn(ctx.sandbox, `_qpRevised = true; _qpMock = false; _qpRevise = false; _qpTopics = new Set(); _qpCount = 50`)
+  evalIn(ctx.sandbox, `_qpRevised = true; _qpTopics = new Set(); _qpCount = 50`)
   evalIn(ctx.sandbox, `_qpGenerate()`)
   const keys = evalIn(ctx.sandbox, `_qpResults.map(([k]) => k)`)
   assert.ok(keys.includes(a), 'graded question should be in the pool')
@@ -92,7 +92,7 @@ test('Graded pool never drops a shaky/forgot question to the count cap, only pad
   const qs = nQuestions(ctx.sandbox, 'sliding-window', 6)
   qs.slice(0, 4).forEach(k => grade(k, 'shaky'))
   qs.slice(4).forEach(k => grade(k, 'solid'))
-  evalIn(ctx.sandbox, `_qpRevised = true; _qpMock = false; _qpRevise = false; _qpTopics = new Set(['sliding-window']); _qpCount = 1`)
+  evalIn(ctx.sandbox, `_qpRevised = true; _qpTopics = new Set(['sliding-window']); _qpCount = 1`)
   evalIn(ctx.sandbox, `_qpGenerate()`)
   const keys = evalIn(ctx.sandbox, `_qpResults.map(([k]) => k)`)
   qs.slice(0, 4).forEach(k => assert.ok(keys.includes(k), `shaky question ${k} must never be cut by the count cap`))
@@ -101,7 +101,7 @@ test('Graded pool never drops a shaky/forgot question to the count cap, only pad
 test('a freshly-solid-graded question drops out of the Graded pool until its ladder is due again', () => {
   const { lcKey } = anyQuestion(ctx.sandbox, 'sliding-window')
   grade(lcKey, 'solid')
-  evalIn(ctx.sandbox, `_qpRevised = true; _qpMock = false; _qpRevise = false; _qpTopics = new Set(); _qpCount = 50`)
+  evalIn(ctx.sandbox, `_qpRevised = true; _qpTopics = new Set(); _qpCount = 50`)
   evalIn(ctx.sandbox, `_qpGenerate()`)
   const keys = evalIn(ctx.sandbox, `_qpResults.map(([k]) => k)`)
   assert.ok(!keys.includes(lcKey), 'this is intentional spaced-repetition behavior, not a bug — a just-graded solid question should rest until due')
@@ -124,7 +124,7 @@ test('plain list: a question graded on a previous day starts NEUTRAL in a new ge
 
 test('plain list: a grade thrown in this set colours the row and survives a reload', () => {
   const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
-  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 5; _qpMock = false; _qpRevised = false; _qpGenerate()`)
+  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 5; _qpRevised = false; _qpGenerate()`)
   const k = evalIn(ctx.sandbox, `_qpResults[0][0]`)
   const t = evalIn(ctx.sandbox, `Object.keys(TOPIC_MODULES).find(t => TOPIC_MODULES[t].questions[${JSON.stringify(k)}])`)
   evalIn(ctx.sandbox, `_practiceGrade(null, ${JSON.stringify(k)}, 'shaky', true)`)
@@ -148,13 +148,24 @@ test('Graded panel: grading in this set shows the badge', () => {
   assert.match(rowHtml(lcKey, topicKey, '_buildReviseItem', "'qp'"), /rg-shaky/)
 })
 
-test('un-revealed Mock hides a graded-this-set colour; Reveal shows it', () => {
+test('a row graded in this set shows its colour and the grade buttons (Mock mode, which hid them, is gone)', () => {
   const { lcKey, topicKey } = anyQuestion(ctx.sandbox, 'sliding-window')
   grade(lcKey, 'solid')
-  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set([${JSON.stringify(lcKey)}]); _qpMock = true; _qpMockReveal = false`)
-  assert.doesNotMatch(rowHtml(lcKey, topicKey, '_buildPracticeItem', 'true'), /rev-chosen/)
-  evalIn(ctx.sandbox, `_qpMockReveal = true`)
-  assert.match(rowHtml(lcKey, topicKey, '_buildPracticeItem', 'true'), /ps-q-solid/)
+  evalIn(ctx.sandbox, `_qpDoneThisSession = new Set([${JSON.stringify(lcKey)}])`)
+  const html = rowHtml(lcKey, topicKey, '_buildPracticeItem', 'true')
+  assert.match(html, /ps-q-solid/)
+  assert.match(html, /rev-chosen/)
+})
+
+test('the saved dashboard state keeps its shape after Mock/Revise/Due-only were removed', () => {
+  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 2; _qpRevised = false; _qpGenerate()`)
+  const state = JSON.parse(ctx.localStorage.getItem('dsa-qp-state-v1'))
+  for (const k of ['topics', 'count', 'dueOnly', 'mock', 'revise', 'revised', 'results', 'doneThisSession']) assert.ok(k in state, k)
+  assert.equal(state.mock, false)
+  // An old saved state with mock: true still loads, as a plain set.
+  ctx.localStorage.setItem('dsa-qp-state-v1', JSON.stringify(Object.assign(state, { mock: true, revise: true, dueOnly: true })))
+  evalIn(ctx.sandbox, '_loadQpState()')
+  assert.equal(evalIn(ctx.sandbox, '_qpResults.length'), state.results.length)
 })
 
 // ── QP state persistence round-trip (dsa-qp-state-v1) ───────────────────────
@@ -170,7 +181,7 @@ test('REGRESSION: _loadQpState() fully replaces in-memory state instead of mergi
   // its pick from the whole topic, so we read back whichever key it actually chose
   // rather than assuming which one — the point of this test is the resync behavior,
   // not which specific question got picked.)
-  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 2; _qpMock = false; _qpRevised = false`)
+  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 2; _qpRevised = false`)
   evalIn(ctx.sandbox, `_qpGenerate()`)
   const qA0 = evalIn(ctx.sandbox, `_qpResults[0][0]`)
   evalIn(ctx.sandbox, `_practiceGrade(null, ${JSON.stringify(qA0)}, 'shaky', true)`)
@@ -198,7 +209,7 @@ test('REGRESSION: _loadQpState() fully replaces in-memory state instead of mergi
 
 test('save/load round-trip preserves generated results and per-session done-set', () => {
   const qs = nQuestions(ctx.sandbox, 'sliding-window', 3)
-  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 3; _qpMock = false; _qpRevised = false`)
+  evalIn(ctx.sandbox, `_qpTopics = new Set(['sliding-window']); _qpCount = 3; _qpRevised = false`)
   evalIn(ctx.sandbox, `_qpGenerate()`)
   grade(qs[0], 'shaky')
   evalIn(ctx.sandbox, `_practiceGrade(null, ${JSON.stringify(qs[0])}, 'shaky', true)`) // also marks doneThisSession + saves

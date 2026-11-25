@@ -9,7 +9,7 @@
 // written to localStorage, and what a given render function *decides* to show
 // (via the HTML string it returns), as opposed to how a real browser paints it.
 //
-// IMPORTANT: most app state (`_qpResults`, `_qpMock`, `_psMode`, ...) is declared
+// IMPORTANT: most app state (`_qpResults`, `_qpRevised`, `_psMode`, ...) is declared
 // with `let`/`const` at the top level of index.html's inline script. Per JS
 // semantics that does NOT attach them to the global object, so they are not
 // reachable as `sandbox.someVar` — only top-level `function`s are. Use `evalIn`

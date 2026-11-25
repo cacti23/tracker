@@ -1482,8 +1482,7 @@ let _psTimerPreset = 0    // last selected preset in minutes
 let _psDoneThisSession      = new Set()  // keys done in current per-topic practice batch
 let _psCurrentItems         = []         // current ordered list for per-topic session
 let _psCurrentTopic         = null       // currently active topic key for practice session
-let _psMode                 = 'graded'   // per-topic mode default: 'graded' (your graded questions, weakest first) | 'worked' | 'mock' | 'revise' (active recall over the WHOLE topic) | 'revise-pattern' (active recall scoped to selected pattern(s) — see _psRevisePatterns)
-let _psMockReveal           = false      // reveal hidden difficulty after a per-topic Mock
+let _psMode                 = 'graded'   // per-topic mode: 'graded' (your graded questions, weakest first) | 'revise-pattern' (active recall scoped to selected pattern(s) — see _psRevisePatterns) | 'recent' | 'pinned'
 let _psRevisePatterns       = new Set()  // 'revise-pattern' mode only: pattern IDs (P1, P2…) to scope the due-set to; empty = nothing selected yet
 let _psReviseCodeFlagged    = new Set()  // Revise/By Pattern only: ~20% of the current set, randomly picked, marked "actually code this" (not just recall)
 let _psClearedTopics        = new Set()  // topics whose set was emptied with 🗑 Clear — the panel stays empty (with a Generate button) instead of auto-regenerating; dropped by any real regenerate
@@ -1522,7 +1521,7 @@ function _psSaveSession() {
       mode: _psMode,
       items: _psCurrentItems.map(([lcKey, q]) => [lcKey, { title: q.title, difficulty: q.difficulty }]),
       doneInSession: Array.from(_psDoneThisSession),
-      mockReveal: _psMockReveal,
+      mockReveal: false,   // Mock mode was removed (2026-11-25); field kept so the saved shape is unchanged
       revisePatterns: Array.from(_psRevisePatterns),
       codeFlagged: Array.from(_psReviseCodeFlagged),
       reviseShown: Array.from(_psReviseShownThisSession),
@@ -1613,12 +1612,7 @@ let _qpTimerRem    = 0      // remaining seconds
 let _qpTimerRun    = false  // is running?
 let _qpTimerIv     = null   // setInterval handle
 let _qpTimerPreset = 0      // last preset in minutes
-let _qpDueOnly     = false  // when true: generate only "due for review" questions
-let _qpMock        = false  // Mock Mode removed from the dashboard UI — only Graded (on/off) + Generate remain
-let _qpMockReveal  = false  // after a mock run, reveal the hidden topic/difficulty for post-mortem (not persisted)
-let _qpRevise      = false  // Revise Session: active-recall pass — pulls revise-due problems with ✓/~/✗ grade buttons (no cold-solve). Mutually exclusive with Mock.
-let _qpRevised     = false  // Dashboard 🕒 Graded mode: the set is your graded questions, weakest first (✗ → ~ → ✓), graded in place; a ✓ there gets clean-solve credit. Mutually exclusive with Mock/Revise.
-let _practiceWorkedOnly = false  // when true: practice pool excludes 📋 Pending (only 🚧 In Progress + ✅ Solved). Shared by dashboard Quick Practice + per-topic Practice Session.
+let _qpRevised     = false  // Dashboard 🕒 Graded mode: the set is your graded questions, weakest first (✗ → ~ → ✓), graded in place; a ✓ there gets clean-solve credit.
 
 // ─── QP STATE PERSISTENCE ─────────────────────────────────────────────────────
 const QP_STATE_KEY = 'dsa-qp-state-v1'
@@ -1627,9 +1621,10 @@ function _saveQpState() {
     const state = {
       topics:  Array.from(_qpTopics),
       count:   _qpCount,
-      dueOnly: _qpDueOnly,
-      mock:    _qpMock,
-      revise:  _qpRevise,
+      // Mock, Revise and Due-only were removed (2026-11-25); fields kept so the saved shape is unchanged.
+      dueOnly: false,
+      mock:    false,
+      revise:  false,
       revised: _qpRevised,
       results: _qpResults ? _qpResults.map(([k]) => k) : null,
       // Which of THIS generated set you've graded/solved this session — without this, closing
@@ -3403,11 +3398,8 @@ function _weightedShuffleByImpact(entries) {
     .map(x => x.e)
 }
 
-// Order a practice pool. Normally unsolved-first (you practice what you haven't solved);
-// but with "Worked-on only" ON, mix 🚧 In Progress + ✅ Solved together (weighted) so the
-// completed ones aren't sliced off below the count cap — otherwise you'd see only In Progress.
+// Order a practice pool: unsolved first (you practice what you haven't solved), then solved.
 function _orderPracticePool(entries) {
-  if (_practiceWorkedOnly) return _weightedShuffle(entries)
   return [
     ..._weightedShuffle(entries.filter(([k]) => getStatus(k) !== 'Solved')),
     ..._weightedShuffle(entries.filter(([k]) => getStatus(k) === 'Solved')),
@@ -3449,32 +3441,6 @@ function _agoLabel(iso) {
   if (hr < 24)  return hr + 'h'
   const days = Math.floor(hr / 24)
   return days + 'd'
-}
-
-// Revised-log row: a question you've already graded. Shows its grade badge + how long ago, and
-// lets you re-grade in place (no vanish — this is a review log, not a sweep).
-function _buildRevisedItem([lcKey, q], i, ctx) {
-  const fn = ctx === 'ps' ? '_psGradedGrade' : '_qpRevisedGrade'   // which list this row lives in
-  const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
-  const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
-  const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
-  const r = getRevise(lcKey)
-  return (
-    '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
-    '<span class="ps-q-num">' + (i + 1) + '</span>' +
-    topicIcon +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
-    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
-    _reviseGradeBadge(lcKey) +
-    '<span class="rev-ago" title="Last revised">' + _agoLabel(r && r.last) + '</span>' +
-    '<span class="rev-grade-group flex-shrink-0">' +
-      '<button class="rev-grade rev-solid"  title="Recalled it cold"          onclick="' + fn + '(event,\'' + lcKey + '\',\'solid\')">✓</button>' +
-      '<button class="rev-grade rev-shaky"  title="Shaky — needed a hint"     onclick="' + fn + '(event,\'' + lcKey + '\',\'shaky\')">~</button>' +
-      '<button class="rev-grade rev-forgot" title="Forgot — re-queue to code" onclick="' + fn + '(event,\'' + lcKey + '\',\'forgot\')">✗</button>' +
-    '</span>' +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
-    '</div>'
-  )
 }
 
 // Re-grade a row in the Revised log: updates the grade (and badge, via gradeRevise) + the "ago"
@@ -3592,9 +3558,7 @@ function _qpReviseShowComplete() {
 function _genPracticeSet(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
-  const all0        = Object.entries(mod.questions)
-  // "Worked-on only" filter: exclude 📋 Pending so practice draws only from 🚧 In Progress + ✅ Solved
-  const all         = _practiceWorkedOnly ? all0.filter(([k]) => getStatus(k) !== 'Pending') : all0
+  const all         = Object.entries(mod.questions)
   // Serve your weakest (forgot → shaky) first within the topic.
   return _orderByWeakness(_orderPracticePool(all)).slice(0, count)
 }
@@ -3643,11 +3607,8 @@ function _jumpToQuestion(ev, lcKey) {
 
 function _buildPracticeItem([lcKey, q], i, showTopic) {
   const due = isDue(lcKey)
-  // Mock Mode hides topic icon, difficulty, freq, status & due dot so you face the problem cold —
-  // until "Reveal". Dashboard mock = _qpMock; per-topic mock = _psMode 'mock'.
-  const hideMeta = showTopic ? (_qpMock && !_qpMockReveal) : (_psMode === 'mock' && !_psMockReveal)
   let topicIcon = ''
-  if (showTopic && !hideMeta) {
+  if (showTopic) {
     const tKey = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
     const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
     if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
@@ -3661,12 +3622,11 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
   const forced   = isCodeForced(lcKey)
   const rv       = doneInSession ? getRevise(lcKey) : null
   const rowCls   = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
-  const dueDot   = ((due || forced) && !rv && !hideMeta) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
-  const isMock       = showTopic ? _qpMock : (_psMode === 'mock')
+  const dueDot   = ((due || forced) && !rv) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   // Jump-to-question assumes you're already inside that topic's page (currentTopicKey) — on the
   // dashboard there's no single "current topic" to jump within, so it doesn't actually work
   // there. Only offer it in the per-topic Practice Session.
-  const jumpBtn = (isMock || showTopic) ? '' :
+  const jumpBtn = showTopic ? '' :
     '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" onclick="_jumpToQuestion(event,\'' + lcKey + '\')">⤵</button>'
   // Saved-solution link — same 🔗 to your last submission that Graded/By Pattern rows have.
   const subs = getSubmissions(lcKey)
@@ -3675,10 +3635,9 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
     '" onclick="event.stopPropagation()">🔗</a>' : ''
   // Solve-list rows also get the same ✓/~/✗ grade buttons Graded/By Pattern have. ✓ is the ONLY
-  // way to mark a question Solved here now (see _practiceGrade / _psCreditCleanSolve) — hidden
-  // during an un-revealed Mock so it stays a cold test.
+  // way to mark a question Solved here now (see _practiceGrade / _psCreditCleanSolve).
   const chosen = g => (rv && rv.grade === g) ? ' rev-chosen' : ''
-  const gradeBtns = hideMeta ? '' :
+  const gradeBtns =
     '<span class="rev-grade-group flex-shrink-0">' +
       '<button class="rev-grade rev-solid' + chosen('solid') + '"  title="Recalled it cold — mark solved" onclick="event.stopPropagation();_practiceGrade(event,\'' + lcKey + '\',\'solid\',' + (showTopic ? 'true' : 'false') + ')">✓</button>' +
       '<button class="rev-grade rev-shaky' + chosen('shaky') + '"  title="Shaky — needed a hint"          onclick="event.stopPropagation();_practiceGrade(event,\'' + lcKey + '\',\'shaky\',' + (showTopic ? 'true' : 'false') + ')">~</button>' +
@@ -3690,7 +3649,7 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     dueDot +
     topicIcon +
     '<span class="ps-q-title" title="' + escHtml(q.title) + '">' + escHtml(q.title) + '</span>' +
-    (q.freq && !hideMeta ? freqBadge(q, ' flex-shrink-0') : '') +
+    (q.freq ? freqBadge(q, ' flex-shrink-0') : '') +
     gradeBtns +
     jumpBtn +
     subLink +
@@ -3743,7 +3702,6 @@ function _buildPracticePanel(topicKey, mod) {
       // session in one of those modes to Graded so there's still a mode button to land on.
       _psMode       = ['revise-pattern', 'graded', 'recent', 'pinned'].includes(savedSession.mode)
         ? savedSession.mode : 'graded'
-      _psMockReveal = !!savedSession.mockReveal
       if (_psMode === 'recent') {
         // Recent is a log of what you just did — it must never show a stale snapshot. A saved
         // session here only carries the restored mode/scope; the actual rows always come fresh
@@ -3889,7 +3847,6 @@ function _psClear(topicKey) {
   _psCurrentItems = []
   _psDoneThisSession.clear()
   _psReviseCodeFlagged.clear(); _psReviseShownThisSession.clear()
-  _psMockReveal = false
   _psClearedTopics.add(topicKey)                    // keep By Pattern from auto-refilling on re-render / revisit
   _psSaveSession()                                  // cleared topic → removes its saved session, so a reload stays empty too
   _renderPracticePanel()
@@ -3978,28 +3935,6 @@ function _psSetAll(topicKey) {
   _psSaveSession()  // Persist the updated list
 }
 
-function _psToggleWorkedOnly(topicKey) {
-  _practiceWorkedOnly = !_practiceWorkedOnly
-  _saveQpState()
-  document.querySelectorAll('.ps-workedonly-btn').forEach(b => b.classList.toggle('active', _practiceWorkedOnly))
-  const mod = TOPIC_MODULES[topicKey]
-  if (!mod) return
-  // If a set is already loaded, regenerate it so the filter applies immediately (mirrors Reset).
-  if (_psCurrentItems.length > 0) {
-    _stopTimer()
-    _psDoneThisSession.clear()
-    const count = Math.max(1, Math.min(_psQCount, Object.keys(mod.questions).length))
-    _psCurrentItems = _genPracticeSet(topicKey, count)
-    _psQCount = _psCurrentItems.length
-    _psSaveSession()
-    const valEl = document.getElementById('ps-count-val'); if (valEl) valEl.textContent = _psQCount
-    const listEl = document.getElementById('ps-list')
-    if (listEl) listEl.innerHTML = _psCurrentItems.length
-      ? _psRowsHtml()
-      : '<div style="text-align:center;padding:1.5rem 1rem;"><p class="text-secondary text-xs mb-0">No 🚧 In-Progress or ✅ Solved questions in this topic yet — mark some, or turn off “Worked-on only”.</p></div>'
-  }
-}
-
 // Revise + By Pattern only: after a fresh pool is generated, randomly flag ~20% of it as
 // "actually code this one" — a spot-check against fooling yourself with recall alone. Re-rolled
 // on every regeneration (Refresh, mode switch, pattern change); a mere restore-from-storage does
@@ -4038,10 +3973,9 @@ function _psRankedRevisePool(due, count) {
   picked.forEach(([k]) => _psReviseShownThisSession.add(k))
   return picked
 }
-// ── Per-topic mode helpers (Worked / Graded / Mock / Revise / By Pattern) ─────
-// Worked/Graded/Mock decide WHICH of this topic's questions you solve, and in what order —
-// click a row = solved (sinks). Revise/By Pattern are different: an active-recall pass, not a
-// solve — grade ✓/~/✗ right on the row (see _buildReviseItem / _psRecallGrade).
+// ── Per-topic mode helpers (Graded / By Pattern / Recent / Pinned) ──────────
+// Graded and By Pattern decide which of this topic's questions you practice, graded ✓/~/✗ on
+// the row (see _buildReviseItem / _psRecallGrade). Recent and Pinned are read-only lists.
 function _psModePool(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
@@ -4059,17 +3993,9 @@ function _psModePool(topicKey, count) {
     const solidFill = Math.max(0, count - weak.length)
     return [...weak, ...solid.slice(0, solidFill)]
   }
-  if (_psMode === 'revise') {
-    // Revise = active recall, not solving. Due set from the WHOLE topic — anything engaged
-    // (solved, started, or already graded) whose REVISE_LADDER interval is up.
-    // ✗ forgot / ~ shaky sink to the top — those are the ones actually worth re-testing first.
-    const due = Object.entries(mod.questions).filter(([k]) => isReviseDue(k))
-    return _psRankedRevisePool(due, count)
-  }
   if (_psMode === 'revise-pattern') {
     // By Pattern = same active-recall pass as Revise, but scoped to only the pattern(s) selected
-    // in _psRevisePatterns. No selection → empty pool (the UI prompts you to pick a pattern; this
-    // mode is never "the whole topic" — that's what plain Revise is for).
+    // in _psRevisePatterns. No selection → empty pool (the UI prompts you to pick a pattern).
     if (!_psRevisePatterns.size || !mod.patterns) return []
     // Uses each pattern's own questionIds list — NOT templateRefs on the question — because some
     // modules (e.g. sliding-window) key templateRefs to a separate T1/T2 template scheme, while
@@ -4093,19 +4019,8 @@ function _psModePool(topicKey, count) {
     }
     return pool
   }
-  // Worked/Mock still drop questions on cooldown (solved & resting).
-  const all = Object.entries(mod.questions).filter(([k]) => !_onCooldown(k))
-  if (_psMode === 'mock') {
-    // Random mixed set from this topic; difficulty hidden + timed (a mini interview run).
-    return _shuffle(all).slice(0, count)
-  }
-  // worked = questions you've started/solved (🚧/✅)
-  const base      = all.filter(([k]) => getStatus(k) !== 'Pending')
-  // Weakest first: ✗ forgot → ~ shaky → ✓ confident → rest.
-  return _orderByWeakness(_orderPracticePool(base)).slice(0, count)
+  return []   // no other mode exists (an old saved Worked/Mock/Revise session loads as Graded)
 }
-// Worked/Graded/Mock render solve-rows (click a row = solved); Revise renders grade-rows
-// (✓/~/✗ recall buttons, no click-to-solve).
 function _psRowsHtml() {
   if (_psMode === 'recent') return _psCurrentItems.map((item, i) => _buildRecentItem(item, i)).join('')
   if (_psMode === 'pinned') return _psCurrentItems.map((item, i) => _buildPinnedItem(item, i)).join('')
@@ -4130,7 +4045,6 @@ function _psSetMode(mode, topicKey) {
   if (_psTimerRun) return  // don't switch mid-timed-run
   if (_psMode === mode) return
   _psMode = mode
-  _psMockReveal = false
   _psClearedTopics.delete(topicKey)   // a mode switch regenerates, so the topic is no longer 'cleared'
   _stopTimer()
   _psDoneThisSession.clear()
@@ -4178,16 +4092,6 @@ function _psRevisePatternsShuffle(topicKey) {
   _psShuffle(topicKey)
   _renderPracticePanel()
 }
-// Reveal hidden difficulty on a per-topic Mock for the post-mortem.
-function _psRevealMock() {
-  _psMockReveal = true
-  _psSaveSession()
-  const listEl = document.getElementById('ps-list')
-  if (listEl) listEl.innerHTML = _psRowsHtml()
-  const btn = document.getElementById('ps-reveal-btn')
-  if (btn) btn.style.display = 'none'
-}
-
 // Grade a row in the per-topic Revise mode: same active-recall grading as the dashboard Revise
 // Session, scoped to this topic. Rows stay in place on grade — tinted + the chosen button
 // highlighted — so the list is a record of today's session, not a sweep.
@@ -4424,14 +4328,14 @@ function _renderQuickPractice() {
   html += '</div>'
 
   // Count + generate row
-  const disabled = !_qpMock && !_qpRevised && _qpTopics.size === 0
-  const genLabel = _qpMock ? '🎯 Generate Mock' : _qpRevised ? '🕒 Generate Graded' : '🎲 Generate Set'
+  const disabled = !_qpRevised && _qpTopics.size === 0
+  const genLabel = _qpRevised ? '🕒 Generate Graded' : '🎲 Generate Set'
   html += '<div class="d-flex align-items-center gap-2 flex-wrap">'
   html += '<button type="button" class="ps-count-btn" id="qp-btn-dec" aria-label="Fewer questions" onclick="_qpAdjCount(-1)">−</button>'
   html += '<span class="ps-count-val" id="qp-count-val">' + count + '</span>'
   html += '<button type="button" class="ps-count-btn" id="qp-btn-inc" aria-label="More questions" onclick="_qpAdjCount(1)">+</button>'
   html += '<span class="text-secondary text-xs">questions</span>'
-  if (maxQ && !_qpMock && !_qpRevised) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
+  if (maxQ && !_qpRevised) html += '<span class="text-faint text-xxs">(max&nbsp;' + maxQ + ' from selected)</span>'
   html += '<button type="button" class="ps-shuffle-btn ms-2"' + (disabled ? ' disabled' : '') + ' onclick="_qpGenerate()">' + genLabel + '</button>'
   html += '<button type="button" class="qp-chip ms-1" id="qp-btn-clear"' + (_qpResults && _qpResults.length ? '' : ' disabled') + ' onclick="_qpClear()" title="Remove every question from the list and start from an empty state (your grades and progress are kept)">🗑 Clear</button>'
   html += '<button type="button" class="qp-chip' + (_qpRevised ? ' active' : '') + ' ms-1" onclick="_qpToggleRevised()" title="Graded — solve the questions you have graded on the cards; ranked ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
@@ -4499,7 +4403,6 @@ function _qpClear() {
   _qpStopTimer()
   _qpTimerRem = _qpTimerTotal
   _qpResults = null
-  _qpMockReveal = false
   _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
@@ -4536,9 +4439,8 @@ function _qpAdjCount(delta) {
 
   // If results already exist, do smart add/remove instead of resetting
   if (!_qpResults || _qpResults.length === 0) return
-  // Mock (all-topics, hidden) and Revise (revise-due, weakness-ordered) have special pools the
-  // smart add/remove below doesn't understand — regenerate cleanly at the new count instead.
-  if (_qpMock || _qpRevise || _qpRevised) { _qpGenerate(); return }
+  // Graded has its own pool the smart add/remove below doesn't understand — regenerate instead.
+  if (_qpRevised) { _qpGenerate(); return }
 
   const currentCount = _qpResults.length
   if (_qpCount > currentCount) {
@@ -4550,7 +4452,6 @@ function _qpAdjCount(delta) {
       if (mod) Object.entries(mod.questions).forEach(([k, q]) => {
         if (currentKeys.has(k)) return
         if (_onCooldown(k)) return   // solved & resting
-        if (_practiceWorkedOnly && getStatus(k) === 'Pending') return
         pool.push([k, q])
       })
     })
@@ -4585,14 +4486,12 @@ function _qpAdjCount(delta) {
 
 function _qpGenerate() {
   const allTopics = TOPICS.filter(t => TOPIC_MODULES[t.key]).map(t => t.key)
-  // Worked needs a topic selected; Mock & Graded can sweep all topics on their own.
-  if (!_qpMock && !_qpRevised && _qpTopics.size === 0) return
+  // A plain set needs a topic selected; Graded can sweep all topics on its own.
+  if (!_qpRevised && _qpTopics.size === 0) return
   if (_qpTimerRun) return  // don't reset session while timer is running
-  _qpMockReveal = false    // a freshly generated set always starts hidden
 
-  // Pool topics: Mock = all · Graded = selected (or all if none) · Worked = selected.
-  const poolTopics = _qpMock ? allTopics
-                   : (_qpTopics.size ? Array.from(_qpTopics) : (_qpRevised ? allTopics : []))
+  // Pool topics: Graded = selected (or all if none) · plain set = selected.
+  const poolTopics = _qpTopics.size ? Array.from(_qpTopics) : (_qpRevised ? allTopics : [])
   const seen = new Set()
   const pool = []
   poolTopics.forEach(key => {
@@ -4605,8 +4504,6 @@ function _qpGenerate() {
       if (_qpRevised) {
         if (!getRevise(k)) return                                       // Graded: only problems you've graded
         if (_weaknessRank(k) === 2 && !isReviseDue(k)) return            // ✓ solid: wait for the ladder before resurfacing
-      } else if (!_qpMock) {
-        if (_practiceWorkedOnly && getStatus(k) === 'Pending') return   // Worked: skip untouched 📋 Pending
       }
       pool.push([k, q])
     })
@@ -4615,7 +4512,7 @@ function _qpGenerate() {
   const maxQ  = pool.length
   if (maxQ === 0) {
     const el = document.getElementById('qp-results')
-    if (el) el.innerHTML = '<p class="text-secondary text-xs mt-2 mb-0">' + (_qpRevised ? "You haven't graded any problems yet — grade them with the 🧠 ✓/~/✗ chip on the question cards." : _practiceWorkedOnly ? 'No 🚧 In-Progress or ✅ Solved questions in the selected topics yet — mark some, or turn off “Worked-on only”.' : 'No questions found.') + '</p>'
+    if (el) el.innerHTML = '<p class="text-secondary text-xs mt-2 mb-0">' + (_qpRevised ? "You haven't graded any problems yet — grade them with the 🧠 ✓/~/✗ chip on the question cards." : 'No questions found.') + '</p>'
     _qpResults = []
     _qpSyncClearBtn()
     return
@@ -4629,14 +4526,14 @@ function _qpGenerate() {
 
   // Graded: ✗ forgot / ~ shaky NEVER get cut by the count cap (only ✓ solid padding is capped), weighted
   // by interview frequency so limited practice time goes to your weakest AND highest-impact problems.
-  // Other modes go weakest-first (✗ forgot → ~ shaky → ✓ confident → rest); Mock stays random.
+  // A plain set goes weakest-first (✗ forgot → ~ shaky → ✓ confident → rest).
   let generated
   if (_qpRevised) {
     const weak      = _weightedShuffleByImpact(pool.filter(([k]) => _weaknessRank(k) < 2)).sort((a, b) => _weaknessRank(a[0]) - _weaknessRank(b[0]))
     const solid     = _weightedShuffleByImpact(pool.filter(([k]) => _weaknessRank(k) === 2))
     generated = [...weak, ...solid.slice(0, Math.max(0, count - weak.length))]
   } else {
-    generated = (_qpMock ? _orderPracticePool(pool) : _orderByWeakness(_orderPracticePool(pool))).slice(0, count)
+    generated = _orderByWeakness(_orderPracticePool(pool)).slice(0, count)
   }
 
   const fresh = generated.filter(([k]) => !prevDone.has(k))
@@ -4661,60 +4558,10 @@ function _qpGenerate() {
   _qpSyncClearBtn()
 }
 
-function _qpToggleDueOnly() {
-  _qpDueOnly = !_qpDueOnly
-  _qpResults = null
-  // Clear session state too — the pool is changing so done state against
-  // the old set is meaningless and would pollute the next generated set's prevDone snapshot
-  _qpDoneThisSession.clear()
-  _saveQpState()
-  _renderQuickPractice()
-}
-
-function _qpToggleMock() {
-  if (_qpTimerRun) return  // don't flip modes mid-timed-run
-  _qpMock = !_qpMock
-  if (_qpMock) { _qpRevise = false; _qpRevised = false }   // Mock / Revise / Revised are mutually exclusive
-  _qpMockReveal = false
-  _qpResults = null
-  _qpDoneThisSession.clear()
-  _saveQpState()
-  _renderQuickPractice()
-}
-
-function _qpToggleRevise() {
-  if (_qpTimerRun) return
-  _qpRevise = !_qpRevise
-  if (_qpRevise) { _qpMock = false; _qpRevised = false; _qpMockReveal = false }
-  _qpResults = null
-  _qpDoneThisSession.clear()
-  _saveQpState()
-  _renderQuickPractice()
-}
-
 function _qpToggleRevised() {
   if (_qpTimerRun) return
   _qpRevised = !_qpRevised
-  if (_qpRevised) { _qpMock = false; _qpRevise = false; _qpMockReveal = false }
   _qpResults = null
-  _qpDoneThisSession.clear()
-  _saveQpState()
-  _renderQuickPractice()
-}
-
-// Reveal the hidden topic/difficulty on a finished mock for the post-mortem.
-function _qpRevealMock() {
-  _qpMockReveal = true
-  const el = document.getElementById('qp-results')
-  if (el && _qpResults) el.innerHTML = _qpRowsHtml()
-  const btn = document.getElementById('qp-reveal-btn')
-  if (btn) btn.style.display = 'none'
-}
-
-function _qpToggleWorkedOnly() {
-  _practiceWorkedOnly = !_practiceWorkedOnly
-  _qpResults = null
-  // Pool is changing — done-state against the old set is meaningless for the next prevDone snapshot
   _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()

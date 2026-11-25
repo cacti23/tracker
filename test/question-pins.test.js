@@ -40,7 +40,7 @@ test('pins never enter Graded or the dashboard generator', () => {
   ev(`_psMode = 'graded'`)
   assert.equal(ev(`_psModePool('trees', 50).length`), 0, 'nothing graded yet, so Graded stays empty even with a pin')
   ev(`setStatus('${k}', 'Solved'); markPracticed('${k}'); bumpReviewInterval('${k}')`)
-  ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpMock = false; _qpCount = 50; _qpGenerate()`)
+  ev(`_qpTopics = new Set(['trees']); _qpRevised = false; _qpCount = 50; _qpGenerate()`)
   assert.ok(!ev(`_qpResults.map(([x]) => x).includes('${k}')`), 'a pin must not pull a resting question into the set')
 })
 
