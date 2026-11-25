@@ -1469,7 +1469,7 @@ $ curl -s ifconfig.me  # after NAT
       <tr><td>/32</td><td>1</td><td>1 (one host)</td><td>too small</td></tr>
     </tbody></table>
   <p class="ana">🏘️ A street with 256 plots. Plot 0 holds the <b>street sign</b>: the street's name, nobody lives there (network). Plot 255 holds a <b>loudspeaker</b>: speak into it and every house hears, but the sound stops at the street's end (broadcast). The 254 plots in between are homes, and plot 1 is usually the gate (the router).</p>
-  <div class="rem"><b>✅ Remember</b> 🎤 "How many IPs in a /N?" → "2<sup>(32 − N)</sup> in total. Minus 2 usable: the first is the network address, the last is broadcast. On AWS, minus 5." A /24 → 256 · 254 · 251.</div>
+  <div class="rem"><b>✅ Remember</b> 🎤 "How many IPs in a /N?" → "2<sup>(32 − N)</sup> in total. Minus 2 usable: the first is the network address, the last is broadcast. On AWS: 2<sup>(32 − N)</sup> − 5 (AWS keeps the first four and the last)." A /24 → 256 · 254 · 251.</div>
 
   <h5>🎭 Subnet mask: the same /N, written like an IP <span class="add">➕ not in the article</span></h5>
   <p class="bridge">A subnet mask is <code>/N</code> written out as 32 bits: <b>N ones, then zeros</b>. Same information, older notation, and still what your Wi-Fi settings and <code>ipconfig</code> show.</p>
@@ -1591,7 +1591,7 @@ $ curl -s ifconfig.me  # after NAT
         <div class="k-blue"><b>🔐 Security Group</b><div class="star">On each server</div><div class="chk">✅ Allow rules only</div><div class="chk">🧠 Remembers connections: a reply gets back in by itself</div><div class="chk">"DB allows 5432 only from the app's group"</div></div>
         <div class="k-amber"><b>🚧 Network ACL</b><div class="star">On the whole subnet</div><div class="chk">✅❌ Allow and deny rules, checked in order</div><div class="chk">🙈 Forgets connections: you must allow the reply too</div><div class="chk">A coarse extra fence; often left as the default</div></div>
       </div>🏢 Security Group = the lock on each office door. Network ACL = the guard at the floor's entrance. <span class="aws">☁️ AWS: Security Groups + Network ACLs</span></li>
-    <li><b class="hd">🔗 Private paths to everything else</b>AWS services: VPC endpoints (above). VPC peering or Transit Gateway: VPC to VPC. Site-to-Site VPN or Direct Connect: office to VPC.</li>
+    <li><b class="hd">🔗 Private paths to everything else</b>AWS services: VPC endpoints (above). VPC peering or Transit Gateway: VPC to VPC, over private IPs on AWS's own network, never the public internet. Site-to-Site VPN or Direct Connect: office to VPC.</li>
   </ul>
   <p class="ana">🏢 A VPC is a <b>gated office campus</b>. The Internet Gateway is the main gate. The public subnet is the reception lobby, where visitors are let in. The private subnet is the badge-only offices: staff can step out for coffee (NAT), but no stranger walks in. Route tables are the signposts. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> 🛣️ A subnet is public because its route table points to the Internet Gateway, not because its servers have public IPs.<br>🎤 Say it in a design: "One VPC across 2–3 Availability Zones. Only the load balancer sits in public subnets. Services, databases and caches sit in private subnets and reach the internet through a NAT Gateway."</div>
@@ -1815,6 +1815,13 @@ $ traceroute example.com
 
   <h5>🚫 When connecting fails: timed out vs refused vs reset <span class="add">➕ Adi's notes, checked; not in the article</span></h5>
   <p class="bridge">Three errors, three causes. The error name tells you where to look.</p>
+  <table class="cidr-t ver-t" role="img" aria-label="The timeout trio. Silence then give up: a firewall dropped it or the host is dead, connect timeout. Instant no: the host is up but nothing listens, refused. Connected but slow: the app is up but slow, read timeout.">
+    <thead><tr><th>What you see</th><th>What it means</th><th>Error</th></tr></thead>
+    <tbody><tr><td>🤫 Silence, then give up</td><td>Firewall dropped it, or host is dead</td><td>⏱️ connect timeout</td></tr>
+      <tr><td>⚡ An instant "no"</td><td>Host is up, nothing on that port</td><td>🚫 refused</td></tr>
+      <tr><td>🐢 Connected, slow answer</td><td>App is up but slow (DB, overload)</td><td>⏳ read timeout</td></tr></tbody>
+  </table>
+  <p class="figcap">🖼️ The timeout trio <span class="add">➕ from the drill</span>. The first two are TCP errors (below); the read timeout is your app's own deadline (<a href="#sd-net-latency-failures--timeouts-and-retries-with-backoff">Timeouts and retries</a>).</p>
   <div class="seq" data-seq="tcp-errors"></div>
   <ul class="lines roomy heads">
     <li><b class="hd">⏱️ Timed out: the SYN got no reply at all</b>A firewall dropped it, the host is down, or the IP is wrong. Slow: the client keeps resending SYN until your connect timeout. Error <code>ETIMEDOUT</code>. <span class="aws">☁️ On AWS, check the Security Group: it drops silently</span></li>
@@ -1915,7 +1922,7 @@ Flags [R.]  # RST: refused</pre>
     <tr><td>✅ 2xx</td><td>200 OK · 201 Created (new resource)</td></tr>
     <tr><td>↪️ 3xx</td><td>302 Found (moved temporarily) · 301 Moved Permanently</td></tr>
     <tr><td>🙋 4xx</td><td>404 Not Found · 401 Unauthorized (needs authentication) · 403 Forbidden (understood, refuses to authorize) · 429 Too Many Requests</td></tr>
-    <tr><td>🔥 5xx</td><td>500 Server Error · 502 Bad Gateway (invalid response from <button type="button" class="gl-link" data-g="updown">upstream</button>)</td></tr>
+    <tr><td>🔥 5xx</td><td>500 Server Error · 502 Bad Gateway (invalid response from <button type="button" class="gl-link" data-g="updown">upstream</button>) · 503 Service Unavailable (overloaded or down; may send <code>Retry-After</code>) · 504 Gateway Timeout (the upstream didn't answer in time)</td></tr>
   </table>
   <p class="bridge">Headers are the flexible part: free-form key/value pairs. That pragmatism is a lesson in itself.</p>
   <div class="take"><p><b>🏷️ Headers = an open slot for the future</b></p>
@@ -2463,6 +2470,7 @@ es.onmessage = e => show(e.data)
   <div class="info"><b>ℹ️ Note</b> Light in fiber moves at about 2/3 of its speed in a vacuum: <b>≈ 200,000 km/s</b>. New York ↔ London is about <b>5,600 km</b>:
     <div class="flow"><span>2 × 5,600 km</span><i>÷</i><span>200,000 km/s</span><i>=</i><span>⭐ ≈ 56 ms round trip</span></div>
     <p>That's the theoretical minimum, before any processing. This is why geographic distribution is essential for low latency.</p></div>
+  <div class="rem"><b>⏱️ Time to first byte = round trips × RTT</b> <span class="add">➕ from the drill</span> A new HTTPS connection needs several round trips before the first byte arrives:<br>1️⃣ TCP handshake: 1 round trip<br>2️⃣ TLS 1.3 handshake: 1 round trip (TLS 1.2: 2)<br>3️⃣ The request and its answer: 1 round trip<br>So 3 round trips. Mumbai ↔ Virginia is ≈ 200 ms per round trip → ≈ 600 ms before the first byte, even with an instant server. Fixes: reuse connections (keep-alive), HTTP/3 (2 round trips, 1 on a resumed connection), and servers near users (CDN).</div>
   <p class="bridge">The fix, everywhere in computing: <b>data locality</b>. Performance is best when the data sits as close as possible to the computation.</p>
   <p class="ana">📚 <b>Data locality</b> = keep the books you need <b>on your desk</b>, not in a library across town. Every trip to the library costs time, however fast you read. <span class="add">➕ analogy not in the article</span></p>
   <ul class="lines">
@@ -2619,6 +2627,7 @@ await fetch&#40;url, {
     <li><b class="hd">📞 RPC: call another service's function, fast and typed</b>e.g. gRPC: binary serialization + HTTP/2, thinking in <b>actions</b>. The user service asking the auth service <code>checkPermission(userId, resource)</code> is more natural than a REST resource. 👂 Hint words: "microservices", "internal APIs", "performance is critical". 🔗 <a href="#sd-net-apis">HTTP and API Styles</a> covers the protocol side.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> REST by default unless you have a specific reason. It's well understood, has great tooling, and covers 90% of use cases. Unsure? Say <i>"I'll use REST APIs"</i> and move on.</div>
+  <div class="rem"><b>🧪 Quick test</b> <span class="add">➕ from the drill</span><br>1️⃣ Every client wants the same fields → REST<br>2️⃣ Each client wants different fields → GraphQL (or a simpler BFF)<br>3️⃣ Internal and busy → gRPC, behind an ALB</div>
   <div class="rem"><b>✅ Remember</b> Real-time features (notifications, chat, live updates) aren't traditional APIs. They're <b>persistent connections</b>: WebSockets or Server-Sent Events. 🔗 <a href="#sd-net-realtime">Real-time: SSE, WebSockets, WebRTC</a> and the Real-time Updates pattern lesson.</div>
   <p class="bridge">REST is the default, so most of the lesson is about designing REST well. GraphQL and RPC come after, with what matters in an interview.</p>
 </section>
@@ -2681,6 +2690,27 @@ GET  /bookings/{id}          # one booking</pre>
   <div class="pills"><span>✅ 200 OK</span><span>🆕 201 Created</span><span>🙋 400 Bad request</span><span>🔑 401 Needs authentication</span><span>🔍 404 Not found</span><span>🔥 500 Server error</span></div>
   <div class="rem"><b>✅ Remember</b> Don't overthink codes. Interviewers care that you know <b>4xx = the client's fault, 5xx = the server's fault</b>. Even writing "4XX" is usually fine.</div>
   <p class="ana">🚦 4xx = "you filled the form in wrong", 5xx = "our kitchen caught fire". The first is fixed by the client, the second by you. <span class="add">➕ analogy not in the article</span></p>
+  <h5>🙈 403 or 404? Hide what outsiders shouldn't know exists <span class="add">➕ from the drill</span></h5>
+  <p class="bridge">403 says "this exists, but not for you". That alone leaks a secret: a stranger who tries <code>/repos/acme/secret-plan</code> learns the repo is real. So for private things, answer 404, as if nothing is there. GitHub does exactly this for private repositories.</p>
+  <div class="grid2">
+    <div class="k-amber"><b>🚫 403 Forbidden</b><div class="star">"I know you, and no"</div><div class="chk">The user may know it exists</div><div class="chk">e.g. a team member without admin rights clicks Delete</div></div>
+    <div class="k-blue"><b>🔍 404 Not Found, to hide it</b><div class="star">"Nothing here"</div><div class="chk">Outsiders must not learn it exists</div><div class="chk">e.g. a private repo, or someone else's order id</div></div>
+  </div>
+  <p class="ana">🏢 A receptionist can say "Mr. Rao is in, but won't see you" (403), or "no Mr. Rao works here" (404). The second keeps his secret. <span class="add">➕ analogy</span></p>
+
+  <h5>🧊 Let clients reuse a response: Cache-Control and ETag <span class="add">➕ from the drill</span></h5>
+  <p class="bridge">Two headers let browsers and CDNs reuse a response instead of fetching it again.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⏱️ Cache-Control says how long a copy may be reused, with no request at all</b><code>Cache-Control: public, max-age=60</code> = any browser or CDN may reuse it for 60 s. <code>private</code> = only the user's own browser. <code>no-store</code> = never keep a copy (bank pages).</li>
+    <li><b class="hd">🏷️ ETag is a version tag, so "has it changed?" costs almost nothing</b>1️⃣ The server answers <code>200</code> with <code>ETag: "v42"</code><br>2️⃣ Later the browser asks again with <code>If-None-Match: "v42"</code><br>3️⃣ Unchanged → <code>304 Not Modified</code>, no body. Changed → <code>200</code> with the new body and a new ETag.</li>
+    <li><b class="hd">⚖️ Cache-Control skips the whole request; ETag still asks, but skips the body</b>Use both: reuse for a short time, then check cheaply.</li>
+  </ul>
+  <p class="ana">🥛 Cache-Control is the "use by" date on the milk: until then, don't even ask. ETag is asking the shop "still batch 42?" and hearing "yes, keep yours". <span class="add">➕ analogy</span></p>
+
+  <h5>⏳ Long jobs: 202 Accepted + a job id <span class="add">➕ from the drill</span></h5>
+  <p class="bridge">Some work takes minutes: export a report, transcode a video. Don't hold the request open, or it times out. Answer at once, and do the work in the background.</p>
+  <div class="vflow"><div class="bx">📱 <code>POST /exports</code></div><div class="ar">⬇️ 1️⃣ the server puts the job on a queue</div><div class="bx">↩️ <code>202 Accepted</code> + <code>{ "jobId": "123" }</code><small>answered at once</small></div><div class="ar">⬇️ 2️⃣ a worker does the job</div><div class="bx">⚙️ status: pending → done</div><div class="ar">⬇️ 3️⃣ the client learns it's done</div><div class="bx">🔁 polls <code>GET /exports/123</code>, or gets a push (webhook, SSE)</div><div class="ar">⬇️ 4️⃣ big result?</div><div class="bx">☁️ a presigned S3 URL: download straight from S3</div></div>
+  <p class="ana">👔 A dry cleaner: you hand in the suit and get a token (202 + job id). You come back later, or they call you when it's ready. <span class="add">➕ analogy</span></p>
 
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
@@ -2723,6 +2753,17 @@ GET  /bookings/{id}          # one booking</pre>
     <li>💸 The cost: query parsing, schema validation, and often sophisticated caching. ⭐ Otherwise REST is simpler.</li>
   </ul>
   <div class="rem"><b>✅ Remember</b> Raise GraphQL when there's a clear over- or under-fetching problem, never as your default. Interviewers like that you know it, but prefer to see the core problems solved with simpler tools first.</div>
+  <h5>🧱 BFF: the simpler option before GraphQL <span class="add">➕ from the drill</span></h5>
+  <p class="bridge">A <b>BFF</b> (Backend for Frontend) is one small backend per client type. The mobile BFF and the web BFF each call the internal services and return exactly what their own screens need. Plain REST, no query language.</p>
+  <div class="flow"><span>📱 Mobile app</span><i>→</i><span>🧱 Mobile BFF</span><i>→</i><span>👤 Users · 📦 Orders · 💳 Payments</span></div>
+  <div class="flow"><span>💻 Web app</span><i>→</i><span>🧱 Web BFF</span><i>→</i><span>👤 Users · 📦 Orders · 💳 Payments</span></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Up: each client gets its own shape, with plain REST</b>No schema, no query parsing, and each frontend team can own its BFF.</li>
+    <li><b class="hd">1️⃣ Down: one more service per client type</b>Three client types = three BFFs to build, deploy and watch.</li>
+    <li><b class="hd">2️⃣ Down: shared logic gets copied between BFFs</b>Keep the BFF thin: shape the data, leave the rules in the services.</li>
+    <li><b class="hd">⭐ Pick: a few clients with stable screens → BFF · many clients or fast-changing screens → GraphQL</b></li>
+  </ul>
+  <p class="ana">🛍️ A BFF is a personal shopper per kind of customer: they fetch what you need and hand you one bag. GraphQL is a self-service counter: you write your own list. <span class="add">➕ analogy</span></p>
 
   <h4>🧬 GraphQL schema and the N+1 trap</h4>
   <p class="bridge">With GraphQL you design a <b>schema</b> (types and how they relate) instead of endpoints. Relationships live in the schema, so a client can follow Event → Venue in one query.</p>
@@ -2839,6 +2880,13 @@ message Event {
   <div class="pills"><span>⚡ Performance is critical</span><span>🛡️ Type safety matters</span><span>🔁 Service-to-service calls</span><span>🌊 Streaming (gRPC is bidirectional)</span><span>🌐 Polyglot services</span></div>
   <div class="flow"><span>📱 Mobile / web</span><i>→ REST →</i><span>🚪 Public API</span><i>→ gRPC →</i><span>🎟️ Booking · 💳 Payment · 📦 Inventory</span></div>
   <div class="info"><b>ℹ️ Note</b> Unless asked, you won't lay out internal APIs in the API step. Show only the user-facing ones; at most, say in the high-level design that internal services talk over RPC.</div>
+  <h5>⚖️ gRPC behind an ALB, not an NLB <span class="add">➕ from the drill</span></h5>
+  <p class="bridge">gRPC keeps <b>one long HTTP/2 connection</b> open and sends many calls over it. So the load balancer must spread <b>calls</b>, not connections.</p>
+  <div class="grid2">
+    <div class="k-red"><b>❌ NLB (layer 4)</b><div class="star">Balances connections</div><div class="chk">One connection → one server, for good</div><div class="chk">All of that client's calls hit the same box; others sit idle</div></div>
+    <div class="k-green"><b>✅ ALB (layer 7)</b><div class="star">Reads HTTP/2, balances each call</div><div class="chk">Calls on one connection spread across all servers</div><div class="chk">Supports gRPC target groups <span class="aws">☁️ AWS ALB</span></div></div>
+  </div>
+  <p class="ana">🍽️ An NLB gives each table one waiter for the whole night, however much they order. An ALB sends every single dish to whichever cook is free. <span class="add">➕ analogy</span></p>
 
   <div class="learned">
     <h4>💬 What we learned from the comments</h4>
@@ -2919,8 +2967,20 @@ Idempotency-Key: 8e03978e-740c-4c2e-abd1-52f427d5c177
 { "tickets": [{"section": "VIP", "quantity": 2}] }</pre>
   <div class="seq" data-seq="idem"></div>
   <p>The client makes one unique key per logical operation. The server stores <b>key → result</b>; a retry with the same key gets the stored response. Same key, same result, no double charge. That's how <a href="https://docs.stripe.com/api/idempotent_requests">Stripe</a> handles payment retries.</p>
+  <p class="bridge">🧠 <b>What the server does with the key</b> <span class="add">➕ from the drill</span><br>1️⃣ Look up the key<br>2️⃣ Found → return the stored result, and do nothing again<br>3️⃣ Not found → do the work, then save key → result (Stripe keeps keys for at least 24 hours)</p>
+  <div class="rem"><b>🛠️ Fix double charges on the server, not in the app</b> <span class="add">➕ from the drill</span> A server change ships in minutes. An app change waits for store review and for users to update (weeks), and old app versions keep retrying meanwhile.</div>
   <p class="ana">🧾 Like an order number on a form: send it twice and the shop says "already have order #8e03, here's your receipt" instead of making a second order. <span class="add">➕ analogy not in the article</span></p>
   <p>🎤 ⭐ Raising this whenever your design has payments, bookings or orders is a <b>strong signal</b>: you think about failures, not just the happy path.</p>
+
+  <h4>🪝 Webhooks: the server calls you</h4>
+  <p class="bridge"><span class="add">➕ from the drill</span> Polling asks "anything new?" again and again. A webhook turns it around: you give a provider a URL, and it POSTs to you when something happens (Stripe: "payment succeeded").</p>
+  <div class="vflow"><div class="bx">1️⃣ Register: you give the provider your URL<small>https://shop.com/hooks/stripe</small></div><div class="ar">⬇️</div><div class="bx">2️⃣ Event: the provider POSTs the event as JSON to that URL</div><div class="ar">⬇️</div><div class="bx">3️⃣ Reply 200 fast: queue the work, do it later<small>a slow reply looks like a failure and gets retried</small></div></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔏 Check the signature before you trust it</b>Anyone can POST to your URL. The provider signs the body with a shared secret (HMAC); you check the signature first.</li>
+    <li><b class="hd">🆔 Dedupe by event id</b>Delivery is at least once, so the same event can arrive twice. Store the ids you've handled and skip repeats.</li>
+    <li><b class="hd">🔁 The sender retries per receiver, with backoff</b>If one receiver is down, only its deliveries wait; everyone else keeps getting theirs. When it seems back, send one probe first, then drain the backlog slowly so you don't knock it over again.</li>
+  </ul>
+  <p class="ana">🔔 Polling is checking your letterbox every minute. A webhook is a doorbell: the courier rings when a parcel arrives. You still check the parcel's seal (signature) and don't sign for the same parcel twice (event id). <span class="add">➕ analogy</span></p>
 
   <h4>🧯 Consistent error responses</h4>
   <p class="bridge">The status code gives the category. The body says what actually happened, in the same envelope on every endpoint.</p>
@@ -3016,6 +3076,7 @@ GET /bookings/{id}
   <p class="bridge">Even a valid user can send too much, on purpose or by bug. Rate limiting caps requests per time window.</p>
   <div class="pills"><span>👤 1,000 / hour per user</span><span>🌐 100 / hour per IP (not logged in)</span><span>🎟️ 10 bookings / min (stops scalpers)</span></div>
   <p>🧱 Usually done at the API gateway or in middleware. <span class="aws">☁️ API Gateway throttling · AWS WAF rate-based rules</span> Over the limit → <b>429 Too Many Requests</b>. 🔗 <button type="button" class="gl-link" data-g="ratelimit">Rate limiting</button></p>
+  <p>🔁 <b>Tell the client when to come back</b> <span class="add">➕ from the drill</span><br>1️⃣ The 429 (or a 503) carries <code>Retry-After: 30</code>: wait 30 seconds<br>2️⃣ Still limited? Back off exponentially: 1, 2, 4, 8 s<br>3️⃣ Add jitter, so thousands of blocked clients don't all return in the same second (<a href="#sd-net-latency-failures--timeouts-and-retries-with-backoff">backoff and jitter</a>)</p>
   <p class="ana">🎢 A theme-park turnstile: a set number per minute. Over the limit, you wait, so the ride never jams. <span class="add">➕ analogy not in the article</span></p>
   <div class="info"><b>ℹ️ Note</b> Mention it, don't design the algorithm unless asked: <i>"we'll rate limit to prevent abuse"</i> is usually enough.</div>
 
@@ -5274,6 +5335,13 @@ function owner(key) {
   </ul>
   <p class="ana">📋 The capacity chart on the kitchen wall: the fridge holds this much, the storeroom that much, one cook plates this many per minute. Check it before you order a second storeroom.</p>
 
+  <h5>🧮 Three formulas for quick maths <span class="add">➕ from the drill</span></h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📈 Rate = count ÷ interval</b>10 million users each send a heartbeat every 30 s → 10,000,000 ÷ 30 ≈ <b>333k per second</b>.</li>
+    <li><b class="hd">🔍 0.1% = ÷ 1,000 (not ÷ 10)</b>0.1% of 333k/s ≈ 333/s. For comparison: 1% = ÷ 100, 10% = ÷ 10.</li>
+    <li><b class="hd">🖥️ Servers = load ÷ (capacity × target %), then check losing an AZ</b>1️⃣ Peak 600k requests/s, one server does 50k/s, run it at 60% → 600k ÷ (50k × 0.6) = 600k ÷ 30k = <b>20 servers</b><br>2️⃣ Spread over 3 AZs → 7 each (21 in total)<br>3️⃣ Lose one AZ → 14 left → 600k ÷ (14 × 50k) = 86% busy: hot, but still up ✅. Over 100%? Add servers.</li>
+  </ul>
+  <p class="ana">🚌 A bus depot runs its buses 60% full on a normal day, so when one depot closes, the other depots' buses can take its riders. <span class="add">➕ analogy</span></p>
   <h4>🚫 Common Mistakes In Interviews</h4>
   <p class="bridge">Three mistakes, all caused by wrong estimates.</p>
   <h5>🧩 Premature sharding</h5>
@@ -7771,6 +7839,18 @@ const GLOSSARY = [
   { id: 'fwstate', t: 'Stateful vs stateless firewall', ctx: 'Firewall', aka: 'stateful stateless security group nacl network acl ephemeral port reply connection tracking', s: 'Stateful remembers each connection and lets its reply back in. Stateless checks every packet alone, so replies need their own rule.',
     an: 'Pizza: the building watchman heard you order, so he lets the delivery guy in (stateful). The society gate guard only has a printed list, so the delivery guy is stopped unless the list allows delivery (stateless).',
     b: '<p>🧪 <b>Test:</b> allow only outbound 443. Does the reply (to your random port, e.g. 50123) get back in?</p><table><tr><th></th><th>Reply gets in?</th></tr><tr><td>🔐 Security Group (stateful)</td><td>✅ yes, it remembers the call</td></tr><tr><td>🚧 NACL (stateless)</td><td>❌ only with a rule for 1024–65535</td></tr></table><p>Forget that rule and requests time out, though they reached the server.</p>', see: ['port', 'stateless'] },
+  { id: 'bff', t: 'BFF (Backend for Frontend)', aka: 'backend for frontend mobile web api gateway per client', s: 'One small backend per client type that calls the services and returns exactly what that client\'s screens need.',
+    an: 'A personal shopper per kind of customer: they fetch what you need and hand you one bag.',
+    b: '<p>📱 Mobile BFF and 💻 Web BFF both call Users, Orders, Payments, but each returns its own shape.</p><p>✅ Plain REST, each team owns its BFF. ❌ One more service per client type; keep it thin.</p><p>Few clients, stable screens → BFF. Many clients, changing screens → GraphQL.</p>', see: ['http'] },
+  { id: 'etag', t: 'ETag and Cache-Control', aka: 'etag cache-control if-none-match 304 not modified max-age http caching headers', s: 'Cache-Control says how long a copy may be reused; an ETag is a version tag so "has it changed?" returns 304 with no body.',
+    an: 'Cache-Control is the use-by date on the milk. An ETag is asking the shop "still batch 42?"',
+    b: '<p><code>Cache-Control: public, max-age=60</code> → reuse for 60 s, no request.</p><p>Then: send <code>If-None-Match: "v42"</code> → <code>304 Not Modified</code> (no body) or <code>200</code> + new ETag.</p>', see: ['cdn', 'clientcache'] },
+  { id: 'webhook', t: 'Webhook', aka: 'webhook callback url event push http post signature', s: 'The provider POSTs an event to a URL you registered, instead of you polling for news.',
+    an: 'A doorbell instead of checking the letterbox every minute.',
+    b: '<p>1️⃣ Register your URL<br>2️⃣ The provider POSTs the event<br>3️⃣ Reply 200 fast, queue the work</p><p>Check the HMAC signature, dedupe by event id (at-least-once), and expect retries with backoff.</p>', see: ['idem'] },
+  { id: 'ttfb', t: 'Time to first byte (TTFB)', aka: 'ttfb rtt round trips handshake latency', s: 'How long until the first byte of the answer arrives: round trips × RTT, plus server time.',
+    an: 'Each round trip is a letter there and back; a new connection needs three before the reply starts.',
+    b: '<p>New HTTPS: TCP 1 + TLS 1.3 1 + request 1 = 3 round trips. At 200 ms each ≈ 600 ms.</p><p>Fixes: keep-alive, HTTP/3, servers near users.</p>', see: ['tcp', 'tls', 'cdn'] },
   { id: 'stateless', t: 'Stateless API', aka: 'stateless stateful session server memory scaling', s: 'Every request carries everything needed; the server remembers nothing between requests.',
     an: 'You show your ticket at every gate, so any guard can let you in. Stateful = only the guard who saw you earlier remembers you.',
     b: '<p>🧪 <b>Test:</b> send request 2 to a different server than request 1. Still works? Stateless.</p><p>Why it matters: any server can take any request, so scaling out is just "add servers behind the load balancer". Tokens like JWTs carry the "who" with each request.</p>', see: ['jwt', 'session'] },
@@ -8268,7 +8348,7 @@ const GLOSSARY = [
     eavesdrop: /eavesdrop(?:ping)?/i, mitm: /man-in-the-middle|MITM/i, auth: /authentication|authorization|auth[NZ]/i,
     'stub-rpc': /stubs?/i, jwt: /JWTs?/, session: /session IDs?/i, idem: /idempoten(?:t|cy)/i,
     updown: /upstream|downstream/i, n1: /N\+1/, protobuf: /protocol buffers|protobuf/i, grpcweb: /gRPC-Web/, apikey: /API keys?/,
-    oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, fwstate: /stateful firewalls?|stateless firewalls?|connection tracking/i, stateless: /stateless/i, rbac: /RBAC/,
+    oauth: /OAuth(?: ?2(?:\.0)?)?/, cursor: /cursors?/i, fwstate: /stateful firewalls?|stateless firewalls?|connection tracking/i, bff: /\bBFFs?\b|Backend for Frontend/i, etag: /\bETags?\b|Cache-Control/, webhook: /webhooks?/i, ttfb: /time to first byte|TTFB/i, stateless: /stateless/i, rbac: /RBAC/,
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, routetable: /route tables?/i, dnsrec: /DNS records?|\bCNAMEs?\b/, r53resolver: /Route 53 Resolver/, route53: /Route 53(?! (?:private|public) hosted| Resolver)/, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting|cache key fan-?out/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
