@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production Postmortems</title>
+<link rel="stylesheet" href="../css/hub.css">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* Same look as paper-club.html: tokens from ../css/hub.css (dark by default, light under
+   data-theme="light"). --g1..--g4 are the four failure themes. */
+:root {
+  --bg: var(--bg-base); --card: var(--bg-elevated); --text: var(--text-primary); --muted: var(--text-muted);
+  --line: var(--border); --chip: var(--accent-dim); --done: var(--green); --reading: var(--yellow); --reread: var(--purple);
+  --g1: #e8590c; --g2: #1c7ed6; --g3: #e03131; --g4: #7048e8;
+  --track: var(--bg-hover); --input: var(--bg-surface);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+header h1 { font-size: 24px; margin: 0 0 4px; }
+header p { margin: 0 0 4px; color: var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+button { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); cursor: pointer; }
+button:hover { border-color: var(--accent); }
+.bar { height: 8px; background: var(--track); border-radius: 99px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.overall, .box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.overall .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+.groups div { font-size: 12px; color: var(--muted); }
+.groups .bar { height: 5px; margin-top: 3px; }
+.box { margin-top: 12px; padding: 0; }
+.box summary { font-weight: 600; }
+.box ol, .box ul { margin: 0; padding: 0 16px 14px 34px; }
+.box li { margin: 6px 0; font-size: 14px; }
+.box a { color: var(--accent); }
+.box .sub { display: block; }
+section { margin-top: 28px; }
+section h2 { font-size: 17px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+section h2 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: auto; }
+section > p { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+section > .bar { height: 4px; margin-bottom: 12px; }
+details.pm { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--grp);
+  border-radius: 10px; margin-bottom: 8px; }
+details.pm[open] { box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+summary::-webkit-details-marker { display: none; }
+.num { font-weight: 700; color: var(--grp); min-width: 26px; }
+.meta { flex: 1; min-width: 0; }
+.title { font-weight: 600; }
+.sub { font-size: 13px; color: var(--muted); }
+.why { font-size: 13px; margin-top: 2px; }
+.unverified { font-size: 12px; color: var(--reading); margin-top: 3px; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; border: 1px solid var(--line); color: var(--muted); }
+.pill.reading { color: var(--reading); border-color: var(--reading); }
+.pill.done { color: var(--done); border-color: var(--done); }
+.ring { flex: none; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 3px solid var(--line);
+  background: var(--card); color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1; }
+.ring.has { border-color: var(--reread); color: var(--reread); }
+.ring.bump { animation: bump .25s; }
+@keyframes bump { 50% { transform: scale(1.2); } }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); padding: 6px 10px; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.revs { font-size: 13px; margin: 0 0 10px; }
+.body { padding: 0 14px 14px 50px; }
+.body a { color: var(--accent); }
+.lesson { margin: 8px 0; font-size: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+.chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: var(--chip); color: var(--accent); text-decoration: none; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (max-width: 560px) {
+  .body { padding-left: 14px; }
+  summary { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔥 Production Postmortems</h1>
+    <p>20 real outages, written up by the teams that lived through them. Grouped by how they broke.</p>
+    <p>Status: Not started → In progress → Done. ⭕ The ring counts how many times you've gone through one: tap it to add one.</p>
+  </header>
+
+  <div class="toolbar">
+    <button id="exportBtn">📤 Export JSON</button>
+    <button id="importBtn">📥 Import JSON</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+    <button id="themeBtn">🌗 Theme</button>
+    <button id="expandBtn">↕️ Expand all</button>
+  </div>
+
+  <div class="overall">
+    <div class="row"><span>Overall progress</span><span id="overallTxt"></span></div>
+    <div class="bar"><span id="overallBar"></span></div>
+    <div class="groups" id="groupBars"></div>
+  </div>
+
+  <details class="box">
+    <summary style="padding:12px 16px">🔍 How to read a postmortem (4 questions)</summary>
+    <ol>
+      <li><b>What was the trigger?</b> The small change or event that started it.</li>
+      <li><b>Why did it spread?</b> What turned one fault into a big outage.</li>
+      <li><b>Why did recovery take so long?</b> Tools, access or knowledge that was missing.</li>
+      <li><b>What did they change after?</b> The fix you can reuse in your own systems.</li>
+    </ol>
+  </details>
+
+  <details class="box">
+    <summary style="padding:12px 16px">🌐 Where to find more</summary>
+    <ul>
+      <li><a href="https://github.com/danluu/post-mortems" target="_blank" rel="noopener">Dan Luu's post-mortems list</a><span class="sub">Hundreds of public postmortems, one line each, grouped by cause.</span></li>
+      <li><a href="https://sre.google/sre-book/postmortem-culture/" target="_blank" rel="noopener">Google SRE book: Postmortem Culture</a><span class="sub">How Google writes blameless postmortems.</span></li>
+      <li><a href="https://aws.amazon.com/premiumsupport/technology/pes/" target="_blank" rel="noopener">AWS Post-Event Summaries</a><span class="sub">Every major AWS outage summary in one place (#7 and #12 come from here).</span></li>
+      <li><a href="https://k8s.af/" target="_blank" rel="noopener">Kubernetes Failure Stories</a><span class="sub">Public Kubernetes outage write-ups, like #19.</span></li>
+    </ul>
+  </details>
+
+  <main id="list"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GROUPS = [
+  { id: 1, emoji: "🚀", name: "A bad change reached everywhere", color: "var(--g1)",
+    note: "A code, config or content push went to every server at once. The blast radius was the whole fleet." },
+  { id: 2, emoji: "🌐", name: "Network and DNS", color: "var(--g2)",
+    note: "The servers were fine; they just couldn't find or reach each other." },
+  { id: 3, emoji: "🗄", name: "Data and human operations", color: "var(--g3)",
+    note: "One command, script or query plan hit far more than intended." },
+  { id: 4, emoji: "🏗", name: "Capacity and hidden limits", color: "var(--g4)",
+    note: "Something ran out (cooling, gateway capacity, a coordination service) under load." }
+];
+
+// n = the number in Adi's original list, so ids stay stable. Root causes are from each
+// write-up; `unverified` marks entries whose link could not be checked by an automated read.
+const INCIDENTS = [
+  { n: 3, g: 1, title: "Knight Capital's 45 minutes", org: "U.S. SEC order", date: "Aug 2012",
+    url: "https://www.sec.gov/litigation/admin/2013/34-70694.pdf", linkLabel: "SEC order (PDF)",
+    why: "A technician didn't copy the new code to 1 of 8 servers. That server ran old, dead code and flooded the market with orders.",
+    lesson: "Deploys must be automated and verified on every host. One missed server is enough.", related: [6, 17] },
+  { n: 11, g: 1, title: "Cloudflare's regex outage", org: "Cloudflare", date: "Jul 2019",
+    url: "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/",
+    why: "One new WAF rule had a badly written regular expression. It backtracked and pushed CPU to 100% on every server.",
+    lesson: "Roll out rules and config in stages, like code. A global instant push has no canary.", related: [5, 9] },
+  { n: 17, g: 1, title: "Fastly's global outage", org: "Fastly", date: "Jun 2021",
+    url: "https://www.fastly.com/blog/summary-of-june-8-outage",
+    why: "A valid customer config change triggered a hidden bug shipped weeks earlier. Most of the network started returning errors.",
+    lesson: "A latent bug waits for the right input. Test with odd but valid configs, not only happy paths.", related: [11, 2] },
+  { n: 6, g: 1, title: "CrowdStrike Channel File 291", org: "CrowdStrike", date: "Jul 2024",
+    url: "https://www.crowdstrike.com/en-us/blog/falcon-content-update-preliminary-post-incident-report/",
+    linkLabel: "Preliminary post-incident review",
+    why: "A bug in the Content Validator let a bad content update through. The Falcon sensor crashed Windows machines (blue screen) worldwide.",
+    lesson: "\"It's only data, not code\" is a trap. Content that code reads needs canaries and staged rollout too.", related: [5, 3] },
+  { n: 5, g: 1, title: "Cloudflare's worst outage since 2019", org: "Cloudflare", date: "Nov 18, 2025",
+    url: "https://blog.cloudflare.com/18-november-2025-outage/",
+    why: "A database permissions change put duplicate rows into a Bot Management feature file. The bigger file broke the software that reads it, network-wide.",
+    lesson: "Validate generated files before you ship them, and fail safe (keep the last good file) when one is bad.", related: [9, 11, 6] },
+  { n: 9, g: 1, title: "Cloudflare, 17 days later", org: "Cloudflare", date: "Dec 5, 2025",
+    url: "https://blog.cloudflare.com/5-december-2025-outage/",
+    why: "A config change to body-parsing logic, made to block an industry-wide vulnerability, broke part of the network.",
+    lesson: "Urgent security fixes still need a staged rollout. Speed and safety pull against each other here.", related: [5, 11] },
+  { n: 2, g: 1, title: "Microsoft 365 goes down for a day", org: "Microsoft (via Microsoft 365 for IT Pros)", date: "Nov 12–13, 2026",
+    url: "https://office365itpros.com/2026/11/16/exchange-online-outage-nov26/", linkLabel: "Microsoft 365 for IT Pros write-up",
+    extra: [{ label: "BleepingComputer report", url: "https://www.bleepingcomputer.com/news/microsoft/microsoft-says-months-old-bug-caused-global-microsoft-365-outage" }],
+    linkNote: "Microsoft's own review is only in the Microsoft 365 Admin Center (not public). These two articles quote it.",
+    why: "A software bug introduced in July surfaced months later. Exchange Online was down for 23 h 50 min.",
+    lesson: "A bug can sleep for months. Ask: what changed recently, and what changed long ago that only now hit a new path?", related: [17] },
+
+  { n: 14, g: 2, title: "GitHub's 43-second partition", org: "GitHub", date: "Oct 2018",
+    url: "https://github.blog/news-insights/company-news/oct21-post-incident-analysis/",
+    why: "Replacing optical equipment cut the link between data centers for 43 seconds. The database failover that followed led to 24 h 11 min of degraded service.",
+    lesson: "Automatic failover across regions can do more harm than a short wait. Know what your failover does with a brief partition.", related: [13, 18] },
+  { n: 13, g: 2, title: "Facebook disappears for 6 hours", org: "Engineering at Meta", date: "Oct 2021",
+    url: "https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/",
+    why: "A command run through the system that manages backbone capacity took the backbone down. Facebook's DNS then dropped off the internet.",
+    lesson: "Don't let your recovery tools depend on the thing that is down. They needed physical access to get back in.", related: [14, 7] },
+  { n: 20, g: 2, title: "Datadog's multi-region outage", org: "Datadog", date: "Mar 2023",
+    url: "https://www.datadoghq.com/blog/2023-03-08-multiregion-infrastructure-connectivity-issue/",
+    why: "A systemd security update was applied automatically to many VMs at once. It broke their networking across several regions.",
+    lesson: "Automatic OS updates are a deploy too. Stagger them, and don't let every region update at the same time.", related: [6, 7] },
+  { n: 7, g: 2, title: "AWS us-east-1 goes dark", org: "Amazon Web Services", date: "Oct 19–20, 2025",
+    url: "https://aws.amazon.com/message/101925/",
+    why: "A latent race condition in DynamoDB's DNS management system left the regional endpoint unresolvable. Many AWS services that depend on DynamoDB failed with it.",
+    lesson: "Map your hidden dependencies. Many \"independent\" services all leaned on one regional DNS record.", related: [12, 4, 13] },
+  { n: 8, g: 2, title: "Azure Front Door", org: "Microsoft", date: "Oct 2025",
+    url: "https://lnkd.in/gtfcYKjS", linkLabel: "Link from the original list",
+    unverified: "Not verified: Microsoft's public status history didn't show this review, and this short link couldn't be checked.",
+    why: "Azure's global edge and CDN layer failed, taking Microsoft 365 and many customer sites with it. Read the review for the cause.",
+    lesson: "A shared front door is a shared single point of failure. Know which of your services sit behind one.", related: [5, 7] },
+
+  { n: 1, g: 3, title: "GitLab deletes its production database", org: "GitLab", date: "Jan 2017",
+    url: "https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/",
+    why: "While fixing replication late at night, an engineer deleted data on the primary database server instead of the replica.",
+    lesson: "A backup you have never restored is not a backup. Test restores on a schedule.", related: [12, 16] },
+  { n: 12, g: 3, title: "The Amazon S3 outage", org: "Amazon Web Services", date: "Feb 2017",
+    url: "https://aws.amazon.com/message/41926/",
+    why: "One input to a maintenance command was entered wrong, and far more servers were removed than intended. S3 in us-east-1 had to restart.",
+    lesson: "Tools should refuse unsafe input: limit how much one command can remove, and remove capacity slowly.", related: [1, 16, 7] },
+  { n: 16, g: 3, title: "Atlassian's two-week outage", org: "Atlassian", date: "Apr 2022",
+    url: "https://www.atlassian.com/blog/how-we-build/post-incident-review-april-2022-outage",
+    why: "A script meant to delete one legacy app was given the IDs of whole customer sites. 775 customers lost access, some for up to 14 days.",
+    lesson: "Prefer soft delete, and practise restoring one customer, not only the whole system.", related: [1, 12] },
+  { n: 10, g: 3, title: "Clerk's query plan flip", org: "Clerk", date: "Feb 2026",
+    url: "https://clerk.com/blog/2026-02-19-system-outage-postmortem",
+    why: "Postgres's automatic analyze refreshed table statistics and the planner switched to a much slower plan for a hot query.",
+    lesson: "The same SQL can suddenly run a different plan. Watch query latency, not only errors.", related: [1] },
+
+  { n: 18, g: 4, title: "Slack's first Monday of the year", org: "Slack Engineering", date: "Jan 2021",
+    url: "https://slack.engineering/slacks-outage-on-january-4th-2021/",
+    why: "Traffic jumped as everyone came back after the holidays. AWS Transit Gateways got overloaded and didn't scale fast enough.",
+    lesson: "Know your known traffic spikes and pre-scale for them. Autoscaling reacts; it doesn't predict.", related: [4, 15] },
+  { n: 15, g: 4, title: "Roblox's 73-hour outage", org: "Roblox", date: "Oct 2021",
+    url: "https://blog.roblox.com/2022/01/roblox-return-to-service-10-28-10-31-2021/",
+    extra: [{ label: "Link from the original list", url: "https://lnkd.in/gs2_FjSf" }],
+    unverified: "Not verified: Roblox's blog blocks automated reads, so this link wasn't checked.",
+    why: "Their service-discovery cluster (Consul) slowed down and everything that depended on it stopped. Read the write-up for the full chain.",
+    lesson: "Your monitoring and recovery must not depend on the system that failed.", related: [19, 13] },
+  { n: 19, g: 4, title: "Reddit's Pi Day outage", org: "Reddit", date: "Mar 2023",
+    url: "https://www.reddit.com/r/RedditEng/comments/11xx5o0/you_broke_reddit_the_piday_outage/",
+    extra: [{ label: "Link from the original list", url: "https://lnkd.in/gutXayhe" }],
+    unverified: "Not verified: Reddit blocks automated reads, so this link wasn't checked.",
+    why: "A Kubernetes cluster upgrade went wrong and took the site down. Read the write-up for the cause and the long rollback.",
+    lesson: "Practise rollback for platform upgrades, not only for app deploys.", related: [15, 20] },
+  { n: 4, g: 4, title: "Coinbase's trading outage", org: "Coinbase (via InfoQ)", date: "May 2026",
+    url: "https://www.infoq.com/news/2026/06/coinbase-aws-failure-postmortem/", linkLabel: "InfoQ write-up",
+    extra: [{ label: "Coinbase's own postmortem", url: "https://www.coinbase.com/en-gb/blog/a-postmortem-of-our-may-7-2026-outage" }],
+    linkNote: "Coinbase's own post couldn't be loaded by an automated check; the InfoQ article links to it.",
+    why: "Several cooling units failed at once in one AWS us-east-1 data hall. Customers couldn't trade for several hours.",
+    lesson: "One data hall is a real failure domain. Spread critical state across zones, and test that failover.", related: [7, 18] }
+];
+
+const STATUSES = ["Not started", "In progress", "Done"];
+const KEY = "postmortems-v1";
+const $ = s => document.querySelector(s);
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+}
+let state = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: page still works */ }
+  progress();
+}
+function get(n) {
+  const s = state[n] || (state[n] = { status: "Not started" });
+  if (!STATUSES.includes(s.status)) s.status = "Not started";
+  return s;
+}
+const revs = n => get(n).revs || 0;
+const isDone = n => get(n).status === "Done";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pillClass = s => ({ "In progress": "reading", Done: "done" }[s] || "");
+const ringLabel = n => `Gone through ${revs(n)} time${revs(n) === 1 ? "" : "s"}. Tap to add one.`;
+const revTxt = n => revs(n) ? `⭕ Gone through ${revs(n)} time${revs(n) === 1 ? "" : "s"}` : "⭕ Not gone through yet. Tap the ring after each pass.";
+const link = (url, label) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`;
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+function render() {
+  const list = $("#list");
+  list.innerHTML = GROUPS.map(G => `<section style="--grp:${G.color}">
+      <h2>${G.emoji} ${esc(G.name)}<small id="grpTxt${G.id}"></small></h2>
+      <p>${esc(G.note)}</p>
+      <div class="bar"><span id="grpBar${G.id}" style="background:${G.color}"></span></div>
+      ${INCIDENTS.filter(p => p.g === G.id).map(card).join("")}
+    </section>`).join("");
+
+  list.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    const n = +b.dataset.n; get(n).status = b.dataset.s; save();
+    const pill = document.getElementById("pill" + n);
+    pill.textContent = b.dataset.s; pill.className = "pill " + pillClass(b.dataset.s);
+    b.parentNode.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  }));
+  // The ring sits inside <summary>, so stop the click from also opening/closing the card.
+  list.querySelectorAll(".ring").forEach(r => r.addEventListener("click", e => {
+    e.preventDefault(); e.stopPropagation();
+    addRev(+r.dataset.n);
+  }));
+  list.querySelectorAll("a.chip").forEach(a => a.addEventListener("click", e => {
+    e.preventDefault();
+    const el = document.getElementById("p" + a.dataset.to);
+    el.open = true; el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+  progress();
+}
+
+function card(p) {
+  const s = get(p.n);
+  const extra = (p.extra || []).map(x => `<br>🔗 ${link(x.url, x.label)}`).join("");
+  return `<details class="pm" id="p${p.n}">
+    <summary>
+      <span class="num">#${p.n}</span>
+      <span class="meta">
+        <div class="title">${esc(p.title)}</div>
+        <div class="sub">${esc(p.org)} · ${esc(p.date)}</div>
+        <div class="why">💥 ${esc(p.why)}</div>
+        ${p.unverified ? `<div class="unverified">⚠️ ${esc(p.unverified)}</div>` : ""}
+      </span>
+      <span class="pill ${pillClass(s.status)}" id="pill${p.n}">${s.status}</span>
+      <button class="ring${revs(p.n) ? " has" : ""}" id="ring${p.n}" data-n="${p.n}" title="${ringLabel(p.n)}" aria-label="${ringLabel(p.n)}">${revs(p.n)}</button>
+    </summary>
+    <div class="body">
+      <div>🔗 ${link(p.url, p.linkLabel || "Open the postmortem")}${extra}</div>
+      ${p.linkNote ? `<div class="sub">ℹ️ ${esc(p.linkNote)}</div>` : ""}
+      <div class="lesson">🧠 <b>Lesson:</b> ${esc(p.lesson)}</div>
+      <div class="controls">Status
+        <span class="seg" role="group" aria-label="Status">${STATUSES.map(x =>
+          `<button data-n="${p.n}" data-s="${x}" aria-pressed="${x === s.status}">${x}</button>`).join("")}</span>
+      </div>
+      <div class="revs" id="revTxt${p.n}">${revTxt(p.n)}</div>
+      <div class="chips">${p.related.map(r => {
+        const q = INCIDENTS.find(x => x.n === r);
+        return `<a class="chip" href="#p${r}" data-to="${r}">#${r} ${esc(q.title)}</a>`;
+      }).join("")}</div>
+    </div>
+  </details>`;
+}
+
+function addRev(n) {
+  const s = get(n);
+  s.revs = revs(n) + 1;
+  save();
+  const r = document.getElementById("ring" + n);
+  r.textContent = revs(n); r.title = ringLabel(n); r.setAttribute("aria-label", ringLabel(n));
+  r.classList.toggle("has", revs(n) > 0);
+  r.classList.remove("bump"); void r.offsetWidth; r.classList.add("bump");
+  document.getElementById("revTxt" + n).textContent = revTxt(n);
+  toast(`⭕ #${n}: gone through ${revs(n)}×`);
+}
+
+function progress() {
+  const done = INCIDENTS.filter(p => isDone(p.n)).length;
+  $("#overallTxt").textContent = `${done} / ${INCIDENTS.length} done`;
+  $("#overallBar").style.width = (done / INCIDENTS.length * 100) + "%";
+  $("#groupBars").innerHTML = GROUPS.map(G => {
+    const items = INCIDENTS.filter(p => p.g === G.id);
+    const d = items.filter(p => isDone(p.n)).length;
+    const pct = d / items.length * 100;
+    const t = document.getElementById("grpTxt" + G.id), b = document.getElementById("grpBar" + G.id);
+    if (t) t.textContent = `${d}/${items.length}`;
+    if (b) b.style.width = pct + "%";
+    return `<div>${G.emoji} ${d}/${items.length}<div class="bar"><span style="width:${pct}%;background:${G.color}"></span></div></div>`;
+  }).join("");
+}
+
+$("#exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: KEY, exported: new Date().toISOString(), state }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  // en-CA formats as YYYY-MM-DD in local time, so the file name shows today's local date.
+  a.href = URL.createObjectURL(blob); a.download = `postmortems-${new Date().toLocaleDateString("en-CA")}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$("#importBtn").onclick = () => $("#importFile").click();
+$("#importFile").onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(txt => {
+    const data = JSON.parse(txt);
+    if (data.app !== KEY || !data.state || typeof data.state !== "object") throw new Error("bad file");
+    state = data.state; save(); render(); toast("✅ Progress imported");
+  }).catch(() => toast("⚠️ Not a valid Postmortems export"));
+  e.target.value = "";
+};
+$("#themeBtn").onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem(KEY + "-theme", root.dataset.theme); } catch (e) {}
+};
+$("#expandBtn").onclick = () => {
+  const all = document.querySelectorAll("details.pm");
+  const open = [...all].some(d => !d.open);
+  all.forEach(d => d.open = open);
+};
+// Follow the hub's theme ('dsa-theme', same origin); inside the hub its theme button rules.
+try {
+  const embedded = window.top !== window.self;
+  const t = (!embedded && localStorage.getItem(KEY + "-theme")) || localStorage.getItem("dsa-theme") || "dark";
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  if (embedded) {
+    $("#themeBtn").style.display = "none";
+    window.addEventListener("storage", e => {
+      if (e.key === "dsa-theme") document.documentElement.dataset.theme = e.newValue === "light" ? "light" : "dark";
+    });
+  }
+} catch (e) {}
+
+render();
+</script>
+<script src="../js/back-button.js"></script>
+</body>
+</html>
