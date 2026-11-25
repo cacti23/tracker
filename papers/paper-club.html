@@ -4,26 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Engineering Paper Club</title>
+<link rel="stylesheet" href="../css/hub.css">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
+/* Surfaces, text, accent and font come from ../css/hub.css, the notebook's tokens (dark by default,
+   light under data-theme="light"). --l1..--l5 are the five difficulty levels. */
 :root {
-  --bg: #f7f6f2; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e4e2dc;
-  --accent: #3b5bdb; --chip: #eef1fb; --done: #2f9e44; --reading: #e67700; --reread: #7048e8;
+  --bg: var(--bg-base); --card: var(--bg-elevated); --text: var(--text-primary); --muted: var(--text-muted);
+  --line: var(--border); --chip: var(--accent-dim); --done: var(--green); --reading: var(--yellow); --reread: var(--purple);
   --l1: #2f9e44; --l2: #e0a800; --l3: #e8590c; --l4: #e03131; --l5: #7048e8;
-  --track: #e9e7e1; --input: #fbfaf7;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
-    --accent: #7c95ff; --chip: #23263a; --track: #2a2a2f; --input: #18181b;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #121214; --card: #1c1c1f; --text: #ececee; --muted: #9a9aa2; --line: #2c2c31;
-  --accent: #7c95ff; --chip: #23263a; --track: #2a2a2f; --input: #18181b;
+  --track: var(--bg-hover); --input: var(--bg-surface);
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  font: 15px/1.5 var(--font-body); -webkit-font-smoothing: antialiased; }
 .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
 header h1 { font-size: 24px; margin: 0 0 4px; }
 header p { margin: 0; color: var(--muted); }
@@ -45,7 +39,7 @@ button:hover { border-color: var(--accent); }
 .sources a { color: var(--accent); }
 .sources .sub { display: block; }
 .skim { font-size: 12px; color: var(--reading); margin-top: 3px; }
-.guide-btn { display: inline-block; margin: 2px 0 8px; padding: 7px 14px; border-radius: 8px; background: var(--accent); color: #fff !important; text-decoration: none; font-weight: 600; font-size: 14px; }
+.guide-btn { display: inline-block; margin: 2px 0 8px; padding: 7px 14px; border-radius: 8px; background: var(--accent); color: var(--on-accent) !important; text-decoration: none; font-weight: 600; font-size: 14px; }
 .guide-tag { font-size: 13px; }
 section { margin-top: 28px; }
 section h2 { font-size: 17px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
@@ -72,7 +66,7 @@ summary::-webkit-details-marker { display: none; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); padding: 6px 10px; }
 .seg button:last-child { border-right: 0; }
-.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .revs { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 0 0 10px; }
 .body { padding: 0 14px 14px 50px; }
 .body a { color: var(--accent); }
@@ -403,8 +397,16 @@ $("#expandBtn").onclick = () => {
 // Follow the tracker's own theme ('dsa-theme', same origin) unless this page has its own override.
 try {
   // The tracker defaults to dark when 'dsa-theme' is unset, so match that when embedded.
-  const t = localStorage.getItem(KEY + "-theme") || localStorage.getItem("dsa-theme") || (window.top !== window.self ? "dark" : null);
+  // Inside the hub its theme button rules, so this page's own override is ignored there.
+  const embedded = window.top !== window.self;
+  const t = (!embedded && localStorage.getItem(KEY + "-theme")) || localStorage.getItem("dsa-theme") || "dark";
   if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  if (embedded) {
+    $("#themeBtn").style.display = "none";
+    window.addEventListener("storage", e => {
+      if (e.key === "dsa-theme") document.documentElement.dataset.theme = e.newValue === "light" ? "light" : "dark";
+    });
+  }
 } catch (e) {}
 
 render();
