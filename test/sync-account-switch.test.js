@@ -112,7 +112,8 @@ async function switchAccounts(confirmAnswer) {
   const asked = []
   let reloads = 0
   const DS = load(ls, { fetch: (u, o) => gh.fetch(u, o) }, {
-    confirm: (msg) => { asked.push(msg); return /^Signed in/.test(msg) ? true : confirmAnswer },
+    // Sign-out's "Also erase…?" is answered Cancel: this is the case where the data stays here.
+    confirm: (msg) => { asked.push(msg); return /^Signed in/.test(msg) ? true : /^Also erase/.test(msg) ? false : confirmAnswer },
     onReload: () => { reloads++ },
   })
   ls.setItem('tracker-sync-token', 'token-adi')
@@ -123,7 +124,7 @@ async function switchAccounts(confirmAnswer) {
   gh = friend
   ls.setItem('tracker-sync-token', 'token-friend')
   DS.syncNow(); await wait(150)
-  return { ls, adi, friend, asked: asked.filter(m => !/^Signed in/.test(m)), reloads }
+  return { ls, adi, friend, asked: asked.filter(m => !/^(Signed in|Also erase)/.test(m)), reloads }
 }
 
 test('another account signing in is asked first; OK loads their own progress and never uploads the old one', async () => {
@@ -145,7 +146,7 @@ test('the same account signing back in is not asked anything', async () => {
   const ls = makeLocalStorage()
   const gh = makeFakeGitHub({ user: { login: 'adi' } })
   const asked = []
-  const DS = load(ls, gh, { confirm: (m) => { asked.push(m); return true } })
+  const DS = load(ls, gh, { confirm: (m) => { asked.push(m); return !/^Also erase/.test(m) } })
   ls.setItem('tracker-sync-token', 't1')
   DS.init({ appId: 'dsa', keys: ['dsa-notes-v1'] })
   ls.setItem('dsa-notes-v1', '{"LC_1":"a"}')
@@ -154,7 +155,7 @@ test('the same account signing back in is not asked anything', async () => {
   ls.setItem('tracker-sync-token', 't2')
   ls.setItem('dsa-notes-v1', '{"LC_1":"a","LC_2":"b"}')
   DS.syncNow(); await wait(80)
-  assert.deepEqual(asked.filter(m => !/^Signed in/.test(m)), [])
+  assert.deepEqual(asked.filter(m => !/^(Signed in|Also erase)/.test(m)), [])
   assert.deepEqual(notesIn(gh), { LC_1: 'a', LC_2: 'b' })
 })
 
@@ -162,7 +163,7 @@ test('a device synced before this change (owner unknown) is not asked, and recor
   const ls = makeLocalStorage()
   const gh = makeFakeGitHub({ user: { login: 'adi' } })
   const asked = []
-  const DS = load(ls, gh, { confirm: (m) => { asked.push(m); return true } })
+  const DS = load(ls, gh, { confirm: (m) => { asked.push(m); return !/^Also erase/.test(m) } })
   ls.setItem('tracker-sync-token', 't1')
   ls.setItem('dsa-sync-meta', JSON.stringify({ lastSyncedAt: 'x', lastLocalHash: 'y' }))
   DS.init({ appId: 'dsa', keys: ['dsa-notes-v1'] })

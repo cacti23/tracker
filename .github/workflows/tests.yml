@@ -1,0 +1,26 @@
+# Runs the whole test suite on every pull request and on main, so a PR shows ✅ or ❌
+# before it is merged. No build step: the site is static, the tests are plain `node --test`.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The browser tests (test/prod-server.js) need Playwright and Chromium. Pinned so a new
+      # release can't change results under us. No package.json, so install it on its own.
+      - run: npm install --no-save --no-package-lock playwright@1.63.0
+      - run: npx playwright install --with-deps chromium
+      - run: node --test test/*.test.js
