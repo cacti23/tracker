@@ -16,18 +16,17 @@ for (const [name, content] of [['JSON null', 'null'], ['no known keys', '{"somet
     const { browser, context } = await openBrowser()
     try {
       const page = await context.newPage()
-      page.on('dialog', d => d.accept())
+      const failed = new Promise(res => page.on('dialog', d => { const m = d.message(); d.accept(); res(m) }))
       await page.goto(base + '/index.html')
       await page.evaluate(() => {
         localStorage.setItem('dsa-presync', '{"savedAt":"1","data":{}}')
         localStorage.setItem('dsa-presync-2', '{"savedAt":"2","data":{}}')
         localStorage.setItem('dsa-presync-3', '{"savedAt":"3","data":{}}')
       })
-      const file = path.join(os.tmpdir(), 'tracker-test-bad-backup.json')
+      const file = path.join(os.tmpdir(), 'tracker-test-bad-backup-' + process.pid + '-' + name.replace(/\W/g, '') + '.json')
       fs.writeFileSync(file, content)
       await page.setInputFiles('#import-file-input', file)
-      await page.waitForTimeout(500)
-      await page.waitForLoadState('load')
+      assert.match(await failed, /Import failed/)
       const snaps = await page.evaluate(() => ['dsa-presync', 'dsa-presync-2', 'dsa-presync-3'].map(k => JSON.parse(localStorage.getItem(k)).savedAt))
       assert.deepEqual(snaps, ['1', '2', '3'])
     } finally { await browser.close(); server.close() }
