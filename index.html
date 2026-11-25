@@ -334,7 +334,10 @@
       padding-left: calc(0.75rem - 2px); /* compensate 3px border */
     }
     .nav-topic-icon { font-size: var(--fs-base); width: 20px; text-align: center; flex-shrink: 0; }
-    .nav-topic-label { flex: 1; }
+    /* A long name ("Stack & Monotonic Stack") truncates instead of pushing the count badge off the
+       sidebar; the full name is in the row's title. */
+    .nav-topic-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #sidebar .nav-link .badge { flex-shrink: 0; }
 
     /* ── EMBEDDED PAGES (Google, Paper Club) ────────────────────────────────────
        The embedded page owns its own scrolling, so the app shell is locked to exactly one
@@ -1749,7 +1752,7 @@ function buildNav() {
   container.innerHTML = TOPICS.map(t => {
     const mod = TOPIC_MODULES[t.key]
     if (!mod) return `
-      <button type="button" id="nav-${t.key}" onclick="loadTopic('${t.key}')" class="nav-link">
+      <button type="button" id="nav-${t.key}" onclick="loadTopic('${t.key}')" class="nav-link" title="${escHtml(t.label)}">
         <span class="nav-topic-icon">${t.icon}</span>
         <span class="nav-topic-label">${t.label}</span>
       </button>

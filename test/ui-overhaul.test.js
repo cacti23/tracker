@@ -103,3 +103,10 @@ test('design tokens: every text colour token is defined for both themes, and no 
   const tiny = [...html.matchAll(/font-size:\s*([0-9.]+)(rem|px)/g)].filter(m => (m[2] === 'px' ? +m[1] : +m[1] * 16) < 12)
   assert.deepEqual(tiny.map(m => m[0]), [], 'use the --fs-* scale (smallest 12px)')
 })
+
+test('a long topic name truncates in the sidebar so its count badge stays inside', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+  assert.match(html, /\.nav-topic-label \{[^}]*min-width: 0;[^}]*text-overflow: ellipsis;[^}]*white-space: nowrap;/)
+  assert.match(html, /#sidebar \.nav-link \.badge \{ flex-shrink: 0; \}/)
+  assert.match(html, /class="nav-link" title="\$\{escHtml\(t\.label\)\}"/, 'the full name stays available on hover')
+})
