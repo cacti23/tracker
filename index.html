@@ -229,7 +229,7 @@
     .sidebar-gym-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
     /* DSA | System Design switch: one named mode on <body data-hub-mode>, set by setHubMode(). */
     .hub-switch {
-      display: flex; gap: 0.25rem; margin: 0 0.7rem 0.6rem; padding: 0.2rem;
+      display: flex; gap: 0.25rem; margin-top: 0.5rem; padding: 0.2rem;
       border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-hover);
     }
     .hub-switch button {
@@ -285,7 +285,7 @@
     body.embed-view > .d-flex { height: 100vh; }
     body.embed-view #main-col { min-height: 0; height: 100vh; }
     body.embed-view main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals, body.embed-view #view-page { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals, body.embed-view #view-page, body.embed-view #view-sysdesign { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .embed-frame { width: 100%; flex: 1 1 auto; min-height: 0; height: calc(100vh - 8rem);
       border: 1px solid var(--border, #2a2f3d); border-radius: 12px; background: transparent; }
     /* Google is one page now: no box, no empty tab-row gap, so it fills the space like the dashboard */
@@ -1129,12 +1129,12 @@
       <button type="button" id="dataAccountBtn" class="sidebar-data-btn sidebar-account-btn" onclick="DataSync.account()">
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="flex:none"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="ds-account-label">Sign in with GitHub</span>
       </button>
-    </div>
-
-    <!-- Two notebooks; the sidebar shows the picked one's pages (data-hub), shared pages have none. -->
-    <div class="hub-switch" role="group" aria-label="Notebook">
-      <button type="button" data-mode="dsa" aria-pressed="true" onclick="switchHub('dsa')">🧩 DSA</button>
-      <button type="button" data-mode="sd" aria-pressed="false" onclick="switchHub('sd')">🏛️ System Design</button>
+      <!-- Two notebooks; the sidebar shows the picked one's pages (data-hub), shared pages have none.
+           Inside the account box so the box's bottom line sits under both, not between them. -->
+      <div class="hub-switch" role="group" aria-label="Notebook">
+        <button type="button" data-mode="dsa" aria-pressed="true" onclick="switchHub('dsa')">🧩 DSA</button>
+        <button type="button" data-mode="sd" aria-pressed="false" onclick="switchHub('sd')">🏛️ System Design</button>
+      </div>
     </div>
 
     <nav class="flex-grow-1 p-2 pb-3 overflow-auto sidebar-nav">
@@ -1195,7 +1195,7 @@
     </a>
     </details>
 
-    <div class="sidebar-footer">v579 · Interview Prep Hub</div>
+    <div class="sidebar-footer">v580 · Interview Prep Hub</div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
@@ -1274,6 +1274,10 @@
       <!-- ── VIEW: Study page ── rendered by loadEmbed() for DSA Thoughts, JS Built-ins and Study Sites (one frame). -->
       <div id="view-page" class="d-none">
         <iframe id="page-frame" class="embed-frame" title="Study page"></iframe>
+      </div>
+      <!-- Its own frame: the notes are ~1 MB, so they stay loaded while you visit other pages. -->
+      <div id="view-sysdesign" class="d-none">
+        <iframe id="sysdesign-frame" class="embed-frame" title="System Design notes"></iframe>
       </div>
 
     </main>
@@ -1869,7 +1873,7 @@ const EMBEDS = {
   thoughts:   { view: 'view-page',    frame: 'page-frame',    title: '🧠 DSA Thoughts', src: 'dsa/dsa-thoughts.html' },
   jsbuiltins: { view: 'view-page',    frame: 'page-frame',    title: '📋 JS Built-ins', src: 'dsa/js-builtins.html' },
   sites:      { view: 'view-page',    frame: 'page-frame',    title: '🔖 Study Sites',  src: 'dsa/study-sites.html' },
-  sysdesign:  { view: 'view-page',    frame: 'page-frame',    title: '🏛️ System Design', src: 'sysdesign/system-design.html', hub: 'sd' },
+  sysdesign:  { view: 'view-sysdesign', frame: 'sysdesign-frame', title: '🏛️ System Design', src: 'sysdesign/system-design.html', hub: 'sd' },
 }
 for (const k of ['visuals', 'thoughts', 'jsbuiltins']) EMBEDS[k].hub = 'dsa'   // papers and sites are shared
 
@@ -4627,11 +4631,11 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals' || id === 'view-page'
+  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals' || id === 'view-page' || id === 'view-sysdesign'
   document.body.classList.toggle('embed-view', embed)
   // html has smooth scrolling; a scrolled page would shift the locked frame
   if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
-  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page']
+  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign']
   views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
