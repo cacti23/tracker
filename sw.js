@@ -29,7 +29,12 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE).then((c) => c.put(e.request, copy));
         }
         return res;
-      }).catch(() => caches.match(e.request))
+      }).catch(() => caches.match(e.request).then((hit) => {
+        // The first visit to "/" runs before this worker controls the page, so only the
+        // precached index.html is stored, not "/": serve it for a folder URL offline.
+        if (hit || !new URL(e.request.url).pathname.endsWith('/')) return hit;
+        return caches.match(new URL('index.html', e.request.url).href);
+      }))
     );
     return;
   }

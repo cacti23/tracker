@@ -1280,7 +1280,7 @@
       </button>
     </div>
 
-    <div class="sidebar-footer">v573 · DSA Notebook</div>
+    <div class="sidebar-footer">v574 · DSA Notebook</div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
@@ -4948,18 +4948,16 @@ function importData(input) {
   reader.onload = function(e) {
     try {
       const backup = JSON.parse(e.target.result)
-      if (typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Invalid backup format')
+      if (!backup || typeof backup !== 'object' || Array.isArray(backup)) throw new Error('Invalid backup format')
+      // Only restore known keys to avoid arbitrary data injection
+      const keys = BACKUP_KEYS.filter(key => Object.prototype.hasOwnProperty.call(backup, key) && typeof backup[key] === 'string')
+      // Checked before the snapshot: each snapshot pushes out the oldest undo copy.
+      if (!keys.length) throw new Error('It holds none of the notebook\'s data.')
       // Keep the data being replaced, like a sync pull does: it becomes the newest
       // "dsa-presync" snapshot (the older two rotate down).
       DataSync.snapshot()
-      // Only restore known keys to avoid arbitrary data injection
-      let restored = 0
-      BACKUP_KEYS.forEach(key => {
-        if (Object.prototype.hasOwnProperty.call(backup, key) && typeof backup[key] === 'string') {
-          localStorage.setItem(key, backup[key])
-          restored++
-        }
-      })
+      keys.forEach(key => localStorage.setItem(key, backup[key]))
+      const restored = keys.length
       input.value = '' // reset so same file can be re-imported if needed
       alert(`✅ Restored ${restored} data entr${restored === 1 ? 'y' : 'ies'}. The page will now reload.`)
       location.reload()

@@ -432,16 +432,49 @@ function searchGlobalQuestions(query) {
 }
 
 // ─── DAILY QUESTION ─────────────────────────────────────────────────────────
-// Get daily question (randomly selected, persists per day)
-function getDailyQuestion() {
-  const today = new Date().toDateString()
-  const dailyKey = 'dsa-daily-question-' + today
-  let stored = null
+// One pick per day, stored per device (not synced) under 'dsa-daily-question-' + the local
+// date as Date#toDateString() gives it.
+const DAILY_Q_PREFIX = 'dsa-daily-question-'
+function _dailyKey() { return DAILY_Q_PREFIX + new Date().toDateString() }
+function _dailyCandidates(excludeLcKey) {
+  const all = []
+  TOPICS.forEach(topic => {
+    const mod = TOPIC_MODULES[topic.key]
+    if (!mod) return
+    Object.entries(mod.questions).forEach(([lcKey, question]) => {
+      if (lcKey !== excludeLcKey) all.push({ topicKey: topic.key, topicLabel: topic.label, topicIcon: topic.icon, lcKey, question })
+    })
+  })
+  return all
+}
+// Stores today's pick and drops earlier days' keys: each day used to leave one behind forever.
+function _storeDaily(selected) {
+  const today = _dailyKey()
   try {
-    stored = JSON.parse(localStorage.getItem(dailyKey) || 'null')
+    const old = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith(DAILY_Q_PREFIX) && k !== today) old.push(k)
+    }
+    old.forEach(k => localStorage.removeItem(k))
+    localStorage.setItem(today, JSON.stringify({
+      topicKey: selected.topicKey,
+      topicLabel: selected.topicLabel,
+      topicIcon: selected.topicIcon,
+      lcKey: selected.lcKey
+    }))
   } catch {}
-  
-  // If we already selected one today, return it
+  return { ...selected, status: getStatus(selected.lcKey), isToday: true }
+}
+function _pickDaily(excludeLcKey) {
+  const all = _dailyCandidates(excludeLcKey)
+  return all.length ? _storeDaily(all[Math.floor(Math.random() * all.length)]) : null
+}
+
+// Today's question: the stored pick if it still exists, else a new random one.
+function getDailyQuestion() {
+  let stored = null
+  try { stored = JSON.parse(localStorage.getItem(_dailyKey()) || 'null') } catch {}
   if (stored && stored.lcKey) {
     const topicMod = TOPIC_MODULES[stored.topicKey]
     if (topicMod && topicMod.questions[stored.lcKey]) {
@@ -456,88 +489,11 @@ function getDailyQuestion() {
       }
     }
   }
-  
-  // Otherwise, pick a random question
-  const allQuestions = []
-  TOPICS.forEach(topic => {
-    const mod = TOPIC_MODULES[topic.key]
-    if (!mod) return
-    Object.entries(mod.questions).forEach(([lcKey, question]) => {
-      allQuestions.push({
-        topicKey: topic.key,
-        topicLabel: topic.label,
-        topicIcon: topic.icon,
-        lcKey,
-        question
-      })
-    })
-  })
-  
-  if (allQuestions.length === 0) return null
-  
-  const rnd = Math.floor(Math.random() * allQuestions.length)
-  const selected = allQuestions[rnd]
-  
-  // Store for today
-  try {
-    localStorage.setItem(dailyKey, JSON.stringify({
-      topicKey: selected.topicKey,
-      topicLabel: selected.topicLabel,
-      topicIcon: selected.topicIcon,
-      lcKey: selected.lcKey
-    }))
-  } catch {}
-  
-  return {
-    ...selected,
-    status: getStatus(selected.lcKey),
-    isToday: true
-  }
+  return _pickDaily()
 }
 
-// Get a random daily question excluding a specific one
-function getRandomDailyQuestion(excludeLcKey) {
-  const allQuestions = []
-  TOPICS.forEach(topic => {
-    const mod = TOPIC_MODULES[topic.key]
-    if (!mod) return
-    Object.entries(mod.questions).forEach(([lcKey, question]) => {
-      // Skip the excluded question
-      if (lcKey !== excludeLcKey) {
-        allQuestions.push({
-          topicKey: topic.key,
-          topicLabel: topic.label,
-          topicIcon: topic.icon,
-          lcKey,
-          question
-        })
-      }
-    })
-  })
-  
-  if (allQuestions.length === 0) return null
-  
-  const rnd = Math.floor(Math.random() * allQuestions.length)
-  const selected = allQuestions[rnd]
-  
-  // Store as today's new selection
-  const today = new Date().toDateString()
-  const dailyKey = 'dsa-daily-question-' + today
-  try {
-    localStorage.setItem(dailyKey, JSON.stringify({
-      topicKey: selected.topicKey,
-      topicLabel: selected.topicLabel,
-      topicIcon: selected.topicIcon,
-      lcKey: selected.lcKey
-    }))
-  } catch {}
-  
-  return {
-    ...selected,
-    status: getStatus(selected.lcKey),
-    isToday: true
-  }
-}
+// A different random question, stored as today's new pick.
+function getRandomDailyQuestion(excludeLcKey) { return _pickDaily(excludeLcKey) }
 
 // ─── TOPIC MODULE REGISTRY ──────────────────────────────────────────────────
 // SOLID / EXTENSIBILITY CONTRACT
