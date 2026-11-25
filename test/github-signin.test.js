@@ -133,11 +133,48 @@ test('sync.js leaves other URL fragments alone', () => {
   assert.deepEqual(replaced, [])
 })
 
-test('⚙ with no token offers Sign in with GitHub first and sends the page to the sign-in function', () => {
+function fakeAccountBtn() {
+  const classes = new Set(), label = { textContent: '' }
+  return { label, title: '', querySelector: (sel) => (sel === '.ds-account-label' ? label : null),
+    classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) } }
+}
+
+test('the separate account button signs in when signed out', () => {
   const { sandbox, location } = loadSync('')
+  const btn = fakeAccountBtn()
+  sandbox.document.getElementById = (id) => (id === 'dataAccountBtn' ? btn : null)
   sandbox.DataSync.init({ appId: 'habits', keys: [] })
-  assert.equal(sandbox.DataSync.setToken(), false)
+  assert.equal(btn.label.textContent, 'Sign in with GitHub')
+  assert.equal(btn.classList.contains('ds-token-set'), false)
+  sandbox.DataSync.account()
   assert.equal(location.href, '/api/github-oauth?return=%2Fapps%2Fhabits.html')
+})
+
+test('after sign-in the account button shows the GitHub username, and tapping it signs out', async () => {
+  const { sandbox, localStorage } = loadSync('#tracker-signin=gho_abc', { user: 'octo' })
+  const btn = fakeAccountBtn()
+  sandbox.document.getElementById = (id) => (id === 'dataAccountBtn' ? btn : null)
+  sandbox.DataSync.init({ appId: 'habits', keys: [] })
+  await new Promise((r) => setTimeout(r, 20))
+  assert.equal(btn.label.textContent, '@octo')
+  assert.equal(btn.classList.contains('ds-token-set'), true)
+  sandbox.DataSync.account()   // confirm() → true: sign out
+  assert.equal(localStorage.getItem('tracker-sync-token'), null)
+  assert.equal(btn.label.textContent, 'Sign in with GitHub')
+})
+
+test('⚙ stays the manual paste-a-token path and never starts a sign-in', () => {
+  const { sandbox, location } = loadSync('')
+  sandbox.prompt = () => null
+  sandbox.DataSync.init({ appId: 'habits', keys: [] })
+  sandbox.DataSync.setToken()
+  assert.equal(location.href, 'https://t.example/apps/habits.html')
+})
+
+test('every synced page has the separate Sign in with GitHub button', () => {
+  for (const f of ['index.html', 'apps/habits.html', 'apps/gym-5day.html']) {
+    assert.match(fs.readFileSync(path.join(ROOT, f), 'utf8'), /id="dataAccountBtn"[^>]*onclick="DataSync\.account\(\)"/, f)
+  }
 })
 
 test('the main service worker never caches the sign-in function', () => {

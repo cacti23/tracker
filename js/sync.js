@@ -26,6 +26,7 @@
 
   var TOKEN_KEY  = 'tracker-sync-token';
   var GISTID_KEY = 'tracker-sync-gistid';
+  var LOGIN_KEY  = 'tracker-sync-login';   // GitHub username, only for the account button's label
   var GIST_DESC  = 'tracker-sync-v1';
   var API        = 'https://api.github.com';
   var DAY_MS     = 24 * 60 * 60 * 1000;
@@ -628,8 +629,32 @@
   // "is this device already wired up, or do I still need to paste a token?"
   function refreshBtnState() {
     var b = getTokenBtn();
-    if (!b) return;
-    b.classList.toggle('ds-token-set', !!getToken());
+    if (b) b.classList.toggle('ds-token-set', !!getToken());
+    // The account button (id="dataAccountBtn", optional .ds-account-label inside) is the
+    // one place to sign in or out; its label is derived from the stored token and login.
+    var a = document.getElementById('dataAccountBtn');
+    if (!a) return;
+    var login = localStorage.getItem(LOGIN_KEY);
+    var label = !getToken() ? 'Sign in with GitHub' : login ? '@' + login : 'Signed in';
+    var span = a.querySelector ? a.querySelector('.ds-account-label') : null;
+    if (span) span.textContent = label; else a.textContent = label;
+    a.classList.toggle('ds-token-set', !!getToken());
+    a.title = getToken() ? 'Synced with GitHub' + (login ? ' as @' + login : '') + '. Tap to sign out on this device.' : 'Sign in with GitHub to sync across your devices';
+  }
+  function rememberLogin(login) {
+    if (login) localStorage.setItem(LOGIN_KEY, login);
+    refreshBtnState();
+  }
+
+  // Account button: signed out → Sign in with GitHub; signed in → offer to sign out.
+  function account() {
+    if (!getToken()) return startSignIn();
+    var login = localStorage.getItem(LOGIN_KEY);
+    if (!confirm('Signed in' + (login ? ' as @' + login : '') + '.\n\nSign out on this device? Your data stays here and in your gist.')) return;
+    setTokenValue('');
+    localStorage.removeItem(GISTID_KEY);
+    localStorage.removeItem(LOGIN_KEY);
+    refreshBtnState();
   }
 
   // ── Sign in with GitHub ────────────────────────────────────────────────
@@ -649,6 +674,7 @@
     if (!value) return;
     setTokenValue(value);
     localStorage.removeItem(GISTID_KEY);   // re-resolve the gist for this account
+    localStorage.removeItem(LOGIN_KEY);
     signIn.done = true;
   }
   takeSignInFromUrl();
@@ -669,29 +695,24 @@
     if (!signIn.done) return;
     signIn.done = false;
     api('/user').then(function (u) {
+      rememberLogin(u.login);
       if (typeof alert === 'function') alert('Signed in with GitHub as @' + u.login + '. Syncing now.\n\nEvery device you sync on must show this same username.');
     }, function () {}).then(syncNow);
   }
 
-  // ── token entry ────────────────────────────────────────────────────────
-  // No token yet: offer Sign in with GitHub first; pasting a token stays as the fallback.
-  // A token already set: paste a new one or leave blank to sign out (clear it).
+  // ── token entry (the manual alternative to Sign in with GitHub) ─────────
   function setToken() {
-    if (!getToken() && typeof confirm === 'function' &&
-        confirm('Sign in with GitHub to sync this tracker across your devices?\n\nOK: sign in with GitHub\nCancel: paste a token instead')) {
-      startSignIn();
-      return false;
-    }
     var t = prompt(
       'Paste your GitHub token.\n\n' +
       'Fine-grained PAT with "Gists" read+write (or a classic token with the "gist" scope).\n' +
-      'Stored only in this browser, never in the repo. Leave blank to clear (sign out on this device).',
+      'Stored only in this browser, never in the repo. Leave blank to clear.',
       ''
     );
     if (t === null) return false;          // cancelled
     t = t.trim();
     setTokenValue(t);
     localStorage.removeItem(GISTID_KEY);   // re-resolve gist for the new token/account
+    localStorage.removeItem(LOGIN_KEY);
     refreshBtnState();
     // Surface WHICH GitHub account this token belongs to. The #1 cause of "I added
     // a token, synced, but my old data never shows up" is a token for a different
@@ -700,6 +721,7 @@
     // across devices to confirm they're pointed at the same account.
     if (t && typeof alert === 'function') {
       api('/user').then(function (u) {
+        rememberLogin(u.login);
         alert('Token saved — connected to GitHub as @' + u.login + '.\n\nMake sure every device you sync this tracker on shows the SAME username here, or they will not share data.');
       }).catch(function (e) {
         alert('Token saved, but a test request to GitHub failed: ' + e.message + '\n\nDouble-check the token has "Gists" read+write permission.');
@@ -880,6 +902,7 @@
     syncNow: syncNow,
     setToken: setToken,
     signIn: startSignIn,
+    account: account,
     autoSync: autoSync,
     pushSoon: pushSoon,
     pullLatest: pullLatest,
