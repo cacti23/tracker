@@ -10,7 +10,7 @@ Personal tracker for DSA interview prep, plus a few small side apps. It's a plai
 | `js/data.js` | Topic and question data, plus the localStorage helpers for progress, notes and revision state. |
 | `js/sync.js` | Cross-device sync through a private GitHub gist. Shared by every app. |
 | `js/back-button.js` | Floating "← Tracker" pill on every standalone page (`dsa/`, `apps/`, `google/`, `visuals/`, `sysdesign/`). |
-| `dsa/*.html` | One cheatsheet per topic, plus the master map, thoughts and JS built-ins pages. |
+| `dsa/*.html` | One cheatsheet per topic, plus the thoughts, JS built-ins and study sites pages. |
 | `google/*.html` | Google prep hub and the onsite log (interview sources are an accordion at its top). They're shown inside the main app's Google view. |
 | `visuals/visuals.html` | Image cheat sheets (inline SVG cards, one picture per idea). Shown inside the main app's Visuals view. |
 | `sysdesign/system-design.html` | System design notes, one card per topic. Linked from the sidebar bottom. |
