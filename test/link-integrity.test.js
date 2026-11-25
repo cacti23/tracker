@@ -104,12 +104,13 @@ test('index.html stays at the repo root and loads js/data.js + js/sync.js from t
 
 test('index.html links out to every moved sub-app with the correct folder prefix', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  // DSA Thoughts, JS Built-ins and Study Sites open in-pane (EMBEDS, see study-tools-inpane.test.js).
+  for (const f of ['dsa/dsa-thoughts.html', 'dsa/js-builtins.html', 'dsa/study-sites.html']) {
+    assert.ok(html.includes(`src: '${f}'`), `EMBEDS should embed ${f}`)
+    assert.ok(fs.existsSync(path.join(ROOT, f)), `${f} should exist`)
+  }
   const expectedLinks = [
-    'dsa/dsa-master-map.html',
-    'dsa/dsa-thoughts.html',
-    'dsa/js-builtins.html',
     'sysdesign/system-design.html',
-    'dsa/study-sites.html',
     'apps/gym-5day.html',
     'apps/habits.html',
   ]

@@ -109,12 +109,14 @@ function loadApp() {
 function statefulElement(id) {
   const noop = () => {}
   let html = ''
+  const attrs = new Map()
   return {
     id,
     style: {}, dataset: {}, classList: { add: noop, remove: noop, contains: () => false, toggle: noop },
     addEventListener: noop, removeEventListener: noop, appendChild: noop, remove: noop,
     querySelector: () => null, querySelectorAll: () => [],
-    closest: () => null, setAttribute: noop, getAttribute: () => null,
+    closest: () => null,
+    setAttribute: (k, v) => { attrs.set(k, String(v)) }, getAttribute: (k) => (attrs.has(k) ? attrs.get(k) : null),
     insertAdjacentHTML: noop, click: noop, focus: noop, blur: noop, scrollIntoView: noop,
     get outerHTML() { return html }, set outerHTML(v) { html = v },
     get innerHTML() { return html }, set innerHTML(v) { html = v },

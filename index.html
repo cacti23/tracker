@@ -349,7 +349,7 @@
     body.embed-view > .d-flex { height: 100vh; }
     body.embed-view #main-col { min-height: 0; height: 100vh; }
     body.embed-view main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
-    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    body.embed-view #view-google, body.embed-view #view-papers, body.embed-view #view-visuals, body.embed-view #view-page { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .embed-frame { width: 100%; flex: 1 1 auto; min-height: 0; height: calc(100vh - 8rem);
       border: 1px solid var(--border, #2a2f3d); border-radius: 12px; background: transparent; }
     /* Google is one page now: no box, no empty tab-row gap, so it fills the space like the dashboard */
@@ -1202,29 +1202,25 @@
         <span class="nav-topic-icon">🏠</span>
         <span class="nav-topic-label">Dashboard</span>
       </button>
-      <!-- Study tools, always in view (2026-11-25): the first four open as their own pages; Google, Paper Club and Visuals load in-pane. -->
+      <!-- Study tools, always in view. All open in-pane (loadEmbed); the DSA Master Map was dropped 2026-11-25 (unused). -->
       <p class="sidebar-section-label">Study tools</p>
-      <a href="dsa/dsa-master-map.html" class="nav-link">
-        <span class="nav-topic-icon" aria-hidden="true">🗺️</span>
-        <span class="nav-topic-label">DSA Master Map</span>
-      </a>
-      <a href="dsa/dsa-thoughts.html" class="nav-link">
+      <button type="button" id="nav-thoughts" onclick="loadEmbed('thoughts')" class="nav-link" title="DSA Thoughts: short insights per topic, each with a diagram">
         <span class="nav-topic-icon" aria-hidden="true">🧠</span>
         <span class="nav-topic-label">DSA Thoughts</span>
-      </a>
-      <a href="dsa/js-builtins.html" class="nav-link">
+      </button>
+      <button type="button" id="nav-jsbuiltins" onclick="loadEmbed('jsbuiltins')" class="nav-link" title="JS Built-ins: the JavaScript methods worth knowing cold for interviews">
         <span class="nav-topic-icon" aria-hidden="true">📋</span>
         <span class="nav-topic-label">JS Built-ins</span>
-      </a>
-      <a href="dsa/study-sites.html" class="nav-link">
+      </button>
+      <button type="button" id="nav-sites" onclick="loadEmbed('sites')" class="nav-link" title="Study Sites: the best sites for DSA and system design prep">
         <span class="nav-topic-icon" aria-hidden="true">🔖</span>
         <span class="nav-topic-label">Study Sites</span>
-      </a>
-      <button type="button" id="nav-papers" onclick="loadPapers()" class="nav-link" title="Engineering Paper Club: distributed-systems papers and blogs, easy to hard">
+      </button>
+      <button type="button" id="nav-papers" onclick="loadEmbed('papers')" class="nav-link" title="Engineering Paper Club: distributed-systems papers and blogs, easy to hard">
         <span class="nav-topic-icon">📚</span>
         <span class="nav-topic-label">Paper Club</span>
       </button>
-      <button type="button" id="nav-visuals" onclick="loadVisuals()" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
+      <button type="button" id="nav-visuals" onclick="loadEmbed('visuals')" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
         <span class="nav-topic-icon">🖼️</span>
         <span class="nav-topic-label">Visuals</span>
       </button>
@@ -1354,6 +1350,11 @@
       <!-- ── VIEW: Visuals ── rendered by loadVisuals(). Embeds visuals/visuals.html in-pane, like Papers. -->
       <div id="view-visuals" class="d-none">
         <iframe id="visuals-frame" class="embed-frame" title="Visuals"></iframe>
+      </div>
+
+      <!-- ── VIEW: Study page ── rendered by loadEmbed() for DSA Thoughts, JS Built-ins and Study Sites (one frame). -->
+      <div id="view-page" class="d-none">
+        <iframe id="page-frame" class="embed-frame" title="Study page"></iframe>
       </div>
 
     </main>
@@ -1908,8 +1909,7 @@ function _restoreView() {
   let saved = null
   try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
   if (saved === 'google') loadGoogle()
-  else if (saved === 'papers') loadPapers()
-  else if (saved === 'visuals') loadVisuals()
+  else if (saved && Object.prototype.hasOwnProperty.call(EMBEDS, saved)) loadEmbed(saved)
   else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
   else loadDashboard()
 }
@@ -1941,39 +1941,37 @@ function loadGoogle(tab) {
   if (frame.getAttribute('src') !== want) frame.setAttribute('src', want)
 }
 
-// ─── PAPERS (in-pane, same pattern as Google; the page saves to 'paper-club-v1') ───
-const PAPERS_SRC = 'papers/paper-club.html'
-function loadPapers() {
-  showView('view-papers')
+// ─── IN-PANE PAGES ───────────────────────────────────────────────────────────
+// Sidebar entries that show a standalone page inside the hub (in an iframe), under the hub's
+// own header, like Google. Paper Club saves to 'paper-club-v1'; the rest are read-only notes.
+// The key is also the saved view, so a reload returns to the same page.
+const EMBEDS = {
+  papers:     { view: 'view-papers',  frame: 'papers-frame',  title: '📚 Paper Club',   src: 'papers/paper-club.html' },
+  visuals:    { view: 'view-visuals', frame: 'visuals-frame', title: '🖼️ Visuals',      src: 'visuals/visuals.html' },
+  thoughts:   { view: 'view-page',    frame: 'page-frame',    title: '🧠 DSA Thoughts', src: 'dsa/dsa-thoughts.html' },
+  jsbuiltins: { view: 'view-page',    frame: 'page-frame',    title: '📋 JS Built-ins', src: 'dsa/js-builtins.html' },
+  sites:      { view: 'view-page',    frame: 'page-frame',    title: '🔖 Study Sites',  src: 'dsa/study-sites.html' },
+}
+const PAPERS_SRC = EMBEDS.papers.src
+const VISUALS_SRC = EMBEDS.visuals.src
+function loadEmbed(key) {
+  const e = EMBEDS[key]
+  if (!e) return loadDashboard()
+  showView(e.view)
   _stopTimer()
   _qpStopTimer()
-  document.getElementById('page-title').textContent = '📚 Paper Club'
+  document.getElementById('page-title').textContent = e.title
   document.getElementById('header-tabs').innerHTML = ''
   clearActiveNav()
-  const nav = document.getElementById('nav-papers')
+  const nav = document.getElementById('nav-' + key)
   if (nav) nav.classList.add('active')
   currentTopicKey = null
-  _saveCurrentView('papers')
-  const frame = document.getElementById('papers-frame')
-  if (frame.getAttribute('src') !== PAPERS_SRC) frame.setAttribute('src', PAPERS_SRC)
+  _saveCurrentView(key)
+  const frame = document.getElementById(e.frame)
+  if (frame.getAttribute('src') !== e.src) frame.setAttribute('src', e.src)
 }
-
-// ─── VISUALS (in-pane image cheat sheets, same pattern as Papers) ───
-const VISUALS_SRC = 'visuals/visuals.html'
-function loadVisuals() {
-  showView('view-visuals')
-  _stopTimer()
-  _qpStopTimer()
-  document.getElementById('page-title').textContent = '🖼️ Visuals'
-  document.getElementById('header-tabs').innerHTML = ''
-  clearActiveNav()
-  const nav = document.getElementById('nav-visuals')
-  if (nav) nav.classList.add('active')
-  currentTopicKey = null
-  _saveCurrentView('visuals')
-  const frame = document.getElementById('visuals-frame')
-  if (frame.getAttribute('src') !== VISUALS_SRC) frame.setAttribute('src', VISUALS_SRC)
-}
+function loadPapers() { loadEmbed('papers') }
+function loadVisuals() { loadEmbed('visuals') }
 
 function loadDashboard() {
   showView('view-dashboard')
@@ -4838,11 +4836,11 @@ function syncThemeIcon() {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function showView(id) {
-  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals'
+  const embed = id === 'view-google' || id === 'view-papers' || id === 'view-visuals' || id === 'view-page'
   document.body.classList.toggle('embed-view', embed)
   // html has smooth scrolling; a scrolled page would shift the locked frame
   if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
-  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals']
+  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page']
   views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
@@ -4857,14 +4855,10 @@ function showView(id) {
 
 function clearActiveNav() {
   document.querySelectorAll('#nav-topics .nav-link').forEach(l => l.classList.remove('active'))
-  const dash = document.getElementById('nav-dashboard')
-  if (dash) dash.classList.remove('active')
-  const goog = document.getElementById('nav-google')
-  if (goog) goog.classList.remove('active')
-  const papers = document.getElementById('nav-papers')
-  if (papers) papers.classList.remove('active')
-  const visuals = document.getElementById('nav-visuals')
-  if (visuals) visuals.classList.remove('active')
+  ;['dashboard', 'google', ...Object.keys(EMBEDS)].forEach(k => {
+    const el = document.getElementById('nav-' + k)
+    if (el) el.classList.remove('active')
+  })
 }
 
 function setActiveNav(key) {
