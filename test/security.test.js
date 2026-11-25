@@ -1,8 +1,7 @@
 'use strict'
 // Guards the token-exposure hardening: the GitHub sync token lives in localStorage, which every
 // page on this origin shares, so any script that runs on any page could read it. Two layers:
-//   1. every third-party <script>/<link stylesheet> is pinned with an SRI hash (a tampered CDN
-//      file simply refuses to load), and
+//   1. no script comes from another site: Bootstrap and Prism are self-hosted in /vendor/, and
 //   2. a Content-Security-Policy (vercel.json) that limits where scripts load from and — the
 //      key part — where data can be SENT (connect-src), so an injected script can't ship the
 //      token to an attacker's server.
@@ -25,27 +24,16 @@ function htmlFiles(dir = ROOT) {
   return out
 }
 
-test('every CDN script/stylesheet (cdnjs, jsdelivr) carries an integrity hash', () => {
+test('no page loads a script or stylesheet from another site (Bootstrap and Prism live in /vendor/)', () => {
+  // Google Fonts CSS is the one outside stylesheet: it holds no script.
   const bad = []
   for (const f of htmlFiles()) {
+    if (f.includes(`${path.sep}vendor${path.sep}`)) continue
     const html = fs.readFileSync(f, 'utf8')
-    for (const m of html.matchAll(/<(script|link)\b[^>]*>/gi)) {
-      const t = m[0]
-      if (/^<link/i.test(t) && !/stylesheet/i.test(t)) continue
-      if (!/(?:src|href)="https:\/\/(?:cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net)\//.test(t)) continue
-      if (!/integrity="sha(256|384|512)-/.test(t)) bad.push(`${path.relative(ROOT, f)}: ${t.slice(0, 110)}`)
-    }
-  }
-  assert.deepEqual(bad, [], `unpinned third-party tags (add integrity + crossorigin):\n  ${bad.join('\n  ')}`)
-})
-
-test('no page loads a script from a host outside the allow-list', () => {
-  const allowed = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net)\//
-  const bad = []
-  for (const f of htmlFiles()) {
-    const html = fs.readFileSync(f, 'utf8')
-    for (const m of html.matchAll(/<script\b[^>]*\bsrc="(https?:\/\/[^"]+)"/gi)) {
-      if (!allowed.test(m[1])) bad.push(`${path.relative(ROOT, f)}: ${m[1]}`)
+    for (const m of html.matchAll(/<script\b[^>]*\bsrc="(https?:\/\/[^"]+)"/gi)) bad.push(`${path.relative(ROOT, f)}: ${m[1]}`)
+    for (const m of html.matchAll(/<link\b[^>]*stylesheet[^>]*>/gi)) {
+      const href = (/href="([^"]+)"/.exec(m[0]) || [])[1] || ''
+      if (/^https?:/.test(href) && !href.startsWith('https://fonts.googleapis.com/')) bad.push(`${path.relative(ROOT, f)}: ${href}`)
     }
   }
   assert.deepEqual(bad, [])
@@ -60,7 +48,7 @@ function csp() {
   return dirs
 }
 
-test('CSP only lets the page send data to GitHub (and its own CDNs) — not arbitrary hosts', () => {
+test('CSP only lets the page send data to GitHub (and Google Fonts) — not arbitrary hosts', () => {
   const d = csp()
   assert.ok(d['connect-src'].includes('https://api.github.com'), 'sync needs api.github.com')
   assert.ok(d['connect-src'].includes('https://gist.githubusercontent.com'), 'sync needs gist raw_url')
@@ -69,7 +57,9 @@ test('CSP only lets the page send data to GitHub (and its own CDNs) — not arbi
 
 test('CSP locks down scripts, plugins, base URI and framing', () => {
   const d = csp()
-  assert.deepEqual([...d['script-src']].sort(), ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'].sort())
+  // No CDN host: jsDelivr serves any npm package, so allowing it lets anyone's script run here.
+  assert.deepEqual([...d['script-src']].sort(), ["'self'", "'unsafe-inline'"].sort())
+  assert.ok(!d['img-src'].includes('https:'), 'img-src must list hosts: a wildcard lets an injected script send the token out as an image URL')
   assert.deepEqual(d['object-src'], ["'none'"])
   assert.deepEqual(d['base-uri'], ["'self'"])
   assert.deepEqual(d['frame-ancestors'], ["'self'"])
@@ -84,4 +74,10 @@ test('the app makes no network calls that the CSP would block (only sync.js talk
     if (/\bfetch\(|\bXMLHttpRequest\b|\bsendBeacon\b|\bnew\s+(WebSocket|EventSource)\s*\(/.test(src)) offenders.push(path.relative(ROOT, f))
   }
   assert.deepEqual(offenders, [], 'new network call found — if intentional, allow its host in vercel.json connect-src and update this test')
+})
+
+test('extra security headers are set for every path', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'))
+  const keys = cfg.headers.find(x => x.source === '/(.*)').headers.map(h => h.key)
+  for (const k of ['Strict-Transport-Security', 'Permissions-Policy', 'Cross-Origin-Opener-Policy', 'X-Content-Type-Options', 'Referrer-Policy']) assert.ok(keys.includes(k), k)
 })

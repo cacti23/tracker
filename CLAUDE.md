@@ -14,7 +14,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 - Top-level `let`/`const` in the inline script are not reachable as globals from the tests. Use `evalIn` in `test/load-app.js`.
 - Adding a topic: add it to `TOPICS` and `TOPIC_MODULES` in `js/data.js` (the module schema is documented in that file), and add a cheatsheet in `dsa/`.
 - `escHtml()` should wrap any user or data text put into `innerHTML`.
-- Third-party scripts and stylesheets are pinned with SRI hashes and limited by the CSP in `vercel.json` (the sync token sits in localStorage, shared by every page on the origin). `test/security.test.js` checks this, so a new CDN include needs an `integrity` hash.
+- No script or stylesheet loads from another site: Bootstrap 5.3.3 and Prism 1.29.0 are self-hosted in `vendor/` (the sync token sits in localStorage, shared by every page on the origin, so the CSP in `vercel.json` allows scripts from `'self'` only). `test/security.test.js` checks this. Add a new library under `vendor/`, never as a CDN link.
 
 ## Data and sync
 
