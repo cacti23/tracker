@@ -1,22 +1,38 @@
-/* Dark theme for dsa-thoughts.html and js-builtins.html (set by js/notes-theme.js).
-   Screen only: printing stays light. Colours match the System Design page. */
+/* The prep hub's look for the study pages (DSA Thoughts, JS Built-ins, Study Sites), set by
+   js/notes-theme.js. Colours come from ../css/hub.css, the tokens the notebook uses, so these
+   pages match it in both themes. Each page's own variables (--ink, --rule, ...) are mapped onto
+   those tokens here; :root[data-theme] outranks the page's plain :root. Printing stays light. */
+@import url("../css/hub.css");
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap");
+
 #notes-theme-btn{position:fixed;top:12px;right:12px;z-index:10;width:38px;height:38px;border-radius:50%;
   border:1px solid var(--rule);background:var(--code-bg);font-size:18px;line-height:1;cursor:pointer}
 @media print{#notes-theme-btn{display:none}}
+
+:root[data-theme]{
+  --ink:var(--text-primary); --muted:var(--text-muted); --rule:var(--border);
+  --code-bg:var(--bg-surface); --card:var(--bg-elevated);
+  --accent-soft:var(--accent-dim); --accent-line:color-mix(in srgb,var(--accent) 40%,transparent);
+  --warn:var(--yellow); --good:var(--accent)}
 @media screen{
-  :root[data-theme="dark"]{color-scheme:dark;
-    --accent:#8b85ff; --accent-soft:#8b85ff1f; --accent-line:#8b85ff55; --ink:#e6e6ea; --muted:#9a9aa2;
-    --rule:#2c2c31; --code-bg:#1c1c1f; --warn:#ff9a6b; --good:#8b85ff}
-  [data-theme="dark"] body{background:#121214}
-  [data-theme="dark"] .nav a,
-  [data-theme="dark"] .chips button,
-  [data-theme="dark"] figure.calls svg{background:#1c1c1f}
-  [data-theme="dark"] .chips button.on,
-  [data-theme="dark"] .subt div{color:#121214}
-  [data-theme="dark"] .chips button.on{background:var(--accent)}
-  [data-theme="dark"] .box.key{border-left-color:#a78bfa;background:#a78bfa14}
-  [data-theme="dark"] .box.iv{border-left-color:#60a5fa;background:#60a5fa12}
-  [data-theme="dark"] .box.warn{background:#ff9a6b12}
+  :root[data-theme="dark"]{color-scheme:dark}
+  :root[data-theme] body{
+    background-color:var(--bg-base);
+    background-image:linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px);
+    background-size:24px 24px}
+}
+:root[data-theme] body{font-family:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+:root[data-theme] code:not([class*=language]),:root[data-theme] pre{font-family:var(--font-mono)}
+/* Surfaces the pages hard-coded white */
+:root[data-theme] .nav a,:root[data-theme] .chips button,:root[data-theme] figure.calls svg{background:var(--card)}
+:root[data-theme] .chips button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+:root[data-theme] .subt div{color:var(--on-accent)}
+:root[data-theme] .box.warn{border-left-color:var(--yellow);background:var(--yellow-dim)}
+:root[data-theme] .box.key{border-left-color:var(--purple);background:var(--purple-dim)}
+:root[data-theme] .box.iv{border-left-color:var(--teal);background:var(--teal-dim)}
+:root[data-theme] .tile:hover{box-shadow:0 6px 20px color-mix(in srgb,var(--text-primary) 14%,transparent)}
+
+@media screen{
   /* Prism's light theme → dark code blocks (token colours from prism-tomorrow) */
   [data-theme="dark"] pre[class*=language-],
   [data-theme="dark"] code[class*=language-]{background:var(--code-bg);color:#ccc;text-shadow:none}
@@ -30,4 +46,9 @@
   [data-theme="dark"] .token.class-name,[data-theme="dark"] .token.builtin{color:#f8c555}
   [data-theme="dark"] .token.property,[data-theme="dark"] .token.tag,[data-theme="dark"] .token.constant{color:#f8c555}
   [data-theme="dark"] .token.regex,[data-theme="dark"] .token.important{color:#e90}
+}
+/* Paper is white: print with the light tokens whatever the screen theme is. */
+@media print{
+  :root[data-theme]{--ink:#18232d;--muted:#44546a;--rule:#cfd9e0;--code-bg:#f3f6f8;--card:#fff;--accent:#1f5fad;
+    --accent-soft:rgba(31,95,173,0.09);--on-accent:#fff}
 }

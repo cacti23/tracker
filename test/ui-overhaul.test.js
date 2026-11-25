@@ -94,8 +94,10 @@ test('the question of the day keeps its key idea folded, so the answer is not sh
 
 test('design tokens: every text colour token is defined for both themes, and no font size is below 12px', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
-  const block = (sel) => html.slice(html.indexOf(sel), html.indexOf('}', html.indexOf(sel)))
-  const dark = block(':root {'), light = block('[data-bs-theme="light"] {\n      /* Light theme')
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'hub.css'), 'utf8')   // the one token source
+  assert.match(html, /<link rel="stylesheet" href="css\/hub\.css">/)
+  const block = (sel) => css.slice(css.indexOf(sel), css.indexOf('}', css.indexOf(sel)))
+  const dark = block(':root {'), light = block(':root[data-theme="light"] {')
   for (const t of ['--text-primary', '--text-muted', '--text-faint', '--accent', '--green', '--yellow', '--red', '--highlight', '--on-accent']) {
     assert.match(dark, new RegExp(t + ':'), `${t} in dark`)
     assert.match(light, new RegExp(t + ':'), `${t} in light`)
