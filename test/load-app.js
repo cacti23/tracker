@@ -128,8 +128,11 @@ function statefulElement(id) {
 // DOMContentLoaded listeners actually fired. Use this — not loadApp() — for
 // any test that needs to see what buildNav()/loadTopic()/renderCurrentTab()
 // etc. actually put into the page, as opposed to just the state they compute.
-function loadAppWithDom() {
+// `seed` ({ key: string }) is written to localStorage before any script runs, like data already
+// saved by an earlier visit.
+function loadAppWithDom(seed = {}) {
   const localStorage = makeLocalStorage()
+  for (const [k, v] of Object.entries(seed)) localStorage.setItem(k, v)
   const noop = () => {}
   const elements = new Map()
   const docListeners = {}

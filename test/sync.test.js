@@ -269,7 +269,9 @@ test('REGRESSION: a token for a different GitHub account used to silently create
   assert.ok(fgh.gist, 'a new gist should have been created for this account')
   assert.equal(fgh.gist.description, 'tracker-sync-v1')
   const msgs = ds.__alerts.join('\n')
-  assert.match(msgs, /brand-new, EMPTY sync store/, 'creating a fresh gist (instead of finding an existing one) must surface a warning explaining the likely account mismatch')
+  assert.match(msgs, /new private gist was created/, 'creating a fresh gist (instead of finding an existing one) must say so')
+  assert.match(msgs, /GitHub account that device uses/, '...and still point at the likely account mismatch for someone who expected their data')
+  assert.doesNotMatch(msgs, /EMPTY|almost certainly/, 'a genuine first sign-in should read as a receipt, not an alarm')
 })
 
 test('REGRESSION: an empty duplicate gist listed first must not hide the real data-bearing gist from Pull', async () => {
