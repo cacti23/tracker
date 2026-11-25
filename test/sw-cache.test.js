@@ -36,3 +36,30 @@ test('habits service worker keeps the main app cache', async () => {
   const deleted = await activate('apps/habits-sw.js', ALL)
   assert.deepStrictEqual(deleted, ['habits-cache-v4'])
 })
+
+// Engineering audit 2026-11-25. The first visit to the site root "/" happens before the
+// service worker controls the page, so only the precached "index.html" is in the cache, not
+// "/". Opening "/" offline after that first visit then failed (net::ERR_FAILED) instead of
+// showing the app. A navigation to a folder URL must fall back to that folder's index.html.
+function offlineFetch(file, url, cachedUrls) {
+  const handlers = {}
+  const self = { addEventListener: (t, fn) => { handlers[t] = fn }, skipWaiting() {}, clients: { claim() {} } }
+  const caches = {
+    match: async (req) => (cachedUrls.includes(typeof req === 'string' ? req : req.url) ? 'CACHED ' + (typeof req === 'string' ? req : req.url) : undefined),
+    open: async () => ({ put: async () => {} }),
+  }
+  const fetch = () => Promise.reject(new TypeError('offline'))
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), { self, caches, fetch, URL })
+  let out
+  handlers.fetch({ request: { method: 'GET', mode: 'navigate', url }, respondWith: (p) => { out = p } })
+  return out
+}
+
+test('offline, the site root opens the cached index.html', async () => {
+  assert.strictEqual(await offlineFetch('sw.js', 'https://t.example/', ['https://t.example/index.html']), 'CACHED https://t.example/index.html')
+})
+
+test('offline, a cached page still opens itself, and an uncached page is not swapped for the notebook', async () => {
+  assert.strictEqual(await offlineFetch('sw.js', 'https://t.example/index.html', ['https://t.example/index.html']), 'CACHED https://t.example/index.html')
+  assert.strictEqual(await offlineFetch('sw.js', 'https://t.example/apps/gym-5day.html', ['https://t.example/index.html']), undefined)
+})
