@@ -1,18 +1,15 @@
 'use strict'
-// A backup JSON file the user imports (attacker model 1) — or the same value arriving from the
-// gist — puts a topic note whose `id` carries markup. noteAccItem (index.html) concatenates n.id
+// A value arriving from the gist (attacker model 1; this was an imported backup file until
+// Import was removed on 2026-11-25) puts a topic note whose `id` carries markup. noteAccItem (index.html) concatenates n.id
 // raw into id="..." and onclick='...', so opening the topic's Notes tab runs the attacker's
 // inline handler. The production CSP (vercel.json) has script-src 'unsafe-inline' (inline
 // handlers run) and img-src https: (any host), so before the fix such a handler could read the
 // sync token. The payload here only sets a flag and requests a dummy host, nothing more.
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
-const fs = require('fs')
-const os = require('os')
-const path = require('path')
 const { startServer, openBrowser, SKIP } = require('./prod-server')
 
-test('a topic-note id from an imported backup is escaped, not run as markup', { skip: SKIP }, async () => {
+test('a topic-note id from synced data is escaped, not run as markup', { skip: SKIP }, async () => {
   const { server, base } = await startServer()
   const { browser, context, external } = await openBrowser()
   try {
@@ -21,11 +18,10 @@ test('a topic-note id from an imported backup is escaped, not run as markup', { 
     await page.goto(base + '/index.html')
 
     const evilId = `x"><img src=nope onerror="window.__pwned=1;new Image().src='https://example.invalid/marker'">`
-    const backup = { 'dsa-topic-notes-v1': JSON.stringify({ 'two-pointers': [{ id: evilId, title: 'Handy tricks', body: 'hello', pinned: false, updatedAt: 1 }] }) }
-    const file = path.join(os.tmpdir(), 'tracker-test-evil-backup.json')
-    fs.writeFileSync(file, JSON.stringify(backup))
-
-    await Promise.all([page.waitForNavigation(), page.setInputFiles('#import-file-input', file)])
+    const notes = JSON.stringify({ 'two-pointers': [{ id: evilId, title: 'Handy tricks', body: 'hello', pinned: false, updatedAt: 1 }] })
+    // What a sync pull does: write the key, then reload.
+    await page.evaluate(v => localStorage.setItem('dsa-topic-notes-v1', v), notes)
+    await page.reload()
     await page.waitForLoadState('load')
     await page.evaluate(() => { loadTopic('two-pointers'); showTopicTab('notes') })
     await page.waitForTimeout(500)

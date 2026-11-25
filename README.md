@@ -6,7 +6,7 @@ Personal tracker for DSA interview prep, plus a few small side apps. It's a plai
 
 | Path | What it is |
 |---|---|
-| `index.html` | **DSA Notebook**, the main app. Dashboard, 16 topics, 600+ questions, practice sessions (Worked / Graded / Mock), spaced-repetition revision, daily question, streaks, notes, pins, search. |
+| `index.html` | **Interview Prep Hub**, the main app (the DSA notebook). Dashboard, 16 topics, 600+ questions, practice sessions (Worked / Graded / Mock), spaced-repetition revision, daily question, streaks, notes, pins, search. |
 | `js/data.js` | Topic and question data, plus the localStorage helpers for progress, notes and revision state. |
 | `js/sync.js` | Cross-device sync through a private GitHub gist. Shared by every app. |
 | `js/back-button.js` | Floating "← Tracker" pill on every standalone page (`dsa/`, `apps/`, `google/`, `visuals/`, `sysdesign/`). |
@@ -44,7 +44,7 @@ The tests load `js/data.js` and the inline script from `index.html` into a Node 
 
 ## Cloud sync
 
-Tap ⚙ and **Sign in with GitHub** once per device, or paste a GitHub token instead (a fine-grained token with only the **Gists** permission, or a classic token with the `gist` scope). Data is synced to one private gist called `tracker-sync-v1`, one JSON file per app. The token is stored only in that browser's localStorage.
+Tap **Sign in with GitHub** once per device. There are no Sync, Pull, Token, Export or Import buttons: every app checks the cloud when it opens and when you come back to the tab, and uploads a few seconds after each edit. Data is synced to one private gist called `tracker-sync-v1`, one JSON file per app. The token is stored only in that browser's localStorage.
 
 Sign in with GitHub runs through `api/github-oauth.js`, a Vercel serverless function that swaps GitHub's one-time code for a `gist`-scope token (the client secret must stay off the browser) and hands it back in the URL fragment. It stores nothing. One-time setup: create a GitHub OAuth App (Settings → Developer settings → OAuth Apps) with callback URL `https://<your-site>/api/github-oauth`, then add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to the Vercel project's environment variables and redeploy.
 

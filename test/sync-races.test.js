@@ -115,6 +115,7 @@ function makeDevice(cloud, opts) {
   const dev = { name, origin, reloads: 0, page: null }
   function boot() {
     const d = origin.doc()
+    d.visListeners = []
     const timers = new Set()
     class D extends Date {
       constructor(...a) { if (a.length) super(...a); else super(Date.now() + skew) }
@@ -123,7 +124,10 @@ function makeDevice(cloud, opts) {
     }
     const sb = {
       localStorage: d.view,
-      document: { getElementById: () => null },
+      document: {
+        getElementById: () => null, visibilityState: 'visible',
+        addEventListener: (type, fn) => { if (type === 'visibilitychange') d.visListeners.push(fn) },
+      },
       fetch: (url, o) => (d.dead ? new Promise(() => {}) : cloud.fetch(name, url, o)),
       console, JSON, Object, Array, String, Number, Boolean, Math, Promise, Error, Date: D,
       setTimeout: (fn, ms) => { const t = setTimeout(() => { timers.delete(t); if (!d.dead) fn() }, ms); timers.add(t); return t },
@@ -148,6 +152,8 @@ function makeDevice(cloud, opts) {
     dev.page = d
     dev.ls = d.view
     dev.DS = sb.DataSync
+    // The person switches back to this tab or reopens the installed app.
+    dev.returnToTab = () => { sb.document.visibilityState = 'visible'; d.visListeners.forEach((fn) => fn()) }
   }
   boot()
   return dev
@@ -371,6 +377,19 @@ test('autoSync uploads edits that never reached the cloud even within 24h of the
   const A2 = makeDevice(cloud, { name: 'A', origin: A.origin })
   A2.DS.autoSync(); await tick(80)
   assert.equal(cloud.val('app', 'a').unsent, 1)
+})
+
+// ── autoSync onReturn: a tab left open picks up another device's edits ─────
+// The notebook has no Sync or Pull button any more (Adi, 2026-11-25), so a page that
+// stays open (an installed PWA) must check the cloud by itself when the person comes back.
+test('autoSync({ onReturn: true }) pulls another device\'s edit when the person comes back to the tab', async () => {
+  const cloud = makeCloud()
+  const { A, B } = await twoSyncedDevices(cloud)
+  A.DS.autoSync({ everyOpen: true, onReturn: true }); await tick(80)
+  set(B, 'a', { x: 1, fromB: 1 }); await syncAndReload(B)
+  assert.equal(get(A, 'a').fromB, undefined)
+  A.returnToTab(); await tick(750)
+  assert.equal(get(A, 'a').fromB, 1)
 })
 
 // ── merge granularity: deepKeys ─────────────────────────────────────────────
