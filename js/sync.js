@@ -632,12 +632,60 @@
     b.classList.toggle('ds-token-set', !!getToken());
   }
 
+  // ── Sign in with GitHub ────────────────────────────────────────────────
+  // api/github-oauth.js runs GitHub's OAuth flow and sends the browser back to this page
+  // with the token in the URL fragment (#tracker-signin=…), or #tracker-signin-error=… if
+  // the user cancelled. Read it before the app starts and wipe it from the address bar at
+  // once, so the token never sits in history or gets bookmarked or shared.
+  var signIn = { done: false, error: '' };
+  function takeSignInFromUrl() {
+    var h = (typeof location !== 'undefined' && location.hash) || '';
+    var m = /^#tracker-signin(-error)?=([^&]*)$/.exec(h);
+    if (!m) return;
+    var value = '';
+    try { value = decodeURIComponent(m[2]); } catch (e) {}
+    if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+    if (m[1]) { signIn.error = value || 'unknown'; return; }
+    if (!value) return;
+    setTokenValue(value);
+    localStorage.removeItem(GISTID_KEY);   // re-resolve the gist for this account
+    signIn.done = true;
+  }
+  takeSignInFromUrl();
+
+  function startSignIn() {
+    location.href = '/api/github-oauth?return=' + encodeURIComponent(location.pathname + location.search);
+  }
+
+  // After a sign-in, say which account this device now syncs with (same reason as the token
+  // check below) and sync straight away.
+  function finishSignIn() {
+    if (signIn.error) {
+      var err = signIn.error;
+      signIn.error = '';
+      if (typeof alert === 'function') alert('GitHub sign-in did not finish (' + err + '). Your data on this device is unchanged. Tap ⚙ to try again.');
+      return;
+    }
+    if (!signIn.done) return;
+    signIn.done = false;
+    api('/user').then(function (u) {
+      if (typeof alert === 'function') alert('Signed in with GitHub as @' + u.login + '. Syncing now.\n\nEvery device you sync on must show this same username.');
+    }, function () {}).then(syncNow);
+  }
+
   // ── token entry ────────────────────────────────────────────────────────
+  // No token yet: offer Sign in with GitHub first; pasting a token stays as the fallback.
+  // A token already set: paste a new one or leave blank to sign out (clear it).
   function setToken() {
+    if (!getToken() && typeof confirm === 'function' &&
+        confirm('Sign in with GitHub to sync this tracker across your devices?\n\nOK: sign in with GitHub\nCancel: paste a token instead')) {
+      startSignIn();
+      return false;
+    }
     var t = prompt(
       'Paste your GitHub token.\n\n' +
       'Fine-grained PAT with "Gists" read+write (or a classic token with the "gist" scope).\n' +
-      'Stored only in this browser, never in the repo. Leave blank to clear.',
+      'Stored only in this browser, never in the repo. Leave blank to clear (sign out on this device).',
       ''
     );
     if (t === null) return false;          // cancelled
@@ -824,12 +872,14 @@
     installWriteHook();
     listenForOtherDocuments();
     refreshBtnState();
+    finishSignIn();
   }
 
   window.DataSync = {
     init: init,
     syncNow: syncNow,
     setToken: setToken,
+    signIn: startSignIn,
     autoSync: autoSync,
     pushSoon: pushSoon,
     pullLatest: pullLatest,

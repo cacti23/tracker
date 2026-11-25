@@ -44,7 +44,9 @@ The tests load `js/data.js` and the inline script from `index.html` into a Node 
 
 ## Cloud sync
 
-Paste a GitHub token once per device (a fine-grained token with only the **Gists** permission, or a classic token with the `gist` scope). Data is synced to one private gist called `tracker-sync-v1`, one JSON file per app. The token is stored only in that browser's localStorage.
+Tap ⚙ and **Sign in with GitHub** once per device, or paste a GitHub token instead (a fine-grained token with only the **Gists** permission, or a classic token with the `gist` scope). Data is synced to one private gist called `tracker-sync-v1`, one JSON file per app. The token is stored only in that browser's localStorage.
+
+Sign in with GitHub runs through `api/github-oauth.js`, a Vercel serverless function that swaps GitHub's one-time code for a `gist`-scope token (the client secret must stay off the browser) and hands it back in the URL fragment. It stores nothing. One-time setup: create a GitHub OAuth App (Settings → Developer settings → OAuth Apps) with callback URL `https://<your-site>/api/github-oauth`, then add `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to the Vercel project's environment variables and redeploy.
 
 - The DSA notebook and the gym app upload a few seconds after every edit. The habits app syncs after its own edits.
 - If two devices both changed things, the data is merged entry by entry rather than one device overwriting the other. If both changed the same entry, the most recently edited side wins.

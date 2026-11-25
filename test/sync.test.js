@@ -212,6 +212,7 @@ test('the TOKEN button (not the Sync button) reflects whether a token is saved o
   const ds = load(ls, fgh, {
     elements: { dataSyncBtn: syncBtn, dataTokenBtn: tokenBtn },
     prompt: () => promptReturn,
+    confirm: () => false,   // "Cancel: paste a token instead"
   })
   ds.init({ appId: 'dsa', keys: ['dsa-revise-v1'] })
   assert.equal(tokenBtn.classList.contains('ds-token-set'), false, 'no token yet — token button must not be highlighted')
@@ -227,7 +228,7 @@ test('clearing the token (blank prompt) un-highlights the token button', () => {
   const fgh = makeFakeGitHub()
   const tokenBtn = makeFakeButton()
   let promptReturn = 'a-token'
-  const ds = load(ls, fgh, { elements: { dataTokenBtn: tokenBtn }, prompt: () => promptReturn })
+  const ds = load(ls, fgh, { elements: { dataTokenBtn: tokenBtn }, prompt: () => promptReturn, confirm: () => false })
   ds.init({ appId: 'dsa', keys: [] })
   ds.setToken()
   assert.equal(tokenBtn.classList.contains('ds-token-set'), true)
@@ -240,7 +241,7 @@ test('clearing the token (blank prompt) un-highlights the token button', () => {
 test('setToken() reports which GitHub account the token belongs to, so mismatched-account devices are obvious', async () => {
   const ls = makeLocalStorage()
   const fgh = makeFakeGitHub({ user: { login: 'aditya-real-account' } })
-  const ds = load(ls, fgh, { prompt: () => 'some-token' })
+  const ds = load(ls, fgh, { prompt: () => 'some-token', confirm: () => false })
   ds.init({ appId: 'dsa', keys: [] })
 
   ds.setToken()

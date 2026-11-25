@@ -18,6 +18,8 @@ self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   // network-first for the GitHub sync API, cache-first for the app shell
   if (e.request.url.includes('api.github.com') || e.request.url.includes('gist.githubusercontent.com')) return;
+  // our own serverless functions (GitHub sign-in): always live, never cached
+  if (new URL(e.request.url).pathname.startsWith('/api/')) return;
   // HTML/JS: network-first so new deploys show immediately; cache is the offline fallback
   if (e.request.mode === 'navigate' || e.request.url.endsWith('.html') || e.request.url.endsWith('.js')) {
     e.respondWith(
