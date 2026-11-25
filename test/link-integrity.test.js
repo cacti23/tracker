@@ -7,8 +7,7 @@
 // link/script/icon reference on disk and fail loudly, listing every broken
 // one at once, if a target doesn't exist relative to the file that
 // references it. They also pin down the specific cross-folder links the
-// reorg depends on (index.html -> dsa/apps/google, dsa-master-map.html's
-// link back to the root, the shared js/ and icons/ paths, the habits PWA's
+// reorg depends on (index.html -> dsa/apps/google, the shared js/ and icons/ paths, the habits PWA's
 // manifest/service-worker asset list) so a future file move trips a test
 // instead of a silent 404 in the browser.
 //
@@ -130,23 +129,22 @@ test('Google opens in-pane from the sidebar (not a new tab) and embeds the onsit
   }
 })
 
-test('dsa-master-map.html links back to the tracker root and to every pattern cheatsheet', () => {
-  const mapPath = path.join(ROOT, 'dsa', 'dsa-master-map.html')
-  const html = fs.readFileSync(mapPath, 'utf8')
-  assert.match(html, /href="\.\.\/index\.html"/, 'dsa-master-map.html should link back to ../index.html')
-
-  // Every dsa/*.html file except the map and the two standalone reference
-  // pages (dsa-thoughts, js-builtins -- linked straight from index.html's
-  // sidebar instead) is a pattern cheatsheet the map is supposed to
-  // deep-link to. This catches both a broken link AND a new cheatsheet
-  // silently added without a link to it.
-  const dsaDir = path.join(ROOT, 'dsa')
-  const standaloneReferencePages = new Set(['dsa-master-map.html', 'dsa-thoughts.html', 'js-builtins.html', 'study-sites.html'])
-  const patternFiles = fs.readdirSync(dsaDir)
-    .filter((f) => f.endsWith('.html') && !standaloneReferencePages.has(f))
-  assert.ok(patternFiles.length > 0, 'expected at least one pattern cheatsheet in dsa/')
-  const missing = patternFiles.filter((f) => !html.includes(`href="${f}"`))
-  assert.deepEqual(missing, [], `dsa-master-map.html is missing a link to: ${missing.join(', ')}`)
+// Adi, 2026-11-25: the DSA Master Map was never used, so the page is deleted. Nothing may
+// still point at it, or someone would land on a 404.
+test('the DSA Master Map page is deleted and nothing links to it', () => {
+  assert.ok(!fs.existsSync(path.join(ROOT, 'dsa', 'dsa-master-map.html')), 'dsa/dsa-master-map.html should be deleted')
+  const pages = []
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === '.git' || e.name === 'node_modules' || e.name === 'test') continue
+      const p = path.join(dir, e.name)
+      if (e.isDirectory()) walk(p)
+      else if (/\.(html|js|json|md)$/.test(e.name)) pages.push(p)
+    }
+  }
+  walk(ROOT)
+  const linking = pages.filter((p) => fs.readFileSync(p, 'utf8').includes('dsa-master-map'))
+  assert.deepEqual(linking.map((p) => path.relative(ROOT, p)), [])
 })
 
 test('every app under apps/ that loads sync.js points at ../js/sync.js', () => {
