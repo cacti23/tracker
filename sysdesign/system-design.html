@@ -6751,6 +6751,255 @@ CREATE TABLE posts (
   </div>
 </section>
 
+<section class="card" id="sd-redis-basics" data-topic="Technologies" data-course="hi-sd" data-lesson="redis">
+  <h2 class="cap"><b>🟥 Redis ①: Basics · Commands · Infrastructure · Performance</b></h2>
+  <p class="hook">Instead of learning dozens of narrow tools, master a few versatile ones. Redis is the most versatile of them: one tool covers a cache, a lock, a leaderboard, a rate limiter, a queue and real-time messages. And it stays simple: its data types are the ones you already use in coding problems.</p>
+  <p class="tldr">💡 Redis keeps everything in <b>memory</b> and runs <b>one command at a time</b>, so each command is fast and atomic. Values are data structures (hashes, sets, sorted sets, streams). A cluster splits keys into <b>16,384 slots</b> spread over nodes, so how you name keys is how you scale. The catch: replication is asynchronous and disk saves are periodic, so <b>it's not a system of record</b>. 🛎️ Think of a hotel front desk with one very fast receptionist. Explained below 👇</p>
+
+  <h4>🧱 Redis Basics</h4>
+  <p class="bridge">Redis calls itself a "data structure store", written in C. Two facts explain almost everything about it:<br>1️⃣ It holds <b>everything in memory</b>: fast<br>2️⃣ It runs commands <b>one at a time on a single thread</b>: no locks needed, and every command is atomic</p>
+  <div class="info"><b>➕ From the comments</b> Only <b>command execution</b> is single-threaded. Newer versions move network I/O and background work (like freeing memory) to other threads. The mental model stays: one command at a time, in order.</div>
+  <div class="warn"><b>⚠️ One reason to avoid Redis: you need durability</b> A write is acknowledged from memory. Saving to disk happens in one of two ways, and both can lose data that was already acknowledged.</div>
+  <div class="grid2">
+    <div class="k-blue"><b>📸 RDB: snapshots</b><div class="star">A full copy of memory every few minutes</div><div class="chk">✅ Small files, fast restarts</div><div class="chk">❌ A crash loses everything since the last snapshot</div></div>
+    <div class="k-amber"><b>📝 AOF: append-only file</b><div class="star">Logs every write, fsyncs once a second by default</div><div class="chk">✅ Loses at most about a second</div><div class="chk">❌ <code>fsync always</code> is safest, but costs the speed you chose Redis for</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔧 AOF has three fsync settings</b>1️⃣ <code>always</code>: fsync on every write, most durable, slowest<br>2️⃣ <code>everysec</code> (default): once a second, in a background thread<br>3️⃣ <code>no</code>: leave it to the operating system<br>An fsync is the moment the operating system really writes its page cache to disk. <span class="add">➕ from a reader</span></li>
+    <li><b class="hd">☁️ Need Redis with real durability? AWS MemoryDB</b>It trades a little speed for writes committed to a multi-AZ log before they're acknowledged. <span class="aws">☁️ MemoryDB</span></li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> AOF is <b>off by default</b> in open-source Redis (<code>appendonly no</code>); out of the box you get RDB snapshots only. "Fsyncs once a second" is true only once you turn AOF on.</div>
+
+  <p class="bridge">Redis is a key-value store. A key is a string; a value can be a whole data structure. For example, the key <code>leaderboard:game:123</code> can hold a sorted set of players and scores.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🔤 String</b><div class="chk">A value, a JSON blob, a counter (<code>INCR</code>)</div></div>
+    <div class="k-green"><b>🗂️ Hash</b><div class="chk">An object: <code>{ name, price, stock }</code></div></div>
+    <div class="k-amber"><b>📃 List</b><div class="chk">An ordered list, push and pop at both ends</div></div>
+    <div class="k-purple"><b>🎯 Set</b><div class="chk">Unique members: who liked a post</div></div>
+    <div class="k-blue"><b>🏆 Sorted set</b><div class="chk">Members ranked by a score: leaderboards</div></div>
+    <div class="k-green"><b>📜 Stream</b><div class="chk">An append-only log, like a Kafka topic</div></div>
+    <div class="k-amber"><b>📍 Geospatial index</b><div class="chk">Places by longitude and latitude: "who's nearby?"</div></div>
+    <div class="k-purple"><b>🧪 Redis 8 extras</b><div class="chk">Bloom filters, JSON, time series, now in core</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📣 It also does messaging: Pub/Sub and Streams</b>They can partly replace heavier tools like Kafka or SNS/SQS (card ③).</li>
+    <li><b class="hd">🔑 Key names matter: they decide which node holds the data</b>How you organise keys is how you organise your data and scale your cluster.</li>
+  </ul>
+  <div class="info"><b>➕ From the comments</b> The article calls sorted sets "priority queues". A reader pointed out they do more: a heap only peeks or pops the top, while a sorted set also answers rank lookups and score ranges.</div>
+  <p class="ana">🛎️ A hotel front desk with one very fast receptionist. Behind the desk is a wall of pigeonholes (keys). Each pigeonhole holds a different kind of thing: one note, a bundle of cards, a ranked list. The receptionist serves one guest at a time, so two guests never grab the same note at once. But the pigeonholes are not a safe: if the building floods, only the last photocopy (RDB) or the logbook (AOF) survives. <span class="add">➕ analogy</span></p>
+
+  <h4>⌨️ Commands</h4>
+  <p class="bridge">Redis speaks a simple wire protocol called RESP: a command travels over the wire almost as you'd type it. That's why the command line feels so direct.</p>
+<pre>SET foo 1
+GET foo     # returns 1
+INCR foo    # returns 2
+XADD mystream * name Sara surname OConnor  # adds an item to a stream</pre>
+  <p>The full command list reads easily when grouped by data structure. Sets, for example: <code>SADD</code> (add), <code>SCARD</code> (count), <code>SMEMBERS</code> (list all), <code>SISMEMBER</code> (is it there?). Just like a Set in any programming language.</p>
+
+  <h4>🏗️ Infrastructure Configurations</h4>
+  <div class="grid3">
+    <div class="k-blue"><b>1️⃣ Single node</b><div class="chk">One main server. Simple; if it dies, Redis is down.</div></div>
+    <div class="k-green"><b>2️⃣ Replicated</b><div class="chk">Main + a secondary that copies it, for high availability.</div></div>
+    <div class="k-amber"><b>3️⃣ Cluster</b><div class="chk">Several mains, each owning a share of the keys, each with its own secondary.</div></div>
+  </div>
+  <p class="bridge">In cluster mode Redis shards by <b>hash slots</b>:<br>1️⃣ Every key hashes to one of 16,384 slots<br>2️⃣ Each slot belongs to one node<br>3️⃣ The client caches the slot → node map and connects straight to the right node<br>4️⃣ Adding a node moves some slots, and their keys, to it<br>Why fixed slots instead of a ring: <a href="#sd-ch-use--ring-vs-fixed-slots-not-in-the-article">Consistent Hashing · Ring vs fixed slots</a>.</p>
+  <p class="bridge">What if the client's map is out of date? Press ▶️.</p>
+  <div class="seq" data-seq="redis-moved"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🗣️ Nodes share the slot map by gossip, so every node knows it</b>But a node never forwards your request: it answers <code>MOVED</code>, and the client fixes its map (e.g. with <code>CLUSTER SHARDS</code>). That's why clients cache the map and aim right the first time.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Replication is asynchronous</b> The primary acknowledges your write before the replica has it. If the primary dies and a replica is promoted, the last acknowledged writes can simply vanish. This is the deepest reason Redis isn't a system of record, and it comes back with locks (card ②).</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📖 Replicas can serve reads, slightly behind</b>In a cluster the client sends <code>READONLY</code> on its connection (most libraries have a flag). Outside a cluster you point reads at the replica. Either way, reads lag the primary a little.</li>
+    <li><b class="hd">🚫 No <span class="nogl">query router</span>: a command's keys must live on one node</b>Nothing splits a request across nodes and merges results. Keys on two nodes give an error (<code>CROSSSLOT</code>), not a slow query. Structuring your keys is how you scale Redis.</li>
+    <li><b class="hd">🏷️ Hash tags keep related keys together</b>Only the part inside <code>{braces}</code> is hashed, so <code>{user:123}:posts</code> and <code>{user:123}:likes</code> always share a slot, ready for one <code>MULTI</code> transaction across both.</li>
+    <li><b class="hd">🛡️ High availability without sharding: Redis Sentinel</b>Sentinel processes watch one primary and its replicas, vote when it dies, and promote a replica. Clients ask Sentinel where the primary is. Cluster mode does this itself, by gossip. <span class="add">➕ from the comments</span></li>
+  </ul>
+  <p class="ana">🛎️ A big hotel opens several desks. The pigeonholes are numbered 0 to 16,383, and each desk owns a range. Guests carry a little map of "which desk has which numbers". Go to the wrong desk and the receptionist says "not mine, try desk 2" (<code>MOVED</code>) instead of walking over for you. <span class="add">➕ analogy</span></p>
+
+  <h4>⚡ Performance</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🚀 ~100k writes a second on one node; commands run in microseconds</b>Reads come back in under a millisecond over the network.</li>
+    <li><b class="hd">🔁 Even the N+1 pattern is survivable</b>One query per item in a list ruins a SQL database. Each Redis command costs microseconds, and pipelining or <code>MGET</code> pays one round trip instead of a hundred. Still better to avoid it.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> The speed comes purely from being in memory. Not a fit for every use case, but a great fit for many.</div>
+  <p class="bridge">🔚 Memory plus one thread makes Redis fast and simple; slots make it scale; async copies make it lossy. Next card: the five jobs Redis does in a design.</p>
+</section>
+<section class="card" id="sd-redis-uses" data-topic="Technologies" data-course="hi-sd" data-lesson="redis">
+  <h2 class="cap"><b>🟥 Redis ②: Cache · Distributed Lock · Leaderboard · Rate Limiting · Proximity</b></h2>
+  <p class="hook">Five jobs, one tool. Each works because of the two facts from card ①: data in memory, and one command at a time. Each also has one subtle bug that interviewers like to probe.</p>
+  <p class="tldr">💡 <b>Cache</b>: key = cache key, plus a TTL and an eviction policy. <b>Lock</b>: <code>SET … NX EX</code>, release only with your own token; good for efficiency, not for correctness. <b>Leaderboard</b>: a sorted set. <b>Rate limit</b>: <code>INCR</code> plus an expiry, in one Lua script. <b>Nearby</b>: <code>GEOSEARCH</code>. 🛎️ Same front desk, five services. Explained below 👇</p>
+
+  <h4>🗄️ Redis as a Cache</h4>
+  <p class="bridge">The most common use, and the mapping is direct: your cache keys are Redis keys, your cached values are Redis values. A cluster spreads this hash map over nodes, so you scale by adding nodes. Example: <code>product:123</code> holds a JSON blob, or a hash with <code>name</code>, <code>price</code>, <code>inventoryCount</code>. The pattern itself (check Redis, fall back to the database): <a href="#sd-cache-patterns--cache-aside-lazy-loading">Cache-Aside</a>.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⏰ A TTL per key handles staleness</b>Redis never returns a value after its TTL has passed.</li>
+    <li><b class="hd">🧹 An eviction policy handles a full memory</b>For a cache, set <code>allkeys-lru</code>: Redis drops least-recently-used keys to make room. It samples keys instead of tracking exact order, which is plenty for a cache. The policies: <a href="#sd-cache-patterns--cache-eviction-policies">Eviction Policies</a>.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> The article says Redis rejects writes "out of the box" when memory is full. Precisely: open-source Redis starts with <code>maxmemory 0</code> (no limit), so it grows until the machine runs out. Once you set a limit, the default policy <code>noeviction</code> rejects writes. Managed services such as ElastiCache set the limit for you.</div>
+  <div class="warn"><b>⚠️ A cache doesn't fix hot keys</b> One key that takes a huge share of traffic still overloads its one node. Not unique to Redis: Memcached and DynamoDB have it too. Fixes: card ③.</div>
+
+  <h4>🔒 Redis as a Distributed Lock</h4>
+  <p class="bridge">Use it to keep data consistent during an update (reserving a seat in Ticketmaster) or to let only one actor act at a time (one ride offer per driver in Uber). It works because Redis is one shared server every app server can reach, and every command is atomic. The lock is just an agreed key, e.g. <code>lock:concert:343</code>.</p>
+<pre>SET lock:concert:343 my-token NX EX 30</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🙋 <code>NX</code>: set only if the key doesn't exist</b>Success = you own the lock. Failure = someone else does: wait and retry.</li>
+    <li><b class="hd">⏳ <code>EX 30</code>: expire after 30 s</b>A crashed process can't hold the lock forever.</li>
+    <li><b class="hd">🎟️ <code>my-token</code>: a random value only you know</b>It matters when you release.</li>
+  </ul>
+  <p class="bridge">Why not just <code>DEL</code> the key when you're done?<br>1️⃣ A takes the lock, then stalls for 31 s<br>2️⃣ The lock expires<br>3️⃣ B takes the lock<br>4️⃣ A wakes up and runs <code>DEL</code>: it deletes <b>B's</b> lock<br>So release = "delete only if it still holds my token", as one atomic Lua script (Redis runs the whole script as one command):</p>
+<pre>if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end</pre>
+  <div class="info"><b>➕ Fact-check: a reader's built-in alternative</b> A reader named it <code>DELX</code> in Redis 8.2. The real command is <code>DELEX key IFEQ value</code>, added in <b>Redis 8.4</b>: delete only if the value matches, no Lua needed. Valkey calls it <code>DELIFEQ</code>.</div>
+  <div class="info"><b>ℹ️ Is this optimistic locking?</b> The opposite: taking a lock first is <b>pessimistic</b>. Redis does support optimistic concurrency too: <code>WATCH</code> a key, run <code>MULTI</code> … <code>EXEC</code>, and the transaction aborts if the watched key changed meanwhile.</div>
+
+  <h5>💥 When the lock lies</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Failover can hand the same lock out twice</b>Replication is async: the primary grants your lock and dies; the promoted replica never heard of it and grants it to someone else.</li>
+    <li><b class="hd">2️⃣ Redlock tries to fix that, and is controversial</b>Take the lock on a majority of independent Redis nodes. But a paused or slow client can still act after its lock expired (Martin Kleppmann's critique).</li>
+    <li><b class="hd">3️⃣ The standard defence: a fencing token</b>Each lock grant carries a rising number, and the <b>storage</b> rejects writes with an older number. Redis has nothing built in for this. Press ▶️.</li>
+  </ul>
+  <div class="seq" data-seq="redis-fence"></div>
+  <p class="bridge">⚖️ Ups and downs. If you propose a Redis lock, say the downsides too.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Simple and fast: one command to lock, one script to release</b></li>
+    <li><b class="hd">1️⃣ It can occasionally fail: after a failover, or with a paused holder</b>Two holders at once is rare, but possible.</li>
+    <li><b class="hd">2️⃣ No fencing tokens built in</b>If a stale holder would corrupt data, enforce the rule where the data lives, or use a consensus system (ZooKeeper, etcd).</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> A Redis lock is an <b>efficiency tool</b> that occasionally fails, not a correctness guarantee. Often a database row lock (<code>SELECT … FOR UPDATE</code>) or a conditional <code>UPDATE … WHERE version = X</code> replaces it entirely: <a href="#sd-pg-consistency--transactions-and-concurrent-operations">PostgreSQL ③</a>.</div>
+  <p class="ana">🛎️ The front desk hands out the one key to the ballroom, with a 30-minute tag. A guest who dozes off for an hour may still walk in holding an expired key. The ballroom door only stops them if it checks the key's serial number: that's the fencing token. <span class="add">➕ analogy</span></p>
+
+  <h4>🏆 Redis for Leaderboards</h4>
+  <p class="bridge">A sorted set keeps members ordered by score, with reads and writes in log time: high write throughput and low read latency, where a SQL database would start to struggle. Example from the Post Search breakdown: keep the most-liked posts for each keyword.</p>
+<pre>ZADD tiger_posts 500 "SomeId1"    # the Tiger Woods post
+ZADD tiger_posts 1 "SomeId2"      # a post about zoo tigers
+ZREMRANGEBYRANK tiger_posts 0 -6  # keep only the top 5</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔁 <code>ZADD</code> again with a new score just moves the member</b>A post gets more likes: re-add it, and its rank updates.</li>
+    <li><b class="hd">✂️ <code>ZREMRANGEBYRANK 0 -6</code> keeps exactly the top 5</b>Ranks go from lowest score (0) to highest (-1). Removing 0 up to -6 deletes everything below the 5th from the top.</li>
+  </ul>
+
+  <h4>🚦 Redis for Rate Limiting</h4>
+  <p class="bridge">Fixed window: allow at most N requests in each window W. On every request:<br>1️⃣ <code>INCR</code> the counter for this user and this window<br>2️⃣ The result is 1? This is the window's first request: set the expiry to W<br>3️⃣ The result is over N? Reject with <b>429</b> and a <code>Retry-After</code> header</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Set the expiry only when <code>INCR</code> returns 1</b>Calling <code>EXPIRE</code> on every request keeps pushing the reset forward, so steady traffic never gets a fresh window.</li>
+    <li><b class="hd">⚠️ Run <code>INCR</code> + <code>EXPIRE</code> as one Lua script</b>A crash between the two leaves a counter with no expiry: that user is locked out forever.</li>
+  </ul>
+<pre>local count = redis.call("INCR", KEYS[1])
+if count == 1 then
+  redis.call("EXPIRE", KEYS[1], ARGV[1])
+end
+return count</pre>
+  <p class="bridge">Sliding window: one sorted set per user, the request time as the score. On every request, in one Lua script:<br>1️⃣ <code>ZREMRANGEBYSCORE</code>: drop entries older than the window<br>2️⃣ <code>ZCARD</code>: count what's left<br>3️⃣ Under N? <code>ZADD</code> this request</p>
+  <p class="bridge">⚖️ Ups and downs. <span class="add">➕ not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Fixed window: one small counter per user</b></li>
+    <li><b class="hd">1️⃣ Fixed window allows a burst at the edge</b>N requests at 0:59 and N more at 1:00 = 2N in two seconds.</li>
+    <li><b class="hd">2️⃣ Sliding window stores every request</b>Memory grows with N. Each member must be unique (time plus a request id), or two requests in the same millisecond count as one.</li>
+  </ul>
+
+  <h4>📍 Redis for Proximity Search</h4>
+<pre>GEOADD key longitude latitude member
+GEOSEARCH key FROMLONLAT longitude latitude BYRADIUS radius unit</pre>
+  <p class="bridge">Under the hood it's a <a href="#sd-idx-geo-text--geohash">geohash</a> stored in a sorted set. A search runs in two passes:<br>1️⃣ Seek into the sorted set to the geohash boxes around the circle: the log part<br>2️⃣ Collect the N candidates inside those square, grid-aligned boxes<br>3️⃣ Keep only the ones within the exact radius</p>
+  <div class="info"><b>➕ Fact-check: the complexity</b> The article writes O(N + log M), with M = items inside the radius. A reader is right that this doesn't add up: the log comes from seeking into the <b>whole</b> sorted set, so M is the total number of items in the index (the older <code>GEORADIUS</code> docs say exactly that). Why not just O(N)? For a small or empty area N is tiny, and the log of a million items is still there.</div>
+  <p class="bridge">🔚 Cache, lock, leaderboard, rate limiter, nearby search: all simple commands on simple structures. Next card: Redis as a message system, its hot-key weakness, and when not to use it.</p>
+</section>
+<section class="card" id="sd-redis-messaging" data-topic="Technologies" data-course="hi-sd" data-lesson="redis">
+  <h2 class="cap"><b>🟥 Redis ③: Streams · Pub/Sub · Hot Keys · When Not to Use It</b></h2>
+  <p class="hook">Redis can also move messages: <b>Streams</b> keep them until someone handles them, <b>Pub/Sub</b> delivers them only to whoever is listening right now. Then the two limits interviewers probe: hot keys, and data you can't afford to lose.</p>
+  <p class="tldr">💡 Streams = a job log with consumer groups; a dead worker's job gets reclaimed, so jobs must be idempotent. Pub/Sub = fire and forget, at most once, scales with sharded channels. Hot key fixes: a local cache, key copies, or replica reads. Never use Redis as the system of record. 🛎️ The front desk keeps a job book and a loudspeaker. Explained below 👇</p>
+
+  <h4>📜 Redis for Event Sourcing (Streams)</h4>
+  <p class="bridge">A stream is an append-only log, like a Kafka topic: the building block for event-sourced designs, which store the ordered events and derive state from them. Producers append with <code>XADD</code>. A <b>consumer group</b> is Redis's own name for a set of workers that share one stream: each entry goes to one worker in the group, and Redis remembers which worker has which entry.</p>
+  <p class="bridge">A work queue, step by step:<br>1️⃣ Producers add jobs with <code>XADD</code><br>2️⃣ A worker reads a job with <code>XREADGROUP</code>: it becomes "pending" for that worker<br>3️⃣ The worker processes it and acknowledges it (<code>XACK</code>)<br>4️⃣ A worker dies mid-job? Its pending job's idle time keeps growing<br>5️⃣ Another worker claims it with <code>XCLAIM</code> or <code>XAUTOCLAIM</code> and redoes it<br>Press ▶️.</p>
+  <div class="seq" data-seq="redis-xclaim"></div>
+  <div class="warn"><b>⚠️ A job can run twice</b> Redis can't tell a slow worker from a dead one, so a slow worker's job may be claimed while it's still running. Make processing <b>idempotent</b>.</div>
+  <div class="warn"><b>⚠️ Entries are only as durable as your persistence settings</b> With defaults, a crash can lose recent entries (card ①).</div>
+  <div class="grid2">
+    <div class="k-green"><b>🟥 Redis Streams</b><div class="star">Redis is already in the design, the queue is modest</div><div class="chk">Background jobs</div><div class="chk">Notification fan-out</div><div class="chk">Work distribution</div></div>
+    <div class="k-blue"><b>🟦 Kafka</b><div class="star">Worth its operational cost when you need</div><div class="chk">Long retention</div><div class="chk">Replay for many independent consumers</div><div class="chk">Durable, ordered throughput; no message may be lost</div></div>
+  </div>
+  <div class="rem"><b>✅ Remember</b> A reader's one-liner: a Redis Stream says "I have work that needs to get done". Kafka says "something happened; keep that fact and let different systems read it".</div>
+
+  <h4>📣 Redis for Pub/Sub</h4>
+  <p class="bridge">Streams suit consumers that must catch up on what they missed. When you only care about whoever is listening <b>right now</b>, use Pub/Sub: <span class="nogl">broadcast</span> to many subscribers in real time. Good for chat, live notifications, and decoupling producers from consumers.</p>
+<pre>PUBLISH channel message   # send to every subscriber of 'channel'
+SUBSCRIBE channel         # listen on 'channel'</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🏷️ A channel is just a name: nothing to create</b>Publishers send to a name, subscribers listen on it. A subscriber gets every message published while its connection is open.</li>
+    <li><b class="hd">🧩 In a cluster, use sharded Pub/Sub: <code>SPUBLISH</code> / <code>SSUBSCRIBE</code></b>The channel hashes to a slot like any key. Before Redis 7, cluster Pub/Sub sent every message to every node, so more nodes added no capacity. That limit is gone.</li>
+    <li><b class="hd">🔌 One connection per node, not per channel</b>A subscriber gets all its channels on a node over one connection. Millions of channels ≠ millions of connections. With sharded Pub/Sub it only connects to the nodes owning its channels.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Not durable: at-most-once delivery</b> An offline subscriber misses the message for good. Need offline delivery or replay? Use Redis Streams, or pair Pub/Sub with a queue (SNS → SQS, Kafka) or an outbox so consumers can catch up later.</div>
+  <div class="info"><b>➕ Pub/Sub vs event sourcing (a reader's question)</b> Pub/Sub delivers a message and forgets it. Event sourcing keeps every event forever, and the log <b>is</b> the source of truth you rebuild state from.</div>
+
+  <h5>🛠️ Can I roll my own Pub/Sub?</h5>
+  <p class="bridge">Candidates sometimes avoid native Pub/Sub, wrongly thinking it opens a connection per channel. Their alternative: a key per topic holding the subscriber servers' addresses; to publish, look it up and send to each server.</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Native Pub/Sub: 2 hops</b><div class="chk">1️⃣ Publisher → Redis node</div><div class="chk">2️⃣ Redis → every subscriber, over connections already open</div></div>
+    <div class="k-red"><b>❌ Homegrown: 3 hops</b><div class="chk">1️⃣ Ask Redis for the topic's servers</div><div class="chk">2️⃣ Redis replies with the list</div><div class="chk">3️⃣ Send to each server, usually opening a new connection first</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ More hops, and the last one is the slowest</b>There's rarely an open TCP connection to each subscriber.</li>
+    <li><b class="hd">2️⃣ You must clean up dead subscribers yourself</b>Native Pub/Sub drops a channel when its last subscriber leaves. The homegrown map needs heartbeats or TTLs to remove a dead server: more code and more chatter.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> If your use case looks like Pub/Sub, use Pub/Sub.</div>
+  <p class="ana">🛎️ The job book on the desk (Streams): each job is written down, a porter signs for it, and if a porter vanishes, another takes over the unsigned job. The loudspeaker (Pub/Sub): an announcement reaches whoever is in the lobby right now; guests who are out never hear it. <span class="add">➕ analogy</span></p>
+
+  <h4>🔥 Hot Key Issues</h4>
+  <p class="bridge">An online shop caches products on 100 Redis nodes, spread evenly. One day a single product gets as much traffic as all the others combined. Its one node takes far more load than the rest and, unless heavily over-provisioned, starts failing. The general idea: <a href="#sd-cache-problems--hot-keys">Caching · Hot Keys</a>. Three Redis fixes:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Client-side cache: each app server keeps the hottest items in memory</b>✅ Most reads never reach Redis. ⚠️ A second cache to keep fresh: data can be stale by its TTL, so use short TTLs on a small set of keys.</li>
+    <li><b class="hd">2️⃣ Key copies: <code>product:123:1</code> … <code>product:123:10</code> on different nodes</b>✅ Readers pick a copy at random, so the load spreads. ⚠️ Every write fans out to all copies, and clients must know which keys are copied (decide up front, or detect at runtime and share the list).</li>
+    <li><b class="hd">3️⃣ Read replicas: more copies of the whole node</b>✅ Multiplies read capacity. ⚠️ Cluster clients read the primary unless set to read replicas (<code>READONLY</code>). ⚠️ No help for a <b>write</b>-hot key: every write still goes to one primary.</li>
+  </ul>
+  <div class="info"><b>ℹ️ Note</b> In an interview, spotting a hot key earns a plus; designing the fix before you're asked earns two.</div>
+
+  <h4>🚫 When Not to Use Redis</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Not as your system of record</b>Async replication and the disk-save gap mean acknowledged writes can vanish.</li>
+    <li><b class="hd">2️⃣ Not when the working set can't fit in RAM at a sane cost</b>Memory is the most expensive place to keep data.</li>
+    <li><b class="hd">3️⃣ Not for flexible queries</b>No joins, no cross-key queries; in a cluster, multi-key commands work only within one slot.</li>
+    <li><b class="hd">4️⃣ Not instead of Kafka for durable, replayable streams</b>Long retention for many independent consumers is Kafka's job.</li>
+  </ul>
+
+  <h4>🏁 Summary</h4>
+  <p>Redis is powerful, versatile and simple. Its features rest on simple data structures, so you can reason about how your choices scale and go deep with the interviewer without knowing Redis internals.</p>
+  <div class="rem"><b>🎤 Say it</b> "Redis as the cache, in cluster mode, keys hashed by product id, <code>allkeys-lru</code> and a TTL. It's not the source of truth, so a lost write only costs a cache miss. For the hot product, a small local cache on each app server." <span class="add">➕ example answer</span></div>
+  <p class="bridge">🔚 Streams for work that must get done, Pub/Sub for now-or-never messages, three fixes for hot keys, and four places Redis doesn't belong.</p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>💾 "The lesson under-sells durability" (top comment)</h5>
+    <ul>
+      <li>If locks and leaderboards live in Redis, what happens when the primary dies? The course admin: most apps survive losing a few requests; if yours can't, Redis is the wrong tool.</li>
+      <li>A reader pushed back: frequent fsync isn't the answer. To get close to durable, use <code>WAIT</code> (block until N replicas have the write), which still has caveats, or AWS MemoryDB, which can even be a system of record if the data isn't too big.</li>
+      <li>Say failure modes out loud: "AOF persistence and Sentinel for failover, so a node failure loses little data".</li>
+    </ul>
+    <h5>🖥️ "My second server has its own Redis. Aren't they out of sync?"</h5>
+    <ul>
+      <li>Redis isn't inside each app server: it's one shared service every server talks to. In a cluster each key lives on exactly one node, so there's nothing to keep in sync. <span class="add">➕ answer</span></li>
+    </ul>
+    <h5>🔥 Key copies: how does a reader find them?</h5>
+    <ul>
+      <li>Fix the number of copies up front (say 10) and pick a random suffix 1 to 10 when reading. Use a separator no real key uses (<code>product:123#5</code>), so a copy can't clash with a real key named "apple5". <span class="add">➕ answer</span></li>
+      <li>The course admin: replicas work too, if you can afford them sized for your peak reads. Copies are the more surgical fix.</li>
+    </ul>
+    <h5>🎰 Slots vs modulo when you add a node</h5>
+    <ul>
+      <li>A reader's maths: going from 3 to 4 nodes with <code>hash % N</code> moves about 75% of keys. With 16,384 slots, the new node takes about 4,096 slots: only about 25% of keys move.</li>
+    </ul>
+    <h5>🧩 Small corrections</h5>
+    <ul>
+      <li>Single-threaded applies to running commands only; background threads do other work.</li>
+      <li>Geo complexity: M is the size of the whole index, not the items in the radius (card ②).</li>
+      <li>Safe lock release is built in since Redis 8.4: <code>DELEX key IFEQ value</code> (card ②).</li>
+    </ul>
+  </div>
+</section>
+
 
 </div>
 <div id="mapview" hidden>
@@ -6878,7 +7127,7 @@ const COURSES = {
         { n: '', id: 'common-patterns', title: 'Common Patterns', lessons: [
           ['common-patterns', 'Common Patterns']] },
         { n: '04', id: 'scaling-reads', title: 'Scaling Reads', lessons: [
-          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads'], ['postgres', 'PostgreSQL']] },
+          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads'], ['postgres', 'PostgreSQL'], ['redis', 'Redis']] },
         { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
         { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
         { n: '07', id: 'dealing-with-contention', title: 'Dealing with Contention' },
@@ -7813,6 +8062,45 @@ const SEQS = {
       { at: 2, m: 'COMMIT: $95 bid saved ❌', k: 'err', cap: '⑦ B commits. A $95 bid now exists after a $100 bid. The check in ⑤ used a stale read: another transaction slipped in between the read and the write.' },
     ],
   },
+  'redis-moved': {
+    lanes: ['💻 Client', '🟥 Node A', '🟥 Node B'],
+    key: [['lb', 'local'], ['tcp', 'request'], ['err', 'redirect'], ['gray', 'map update']],
+    frames: [
+      { cap: 'The client wants <code>user:42</code>. Its cached map says slot 9,000 lives on node A, but that slot just moved to node B 👇' },
+      { at: 0, m: 'hash → slot 9000 → A', k: 'lb', cap: '① The client hashes the key: slot 9,000. Its map says node A.' },
+      { f: 0, t: 1, m: 'GET user:42', k: 'tcp', cap: '② It sends the command straight to node A.' },
+      { f: 1, t: 0, m: 'MOVED 9000 → B', k: 'err', cap: '③ A no longer owns slot 9,000. It doesn\'t forward the request: it replies <code>MOVED</code> with node B\'s address.' },
+      { at: 0, m: 'refresh slot map', k: 'gray', cap: '④ The client updates its map (e.g. <code>CLUSTER SHARDS</code>).' },
+      { f: 0, t: 2, m: 'GET user:42 → value', k: 'tcp', bi: 1, cap: '⑤ It asks node B and gets the value. From now on it goes straight to B.' },
+    ],
+  },
+  'redis-fence': {
+    lanes: ['🖥️ Server A', '🟥 Redis', '🖥️ Server B', '🗄️ Storage'],
+    key: [['http', 'lock'], ['tcp', 'write'], ['gray', 'time passes'], ['err', 'rejected']],
+    frames: [
+      { cap: 'Every lock grant comes with a rising number, the <b>fencing token</b>. The storage remembers the highest token it has seen 👇' },
+      { f: 0, t: 1, m: 'lock → token 33', k: 'http', bi: 1, cap: '① Server A takes the lock and gets token 33.' },
+      { at: 0, m: '⏸️ long pause', k: 'gray', cap: '② A freezes for longer than 30 s: a garbage-collection pause, a slow network.' },
+      { at: 1, m: '⏰ lock expires', k: 'gray', cap: '③ The lock\'s 30 s run out.' },
+      { f: 2, t: 1, m: 'lock → token 34', k: 'http', bi: 1, cap: '④ Server B takes the lock and gets token 34.' },
+      { f: 2, t: 3, m: 'write, token 34 ✅', k: 'tcp', cap: '⑤ B writes. The storage records 34 as the highest token.' },
+      { f: 0, t: 3, m: 'write, token 33 ❌', k: 'err', cap: '⑥ A wakes up, still thinks it holds the lock, and writes with token 33. The storage has seen 34, so it rejects the write.' },
+      { cap: '✅ Without the token, A\'s late write would overwrite B\'s. Redis doesn\'t hand out these numbers; the storage must check them.' },
+    ],
+  },
+  'redis-xclaim': {
+    lanes: ['✍️ App', '📜 Stream', '👷 Worker 1', '👷 Worker 2'],
+    key: [['http', 'add / ack'], ['tcp', 'read'], ['err', 'crash'], ['gray', 'waiting'], ['lb', 'reclaim']],
+    frames: [
+      { cap: 'One stream, one consumer group, two workers. The app is the producer 👇' },
+      { f: 0, t: 1, m: 'XADD job 7', k: 'http', cap: '① The producer adds job 7.' },
+      { f: 2, t: 1, m: 'XREADGROUP → job 7', k: 'tcp', bi: 1, cap: '② Worker 1 reads job 7. The group marks it <b>pending</b> for Worker 1.' },
+      { at: 2, m: '💥 crash', k: 'err', cap: '③ Worker 1 dies mid-job, so it never acknowledges.' },
+      { at: 1, m: 'job 7 idle 60 s…', k: 'gray', cap: '④ The pending entry\'s idle time keeps growing.' },
+      { f: 3, t: 1, m: 'XAUTOCLAIM → job 7', k: 'lb', bi: 1, cap: '⑤ Worker 2 claims jobs idle for more than 60 s and gets job 7.' },
+      { f: 3, t: 1, m: 'XACK job 7 ✅', k: 'http', cap: '⑥ Worker 2 finishes and acknowledges: the job leaves the pending list. If Worker 1 was only slow, job 7 ran twice: keep jobs idempotent.' },
+    ],
+  },
   'cache-cpu': {
     lanes: ['👥 Clients', '🧵 1 Redis thread', '🧠 RAM (1 TB)'],
     key: [['http', 'request'], ['lb', 'find key'], ['tcp', 'reply'], ['err', 'waiting']],
@@ -8508,6 +8796,30 @@ const GLOSSARY = [
   { id: 'deadlock', t: 'Deadlock', aka: 'deadlock lock order wait cycle row lock', s: 'Two transactions each hold a lock the other needs, so both wait forever; the database cancels one.',
     an: 'Two cars on a one-lane bridge, each waiting for the other to back up.',
     b: '<p>🧪 <b>See it:</b> A locks row 1 then wants row 2; B locks row 2 then wants row 1. PostgreSQL detects the cycle and aborts one with an error.</p><p>🛠️ Fix: always lock rows in the same order (e.g. by id), and retry the aborted one.</p>', see: ['pesslock', 'race'] },
+  { id: 'rdbaof', t: 'RDB and AOF (Redis persistence)', aka: 'rdb aof snapshot append only file fsync everysec redis persistence durability', s: 'Two ways Redis saves memory to disk: RDB takes periodic snapshots, AOF logs every write.',
+    an: 'RDB is a photo of the whiteboard every few minutes; AOF is a notebook where every change is written down.',
+    b: '<p>🧪 <b>See it:</b> a crash 4 minutes after the last RDB snapshot loses 4 minutes of writes. With AOF <code>everysec</code> it loses about 1 second.</p><p>⚠️ Even AOF <code>always</code> doesn\'t stop loss on failover, because replication is asynchronous.</p><p>☁️ <b>On AWS:</b> MemoryDB for durable Redis</p>', see: ['wal', 'extcache'] },
+  { id: 'fencing', t: 'Fencing token', aka: 'fencing token monotonic lock number stale lock holder kleppmann', s: 'A number that grows with every lock grant; the storage rejects writes that carry an older number.',
+    an: 'A ballroom door that checks the serial number on your key, not only that you have one.',
+    b: '<p>🧪 <b>See it:</b> A gets token 33, pauses, the lock expires; B gets 34 and writes. A wakes and writes with 33: rejected, because the storage has seen 34.</p><p>Redis locks have no built-in fencing token; ZooKeeper and etcd can provide one.</p>', see: ['distlock', 'redlock'] },
+  { id: 'redlock', t: 'Redlock', aka: 'redlock redis lock majority independent nodes kleppmann', s: 'A Redis locking algorithm: take the lock on a majority of independent Redis nodes, so one node\'s failover can\'t give the lock out twice.',
+    an: 'Needing signatures from 3 of 5 managers before the ballroom opens.',
+    b: '<p>⚠️ Controversial: a client that pauses after getting the lock can still act once it expired. Use fencing tokens, or a consensus system, when correctness matters.</p>', see: ['distlock', 'fencing', 'quorum'] },
+  { id: 'sortedset', t: 'Sorted set', aka: 'zset zadd zrange score rank leaderboard redis', s: 'A Redis set where every member has a score and members stay ordered by it.',
+    an: 'A scoreboard that re-sorts itself every time a score changes.',
+    b: '<p>🧪 <b>See it:</b> <code>ZADD board 500 alice</code>, then the top 10 with <code>ZRANGE board 0 9 REV</code>. Adds, updates and rank lookups take log time.</p>', see: ['extcache'] },
+  { id: 'consgroup', t: 'Consumer group', aka: 'consumer group xreadgroup xack xclaim xautoclaim pending worker redis streams kafka', s: 'A set of workers that share one stream: each entry goes to one worker, and the group tracks what each worker hasn\'t acknowledged yet.',
+    an: 'Porters signing for jobs in the front-desk job book.',
+    b: '<p>🧪 <b>See it:</b> 3 workers read from <code>jobs</code> with <code>XREADGROUP</code>. Worker 2 crashes; its unacknowledged job is claimed by worker 3 with <code>XAUTOCLAIM</code>.</p><p>⚠️ A job may run twice, so keep processing idempotent.</p>', see: ['idem', 'evsrc', 'lag'] },
+  { id: 'sentinel', t: 'Redis Sentinel', aka: 'sentinel failover high availability promote replica redis', s: 'Processes that watch a Redis primary and its replicas, and promote a replica if the primary dies. High availability without sharding.',
+    an: 'Night guards who agree on a new head receptionist when the old one leaves.',
+    b: '<p>🧪 <b>See it:</b> clients ask Sentinel "where is the primary?"; after a failover Sentinel answers with the new one.</p><p>Redis Cluster does the same job itself, by gossip between nodes.</p>', see: ['replica', 'hashslot'] },
+  { id: 'hashtag', t: 'Hash tag (Redis Cluster)', aka: 'hash tag braces same slot crossslot multi key redis cluster', s: 'Only the part of a key inside {braces} is hashed, so related keys land in the same slot.',
+    an: 'Giving two parcels the same room number, so they go to the same desk.',
+    b: '<p>🧪 <b>See it:</b> <code>{user:123}:posts</code> and <code>{user:123}:likes</code> share a slot, so one <code>MULTI</code> or <code>MGET</code> can touch both. Without the tag: a <code>CROSSSLOT</code> error.</p><p>⚠️ Too much under one tag makes a hot slot.</p>', see: ['hashslot', 'hotshard'] },
+  { id: 'pipelining', t: 'Pipelining', aka: 'pipeline batch commands one round trip mget redis', s: 'Send many commands at once without waiting for each reply, so they share one network round trip.',
+    an: 'Handing the receptionist a list of ten requests instead of queuing ten times.',
+    b: '<p>🧪 <b>See it:</b> 100 <code>GET</code>s one by one = 100 round trips (~50 ms). Pipelined = 1 round trip (~0.5 ms).</p>', see: ['n1', 'latency'] },
   { id: 'replica', t: 'Read replica', aka: 'replica replication primary follower lag read scaling', s: 'A copy of the database that serves reads. The primary takes the writes and copies them over.',
     an: 'A teacher writes on the main board, and assistants copy it onto boards in other rooms so more students can read.',
     b: '<p>🧪 <b>See it:</b> 1 primary + 3 replicas → about 4× the read capacity. ⚠️ Copying takes a moment (replication lag), so a read just after a write may show old data. It doesn\'t add write capacity: that\'s what sharding is for.</p><p>☁️ <b>On AWS:</b> RDS / Aurora read replicas</p>', see: ['shard', 'consistency'] },
@@ -8868,7 +9180,7 @@ const GLOSSARY = [
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, routetable: /route tables?/i, dnsrec: /DNS records?|\bCNAMEs?\b/, r53resolver: /Route 53 Resolver/, route53: /Route 53(?! (?:private|public) hosted| Resolver)/, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting|cache key fan-?out/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
-    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, isolvl: /isolation levels?/i, mvcc: /MVCC/, jsonb: /JSONB/, postgis: /PostGIS/, partialidx: /partial index(?:es)?/i, deadlock: /deadlocks?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
+    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, rdbaof: /\bRDB\b|\bAOF\b/, fencing: /fencing tokens?/i, redlock: /Redlock/, sortedset: /sorted sets?/i, consgroup: /consumer groups?/i, sentinel: /Redis Sentinel|\bSentinel\b/, hashtag: /hash tags?/i, pipelining: /pipelining/i, isolvl: /isolation levels?/i, mvcc: /MVCC/, jsonb: /JSONB/, postgis: /PostGIS/, partialidx: /partial index(?:es)?/i, deadlock: /deadlocks?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
     pubsub: /pub\/sub|publish[- ]subscribe/i, dlq: /dead[- ]letter queues?|DLQs?/i, race: /race conditions?/i, occ: /optimistic concurrency(?: control)?|optimistic locking/i, pesslock: /pessimistic lock(?:ing|s)?/i, loadshed: /load shedding/i, presign: /pre-?signed URLs?/i, evsrc: /event sourcing/i, durable: /durable execution|workflow engines?|Temporal\b/, cqrs: /CQRS/, outbox: /outbox pattern/i,
