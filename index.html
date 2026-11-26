@@ -892,6 +892,14 @@
       font-size: var(--fs-2xs); font-weight: 700; line-height: 1.4;
     }
     /* "Last revised … ago" label on Revised-log rows */
+    #view-recent { max-width: 920px; }
+    .recent-sum { color: var(--text-muted); font-size: var(--fs-sm); margin-bottom: 0.5rem; }
+    .recent-sum span { padding: 0 0.35rem; border-radius: 6px; font-weight: 600; }
+    .recent-day { font-size: var(--fs-sm); font-weight: 700; color: var(--text-muted); margin: 1.1rem 0 0.45rem; }
+    .recent-row .ps-q-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-topic { font-size: var(--fs-2xs); color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
+    .recent-empty { color: var(--text-muted); padding: 2rem 0; }
+    @media (max-width: 600px) { .recent-topic { display: none; } }
     .rev-ago { font-size: var(--fs-2xs); color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; }
     .ps-ctrl-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
     .ps-count-btn {
@@ -1199,6 +1207,10 @@
         <span class="nav-topic-icon">🏠</span>
         <span class="nav-topic-label">Dashboard</span>
       </button>
+      <button type="button" id="nav-recent" data-hub="dsa" onclick="loadRecent()" class="nav-link" title="Recently solved: every question you graded ✓ ~ ✗, newest first">
+        <span class="nav-topic-icon" aria-hidden="true">🕘</span>
+        <span class="nav-topic-label">Recently solved</span>
+      </button>
       <button type="button" id="nav-sysdesign" data-hub="sd" onclick="loadEmbed('sysdesign')" class="nav-link" title="System Design notes: lessons, designs, the AWS map and the glossary">
         <span class="nav-topic-icon" aria-hidden="true">🏛️</span>
         <span class="nav-topic-label">System Design notes</span>
@@ -1253,7 +1265,7 @@
     <div class="sidebar-footer">
       <button type="button" id="nav-privacy" onclick="loadEmbed('privacy')" class="nav-link sidebar-privacy-link" title="Privacy and your data: what is stored, signing out, delete my data">🔒 Privacy &amp; data</button>
       <a class="sidebar-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSclEDL8hfAxdj1hShNecfGP61chtrLakMT_zNqLiUJTbplAyw/viewform" target="_blank" rel="noopener">💬 Send feedback</a>
-      <span>v595 · Interview Prep Hub</span>
+      <span>v596 · Interview Prep Hub</span>
       <span class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</span>
     </div>
   </aside>
@@ -1283,6 +1295,9 @@
         <div id="daily-question-card" class="mb-4"></div>
         <div id="search-results-list"></div>
       </div>
+
+      <!-- ── VIEW: Recently solved ── rendered by loadRecent(). -->
+      <div id="view-recent" class="d-none"></div>
 
       <!-- ── VIEW: Dashboard ──
            AI: rendered by loadDashboard(). Shows overall progress + topic cards. -->
@@ -1894,6 +1909,7 @@ function _restoreView() {
   let saved = null
   try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
   if (saved === 'google') loadGoogle()
+  else if (saved === 'recent') loadRecent()
   else if (saved && Object.prototype.hasOwnProperty.call(EMBEDS, saved)) loadEmbed(saved)
   else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
   else loadDashboard()
@@ -2028,6 +2044,69 @@ function _watchEmbedScroll(frame) {
 }
 function loadPapers() { loadEmbed('papers') }
 function loadVisuals() { loadEmbed('visuals') }
+
+// ─── RECENTLY SOLVED ──────────────────────────────────────────────────────────
+// Every question you graded ✓ ~ ✗ (on a card, in Graded, By Pattern or the dashboard sessions),
+// newest first, grouped by day, so you can see the order you worked through them (Adi, 2026-11-26).
+// Read straight from the revise records (dsa-revise-v1): each keeps its latest grade and when, so
+// there is nothing new to store or sync, and grades from before this view existed show up too.
+function _recentlySolved() {
+  const where = {}
+  for (const t of TOPICS) {
+    const mod = TOPIC_MODULES[t.key]
+    if (mod) for (const [k, q] of Object.entries(mod.questions)) if (!where[k]) where[k] = { t, q }
+  }
+  return Object.entries(_reviseAll())
+    .filter(([k, r]) => where[k] && r && r.last && !isNaN(new Date(r.last)))
+    .map(([k, r]) => ({ lcKey: k, grade: r.grade, ts: r.last, topic: where[k].t, q: where[k].q }))
+    .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+}
+function _recentDayLabel(dayKey) {
+  const today = LocalDate.key()
+  if (dayKey === today) return 'Today'
+  if (dayKey === LocalDate.key(LocalDate.addDays(new Date(), -1))) return 'Yesterday'
+  const [y, m, d] = dayKey.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+}
+function loadRecent() {
+  setHubMode('dsa')
+  showView('view-recent')
+  _stopTimer()
+  _qpStopTimer()
+  document.getElementById('page-title').textContent = '🕘 Recently solved'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const nav = document.getElementById('nav-recent')
+  if (nav) nav.classList.add('active')
+  currentTopicKey = null
+  _saveCurrentView('recent')
+  const items = _recentlySolved()
+  const view = document.getElementById('view-recent')
+  if (!items.length) {
+    view.innerHTML = '<div class="recent-empty">Nothing graded yet. Grade a question with ✓ ~ ✗ and it shows up here, newest first.</div>'
+    return
+  }
+  const counts = { solid: 0, shaky: 0, forgot: 0 }
+  items.forEach(e => { if (counts[e.grade] != null) counts[e.grade]++ })
+  let html = '<p class="recent-sum">' + items.length + ' graded · <span class="rg-solid">✓ ' + counts.solid + '</span> <span class="rg-shaky">~ ' + counts.shaky + '</span> <span class="rg-forgot">✗ ' + counts.forgot + '</span></p>'
+  let day = null, n = 0
+  for (const e of items) {
+    const d = LocalDate.key(new Date(e.ts))
+    if (d !== day) { if (day) html += '</div>'; day = d; html += '<h3 class="recent-day">' + escHtml(_recentDayLabel(d)) + '</h3><div class="recent-list">' }
+    const badge = RECENT_GRADE_BADGE[e.grade] || ['rg-none', '']
+    const time = new Date(e.ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    html += '<div class="ps-q-row recent-row" onclick="goToQuestion(' + _jsArg(e.topic.key) + ', ' + _jsArg(e.lcKey) + ')" title="Open in ' + escHtml(e.topic.label) + '">' +
+      '<span class="ps-q-num">' + (++n) + '</span>' +
+      '<span class="revise-grade-badge ' + badge[0] + '">' + badge[1] + '</span>' +
+      '<span class="ps-q-title">' + escHtml(e.q.title) + '</span>' +
+      '<span class="recent-topic">' + escHtml(e.topic.icon + ' ' + e.topic.label) + '</span>' +
+      '<span class="badge bg-' + DIFFICULTY_BADGE[e.q.difficulty] + ' q-badge flex-shrink-0">' + escHtml(e.q.difficulty) + '</span>' +
+      '<span class="rev-ago">' + escHtml(time) + '</span>' +
+      '<a href="' + escHtml(e.q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+      '</div>'
+  }
+  view.innerHTML = html + '</div>'
+}
 
 function loadDashboard() {
   setHubMode('dsa')
@@ -4751,7 +4830,7 @@ function showView(id) {
   document.body.classList.remove('header-tucked')
   // html has smooth scrolling; a scrolled page would shift the locked frame
   if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
-  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign', 'view-site']
+  const views = ['view-dashboard', 'view-recent', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign', 'view-site']
   views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
@@ -4766,7 +4845,7 @@ function showView(id) {
 
 function clearActiveNav() {
   document.querySelectorAll('#nav-topics .nav-link').forEach(l => l.classList.remove('active'))
-  ;['dashboard', 'google', ...Object.keys(EMBEDS)].forEach(k => {
+  ;['dashboard', 'recent', 'google', ...Object.keys(EMBEDS)].forEach(k => {
     const el = document.getElementById('nav-' + k)
     if (el) el.classList.remove('active')
   })
