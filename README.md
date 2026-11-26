@@ -50,7 +50,7 @@ Sign in with GitHub runs through `api/github-oauth.js`, a Vercel serverless func
 
 - The DSA notebook and the gym app upload a few seconds after every edit. The habits app syncs after its own edits.
 - If two devices both changed things, the data is merged entry by entry rather than one device overwriting the other. If both changed the same entry, the most recently edited side wins.
-- Safety nets: the previous cloud copy is kept as `<app>.prev.json` in the gist (GitHub also keeps gist revision history), and each device keeps its last three pre-sync snapshots in localStorage (`<app>-presync`, `-presync-2`, `-presync-3`).
+- Safety nets: every upload is a new gist revision, so earlier cloud copies stay in the gist's revision history, and each device keeps its last three pre-sync snapshots in localStorage (`<app>-presync`, `-presync-2`, `-presync-3`).
 - Known limit: there are no per-entry timestamps, so deleting something on one device can be undone by another device that still has it.
 
 ## Deploying

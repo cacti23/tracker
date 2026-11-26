@@ -218,7 +218,14 @@ test('N5: practice-session keys are synced but are sync noise, not edits', () =>
     assert.ok(evalIn(sandbox, `BACKUP_KEYS.includes(${JSON.stringify(key)})`), key + ' still synced')
     assert.ok(noise.includes(`'${key}'`), key + ' in noiseKeys')
   }
-  assert.ok(noise.includes(`'dsa-streak-v1'`) && noise.includes(`'dsa-theme'`))
+  assert.ok(noise.includes(`'dsa-streak-v1'`))
+})
+
+test('per-device keys are not synced: theme and the one-time migration flag', () => {
+  const { sandbox } = loadApp()
+  for (const key of ['dsa-theme', 'dsa-revise-migrated-v1']) {
+    assert.ok(!evalIn(sandbox, `BACKUP_KEYS.includes(${JSON.stringify(key)})`), key + ' must stay on its device')
+  }
 })
 
 test('N5: a stale second tab re-reads the per-topic session on refocus instead of overwriting it', () => {

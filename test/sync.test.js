@@ -47,7 +47,7 @@ function makeFakeGitHub(opts) {
       if (gist && new RegExp('/gists/' + gist.id + '$').test(url) && (!fopts.method || fopts.method === 'GET')) return json(gist, true)
       if (gist && new RegExp('/gists/' + gist.id + '$').test(url) && fopts.method === 'PATCH') {
         const body = JSON.parse(fopts.body)
-        Object.keys(body.files).forEach(fname => { gist.files[fname] = body.files[fname] })
+        Object.keys(body.files).forEach(fname => { if (body.files[fname] === null) delete gist.files[fname]; else gist.files[fname] = body.files[fname] })
         return json(gist, true)
       }
       return json({ message: 'not found' }, false)
@@ -441,17 +441,18 @@ test('MERGE: recent-log style arrays are unioned by question, newest entry kept'
   assert.deepEqual(log.map(e => e.lcKey + ':' + e.grade), ['q1:solid', 'q2:forgot'])
 })
 
-test('SAFETY NET: every push keeps the previous cloud copy as <app>.prev.json', async () => {
+test('one file per upload: no <app>.prev.json (gist history keeps old copies), and a leftover one is deleted', async () => {
   const gh = makeFakeGitHub()
+  gh.gist.files['dsa.prev.json'] = { content: '{"data":{}}' }   // written by an older version
   const A = makeDevice(gh)
   A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'one' } }))
   await syncDevice(A)
-  assert.equal(gh.gist.files['dsa.prev.json'], undefined, 'nothing to back up on the very first push')
+  assert.equal(gh.gist.files['dsa.prev.json'], undefined, 'the leftover backup is removed with the first upload')
   await settle(5)
   A.ls.setItem('dsa-revise-v1', JSON.stringify({ q1: { grade: 'two' } }))
   await syncDevice(A)
-  const prev = JSON.parse(gh.gist.files['dsa.prev.json'].content)
-  assert.equal(JSON.parse(prev.data['dsa-revise-v1']).q1.grade, 'one')
+  assert.equal(gh.gist.files['dsa.prev.json'], undefined, 'and never written again')
+  assert.equal(JSON.parse(JSON.parse(gh.gist.files['dsa.json'].content).data['dsa-revise-v1']).q1.grade, 'two')
 })
 
 test('SAFETY NET: the last three local snapshots are kept, not just the latest', async () => {

@@ -38,6 +38,8 @@ function makeCloud() {
   function json(body, ok) {
     return Promise.resolve({ ok: ok !== false, json: () => Promise.resolve(clone(body)), text: () => Promise.resolve(JSON.stringify(body)) })
   }
+  const fails = []         // [{ dev, method, status, headers, body }] from failNext
+  cloud.requests = 0
   function handle(url, o) {
     const method = o.method || 'GET'
     if (/\/gists\?per_page/.test(url)) return json(/page=1$/.test(url) ? [gist] : [])
@@ -46,7 +48,7 @@ function makeCloud() {
     if (/\/gists\/g1$/.test(url) && method === 'GET') return json(gist)
     if (/\/gists\/g1$/.test(url) && method === 'PATCH') {
       const body = JSON.parse(o.body)
-      Object.keys(body.files).forEach((f) => { gist.files[f] = body.files[f] })
+      Object.keys(body.files).forEach((f) => { if (body.files[f] === null) delete gist.files[f]; else gist.files[f] = body.files[f] })
       const v = 'v' + (++n)
       revisions[v] = clone(gist.files)
       gist.history = [{ version: v }].concat(gist.history)
@@ -59,6 +61,13 @@ function makeCloud() {
   cloud.fetch = (dev, url, o) => {
     o = o || {}
     const method = o.method || 'GET'
+    if (/\/gists/.test(url)) cloud.requests++   // gist calls only; the /user lookup is not modelled
+    const f = /\/gists\//.test(url) ? fails.findIndex((x) => x.dev === dev && x.method === method) : -1
+    if (f >= 0) {
+      const x = fails.splice(f, 1)[0]
+      const h = x.headers || {}
+      return Promise.resolve({ ok: false, status: x.status, headers: { get: (n) => (n in h ? h[n] : null) }, json: () => Promise.resolve({}), text: () => Promise.resolve(x.body || '') })
+    }
     const i = holds.findIndex((h) => h.dev === dev && h.method === method)
     if (i >= 0) {
       holds.splice(i, 1)
@@ -66,6 +75,8 @@ function makeCloud() {
     }
     return handle(url, o)
   }
+  // Answer the next gist request of `method` from `dev` with an HTTP error.
+  cloud.failNext = (dev, method, status, headers, body) => fails.push({ dev, method, status, headers, body })
   // Hold the next request of `method` from `dev` until release(dev).
   cloud.holdNext = (dev, method) => holds.push({ dev, method })
   cloud.release = (dev) => {
@@ -116,6 +127,7 @@ function makeDevice(cloud, opts) {
   function boot() {
     const d = origin.doc()
     d.visListeners = []
+    d.winListeners = {}
     const timers = new Set()
     class D extends Date {
       constructor(...a) { if (a.length) super(...a); else super(Date.now() + skew) }
@@ -133,7 +145,8 @@ function makeDevice(cloud, opts) {
       setTimeout: (fn, ms) => { const t = setTimeout(() => { timers.delete(t); if (!d.dead) fn() }, ms); timers.add(t); return t },
       clearTimeout: (t) => { clearTimeout(t); timers.delete(t) },
       alert: () => {}, prompt: () => null, confirm: () => true,
-      addEventListener: (type, fn) => { if (type === 'storage') d.listeners.push(fn) },
+      addEventListener: (type, fn) => { if (type === 'storage') d.listeners.push(fn); else (d.winListeners[type] = d.winListeners[type] || []).push(fn) },
+      navigator: opts.navigator,
       location: {
         reload() {
           if (d.dead) return
@@ -154,6 +167,8 @@ function makeDevice(cloud, opts) {
     dev.DS = sb.DataSync
     // The person switches back to this tab or reopens the installed app.
     dev.returnToTab = () => { sb.document.visibilityState = 'visible'; d.visListeners.forEach((fn) => fn()) }
+    dev.hide = () => { sb.document.visibilityState = 'hidden'; d.visListeners.forEach((fn) => fn()) }
+    dev.fire = (type) => (d.winListeners[type] || []).forEach((fn) => fn({ type }))
   }
   boot()
   return dev
@@ -284,17 +299,15 @@ test('S5: a push by ANOTHER app in between is not mistaken for a lost update', a
 })
 
 // ── S6: no-op syncs must not touch the cloud ────────────────────────────────
-test('S6: a sync with nothing changed on either side does not upload (and keeps .prev intact)', async () => {
+test('S6: a sync with nothing changed on either side does not upload', async () => {
   const cloud = makeCloud()
   const A = makeDevice(cloud, { name: 'A', init: { appId: 'app', keys: ['a', 'streak'], noiseKeys: ['streak'], autoPush: true, autoPushDelayMs: 5 } })
   set(A, 'a', { good: 1 }); await tick(60)
   set(A, 'a', { bad: 1 }); await tick(60)
-  assert.equal(cloud.read('app.prev.json').data.a, '{"good":1}')
   const before = cloud.patches
   set(A, 'streak', { d: 'tomorrow' }); await tick(60)   // page load next day: noise only
   await sync(A, 60)                                     // and an explicit check
   assert.equal(cloud.patches, before, 'no upload for a noise write or an unchanged sync')
-  assert.equal(cloud.read('app.prev.json').data.a, '{"good":1}', '.prev must still hold the good copy')
 })
 
 // ── S7: a follow-up reconcile that pulls must reload too ───────────────────
@@ -485,4 +498,106 @@ test('habits: view and theme are noise keys, habits_data_v1 merges deeply, and e
 })
 test('gym: history merges by date', () => {
   assert.match(initCall('apps/gym-5day.html'), /deepKeys:\s*\{[^}]*gym5day_history_v1[^}]*'date'/)
+})
+
+// ── Sync hardening (2026-11-26 review): deletes, health, rate limits, offline, tabs ──
+
+test('H1: a delete sticks when the other device edited a different entry of the same key', async () => {
+  const cloud = makeCloud()
+  const A = makeDevice(cloud, { name: 'A' }), B = makeDevice(cloud, { name: 'B' })
+  set(A, 'a', { q1: 'Solved', q2: 'Solved' }); set(A, 'b', { n: 1 })
+  await syncAndReload(A); await syncAndReload(B); await tick(5)
+  set(A, 'a', { q1: 'Solved' })                               // A clears q2
+  await syncAndReload(A)
+  set(B, 'a', { q1: 'Solved', q2: 'Solved', q3: 'Pending' }) // B, not yet synced, adds q3
+  await syncAndReload(B)
+  assert.deepEqual(get(B, 'a'), { q1: 'Solved', q3: 'Pending' }, 'q2 must stay deleted and q3 kept: ' + B.ls.getItem('a'))
+  assert.deepEqual(cloud.val('app', 'a'), { q1: 'Solved', q3: 'Pending' })
+})
+
+test('H2: deleted on one device but edited on the other keeps the edit; both-edited entries still merge', async () => {
+  const cloud = makeCloud()
+  const A = makeDevice(cloud, { name: 'A' }), B = makeDevice(cloud, { name: 'B' })
+  set(A, 'a', { q1: 'old note', q2: 'x' }); set(A, 'b', { n: 1 })
+  await syncAndReload(A); await syncAndReload(B); await tick(5)
+  set(A, 'a', { q2: 'x' })                                    // A deletes q1
+  await syncAndReload(A)
+  set(B, 'a', { q1: 'new note', q2: 'x' })                    // B edits q1
+  await syncAndReload(B)
+  assert.equal(get(B, 'a').q1, 'new note', 'an edit is work; a delete of it must not win')
+})
+
+test('H3: a 401 marks sync as signed out (no blind retry), and the next good sync clears it', async () => {
+  const cloud = makeCloud()
+  const A = makeDevice(cloud, { name: 'A' })
+  set(A, 'a', { x: 1 }); await sync(A)                  // signed in and synced once
+  set(A, 'a', { x: 2 })
+  cloud.failNext('A', 'GET', 401, {}, '{"message":"Bad credentials"}')   // then the token is revoked
+  const before = cloud.requests
+  await sync(A)
+  assert.equal(A.DS.health().state, 'auth')
+  assert.match(A.DS.health().text, /sign in again/i)
+  assert.equal(cloud.requests - before, 1, 'a lost sign-in is not retried with a re-resolved gist')
+  await sync(A)
+  assert.equal(A.DS.health().state, 'ok')
+})
+
+test('H4: a rate limit pauses every request until GitHub\'s reset time', async () => {
+  const cloud = makeCloud()
+  const A = makeDevice(cloud, { name: 'A' })
+  set(A, 'a', { x: 1 })
+  const reset = Math.floor(Date.now() / 1000) + 2   // short, so the resume timer doesn't keep the test run alive
+  cloud.failNext('A', 'GET', 403, { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(reset) }, 'API rate limit exceeded')
+  await sync(A)
+  assert.equal(A.DS.health().state, 'rate')
+  assert.equal(Number(A.ls.getItem('tracker-sync-paused-until')), reset * 1000)
+  const before = cloud.requests
+  set(A, 'a', { x: 2 }); await sync(A); A.returnToTab(); await tick(40)
+  assert.equal(cloud.requests, before, 'no request while paused')
+  A.ls.setItem('tracker-sync-paused-until', String(Date.now() - 1))   // the reset time passes
+  await sync(A)
+  assert.equal(cloud.val('app', 'a').x, 2, 'syncing resumes after the pause')
+  assert.equal(A.ls.getItem('tracker-sync-paused-until'), null)
+})
+
+test('H5: hiding the tab sends a waiting upload at once instead of after the debounce', async () => {
+  const cloud = makeCloud()
+  const A = makeDevice(cloud, { name: 'A', init: { appId: 'app', keys: ['a'], autoPush: true, autoPushDelayMs: 60000 } })
+  set(A, 'a', { x: 1 })
+  await tick(20)
+  assert.equal(cloud.patches, 0, 'still inside the debounce')
+  A.hide()
+  await tick(40)
+  assert.equal(cloud.val('app', 'a').x, 1, 'the edit reached the cloud when the tab was hidden')
+})
+
+test('H6: offline edits wait without requests and upload when the browser is back online', async () => {
+  const cloud = makeCloud()
+  const nav = { onLine: false }
+  const A = makeDevice(cloud, { name: 'A', navigator: nav, init: { appId: 'app', keys: ['a'], autoPush: true, autoPushDelayMs: 5 } })
+  set(A, 'a', { x: 1 })
+  await tick(40)
+  assert.equal(cloud.requests, 0, 'no request while the browser says it is offline')
+  assert.equal(A.DS.health().state, 'offline')
+  nav.onLine = true
+  A.fire('online')
+  await tick(40)
+  assert.equal(cloud.val('app', 'a').x, 1)
+  assert.equal(A.DS.health().state, 'ok')
+})
+
+test('H7: two tabs with Web Locks sync one at a time, so the second sends nothing new', async () => {
+  const cloud = makeCloud()
+  let chain = Promise.resolve()
+  const locks = { request: (name, fn) => { const run = chain.then(() => fn()); chain = run.catch(() => {}); return run } }
+  const origin = makeOrigin()
+  const opts = { origin, navigator: { onLine: true, locks } }
+  const T1 = makeDevice(cloud, Object.assign({ name: 'T1' }, opts)), T2 = makeDevice(cloud, Object.assign({ name: 'T2' }, opts))
+  set(T1, 'a', { x: 1 })
+  cloud.holdNext('T1', 'PATCH')                             // T1's upload is slow
+  T1.DS.pushSoon(1); await tick(20)
+  T2.DS.pushSoon(1); await tick(20)                         // T2 tries while T1 is mid-upload
+  cloud.release('T1')
+  await tick(80)
+  assert.equal(cloud.patches, 1, 'one upload for one edit, not one per tab')
 })

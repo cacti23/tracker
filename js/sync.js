@@ -13,9 +13,13 @@
    Mode: two-way, with a key-level MERGE whenever both sides have changes. We never
    throw one side's edits away just because the other side has a later timestamp:
    top-level entries from both sides are kept; if both changed the SAME entry, the side
-   that was edited more recently wins (see mergeValue / reconcile). Before anything is
-   overwritten, a local snapshot ("<appId>-presync", last 3 kept) and the previous cloud
-   copy ("<appId>.prev.json" in the gist) are saved, so a bad sync is recoverable.
+   that was edited more recently wins (see mergeValue / reconcile). Inside a key, entries
+   merge three-way too (mergeEntries): an entry only one side changed or deleted takes that
+   side, so a delete sticks and device clocks only matter when both sides edited one entry.
+   Before anything is overwritten locally, a snapshot ("<appId>-presync", last 3 kept) is
+   saved; the cloud side is covered by the gist's own revision history.
+   Health: every sync ends in one named state (see HEALTH) shown on the account button; a
+   lost sign-in shows a banner, a GitHub rate limit pauses syncing until GitHub's reset time.
    Optional init() settings: autoPush (upload shortly after every local edit),
    noiseKeys (keys that change on every page load and so don't count as "edited"),
    maxKeys (counter objects where a conflict keeps the larger number),
@@ -30,6 +34,11 @@
   var GIST_DESC  = 'tracker-sync-v1';
   var API        = 'https://api.github.com';
   var DAY_MS     = 24 * 60 * 60 * 1000;
+
+  var PAUSE_KEY  = 'tracker-sync-paused-until';   // ms epoch; GitHub rate-limited us, shared by tabs
+  var LOCK_NAME  = 'tracker-sync';                // one sync at a time across every tab of the origin
+  var REQUEST_TIMEOUT_MS = 30000;                 // a hung request must not hold the lock forever
+  var RATE_WAIT_MS = 60000;                       // GitHub's advice when a limit gives no reset time
 
   var AUTO_PUSH_MS = 6000;
   var RELOAD_MS = 500;
@@ -69,6 +78,32 @@
       'X-GitHub-Api-Version': '2022-11-28'
     };
   }
+  // Every failure carries a kind, so the caller can react to the cause and the person sees
+  // the right message: 'auth' (token revoked/expired, sign in again), 'rate' (GitHub asked us
+  // to slow down; retryAt says until when), 'network' (offline, timed out), 'http' (other).
+  function header(res, name) {
+    try { return res && res.headers && typeof res.headers.get === 'function' ? res.headers.get(name) : null; } catch (e) { return null; }
+  }
+  function httpError(res, body) {
+    body = String(body || '');
+    var e = new Error('GitHub API ' + res.status + ': ' + body.slice(0, 200));
+    e.status = res.status;
+    var retryAfter = Number(header(res, 'retry-after')) || 0;
+    var reset = Number(header(res, 'x-ratelimit-reset')) || 0;
+    var rate = res.status === 429 || (res.status === 403 && (retryAfter > 0 || header(res, 'x-ratelimit-remaining') === '0' || /rate limit/i.test(body)));
+    if (rate) {
+      e.kind = 'rate';
+      e.retryAt = retryAfter > 0 ? Date.now() + retryAfter * 1000 : reset > 0 ? reset * 1000 : Date.now() + RATE_WAIT_MS;
+    } else {
+      e.kind = (res.status === 401 || res.status === 403) ? 'auth' : 'http';
+    }
+    return e;
+  }
+  function networkError(cause) {
+    var e = new Error('Could not reach GitHub (' + ((cause && cause.message) || 'network error') + ')');
+    e.kind = 'network';
+    return e;
+  }
   function api(path, opts) {
     opts = opts || {};
     opts.headers = headers();
@@ -76,14 +111,17 @@
     // this a re-pull within a minute of the last one can be served from Chrome's HTTP
     // cache — i.e. stale data that looks exactly like "pull did nothing".
     opts.cache = 'no-store';
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, REQUEST_TIMEOUT_MS) : null;
+    if (ctl) opts.signal = ctl.signal;
+    var done = function () { if (timer) clearTimeout(timer); };
     return fetch(API + path, opts).then(function (res) {
+      done();
       if (!res.ok) {
-        return res.text().then(function (t) {
-          throw new Error('GitHub API ' + res.status + ': ' + t.slice(0, 200));
-        });
+        return res.text().then(function (t) { throw httpError(res, t); });
       }
       return res.json();
-    });
+    }, function (err) { done(); throw networkError(err); });
   }
 
   // ── gist resolution (find-by-description, else create) ─────────────────
@@ -162,7 +200,9 @@
   function withGist(fn) {
     var hadCachedId = !!localStorage.getItem(GISTID_KEY);
     return resolveGist().then(fn).catch(function (e) {
-      if (hadCachedId) {
+      // Only a bad gist id is fixed by re-resolving. Retrying a rate limit, a lost sign-in or
+      // a dropped connection would just send more requests that fail the same way.
+      if (hadCachedId && !(e && (e.kind === 'auth' || e.kind === 'rate' || e.kind === 'network'))) {
         localStorage.removeItem(GISTID_KEY);
         return resolveGist().then(fn);
       }
@@ -179,8 +219,8 @@
     return null;
   }
   // null = no file. A file that exists but isn't a valid payload comes back as an empty copy
-  // carrying its raw text in `unreadable`: there is nothing in it to pull or merge, and
-  // pushApp keeps that text as the .prev backup before replacing it. A failed download of a
+  // carrying its raw text in `unreadable`: there is nothing in it to pull or merge, and the
+  // gist's revision history keeps that text after an upload replaces it. A failed download of a
   // large file throws instead, so a network blip can never look like "the cloud is empty".
   function readPayload(text) {
     var p = parsePayload(text);
@@ -204,9 +244,15 @@
   function gistVersion(g) { return (g && g.history && g.history[0] && g.history[0].version) || null; }
   // The cloud copy plus the gist revision it was read from, so a push can tell whether
   // another push landed in between (see pushApp).
+  // Older versions kept the replaced cloud copy as "<appId>.prev.json". The gist's revision
+  // history already holds every earlier copy, so that file doubled each upload for nothing.
+  // While it still exists, the next upload deletes it (a delete of a missing file would fail).
+  var hasLegacyPrev = {};
+  function notePrev(g, appId) { hasLegacyPrev[appId] = !!(g && g.files && g.files[appId + '.prev.json']); }
   function fetchApp(appId) {
     return withGist(function (id) {
       return api('/gists/' + id).then(function (g) {
+        notePrev(g, appId);
         return readAppFile(g, appId).then(function (remote) { return { remote: remote, version: gistVersion(g) }; });
       });
     });
@@ -222,31 +268,22 @@
     });
     return data;
   }
-  function sameData(a, b) {
-    var ka = Object.keys(a), kb = Object.keys(b);
-    return ka.length === kb.length && ka.every(function (k) { return a[k] === b[k]; });
-  }
-  // data: what to upload. prevRemote: the cloud copy being replaced, kept as
-  // "<appId>.prev.json" so one bad push is undoable; only rewritten when the upload changes
-  // the content, or a run of identical pushes would replace the backup with a copy of itself.
+  // data: what to upload. The copy it replaces stays reachable in the gist's revision history
+  // (gist.github.com → Revisions), which is the cloud-side undo.
   // base: { version, updatedAt } of the cloud as we last read it. The gist API has no
   // compare-and-swap, so a lost update is caught after the fact: the PATCH response's history
   // names the revision we replaced. If that isn't the one we read, another push landed in
   // between; if it changed this app's file, it comes back as `clobbered` for the caller to
   // merge back in (a push by another app to its own file is not a conflict).
-  function pushApp(appId, updatedAt, data, prevRemote, base) {
-    var payload = JSON.stringify({ updatedAt: updatedAt, data: data }, null, 2);
+  function pushApp(appId, updatedAt, data, base) {
+    // Compact JSON: indentation only made every upload bigger.
+    var payload = JSON.stringify({ updatedAt: updatedAt, data: data });
     return withGist(function (id) {
       var body = { files: {} };
       body.files[appId + '.json'] = { content: payload };
-      if (prevRemote && prevRemote.unreadable) {
-        body.files[appId + '.prev.json'] = { content: prevRemote.unreadable };
-      } else if (prevRemote && prevRemote.data && Object.keys(prevRemote.data).length > 0 && !sameData(prevRemote.data, data)) {
-        body.files[appId + '.prev.json'] = {
-          content: JSON.stringify({ updatedAt: prevRemote.updatedAt, backedUpAt: updatedAt, data: prevRemote.data })
-        };
-      }
+      if (hasLegacyPrev[appId]) body.files[appId + '.prev.json'] = null;
       return api('/gists/' + id, { method: 'PATCH', body: JSON.stringify(body) }).then(function (g) {
+        notePrev(g, appId);
         var out = { version: gistVersion(g), clobbered: null };
         var replaced = g && g.history && g.history[1] && g.history[1].version;
         if (!base || !base.version || !replaced || replaced === base.version) return out;
@@ -294,6 +331,30 @@
     var out = {};
     keys.forEach(function (k) { if (typeof data[k] === 'string') out[k] = strHash(data[k]); });
     return out;
+  }
+  // The same, one level down: per key holding a JSON object, one fingerprint per entry (per
+  // question, per note...). Kept in its own "<appId>-sync-base" item, not the meta, because it
+  // is large and the meta is rewritten on every edit. Lets a merge tell, entry by entry,
+  // "this side deleted or edited it" from "this side's copy is just old" (see mergeEntries).
+  function baseKey(appId) { return appId + '-sync-base'; }
+  function entryHashes(keys, data) {
+    var out = {};
+    keys.forEach(function (k) {
+      var p = typeof data[k] === 'string' ? tryParse(data[k]) : null;
+      if (!p || !isObj(p.v)) return;
+      var m = out[k] = {};
+      Object.keys(p.v).forEach(function (e) { m[e] = strHash(JSON.stringify(p.v[e])); });
+    });
+    return out;
+  }
+  function getBase(appId) {
+    try { var b = JSON.parse(localStorage.getItem(baseKey(appId)) || 'null'); return isObj(b) ? b : null; }
+    catch (e) { return null; }
+  }
+  // The common ancestor for a merge: per-key fingerprints (meta) plus per-entry ones (base).
+  function ancestorOf(appId, meta) {
+    if (!meta.keyHashes) return null;
+    return { keys: meta.keyHashes, entries: getBase(appId) || {} };
   }
   function localHash(keys) { return hashOf(keys, collect(keys)); }
   function hasUnsyncedEdits(appId, keys) {
@@ -344,6 +405,8 @@
     m.lastLocalHash = hashOf(keys, synced);
     m.keyHashes = keyHashes(keys, synced);
     setMeta(appId, m);
+    try { localStorage.setItem(baseKey(appId), JSON.stringify(entryHashes(keys, synced))); }
+    catch (e) { localStorage.removeItem(baseKey(appId)); }   // full storage: merges fall back to key level
   }
   function applyPull(appId, keys, remote) {
     var wrote = writeKeys(appId, keys, remote.data);
@@ -435,8 +498,39 @@
     if (Array.isArray(pref) && Array.isArray(other)) return JSON.stringify(mergeArrays(pref, other));
     return prefStr;
   }
-  // ancestor: per-key fingerprints from the last sync (keyHashes), or null when they can't
-  // be trusted. A key only ONE side changed since then takes that side's value whole, even
+  // Both sides changed key `key`, whose value is a JSON object (question → status, question →
+  // note...). Merge it entry by entry against the fingerprints from the last sync (anc):
+  //   • an entry only one side changed, added or DELETED takes that side, so a delete sticks
+  //     instead of coming back from the other device's older copy;
+  //   • deleted on one side but edited on the other: the edit is kept (no work is lost);
+  //   • edited on both: the key's usual rule on just that entry (maxKeys keep the larger
+  //     number, deepKeys merge inside it, else the preferred side). Only this case still
+  //     depends on which device edited last, i.e. on device clocks.
+  // Returns undefined when either side isn't an object, for the key-level rules to handle.
+  function mergeEntries(key, localStr, remoteStr, anc, preferRemote) {
+    var l = tryParse(localStr), r = tryParse(remoteStr);
+    if (!l || !r || !isObj(l.v) || !isObj(r.v)) return undefined;
+    var out = {}, seen = {};
+    var fp = function (s) { return s === undefined ? undefined : strHash(s); };
+    Object.keys(l.v).concat(Object.keys(r.v), Object.keys(anc)).forEach(function (e) {
+      if (has(seen, e)) return;
+      seen[e] = 1;
+      var lv = has(l.v, e) ? JSON.stringify(l.v[e]) : undefined;
+      var rv = has(r.v, e) ? JSON.stringify(r.v[e]) : undefined;
+      var a = has(anc, e) ? anc[e] : undefined;
+      var v;
+      if (lv === rv) v = lv;
+      else if (fp(lv) === a) v = rv;              // only the cloud changed it
+      else if (fp(rv) === a) v = lv;              // only this device changed it
+      else if (lv === undefined) v = rv;          // deleted here, edited there
+      else if (rv === undefined) v = lv;          // edited here, deleted there
+      else v = JSON.stringify(JSON.parse(mergeValue(key, '{"e":' + lv + '}', '{"e":' + rv + '}', preferRemote)).e);
+      if (v !== undefined) out[e] = JSON.parse(v);
+    });
+    return JSON.stringify(out);
+  }
+  // ancestor: { keys, entries } fingerprints from the last sync (see ancestorOf), or null when
+  // they can't be trusted. A key only ONE side changed since then takes that side's value whole, even
   // when the other side is preferred: its copy is just older, not an edit (an untouched
   // stale key on the newer side used to overwrite the other side's edit, e.g. a paper
   // marked Done in the Papers iframe). Only keys both sides changed go through mergeValue.
@@ -446,9 +540,10 @@
       var l = has(local, k) ? local[k] : undefined;
       var r = has(remote, k) && typeof remote[k] === 'string' ? remote[k] : undefined;
       var v;
-      if (ancestor && has(ancestor, k) && l !== undefined && r !== undefined && l !== r) {
-        if (strHash(l) === ancestor[k]) v = r;
-        else if (strHash(r) === ancestor[k]) v = l;
+      if (ancestor && has(ancestor.keys, k) && l !== undefined && r !== undefined && l !== r) {
+        if (strHash(l) === ancestor.keys[k]) v = r;
+        else if (strHash(r) === ancestor.keys[k]) v = l;
+        else if (has(ancestor.entries, k)) v = mergeEntries(k, l, r, ancestor.entries[k], preferRemote);
       }
       if (v === undefined) v = mergeValue(k, l, r, preferRemote);
       if (v !== undefined) out[k] = v;
@@ -498,7 +593,7 @@
     var upload = {};
     Object.keys(remote.data).forEach(function (k) { upload[k] = remote.data[k]; });   // keep keys we don't manage
     Object.keys(merged).forEach(function (k) { upload[k] = merged[k]; });
-    return pushApp(appId, now, upload, remote, base).then(function (res) {
+    return pushApp(appId, now, upload, base).then(function (res) {
       // The app may have saved while the upload was in flight; those edits are newer than
       // anything in `merged` and must not be overwritten by it.
       var after = collect(keys);
@@ -578,7 +673,7 @@
         return { action: applyPull(appId, keys, remote) ? 'pull' : 'none' };
       }
       if (remoteHasData && remoteChanged && !localUnchangedSinceSync && !remoteMuchThinner) {
-        return mergeAndSave(appId, keys, remote, { preferRemote: preferCloud(meta, remote), ancestor: meta.keyHashes || null }, base, 0);
+        return mergeAndSave(appId, keys, remote, { preferRemote: preferCloud(meta, remote), ancestor: ancestorOf(appId, meta) }, base, 0);
       }
       if (remote && !remoteChanged && localUnchangedSinceSync) {
         touchCheck(appId);
@@ -586,7 +681,7 @@
       }
       var now = new Date().toISOString();
       var data = collect(keys);
-      return pushApp(appId, now, data, remote, base).then(function (res) {
+      return pushApp(appId, now, data, base).then(function (res) {
         markSynced(appId, keys, now, data);
         var r = { action: 'push', followUp: localHash(keys) !== hashOf(keys, data) };
         if (!res.clobbered) return r;
@@ -621,6 +716,7 @@
       // Fresh bookkeeping either way: the old meta describes the other account's gist. With no
       // lastSyncedAt, the reconcile pulls (local now empty) or merges with the cloud preferred.
       setMeta(appId, { lastLogin: login });
+      localStorage.removeItem(baseKey(appId));
       if (!loadTheirs || !hasData) return;
       writeGate = 'sync-writing';
       try {
@@ -635,18 +731,127 @@
   // quick edits) must not interleave two pull/merge/push cycles. A request that arrives
   // mid-flight shares the running one and schedules a single follow-up run; so does a run
   // that ends with local edits the cloud doesn't have yet (made while it was uploading).
+  // Across tabs, the Web Locks API runs one sync at a time per browser: a second tab waits,
+  // then finds the first tab's result already in the shared localStorage and has nothing to
+  // send. Without locks (older browsers, tests) each tab syncs alone, as before.
+  function withLock(fn) {
+    var locks = typeof navigator !== 'undefined' && navigator && navigator.locks;
+    if (!locks || typeof locks.request !== 'function') return fn();
+    return locks.request(LOCK_NAME, fn);
+  }
+  // GitHub rate-limited us: no request until its reset time, in any tab (the pause is stored).
+  function pausedUntil() { return Number(localStorage.getItem(PAUSE_KEY)) || 0; }
+  var resumeTimer = null;
+  function scheduleResume() {
+    var wait = pausedUntil() - Date.now();
+    if (wait <= 0 || resumeTimer) return;
+    resumeTimer = setTimeout(function () { resumeTimer = null; autoSync({ everyOpen: true }); }, wait + 1000);
+  }
+  function rateError() {
+    var e = new Error('GitHub asked us to slow down. Sync resumes at ' + new Date(pausedUntil()).toLocaleTimeString() + '.');
+    e.kind = 'rate'; e.retryAt = pausedUntil();
+    return e;
+  }
   var inflight = null, rerun = false;
   function reconcile(appId, keys) {
     if (inflight) { rerun = true; return inflight; }
-    inflight = guardAccount(appId, keys).then(function () { return doReconcile(appId, keys); }).then(function (r) {
+    if (Date.now() < pausedUntil()) { scheduleResume(); setHealth('rate', rateError()); return Promise.reject(rateError()); }
+    inflight = withLock(function () {
+      return guardAccount(appId, keys).then(function () { return doReconcile(appId, keys); });
+    }).then(function (r) {
       inflight = null;
+      setHealth('ok');
       if (rerun || r.followUp) { rerun = false; reconcile(appId, keys).catch(function () {}); }
       return r;
     }, function (e) {
       inflight = null; rerun = false;
+      if (e && e.kind === 'rate') { localStorage.setItem(PAUSE_KEY, String(e.retryAt)); scheduleResume(); }
+      setHealth((e && e.kind) || 'error', e);
       throw e;
     });
     return inflight;
+  }
+
+  // ── sync health ────────────────────────────────────────────────────────
+  // The apps have no Sync button any more, so a failing sync used to be invisible: a revoked
+  // sign-in failed quietly on every open while the person thought they were synced. Every
+  // sync now ends in one of these states, shown on the account button (a dot + its tooltip):
+  //   'unknown' nothing tried yet on this page   'ok'      last sync worked
+  //   'offline' no connection; retried when the browser is back online, and on every open
+  //   'rate'    GitHub rate limit; paused until GitHub's reset time
+  //   'auth'    the sign-in no longer works (expired, revoked, wrong permission): a banner
+  //             asks the person to sign in again, since no retry can fix it
+  //   'error'   anything else; retried on the next edit, open or tab return
+  var HEALTH = { unknown: 1, ok: 1, offline: 1, rate: 1, auth: 1, error: 1 };
+  var health = { state: 'unknown', message: '' };
+  function setHealth(state, err) {
+    if (state === 'network') state = 'offline';
+    if (state === 'http') state = 'error';
+    if (!HEALTH[state]) state = 'error';
+    health = { state: state, message: (err && err.message) || '' };
+    if (state === 'ok') localStorage.removeItem(PAUSE_KEY);
+    refreshBtnState();
+    showAuthBanner(state === 'auth');
+  }
+  function ago(iso) {
+    var s = Math.round((Date.now() - Date.parse(iso)) / 1000);
+    if (!(s >= 0)) return '';
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.round(s / 60) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' h ago';
+    return Math.round(s / 86400) + ' days ago';
+  }
+  function healthText() {
+    var last = cfg.appId && getMeta(cfg.appId).lastCheckAt;
+    var when = last ? 'Last synced ' + ago(last) + '.' : 'Not synced yet on this device.';
+    switch (health.state) {
+      case 'offline': return 'Offline: your edits are saved on this device and upload when you are back online. ' + when;
+      case 'rate':    return 'GitHub asked us to slow down. Sync resumes at ' + new Date(pausedUntil()).toLocaleTimeString() + '. ' + when;
+      case 'auth':    return 'Sync stopped: your GitHub sign-in no longer works. Sign out and sign in again. ' + when;
+      case 'error':   return 'Last sync failed (' + health.message.slice(0, 120) + '). It retries on your next edit. ' + when;
+      default:        return when;
+    }
+  }
+  // Styles live here, not in each app, so all three apps show the same dot and banner.
+  var styled = false;
+  function injectStyles() {
+    if (styled || typeof document === 'undefined' || !document.createElement || !document.head) return;
+    styled = true;
+    var st = document.createElement('style');
+    st.textContent =
+      'body[data-sync-health="offline"] #dataAccountBtn::after,body[data-sync-health="rate"] #dataAccountBtn::after,' +
+      'body[data-sync-health="error"] #dataAccountBtn::after,body[data-sync-health="auth"] #dataAccountBtn::after' +
+      '{content:"";display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;margin-left:6px;vertical-align:middle;background:#d29922}' +
+      'body[data-sync-health="auth"] #dataAccountBtn::after{background:#e5534b}' +
+      '.ds-sync-banner{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483000;max-width:calc(100vw - 32px);' +
+      'display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:10px;background:#2d1b1b;color:#ffd8d3;' +
+      'border:1px solid #e5534b;font:14px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.35)}' +
+      '.ds-sync-banner button{font:inherit;cursor:pointer;border-radius:6px;padding:4px 10px;border:1px solid #e5534b;background:#e5534b;color:#fff}' +
+      '.ds-sync-banner button.ds-x{background:transparent;color:inherit;border-color:transparent}';
+    document.head.appendChild(st);
+  }
+  var bannerDismissed = false;
+  function showAuthBanner(on) {
+    if (typeof document === 'undefined' || !document.createElement || !document.body) return;
+    var el = document.getElementById('dsSyncBanner');
+    if (!on || bannerDismissed) { if (el && el.remove) el.remove(); return; }
+    if (el) return;
+    injectStyles();
+    el = document.createElement('div');
+    el.id = 'dsSyncBanner';
+    el.className = 'ds-sync-banner';
+    el.setAttribute('role', 'alert');
+    var msg = document.createElement('span');
+    msg.textContent = '⚠ Sync stopped: your GitHub sign-in no longer works. Your edits are safe on this device.';
+    var again = document.createElement('button');
+    again.type = 'button';
+    again.textContent = 'Sign in again';
+    again.addEventListener('click', function () { setTokenValue(''); localStorage.removeItem(GISTID_KEY); startSignIn(); });
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'ds-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'Dismiss');
+    x.addEventListener('click', function () { bannerDismissed = true; showAuthBanner(false); });
+    el.appendChild(msg); el.appendChild(again); el.appendChild(x);
+    document.body.appendChild(el);
   }
 
   // ── button status helpers (sync status button must have id="dataSyncBtn";
@@ -672,7 +877,10 @@
     // Who is signed in, for page CSS (the hub shows its owner's 🌱 Life apps only to him).
     // A UI rule, not access control: the pages themselves are public.
     var who = getToken() ? localStorage.getItem(LOGIN_KEY) || '' : '';
-    if (document.body && document.body.dataset) document.body.dataset.signedInAs = who;
+    if (document.body && document.body.dataset) {
+      document.body.dataset.signedInAs = who;
+      document.body.dataset.syncHealth = getToken() ? health.state : '';
+    }
     // The account button (id="dataAccountBtn", optional .ds-account-label inside) is the
     // one place to sign in or out; its label is derived from the stored token and login.
     var a = document.getElementById('dataAccountBtn');
@@ -682,7 +890,7 @@
     var span = a.querySelector ? a.querySelector('.ds-account-label') : null;
     if (span) span.textContent = label; else a.textContent = label;
     a.classList.toggle('ds-token-set', !!getToken());
-    a.title = getToken() ? 'Synced with GitHub' + (login ? ' as @' + login : '') + '. Tap to sign out on this device.' : 'Sign in with GitHub to sync across your devices';
+    a.title = getToken() ? 'Syncing with GitHub' + (login ? ' as @' + login : '') + '. ' + healthText() + '\nTap to sign out on this device.' : 'Sign in with GitHub to sync across your devices';
   }
   function rememberLogin(login) {
     if (login) localStorage.setItem(LOGIN_KEY, login);
@@ -902,6 +1110,7 @@
     var last = meta.lastCheckAt ? Date.parse(meta.lastCheckAt) : 0;
     var due = (opts && opts.everyOpen) || Date.now() - last >= DAY_MS || hasUnsyncedEdits(cfg.appId, cfg.keys);
     if (!due) return;
+    if (isOffline()) { setHealth('offline'); return; }
     status('auto-sync…');
     reconcile(cfg.appId, cfg.keys).then(function (r) {
       if (r.action !== 'pull' && r.action !== 'merge') { status('synced ✓'); setTimeout(resetStatus, 2000); }
@@ -913,15 +1122,43 @@
   // another device changed the cloud meanwhile it merges (and reloads). Silently does
   // nothing when no token is set.
   var pushTimer = null;
+  function isOffline() { return typeof navigator !== 'undefined' && navigator && navigator.onLine === false; }
   function pushSoon(ms) {
     if (!getToken()) return;
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(function () {
-      status('saving…');
-      reconcile(cfg.appId, cfg.keys).then(function (r) {
-        if (r.action !== 'pull' && r.action !== 'merge') { status('synced ✓'); setTimeout(resetStatus, 1500); }
-      }).catch(function (e) { console.warn('[sync] background push failed', e); status('offline'); setTimeout(resetStatus, 2500); });
-    }, ms || 4000);
+    pushTimer = setTimeout(pushNow, ms || 4000);
+  }
+  function pushNow() {
+    pushTimer = null;
+    // The browser knows it has no connection: don't spend a request; 'online' retries.
+    if (isOffline()) { setHealth('offline'); return; }
+    status('saving…');
+    reconcile(cfg.appId, cfg.keys).then(function (r) {
+      if (r.action !== 'pull' && r.action !== 'merge') { status('synced ✓'); setTimeout(resetStatus, 1500); }
+    }).catch(function (e) { console.warn('[sync] background push failed', e); status('offline'); setTimeout(resetStatus, 2500); });
+  }
+  // The tab is being hidden or closed: send a waiting upload now instead of after the debounce.
+  // Otherwise an edit made in the last few seconds stays on this device until it is opened
+  // again, and the other devices don't see it meanwhile.
+  function flushPending() {
+    if (!pushTimer) return;
+    clearTimeout(pushTimer);
+    pushNow();
+  }
+  var lifecycleHooked = false;
+  function hookLifecycle() {
+    if (lifecycleHooked) return;
+    lifecycleHooked = true;
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') flushPending();
+      });
+    }
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('pagehide', flushPending);
+      // Back online: send what piled up offline and pick up other devices' edits.
+      window.addEventListener('online', function () { autoSync({ everyOpen: true }); });
+    }
   }
 
   // ── edit tracking ──────────────────────────────────────────────────────
@@ -999,6 +1236,8 @@
     cfg.reloadDelay = opts.reloadDelayMs || RELOAD_MS;
     installWriteHook();
     listenForOtherDocuments();
+    hookLifecycle();
+    injectStyles();
     refreshBtnState();
     finishSignIn();
   }
@@ -1016,6 +1255,7 @@
     // Save the synced keys as the newest "-presync" snapshot. For other ways of replacing
     // local data (a backup import), so they keep the same undo copy a sync pull keeps.
     snapshot: function () { if (cfg.appId) snapshotLocal(cfg.appId, cfg.keys); },
-    isConfigured: function () { return !!getToken(); }
+    isConfigured: function () { return !!getToken(); },
+    health: function () { return { state: health.state, text: healthText() }; }
   };
 })();
