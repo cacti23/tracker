@@ -5,6 +5,9 @@
 // cloud as "no file" and falls through to step 7: push local over it. pushApp only writes
 // <app>.prev.json when prevRemote has data, and prevRemote is that null, so before the fix
 // the other device's upload was replaced with no .prev backup, even by a device with no edits.
+// (.prev.json is gone since: the gist's revision history is the cloud backup, and a PATCH only
+// adds a revision, so the unreadable text stays there. What must hold is that a failed download
+// never reaches the upload at all; see the first test.)
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('fs')
@@ -65,9 +68,10 @@ test('a failed download of a large cloud file stops the sync instead of overwrit
   assert.equal(JSON.stringify(gist.files['dsa.json']), before)
 })
 
-test('an unparseable cloud file must not be overwritten without a .prev backup', async () => {
-  const { sb, ls, gist } = setup(p => ({ content: p.slice(0, -1) /* truncated JSON */ }))
+test('an unparseable cloud file is replaced by one upload (a new revision), never deleted', async () => {
+  const { sb, ls, gist, patches } = setup(p => ({ content: p.slice(0, -1) /* truncated JSON */ }))
   await runSync(sb, ls)
-  const kept = gist.files['dsa.json'].content.includes('fromA') || (gist.files['dsa.prev.json'] && gist.files['dsa.prev.json'].content.includes('fromA'))
-  assert.ok(kept, 'the unreadable cloud content was replaced and no copy of it was kept')
+  assert.equal(patches.length, 1, 'one PATCH: GitHub keeps the replaced text as the previous revision')
+  assert.ok(Object.values(patches[0].files).every(f => f !== null), 'no file is deleted')
+  assert.ok(JSON.parse(gist.files['dsa.json'].content).data.k1, 'this device\'s data is now in the cloud')
 })
