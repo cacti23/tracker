@@ -1,5 +1,5 @@
 const CACHE = 'tracker-cache-v1';
-const ASSETS = ['index.html', 'manifest.json', 'css/hub.css', 'js/dates.js', 'js/data.js', 'js/sync.js', 'js/back-button.js', 'visuals/visuals.html', 'icons/icon-192.png', 'icons/icon-512.png',
+const ASSETS = ['index.html', 'manifest.json', 'css/hub.css', 'js/actions.js', 'js/dates.js', 'js/data.js', 'js/sync.js', 'js/back-button.js', 'visuals/visuals.html', 'icons/icon-192.png', 'icons/icon-512.png',
   // Self-hosted libraries (vendor/): precached so the very first offline open still has Bootstrap and Prism.
   'vendor/bootstrap/css/bootstrap.min.css', 'vendor/bootstrap/js/bootstrap.bundle.min.js', 'vendor/prism/prism.min.js',
   'vendor/prism/plugins/autoloader/prism-autoloader.min.js', 'vendor/prism/themes/prism-tomorrow.min.css'];

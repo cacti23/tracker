@@ -13,7 +13,7 @@ const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
 test('How to use sits in the DSA sidebar right before the topic list', () => {
   const i = HTML.indexOf('id="nav-howto"'), j = HTML.indexOf('<div id="nav-topics"')
   assert.ok(i > 0 && i < j, 'nav-howto should come before #nav-topics')
-  assert.match(HTML, /id="nav-howto" data-hub="dsa" onclick="loadEmbed\('howto'\)"/)
+  assert.match(HTML, /id="nav-howto" data-hub="dsa" data-click="loadEmbed" data-args='\["howto"\]'/)
 })
 
 test('How to use opens in-pane and keeps the DSA notebook', () => {

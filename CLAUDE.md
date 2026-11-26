@@ -14,6 +14,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 - Top-level `let`/`const` in the inline script are not reachable as globals from the tests. Use `evalIn` in `test/load-app.js`.
 - Adding a topic: add it to `TOPICS` and `TOPIC_MODULES` in `js/data.js` (the module schema is documented in that file), and add a cheatsheet in `dsa/`.
 - `escHtml()` should wrap any user or data text put into `innerHTML`.
+- **No inline event handlers, no 'unsafe-inline'.** The CSP in `vercel.json` allows scripts from `'self'` plus each inline `<script>` block pinned by its sha256 hash. Handlers are `data-click="name" data-args='[...]'` (also `data-input`, `data-keydown` + `data-key`, `data-focusout`, `data-toggle`, `data-error`, `data-stop`, `data-prevent`; see `js/actions.js`), and a page must `Actions.register` every name it uses (index.html: the ACTIONS block before SYNCED KEYS). In HTML built by scripts, write `data-args="' + Actions.attrArgs([lcKey, '$this']) + '"'`. **After editing any inline `<script>`, run `node scripts/csp-hashes.js`**, or `test/csp.test.js` fails and production blocks the script.
 - No script or stylesheet loads from another site: Bootstrap 5.3.3 and Prism 1.29.0 are self-hosted in `vendor/` (the sync token sits in localStorage, shared by every page on the origin, so the CSP in `vercel.json` allows scripts from `'self'` only). `test/security.test.js` checks this. Add a new library under `vendor/`, never as a CDN link.
 
 ## Data and sync

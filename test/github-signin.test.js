@@ -173,7 +173,7 @@ test('⚙ stays the manual paste-a-token path and never starts a sign-in', () =>
 
 test('every synced page has the separate Sign in with GitHub button', () => {
   for (const f of ['index.html', 'apps/habits.html', 'apps/gym-5day.html']) {
-    assert.match(fs.readFileSync(path.join(ROOT, f), 'utf8'), /id="dataAccountBtn"[^>]*onclick="DataSync\.account\(\)"/, f)
+    assert.match(fs.readFileSync(path.join(ROOT, f), 'utf8'), /id="dataAccountBtn"[^>]*data-click="DataSync\.account"/, f)
   }
 })
 

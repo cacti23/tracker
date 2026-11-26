@@ -59,8 +59,8 @@ test('an unknown stored mode falls back to DSA', () => {
 
 test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now Life', () => {
   assert.match(HTML, /class="hub-switch"[^>]*role="group"/)
-  assert.match(HTML, /onclick="switchHub\('dsa'\)"/)
-  assert.match(HTML, /onclick="switchHub\('sd'\)"/)
+  assert.match(HTML, /data-click="switchHub" data-args='\["dsa"\]'/)
+  assert.match(HTML, /data-click="switchHub" data-args='\["sd"\]'/)
   for (const id of ['nav-dashboard', 'nav-thoughts', 'nav-jsbuiltins', 'nav-visuals', 'nav-google', 'nav-topics']) {
     assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="dsa"`), id + ' should show only in DSA')
   }

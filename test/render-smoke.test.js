@@ -44,7 +44,7 @@ test('booting the app renders every topic into the sidebar nav, with no exceptio
 
   for (const t of topics) {
     assert.match(nav.innerHTML, new RegExp(`id="nav-${t.key}"`), `sidebar is missing a nav button for topic "${t.key}"`)
-    assert.match(nav.innerHTML, new RegExp(`onclick="loadTopic\\('${t.key}'\\)"`), `nav button for "${t.key}" must call loadTopic('${t.key}')`)
+    assert.match(nav.innerHTML, new RegExp(`data-click="loadTopic" data-args="\\[&quot;${t.key}&quot;\\]"`), `nav button for "${t.key}" must call loadTopic('${t.key}')`)
   }
 })
 

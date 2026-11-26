@@ -339,8 +339,8 @@
       <div class="header-desc">😴 <strong>Bad day</strong> (poor sleep, sore joint): cut the load and do 16–25 reps — still grows muscle</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <button type="button" id="dataAccountBtn" class="toggle-btn" onclick="DataSync.account()" style="display:inline-flex;align-items:center;gap:6px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="flex:none"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="ds-account-label">Sign in with GitHub</span></button>
-      <button class="toggle-btn" id="themeToggle" onclick="toggleTheme()">
+      <button type="button" id="dataAccountBtn" class="toggle-btn" data-click="DataSync.account" style="display:inline-flex;align-items:center;gap:6px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="flex:none"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="ds-account-label">Sign in with GitHub</span></button>
+      <button class="toggle-btn" id="themeToggle" data-click="toggleTheme">
         <span id="toggleIcon">☀️</span> <span id="toggleLabel">Light mode</span>
       </button>
     </div>
@@ -351,13 +351,27 @@
 </div>
 <div class="rest-bar" id="restBar" role="timer">
   <div class="rest-info"><span class="rest-time">0:00</span><span class="rest-label"></span></div>
-  <button type="button" class="rest-btn" onclick="window._restAdjust(-15)" aria-label="15 seconds less">−15</button>
-  <button type="button" class="rest-btn" onclick="window._restAdjust(15)" aria-label="15 seconds more">+15</button>
-  <button type="button" class="rest-btn rest-skip" onclick="window._restSkip()">Skip</button>
+  <button type="button" class="rest-btn" data-click="_restAdjust" data-args='[-15]' aria-label="15 seconds less">−15</button>
+  <button type="button" class="rest-btn" data-click="_restAdjust" data-args='[15]' aria-label="15 seconds more">+15</button>
+  <button type="button" class="rest-btn rest-skip" data-click="_restSkip">Skip</button>
 </div>
 
+<script src="../js/actions.js"></script>
 <script src="../js/dates.js"></script>
 <script src="../js/sync.js"></script>
+<script>
+// No inline event handlers (the CSP blocks them): markup names an action (data-click="addSet",
+// see js/actions.js). These look the function up on window when it runs, since the page
+// defines them further down.
+Actions.register(['DataSync.account', '_goBack', '_openDay', '_restAdjust', '_restSkip', '_selectTab', '_toggleWeek',
+  'addSet', 'finishDay', 'removeSet', 'toggleCheckbox', 'toggleHistory', 'toggleSetDone', 'toggleTheme',
+  'updateExNote', 'updateSetRep', 'ytForm', '_pickVariant'].reduce(function (m, name) {
+  m[name] = name === 'DataSync.account' ? function () { DataSync.account() }
+    : name === '_pickVariant' ? function (d, e, v) { window.setVariant(d, e, v); window.renderContent() }
+    : function () { return window[name].apply(this, arguments) }
+  return m
+}, {}))
+</script>
 <script>
 (function() {
   // Each exercise: { name, sets, tag, priority, note, rest, ss?, variants[], altB? }
@@ -1573,9 +1587,9 @@
 
   function renderTabs() {
     document.getElementById("tabRow").innerHTML = `
-      <button class="tab-btn ${currentTab==="split"?"active":"inactive"}" onclick="window._selectTab('split')">5-Day Split</button>
-      <button class="tab-btn ${currentTab==="principles"?"active":"inactive"}" onclick="window._selectTab('principles')">Principles</button>
-      <button class="tab-btn inactive" onclick="window._toggleWeek()" title="Week A/B switches by itself every Monday. Tap only to shift the whole rotation by one week." style="flex:0 0 auto;min-width:96px;border-bottom-color:var(--accent);color:var(--accent);font-family:'DM Mono',monospace;">⇄ Week ${currentWeek}</button>
+      <button class="tab-btn ${currentTab==="split"?"active":"inactive"}" data-click="_selectTab" data-args='["split"]'>5-Day Split</button>
+      <button class="tab-btn ${currentTab==="principles"?"active":"inactive"}" data-click="_selectTab" data-args='["principles"]'>Principles</button>
+      <button class="tab-btn inactive" data-click="_toggleWeek" title="Week A/B switches by itself every Monday. Tap only to shift the whole rotation by one week." style="flex:0 0 auto;min-width:96px;border-bottom-color:var(--accent);color:var(--accent);font-family:'DM Mono',monospace;">⇄ Week ${currentWeek}</button>
     `;
   }
 
@@ -1602,7 +1616,7 @@
     const t = todayIndex(), td = days[t];
     area.innerHTML = td.type === "rest"
       ? `<div class="today-rest">💤 <strong>Today is a rest day</strong> · Week ${currentWeek}. ${esc(td.notes.replace(/^[A-Z]+:\s*/, ""))}</div>`
-      : `<button type="button" class="today-btn" onclick="window._openDay(${t})"><span class="today-kicker">TODAY · WEEK ${currentWeek}</span><span class="today-name">▶ ${td.tag}</span><span class="today-meta">${td.exercises.length} exercises · ${esc(td.focus)}</span></button>`;
+      : `<button type="button" class="today-btn" data-click="_openDay" data-args="${Actions.attrArgs([t])}"><span class="today-kicker">TODAY · WEEK ${currentWeek}</span><span class="today-name">▶ ${td.tag}</span><span class="today-meta">${td.exercises.length} exercises · ${esc(td.focus)}</span></button>`;
   }
 
   function renderSplitGrid() {
@@ -1632,7 +1646,7 @@
     const day = days[index];
     const notesText = getNotes(index);
     let html = `
-      <button class="back-btn" onclick="window._goBack()">← BACK TO SPLIT</button>
+      <button class="back-btn" data-click="_goBack">← BACK TO SPLIT</button>
       <div class="expanded-card">
         <div class="expanded-header" style="background:linear-gradient(135deg, ${day.color}${isDark?'18':'0c'} 0%, transparent 60%);">
           <div class="expanded-day-num">DAY ${day.num} of 7 · ⏱ ~${estimateMinutes(index, currentWeek)} min</div>
@@ -1663,10 +1677,10 @@
               <div class="expanded-ex${ex.ss?' ss-block':''}" style="border-bottom:${i<day.exercises.length-1?'1px solid var(--border-sub)':'none'};">
                 <div class="expanded-ex-left" style="width: 100%;">
                   <div class="ex-name-row">
-                    <div class="ex-checkbox${isChecked?' checked':''}" data-day="${index}" data-ex="${i}" onclick="toggleCheckbox(this)"></div>
+                    <div class="ex-checkbox${isChecked?' checked':''}" data-day="${index}" data-ex="${i}" data-click="toggleCheckbox" data-args='["$this"]'></div>
                     <span class="expanded-ex-name ${ex.priority?'priority':'normal'}">${variantName}</span>
-                    <button class="form-btn" onclick="window.ytForm('${safeName}')" title="Watch form video">▶ Form</button>
-                    <button class="form-btn" onclick="window.toggleHistory(this)" data-name="${variantName.replace(/"/g,'&quot;')}" title="Past sessions">📈</button>
+                    <button class="form-btn" data-click="ytForm" data-args="${Actions.attrArgs([safeName])}" title="Watch form video">▶ Form</button>
+                    <button class="form-btn" data-click="toggleHistory" data-args='["$this"]' data-name="${variantName.replace(/"/g,'&quot;')}" title="Past sessions">📈</button>
                   </div>
                   <span class="tag-chip" style="background:${tagBg};color:${tagFg};border-color:${tagBd};">${ex.tag}</span>
                   ${ex.ss ? `<span class="ss-chip">⥀ Superset ${String(ex.ss).replace('ss','')}</span>` : ''}
@@ -1684,7 +1698,7 @@
                   ${ex.variants && ex.variants.length > 0 ? `
                     <div class="variant-pills">
                       ${variantOptions.map((v, vIdx) => `
-                        <button type="button" class="variant-pill${vIdx===currentVariant?' active':''}" onclick="window.setVariant(${index},${i},${vIdx});window.renderContent();" title="${(v.note||'').replace(/"/g,'&quot;')} · ${v.sets}">${v.name}</button>
+                        <button type="button" class="variant-pill${vIdx===currentVariant?' active':''}" data-click="_pickVariant" data-args="${Actions.attrArgs([index, i, vIdx])}" title="${(v.note||'').replace(/"/g,'&quot;')} · ${v.sets}">${v.name}</button>
                       `).join('')}
                     </div>
                   ` : ''}
@@ -1706,19 +1720,19 @@
                       return `
                       <div class="set-block${set.done?' done':''}" id="setblock-${index}-${i}-${setIdx}">
                         <div class="set-row">
-                          <button class="set-done${set.done?' done':''}" onclick="window.toggleSetDone(this,${index},${i},${setIdx})" title="Tick when the set is done. Empty boxes take last time's numbers. Starts the rest timer.">${set.done?'✓':(setIdx+1)}</button>
-                          <input type="text" inputmode="decimal" class="track-input" aria-label="Set ${setIdx + 1} weight in kg" placeholder="${esc(prev ? (prev.weight || 'BW') : 'kg')}" value="${esc(set.weight)}" oninput="window.updateSetRep(${index},${i},${setIdx},'weight',this.value)">
-                          <input type="text" inputmode="numeric" class="track-input" aria-label="Set ${setIdx + 1} reps" placeholder="${esc(prev ? (prev.reps || 'reps') : 'reps')}" value="${esc(set.reps)}" oninput="window.updateSetRep(${index},${i},${setIdx},'reps',this.value)">
+                          <button class="set-done${set.done?' done':''}" data-click="toggleSetDone" data-args="${Actions.attrArgs(['$this', index, i, setIdx])}" title="Tick when the set is done. Empty boxes take last time's numbers. Starts the rest timer.">${set.done?'✓':(setIdx+1)}</button>
+                          <input type="text" inputmode="decimal" class="track-input" aria-label="Set ${setIdx + 1} weight in kg" placeholder="${esc(prev ? (prev.weight || 'BW') : 'kg')}" value="${esc(set.weight)}" data-input="updateSetRep" data-args="${Actions.attrArgs([index, i, setIdx, 'weight', '$value'])}">
+                          <input type="text" inputmode="numeric" class="track-input" aria-label="Set ${setIdx + 1} reps" placeholder="${esc(prev ? (prev.reps || 'reps') : 'reps')}" value="${esc(set.reps)}" data-input="updateSetRep" data-args="${Actions.attrArgs([index, i, setIdx, 'reps', '$value'])}">
                         </div>
                         <div class="set-status" data-day="${index}" data-ex="${i}" data-set="${setIdx}">${badge}</div>
                       </div>
                     `;
                     }).join('')}
                     <div class="set-actions">
-                      <button class="set-btn" onclick="window.addSet(${index},${i})">+ Set</button>
-                      <button class="set-btn" onclick="window.removeSet(${index},${i})">− Set</button>
+                      <button class="set-btn" data-click="addSet" data-args="${Actions.attrArgs([index, i])}">+ Set</button>
+                      <button class="set-btn" data-click="removeSet" data-args="${Actions.attrArgs([index, i])}">− Set</button>
                     </div>
-                    <textarea class="ex-notes-field" placeholder="Notes (kept for next time)" oninput="window.updateExNote(${index},${i},this.value)">${esc(exData.notes)}</textarea>
+                    <textarea class="ex-notes-field" placeholder="Notes (kept for next time)" data-input="updateExNote" data-args="${Actions.attrArgs([index, i, '$value'])}">${esc(exData.notes)}</textarea>
                   </div>
                 </div>
                 <div class="ex-sets-chip">${variantSets}</div>
@@ -1727,7 +1741,7 @@
         </div>
         <div style="padding:0 26px 22px;">
           <textarea class="notes-area" id="dayNotes" placeholder="Day notes...">${esc(notesText)}</textarea>
-          <button class="day-save-btn" onclick="window.finishDay(${index})">✓ FINISH &amp; SAVE TO HISTORY</button>
+          <button class="day-save-btn" data-click="finishDay" data-args="${Actions.attrArgs([index])}">✓ FINISH &amp; SAVE TO HISTORY</button>
         </div>
       </div>
     `;

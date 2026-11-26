@@ -47,7 +47,7 @@ function extractInlineScript(html) {
 }
 
 // The plain <script src> files index.html loads before its inline script, in page order.
-const PAGE_SCRIPTS = ['dates.js', 'data.js']
+const PAGE_SCRIPTS = ['actions.js', 'dates.js', 'data.js']
 function loadScripts(sandbox, files = PAGE_SCRIPTS) {
   for (const f of files) vm.runInContext(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8'), sandbox, { filename: f })
 }

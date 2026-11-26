@@ -58,7 +58,10 @@ test('CSP only lets the page send data to GitHub (and Google Fonts) — not arbi
 test('CSP locks down scripts, plugins, base URI and framing', () => {
   const d = csp()
   // No CDN host: jsDelivr serves any npm package, so allowing it lets anyone's script run here.
-  assert.deepEqual([...d['script-src']].sort(), ["'self'", "'unsafe-inline'"].sort())
+  // Own files plus the exact inline <script> blocks, pinned by hash (scripts/csp-hashes.js). No
+  // 'unsafe-inline': an injected <script> or onclick="" attribute does not run.
+  assert.equal(d['script-src'][0], "'self'")
+  assert.ok(d['script-src'].slice(1).every((s) => /^'sha256-[A-Za-z0-9+/]+=*'$/.test(s)), d['script-src'].join(' '))
   assert.ok(!d['img-src'].includes('https:'), 'img-src must list hosts: a wildcard lets an injected script send the token out as an image URL')
   assert.deepEqual(d['object-src'], ["'none'"])
   assert.deepEqual(d['base-uri'], ["'self'"])
