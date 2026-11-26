@@ -21,9 +21,8 @@ test('Postmortems opens in-pane, and a reload returns to it', () => {
   assert.equal(again.getElement('page-frame').getAttribute('src'), 'papers/postmortems.html')
 })
 
-test('the sidebar entry is shared by both notebooks, and Paper Club keeps its name', () => {
-  assert.match(HTML, /id="nav-postmortems"[^>]*onclick="loadEmbed\('postmortems'\)"/)
-  assert.doesNotMatch(HTML, /id="nav-postmortems"[^>]*data-hub=/)
+test('the sidebar entry lives in the System Design notebook (Adi, 2026-11-26), and Paper Club keeps its name', () => {
+  assert.match(HTML, /id="nav-postmortems" data-hub="sd" onclick="loadEmbed\('postmortems'\)"/)
   assert.match(HTML, /<span class="nav-topic-label">Paper Club<\/span>/)
 })
 

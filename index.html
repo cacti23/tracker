@@ -34,7 +34,8 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <!-- Not render-blocking: the page paints with the fallback font and swaps when this arrives. -->
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/hub.css">
   <style>
@@ -194,6 +195,13 @@
       display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
     }
     /* Privacy is about the app, not study, so it lives here instead of in a study section. */
+    .sidebar-nocollect { white-space: normal; line-height: 1.35; }
+    #sidebar button.nav-link.nav-howto-card {
+      border: 1px solid var(--border-glow); background: var(--accent-dim); margin-bottom: 0.5rem; padding: 0.55rem 0.75rem;
+    }
+    .nav-howto-text { display: flex; flex-direction: column; line-height: 1.25; white-space: normal; text-align: left; }
+    .nav-howto-text b { color: var(--text-primary); font-weight: 700; }
+    .nav-howto-text small { color: var(--text-muted); font-size: var(--fs-2xs); }
     #sidebar .sidebar-footer button.sidebar-privacy-link {
       width: auto; padding: 0.15rem 0.4rem; margin: 0 0 0 -0.4rem; font-size: var(--fs-2xs); color: var(--text-muted);
     }
@@ -1153,6 +1161,11 @@
     </div>
 
     <nav class="flex-grow-1 p-2 pb-3 overflow-auto sidebar-nav">
+      <!-- First thing a new visitor sees in the DSA notebook: a card, not a plain row. -->
+      <button type="button" id="nav-howto" data-hub="dsa" onclick="loadEmbed('howto')" class="nav-link nav-howto-card" title="How to use the DSA tracker: what it is, how revision works, a daily routine">
+        <span class="nav-topic-icon" aria-hidden="true">📖</span>
+        <span class="nav-howto-text"><b>How to use the DSA tracker</b><small>2-minute guide</small></span>
+      </button>
       <button type="button" id="nav-dashboard" data-hub="dsa" onclick="loadDashboard()"
         class="nav-link">
         <span class="nav-topic-icon">🏠</span>
@@ -1162,13 +1175,9 @@
         <span class="nav-topic-icon" aria-hidden="true">🏛️</span>
         <span class="nav-topic-label">System Design notes</span>
       </button>
-      <button type="button" id="nav-howto" data-hub="dsa" onclick="loadEmbed('howto')" class="nav-link" title="How to use the DSA tracker: what it is, how revision works, a daily routine">
-        <span class="nav-topic-icon" aria-hidden="true">📖</span>
-        <span class="nav-topic-label">How to use (DSA)</span>
-      </button>
-      <!-- Sections follow the notebook switch: DSA-only groups carry data-hub="dsa";
-           Resources serve both notebooks; Privacy sits in the footer, it is about the app, not study. -->
-      <p class="sidebar-section-label" data-hub="dsa">DSA study tools</p>
+      <!-- One "Study tools" heading for both notebooks: each item carries the notebook it belongs to
+           (data-hub), and Study Sites has none, so it shows in both. Privacy sits in the footer. -->
+      <p class="sidebar-section-label">Study tools</p>
       <button type="button" id="nav-thoughts" data-hub="dsa" onclick="loadEmbed('thoughts')" class="nav-link" title="DSA Thoughts: short insights per topic, each with a diagram">
         <span class="nav-topic-icon" aria-hidden="true">🧠</span>
         <span class="nav-topic-label">DSA Thoughts</span>
@@ -1177,28 +1186,27 @@
         <span class="nav-topic-icon" aria-hidden="true">📋</span>
         <span class="nav-topic-label">JS Built-ins</span>
       </button>
-      <button type="button" id="nav-visuals" data-hub="dsa" onclick="loadEmbed('visuals')" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
+      <button type="button" id="nav-visuals" data-hub="dsa" onclick="loadEmbed('visuals')" class="nav-link" title="DSA Visuals: one picture per idea, e.g. constraints to time complexity">
         <span class="nav-topic-icon" aria-hidden="true">🖼️</span>
-        <span class="nav-topic-label">Visuals</span>
+        <span class="nav-topic-label">DSA Visuals</span>
       </button>
-      <!-- One entry per company; add the next company here. -->
-      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
-      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
-        <span class="nav-topic-icon">🔍</span>
-        <span class="nav-topic-label">Google</span>
+      <button type="button" id="nav-papers" data-hub="sd" onclick="loadEmbed('papers')" class="nav-link" title="Engineering Paper Club: distributed-systems papers and blogs, easy to hard">
+        <span class="nav-topic-icon" aria-hidden="true">📚</span>
+        <span class="nav-topic-label">Paper Club</span>
       </button>
-      <p class="sidebar-section-label">Resources</p>
+      <button type="button" id="nav-postmortems" data-hub="sd" onclick="loadEmbed('postmortems')" class="nav-link" title="Production Postmortems: 20 real outages and what each one teaches">
+        <span class="nav-topic-icon" aria-hidden="true">🔥</span>
+        <span class="nav-topic-label">Postmortems</span>
+      </button>
       <button type="button" id="nav-sites" onclick="loadEmbed('sites')" class="nav-link" title="Study Sites: the best sites for DSA and system design prep">
         <span class="nav-topic-icon" aria-hidden="true">🔖</span>
         <span class="nav-topic-label">Study Sites</span>
       </button>
-      <button type="button" id="nav-papers" onclick="loadEmbed('papers')" class="nav-link" title="Engineering Paper Club: distributed-systems papers and blogs, easy to hard">
-        <span class="nav-topic-icon">📚</span>
-        <span class="nav-topic-label">Paper Club</span>
-      </button>
-      <button type="button" id="nav-postmortems" onclick="loadEmbed('postmortems')" class="nav-link" title="Production Postmortems: 20 real outages and what each one teaches">
-        <span class="nav-topic-icon" aria-hidden="true">🔥</span>
-        <span class="nav-topic-label">Postmortems</span>
+      <!-- One entry per company; add the next company here. -->
+      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
+      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
+        <span class="nav-topic-icon" aria-hidden="true">🔍</span>
+        <span class="nav-topic-label">Google</span>
       </button>
       <p class="sidebar-section-label" data-hub="dsa">Topics</p>
       <div id="nav-topics" data-hub="dsa"></div>
@@ -1222,7 +1230,8 @@
 
     <div class="sidebar-footer">
       <button type="button" id="nav-privacy" onclick="loadEmbed('privacy')" class="nav-link sidebar-privacy-link" title="Privacy and your data: what is stored, signing out, delete my data">🔒 Privacy &amp; data</button>
-      <span>v587 · Interview Prep Hub</span>
+      <span>v588 · Interview Prep Hub</span>
+      <span class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</span>
     </div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
@@ -1903,7 +1912,7 @@ function loadGoogle(tab) {
 // The key is also the saved view, so a reload returns to the same page.
 const EMBEDS = {
   papers:     { view: 'view-papers',  frame: 'papers-frame',  title: '📚 Paper Club',   src: 'papers/paper-club.html' },
-  visuals:    { view: 'view-visuals', frame: 'visuals-frame', title: '🖼️ Visuals',      src: 'visuals/visuals.html' },
+  visuals:    { view: 'view-visuals', frame: 'visuals-frame', title: '🖼️ DSA Visuals',  src: 'visuals/visuals.html' },
   thoughts:   { view: 'view-page',    frame: 'page-frame',    title: '🧠 DSA Thoughts', src: 'dsa/dsa-thoughts.html' },
   jsbuiltins: { view: 'view-page',    frame: 'page-frame',    title: '📋 JS Built-ins', src: 'dsa/js-builtins.html' },
   sites:      { view: 'view-page',    frame: 'page-frame',    title: '🔖 Study Sites',  src: 'dsa/study-sites.html' },
@@ -1912,7 +1921,8 @@ const EMBEDS = {
   howto:      { view: 'view-page',    frame: 'page-frame',    title: '📖 How to use',   src: 'dsa/how-to-use.html' },
   sysdesign:  { view: 'view-sysdesign', frame: 'sysdesign-frame', title: '🏛️ System Design', src: 'sysdesign/system-design.html', hub: 'sd' },
 }
-for (const k of ['visuals', 'thoughts', 'jsbuiltins', 'howto']) EMBEDS[k].hub = 'dsa'   // papers, postmortems, sites and privacy are shared
+for (const k of ['visuals', 'thoughts', 'jsbuiltins', 'howto']) EMBEDS[k].hub = 'dsa'
+for (const k of ['papers', 'postmortems']) EMBEDS[k].hub = 'sd'   // sites and privacy are shared
 
 // ─── NOTEBOOK SWITCH (DSA | System Design) ────────────────────────────────────
 // One named mode, kept per device (not synced). Opening a page that belongs to one notebook

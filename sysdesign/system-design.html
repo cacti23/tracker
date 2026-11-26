@@ -8399,7 +8399,10 @@ const GLOSSARY = [
       word.replaceWith(b); seen.add(best.id); node = rest
     }
   }
-  cards.forEach(card => {
+  // Linking every card up front ran ~200 patterns over every text node: about 0.3 s on a laptop and
+  // 1-2 s on a phone, freezing the hub (same thread) when System Design opened. Each card is linked
+  // only when it nears the screen; its result is the same, since "first mention" is per card section.
+  const linkCard = card => {
     // Walk in reading order; each h4 starts a new section. Words already linked by hand count as seen.
     const parts = [{ seen: new Set(), texts: [] }]
     const w = document.createTreeWalker(card, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode: n =>
@@ -8411,7 +8414,12 @@ const GLOSSARY = [
       else parts.at(-1).seen.add(n.dataset.g)
     }
     parts.forEach(p => p.texts.forEach(t => link(t, p.seen)))
-  })
+  }
+  if (!('IntersectionObserver' in window)) return cards.forEach(linkCard)
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { io.unobserve(e.target); linkCard(e.target) }
+  }), { rootMargin: '1500px 0px' })
+  cards.forEach(c => io.observe(c))
 })()
 
 let startView = 'topics'
