@@ -26,8 +26,8 @@ test('sharing the hub shows a link preview with an image that exists', () => {
   assert.ok(fs.existsSync(path.join(__dirname, '..', img)), img)
 })
 
-test('the sidebar footer has a feedback email link', () => {
-  assert.match(read('index.html'), /<a class="sidebar-feedback-link" href="mailto:[^"?]+@[^"?]+\?subject=Interview%20Prep%20Hub%20feedback">💬 Send feedback<\/a>/)
+test('no email address is printed on the hub (feedback goes through a Google Form)', () => {
+  assert.ok(!/mailto:|@gmail\.com/.test(read('index.html')))
 })
 
 test('page titles match the sidebar names', () => {
