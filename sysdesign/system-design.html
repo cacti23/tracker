@@ -863,14 +863,21 @@ body.map-on .wrap { max-width: 1640px; }
 .rail ol ol { margin: 2px 0 6px 10px; }
 .rail ol ol a { color: var(--muted); padding: 3px 8px; }
 .rail ol ol li.cur > a { color: var(--text); background: transparent; }
-.rail-x { display: none; }
+.rail-x, .rail-hide, .rail-show { display: none; }
 @media (min-width: 1280px) {
   .rail { display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; overflow-y: auto; overscroll-behavior: contain;
     padding: 20px 12px 72px 16px; border-right: 1px solid var(--line); background: var(--bg); }
-  body:not(.map-on) { padding-left: 260px; }
-  body.map-on .rail { display: none; }
+  body:not(.map-on):not(.rail-off) { padding-left: 260px; }
+  body.map-on .rail, body.rail-off .rail { display: none; }
   .here { display: none !important; }
+  /* Hide (Adi, 2026-11-26): the map steps aside for full-width reading; 🧭 brings it back */
+  .rail-hide { display: block; position: sticky; top: 0; z-index: 1; float: right; margin: -4px -2px 0 8px; font: inherit; font-size: var(--t-xs); padding: 2px 8px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--muted); cursor: pointer; }
+  .rail-hide:hover { color: var(--text); background: var(--chip); }
+  body.rail-off:not(.map-on) .rail-show { display: block; }
 }
+.rail-show { position: fixed; top: 12px; left: 12px; z-index: 30; font: inherit; font-size: var(--t-m); padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
 @media (min-width: 1000px) { .rail { zoom: 1.15; } }
 /* the trail: sticky at the top of the page, one line, tap to open the rail */
 .here { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; width: calc(100% + 32px); margin: 0 -16px 12px;
@@ -932,10 +939,12 @@ body.map-on .wrap { max-width: 1640px; }
 <a class="skip" href="#list">Skip to the notes</a>
 <nav class="rail" id="rail" aria-label="Notes map: where you are">
   <button type="button" class="rail-x" id="rail-x" aria-label="Close the notes map">✕</button>
+  <button type="button" class="rail-hide" id="rail-hide" aria-label="Hide the notes map" title="Hide the notes map">« Hide</button>
   <p class="rail-h">🧭 You are here</p>
   <ol id="rail-list"></ol>
 </nav>
 <div class="rail-scrim" id="rail-scrim" hidden></div>
+<button type="button" class="rail-show" id="rail-show" aria-label="Show the notes map" title="Show the notes map">🧭 Map</button>
 <div class="wrap" role="main">
 <button type="button" class="here" id="here" hidden aria-controls="rail" aria-expanded="false"></button>
 <header>
@@ -8866,6 +8875,15 @@ No score, no grade.`
   rail.addEventListener('click', e => { if (e.target.closest('a') && rail.classList.contains('open')) open(false) })
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && rail.classList.contains('open')) open(false) })
   wide.addEventListener('change', () => { if (wide.matches) open(false); track() })
+  // Hide / show on wide screens, remembered on this device only (a reading preference, not progress)
+  const RAIL_OFF_KEY = 'sd-rail-hidden'
+  const setRailOff = off => {
+    document.body.classList.toggle('rail-off', off)
+    try { off ? localStorage.setItem(RAIL_OFF_KEY, '1') : localStorage.removeItem(RAIL_OFF_KEY) } catch {}
+  }
+  try { document.body.classList.toggle('rail-off', localStorage.getItem(RAIL_OFF_KEY) === '1') } catch {}
+  document.getElementById('rail-hide').addEventListener('click', () => setRailOff(true))
+  document.getElementById('rail-show').addEventListener('click', () => setRailOff(false))
   build()
 })()
 
