@@ -598,6 +598,7 @@ section.card, section.card h4, section.card h5, h3.lesson { scroll-margin-top: 1
 .dt th, .dt td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; white-space: nowrap; }
 .dt th { background: var(--chip); font-weight: 600; }
 .dt .dup { background: var(--red-bg); color: var(--red-fg); }
+.dn-wrap { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: flex-start; }
 .tscroll { overflow-x: auto; max-width: 100%; }
 /* Wide-column rows (lesson image 3): row key, then that row's own columns */
 .wc { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; margin: 6px 0 4px; font-size: var(--t-xs); align-items: center; }
@@ -6034,10 +6035,18 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
 
   <h5>🧩 Denormalization Strategies</h5>
   <p class="bridge">Or organize the data inside the one database better. Normalization splits data into tables so nothing is stored twice; it saves space but needs joins to put things back together. Denormalization does the opposite: store the same data twice, so a read needs no join.</p>
-  <div class="grid2" role="img" aria-label="Normalized: separate users, orders and products tables, so one order page needs a join over them. Denormalized: one orders table where each row carries the user details and product details inline, so one order page is one row.">
-    <div class="k-amber"><b>🧩 Normalized: 3 tables</b><div class="chk">👤 users: Evan · Seattle</div><div class="chk">🧾 orders: Evan · Table · 1</div><div class="chk">📦 products: Table · $100</div><div class="chk">➡️ one order page = a join across all of them</div></div>
-    <div class="k-green"><b>📄 Denormalized: 1 table</b><div class="chk">🧾 order_summary: Table · 1 · {Evan, Seattle} · {Table, $100}</div><div class="chk">➡️ one order page = one row, no join</div><div class="chk">⚠️ Evan renames → update every one of his orders</div></div>
+  <p class="figcap">🧩 <b>Normalized: 3 tables, each fact stored once</b></p>
+  <div class="dn-wrap" role="img" aria-label="Normalized: a users table (Evan Seattle, Stefan Seattle, Shivam Los Angeles, Glenn San Fran), an orders table (Evan Table 1, Evan Chair 4, Evan Lamp 1, Glenn Lamp 2) and a products table (Table $100, Chair $50, Lamp $70).">
+    <table class="dt"><caption>👤 users</caption><tr><th>name</th><th>city</th></tr><tr><td>Evan</td><td>Seattle</td></tr><tr><td>Stefan</td><td>Seattle</td></tr><tr><td>Shivam</td><td>Los Angeles</td></tr><tr><td>Glenn</td><td>San Fran</td></tr></table>
+    <table class="dt"><caption>🧾 orders</caption><tr><th>user</th><th>product</th><th>qty</th></tr><tr><td>Evan</td><td>Table</td><td>1</td></tr><tr><td>Evan</td><td>Chair</td><td>4</td></tr><tr><td>Evan</td><td>Lamp</td><td>1</td></tr><tr><td>Glenn</td><td>Lamp</td><td>2</td></tr></table>
+    <table class="dt"><caption>📦 products</caption><tr><th>product</th><th>price</th></tr><tr><td>Table</td><td>$100</td></tr><tr><td>Chair</td><td>$50</td></tr><tr><td>Lamp</td><td>$70</td></tr></table>
   </div>
+  <p class="figcap">➡️ One order page = a join across all three.</p>
+  <p class="figcap">📄 <b>Denormalized: 1 table, the user and product copied into every order</b></p>
+  <div class="tscroll" role="img" aria-label="Denormalized: one order_summary table. Evan and Seattle are copied into 3 rows, Lamp $70 into 2 rows.">
+    <table class="dt"><caption>🧾 order_summary</caption><tr><th>product</th><th>qty</th><th>user</th><th>price</th></tr><tr><td>Table</td><td>1</td><td class="dup">Evan · Seattle</td><td>$100</td></tr><tr><td>Chair</td><td>4</td><td class="dup">Evan · Seattle</td><td>$50</td></tr><tr><td>Lamp</td><td>1</td><td class="dup">Evan · Seattle</td><td class="dup">$70</td></tr><tr><td>Lamp</td><td>2</td><td>Glenn · San Fran</td><td class="dup">$70</td></tr></table>
+  </div>
+  <p class="figcap">Red = copies. ➡️ One order page = one row, no join. ⚠️ Evan moves city → 3 rows change, and missing one leaves two cities for one person.</p>
 <pre>-- Normalized: 4 tables joined, thousands of times a second
 SELECT u.name, o.order_date, p.product_name, p.price
 FROM users u
