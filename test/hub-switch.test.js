@@ -33,9 +33,8 @@ test('the DSA switch goes back to the dashboard', () => {
 
 test('a DSA page opened from System Design (search, a link) switches the sidebar back; shared pages keep the mode', () => {
   const { sandbox } = loadAppWithDom()
-  evalIn(sandbox, "switchHub('sd')")
   evalIn(sandbox, "loadEmbed('papers')")
-  assert.equal(mode(sandbox), 'sd', 'Paper Club belongs to both notebooks')
+  assert.equal(mode(sandbox), 'sd', 'Paper Club belongs to System Design')
   evalIn(sandbox, "loadEmbed('sites')")
   assert.equal(mode(sandbox), 'sd', 'Study Sites belongs to both notebooks')
   evalIn(sandbox, "loadTopic('two-pointers')")
@@ -66,7 +65,8 @@ test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now 
     assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="dsa"`), id + ' should show only in DSA')
   }
   assert.match(HTML, /id="nav-sysdesign"[^>]*data-hub="sd"/)
-  for (const id of ['nav-papers', 'nav-sites']) assert.doesNotMatch(HTML, new RegExp(`id="${id}"[^>]*data-hub=`), id + ' is shared')
+  for (const id of ['nav-papers', 'nav-postmortems']) assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="sd"`), id + ' is System Design only')
+  assert.doesNotMatch(HTML, /id="nav-sites"[^>]*data-hub=/, 'Study Sites is shared')
   assert.doesNotMatch(HTML, /<a href="sysdesign\/system-design\.html"/, 'System Design is no longer an app link')
   assert.match(HTML, /<summary[^>]*>🌱 Life<\/summary>/)
 })

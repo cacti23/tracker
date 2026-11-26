@@ -1,5 +1,5 @@
 // Sidebar sections follow the notebook switch: a DSA group shows only DSA pages,
-// Resources serve both notebooks, and Privacy (about the app, not study) sits in the footer.
+// Study Sites serves both notebooks, and Privacy (about the app, not study) sits in the footer.
 const test = require('node:test')
 const assert = require('node:assert')
 const fs = require('fs')
@@ -16,39 +16,42 @@ function sections() {
   let m
   while ((m = re.exec(nav))) {
     if (m[1]) label = m[1]
-    else out[m[2]] = { label, dsaOnly: /data-hub="dsa"/.test(m[3]) }
+    else out[m[2]] = { label, hub: (/data-hub="(\w+)"/.exec(m[3]) || [])[1] || null }
   }
   return out
 }
 
-test('How to use says it is for DSA and sits right under the Dashboard', () => {
-  assert.match(HTML, /<span class="nav-topic-label">How to use \(DSA\)<\/span>/)
+test('How to use the DSA tracker is a card above the Dashboard', () => {
+  assert.match(HTML, /class="nav-link nav-howto-card"/)
+  assert.match(HTML, /<b>How to use the DSA tracker<\/b>/)
   const ids = Object.keys(sections())
-  assert.strictEqual(ids[ids.indexOf('nav-dashboard') + 1], 'nav-sysdesign')
-  assert.strictEqual(ids[ids.indexOf('nav-sysdesign') + 1], 'nav-howto')
-  assert.strictEqual(sections()['nav-howto'].label, '(top)')
+  assert.strictEqual(ids[0], 'nav-howto')
+  assert.strictEqual(ids[1], 'nav-dashboard')
+  assert.ok(sections()['nav-howto'].hub === 'dsa')
 })
 
-test('the DSA study tools group holds only DSA pages', () => {
+test('one Study tools heading: DSA items, System Design items, and Study Sites in both', () => {
   const s = sections()
-  for (const id of ['nav-thoughts', 'nav-jsbuiltins', 'nav-visuals']) {
-    assert.strictEqual(s[id].label, 'DSA study tools', id)
-    assert.ok(s[id].dsaOnly, id + ' should be DSA only')
-  }
-  assert.match(nav, /<p class="sidebar-section-label" data-hub="dsa">DSA study tools<\/p>/)
+  assert.match(nav, /<p class="sidebar-section-label">Study tools<\/p>/)
+  for (const id of ['nav-thoughts', 'nav-jsbuiltins', 'nav-visuals']) assert.deepStrictEqual([s[id].label, s[id].hub], ['Study tools', 'dsa'], id)
+  for (const id of ['nav-papers', 'nav-postmortems']) assert.deepStrictEqual([s[id].label, s[id].hub], ['Study tools', 'sd'], id)
+  assert.deepStrictEqual([s['nav-sites'].label, s['nav-sites'].hub], ['Study tools', null])
+  assert.match(nav, /<span class="nav-topic-label">DSA Visuals<\/span>/)
+  assert.ok(!/>Resources</.test(nav), 'no separate Resources heading')
 })
 
-test('Resources serve both notebooks', () => {
-  const s = sections()
-  for (const id of ['nav-sites', 'nav-papers', 'nav-postmortems']) {
-    assert.strictEqual(s[id].label, 'Resources', id)
-    assert.ok(!s[id].dsaOnly, id + ' should show in both notebooks')
-  }
-  assert.match(nav, /<p class="sidebar-section-label">Resources<\/p>/)
+test('Interview experiences comes after Study tools, in the DSA notebook only', () => {
+  assert.strictEqual(sections()['nav-google'].label, 'Interview experiences')
+  assert.ok(nav.indexOf('>Interview experiences<') > nav.indexOf('>Study tools<'))
 })
 
-test('Privacy is in the sidebar footer, not in a study section', () => {
+test('opening Paper Club or Postmortems switches to the System Design notebook', () => {
+  assert.match(HTML, /for \(const k of \['papers', 'postmortems'\]\) EMBEDS\[k\]\.hub = 'sd'/)
+})
+
+test('Privacy is in the sidebar footer with the "we collect nothing" line', () => {
   assert.ok(!nav.includes('id="nav-privacy"'))
-  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">'))
-  assert.match(footer.slice(0, 600), /id="nav-privacy"[^>]*onclick="loadEmbed\('privacy'\)"/)
+  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 900)
+  assert.match(footer, /id="nav-privacy"[^>]*onclick="loadEmbed\('privacy'\)"/)
+  assert.match(footer, /We collect nothing\. Your progress stays in your browser and your own GitHub\./)
 })
