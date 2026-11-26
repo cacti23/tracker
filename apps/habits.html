@@ -128,7 +128,7 @@
   .dot.today { box-shadow: 0 0 0 2px var(--accent) inset; }
   .dot.future { cursor: default; opacity: 0.35; }
   .dot.future:hover { transform: none; }
-  .dot-label { font-family: 'DM Mono', monospace; font-size: 8.5px; color: var(--text-faintest); text-align: center; margin-top: 3px; }
+  .dot-label { width: 22px; font-family: 'DM Mono', monospace; font-size: 8.5px; color: var(--text-faintest); text-align: center; margin-top: 3px; }
   .dots-wrap { display: flex; flex-direction: column; }
 
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -168,6 +168,23 @@
   .slot-header { font-family: 'Bebas Neue', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--heading-color); margin: 28px 0 12px 2px; }
   .slot-header:first-child { margin-top: 4px; }
   .slot-header.must { color: var(--accent); }
+  .slot-header .tag { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; vertical-align: middle; margin-left: 8px; padding: 3px 8px; border-radius: 999px; background: var(--surface2); color: var(--text-muted); }
+  .slot-header .tag.now { background: var(--accent); color: #fff; }
+  .slot-header.done-head { color: var(--text-faint); }
+  /* Today bar: one glance answers "how much is left today?" */
+  .today-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; box-shadow: var(--shadow); }
+  .today-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .today-count { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.04em; color: var(--heading-color); }
+  .today-note { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); text-align: right; }
+  .today-track { height: 8px; border-radius: 999px; background: var(--dot-empty); overflow: hidden; }
+  .today-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s; }
+  /* One-tap "done today" check, the main action of a habit app */
+  .check-btn { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--habit, var(--accent)); background: transparent; color: transparent; font-size: 17px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color 0.15s, transform 0.15s; }
+  .check-btn:hover { transform: scale(1.08); }
+  .check-btn.on { background: var(--habit, var(--accent)); color: #fff; }
+  .habit-card.done { padding: 10px 16px; opacity: 0.75; }
+  .habit-card.done .habit-top { margin-bottom: 0; }
+  .habit-card.done .habit-name { text-decoration: line-through; color: var(--text-muted); }
   .slot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .slot-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); border-radius: 999px; padding: 6px 11px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
   .slot-chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -180,6 +197,7 @@
 
   @media (max-width: 480px) {
     .dot { width: 18px; height: 18px; }
+    .dot-label { width: 18px; }
     .dots-30 .dot { width: 12px; height: 12px; }
   }
 
@@ -212,6 +230,7 @@
     </div>
   </div>
 
+  <div class="today-bar" id="todayBar"></div>
   <div class="view-row" id="viewRow"></div>
   <div id="habitList"></div>
 </div>
@@ -321,6 +340,15 @@
     { id: 'night', label: 'Night', icon: '🌙' },
     { id: '', label: 'Anytime', icon: '🕐' }
   ];
+
+  // Hour each time slot starts; the slot whose window holds the clock is "now"
+  const SLOT_START = { morning: 5, noon: 12, evening: 16, night: 19 };
+  const TIMED = ['morning', 'noon', 'evening', 'night'];
+  function currentSlot(h) {
+    if (h < SLOT_START.morning) return 'night';
+    return TIMED.filter(id => h >= SLOT_START[id]).pop();
+  }
+  function doneToday(habit) { return !!(state.logs[habit.id] || {})[LocalDate.key()]; }
 
   const VIEWS = [
     { id: '7', label: '7 DAYS' },
@@ -525,7 +553,6 @@
       cells.forEach(d => {
         const l = document.createElement('div');
         l.className = 'dot-label';
-        l.style.width = '22px';
         l.textContent = dowLabel(d);
         labels.appendChild(l);
       });
@@ -627,29 +654,64 @@
       list.appendChild(empty);
       return;
     }
-    const anySlot = state.habits.some(h => h.slot);
-    SLOTS.forEach(slot => {
-      const group = state.habits.filter(h => (h.slot || '') === slot.id);
+    renderTodayBar();
+    // Order = what to do next: must-dos, anytime, the slot we're in now, slots already
+    // passed (still doable today), then later slots. Ticked habits sink to "Done today".
+    const now = currentSlot(new Date().getHours());
+    const ni = TIMED.indexOf(now);
+    const order = ['must', '', now].concat(TIMED.slice(0, ni), TIMED.slice(ni + 1));
+    order.forEach(id => {
+      const slot = SLOTS.find(s => s.id === id);
+      const group = state.habits.filter(h => (h.slot || '') === id && !doneToday(h));
       if (group.length === 0) return;
-      if (anySlot) {
-        const header = document.createElement('div');
-        header.className = 'slot-header' + (slot.id === 'must' ? ' must' : '');
-        header.textContent = slot.icon + ' ' + slot.label;
-        header.addEventListener('dragover', (e) => e.preventDefault());
-        header.addEventListener('drop', (e) => {
-          e.preventDefault();
-          const moved = state.habits.find(h => h.id === dragSrcId);
-          if (!moved) return;
-          moved.slot = slot.id;
-          state.habits.splice(state.habits.indexOf(moved), 1);
-          state.habits.push(moved);
-          saveState();
-          renderHabits();
-        });
-        list.appendChild(header);
-      }
+      const tag = id === now ? 'NOW' : TIMED.indexOf(id) > -1 && TIMED.indexOf(id) < ni ? 'STILL OPEN' : '';
+      list.appendChild(buildSlotHeader(slot, tag));
       group.forEach((habit, gi) => list.appendChild(buildCard(habit, gi, group.length)));
     });
+    const done = state.habits.filter(doneToday);
+    if (done.length) {
+      const head = document.createElement('div');
+      head.className = 'slot-header done-head';
+      head.textContent = '✅ Done today';
+      list.appendChild(head);
+      done.forEach(habit => list.appendChild(buildCard(habit, 0, 1)));
+    }
+  }
+
+  function renderTodayBar() {
+    const total = state.habits.length;
+    const done = state.habits.filter(doneToday).length;
+    const left = state.habits.filter(h => h.slot === 'must' && !doneToday(h)).length;
+    const bar = document.getElementById('todayBar');
+    bar.style.display = total ? '' : 'none';
+    const note = done === total ? '🎉 All done today' : left ? '🔥 ' + left + ' must-do left' : (total - done) + ' left';
+    bar.innerHTML = '<div class="today-top"><span class="today-count">Today ' + done + ' / ' + total + '</span>' +
+      '<span class="today-note">' + note + '</span></div>' +
+      '<div class="today-track"><div class="today-fill" style="width:' + (total ? Math.round(done * 100 / total) : 0) + '%"></div></div>';
+  }
+
+  function buildSlotHeader(slot, tag) {
+    const header = document.createElement('div');
+    header.className = 'slot-header' + (slot.id === 'must' ? ' must' : '');
+    header.textContent = slot.icon + ' ' + slot.label;
+    if (tag) {
+      const t = document.createElement('span');
+      t.className = 'tag' + (tag === 'NOW' ? ' now' : '');
+      t.textContent = tag;
+      header.appendChild(t);
+    }
+    header.addEventListener('dragover', (e) => e.preventDefault());
+    header.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const moved = state.habits.find(h => h.id === dragSrcId);
+      if (!moved) return;
+      moved.slot = slot.id;
+      state.habits.splice(state.habits.indexOf(moved), 1);
+      state.habits.push(moved);
+      saveState();
+      renderHabits();
+    });
+    return header;
   }
 
   function buildMon(habit) {
@@ -681,9 +743,11 @@
 
   function buildCard(habit, idx, groupLen) {
     {
+      const isDone = doneToday(habit);
       const card = document.createElement('div');
-      card.className = 'habit-card';
+      card.className = 'habit-card' + (isDone ? ' done' : '');
       card.style.borderLeftColor = habit.color;
+      card.style.setProperty('--habit', habit.color);
       card.draggable = true;
       card.dataset.id = habit.id;
       card.addEventListener('dragstart', () => { dragSrcId = habit.id; card.classList.add('dragging'); });
@@ -741,9 +805,20 @@
       delBtn.className = 'icon-btn'; delBtn.textContent = '✕'; delBtn.title = 'Delete';
       delBtn.onclick = () => deleteHabit(habit.id);
 
-      actions.appendChild(upBtn); actions.appendChild(downBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
+      if (!isDone) { actions.appendChild(upBtn); actions.appendChild(downBtn); }
+      actions.appendChild(editBtn); actions.appendChild(delBtn);
       top.appendChild(actions);
+
+      const check = document.createElement('button');
+      check.className = 'check-btn' + (isDone ? ' on' : '');
+      check.textContent = '✓';
+      check.title = isDone ? 'Undo today' : 'Done today';
+      check.setAttribute('aria-pressed', isDone);
+      check.onclick = () => toggleLog(habit.id, LocalDate.key());
+      top.appendChild(check);
       card.appendChild(top);
+      // A ticked habit only needs its name and the undo check
+      if (isDone) return card;
 
       card.appendChild(buildStatsRow(habit));
       const main = document.createElement('div');
