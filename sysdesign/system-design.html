@@ -6213,6 +6213,12 @@ EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
   <ul class="lines roomy heads">
     <li><b class="hd">🤝 Fix 1, request coalescing: each app server asks the cache only once per key</b>The value <b>is</b> in the cache. The problem is that every request lands on the one cache server holding it. So each app server merges identical requests that arrive at the same moment:<br>1️⃣ The first request for <code>feed:taylor-swift</code> goes to the cache server<br>2️⃣ The next 9,999 on that app server don't send their own; they wait<br>3️⃣ The one answer comes back and is handed to all 10,000<br>The same trick on a cache <b>miss</b> protects the database: that's the stampede question below.</li>
   </ul>
+  <p class="bridge">🔍 Where exactly does this happen? Not on the phone, not in the load balancer, not in Redis: <b>inside each app server's code</b>. The load balancer only spreads users over the app servers; it merges nothing. Press ▶️ to follow app server A.</p>
+  <div class="seq" data-seq="coalesce-path"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧠 The "waiting list" is a small map in the app server's memory</b>Key → the one fetch in progress. A request that finds its key there waits on that fetch instead of calling Redis. Ready-made helpers exist, e.g. Go's <code>singleflight</code>. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: "N requests" means N at a time</b> Only requests that arrive <b>while</b> the first fetch is on its way (about 1 ms) share it. After the answer, the key leaves the map and the next request fetches again. So each app server sends at most one request per key per round trip: 100 servers × ~1,000 round trips a second ≈ 100,000/s instead of 500,000/s. Keep the answer for even 1 second in the app server's memory and it drops to ~100/s.</div>
 <pre># Request coalescing: one in-flight fetch per key
 async def get(self, key):
     if key in self.inflight:              # someone is already fetching it
@@ -8108,6 +8114,20 @@ const SEQS = {
       { at: 1, m: 'job 7 idle 60 s…', k: 'gray', cap: '④ The pending entry\'s idle time keeps growing.' },
       { f: 3, t: 1, m: 'XAUTOCLAIM → job 7', k: 'lb', bi: 1, cap: '⑤ Worker 2 claims jobs idle for more than 60 s and gets job 7.' },
       { f: 3, t: 1, m: 'XACK job 7 ✅', k: 'http', cap: '⑥ Worker 2 finishes and acknowledges: the job leaves the pending list. If Worker 1 was only slow, job 7 ran twice: keep jobs idempotent.' },
+    ],
+  },
+  'coalesce-path': {
+    lanes: ['📱 Phones', '⚖️ Load balancer', '🖥️ App server A', '🟥 Cache'],
+    key: [['tcp', 'request'], ['lb', 'inside app server'], ['gray', 'waiting'], ['http', 'cache trip']],
+    frames: [
+      { cap: '1,000,000 phones open Taylor Swift\'s feed at the same moment. There are 100 app servers; follow app server A 👇' },
+      { f: 0, t: 1, m: '1,000,000 × GET /feed', k: 'tcp', cap: '① Every phone sends its own request.' },
+      { f: 1, t: 2, m: '~10,000 of them', k: 'tcp', cap: '② The load balancer spreads them: about 10,000 to each app server. It only forwards; it merges nothing.' },
+      { at: 2, m: '#1: map empty → I fetch', k: 'lb', cap: '③ Request #1 checks the app server\'s in-memory map: is anyone already fetching <code>feed:taylor-swift</code>? No. It writes "I\'m fetching" in the map.' },
+      { f: 2, t: 3, m: 'GET feed:taylor-swift (once)', k: 'http', cap: '④ One GET goes to the cache server.' },
+      { at: 2, m: '#2 … #10,000: wait for #1', k: 'gray', cap: '⑤ Requests #2 to #10,000 arrive during that trip. They find the key in the map, so they send nothing and wait for #1\'s answer.' },
+      { f: 3, t: 2, m: 'value', k: 'http', cap: '⑥ The cache answers once.' },
+      { f: 2, t: 0, m: 'same value → all 10,000', k: 'lb', cap: '⑦ App server A sends that one value back to all 10,000 phones and clears the key from the map. 100 app servers = 100 requests to the cache, not 1,000,000.' },
     ],
   },
   'cache-cpu': {
