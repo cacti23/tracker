@@ -61,12 +61,13 @@ test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now 
   assert.match(HTML, /class="hub-switch"[^>]*role="group"/)
   assert.match(HTML, /onclick="switchHub\('dsa'\)"/)
   assert.match(HTML, /onclick="switchHub\('sd'\)"/)
-  for (const id of ['nav-dashboard', 'nav-thoughts', 'nav-jsbuiltins', 'nav-visuals', 'nav-google', 'nav-topics']) {
+  for (const id of ['nav-dashboard', 'nav-thoughts', 'nav-jsbuiltins', 'nav-visuals', 'nav-topics']) {
     assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="dsa"`), id + ' should show only in DSA')
   }
   assert.match(HTML, /id="nav-sysdesign"[^>]*data-hub="sd"/)
   for (const id of ['nav-papers', 'nav-postmortems']) assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="sd"`), id + ' is System Design only')
   assert.doesNotMatch(HTML, /id="nav-sites"[^>]*data-hub=/, 'Study Sites is shared')
+  assert.doesNotMatch(HTML, /id="nav-google"[^>]*data-hub=/, 'Interview experiences are shared')
   assert.doesNotMatch(HTML, /<a href="sysdesign\/system-design\.html"/, 'System Design is no longer an app link')
   assert.match(HTML, /<summary[^>]*>🌱 Life<\/summary>/)
 })
@@ -80,4 +81,11 @@ test('the System Design page skips layout for off-screen cards (it shares the hu
 test('the System Design page follows the hub theme live when embedded', () => {
   const sd = fs.readFileSync(path.join(ROOT, 'sysdesign', 'system-design.html'), 'utf8')
   assert.match(sd, /addEventListener\('storage'[\s\S]{0,200}dsa-theme/)
+})
+
+test('opening Google from System Design keeps the System Design sidebar (it belongs to both)', () => {
+  const { sandbox } = loadAppWithDom()
+  evalIn(sandbox, "switchHub('sd')")
+  evalIn(sandbox, 'loadGoogle()')
+  assert.equal(mode(sandbox), 'sd')
 })

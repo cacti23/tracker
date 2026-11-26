@@ -24,8 +24,8 @@ function sections() {
 test('How to use the DSA tracker is a card above the Dashboard', () => {
   assert.match(HTML, /class="nav-link nav-howto-card"/)
   assert.match(HTML, /<b>How to use the DSA tracker<\/b>/)
-  const ids = Object.keys(sections())
-  assert.strictEqual(ids[0], 'nav-howto')
+  const ids = Object.keys(sections()).filter(id => sections()[id].hub === 'dsa')
+  assert.strictEqual(ids[0], 'nav-howto', 'first DSA-only item')
   assert.strictEqual(ids[1], 'nav-dashboard')
   assert.ok(sections()['nav-howto'].hub === 'dsa')
 })
@@ -40,9 +40,13 @@ test('one Study tools heading: DSA items, System Design items, and Study Sites i
   assert.ok(!/>Resources</.test(nav), 'no separate Resources heading')
 })
 
-test('Interview experiences comes after Study tools, in the DSA notebook only', () => {
-  assert.strictEqual(sections()['nav-google'].label, 'Interview experiences')
-  assert.ok(nav.indexOf('>Interview experiences<') > nav.indexOf('>Study tools<'))
+// Adi, 2026-11-26: a real interview loop mixes DSA, HLD, LLD and behavioral rounds, so interview
+// experiences belong to neither notebook. They sit right under the DSA | System Design switch.
+test('Interview experiences is the first section, under the switch, in both notebooks', () => {
+  const s = sections()
+  assert.deepStrictEqual([s['nav-google'].label, s['nav-google'].hub], ['Interview experiences', null])
+  assert.strictEqual(Object.keys(s)[0], 'nav-google')
+  assert.ok(!/data-hub="\w+">Interview experiences</.test(nav), 'the heading shows in both notebooks')
 })
 
 test('opening Paper Club or Postmortems switches to the System Design notebook', () => {
