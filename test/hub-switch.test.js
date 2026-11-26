@@ -47,7 +47,7 @@ test('System Design keeps its own frame, so a hop to Study Sites and back does n
   const { sandbox, getElement } = loadAppWithDom()
   evalIn(sandbox, "switchHub('sd')")
   evalIn(sandbox, "loadEmbed('sites')")
-  assert.equal(getElement('page-frame').getAttribute('src'), 'dsa/study-sites.html')
+  assert.equal(getElement('page-frame').getAttribute('src'), 'dsa/study-sites.html#sd')
   assert.equal(getElement('sysdesign-frame').getAttribute('src'), 'sysdesign/system-design.html')
   assert.match(HTML, /<div id="view-sysdesign" class="d-none">\s*<iframe id="sysdesign-frame"/)
 })
