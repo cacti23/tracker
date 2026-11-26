@@ -256,9 +256,10 @@
       transition: background 0.14s, color 0.14s, border-color 0.14s;
     }
     .sidebar-gym-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
-    /* DSA | System Design switch: one named mode on <body data-hub-mode>, set by setHubMode(). */
+    /* DSA | System Design | Interview experiences switch: one named mode on <body data-hub-mode>,
+       set by setHubMode(). Interview experiences takes its own full-width row under the other two. */
     .hub-switch {
-      display: flex; gap: 0.25rem; margin-top: 0.5rem; padding: 0.2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; margin-top: 0.5rem; padding: 0.2rem;
       border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-hover);
     }
     .hub-switch button {
@@ -268,8 +269,11 @@
     }
     .hub-switch button:hover { color: var(--text-primary); }
     .hub-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-    body[data-hub-mode="sd"] #sidebar [data-hub="dsa"],
-    body[data-hub-mode="dsa"] #sidebar [data-hub="sd"] { display: none !important; }
+    .hub-switch button.hub-exp { grid-column: 1 / -1; }
+    body:not([data-hub-mode="dsa"]) #sidebar [data-hub="dsa"],
+    body:not([data-hub-mode="sd"]) #sidebar [data-hub="sd"],
+    body:not([data-hub-mode="exp"]) #sidebar [data-hub="exp"],
+    body[data-hub-mode="exp"] #sidebar .sidebar-nav > :not([data-hub="exp"]) { display: none !important; }
 
     /* ── 6. SIDEBAR NAV BUTTONS ─────────────────────────────────────────────── */
     /* Scoped to button.nav-link (topics, tabs) AND a.nav-link (external links, e.g. the
@@ -1172,10 +1176,19 @@
       <div class="hub-switch" role="group" aria-label="Notebook">
         <button type="button" data-mode="dsa" aria-pressed="true" onclick="switchHub('dsa')">🧩 DSA</button>
         <button type="button" data-mode="sd" aria-pressed="false" onclick="switchHub('sd')">🏛️ System Design</button>
+        <button type="button" data-mode="exp" aria-pressed="false" onclick="switchHub('exp')" class="hub-exp">💼 Interview experiences</button>
       </div>
     </div>
 
     <nav class="flex-grow-1 p-2 pb-3 overflow-auto sidebar-nav">
+      <!-- Interview experiences are their own notebook (the third switch button): a real loop mixes
+           DSA, system design (HLD, LLD) and behavioral rounds (Adi, 2026-11-26). The sidebar then
+           shows only these. One entry per company; add the next company here with data-hub="exp". -->
+      <p class="sidebar-section-label" data-hub="exp">Companies</p>
+      <button type="button" id="nav-google" data-hub="exp" onclick="loadGoogle()" class="nav-link" title="Google: the worked onsite log, with interview sources">
+        <span class="nav-topic-icon" aria-hidden="true">🔍</span>
+        <span class="nav-topic-label">Google</span>
+      </button>
       <!-- First thing a new visitor sees in the DSA notebook: a card, not a plain row. -->
       <button type="button" id="nav-howto" data-hub="dsa" onclick="loadEmbed('howto')" class="nav-link nav-howto-card" title="How to use the DSA tracker: what it is, how revision works, a daily routine">
         <span class="nav-topic-icon" aria-hidden="true">📖</span>
@@ -1217,12 +1230,6 @@
         <span class="nav-topic-icon" aria-hidden="true">🔖</span>
         <span class="nav-topic-label">Study Sites</span>
       </button>
-      <!-- One entry per company; add the next company here. -->
-      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
-      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
-        <span class="nav-topic-icon" aria-hidden="true">🔍</span>
-        <span class="nav-topic-label">Google</span>
-      </button>
       <p class="sidebar-section-label" data-hub="dsa">Topics</p>
       <div id="nav-topics" data-hub="dsa"></div>
 
@@ -1246,7 +1253,7 @@
     <div class="sidebar-footer">
       <button type="button" id="nav-privacy" onclick="loadEmbed('privacy')" class="nav-link sidebar-privacy-link" title="Privacy and your data: what is stored, signing out, delete my data">🔒 Privacy &amp; data</button>
       <a class="sidebar-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSclEDL8hfAxdj1hShNecfGP61chtrLakMT_zNqLiUJTbplAyw/viewform" target="_blank" rel="noopener">💬 Send feedback</a>
-      <span>v594 · Interview Prep Hub</span>
+      <span>v595 · Interview Prep Hub</span>
       <span class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</span>
     </div>
   </aside>
@@ -1900,7 +1907,7 @@ const GOOGLE_TABS = [
 let currentGoogleTab = 'log'
 function loadGoogle(tab) {
   if (tab) currentGoogleTab = tab
-  setHubMode('dsa')
+  setHubMode('exp')
   showView('view-google')
   _stopTimer()
   _qpStopTimer()
@@ -1944,7 +1951,7 @@ for (const k of ['papers', 'postmortems']) EMBEDS[k].hub = 'sd'   // sites and p
 // One named mode, kept per device (not synced). Opening a page that belongs to one notebook
 // switches to it, so a search hit or link never leaves the other notebook's sidebar showing.
 const HUB_MODE_KEY = 'dsa-hub-mode'
-const HUB_MODES = ['dsa', 'sd']
+const HUB_MODES = ['dsa', 'sd', 'exp']
 function setHubMode(m) {
   if (!HUB_MODES.includes(m)) m = 'dsa'
   document.body.dataset.hubMode = m
@@ -1953,6 +1960,7 @@ function setHubMode(m) {
 }
 function switchHub(m) {
   if (m === 'sd') loadEmbed('sysdesign')
+  else if (m === 'exp') loadGoogle()
   else loadDashboard()
 }
 const PAPERS_SRC = EMBEDS.papers.src
