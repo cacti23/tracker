@@ -180,3 +180,23 @@ test('every synced page has the separate Sign in with GitHub button', () => {
 test('the main service worker never caches the sign-in function', () => {
   assert.match(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), /pathname\.startsWith\('\/api\/'\)\) return/)
 })
+
+// The hub shows the owner's personal 🌱 Life apps only to @cacti23. The sidebar reads
+// <body data-signed-in-as>, which sync.js derives from the stored token and login.
+test('body data-signed-in-as follows sign-in and sign-out', async () => {
+  const { sandbox } = loadSync('#tracker-signin=gho_abc', { user: 'cacti23' })
+  const body = { dataset: {} }
+  sandbox.document.body = body
+  sandbox.document.getElementById = (id) => (id === 'dataAccountBtn' ? fakeAccountBtn() : null)
+  sandbox.DataSync.init({ appId: 'dsa', keys: [] })
+  await new Promise((r) => setTimeout(r, 20))
+  assert.equal(body.dataset.signedInAs, 'cacti23')
+  sandbox.DataSync.account()   // confirm() → true: sign out
+  assert.equal(body.dataset.signedInAs, '')
+})
+
+test('the 🌱 Life box is hidden unless signed in as cacti23', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  assert.match(html, /#sidebar-apps \{ display: none; \}/)
+  assert.match(html, /body\[data-signed-in-as="cacti23"\] #sidebar-apps \{ display: block; \}/)
+})

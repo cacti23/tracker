@@ -669,6 +669,10 @@
   function refreshBtnState() {
     var b = getTokenBtn();
     if (b) b.classList.toggle('ds-token-set', !!getToken());
+    // Who is signed in, for page CSS (the hub shows its owner's 🌱 Life apps only to him).
+    // A UI rule, not access control: the pages themselves are public.
+    var who = getToken() ? localStorage.getItem(LOGIN_KEY) || '' : '';
+    if (document.body && document.body.dataset) document.body.dataset.signedInAs = who;
     // The account button (id="dataAccountBtn", optional .ds-account-label inside) is the
     // one place to sign in or out; its label is derived from the stored token and login.
     var a = document.getElementById('dataAccountBtn');
