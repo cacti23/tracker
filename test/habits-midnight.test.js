@@ -21,7 +21,8 @@ const ROOT = path.join(__dirname, '..')
 const KEY = 'habits_data_v1'
 const SEED = {
   habits: [{ id: 'h1', name: 'Run', color: '#e05a2b', mon: 0 }],
-  logs: { h1: { '2026-11-14': true, '2026-11-15': true } },
+  // Not done on the 15th: a habit ticked today collapses to a compact card with no dots row
+  logs: { h1: { '2026-11-14': true } },
 }
 
 let chromium = null
@@ -48,7 +49,7 @@ after(async () => {
   if (server) await new Promise(r => server.close(r))
 })
 
-// Opens habits at 23:58 on Nov 15 with Run done on the 14th and 15th.
+// Opens habits at 23:58 on Nov 15 with Run done on the 14th.
 async function openBeforeMidnight() {
   const ctx = await browser.newContext({ serviceWorkers: 'block', timezoneId: 'UTC' })
   await ctx.route(url => !url.href.startsWith(base), r => r.abort())
