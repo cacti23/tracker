@@ -67,7 +67,7 @@ test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now 
   assert.match(HTML, /id="nav-sysdesign"[^>]*data-hub="sd"/)
   for (const id of ['nav-papers', 'nav-postmortems']) assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="sd"`), id + ' is System Design only')
   assert.doesNotMatch(HTML, /id="nav-sites"[^>]*data-hub=/, 'Study Sites is shared')
-  assert.doesNotMatch(HTML, /id="nav-google"[^>]*data-hub=/, 'Interview experiences are shared')
+  assert.match(HTML, /id="nav-google"[^>]*data-hub="exp"/, 'Google lives in Interview experiences')
   assert.doesNotMatch(HTML, /<a href="sysdesign\/system-design\.html"/, 'System Design is no longer an app link')
   assert.match(HTML, /<summary[^>]*>🌱 Life<\/summary>/)
 })
@@ -83,9 +83,13 @@ test('the System Design page follows the hub theme live when embedded', () => {
   assert.match(sd, /addEventListener\('storage'[\s\S]{0,200}dsa-theme/)
 })
 
-test('opening Google from System Design keeps the System Design sidebar (it belongs to both)', () => {
-  const { sandbox } = loadAppWithDom()
-  evalIn(sandbox, "switchHub('sd')")
-  evalIn(sandbox, 'loadGoogle()')
-  assert.equal(mode(sandbox), 'sd')
+test('the Interview experiences button opens Google, and a reload stays there', () => {
+  const { sandbox, getElement } = loadAppWithDom()
+  evalIn(sandbox, "switchHub('exp')")
+  assert.equal(mode(sandbox), 'exp')
+  assert.equal(getElement('google-frame').getAttribute('src'), 'google/google-onsite-log.html')
+  const again = loadAppWithDom({ 'dsa-hub-mode': 'exp', 'dsa-current-view-v1': 'google' })
+  assert.equal(mode(again.sandbox), 'exp')
+  evalIn(sandbox, "switchHub('dsa')")
+  assert.equal(mode(sandbox), 'dsa')
 })
