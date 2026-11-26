@@ -554,7 +554,7 @@ section.card, section.card h4, section.card h5, h3.lesson { scroll-margin-top: 1
 .cidr-t th, .cidr-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
 .sock-t td:first-child, .sock-t th:first-child { font-family: inherit !important; text-align: left; } .sock-t tr.diff td { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; } .sock-t tr.res td { font-weight: 700; color: var(--green-fg); }
 .cidr-t th:first-child, .cidr-t td:first-child { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.ver-t th, .ver-t td { text-align: left !important; vertical-align: top; } .ver-t th:first-child { font-family: inherit !important; } .ver-t td:first-child { font-family: inherit !important; font-weight: 700; white-space: nowrap; } .ver-t tr.best td { background: var(--green-bg); }
+.ver-t th, .ver-t td { text-align: left !important; vertical-align: top; } .ver-t th:first-child { font-family: inherit !important; } .ver-t td:first-child { font-family: inherit !important; font-weight: 700; white-space: nowrap; } .ver-t tr.best td { background: var(--green-bg); } .ver-t.wrap td:first-child { white-space: normal; }
 .steps-c { margin: 6px 0; padding-left: 20px; } .steps-c li { margin: 6px 0; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: var(--t-s); }
@@ -6314,6 +6314,443 @@ async def get(self, key):
   </div>
 </section>
 
+<section class="card" id="sd-pg-reads" data-topic="Technologies" data-course="hi-sd" data-lesson="postgres">
+  <h2 class="cap"><b>🐘 PostgreSQL ①: A Motivating Example · Read Performance · Query Optimization · Practical Limits</b></h2>
+  <p class="hook">There's a good chance you'll discuss PostgreSQL in your interview: it's consistently the most loved database in Stack Overflow's developer survey. But the interviewer isn't hiring a database administrator. They want to see you pick the right tool and know its limits. Candidates trip up both ways: they dive into MVCC and WAL internals when the question was "can it handle these relationships?", or they wave at "it's ACID" without knowing what that buys them.</p>
+  <p class="tldr">💡 PostgreSQL is the <b>default database</b> for an interview: relationships, transactions, and built-in search, JSON and maps. This card is about reads: the right index answers in microseconds, special indexes (full-text, JSON, geo) can save you a whole extra database, and a few rough numbers tell you when one machine stops being enough. 🏦 Think of a bank branch: one big ledger, index cards to find any account fast. Explained below 👇</p>
+
+  <h4>🧭 A Motivating Example</h4>
+  <p class="bridge">A growing social app, not Facebook-sized. Users create posts, comment, follow each other, like posts and comments, and send direct messages. The relationships are clear but not trivial, and each operation needs something different from the database.</p>
+  <table class="cidr-t ver-t wrap" role="img" aria-label="Each requirement of the social app and the PostgreSQL feature that answers it.">
+    <thead><tr><th>The app needs</th><th>PostgreSQL answers with</th></tr></thead>
+    <tbody><tr><td>💬 New DM thread = thread + members + first message, all or nothing</td><td>🔒 transactions (atomic)</td></tr>
+      <tr><td>🔗 No comment without a post, no follow of a ghost user</td><td>🧷 foreign keys (referential integrity)</td></tr>
+      <tr><td>❤️ Like counts can be a few seconds late</td><td>⏳ eventual consistency is fine here</td></tr>
+      <tr><td>👤 A profile = recent posts + follower count, fast</td><td>📇 indexes</td></tr>
+      <tr><td>🔎 Search posts and users</td><td>🔎 full-text search</td></tr>
+      <tr><td>📈 More data, harder queries over time</td><td>🔁 replication, partitioning, sharding</td></tr></tbody>
+  </table>
+  <p class="figcap">🖼️ Mixed consistency needs, relationships, search and growth: why this app is a good test for PostgreSQL.</p>
+  <p class="ana">🏦 A bank branch: one big ledger (the tables), index cards to find any account (indexes), a rule that a transfer debits and credits together or not at all (transactions). Every section below adds one piece of the branch. <span class="add">➕ analogy</span></p>
+
+  <h4>📖 Read Performance</h4>
+  <p class="bridge">Reads matter most, because in most apps they vastly outnumber writes: people browse far more than they post. You don't need query-planner internals; you need to know which index fits which query. Without an index on <code>posts.user_id</code>, showing one user's posts means scanning every post in the table, and that gets slower as the table grows.</p>
+
+  <h5>📇 Basic Indexing</h5>
+  <p class="bridge">By default PostgreSQL builds a <b>B-tree</b> index on your primary key, and you can add more. A B-tree is good at three things:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Exact matches</b><code>WHERE email = 'user@example.com'</code></li>
+    <li><b class="hd">2️⃣ Ranges</b><code>WHERE created_at &gt; '2024-01-01'</code></li>
+    <li><b class="hd">3️⃣ Sorting</b><code>ORDER BY username</code>, if the ORDER BY columns match the index's column order</li>
+  </ul>
+<pre>-- Your bread-and-butter index
+CREATE INDEX idx_users_email ON users(email);
+
+-- Multi-column, for a common query pattern
+CREATE INDEX idx_posts_user_date ON posts(user_id, created_at);</pre>
+  <div class="warn"><b>⚠️ The trap: "add an index on every column"</b><br>1️⃣ Every write gets slower: each index must be updated too<br>2️⃣ Every index takes disk space<br>3️⃣ It may not even be used: the planner picks a full scan when it thinks that's faster</div>
+  <p class="ana">🏦 Index cards by account number find one account in seconds. Ten different card boxes (by name, by city, by birthday…) find anything, but every new account means writing ten cards. <span class="add">➕ analogy</span> Deep dive: <a href="#sd-idx-core">Database Indexing</a>.</p>
+
+  <h5>🔎 Beyond Basic Indexes: search, JSON and maps</h5>
+  <p class="bridge">This is where PostgreSQL really shines. Its specialized indexes come up often in interviews because they can <b>save you a whole separate database</b>.</p>
+  <div class="grid3">
+    <div class="k-green"><b>🔤 Full-text search</b><div class="star">GIN index on a <code>tsvector</code></div><div class="chk">Like the index at the back of a book: each word → every place it appears</div><div class="chk">Instead of a separate Elasticsearch</div></div>
+    <div class="k-blue"><b>🧩 JSONB + GIN</b><div class="star">Flexible fields per row</div><div class="chk">Location, mentions, hashtags, media: different per post</div><div class="chk">Add new attributes like a NoSQL store</div></div>
+    <div class="k-purple"><b>🗺️ PostGIS + GiST</b><div class="star">An extension for places</div><div class="chk">"Posts within 5 km of me"</div><div class="chk">Instead of a specialized geo database</div></div>
+  </div>
+<pre>-- 🔤 Full-text search
+ALTER TABLE posts ADD COLUMN search_vector tsvector;
+CREATE INDEX idx_posts_search ON posts USING GIN(search_vector);
+SELECT * FROM posts
+WHERE search_vector @@ to_tsquery('postgresql &amp; database');</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ What built-in full-text search gives you</b>1️⃣ Word stemming: find, finds and finding all match<br>2️⃣ Relevance ranking<br>3️⃣ Many languages<br>4️⃣ AND / OR / NOT queries</li>
+    <li><b class="hd">🔍 When Elasticsearch is still worth it</b>1️⃣ More sophisticated relevance scoring<br>2️⃣ Faceted search ("filter by brand, price, size" with counts)<br>3️⃣ Fuzzy matching and search-as-you-type<br>4️⃣ Distributed search over very large datasets (hundreds of millions of rows, per Evan King in the comments)<br>5️⃣ Advanced analytics and aggregations</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Start with PostgreSQL's built-in search. Add Elasticsearch only for a requirement Postgres can't meet. Fewer systems = a simpler architecture.</div>
+<pre>-- 🧩 JSONB: flexible metadata per post
+ALTER TABLE posts ADD COLUMN metadata JSONB;
+CREATE INDEX idx_posts_metadata ON posts USING GIN(metadata);
+SELECT * FROM posts
+WHERE metadata @&gt; '{"type": "video"}'
+  AND metadata @&gt; '{"hashtags": ["coding"]}';</pre>
+<pre>-- 🗺️ PostGIS: posts within 5 km
+CREATE EXTENSION postgis;
+ALTER TABLE posts ADD COLUMN location geography(Point, 4326);
+CREATE INDEX idx_posts_location ON posts USING GIST(location);
+SELECT * FROM posts
+WHERE ST_DWithin(location,
+  ST_MakePoint(-122.4194, 37.7749)::geography,  -- San Francisco
+  5000);                                        -- metres</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🗺️ PostGIS handles points, lines and polygons, several distance types, intersections and containment, and many coordinate systems</b>GiST is a general index framework; PostGIS uses it with bounding boxes, so "within X km" or "inside this area" doesn't check every row. See <a href="#sd-idx-geo-text">geospatial indexes</a>.</li>
+    <li><b class="hd">🚕 "Uber first used PostGIS for its whole ride matching"</b>The article's example of how far extensions go before you need a specialized database. <span class="add">➕ Fact-check</span> I couldn't confirm the PostGIS part; Uber's public 2016 post describes moving its main data from PostgreSQL to MySQL.</li>
+  </ul>
+<pre>-- All three together: video posts within 5 km of SF,
+-- mentioning "food", tagged "restaurant"
+SELECT * FROM posts
+WHERE search_vector @@ to_tsquery('food')
+  AND metadata @&gt; '{"type": "video", "hashtags": ["restaurant"]}'
+  AND ST_DWithin(location,
+        ST_MakePoint(-122.4194, 37.7749)::geography, 5000);</pre>
+  <p class="ana">🏦 The bank keeps extra card boxes for special questions: one by keyword in the notes, one by branch on the map. No need to hire a second bank. <span class="add">➕ analogy</span></p>
+
+  <h4>⚡ Query Optimization Essentials</h4>
+  <p class="bridge">Picking the index type isn't the whole story. Two strategies can make reads dramatically faster.</p>
+
+  <h5>📦 Covering Indexes: answer from the index alone</h5>
+  <p class="bridge">Using an index normally takes two steps:<br>1️⃣ Look up the value in the index to find the row's location<br>2️⃣ Fetch the row from the table for the other columns<br>A <b>covering index</b> stores the needed columns inside the index, so step 2 disappears.</p>
+<pre>-- A common query in the app:
+SELECT title, created_at FROM posts
+WHERE user_id = 123
+ORDER BY created_at DESC;
+
+-- Covering index with everything it needs
+CREATE INDEX idx_posts_user_include
+ON posts(user_id) INCLUDE (title, created_at);</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Up: the whole query is answered without touching the table</b></li>
+    <li><b class="hd">1️⃣ Down: the index takes more space</b>It now carries copies of title and created_at.</li>
+    <li><b class="hd">2️⃣ Down: writes get slightly slower</b>Those copies must be updated too.</li>
+  </ul>
+  <p class="ana">🏦 An index card that already shows the balance: no trip to the ledger for the most common question. <span class="add">➕ analogy</span></p>
+
+  <h5>✂️ Partial Indexes: index only the rows you query</h5>
+  <p class="bridge">Most queries look for active users, not deleted ones. So index only those.</p>
+<pre>-- Standard: indexes ALL users
+CREATE INDEX idx_users_email ON users(email);
+
+-- Partial: only active users. Smaller, faster.
+CREATE INDEX idx_active_users
+ON users(email) WHERE status = 'active';</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 Use it when most queries need only a subset of rows</b></li>
+    <li><b class="hd">🗑️ Use it when many rows are "inactive" or "deleted" and never searched</b></li>
+    <li><b class="hd">📉 Use it to shrink index size and upkeep</b>A smaller index is faster to search and cheaper to update.</li>
+  </ul>
+  <p class="ana">🏦 Index cards only for open accounts; closed accounts stay in the archive with no card. <span class="add">➕ analogy</span></p>
+
+  <h4>📏 Practical Performance Limits</h4>
+  <p class="bridge">Your non-functional requirements probably set latency goals, ideally with numbers. To go deep you need rough numbers too. They depend heavily on hardware and workload, but they're enough to start.</p>
+  <div class="rw" role="img" aria-label="Rough queries per second per core: simple indexed lookups 50k and up; joins thousands to tens of thousands; analytics hundreds to low thousands; simple inserts about 5k.">
+    <span>🔑 Indexed lookup</span><span class="t r"><i style="width:100%"></i></span><b>50k+/s</b>
+    <span>🔗 Join, indexed</span><span class="t r"><i style="width:30%"></i></span><b>1k–10k+</b>
+    <span>📊 Analytics</span><span class="t r"><i style="width:3%"></i></span><b>100s–1k</b>
+    <span>✍️ Simple insert</span><span class="t w"><i style="width:10%"></i></span><b>~5k/s</b>
+  </div>
+  <p class="figcap">🖼️ Per core, rough. Full-table scans: it depends on whether the data fits in memory. Reads beat writes about 10× because a read writes no WAL and updates no index.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📚 Tables start getting unwieldy past ~100M rows</b></li>
+    <li><b class="hd">🔤 Full-text search works well up to tens of millions of documents</b></li>
+    <li><b class="hd">🔗 Complex joins get hard once tables pass ~10M rows</b></li>
+    <li><b class="hd">🧠 Performance drops sharply once the working set no longer fits in RAM</b>The working set = the data you read often.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> These are rules of thumb, not hard limits: with care PostgreSQL goes much further. Treat them as the point where you start thinking about partitioning, <a href="#sd-shard-what">sharding</a> or other options. ⭐ Memory is king: keep the working set in RAM, because memory is orders of magnitude faster than disk.</div>
+  <p class="ana">🏦 A clerk with the busiest accounts' folders on the desk serves in seconds; one who walks to the basement archive for every customer serves a few an hour. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Reads: the right index, extra index types instead of extra databases, and numbers that tell you when one machine is full. Next card: what happens on a write, and how to scale past one machine.</p>
+</section>
+<section class="card" id="sd-pg-writes" data-topic="Technologies" data-course="hi-sd" data-lesson="postgres">
+  <h2 class="cap"><b>🐘 PostgreSQL ②: Write Performance · Write Optimizations · Replication</b></h2>
+  <p class="hook">Reads may dominate, but writes are often more critical for users: nobody wants to wait seconds after pressing "Post". So what does PostgreSQL do on a write, how many can one machine take, and what do you do when you need more?</p>
+  <p class="tldr">💡 A write is fast because PostgreSQL changes memory and appends one line to a log (the <b>WAL</b>) on disk; the real data files are updated later. That log flush is the speed limit: about <b>5,000 simple writes a second per core</b>. Need more? Bigger hardware, batching, a queue, partitions, and finally sharding. Replicas copy the data to serve more reads and to survive a crash. 🏦 The bank writes each transaction in a receipt book first and files the ledger later. Explained below 👇</p>
+
+  <h4>✍️ Write Performance</h4>
+  <p class="bridge">Several steps happen on every write, balancing speed and durability. Press ▶️ to follow one <code>INSERT</code>.</p>
+  <div class="seq" data-seq="pg-write"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Buffer cache + WAL record [memory]</b>The data page in the shared buffer cache is changed and marked "dirty", and a WAL record is created. Both happen in memory during the transaction.</li>
+    <li><b class="hd">2️⃣ WAL flush [disk] at commit</b>The WAL records are written to disk: a sequential write, so relatively fast. Once the WAL is on disk the transaction is durable: after a crash, PostgreSQL replays the WAL.</li>
+    <li><b class="hd">3️⃣ Background writer [memory → disk], later</b>Dirty pages go to the real data files asynchronously: from the background writer, under memory pressure, or at a checkpoint. Many changes get batched into one write.</li>
+    <li><b class="hd">4️⃣ Index updates [memory and disk]</b>Every index on the table is updated too, and each change goes through the WAL. That's why many indexes slow writes down.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: the order</b> Two readers (SoleRoseKrill401, HandsomeIvoryCrow799) pointed out that steps 1, 2 and 4 all happen <b>before</b> PostgreSQL answers "committed"; only step 3 happens later. The animation shows that order: table page and index pages change in memory, the WAL is flushed, then the reply; files catch up afterwards.</div>
+  <div class="rem"><b>✅ Remember</b> Write speed is bounded by the <b>WAL flush</b>: it's the one disk step you wait for before a commit is confirmed. The number of indexes matters too, since each needs its own WAL entries. The buffer cache helps by letting data-file writes happen later, in batches.</div>
+  <p class="ana">🏦 The cashier writes each transaction in a carbon-copy receipt book right away (the WAL) and hands you your copy: done. A clerk updates the big ledger in the back later, many entries at once. If the branch loses power, the receipt book has everything. <span class="add">➕ analogy</span></p>
+
+  <h5>🚧 Throughput Limitations</h5>
+  <p class="bridge">A well-tuned PostgreSQL on good (not great) hardware handles, per core:</p>
+  <div class="rw" role="img" aria-label="Per core: bulk operations tens of thousands of rows a second; simple inserts about 5,000 a second; updates with index changes 1,000 to 2,000; complex transactions hundreds.">
+    <span>📦 Bulk load</span><span class="t w"><i style="width:100%"></i></span><b>10k+ rows/s</b>
+    <span>➕ Simple insert</span><span class="t w"><i style="width:25%"></i></span><b>~5k/s</b>
+    <span>✏️ Update + index</span><span class="t w"><i style="width:8%"></i></span><b>1k–2k/s</b>
+    <span>🧩 Complex txn</span><span class="t w"><i style="width:2%"></i></span><b>100s/s</b>
+  </div>
+  <p class="figcap">🖼️ Assumes the default isolation level, Read Committed (<a href="#sd-pg-consistency">card ③</a>). A different level moves these numbers up or down.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💽 Hardware: the WAL's disk I/O is often the bottleneck</b></li>
+    <li><b class="hd">📇 Indexes: each extra index lowers write throughput</b></li>
+    <li><b class="hd">🔁 Replication: synchronous replicas add the wait for their confirmation</b></li>
+    <li><b class="hd">🧩 Transaction size: more tables and indexes touched = slower</b></li>
+    <li><b class="hd">🔌 Connections: one OS process per connection</b>Hundreds of connections eat memory and CPU in context switches. Put a <b>connection pooler</b> (PgBouncer) in front: many app connections share a small pool of database connections, which matters most with many app instances. <span class="aws">☁️ AWS RDS Proxy</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> These are <b>single-node</b> numbers. Needing more than ~5k writes a second doesn't take PostgreSQL off the table; it means you'll shard across machines.</div>
+
+  <h4>🚀 Write Performance Optimizations</h4>
+  <p class="bridge">One node does ~5k writes a second. Need more? Five options, from simple tweaks to new architecture, in this order:<br>1️⃣ Vertical scaling<br>2️⃣ Batch processing<br>3️⃣ Write offloading<br>4️⃣ Table partitioning<br>5️⃣ Sharding</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Vertical scaling: upgrade the hardware first</b>Faster NVMe disks for the WAL, more RAM for the buffer cache, more cores for parallel work. Usually not the most compelling answer in an interview, but a good place to start.</li>
+    <li><b class="hd">2️⃣ Batch processing: many writes, one transaction</b>Insert 1,000 likes in one statement instead of 1,000. The writes wait in the server's memory first. ⚠️ Down: a crash mid-batch loses the whole batch.</li>
+  </ul>
+<pre>-- Instead of 1,000 separate inserts:
+INSERT INTO likes (post_id, user_id) VALUES
+(1, 101), (1, 102), ..., (1, 1000);</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">3️⃣ Write offloading: writes that can wait go through a queue</b>1️⃣ Send them to a message queue (like Kafka)<br>2️⃣ Background workers write them in batches<br>3️⃣ Optionally into a separate analytics database<br>Good for activity logs, analytics events, metrics, and "last seen" timestamps: nobody waits on them.</li>
+    <li><b class="hd">4️⃣ Table partitioning: one big table split into smaller physical tables</b>Most often by time, e.g. one partition per month of posts.</li>
+  </ul>
+<pre>CREATE TABLE posts (
+  id SERIAL, user_id INT, content TEXT, created_at TIMESTAMP
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE posts_2024_01 PARTITION OF posts
+FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Partitioning helps writes</b>Index updates touch only the relevant partition's smaller index, and bulk loads go partition by partition. The article also says different sessions can write to different partitions at once.</li>
+    <li><b class="hd">✅ …and reads</b>"Recent posts" scans only the recent partitions, not years of history. Old partitions can sit on cheaper storage, recent ones on NVMe.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> PostgreSQL already lets sessions write different rows of one table at the same time, so the bigger, well-known wins are elsewhere: each partition has a smaller index, queries skip whole partitions, and old data leaves with one instant <code>DROP</code> or <code>DETACH</code> of a partition instead of a huge <code>DELETE</code>.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">5️⃣ Sharding: the most common answer in an interview</b>Spread writes over several PostgreSQL machines. Say what you shard on: e.g. posts by <code>user_id</code>, so one user's data lives on one shard and a profile read never scatter-gathers across shards. Rule: shard on the column you query by most.</li>
+    <li><b class="hd">⚠️ Down: sharding adds real complexity</b>Cross-shard queries, the same schema on every shard, many databases to run. Only when the simpler options aren't enough.</li>
+    <li><b class="hd">🧰 PostgreSQL has no built-in sharding (unlike DynamoDB)</b>Do it yourself, or use an extension or managed service like Citus. <span class="aws">☁️ Aurora PostgreSQL Limitless Database</span></li>
+  </ul>
+  <p class="ana">🏦 Busy bank: first a faster cashier (vertical), then bundle cheques into one deposit (batch), let non-urgent forms wait in a tray (queue), split the ledger into one book per month (partitions), and finally open more branches, each owning some customers (shards). <span class="add">➕ analogy</span></p>
+
+  <h4>🔁 Replication</h4>
+  <p class="bridge">Replication copies data from one database to one or more others. Most real deployments use it for two things: <b>scaling reads</b> across replicas, and <b>high availability</b> when a node fails.</p>
+  <div class="grid2">
+    <div class="k-green"><b>⚡ Asynchronous (the default)</b><div class="star">Confirm at once, copy in the background</div><div class="chk">✅ Best write performance</div><div class="chk">❌ Replicas are briefly behind; if the primary dies in that window, recent writes are lost</div></div>
+    <div class="k-amber"><b>🛡️ Synchronous</b><div class="star">Wait for at least one replica to confirm</div><div class="chk">✅ Committed data is on two machines</div><div class="chk">❌ Every write waits for the replica: more latency</div></div>
+  </div>
+  <p class="bridge">Many teams mix them: a few synchronous replicas for safety, more asynchronous ones for reads. PostgreSQL lets you choose which replicas are synchronous.</p>
+  <div class="info"><b>➕ Fact-check</b> By default a synchronous replica confirms once the change is safe <b>on its disk</b>, not once its readers can see it. Reads on that replica can still be a moment behind unless you set <code>synchronous_commit = remote_apply</code>.</div>
+
+  <h5>📖 Scaling reads</h5>
+  <p class="bridge">The most common use. Writes go to the primary; reads (feeds, profiles) go to any replica; only posting or editing touches the primary. With N replicas, read throughput is multiplied by about N.</p>
+  <div class="warn"><b>⚠️ The caveat: replication lag</b> A user who changes something and reads it right back may hit a replica that hasn't caught up and see the old value. The fix is <b>read-your-own-writes</b> consistency. Step by step: <a href="#sd-reads-db--read-replicas">Scaling Reads ① · Read replicas</a>.</div>
+
+  <h5>🛟 High Availability</h5>
+  <p class="bridge">Copies on several nodes let you survive a hardware failure without downtime. If the primary dies, a replica is promoted. Failover in four steps:<br>1️⃣ Detect that the primary is down<br>2️⃣ Promote a replica to primary<br>3️⃣ Update the connection information<br>4️⃣ Point the applications at the new primary</p>
+  <div class="rem"><b>🎤 Say it</b> "We'll use replication not just to spread read load, but so the service stays up even if we lose a database node." Most teams use a managed service (AWS RDS, GCP Cloud SQL) that does failover for them; knowing that it exists and roughly how it works is enough. <span class="aws">☁️ RDS Multi-AZ · Aurora replicas</span></div>
+  <p class="ana">🏦 Other branches keep photocopies of the ledger. Customers can check balances at any branch (reads), but only head office changes the ledger (writes). If head office burns down, the best-updated branch becomes head office. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Writes: memory plus a log, ~5k a second per core, then a ladder of fixes up to sharding; replicas for reads and survival. Next card: keeping data correct when many users write at once.</p>
+</section>
+<section class="card" id="sd-pg-consistency" data-topic="Technologies" data-course="hi-sd" data-lesson="postgres">
+  <h2 class="cap"><b>🐘 PostgreSQL ③: Data Consistency · When to Use It · Appendix</b></h2>
+  <p class="hook">"We'll use PostgreSQL because it's ACID compliant" is one of the most common interview mistakes. The interviewer wants to hear <b>how</b> you use those guarantees. The classic test: two users bid on the same item in the same second.</p>
+  <p class="tldr">💡 A transaction makes steps all-or-nothing, but it doesn't stop two users reading the same old value at once. Fix that with a <b>row lock</b> (<code>FOR UPDATE</code>), a stricter <b>isolation level</b> (Serializable, plus retries), or a <b>version column</b> (optimistic). And PostgreSQL is your default database: move away only for extreme writes, multi-region writes, or pure key-value. 🏦 One account, two cashier windows. Explained below 👇</p>
+
+  <h4>🔒 Transactions</h4>
+  <p class="bridge">A transaction is a set of operations that all succeed or all fail together. The classic example: move $100 from account 1 to account 2.</p>
+<pre>BEGIN;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;</pre>
+  <p>Both updates happen, or neither does: the money never disappears halfway. But a transaction alone doesn't protect you when <b>many transactions run at the same time</b>.</p>
+  <div class="warn"><b>⚠️ Common interview mistake</b> "It's ACID compliant" is not an answer. Say which guarantee you need and how you get it, e.g. "a transaction with a row-level lock on the auction row".</div>
+
+  <h4>🏁 Transactions and Concurrent Operations</h4>
+  <p class="bridge">An auction accepts a bid only if it's higher than the current max bid. Each bidder runs this, inside one transaction:<br>1️⃣ Read the current max<br>2️⃣ The app checks: is my bid higher?<br>3️⃣ Insert the bid<br>4️⃣ Update the max</p>
+<pre>BEGIN;
+SELECT maxBid FROM Auction WHERE id = 123;
+-- app: is my bid ($100) higher? If yes:
+INSERT INTO bids (item_id, user_id, amount)
+VALUES (123, 456, 100);
+UPDATE Auction SET maxBid = 100
+WHERE id = 123 AND maxBid &lt; 100;
+COMMIT;</pre>
+  <p class="bridge">With the default isolation level, Read Committed, two bidders at the same moment can still break this. Press ▶️.</p>
+  <div class="seq" data-seq="pg-bid-race"></div>
+  <div class="info"><b>➕ Fact-check: a typo in the article</b> The article writes User B's update as <code>AND maxBid &lt; 100</code>. B bids $95, so it's <code>AND maxBid &lt; 95</code> (three readers spotted it). The outcome is the same: 0 rows updated, but B's $95 bid row was already inserted.</div>
+  <div class="rem"><b>✅ Remember</b> The bug is the gap between the <b>read</b> and the <b>write</b>: another transaction slips in between. A transaction makes your steps all-or-nothing; it doesn't make them run alone.</div>
+
+  <h5>1️⃣ Row-level locking: <code>FOR UPDATE</code></h5>
+  <p class="bridge">Lock the auction row while you check and update it. Any other transaction that asks for the same row <code>FOR UPDATE</code> waits until you commit.</p>
+<pre>BEGIN;
+-- Lock the row and read the current max
+SELECT maxBid FROM Auction WHERE id = 123 FOR UPDATE;
+-- app: bid not higher? ROLLBACK. Otherwise:
+INSERT INTO bids (item_id, user_id, amount)
+VALUES (123, 456, 100);
+UPDATE Auction SET maxBid = 100 WHERE id = 123;
+COMMIT;</pre>
+  <p class="bridge">The same race, now with the lock:<br>1️⃣ A locks row 123 and reads $90<br>2️⃣ B asks for the lock on row 123 and waits<br>3️⃣ A inserts $100, sets the max to $100, commits: the lock is released<br>4️⃣ B gets the lock and reads $100<br>5️⃣ B's $95 is too low: the app rejects it</p>
+  <div class="info"><b>➕ Fact-check</b> The article's locked version has no check between the <code>SELECT</code> and the <code>INSERT</code>. The app must still compare the bid with what it read. The lock only promises that the value you read stays true until you commit.</div>
+  <div class="rem"><b>🎤 Say it</b> "We'll use a transaction <b>and</b> a row-level lock on the auction row", not just "we'll use transactions".</div>
+  <p><span class="add">➕ Even simpler</span> One conditional <code>UPDATE</code> checks and writes in a single step. Under Read Committed, an <code>UPDATE</code> that waited for a row lock re-checks its <code>WHERE</code> against the newest committed row:</p>
+<pre>BEGIN;
+UPDATE Auction SET maxBid = 95
+WHERE id = 123 AND maxBid &lt; 95;
+-- 1 row updated → INSERT the bid, COMMIT
+-- 0 rows updated → ROLLBACK: the bid is too low
+COMMIT;</pre>
+
+  <h5>2️⃣ A higher isolation level: Serializable</h5>
+<pre>BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+-- same code as before...
+COMMIT;</pre>
+  <p class="bridge">PostgreSQL watches what each transaction reads and writes. If two of them conflict, one is rolled back with an error, and your app must <b>retry</b> it. <span class="add">➕ error code 40001, serialization_failure</span></p>
+  <p class="bridge">PostgreSQL has three isolation levels:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Read Committed (the default): each query sees what was committed before that query began</b>A later query in the same transaction can see newer commits. So the same query, run twice, can return different results (a non-repeatable read). Fast.</li>
+    <li><b class="hd">2️⃣ Repeatable Read: one snapshot for the whole transaction</b>The same query always returns the same rows. In PostgreSQL no new matching rows appear either (no phantom reads), which is stricter than the SQL standard. So you may not need Serializable where other databases would. <span class="add">➕ the snapshot is taken at the first query, not at BEGIN</span></li>
+    <li><b class="hd">3️⃣ Serializable: as if the transactions ran one after another</b>Prevents every anomaly. The cost: retry logic in your app.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: a reader's correction is wrong</b> One reader suggested Read Committed can <b>not</b> see commits that land after the transaction started. It can: each <b>query</b> takes a fresh snapshot. "Never sees them" is Repeatable Read. The article is right.</div>
+
+  <h5>⚖️ Row lock or Serializable?</h5>
+  <div class="grid2">
+    <div class="k-green"><b>🔐 Row-level lock</b><div class="star">You know exactly which rows to lock</div><div class="chk">✅ Only transactions on the <b>same rows</b> wait</div><div class="chk">✅ Low overhead: tracks only the locks</div><div class="chk">✅ No retries</div><div class="chk">❌ Can deadlock; you handle it</div><div class="chk">🎯 Auctions, inventory</div></div>
+    <div class="k-amber"><b>🧮 Serializable</b><div class="star">Too complex to know what to lock</div><div class="chk">✅ Simple: one line, PostgreSQL finds conflicts</div><div class="chk">❌ Conflicts roll back: you write retry logic</div><div class="chk">❌ More overhead: tracks every read and write</div><div class="chk">❌ Scales worse with many concurrent transactions</div><div class="chk">🎯 Money math across many tables</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔁 Deadlock: two transactions each hold a row the other wants</b>A locks row 1 then wants row 2; B locks row 2 then wants row 1. Both wait forever, so PostgreSQL cancels one. Fix: always lock rows in the same order, e.g. by id. <span class="add">➕ from a reader's comment</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Prefer row locks when you know exactly which rows need protecting. Keep Serializable for transactions too complex to reason about which locks they need.</div>
+
+  <h5>3️⃣ Optimistic concurrency control (OCC)</h5>
+  <p class="bridge">No lock up front. Instead:<br>1️⃣ Read the data and its version number<br>2️⃣ Do your work<br>3️⃣ Write only if the version is still the same<br>4️⃣ Version changed? Someone was first: retry<br>PostgreSQL has no OCC syntax; you build it with a version column.</p>
+<pre>SELECT maxBid, version FROM Auction WHERE id = 123;
+-- returns maxBid = 90, version = 5
+
+UPDATE Auction SET maxBid = 100, version = 6
+WHERE id = 123 AND version = 5;
+-- 0 rows updated → someone got there first: retry</pre>
+  <p class="bridge">⚖️ Ups and downs. If you propose OCC, say the downsides too.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ No locks held, so it's fast when conflicts are rare</b>Most transactions succeed on the first try.</li>
+    <li><b class="hd">1️⃣ Wasted work when conflicts are frequent</b>Many writers fail and redo their work, e.g. the last minute of a hot auction. Use a row lock there.</li>
+    <li><b class="hd">2️⃣ Retry code lives in your app</b>Every caller must catch "0 rows updated" and try again.</li>
+  </ul>
+  <div class="info"><b>➕ App-level vs database locks</b> A reader asked how an ORM's locking relates to the database's. ORM "optimistic locking" is this version column. ORM "pessimistic locking" sends <code>SELECT … FOR UPDATE</code>. Both are built on the database.</div>
+  <p class="ana">🏦 Two people withdraw from one joint account at two windows. <b>Row lock</b>: the first cashier takes the account folder; the second waits for it. <b>Serializable</b>: both go ahead, and the bank cancels one if the result looks impossible; that customer queues again. <b>OCC</b>: each cashier notes the ledger's page number; if someone wrote a new page meanwhile, start over. <span class="add">➕ analogy</span></p>
+
+  <h4>🎯 When to Use PostgreSQL (and When Not To)</h4>
+  <p class="bridge">In an interview, PostgreSQL is the default unless you have a specific reason. Start with it, then justify any move away. That's much stronger than starting with a niche database and defending it.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔒 Strong ACID guarantees, and it still scales with replicas and partitions</b></li>
+    <li><b class="hd">🧾 Structured and unstructured data together (JSONB)</b></li>
+    <li><b class="hd">🔎 Full-text search and geospatial queries built in</b>See <a href="#sd-pg-reads">card ①</a>.</li>
+    <li><b class="hd">🧰 Excellent tooling and a mature ecosystem</b></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-green"><b>✨ It shines when you need</b><div class="chk">🔗 Complex relationships</div><div class="chk">🔒 Strong consistency</div><div class="chk">🔍 Rich queries, search, geo</div><div class="chk">🧾 A mix of structured and JSONB data</div></div>
+    <div class="k-blue"><b>🎯 Perfect for</b><div class="chk">🛒 E-commerce: inventory, orders, users</div><div class="chk">💳 Finance: transactions, accounts, audit logs</div><div class="chk">📝 Content: posts, comments, users</div><div class="chk">📊 Analytics, up to a reasonable scale</div></div>
+  </div>
+
+  <h5>🔀 When to consider alternatives</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Extreme write throughput: millions of writes a second</b>Every write costs a WAL entry and index updates, so even the fastest disks become the bottleneck, and sharding adds coordination. Consider <b>Cassandra</b> for the write volume of event streams, or <b>Redis</b> for real-time counters.</li>
+    <li><b class="hd">2️⃣ Global multi-region writes (active-active)</b>PostgreSQL has one primary: one region writes, the others only read. Consider <b>CockroachDB</b> (global ACID), <b>Cassandra</b> (eventual consistency, last write wins) or <b>DynamoDB global tables</b>.</li>
+    <li><b class="hd">3️⃣ Pure key-value access: get and put by key, no joins</b>MVCC, the WAL and the query planner are overhead you don't need. Consider <b>Redis</b> (in memory), <b>DynamoDB</b> (managed) or <b>Cassandra</b> (write-heavy).</li>
+  </ul>
+  <p class="bridge">Why is one primary a problem across regions? The course admin's example, a social app with users in San Francisco and London:<br>1️⃣ San Francisco is the primary<br>2️⃣ A London user's like must travel to San Francisco<br>3️⃣ Synchronous: the like is slow. Asynchronous: the user may not see their own like for a few seconds<br>4️⃣ San Francisco goes down: London can't write at all<br>5️⃣ Let both regions write? Two users edit one post at once, and PostgreSQL has no built-in conflict resolution</p>
+  <div class="info"><b>💬 Why is Cassandra faster at writes? (course admin)</b> Cassandra appends to a commit log and a memory table, with no index or MVCC work per write, and spreads writes over nodes without coordinating. PostgreSQL updates every index, keeps row versions (MVCC) and keeps ACID on every write. Kafka is the stream itself; Cassandra is where its huge write volume lands.</div>
+  <div class="warn"><b>⚠️ Scalability alone is not a good reason to leave PostgreSQL</b> With good design it handles a lot. A reader cited OpenAI's engineering blog: ChatGPT's 800M users run on one PostgreSQL primary and about 50 read replicas.</div>
+  <p class="ana">🏦 One head office ledger serves almost every bank. You'd only switch systems for a stock exchange (millions of trades a second), banks on several continents that all write at once, or a coat check (just a ticket number and a coat). <span class="add">➕ analogy</span></p>
+
+  <h4>🏁 Summary</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ PostgreSQL is the default unless a requirement says otherwise</b></li>
+    <li><b class="hd">🎯 Argue from requirements, not trends</b>Consistency needs, query patterns, scale. Know the trade-offs: ACID vs eventual consistency, read vs write scaling, which indexes.</li>
+    <li><b class="hd">🧩 One PostgreSQL can replace several systems</b>Full-text search instead of Elasticsearch, JSONB instead of MongoDB, PostGIS instead of a geo database, replicas for read scaling.</li>
+    <li><b class="hd">🚀 Extreme writes or global writes: Cassandra or CockroachDB</b></li>
+  </ul>
+  <div class="rem"><b>🎤 Say it</b> "The data is relational and the bids need strong consistency, so PostgreSQL: a transaction with a row lock on the auction row, read replicas for the feed, and a partial index for active auctions." Start simple; add complexity only when needed.</div>
+
+  <h4>📚 Appendix: Basic SQL Concepts</h4>
+  <p class="bridge">Tables, foreign keys, normalization and denormalization are explained once in <a href="#sd-dm-schema--normalization-vs-denormalization">Data Modeling</a>. Here is only what this lesson adds.</p>
+<pre>CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  content TEXT NOT NULL
+);</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔑 <code>PRIMARY KEY</code>: each row gets a unique id</b></li>
+    <li><b class="hd">🚫 <code>UNIQUE</code>: no two users share a username or email</b></li>
+    <li><b class="hd">🔗 <code>REFERENCES users(id)</code>: a foreign key</b>Every post must belong to a real user; PostgreSQL enforces it.</li>
+  </ul>
+  <p class="bridge">Three kinds of relationship, worth naming in an interview:<br>1️⃣ <b>One-to-one</b>: a user and their profile settings<br>2️⃣ <b>One-to-many</b>: a user and their posts<br>3️⃣ <b>Many-to-many</b>: users and the posts they like, through a join table</p>
+<pre>CREATE TABLE likes (
+  user_id INTEGER REFERENCES users(id),
+  post_id INTEGER REFERENCES posts(id),
+  PRIMARY KEY (user_id, post_id)
+);</pre>
+  <div class="info"><b>➕ Keeping a copied value in step</b> Storing a like count on <code>posts</code> is denormalization. A reader pointed out that a PostgreSQL <b>trigger</b> can update the copy automatically, in the same transaction as the like.</div>
+
+  <h5>🏦 ACID with one bank transfer</h5>
+  <div class="grid2">
+    <div class="k-blue"><b>⚛️ Atomicity: all or nothing</b><div class="chk">Crash after taking $100 from savings but before adding it to checking? The whole transfer rolls back.</div></div>
+    <div class="k-green"><b>📏 Consistency: rules always hold</b><div class="chk"><code>CHECK (balance &gt;= 0)</code>: a transfer that would go negative is rejected. In NoSQL you often code such rules yourself.</div></div>
+    <div class="k-amber"><b>🚧 Isolation: no mixing</b><div class="chk">Concurrent transactions don't see each other's half-done work. How strictly: the isolation level.</div></div>
+    <div class="k-purple"><b>💾 Durability: saved for good</b><div class="chk">"Committed" means the WAL is on disk (<a href="#sd-pg-writes">card ②</a>): it survives a crash.</div></div>
+  </div>
+  <div class="info"><b>ℹ️ ACID's C is not CAP's C</b> See <a href="#sd-cap-what">CAP Theorem</a>. The course admin: with asynchronous replicas PostgreSQL is not CAP-consistent; read from the primary, or use synchronous replication, to get there.</div>
+  <p class="bridge">Which anomalies each level allows. PostgreSQL accepts all four standard names but has three behaviours: Read Uncommitted acts as Read Committed, because MVCC never shows uncommitted data.</p>
+  <div class="tscroll"><table class="dt"><tr><th>Level</th><th>Dirty read</th><th>Non-repeatable</th><th>Phantom</th><th><span class="nogl">Serialization anomaly</span></th></tr><tr><td>Read Uncommitted</td><td>no in PG</td><td>possible</td><td>possible</td><td>possible</td></tr><tr><td>Read Committed</td><td>no</td><td>possible</td><td>possible</td><td>possible</td></tr><tr><td>Repeatable Read</td><td>no</td><td>no</td><td>no in PG</td><td>possible</td></tr><tr><td>Serializable</td><td>no</td><td>no</td><td>no</td><td>no</td></tr></table></div>
+  <p class="figcap">Swipe the table →</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">👻 Dirty read: you see another transaction's uncommitted change</b></li>
+    <li><b class="hd">🔁 Non-repeatable read: the same row, read twice, has changed</b></li>
+    <li><b class="hd">➕ Phantom read: the same query, run twice, returns new rows</b></li>
+    <li><b class="hd">🧩 <span class="nogl">Serialization anomaly</span>: a result no one-at-a-time order could produce</b></li>
+  </ul>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚡ <code>synchronous_commit = off</code> trades a little durability for speed</b>PostgreSQL replies before the WAL flush. A crash can lose the last moment of commits, but the database stays intact.</li>
+  </ul>
+  <p class="bridge">When does ACID matter?<br>1️⃣ 💳 Payments: always, or money is lost or spent twice<br>2️⃣ 🔐 Login and auth: probably, to avoid security holes<br>3️⃣ ❤️ Social likes: eventual consistency is usually fine<br>4️⃣ 📊 Analytics: speed often beats strictness</p>
+
+  <h5>🗂️ SQL command types</h5>
+  <div class="grid2">
+    <div class="k-blue"><b>🏗️ DDL: define structure</b><div class="chk"><code>CREATE TABLE</code>, <code>ALTER TABLE</code>, <code>DROP TABLE</code></div></div>
+    <div class="k-green"><b>✏️ DML: work with data</b><div class="chk"><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code></div></div>
+    <div class="k-amber"><b>🔑 DCL: control access</b><div class="chk"><code>GRANT SELECT ON users TO read_only_user</code>, <code>REVOKE</code></div></div>
+    <div class="k-purple"><b>🔒 TCL: control transactions</b><div class="chk"><code>BEGIN</code>, <code>COMMIT</code>, <code>ROLLBACK</code></div></div>
+  </div>
+  <p>Interviews rarely ask for SQL syntax. Expect "how would you query this efficiently?" or "which indexes would you create?" instead.</p>
+  <p class="ana">🏦 The bank's rule book: DDL designs the ledger's columns, DML writes entries, DCL decides who may open the ledger, TCL says when a group of entries counts as done. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Consistency means naming the tool: transaction plus row lock, Serializable plus retries, or a version column. Then defend PostgreSQL as the default, and know the three reasons to leave it.</p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🥊 "DynamoDB beats PostgreSQL for social media"</h5>
+    <ul>
+      <li>One reader argued for DynamoDB: no 128 TB storage cap (Aurora's), multi-region writes, faster regional failover.</li>
+      <li>Replies: OpenAI runs ChatGPT on one PostgreSQL primary plus ~50 replicas. Aurora failover is about 15 to 60 seconds, not hours. Media belongs in S3, not the database. Instagram, Facebook and Pinterest grew on sharded relational databases.</li>
+      <li>Takeaway: pick the store per use case. The social graph can live in PostgreSQL while posts or media live elsewhere. DynamoDB items are capped at 400 KB.</li>
+    </ul>
+    <h5>🎤 Choosing a database out loud (course admin)</h5>
+    <ul>
+      <li>Ops effort (managing, monitoring, schema changes) vs a managed service like DynamoDB is a valid trade-off. Avoid the shallow one: "NoSQL because it scales".</li>
+      <li>PostgreSQL vs DynamoDB: when in doubt, PostgreSQL. Often neither is wrong; the justification is what counts.</li>
+      <li>⚠️ One reader was marked down for "either works, but I know X best". Safer: "either works; I'd pick what the team already runs".</li>
+    </ul>
+    <h5>🔎 Search: when Elasticsearch? (course admin)</h5>
+    <ul>
+      <li>Triggers: relevance scoring, facets, fuzzy or search-as-you-type, hundreds of millions of rows. At that size you'd shard PostgreSQL and merge and rank results across shards yourself; Elasticsearch does that for you.</li>
+      <li><span class="add">➕ Fact-check</span> He also listed "real-time index updates". That's backwards: a PostgreSQL GIN index updates in the same transaction, while Elasticsearch shows new documents after a refresh (about 1 s) and must be kept in sync with the database, e.g. with CDC.</li>
+      <li>A reader added: newer extensions bring BM25 ranking to PostgreSQL full-text search.</li>
+    </ul>
+    <h5>📇 Indexes and numbers</h5>
+    <ul>
+      <li>Queries on <code>(a, c, b)</code> and <code>(a, b)</code>, all equality: one index on <code>(a, b, c)</code> serves both. <code>(a, b)</code> is its prefix, and the column order inside a <code>WHERE</code> doesn't matter for equality. <span class="add">➕ answer</span></li>
+      <li>Reads vs writes: an indexed read is ~50k a second per core, a simple write ~5k: about 10× apart. <span class="add">➕ answer</span></li>
+    </ul>
+    <h5>🌐 Across machines</h5>
+    <ul>
+      <li>Two-phase commit is only needed for a transaction that spans shards. On one node a normal transaction is already atomic.</li>
+      <li>Sharding with Citus: each shard has its own primary and replicas, so many primaries take writes in parallel, but each row still has exactly one primary. <span class="add">➕ answer</span></li>
+    </ul>
+  </div>
+</section>
+
 
 </div>
 <div id="mapview" hidden>
@@ -6441,7 +6878,7 @@ const COURSES = {
         { n: '', id: 'common-patterns', title: 'Common Patterns', lessons: [
           ['common-patterns', 'Common Patterns']] },
         { n: '04', id: 'scaling-reads', title: 'Scaling Reads', lessons: [
-          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads']] },
+          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads'], ['postgres', 'PostgreSQL']] },
         { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
         { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
         { n: '07', id: 'dealing-with-contention', title: 'Dealing with Contention' },
@@ -7348,6 +7785,34 @@ const SEQS = {
       { at: 1, m: '⚠️ pointer write lost?', k: 'err', cap: '⚠️ The limit: the pointer update in ⑤ is still a cache write. If the writer crashes before it, readers stay on v1 until the pointer expires. Versioning stops <b>stale overwrites</b>; on its own it doesn\'t make updates instantly visible.' },
     ],
   },
+  'pg-write': {
+    lanes: ['🖥️ App', '🧠 Memory', '📜 WAL (disk)', '📁 Data files'],
+    key: [['http', 'before "committed"'], ['gray', 'later'], ['lb', 'recovery']],
+    frames: [
+      { cap: 'One <code>INSERT</code> into <code>posts</code>, a table with two indexes 👇' },
+      { f: 0, t: 1, m: 'INSERT post', k: 'http', cap: '① The app sends the <code>INSERT</code> inside a transaction.' },
+      { at: 1, m: 'table + 2 index pages: dirty', k: 'http', cap: '② PostgreSQL changes the table page and both index pages in the shared buffer cache and marks them <b>dirty</b>. Each change also writes a WAL record into the WAL buffer. All in memory.' },
+      { f: 0, t: 1, m: 'COMMIT', k: 'http', cap: '③ The app commits.' },
+      { f: 1, t: 2, m: 'flush WAL records', k: 'http', cap: '④ The WAL records are flushed to disk: one sequential write. This is the wait that limits write speed.' },
+      { f: 1, t: 0, m: '✅ committed', k: 'http', cap: '⑤ Only now does PostgreSQL reply "committed". The data files still hold the old pages. That\'s fine: the WAL has every change.' },
+      { f: 1, t: 3, m: 'dirty pages, in batches', k: 'gray', cap: '⑥ Later, the background writer or a checkpoint writes the dirty pages to the data files, many changes in one go.' },
+      { at: 2, m: '💥 crash? replay the WAL', k: 'lb', cap: '💥 If the server crashes before ⑥, PostgreSQL replays the WAL on restart and rebuilds the missing changes. Nothing committed is lost.' },
+    ],
+  },
+  'pg-bid-race': {
+    lanes: ['👤 A bids $100', '🗄️ Auction 123', '👤 B bids $95'],
+    key: [['tcp', 'read'], ['http', 'write'], ['gray', 'no effect'], ['err', 'the bug']],
+    frames: [
+      { cap: 'The max bid is <b>$90</b>. A bids $100 and B bids $95 at the same moment. Default isolation level, Read Committed 👇' },
+      { f: 0, t: 1, m: 'SELECT maxBid → $90', k: 'tcp', bi: 1, cap: '① A reads the max: $90.' },
+      { f: 2, t: 1, m: 'SELECT maxBid → $90', k: 'tcp', bi: 1, cap: '② B reads the max too: still $90, because A hasn\'t written yet.' },
+      { f: 0, t: 1, m: 'INSERT $100 · max = $100', k: 'http', cap: '③ A: $100 beats $90, so it inserts its bid and sets the max to $100.' },
+      { at: 0, m: 'COMMIT ✅', k: 'http', cap: '④ A commits. The max is $100.' },
+      { f: 2, t: 1, m: 'INSERT bid $95', k: 'err', cap: '⑤ B: $95 beats $90, the value it read <b>before</b> A wrote. So it inserts its $95 bid.' },
+      { f: 2, t: 1, m: 'UPDATE … < 95 → 0 rows', k: 'gray', cap: '⑥ B\'s update re-checks the row: the max is $100 now, so 0 rows change. But the bid row from ⑤ stays.' },
+      { at: 2, m: 'COMMIT: $95 bid saved ❌', k: 'err', cap: '⑦ B commits. A $95 bid now exists after a $100 bid. The check in ⑤ used a stale read: another transaction slipped in between the read and the write.' },
+    ],
+  },
   'cache-cpu': {
     lanes: ['👥 Clients', '🧵 1 Redis thread', '🧠 RAM (1 TB)'],
     key: [['http', 'request'], ['lb', 'find key'], ['tcp', 'reply'], ['err', 'waiting']],
@@ -8025,6 +8490,24 @@ const GLOSSARY = [
   { id: 'distlock', t: 'Distributed lock', aka: 'distributed lock redis lock lease mutex across servers', s: 'A lock that many servers share (often in Redis), so only one of them does a task at a time.',
     an: 'One key to the stockroom, hanging at the front desk: whoever holds it goes in; everyone else waits.',
     b: '<p>🧪 <b>See it:</b> a hot cache entry expires. Server A takes the lock <code>rebuild:home</code> (with a 10 s lease) and rebuilds; servers B–Z see the lock and wait or serve old data.</p><p>⚠️ If A is slow or dies, everyone waits until the lease runs out: that\'s why the lesson calls it fragile under load.</p>', see: ['stampede', 'race', 'pesslock'] },
+  { id: 'isolvl', t: 'Isolation level', aka: 'isolation level read committed repeatable read serializable snapshot anomaly', s: 'How much one transaction can see of other transactions running at the same time.',
+    an: 'How thick the walls between cashier windows are: thin walls are fast, thick walls stop mix-ups.',
+    b: '<p>🧪 <b>See it:</b> in PostgreSQL:</p><ul><li>Read Committed (default): each query sees what was committed before it began.</li><li>Repeatable Read: one snapshot for the whole transaction.</li><li>Serializable: as if transactions ran one at a time; conflicts must be retried.</li></ul>', see: ['acid', 'mvcc', 'pesslock'] },
+  { id: 'mvcc', t: 'MVCC', aka: 'multiversion concurrency control row versions snapshot postgres vacuum', s: 'MultiVersion Concurrency Control: an update writes a new version of the row instead of overwriting it, so readers never wait for writers.',
+    an: 'A shared doc with version history: you keep reading your version while someone edits the next one.',
+    b: '<p>🧪 <b>See it:</b> a transaction updates a price. Readers who started earlier still see the old version until it commits. Old versions are cleaned up later (VACUUM).</p><p>⚠️ Every write creates a new row version and its index entries: one reason writes cost more than in an append-only store like Cassandra.</p>', see: ['isolvl', 'acid'] },
+  { id: 'jsonb', t: 'JSONB', aka: 'jsonb json binary postgres document flexible schema gin', s: 'A PostgreSQL column type that stores JSON in a binary form you can index and query.',
+    an: 'A labelled drawer of loose papers inside a filing cabinet: no fixed form, but you can still search it.',
+    b: '<p>🧪 <b>See it:</b> each post has different extra fields. Store them in a <code>metadata JSONB</code> column, add a GIN index, and query <code>WHERE metadata @&gt; \'{"type": "video"}\'</code>.</p><p>✅ Often replaces a separate document database like MongoDB.</p>', see: ['invidx', 'dbindex'] },
+  { id: 'postgis', t: 'PostGIS', aka: 'postgis geospatial location nearby distance gist postgres extension', s: 'A PostgreSQL extension for location data: points, distances, "find everything within 5 km".',
+    an: 'A city map pinned next to the filing cabinet.',
+    b: '<p>🧪 <b>See it:</b> <code>ST_DWithin(location, my_point, 5000)</code> finds places within 5 km, using a spatial (GiST) index instead of checking every row.</p><p>✅ Often replaces a separate geo database.</p>', see: ['geohash', 'quadtree', 'dbindex'] },
+  { id: 'partialidx', t: 'Partial index', aka: 'partial index where clause filtered index subset postgres', s: 'An index on only the rows that match a condition, e.g. only active users.',
+    an: 'Index cards only for open accounts; closed ones stay in the archive with no card.',
+    b: '<p>🧪 <b>See it:</b> <code>CREATE INDEX … ON users(email) WHERE status = \'active\'</code>. If 90% of users are inactive, the index is 10× smaller: faster to search and cheaper to update.</p>', see: ['dbindex', 'covidx'] },
+  { id: 'deadlock', t: 'Deadlock', aka: 'deadlock lock order wait cycle row lock', s: 'Two transactions each hold a lock the other needs, so both wait forever; the database cancels one.',
+    an: 'Two cars on a one-lane bridge, each waiting for the other to back up.',
+    b: '<p>🧪 <b>See it:</b> A locks row 1 then wants row 2; B locks row 2 then wants row 1. PostgreSQL detects the cycle and aborts one with an error.</p><p>🛠️ Fix: always lock rows in the same order (e.g. by id), and retry the aborted one.</p>', see: ['pesslock', 'race'] },
   { id: 'replica', t: 'Read replica', aka: 'replica replication primary follower lag read scaling', s: 'A copy of the database that serves reads. The primary takes the writes and copies them over.',
     an: 'A teacher writes on the main board, and assistants copy it onto boards in other rooms so more students can read.',
     b: '<p>🧪 <b>See it:</b> 1 primary + 3 replicas → about 4× the read capacity. ⚠️ Copying takes a moment (replication lag), so a read just after a write may show old data. It doesn\'t add write capacity: that\'s what sharding is for.</p><p>☁️ <b>On AWS:</b> RDS / Aurora read replicas</p>', see: ['shard', 'consistency'] },
@@ -8385,7 +8868,7 @@ const GLOSSARY = [
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, routetable: /route tables?/i, dnsrec: /DNS records?|\bCNAMEs?\b/, r53resolver: /Route 53 Resolver/, route53: /Route 53(?! (?:private|public) hosted| Resolver)/, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting|cache key fan-?out/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
-    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
+    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, isolvl: /isolation levels?/i, mvcc: /MVCC/, jsonb: /JSONB/, postgis: /PostGIS/, partialidx: /partial index(?:es)?/i, deadlock: /deadlocks?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
     pubsub: /pub\/sub|publish[- ]subscribe/i, dlq: /dead[- ]letter queues?|DLQs?/i, race: /race conditions?/i, occ: /optimistic concurrency(?: control)?|optimistic locking/i, pesslock: /pessimistic lock(?:ing|s)?/i, loadshed: /load shedding/i, presign: /pre-?signed URLs?/i, evsrc: /event sourcing/i, durable: /durable execution|workflow engines?|Temporal\b/, cqrs: /CQRS/, outbox: /outbox pattern/i,
