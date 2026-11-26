@@ -5985,7 +5985,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
 <section class="card" id="sd-reads-db" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
   <h2 class="cap"><b>📖 Scaling Reads ①: The Problem · Optimize Within Your Database · Scale Horizontally</b></h2>
   <p class="hook">Writes create data, reads consume it, and reads grow much faster. As an app goes from hundreds of users to millions, the read load is usually the first thing to break the database. This pattern is how you serve massive read traffic without overwhelming your primary database, and almost every interview about a content app ends up here.</p>
-  <p class="tldr">💡 Reads swamp writes (100 reads for 1 photo posted), and at some point the database simply runs out of CPU, memory and disk. The fix is a ladder, cheapest rung first: <b>1️⃣ make the one database faster</b> (indexes, bigger hardware, store data ready to read), <b>2️⃣ add more databases</b> (read replicas, sharding), <b>3️⃣ put caches in front</b> (Redis, CDNs). 📚 Like a busy library: catalog the shelves, then open branches, then keep bestsellers at the front desk. Rungs 1 and 2 are on this card, 3 on the next, the interview follow-ups on the third. Explained below 👇</p>
+  <p class="tldr">💡 Reads swamp writes (100 reads for 1 photo posted), and at some point the database simply runs out of CPU, memory and disk. The fix is a ladder of 3 steps, cheapest first: <b>1️⃣ make the one database faster</b> (indexes, bigger hardware, store data ready to read), <b>2️⃣ add more databases</b> (read replicas, sharding), <b>3️⃣ put caches in front</b> (Redis, CDNs). 📚 Like a busy library: catalog the shelves, then open branches, then keep bestsellers at the front desk. Steps 1 and 2 are on this card, step 3 on the next, the interview follow-ups on the third. Explained below 👇</p>
 
   <h4>🧱 The Problem</h4>
   <p class="bridge">Open Instagram and dozens of photos appear at once. Each one needs several queries: image metadata, the poster, like counts, comment previews. That's <b>100+ reads</b> to load one feed. You post maybe one photo a day: <b>1 write</b>.</p>
@@ -6003,7 +6003,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <h4>🪜 The Solution</h4>
   <p class="bridge">Read scaling follows a natural order, from simple tuning to complex distributed systems. Climb only as high as the numbers force you.</p>
   <div class="flow"><span>1️⃣ Optimize within your database</span><i>→</i><span>2️⃣ Scale your database horizontally</span><i>→</i><span>3️⃣ Add external caching layers</span></div>
-  <p class="figcap">🖼️ Each rung costs more to run than the one before. ⚠️ Most candidates jump straight to rung 3.</p>
+  <p class="figcap">🖼️ Each step costs more to run than the one before. ⚠️ Most candidates jump straight to step 3, caching.</p>
   <p class="ana">📚 Catalog the shelves → open more branches → keep bestsellers stacked at the front desk. <span class="add">➕ analogy</span></p>
 
   <h4>🗂️ Optimize Within Your Database</h4>
@@ -6111,12 +6111,12 @@ GROUP BY p.id;</pre>
   </div>
   <div class="warn"><b>⚠️ Watch out</b> Sharding adds a lot of operational complexity and is <b>primarily a write scaling technique</b>. For most read problems, caching is more effective and easier. More in <a href="#sd-shard-what">Sharding ①</a>.</div>
   <p class="ana">📚 Separate libraries: science in one building, history in another (functional), or one library per city (geographic). Each is smaller and quieter, but now someone has to know which library has which book. <span class="add">➕ analogy</span></p>
-  <p class="bridge">🔚 Rungs 1 and 2 make the database itself go further. When it still can't keep up, stop asking it: rung 3, caching, is the next card.</p>
+  <p class="bridge">🔚 Steps 1 and 2 make the database itself go further. When it still can't keep up, stop asking it: step 3, caching, is the next card.</p>
 </section>
 
 <section class="card" id="sd-reads-cache" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
   <h2 class="cap"><b>📖 Scaling Reads ②: Add External Caching Layers · When to Use in Interviews</b></h2>
-  <p class="hook">The database is tuned and replicated, and reads still pile up. Rung 3 stops asking the database at all for the data everyone wants. Then the interview side: where to bring this up, the four classic scenarios, and when <b>not</b> to.</p>
+  <p class="hook">The database is tuned (step 1) and replicated (step 2), and reads still pile up. Step 3 of the ladder, caching, stops asking the database at all for the data everyone wants. Then the interview side: where to bring this up, the four classic scenarios, and when <b>not</b> to.</p>
   <p class="tldr">💡 Most traffic asks for the <b>same few things</b> (the viral tweet, the popular product). Keep those in RAM: an app cache (Redis) answers in under a millisecond, a CDN answers from a city near the user. The hard part is keeping copies fresh when data changes. 📚 Bestsellers stacked at the front desk, and a mini-library in every town. Explained below 👇</p>
 
   <h4>⚡ Add External Caching Layers</h4>
