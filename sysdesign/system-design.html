@@ -6211,8 +6211,14 @@ EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
   <h4>🔥 "How do you handle millions of concurrent reads for the same cached data?"</h4>
   <p class="bridge">A celebrity posts and millions read it at once. A cache server that normally handles 50,000 requests a second now gets <b>500,000 a second for one key</b>. It times out, requests fail, the site goes down, from reads alone. Caching assumes load spreads over many keys; here everyone wants the same one, and even from RAM, sending it 500,000 times a second swamps one server's CPU and network.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">🤝 Fix 1, request coalescing: same key, one fetch per server</b>When many requests want the same key, one goes to the backend and the rest wait for its answer.</li>
+    <li><b class="hd">🤝 Fix 1, request coalescing: each app server asks the cache only once per key</b>The value <b>is</b> in the cache. The problem is that every request lands on the one cache server holding it. So each app server merges identical requests that arrive at the same moment:<br>1️⃣ The first request for <code>feed:taylor-swift</code> goes to the cache server<br>2️⃣ The next 9,999 on that app server don't send their own; they wait<br>3️⃣ The one answer comes back and is handed to all 10,000<br>The same trick on a cache <b>miss</b> protects the database: that's the stampede question below.</li>
   </ul>
+  <p class="bridge">🔍 Where exactly does this happen? Not on the phone, not in the load balancer, not in Redis: <b>inside each app server's code</b>. The load balancer only spreads users over the app servers; it merges nothing. Press ▶️ to follow app server A.</p>
+  <div class="seq" data-seq="coalesce-path"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧠 The "waiting list" is a small map in the app server's memory</b>Key → the one fetch in progress. A request that finds its key there waits on that fetch instead of calling Redis. Ready-made helpers exist, e.g. Go's <code>singleflight</code>. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: "N requests" means N at a time</b> Only requests that arrive <b>while</b> the first fetch is on its way (about 1 ms) share it. After the answer, the key leaves the map and the next request fetches again. So each app server sends at most one request per key per round trip: 100 servers × ~1,000 round trips a second ≈ 100,000/s instead of 500,000/s. Keep the answer for even 1 second in the app server's memory and it drops to ~100/s.</div>
 <pre># Request coalescing: one in-flight fetch per key
 async def get(self, key):
     if key in self.inflight:              # someone is already fetching it
@@ -6220,15 +6226,15 @@ async def get(self, key):
     future = asyncio.Future()
     self.inflight[key] = future           # I'm the one fetching
     try:
-        value = await fetch_from_backend(key)
+        value = await fetch_from_backend(key)  # here: the cache server
         future.set_result(value)
         return value
     finally:
         del self.inflight[key]</pre>
-  <div class="dg" role="img" aria-label="A million users ask for the same key; each of 100 app servers coalesces them, so the backend receives only 100 requests.">
-    <div class="r"><span class="bx">👥 1,000,000 users<small>same key, same moment</small></span><span class="ar">→</span><span class="bx">🖥️ 100 app servers<small>each coalesces</small></span><span class="ar" style="--c: var(--green-fg)">→ 1 each →</span><span class="bx">🗄️ Backend<small>100 requests</small></span></div>
+  <div class="dg" role="img" aria-label="A million users ask for the same key; each of 100 app servers coalesces them, so the cache server receives only 100 requests.">
+    <div class="r"><span class="bx">👥 1,000,000 users<small>same key, same moment</small></span><span class="ar">→</span><span class="bx">🖥️ 100 app servers<small>each coalesces</small></span><span class="ar" style="--c: var(--green-fg)">→ 1 each →</span><span class="bx">🟥 Cache server<small>100 requests</small></span></div>
   </div>
-  <div class="rem"><b>💡 Tip</b> Coalescing cuts backend load from "potentially infinite" (every user) to exactly <b>N</b>, the number of app servers. Animated step by step: <a href="#sd-cache-problems--request-coalescing-single-flight-the-mos">Caching ③ · Request coalescing</a>.</div>
+  <div class="rem"><b>💡 Tip</b> Coalescing cuts the cache server's load from "potentially infinite" (every user) to exactly <b>N</b>, the number of app servers. Animated step by step: <a href="#sd-cache-problems--request-coalescing-single-flight-the-mos">Caching ③ · Request coalescing</a>.</div>
   <ul class="lines roomy heads">
     <li><b class="hd">📑 Fix 2, cache key fanout: store the hot value under 10 keys</b>When coalescing isn't enough, spread the load itself. Store copies as <code>feed:taylor-swift:1</code> … <code>feed:taylor-swift:10</code>; each reader picks one at random.</li>
   </ul>
@@ -6240,7 +6246,7 @@ async def get(self, key):
     <li><b class="hd">⚖️ The cost: more memory and harder invalidation</b>Ten copies to store and ten to clear on a change. For a hot key that threatens availability, "a small price for staying online".</li>
     <li><b class="hd">🧭 Fanout works because the copies land on different cache nodes</b>The total stays 500,000/s; what changes is that no single server takes it all (Josh Rosen, comments). Same idea as <a href="#sd-cache-problems--replicate-hot-keys-copies-of-the-value-n">Caching ③ · Replicate hot keys</a>.</li>
   </ul>
-  <p class="ana">📚 One copy of a bestseller and a queue of thousands. Coalescing: one person per table walks to the desk and reads it aloud to their table. Fanout: put ten copies on ten different desks. <span class="add">➕ analogy</span></p>
+  <p class="ana">📚 One copy of a bestseller and a queue of thousands. Coalescing: one person per table walks to the desk, then reads it aloud to everyone at their table. Fanout: put ten copies on ten different desks. <span class="add">➕ analogy</span></p>
 
   <h4>🐃 "What happens when multiple requests try to rebuild an expired cache entry simultaneously?"</h4>
   <p class="bridge">The homepage gets <b>100,000 requests a second</b>, all from cache, with a <b>1-hour TTL</b>. At minute 60 the entry expires, and all 100,000 miss at the same instant and go to the database, which is sized for maybe <b>1,000 queries a second</b> of normal misses. "Like a DDoS attack from your own application." This is a <b>cache stampede</b>.</p>
@@ -8108,6 +8114,20 @@ const SEQS = {
       { at: 1, m: 'job 7 idle 60 s…', k: 'gray', cap: '④ The pending entry\'s idle time keeps growing.' },
       { f: 3, t: 1, m: 'XAUTOCLAIM → job 7', k: 'lb', bi: 1, cap: '⑤ Worker 2 claims jobs idle for more than 60 s and gets job 7.' },
       { f: 3, t: 1, m: 'XACK job 7 ✅', k: 'http', cap: '⑥ Worker 2 finishes and acknowledges: the job leaves the pending list. If Worker 1 was only slow, job 7 ran twice: keep jobs idempotent.' },
+    ],
+  },
+  'coalesce-path': {
+    lanes: ['📱 Phones', '⚖️ Load balancer', '🖥️ App server A', '🟥 Cache'],
+    key: [['tcp', 'request'], ['lb', 'inside app server'], ['gray', 'waiting'], ['http', 'cache trip']],
+    frames: [
+      { cap: '1,000,000 phones open Taylor Swift\'s feed at the same moment. There are 100 app servers; follow app server A 👇' },
+      { f: 0, t: 1, m: '1,000,000 × GET /feed', k: 'tcp', cap: '① Every phone sends its own request.' },
+      { f: 1, t: 2, m: '~10,000 of them', k: 'tcp', cap: '② The load balancer spreads them: about 10,000 to each app server. It only forwards; it merges nothing.' },
+      { at: 2, m: '#1: map empty → I fetch', k: 'lb', cap: '③ Request #1 checks the app server\'s in-memory map: is anyone already fetching <code>feed:taylor-swift</code>? No. It writes "I\'m fetching" in the map.' },
+      { f: 2, t: 3, m: 'GET feed:taylor-swift (once)', k: 'http', cap: '④ One GET goes to the cache server.' },
+      { at: 2, m: '#2 … #10,000: wait for #1', k: 'gray', cap: '⑤ Requests #2 to #10,000 arrive during that trip. They find the key in the map, so they send nothing and wait for #1\'s answer.' },
+      { f: 3, t: 2, m: 'value', k: 'http', cap: '⑥ The cache answers once.' },
+      { f: 2, t: 0, m: 'same value → all 10,000', k: 'lb', cap: '⑦ App server A sends that one value back to all 10,000 phones and clears the key from the map. 100 app servers = 100 requests to the cache, not 1,000,000.' },
     ],
   },
   'cache-cpu': {
