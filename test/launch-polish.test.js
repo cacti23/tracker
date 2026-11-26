@@ -26,8 +26,10 @@ test('sharing the hub shows a link preview with an image that exists', () => {
   assert.ok(fs.existsSync(path.join(__dirname, '..', img)), img)
 })
 
-test('no email address is printed on the hub (feedback goes through a Google Form)', () => {
-  assert.ok(!/mailto:|@gmail\.com/.test(read('index.html')))
+test('feedback goes through a Google Form, and no email address is printed on the hub', () => {
+  const html = read('index.html')
+  assert.match(html, /<a class="sidebar-feedback-link" href="https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/viewform" target="_blank" rel="noopener">💬 Send feedback<\/a>/)
+  assert.ok(!/mailto:|@gmail\.com/.test(html))
 })
 
 test('page titles match the sidebar names', () => {
