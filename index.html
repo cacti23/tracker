@@ -191,6 +191,11 @@
     .sidebar-footer {
       padding: 0.65rem 1.1rem; border-top: 1px solid var(--border);
       font-size: var(--fs-2xs); color: var(--text-faint); white-space: nowrap;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
+    }
+    /* Privacy is about the app, not study, so it lives here instead of in a study section. */
+    #sidebar .sidebar-footer button.sidebar-privacy-link {
+      width: auto; padding: 0.15rem 0.4rem; margin: 0 0 0 -0.4rem; font-size: var(--fs-2xs); color: var(--text-muted);
     }
     .sidebar-data-btn {
       flex: 1 1 calc(50% - 0.2rem); display: flex; align-items: center; justify-content: center; gap: 0.35rem;
@@ -727,7 +732,7 @@
     }
     .sub-menu-title { font-size: var(--fs-xs); color: var(--text-muted); margin: 0.1rem 0.25rem 0.4rem; }
     .sub-menu-item {
-      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem;
       padding: 0.4rem 0.55rem; border-radius: 6px; font-size: var(--fs-xs); font-family: var(--font-mono);
       color: var(--text-primary); text-decoration: none; cursor: pointer;
     }
@@ -1153,8 +1158,13 @@
         <span class="nav-topic-icon" aria-hidden="true">🏛️</span>
         <span class="nav-topic-label">System Design notes</span>
       </button>
-      <!-- Study tools, always in view. All open in-pane (loadEmbed). -->
-      <p class="sidebar-section-label">Study tools</p>
+      <button type="button" id="nav-howto" data-hub="dsa" onclick="loadEmbed('howto')" class="nav-link" title="How to use the DSA tracker: what it is, how revision works, a daily routine">
+        <span class="nav-topic-icon" aria-hidden="true">📖</span>
+        <span class="nav-topic-label">How to use (DSA)</span>
+      </button>
+      <!-- Sections follow the notebook switch: DSA-only groups carry data-hub="dsa";
+           Resources serve both notebooks; Privacy sits in the footer, it is about the app, not study. -->
+      <p class="sidebar-section-label" data-hub="dsa">DSA study tools</p>
       <button type="button" id="nav-thoughts" data-hub="dsa" onclick="loadEmbed('thoughts')" class="nav-link" title="DSA Thoughts: short insights per topic, each with a diagram">
         <span class="nav-topic-icon" aria-hidden="true">🧠</span>
         <span class="nav-topic-label">DSA Thoughts</span>
@@ -1163,13 +1173,20 @@
         <span class="nav-topic-icon" aria-hidden="true">📋</span>
         <span class="nav-topic-label">JS Built-ins</span>
       </button>
+      <button type="button" id="nav-visuals" data-hub="dsa" onclick="loadEmbed('visuals')" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
+        <span class="nav-topic-icon" aria-hidden="true">🖼️</span>
+        <span class="nav-topic-label">Visuals</span>
+      </button>
+      <!-- One entry per company; add the next company here. -->
+      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
+      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
+        <span class="nav-topic-icon">🔍</span>
+        <span class="nav-topic-label">Google</span>
+      </button>
+      <p class="sidebar-section-label">Resources</p>
       <button type="button" id="nav-sites" onclick="loadEmbed('sites')" class="nav-link" title="Study Sites: the best sites for DSA and system design prep">
         <span class="nav-topic-icon" aria-hidden="true">🔖</span>
         <span class="nav-topic-label">Study Sites</span>
-      </button>
-      <button type="button" id="nav-privacy" onclick="loadEmbed('privacy')" class="nav-link" title="Privacy and your data: what is stored, signing out, delete my data">
-        <span class="nav-topic-icon" aria-hidden="true">🔒</span>
-        <span class="nav-topic-label">Privacy &amp; data</span>
       </button>
       <button type="button" id="nav-papers" onclick="loadEmbed('papers')" class="nav-link" title="Engineering Paper Club: distributed-systems papers and blogs, easy to hard">
         <span class="nav-topic-icon">📚</span>
@@ -1179,21 +1196,7 @@
         <span class="nav-topic-icon" aria-hidden="true">🔥</span>
         <span class="nav-topic-label">Postmortems</span>
       </button>
-      <button type="button" id="nav-visuals" data-hub="dsa" onclick="loadEmbed('visuals')" class="nav-link" title="Image cheat sheets: one picture per idea, e.g. constraints to time complexity">
-        <span class="nav-topic-icon">🖼️</span>
-        <span class="nav-topic-label">Visuals</span>
-      </button>
-      <!-- One entry per company; add the next company here. -->
-      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
-      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
-        <span class="nav-topic-icon">🔍</span>
-        <span class="nav-topic-label">Google</span>
-      </button>
       <p class="sidebar-section-label" data-hub="dsa">Topics</p>
-      <button type="button" id="nav-howto" data-hub="dsa" onclick="loadEmbed('howto')" class="nav-link" title="How to use: what the tracker is, how revision works, a daily routine">
-        <span class="nav-topic-icon" aria-hidden="true">📖</span>
-        <span class="nav-topic-label">How to use</span>
-      </button>
       <div id="nav-topics" data-hub="dsa"></div>
 
 
@@ -1213,7 +1216,10 @@
     </a>
     </details>
 
-    <div class="sidebar-footer">v585 · Interview Prep Hub</div>
+    <div class="sidebar-footer">
+      <button type="button" id="nav-privacy" onclick="loadEmbed('privacy')" class="nav-link sidebar-privacy-link" title="Privacy and your data: what is stored, signing out, delete my data">🔒 Privacy &amp; data</button>
+      <span>v586 · Interview Prep Hub</span>
+    </div>
   </aside>
   <div id="sidebar-backdrop" onclick="toggleSidebar()" aria-hidden="true"></div>
 
