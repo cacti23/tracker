@@ -94,3 +94,7 @@ Pushing to the branch Vercel watches deploys automatically. The service worker l
 ## License
 
 [MIT](LICENSE). Use it, fork it, change it; just keep the copyright notice.
+
+## Author
+
+Built by Aditya Patel: [LinkedIn](https://www.linkedin.com/in/adityap314/) · [GitHub](https://github.com/cacti23) · [LeetCode](https://leetcode.com/u/nxt23/)
