@@ -256,9 +256,10 @@
       transition: background 0.14s, color 0.14s, border-color 0.14s;
     }
     .sidebar-gym-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
-    /* DSA | System Design switch: one named mode on <body data-hub-mode>, set by setHubMode(). */
+    /* DSA | System Design | Interview experiences switch: one named mode on <body data-hub-mode>,
+       set by setHubMode(). Interview experiences takes its own full-width row under the other two. */
     .hub-switch {
-      display: flex; gap: 0.25rem; margin-top: 0.5rem; padding: 0.2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; margin-top: 0.5rem; padding: 0.2rem;
       border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-hover);
     }
     .hub-switch button {
@@ -268,8 +269,11 @@
     }
     .hub-switch button:hover { color: var(--text-primary); }
     .hub-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-    body[data-hub-mode="sd"] #sidebar [data-hub="dsa"],
-    body[data-hub-mode="dsa"] #sidebar [data-hub="sd"] { display: none !important; }
+    .hub-switch button.hub-exp { grid-column: 1 / -1; }
+    body:not([data-hub-mode="dsa"]) #sidebar [data-hub="dsa"],
+    body:not([data-hub-mode="sd"]) #sidebar [data-hub="sd"],
+    body:not([data-hub-mode="exp"]) #sidebar [data-hub="exp"],
+    body[data-hub-mode="exp"] #sidebar .sidebar-nav > :not([data-hub="exp"]) { display: none !important; }
 
     /* ── 6. SIDEBAR NAV BUTTONS ─────────────────────────────────────────────── */
     /* Scoped to button.nav-link (topics, tabs) AND a.nav-link (external links, e.g. the
@@ -711,8 +715,11 @@
       background: var(--accent-dim); color: var(--accent);
       border: 1px solid var(--border-glow); border-radius: 20px;
       padding: 0.24rem 0.7rem; font-size: var(--fs-xs); font-weight: 700;
-      letter-spacing: 0; line-height: 1; white-space: nowrap;
+      letter-spacing: 0; line-height: 1.2; white-space: nowrap; vertical-align: middle;
     }
+    /* Each block under a question (submissions, notes) starts below a divider with room to
+       breathe, so its label pill doesn't sit right on the line above. */
+    .q-section { margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px solid var(--border); }
 
     /* Per-question LeetCode submission links (max 3, shown above My notes) */
     .subs-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
@@ -885,6 +892,14 @@
       font-size: var(--fs-2xs); font-weight: 700; line-height: 1.4;
     }
     /* "Last revised … ago" label on Revised-log rows */
+    #view-recent { max-width: 920px; }
+    .recent-sum { color: var(--text-muted); font-size: var(--fs-sm); margin-bottom: 0.5rem; }
+    .recent-sum span { padding: 0 0.35rem; border-radius: 6px; font-weight: 600; }
+    .recent-day { font-size: var(--fs-sm); font-weight: 700; color: var(--text-muted); margin: 1.1rem 0 0.45rem; }
+    .recent-row .ps-q-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-topic { font-size: var(--fs-2xs); color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
+    .recent-empty { color: var(--text-muted); padding: 2rem 0; }
+    @media (max-width: 600px) { .recent-topic { display: none; } }
     .rev-ago { font-size: var(--fs-2xs); color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; }
     .ps-ctrl-bar { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
     .ps-count-btn {
@@ -1169,10 +1184,19 @@
       <div class="hub-switch" role="group" aria-label="Notebook">
         <button type="button" data-mode="dsa" aria-pressed="true" onclick="switchHub('dsa')">🧩 DSA</button>
         <button type="button" data-mode="sd" aria-pressed="false" onclick="switchHub('sd')">🏛️ System Design</button>
+        <button type="button" data-mode="exp" aria-pressed="false" onclick="switchHub('exp')" class="hub-exp">💼 Interview experiences</button>
       </div>
     </div>
 
     <nav class="flex-grow-1 p-2 pb-3 overflow-auto sidebar-nav">
+      <!-- Interview experiences are their own notebook (the third switch button): a real loop mixes
+           DSA, system design (HLD, LLD) and behavioral rounds (Adi, 2026-11-26). The sidebar then
+           shows only these. One entry per company; add the next company here with data-hub="exp". -->
+      <p class="sidebar-section-label" data-hub="exp">Companies</p>
+      <button type="button" id="nav-google" data-hub="exp" onclick="loadGoogle()" class="nav-link" title="Google: the worked onsite log, with interview sources">
+        <span class="nav-topic-icon" aria-hidden="true">🔍</span>
+        <span class="nav-topic-label">Google</span>
+      </button>
       <!-- First thing a new visitor sees in the DSA notebook: a card, not a plain row. -->
       <button type="button" id="nav-howto" data-hub="dsa" onclick="loadEmbed('howto')" class="nav-link nav-howto-card" title="How to use the DSA tracker: what it is, how revision works, a daily routine">
         <span class="nav-topic-icon" aria-hidden="true">📖</span>
@@ -1182,6 +1206,10 @@
         class="nav-link">
         <span class="nav-topic-icon">🏠</span>
         <span class="nav-topic-label">Dashboard</span>
+      </button>
+      <button type="button" id="nav-recent" data-hub="dsa" onclick="loadRecent()" class="nav-link" title="Recently solved: every question you graded ✓ ~ ✗, newest first">
+        <span class="nav-topic-icon" aria-hidden="true">🕘</span>
+        <span class="nav-topic-label">Recently solved</span>
       </button>
       <button type="button" id="nav-sysdesign" data-hub="sd" onclick="loadEmbed('sysdesign')" class="nav-link" title="System Design notes: lessons, designs, the AWS map and the glossary">
         <span class="nav-topic-icon" aria-hidden="true">🏛️</span>
@@ -1210,15 +1238,9 @@
         <span class="nav-topic-icon" aria-hidden="true">🔥</span>
         <span class="nav-topic-label">Postmortems</span>
       </button>
-      <button type="button" id="nav-sites" onclick="loadEmbed('sites')" class="nav-link" title="Study Sites: the best sites for DSA and system design prep">
+      <button type="button" id="nav-sites" onclick="loadEmbed('sites')" class="nav-link" title="Study Sites: the best sites for this notebook">
         <span class="nav-topic-icon" aria-hidden="true">🔖</span>
         <span class="nav-topic-label">Study Sites</span>
-      </button>
-      <!-- One entry per company; add the next company here. -->
-      <p class="sidebar-section-label" data-hub="dsa">Interview experiences</p>
-      <button type="button" id="nav-google" data-hub="dsa" onclick="loadGoogle()" class="nav-link" title="Google prep — the worked onsite log, with interview sources">
-        <span class="nav-topic-icon" aria-hidden="true">🔍</span>
-        <span class="nav-topic-label">Google</span>
       </button>
       <p class="sidebar-section-label" data-hub="dsa">Topics</p>
       <div id="nav-topics" data-hub="dsa"></div>
@@ -1243,7 +1265,7 @@
     <div class="sidebar-footer">
       <button type="button" id="nav-privacy" onclick="loadEmbed('privacy')" class="nav-link sidebar-privacy-link" title="Privacy and your data: what is stored, signing out, delete my data">🔒 Privacy &amp; data</button>
       <a class="sidebar-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSclEDL8hfAxdj1hShNecfGP61chtrLakMT_zNqLiUJTbplAyw/viewform" target="_blank" rel="noopener">💬 Send feedback</a>
-      <span>v589 · Interview Prep Hub</span>
+      <span>v607 · Interview Prep Hub</span>
       <span class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</span>
     </div>
   </aside>
@@ -1273,6 +1295,9 @@
         <div id="daily-question-card" class="mb-4"></div>
         <div id="search-results-list"></div>
       </div>
+
+      <!-- ── VIEW: Recently solved ── rendered by loadRecent(). -->
+      <div id="view-recent" class="d-none"></div>
 
       <!-- ── VIEW: Dashboard ──
            AI: rendered by loadDashboard(). Shows overall progress + topic cards. -->
@@ -1884,6 +1909,7 @@ function _restoreView() {
   let saved = null
   try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
   if (saved === 'google') loadGoogle()
+  else if (saved === 'recent') loadRecent()
   else if (saved && Object.prototype.hasOwnProperty.call(EMBEDS, saved)) loadEmbed(saved)
   else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
   else loadDashboard()
@@ -1897,7 +1923,7 @@ const GOOGLE_TABS = [
 let currentGoogleTab = 'log'
 function loadGoogle(tab) {
   if (tab) currentGoogleTab = tab
-  setHubMode('dsa')
+  setHubMode('exp')
   showView('view-google')
   _stopTimer()
   _qpStopTimer()
@@ -1941,7 +1967,7 @@ for (const k of ['papers', 'postmortems']) EMBEDS[k].hub = 'sd'   // sites and p
 // One named mode, kept per device (not synced). Opening a page that belongs to one notebook
 // switches to it, so a search hit or link never leaves the other notebook's sidebar showing.
 const HUB_MODE_KEY = 'dsa-hub-mode'
-const HUB_MODES = ['dsa', 'sd']
+const HUB_MODES = ['dsa', 'sd', 'exp']
 function setHubMode(m) {
   if (!HUB_MODES.includes(m)) m = 'dsa'
   document.body.dataset.hubMode = m
@@ -1950,6 +1976,7 @@ function setHubMode(m) {
 }
 function switchHub(m) {
   if (m === 'sd') loadEmbed('sysdesign')
+  else if (m === 'exp') loadGoogle()
   else loadDashboard()
 }
 const PAPERS_SRC = EMBEDS.papers.src
@@ -1970,7 +1997,10 @@ function loadEmbed(key) {
   _saveCurrentView(key)
   const frame = document.getElementById(e.frame)
   _watchEmbedScroll(frame)
-  if (frame.getAttribute('src') !== e.src) frame.setAttribute('src', e.src)
+  // Study Sites sits in both notebooks and lists only that notebook's sites (Adi, 2026-11-26).
+  // The hub goes in the hash, not a query, so the offline cache still finds the page.
+  const src = key === 'sites' ? e.src + '#' + document.body.dataset.hubMode : e.src
+  if (frame.getAttribute('src') !== src) frame.setAttribute('src', src)
 }
 
 // ─── STUDY SITE IN-PANE ──────────────────────────────────────────────────────
@@ -2014,6 +2044,69 @@ function _watchEmbedScroll(frame) {
 }
 function loadPapers() { loadEmbed('papers') }
 function loadVisuals() { loadEmbed('visuals') }
+
+// ─── RECENTLY SOLVED ──────────────────────────────────────────────────────────
+// Every question you graded ✓ ~ ✗ (on a card, in Graded, By Pattern or the dashboard sessions),
+// newest first, grouped by day, so you can see the order you worked through them (Adi, 2026-11-26).
+// Read straight from the revise records (dsa-revise-v1): each keeps its latest grade and when, so
+// there is nothing new to store or sync, and grades from before this view existed show up too.
+function _recentlySolved() {
+  const where = {}
+  for (const t of TOPICS) {
+    const mod = TOPIC_MODULES[t.key]
+    if (mod) for (const [k, q] of Object.entries(mod.questions)) if (!where[k]) where[k] = { t, q }
+  }
+  return Object.entries(_reviseAll())
+    .filter(([k, r]) => where[k] && r && r.last && !isNaN(new Date(r.last)))
+    .map(([k, r]) => ({ lcKey: k, grade: r.grade, ts: r.last, topic: where[k].t, q: where[k].q }))
+    .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+}
+function _recentDayLabel(dayKey) {
+  const today = LocalDate.key()
+  if (dayKey === today) return 'Today'
+  if (dayKey === LocalDate.key(LocalDate.addDays(new Date(), -1))) return 'Yesterday'
+  const [y, m, d] = dayKey.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+}
+function loadRecent() {
+  setHubMode('dsa')
+  showView('view-recent')
+  _stopTimer()
+  _qpStopTimer()
+  document.getElementById('page-title').textContent = '🕘 Recently solved'
+  document.getElementById('header-tabs').innerHTML = ''
+  clearActiveNav()
+  const nav = document.getElementById('nav-recent')
+  if (nav) nav.classList.add('active')
+  currentTopicKey = null
+  _saveCurrentView('recent')
+  const items = _recentlySolved()
+  const view = document.getElementById('view-recent')
+  if (!items.length) {
+    view.innerHTML = '<div class="recent-empty">Nothing graded yet. Grade a question with ✓ ~ ✗ and it shows up here, newest first.</div>'
+    return
+  }
+  const counts = { solid: 0, shaky: 0, forgot: 0 }
+  items.forEach(e => { if (counts[e.grade] != null) counts[e.grade]++ })
+  let html = '<p class="recent-sum">' + items.length + ' graded · <span class="rg-solid">✓ ' + counts.solid + '</span> <span class="rg-shaky">~ ' + counts.shaky + '</span> <span class="rg-forgot">✗ ' + counts.forgot + '</span></p>'
+  let day = null, n = 0
+  for (const e of items) {
+    const d = LocalDate.key(new Date(e.ts))
+    if (d !== day) { if (day) html += '</div>'; day = d; html += '<h3 class="recent-day">' + escHtml(_recentDayLabel(d)) + '</h3><div class="recent-list">' }
+    const badge = RECENT_GRADE_BADGE[e.grade] || ['rg-none', '']
+    const time = new Date(e.ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    html += '<div class="ps-q-row recent-row" onclick="goToQuestion(' + _jsArg(e.topic.key) + ', ' + _jsArg(e.lcKey) + ')" title="Open in ' + escHtml(e.topic.label) + '">' +
+      '<span class="ps-q-num">' + (++n) + '</span>' +
+      '<span class="revise-grade-badge ' + badge[0] + '">' + badge[1] + '</span>' +
+      '<span class="ps-q-title">' + escHtml(e.q.title) + '</span>' +
+      '<span class="recent-topic">' + escHtml(e.topic.icon + ' ' + e.topic.label) + '</span>' +
+      '<span class="badge bg-' + DIFFICULTY_BADGE[e.q.difficulty] + ' q-badge flex-shrink-0">' + escHtml(e.q.difficulty) + '</span>' +
+      '<span class="rev-ago">' + escHtml(time) + '</span>' +
+      '<a href="' + escHtml(e.q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" onclick="event.stopPropagation()">↗</a>' +
+      '</div>'
+  }
+  view.innerHTML = html + '</div>'
+}
 
 function loadDashboard() {
   setHubMode('dsa')
@@ -2837,8 +2930,8 @@ function buildQuestionAccordionItem(lcKey, q, groupId, index) {
   const gotchaRow  = q.gotcha    ? '<div class="gotcha-box mb-2 small"><strong class="text-danger">⚠ Gotcha:</strong> '  + escHtml(q.gotcha)    + '</div>' : ''
   const faangRow   = q.faangNote ? '<div class="faang-box mb-2 small"><strong class="text-success">★ FAANG:</strong> '  + escHtml(q.faangNote) + '</div>' : ''
   const altRow     = altApproaches ? '<div class="mb-2 small d-flex flex-wrap align-items-center gap-1"><span class="q-section-label me-1">🔀 Alt approaches</span><span>' + altApproaches + '</span></div>' : ''
-  const subsRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)" id="subs-' + lcKey + '">' + _subsRowHtml(lcKey) + '</div>'
-  const noteRow    = '<div class="mt-3 pt-2" style="border-top:1px solid var(--border)"><p class="mb-2"><span class="q-section-label">📝 My notes</span></p>' +
+  const subsRow    = '<div class="q-section" id="subs-' + lcKey + '">' + _subsRowHtml(lcKey) + '</div>'
+  const noteRow    = '<div class="q-section"><p class="mb-2"><span class="q-section-label">📝 My notes</span></p>' +
     '<textarea class="note-area" placeholder="Add your attempt notes, observations, or reminders here…" id="note-' + lcKey + '"' +
     ' oninput="_queueNoteSave(\'' + lcKey + '\')" onblur="saveNoteFromTextarea(\'' + lcKey + '\')">' + escHtml(existingNote) + '</textarea>' +
     '<span class="note-saved-flash" id="note-flash-' + lcKey + '">Saved</span>' +
@@ -2988,7 +3081,7 @@ function gradeRevise(lcKey, grade, el) {
   const prev  = getRevise(lcKey)
   const today = LocalDate.key()
   const shownStatus = getStatus(lcKey)
-  let base = prev && prev.base && prev.base.day === today ? prev.base : null
+  let base = prev && prev.base && prev.base.day === today ? Object.assign({}, prev.base) : null
   // A ✓ from today saved before records carried a `base` was already credited; don't credit again.
   const legacySolidToday = !base && prev && prev.grade === 'solid' && prev.last && LocalDate.key(new Date(prev.last)) === today
   if (base) {
@@ -4737,7 +4830,7 @@ function showView(id) {
   document.body.classList.remove('header-tucked')
   // html has smooth scrolling; a scrolled page would shift the locked frame
   if (embed) { window.scrollTo({ top: 0, behavior: 'instant' }) }
-  const views = ['view-dashboard', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign', 'view-site']
+  const views = ['view-dashboard', 'view-recent', 'view-topic', 'view-search-results', 'view-google', 'view-papers', 'view-visuals', 'view-page', 'view-sysdesign', 'view-site']
   views.forEach(v => {
     const el = document.getElementById(v)
     if (v === id) {
@@ -4752,7 +4845,7 @@ function showView(id) {
 
 function clearActiveNav() {
   document.querySelectorAll('#nav-topics .nav-link').forEach(l => l.classList.remove('active'))
-  ;['dashboard', 'google', ...Object.keys(EMBEDS)].forEach(k => {
+  ;['dashboard', 'recent', 'google', ...Object.keys(EMBEDS)].forEach(k => {
     const el = document.getElementById('nav-' + k)
     if (el) el.classList.remove('active')
   })

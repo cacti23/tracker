@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>System Design</title>
 <link rel="stylesheet" href="../css/hub.css">
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<!-- Not render-blocking: the page paints in the fallback font while Google answers. -->
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🏛️</text></svg>">
 <style>
 :root {
@@ -553,7 +554,7 @@ section.card, section.card h4, section.card h5, h3.lesson { scroll-margin-top: 1
 .cidr-t th, .cidr-t td { border: 1px solid var(--line); padding: 4px 6px; text-align: right; }
 .sock-t td:first-child, .sock-t th:first-child { font-family: inherit !important; text-align: left; } .sock-t tr.diff td { background: var(--amber-bg); color: var(--amber-fg); font-weight: 700; } .sock-t tr.res td { font-weight: 700; color: var(--green-fg); }
 .cidr-t th:first-child, .cidr-t td:first-child { text-align: left; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.ver-t th, .ver-t td { text-align: left !important; vertical-align: top; } .ver-t th:first-child { font-family: inherit !important; } .ver-t td:first-child { font-family: inherit !important; font-weight: 700; white-space: nowrap; } .ver-t tr.best td { background: var(--green-bg); }
+.ver-t th, .ver-t td { text-align: left !important; vertical-align: top; } .ver-t th:first-child { font-family: inherit !important; } .ver-t td:first-child { font-family: inherit !important; font-weight: 700; white-space: nowrap; } .ver-t tr.best td { background: var(--green-bg); } .ver-t.wrap td:first-child { white-space: normal; }
 .steps-c { margin: 6px 0; padding-left: 20px; } .steps-c li { margin: 6px 0; }
 /* VPC: nested network boxes (VPC > public / private subnet) */
 .vpc { margin: 8px 0 10px; font-size: var(--t-s); }
@@ -597,6 +598,7 @@ section.card, section.card h4, section.card h5, h3.lesson { scroll-margin-top: 1
 .dt th, .dt td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; white-space: nowrap; }
 .dt th { background: var(--chip); font-weight: 600; }
 .dt .dup { background: var(--red-bg); color: var(--red-fg); }
+.dn-wrap { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: flex-start; }
 .tscroll { overflow-x: auto; max-width: 100%; }
 /* Wide-column rows (lesson image 3): row key, then that row's own columns */
 .wc { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; margin: 6px 0 4px; font-size: var(--t-xs); align-items: center; }
@@ -863,14 +865,21 @@ body.map-on .wrap { max-width: 1640px; }
 .rail ol ol { margin: 2px 0 6px 10px; }
 .rail ol ol a { color: var(--muted); padding: 3px 8px; }
 .rail ol ol li.cur > a { color: var(--text); background: transparent; }
-.rail-x { display: none; }
+.rail-x, .rail-hide, .rail-show { display: none; }
 @media (min-width: 1280px) {
   .rail { display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px; overflow-y: auto; overscroll-behavior: contain;
     padding: 20px 12px 72px 16px; border-right: 1px solid var(--line); background: var(--bg); }
-  body:not(.map-on) { padding-left: 260px; }
-  body.map-on .rail { display: none; }
+  body:not(.map-on):not(.rail-off) { padding-left: 260px; }
+  body.map-on .rail, body.rail-off .rail { display: none; }
   .here { display: none !important; }
+  /* Hide (Adi, 2026-11-26): the map steps aside for full-width reading; 🧭 brings it back */
+  .rail-hide { display: block; position: sticky; top: 0; z-index: 1; float: right; margin: -4px -2px 0 8px; font: inherit; font-size: var(--t-xs); padding: 2px 8px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--muted); cursor: pointer; }
+  .rail-hide:hover { color: var(--text); background: var(--chip); }
+  body.rail-off:not(.map-on) .rail-show { display: block; }
 }
+.rail-show { position: fixed; top: 12px; left: 12px; z-index: 30; font: inherit; font-size: var(--t-m); padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
 @media (min-width: 1000px) { .rail { zoom: 1.15; } }
 /* the trail: sticky at the top of the page, one line, tap to open the rail */
 .here { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; width: calc(100% + 32px); margin: 0 -16px 12px;
@@ -932,10 +941,12 @@ body.map-on .wrap { max-width: 1640px; }
 <a class="skip" href="#list">Skip to the notes</a>
 <nav class="rail" id="rail" aria-label="Notes map: where you are">
   <button type="button" class="rail-x" id="rail-x" aria-label="Close the notes map">✕</button>
+  <button type="button" class="rail-hide" id="rail-hide" aria-label="Hide the notes map" title="Hide the notes map">« Hide</button>
   <p class="rail-h">🧭 You are here</p>
   <ol id="rail-list"></ol>
 </nav>
 <div class="rail-scrim" id="rail-scrim" hidden></div>
+<button type="button" class="rail-show" id="rail-show" aria-label="Show the notes map" title="Show the notes map">🧭 Map</button>
 <div class="wrap" role="main">
 <button type="button" class="here" id="here" hidden aria-controls="rail" aria-expanded="false"></button>
 <header>
@@ -5974,7 +5985,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
 <section class="card" id="sd-reads-db" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
   <h2 class="cap"><b>📖 Scaling Reads ①: The Problem · Optimize Within Your Database · Scale Horizontally</b></h2>
   <p class="hook">Writes create data, reads consume it, and reads grow much faster. As an app goes from hundreds of users to millions, the read load is usually the first thing to break the database. This pattern is how you serve massive read traffic without overwhelming your primary database, and almost every interview about a content app ends up here.</p>
-  <p class="tldr">💡 Reads swamp writes (100 reads for 1 photo posted), and at some point the database simply runs out of CPU, memory and disk. The fix is a ladder, cheapest rung first: <b>1️⃣ make the one database faster</b> (indexes, bigger hardware, store data ready to read), <b>2️⃣ add more databases</b> (read replicas, sharding), <b>3️⃣ put caches in front</b> (Redis, CDNs). 📚 Like a busy library: catalog the shelves, then open branches, then keep bestsellers at the front desk. Rungs 1 and 2 are on this card, 3 on the next, the interview follow-ups on the third. Explained below 👇</p>
+  <p class="tldr">💡 Reads swamp writes (100 reads for 1 photo posted), and at some point the database simply runs out of CPU, memory and disk. The fix is a ladder of 3 steps, cheapest first: <b>1️⃣ make the one database faster</b> (indexes, bigger hardware, store data ready to read), <b>2️⃣ add more databases</b> (read replicas, sharding), <b>3️⃣ put caches in front</b> (Redis, CDNs). 📚 Like a busy library: catalog the shelves, then open branches, then keep bestsellers at the front desk. Steps 1 and 2 are on this card, step 3 on the next, the interview follow-ups on the third. Explained below 👇</p>
 
   <h4>🧱 The Problem</h4>
   <p class="bridge">Open Instagram and dozens of photos appear at once. Each one needs several queries: image metadata, the poster, like counts, comment previews. That's <b>100+ reads</b> to load one feed. You post maybe one photo a day: <b>1 write</b>.</p>
@@ -5992,7 +6003,7 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
   <h4>🪜 The Solution</h4>
   <p class="bridge">Read scaling follows a natural order, from simple tuning to complex distributed systems. Climb only as high as the numbers force you.</p>
   <div class="flow"><span>1️⃣ Optimize within your database</span><i>→</i><span>2️⃣ Scale your database horizontally</span><i>→</i><span>3️⃣ Add external caching layers</span></div>
-  <p class="figcap">🖼️ Each rung costs more to run than the one before. ⚠️ Most candidates jump straight to rung 3.</p>
+  <p class="figcap">🖼️ Each step costs more to run than the one before. ⚠️ Most candidates jump straight to step 3, caching.</p>
   <p class="ana">📚 Catalog the shelves → open more branches → keep bestsellers stacked at the front desk. <span class="add">➕ analogy</span></p>
 
   <h4>🗂️ Optimize Within Your Database</h4>
@@ -6024,10 +6035,18 @@ short_code = short_code_encoded[:8] # 8 characters</pre>
 
   <h5>🧩 Denormalization Strategies</h5>
   <p class="bridge">Or organize the data inside the one database better. Normalization splits data into tables so nothing is stored twice; it saves space but needs joins to put things back together. Denormalization does the opposite: store the same data twice, so a read needs no join.</p>
-  <div class="grid2" role="img" aria-label="Normalized: separate users, orders and products tables, so one order page needs a join over them. Denormalized: one orders table where each row carries the user details and product details inline, so one order page is one row.">
-    <div class="k-amber"><b>🧩 Normalized: 3 tables</b><div class="chk">👤 users: Evan · Seattle</div><div class="chk">🧾 orders: Evan · Table · 1</div><div class="chk">📦 products: Table · $100</div><div class="chk">➡️ one order page = a join across all of them</div></div>
-    <div class="k-green"><b>📄 Denormalized: 1 table</b><div class="chk">🧾 order_summary: Table · 1 · {Evan, Seattle} · {Table, $100}</div><div class="chk">➡️ one order page = one row, no join</div><div class="chk">⚠️ Evan renames → update every one of his orders</div></div>
+  <p class="figcap">🧩 <b>Normalized: 3 tables, each fact stored once</b></p>
+  <div class="dn-wrap" role="img" aria-label="Normalized: a users table (Evan Seattle, Stefan Seattle, Shivam Los Angeles, Glenn San Fran), an orders table (Evan Table 1, Evan Chair 4, Evan Lamp 1, Glenn Lamp 2) and a products table (Table $100, Chair $50, Lamp $70).">
+    <table class="dt"><caption>👤 users</caption><tr><th>name</th><th>city</th></tr><tr><td>Evan</td><td>Seattle</td></tr><tr><td>Stefan</td><td>Seattle</td></tr><tr><td>Shivam</td><td>Los Angeles</td></tr><tr><td>Glenn</td><td>San Fran</td></tr></table>
+    <table class="dt"><caption>🧾 orders</caption><tr><th>user</th><th>product</th><th>qty</th></tr><tr><td>Evan</td><td>Table</td><td>1</td></tr><tr><td>Evan</td><td>Chair</td><td>4</td></tr><tr><td>Evan</td><td>Lamp</td><td>1</td></tr><tr><td>Glenn</td><td>Lamp</td><td>2</td></tr></table>
+    <table class="dt"><caption>📦 products</caption><tr><th>product</th><th>price</th></tr><tr><td>Table</td><td>$100</td></tr><tr><td>Chair</td><td>$50</td></tr><tr><td>Lamp</td><td>$70</td></tr></table>
   </div>
+  <p class="figcap">➡️ One order page = a join across all three.</p>
+  <p class="figcap">📄 <b>Denormalized: 1 table, the user and product copied into every order</b></p>
+  <div class="tscroll" role="img" aria-label="Denormalized: one order_summary table. Evan and Seattle are copied into 3 rows, Lamp $70 into 2 rows.">
+    <table class="dt"><caption>🧾 order_summary</caption><tr><th>product</th><th>qty</th><th>user</th><th>price</th></tr><tr><td>Table</td><td>1</td><td class="dup">Evan · Seattle</td><td>$100</td></tr><tr><td>Chair</td><td>4</td><td class="dup">Evan · Seattle</td><td>$50</td></tr><tr><td>Lamp</td><td>1</td><td class="dup">Evan · Seattle</td><td class="dup">$70</td></tr><tr><td>Lamp</td><td>2</td><td>Glenn · San Fran</td><td class="dup">$70</td></tr></table>
+  </div>
+  <p class="figcap">Red = copies. ➡️ One order page = one row, no join. ⚠️ Evan moves city → 3 rows change, and missing one leaves two cities for one person.</p>
 <pre>-- Normalized: 4 tables joined, thousands of times a second
 SELECT u.name, o.order_date, p.product_name, p.price
 FROM users u
@@ -6092,12 +6111,12 @@ GROUP BY p.id;</pre>
   </div>
   <div class="warn"><b>⚠️ Watch out</b> Sharding adds a lot of operational complexity and is <b>primarily a write scaling technique</b>. For most read problems, caching is more effective and easier. More in <a href="#sd-shard-what">Sharding ①</a>.</div>
   <p class="ana">📚 Separate libraries: science in one building, history in another (functional), or one library per city (geographic). Each is smaller and quieter, but now someone has to know which library has which book. <span class="add">➕ analogy</span></p>
-  <p class="bridge">🔚 Rungs 1 and 2 make the database itself go further. When it still can't keep up, stop asking it: rung 3, caching, is the next card.</p>
+  <p class="bridge">🔚 Steps 1 and 2 make the database itself go further. When it still can't keep up, stop asking it: step 3, caching, is the next card.</p>
 </section>
 
 <section class="card" id="sd-reads-cache" data-topic="Scaling Reads" data-course="hi-sd" data-lesson="scaling-reads">
   <h2 class="cap"><b>📖 Scaling Reads ②: Add External Caching Layers · When to Use in Interviews</b></h2>
-  <p class="hook">The database is tuned and replicated, and reads still pile up. Rung 3 stops asking the database at all for the data everyone wants. Then the interview side: where to bring this up, the four classic scenarios, and when <b>not</b> to.</p>
+  <p class="hook">The database is tuned (step 1) and replicated (step 2), and reads still pile up. Step 3 of the ladder, caching, stops asking the database at all for the data everyone wants. Then the interview side: where to bring this up, the four classic scenarios, and when <b>not</b> to.</p>
   <p class="tldr">💡 Most traffic asks for the <b>same few things</b> (the viral tweet, the popular product). Keep those in RAM: an app cache (Redis) answers in under a millisecond, a CDN answers from a city near the user. The hard part is keeping copies fresh when data changes. 📚 Bestsellers stacked at the front desk, and a mini-library in every town. Explained below 👇</p>
 
   <h4>⚡ Add External Caching Layers</h4>
@@ -6192,8 +6211,14 @@ EXPLAIN SELECT * FROM users WHERE email = 'user@example.com';
   <h4>🔥 "How do you handle millions of concurrent reads for the same cached data?"</h4>
   <p class="bridge">A celebrity posts and millions read it at once. A cache server that normally handles 50,000 requests a second now gets <b>500,000 a second for one key</b>. It times out, requests fail, the site goes down, from reads alone. Caching assumes load spreads over many keys; here everyone wants the same one, and even from RAM, sending it 500,000 times a second swamps one server's CPU and network.</p>
   <ul class="lines roomy heads">
-    <li><b class="hd">🤝 Fix 1, request coalescing: same key, one fetch per server</b>When many requests want the same key, one goes to the backend and the rest wait for its answer.</li>
+    <li><b class="hd">🤝 Fix 1, request coalescing: each app server asks the cache only once per key</b>The value <b>is</b> in the cache. The problem is that every request lands on the one cache server holding it. So each app server merges identical requests that arrive at the same moment:<br>1️⃣ The first request for <code>feed:taylor-swift</code> goes to the cache server<br>2️⃣ The next 9,999 on that app server don't send their own; they wait<br>3️⃣ The one answer comes back and is handed to all 10,000<br>The same trick on a cache <b>miss</b> protects the database: that's the stampede question below.</li>
   </ul>
+  <p class="bridge">🔍 Where exactly does this happen? Not on the phone, not in the load balancer, not in Redis: <b>inside each app server's code</b>. The load balancer only spreads users over the app servers; it merges nothing. Press ▶️ to follow app server A.</p>
+  <div class="seq" data-seq="coalesce-path"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🧠 The "waiting list" is a small map in the app server's memory</b>Key → the one fetch in progress. A request that finds its key there waits on that fetch instead of calling Redis. Ready-made helpers exist, e.g. Go's <code>singleflight</code>. <span class="add">➕ not in the article</span></li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: "N requests" means N at a time</b> Only requests that arrive <b>while</b> the first fetch is on its way (about 1 ms) share it. After the answer, the key leaves the map and the next request fetches again. So each app server sends at most one request per key per round trip: 100 servers × ~1,000 round trips a second ≈ 100,000/s instead of 500,000/s. Keep the answer for even 1 second in the app server's memory and it drops to ~100/s.</div>
 <pre># Request coalescing: one in-flight fetch per key
 async def get(self, key):
     if key in self.inflight:              # someone is already fetching it
@@ -6201,15 +6226,15 @@ async def get(self, key):
     future = asyncio.Future()
     self.inflight[key] = future           # I'm the one fetching
     try:
-        value = await fetch_from_backend(key)
+        value = await fetch_from_backend(key)  # here: the cache server
         future.set_result(value)
         return value
     finally:
         del self.inflight[key]</pre>
-  <div class="dg" role="img" aria-label="A million users ask for the same key; each of 100 app servers coalesces them, so the backend receives only 100 requests.">
-    <div class="r"><span class="bx">👥 1,000,000 users<small>same key, same moment</small></span><span class="ar">→</span><span class="bx">🖥️ 100 app servers<small>each coalesces</small></span><span class="ar" style="--c: var(--green-fg)">→ 1 each →</span><span class="bx">🗄️ Backend<small>100 requests</small></span></div>
+  <div class="dg" role="img" aria-label="A million users ask for the same key; each of 100 app servers coalesces them, so the cache server receives only 100 requests.">
+    <div class="r"><span class="bx">👥 1,000,000 users<small>same key, same moment</small></span><span class="ar">→</span><span class="bx">🖥️ 100 app servers<small>each coalesces</small></span><span class="ar" style="--c: var(--green-fg)">→ 1 each →</span><span class="bx">🟥 Cache server<small>100 requests</small></span></div>
   </div>
-  <div class="rem"><b>💡 Tip</b> Coalescing cuts backend load from "potentially infinite" (every user) to exactly <b>N</b>, the number of app servers. Animated step by step: <a href="#sd-cache-problems--request-coalescing-single-flight-the-mos">Caching ③ · Request coalescing</a>.</div>
+  <div class="rem"><b>💡 Tip</b> Coalescing cuts the cache server's load from "potentially infinite" (every user) to exactly <b>N</b>, the number of app servers. Animated step by step: <a href="#sd-cache-problems--request-coalescing-single-flight-the-mos">Caching ③ · Request coalescing</a>.</div>
   <ul class="lines roomy heads">
     <li><b class="hd">📑 Fix 2, cache key fanout: store the hot value under 10 keys</b>When coalescing isn't enough, spread the load itself. Store copies as <code>feed:taylor-swift:1</code> … <code>feed:taylor-swift:10</code>; each reader picks one at random.</li>
   </ul>
@@ -6221,7 +6246,7 @@ async def get(self, key):
     <li><b class="hd">⚖️ The cost: more memory and harder invalidation</b>Ten copies to store and ten to clear on a change. For a hot key that threatens availability, "a small price for staying online".</li>
     <li><b class="hd">🧭 Fanout works because the copies land on different cache nodes</b>The total stays 500,000/s; what changes is that no single server takes it all (Josh Rosen, comments). Same idea as <a href="#sd-cache-problems--replicate-hot-keys-copies-of-the-value-n">Caching ③ · Replicate hot keys</a>.</li>
   </ul>
-  <p class="ana">📚 One copy of a bestseller and a queue of thousands. Coalescing: one person per table walks to the desk and reads it aloud to their table. Fanout: put ten copies on ten different desks. <span class="add">➕ analogy</span></p>
+  <p class="ana">📚 One copy of a bestseller and a queue of thousands. Coalescing: one person per table walks to the desk, then reads it aloud to everyone at their table. Fanout: put ten copies on ten different desks. <span class="add">➕ analogy</span></p>
 
   <h4>🐃 "What happens when multiple requests try to rebuild an expired cache entry simultaneously?"</h4>
   <p class="bridge">The homepage gets <b>100,000 requests a second</b>, all from cache, with a <b>1-hour TTL</b>. At minute 60 the entry expires, and all 100,000 miss at the same instant and go to the database, which is sized for maybe <b>1,000 queries a second</b> of normal misses. "Like a DDoS attack from your own application." This is a <b>cache stampede</b>.</p>
@@ -6301,6 +6326,692 @@ async def get(self, key):
     <li>Also worth a mention: connection pools (defaults are low, often around 10), and client bugs that hammer your own API, like a React re-render loop (Diego Pacheco).</li></ul>
     <h5>🧩 "Isn't denormalization bad design in a relational database?" (Justin Duda)</h5>
     <ul><li>Stefan Mai (admin): only in exceptional cases. With a relational database, normalize where you can; the skill is spotting where that can't meet the scale, and breaking the rule only there.</li></ul>
+  </div>
+</section>
+
+<section class="card" id="sd-pg-reads" data-topic="Technologies" data-course="hi-sd" data-lesson="postgres">
+  <h2 class="cap"><b>🐘 PostgreSQL ①: A Motivating Example · Read Performance · Query Optimization · Practical Limits</b></h2>
+  <p class="hook">There's a good chance you'll discuss PostgreSQL in your interview: it's consistently the most loved database in Stack Overflow's developer survey. But the interviewer isn't hiring a database administrator. They want to see you pick the right tool and know its limits. Candidates trip up both ways: they dive into MVCC and WAL internals when the question was "can it handle these relationships?", or they wave at "it's ACID" without knowing what that buys them.</p>
+  <p class="tldr">💡 PostgreSQL is the <b>default database</b> for an interview: relationships, transactions, and built-in search, JSON and maps. This card is about reads: the right index answers in microseconds, special indexes (full-text, JSON, geo) can save you a whole extra database, and a few rough numbers tell you when one machine stops being enough. 🏦 Think of a bank branch: one big ledger, index cards to find any account fast. Explained below 👇</p>
+
+  <h4>🧭 A Motivating Example</h4>
+  <p class="bridge">A growing social app, not Facebook-sized. Users create posts, comment, follow each other, like posts and comments, and send direct messages. The relationships are clear but not trivial, and each operation needs something different from the database.</p>
+  <table class="cidr-t ver-t wrap" role="img" aria-label="Each requirement of the social app and the PostgreSQL feature that answers it.">
+    <thead><tr><th>The app needs</th><th>PostgreSQL answers with</th></tr></thead>
+    <tbody><tr><td>💬 New DM thread = thread + members + first message, all or nothing</td><td>🔒 transactions (atomic)</td></tr>
+      <tr><td>🔗 No comment without a post, no follow of a ghost user</td><td>🧷 foreign keys (referential integrity)</td></tr>
+      <tr><td>❤️ Like counts can be a few seconds late</td><td>⏳ eventual consistency is fine here</td></tr>
+      <tr><td>👤 A profile = recent posts + follower count, fast</td><td>📇 indexes</td></tr>
+      <tr><td>🔎 Search posts and users</td><td>🔎 full-text search</td></tr>
+      <tr><td>📈 More data, harder queries over time</td><td>🔁 replication, partitioning, sharding</td></tr></tbody>
+  </table>
+  <p class="figcap">🖼️ Mixed consistency needs, relationships, search and growth: why this app is a good test for PostgreSQL.</p>
+  <p class="ana">🏦 A bank branch: one big ledger (the tables), index cards to find any account (indexes), a rule that a transfer debits and credits together or not at all (transactions). Every section below adds one piece of the branch. <span class="add">➕ analogy</span></p>
+
+  <h4>📖 Read Performance</h4>
+  <p class="bridge">Reads matter most, because in most apps they vastly outnumber writes: people browse far more than they post. You don't need query-planner internals; you need to know which index fits which query. Without an index on <code>posts.user_id</code>, showing one user's posts means scanning every post in the table, and that gets slower as the table grows.</p>
+
+  <h5>📇 Basic Indexing</h5>
+  <p class="bridge">By default PostgreSQL builds a <b>B-tree</b> index on your primary key, and you can add more. A B-tree is good at three things:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Exact matches</b><code>WHERE email = 'user@example.com'</code></li>
+    <li><b class="hd">2️⃣ Ranges</b><code>WHERE created_at &gt; '2024-01-01'</code></li>
+    <li><b class="hd">3️⃣ Sorting</b><code>ORDER BY username</code>, if the ORDER BY columns match the index's column order</li>
+  </ul>
+<pre>-- Your bread-and-butter index
+CREATE INDEX idx_users_email ON users(email);
+
+-- Multi-column, for a common query pattern
+CREATE INDEX idx_posts_user_date ON posts(user_id, created_at);</pre>
+  <div class="warn"><b>⚠️ The trap: "add an index on every column"</b><br>1️⃣ Every write gets slower: each index must be updated too<br>2️⃣ Every index takes disk space<br>3️⃣ It may not even be used: the planner picks a full scan when it thinks that's faster</div>
+  <p class="ana">🏦 Index cards by account number find one account in seconds. Ten different card boxes (by name, by city, by birthday…) find anything, but every new account means writing ten cards. <span class="add">➕ analogy</span> Deep dive: <a href="#sd-idx-core">Database Indexing</a>.</p>
+
+  <h5>🔎 Beyond Basic Indexes: search, JSON and maps</h5>
+  <p class="bridge">This is where PostgreSQL really shines. Its specialized indexes come up often in interviews because they can <b>save you a whole separate database</b>.</p>
+  <div class="grid3">
+    <div class="k-green"><b>🔤 Full-text search</b><div class="star">GIN index on a <code>tsvector</code></div><div class="chk">Like the index at the back of a book: each word → every place it appears</div><div class="chk">Instead of a separate Elasticsearch</div></div>
+    <div class="k-blue"><b>🧩 JSONB + GIN</b><div class="star">Flexible fields per row</div><div class="chk">Location, mentions, hashtags, media: different per post</div><div class="chk">Add new attributes like a NoSQL store</div></div>
+    <div class="k-purple"><b>🗺️ PostGIS + GiST</b><div class="star">An extension for places</div><div class="chk">"Posts within 5 km of me"</div><div class="chk">Instead of a specialized geo database</div></div>
+  </div>
+<pre>-- 🔤 Full-text search
+ALTER TABLE posts ADD COLUMN search_vector tsvector;
+CREATE INDEX idx_posts_search ON posts USING GIN(search_vector);
+SELECT * FROM posts
+WHERE search_vector @@ to_tsquery('postgresql &amp; database');</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ What built-in full-text search gives you</b>1️⃣ Word stemming: find, finds and finding all match<br>2️⃣ Relevance ranking<br>3️⃣ Many languages<br>4️⃣ AND / OR / NOT queries</li>
+    <li><b class="hd">🔍 When Elasticsearch is still worth it</b>1️⃣ More sophisticated relevance scoring<br>2️⃣ Faceted search ("filter by brand, price, size" with counts)<br>3️⃣ Fuzzy matching and search-as-you-type<br>4️⃣ Distributed search over very large datasets (hundreds of millions of rows, per Evan King in the comments)<br>5️⃣ Advanced analytics and aggregations</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Start with PostgreSQL's built-in search. Add Elasticsearch only for a requirement Postgres can't meet. Fewer systems = a simpler architecture.</div>
+<pre>-- 🧩 JSONB: flexible metadata per post
+ALTER TABLE posts ADD COLUMN metadata JSONB;
+CREATE INDEX idx_posts_metadata ON posts USING GIN(metadata);
+SELECT * FROM posts
+WHERE metadata @&gt; '{"type": "video"}'
+  AND metadata @&gt; '{"hashtags": ["coding"]}';</pre>
+<pre>-- 🗺️ PostGIS: posts within 5 km
+CREATE EXTENSION postgis;
+ALTER TABLE posts ADD COLUMN location geography(Point, 4326);
+CREATE INDEX idx_posts_location ON posts USING GIST(location);
+SELECT * FROM posts
+WHERE ST_DWithin(location,
+  ST_MakePoint(-122.4194, 37.7749)::geography,  -- San Francisco
+  5000);                                        -- metres</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🗺️ PostGIS handles points, lines and polygons, several distance types, intersections and containment, and many coordinate systems</b>GiST is a general index framework; PostGIS uses it with bounding boxes, so "within X km" or "inside this area" doesn't check every row. See <a href="#sd-idx-geo-text">geospatial indexes</a>.</li>
+    <li><b class="hd">🚕 "Uber first used PostGIS for its whole ride matching"</b>The article's example of how far extensions go before you need a specialized database. <span class="add">➕ Fact-check</span> I couldn't confirm the PostGIS part; Uber's public 2016 post describes moving its main data from PostgreSQL to MySQL.</li>
+  </ul>
+<pre>-- All three together: video posts within 5 km of SF,
+-- mentioning "food", tagged "restaurant"
+SELECT * FROM posts
+WHERE search_vector @@ to_tsquery('food')
+  AND metadata @&gt; '{"type": "video", "hashtags": ["restaurant"]}'
+  AND ST_DWithin(location,
+        ST_MakePoint(-122.4194, 37.7749)::geography, 5000);</pre>
+  <p class="ana">🏦 The bank keeps extra card boxes for special questions: one by keyword in the notes, one by branch on the map. No need to hire a second bank. <span class="add">➕ analogy</span></p>
+
+  <h4>⚡ Query Optimization Essentials</h4>
+  <p class="bridge">Picking the index type isn't the whole story. Two strategies can make reads dramatically faster.</p>
+
+  <h5>📦 Covering Indexes: answer from the index alone</h5>
+  <p class="bridge">Using an index normally takes two steps:<br>1️⃣ Look up the value in the index to find the row's location<br>2️⃣ Fetch the row from the table for the other columns<br>A <b>covering index</b> stores the needed columns inside the index, so step 2 disappears.</p>
+<pre>-- A common query in the app:
+SELECT title, created_at FROM posts
+WHERE user_id = 123
+ORDER BY created_at DESC;
+
+-- Covering index with everything it needs
+CREATE INDEX idx_posts_user_include
+ON posts(user_id) INCLUDE (title, created_at);</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Up: the whole query is answered without touching the table</b></li>
+    <li><b class="hd">1️⃣ Down: the index takes more space</b>It now carries copies of title and created_at.</li>
+    <li><b class="hd">2️⃣ Down: writes get slightly slower</b>Those copies must be updated too.</li>
+  </ul>
+  <p class="ana">🏦 An index card that already shows the balance: no trip to the ledger for the most common question. <span class="add">➕ analogy</span></p>
+
+  <h5>✂️ Partial Indexes: index only the rows you query</h5>
+  <p class="bridge">Most queries look for active users, not deleted ones. So index only those.</p>
+<pre>-- Standard: indexes ALL users
+CREATE INDEX idx_users_email ON users(email);
+
+-- Partial: only active users. Smaller, faster.
+CREATE INDEX idx_active_users
+ON users(email) WHERE status = 'active';</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🎯 Use it when most queries need only a subset of rows</b></li>
+    <li><b class="hd">🗑️ Use it when many rows are "inactive" or "deleted" and never searched</b></li>
+    <li><b class="hd">📉 Use it to shrink index size and upkeep</b>A smaller index is faster to search and cheaper to update.</li>
+  </ul>
+  <p class="ana">🏦 Index cards only for open accounts; closed accounts stay in the archive with no card. <span class="add">➕ analogy</span></p>
+
+  <h4>📏 Practical Performance Limits</h4>
+  <p class="bridge">Your non-functional requirements probably set latency goals, ideally with numbers. To go deep you need rough numbers too. They depend heavily on hardware and workload, but they're enough to start.</p>
+  <div class="rw" role="img" aria-label="Rough queries per second per core: simple indexed lookups 50k and up; joins thousands to tens of thousands; analytics hundreds to low thousands; simple inserts about 5k.">
+    <span>🔑 Indexed lookup</span><span class="t r"><i style="width:100%"></i></span><b>50k+/s</b>
+    <span>🔗 Join, indexed</span><span class="t r"><i style="width:30%"></i></span><b>1k–10k+</b>
+    <span>📊 Analytics</span><span class="t r"><i style="width:3%"></i></span><b>100s–1k</b>
+    <span>✍️ Simple insert</span><span class="t w"><i style="width:10%"></i></span><b>~5k/s</b>
+  </div>
+  <p class="figcap">🖼️ Per core, rough. Full-table scans: it depends on whether the data fits in memory. Reads beat writes about 10× because a read writes no WAL and updates no index.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📚 Tables start getting unwieldy past ~100M rows</b></li>
+    <li><b class="hd">🔤 Full-text search works well up to tens of millions of documents</b></li>
+    <li><b class="hd">🔗 Complex joins get hard once tables pass ~10M rows</b></li>
+    <li><b class="hd">🧠 Performance drops sharply once the working set no longer fits in RAM</b>The working set = the data you read often.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> These are rules of thumb, not hard limits: with care PostgreSQL goes much further. Treat them as the point where you start thinking about partitioning, <a href="#sd-shard-what">sharding</a> or other options. ⭐ Memory is king: keep the working set in RAM, because memory is orders of magnitude faster than disk.</div>
+  <p class="ana">🏦 A clerk with the busiest accounts' folders on the desk serves in seconds; one who walks to the basement archive for every customer serves a few an hour. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Reads: the right index, extra index types instead of extra databases, and numbers that tell you when one machine is full. Next card: what happens on a write, and how to scale past one machine.</p>
+</section>
+<section class="card" id="sd-pg-writes" data-topic="Technologies" data-course="hi-sd" data-lesson="postgres">
+  <h2 class="cap"><b>🐘 PostgreSQL ②: Write Performance · Write Optimizations · Replication</b></h2>
+  <p class="hook">Reads may dominate, but writes are often more critical for users: nobody wants to wait seconds after pressing "Post". So what does PostgreSQL do on a write, how many can one machine take, and what do you do when you need more?</p>
+  <p class="tldr">💡 A write is fast because PostgreSQL changes memory and appends one line to a log (the <b>WAL</b>) on disk; the real data files are updated later. That log flush is the speed limit: about <b>5,000 simple writes a second per core</b>. Need more? Bigger hardware, batching, a queue, partitions, and finally sharding. Replicas copy the data to serve more reads and to survive a crash. 🏦 The bank writes each transaction in a receipt book first and files the ledger later. Explained below 👇</p>
+
+  <h4>✍️ Write Performance</h4>
+  <p class="bridge">Several steps happen on every write, balancing speed and durability. Press ▶️ to follow one <code>INSERT</code>.</p>
+  <div class="seq" data-seq="pg-write"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Buffer cache + WAL record [memory]</b>The data page in the shared buffer cache is changed and marked "dirty", and a WAL record is created. Both happen in memory during the transaction.</li>
+    <li><b class="hd">2️⃣ WAL flush [disk] at commit</b>The WAL records are written to disk: a sequential write, so relatively fast. Once the WAL is on disk the transaction is durable: after a crash, PostgreSQL replays the WAL.</li>
+    <li><b class="hd">3️⃣ Background writer [memory → disk], later</b>Dirty pages go to the real data files asynchronously: from the background writer, under memory pressure, or at a checkpoint. Many changes get batched into one write.</li>
+    <li><b class="hd">4️⃣ Index updates [memory and disk]</b>Every index on the table is updated too, and each change goes through the WAL. That's why many indexes slow writes down.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: the order</b> Two readers (SoleRoseKrill401, HandsomeIvoryCrow799) pointed out that steps 1, 2 and 4 all happen <b>before</b> PostgreSQL answers "committed"; only step 3 happens later. The animation shows that order: table page and index pages change in memory, the WAL is flushed, then the reply; files catch up afterwards.</div>
+  <div class="rem"><b>✅ Remember</b> Write speed is bounded by the <b>WAL flush</b>: it's the one disk step you wait for before a commit is confirmed. The number of indexes matters too, since each needs its own WAL entries. The buffer cache helps by letting data-file writes happen later, in batches.</div>
+  <p class="ana">🏦 The cashier writes each transaction in a carbon-copy receipt book right away (the WAL) and hands you your copy: done. A clerk updates the big ledger in the back later, many entries at once. If the branch loses power, the receipt book has everything. <span class="add">➕ analogy</span></p>
+
+  <h5>🚧 Throughput Limitations</h5>
+  <p class="bridge">A well-tuned PostgreSQL on good (not great) hardware handles, per core:</p>
+  <div class="rw" role="img" aria-label="Per core: bulk operations tens of thousands of rows a second; simple inserts about 5,000 a second; updates with index changes 1,000 to 2,000; complex transactions hundreds.">
+    <span>📦 Bulk load</span><span class="t w"><i style="width:100%"></i></span><b>10k+ rows/s</b>
+    <span>➕ Simple insert</span><span class="t w"><i style="width:25%"></i></span><b>~5k/s</b>
+    <span>✏️ Update + index</span><span class="t w"><i style="width:8%"></i></span><b>1k–2k/s</b>
+    <span>🧩 Complex txn</span><span class="t w"><i style="width:2%"></i></span><b>100s/s</b>
+  </div>
+  <p class="figcap">🖼️ Assumes the default isolation level, Read Committed (<a href="#sd-pg-consistency">card ③</a>). A different level moves these numbers up or down.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">💽 Hardware: the WAL's disk I/O is often the bottleneck</b></li>
+    <li><b class="hd">📇 Indexes: each extra index lowers write throughput</b></li>
+    <li><b class="hd">🔁 Replication: synchronous replicas add the wait for their confirmation</b></li>
+    <li><b class="hd">🧩 Transaction size: more tables and indexes touched = slower</b></li>
+    <li><b class="hd">🔌 Connections: one OS process per connection</b>Hundreds of connections eat memory and CPU in context switches. Put a <b>connection pooler</b> (PgBouncer) in front: many app connections share a small pool of database connections, which matters most with many app instances. <span class="aws">☁️ AWS RDS Proxy</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> These are <b>single-node</b> numbers. Needing more than ~5k writes a second doesn't take PostgreSQL off the table; it means you'll shard across machines.</div>
+
+  <h4>🚀 Write Performance Optimizations</h4>
+  <p class="bridge">One node does ~5k writes a second. Need more? Five options, from simple tweaks to new architecture, in this order:<br>1️⃣ Vertical scaling<br>2️⃣ Batch processing<br>3️⃣ Write offloading<br>4️⃣ Table partitioning<br>5️⃣ Sharding</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Vertical scaling: upgrade the hardware first</b>Faster NVMe disks for the WAL, more RAM for the buffer cache, more cores for parallel work. Usually not the most compelling answer in an interview, but a good place to start.</li>
+    <li><b class="hd">2️⃣ Batch processing: many writes, one transaction</b>Insert 1,000 likes in one statement instead of 1,000. The writes wait in the server's memory first. ⚠️ Down: a crash mid-batch loses the whole batch.</li>
+  </ul>
+<pre>-- Instead of 1,000 separate inserts:
+INSERT INTO likes (post_id, user_id) VALUES
+(1, 101), (1, 102), ..., (1, 1000);</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">3️⃣ Write offloading: writes that can wait go through a queue</b>1️⃣ Send them to a message queue (like Kafka)<br>2️⃣ Background workers write them in batches<br>3️⃣ Optionally into a separate analytics database<br>Good for activity logs, analytics events, metrics, and "last seen" timestamps: nobody waits on them.</li>
+    <li><b class="hd">4️⃣ Table partitioning: one big table split into smaller physical tables</b>Most often by time, e.g. one partition per month of posts.</li>
+  </ul>
+<pre>CREATE TABLE posts (
+  id SERIAL, user_id INT, content TEXT, created_at TIMESTAMP
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE posts_2024_01 PARTITION OF posts
+FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Partitioning helps writes</b>Index updates touch only the relevant partition's smaller index, and bulk loads go partition by partition. The article also says different sessions can write to different partitions at once.</li>
+    <li><b class="hd">✅ …and reads</b>"Recent posts" scans only the recent partitions, not years of history. Old partitions can sit on cheaper storage, recent ones on NVMe.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> PostgreSQL already lets sessions write different rows of one table at the same time, so the bigger, well-known wins are elsewhere: each partition has a smaller index, queries skip whole partitions, and old data leaves with one instant <code>DROP</code> or <code>DETACH</code> of a partition instead of a huge <code>DELETE</code>.</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">5️⃣ Sharding: the most common answer in an interview</b>Spread writes over several PostgreSQL machines. Say what you shard on: e.g. posts by <code>user_id</code>, so one user's data lives on one shard and a profile read never scatter-gathers across shards. Rule: shard on the column you query by most.</li>
+    <li><b class="hd">⚠️ Down: sharding adds real complexity</b>Cross-shard queries, the same schema on every shard, many databases to run. Only when the simpler options aren't enough.</li>
+    <li><b class="hd">🧰 PostgreSQL has no built-in sharding (unlike DynamoDB)</b>Do it yourself, or use an extension or managed service like Citus. <span class="aws">☁️ Aurora PostgreSQL Limitless Database</span></li>
+  </ul>
+  <p class="ana">🏦 Busy bank: first a faster cashier (vertical), then bundle cheques into one deposit (batch), let non-urgent forms wait in a tray (queue), split the ledger into one book per month (partitions), and finally open more branches, each owning some customers (shards). <span class="add">➕ analogy</span></p>
+
+  <h4>🔁 Replication</h4>
+  <p class="bridge">Replication copies data from one database to one or more others. Most real deployments use it for two things: <b>scaling reads</b> across replicas, and <b>high availability</b> when a node fails.</p>
+  <div class="grid2">
+    <div class="k-green"><b>⚡ Asynchronous (the default)</b><div class="star">Confirm at once, copy in the background</div><div class="chk">✅ Best write performance</div><div class="chk">❌ Replicas are briefly behind; if the primary dies in that window, recent writes are lost</div></div>
+    <div class="k-amber"><b>🛡️ Synchronous</b><div class="star">Wait for at least one replica to confirm</div><div class="chk">✅ Committed data is on two machines</div><div class="chk">❌ Every write waits for the replica: more latency</div></div>
+  </div>
+  <p class="bridge">Many teams mix them: a few synchronous replicas for safety, more asynchronous ones for reads. PostgreSQL lets you choose which replicas are synchronous.</p>
+  <div class="info"><b>➕ Fact-check</b> By default a synchronous replica confirms once the change is safe <b>on its disk</b>, not once its readers can see it. Reads on that replica can still be a moment behind unless you set <code>synchronous_commit = remote_apply</code>.</div>
+
+  <h5>📖 Scaling reads</h5>
+  <p class="bridge">The most common use. Writes go to the primary; reads (feeds, profiles) go to any replica; only posting or editing touches the primary. With N replicas, read throughput is multiplied by about N.</p>
+  <div class="warn"><b>⚠️ The caveat: replication lag</b> A user who changes something and reads it right back may hit a replica that hasn't caught up and see the old value. The fix is <b>read-your-own-writes</b> consistency. Step by step: <a href="#sd-reads-db--read-replicas">Scaling Reads ① · Read replicas</a>.</div>
+
+  <h5>🛟 High Availability</h5>
+  <p class="bridge">Copies on several nodes let you survive a hardware failure without downtime. If the primary dies, a replica is promoted. Failover in four steps:<br>1️⃣ Detect that the primary is down<br>2️⃣ Promote a replica to primary<br>3️⃣ Update the connection information<br>4️⃣ Point the applications at the new primary</p>
+  <div class="rem"><b>🎤 Say it</b> "We'll use replication not just to spread read load, but so the service stays up even if we lose a database node." Most teams use a managed service (AWS RDS, GCP Cloud SQL) that does failover for them; knowing that it exists and roughly how it works is enough. <span class="aws">☁️ RDS Multi-AZ · Aurora replicas</span></div>
+  <p class="ana">🏦 Other branches keep photocopies of the ledger. Customers can check balances at any branch (reads), but only head office changes the ledger (writes). If head office burns down, the best-updated branch becomes head office. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Writes: memory plus a log, ~5k a second per core, then a ladder of fixes up to sharding; replicas for reads and survival. Next card: keeping data correct when many users write at once.</p>
+</section>
+<section class="card" id="sd-pg-consistency" data-topic="Technologies" data-course="hi-sd" data-lesson="postgres">
+  <h2 class="cap"><b>🐘 PostgreSQL ③: Data Consistency · When to Use It · Appendix</b></h2>
+  <p class="hook">"We'll use PostgreSQL because it's ACID compliant" is one of the most common interview mistakes. The interviewer wants to hear <b>how</b> you use those guarantees. The classic test: two users bid on the same item in the same second.</p>
+  <p class="tldr">💡 A transaction makes steps all-or-nothing, but it doesn't stop two users reading the same old value at once. Fix that with a <b>row lock</b> (<code>FOR UPDATE</code>), a stricter <b>isolation level</b> (Serializable, plus retries), or a <b>version column</b> (optimistic). And PostgreSQL is your default database: move away only for extreme writes, multi-region writes, or pure key-value. 🏦 One account, two cashier windows. Explained below 👇</p>
+
+  <h4>🔒 Transactions</h4>
+  <p class="bridge">A transaction is a set of operations that all succeed or all fail together. The classic example: move $100 from account 1 to account 2.</p>
+<pre>BEGIN;
+UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+COMMIT;</pre>
+  <p>Both updates happen, or neither does: the money never disappears halfway. But a transaction alone doesn't protect you when <b>many transactions run at the same time</b>.</p>
+  <div class="warn"><b>⚠️ Common interview mistake</b> "It's ACID compliant" is not an answer. Say which guarantee you need and how you get it, e.g. "a transaction with a row-level lock on the auction row".</div>
+
+  <h4>🏁 Transactions and Concurrent Operations</h4>
+  <p class="bridge">An auction accepts a bid only if it's higher than the current max bid. Each bidder runs this, inside one transaction:<br>1️⃣ Read the current max<br>2️⃣ The app checks: is my bid higher?<br>3️⃣ Insert the bid<br>4️⃣ Update the max</p>
+<pre>BEGIN;
+SELECT maxBid FROM Auction WHERE id = 123;
+-- app: is my bid ($100) higher? If yes:
+INSERT INTO bids (item_id, user_id, amount)
+VALUES (123, 456, 100);
+UPDATE Auction SET maxBid = 100
+WHERE id = 123 AND maxBid &lt; 100;
+COMMIT;</pre>
+  <p class="bridge">With the default isolation level, Read Committed, two bidders at the same moment can still break this. Press ▶️.</p>
+  <div class="seq" data-seq="pg-bid-race"></div>
+  <div class="info"><b>➕ Fact-check: a typo in the article</b> The article writes User B's update as <code>AND maxBid &lt; 100</code>. B bids $95, so it's <code>AND maxBid &lt; 95</code> (three readers spotted it). The outcome is the same: 0 rows updated, but B's $95 bid row was already inserted.</div>
+  <div class="rem"><b>✅ Remember</b> The bug is the gap between the <b>read</b> and the <b>write</b>: another transaction slips in between. A transaction makes your steps all-or-nothing; it doesn't make them run alone.</div>
+
+  <h5>1️⃣ Row-level locking: <code>FOR UPDATE</code></h5>
+  <p class="bridge">Lock the auction row while you check and update it. Any other transaction that asks for the same row <code>FOR UPDATE</code> waits until you commit.</p>
+<pre>BEGIN;
+-- Lock the row and read the current max
+SELECT maxBid FROM Auction WHERE id = 123 FOR UPDATE;
+-- app: bid not higher? ROLLBACK. Otherwise:
+INSERT INTO bids (item_id, user_id, amount)
+VALUES (123, 456, 100);
+UPDATE Auction SET maxBid = 100 WHERE id = 123;
+COMMIT;</pre>
+  <p class="bridge">The same race, now with the lock:<br>1️⃣ A locks row 123 and reads $90<br>2️⃣ B asks for the lock on row 123 and waits<br>3️⃣ A inserts $100, sets the max to $100, commits: the lock is released<br>4️⃣ B gets the lock and reads $100<br>5️⃣ B's $95 is too low: the app rejects it</p>
+  <div class="info"><b>➕ Fact-check</b> The article's locked version has no check between the <code>SELECT</code> and the <code>INSERT</code>. The app must still compare the bid with what it read. The lock only promises that the value you read stays true until you commit.</div>
+  <div class="rem"><b>🎤 Say it</b> "We'll use a transaction <b>and</b> a row-level lock on the auction row", not just "we'll use transactions".</div>
+  <p><span class="add">➕ Even simpler</span> One conditional <code>UPDATE</code> checks and writes in a single step. Under Read Committed, an <code>UPDATE</code> that waited for a row lock re-checks its <code>WHERE</code> against the newest committed row:</p>
+<pre>BEGIN;
+UPDATE Auction SET maxBid = 95
+WHERE id = 123 AND maxBid &lt; 95;
+-- 1 row updated → INSERT the bid, COMMIT
+-- 0 rows updated → ROLLBACK: the bid is too low
+COMMIT;</pre>
+
+  <h5>2️⃣ A higher isolation level: Serializable</h5>
+<pre>BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+-- same code as before...
+COMMIT;</pre>
+  <p class="bridge">PostgreSQL watches what each transaction reads and writes. If two of them conflict, one is rolled back with an error, and your app must <b>retry</b> it. <span class="add">➕ error code 40001, serialization_failure</span></p>
+  <p class="bridge">PostgreSQL has three isolation levels:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Read Committed (the default): each query sees what was committed before that query began</b>A later query in the same transaction can see newer commits. So the same query, run twice, can return different results (a non-repeatable read). Fast.</li>
+    <li><b class="hd">2️⃣ Repeatable Read: one snapshot for the whole transaction</b>The same query always returns the same rows. In PostgreSQL no new matching rows appear either (no phantom reads), which is stricter than the SQL standard. So you may not need Serializable where other databases would. <span class="add">➕ the snapshot is taken at the first query, not at BEGIN</span></li>
+    <li><b class="hd">3️⃣ Serializable: as if the transactions ran one after another</b>Prevents every anomaly. The cost: retry logic in your app.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check: a reader's correction is wrong</b> One reader suggested Read Committed can <b>not</b> see commits that land after the transaction started. It can: each <b>query</b> takes a fresh snapshot. "Never sees them" is Repeatable Read. The article is right.</div>
+
+  <h5>⚖️ Row lock or Serializable?</h5>
+  <div class="grid2">
+    <div class="k-green"><b>🔐 Row-level lock</b><div class="star">You know exactly which rows to lock</div><div class="chk">✅ Only transactions on the <b>same rows</b> wait</div><div class="chk">✅ Low overhead: tracks only the locks</div><div class="chk">✅ No retries</div><div class="chk">❌ Can deadlock; you handle it</div><div class="chk">🎯 Auctions, inventory</div></div>
+    <div class="k-amber"><b>🧮 Serializable</b><div class="star">Too complex to know what to lock</div><div class="chk">✅ Simple: one line, PostgreSQL finds conflicts</div><div class="chk">❌ Conflicts roll back: you write retry logic</div><div class="chk">❌ More overhead: tracks every read and write</div><div class="chk">❌ Scales worse with many concurrent transactions</div><div class="chk">🎯 Money math across many tables</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔁 Deadlock: two transactions each hold a row the other wants</b>A locks row 1 then wants row 2; B locks row 2 then wants row 1. Both wait forever, so PostgreSQL cancels one. Fix: always lock rows in the same order, e.g. by id. <span class="add">➕ from a reader's comment</span></li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> Prefer row locks when you know exactly which rows need protecting. Keep Serializable for transactions too complex to reason about which locks they need.</div>
+
+  <h5>3️⃣ Optimistic concurrency control (OCC)</h5>
+  <p class="bridge">No lock up front. Instead:<br>1️⃣ Read the data and its version number<br>2️⃣ Do your work<br>3️⃣ Write only if the version is still the same<br>4️⃣ Version changed? Someone was first: retry<br>PostgreSQL has no OCC syntax; you build it with a version column.</p>
+<pre>SELECT maxBid, version FROM Auction WHERE id = 123;
+-- returns maxBid = 90, version = 5
+
+UPDATE Auction SET maxBid = 100, version = 6
+WHERE id = 123 AND version = 5;
+-- 0 rows updated → someone got there first: retry</pre>
+  <p class="bridge">⚖️ Ups and downs. If you propose OCC, say the downsides too.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ No locks held, so it's fast when conflicts are rare</b>Most transactions succeed on the first try.</li>
+    <li><b class="hd">1️⃣ Wasted work when conflicts are frequent</b>Many writers fail and redo their work, e.g. the last minute of a hot auction. Use a row lock there.</li>
+    <li><b class="hd">2️⃣ Retry code lives in your app</b>Every caller must catch "0 rows updated" and try again.</li>
+  </ul>
+  <div class="info"><b>➕ App-level vs database locks</b> A reader asked how an ORM's locking relates to the database's. ORM "optimistic locking" is this version column. ORM "pessimistic locking" sends <code>SELECT … FOR UPDATE</code>. Both are built on the database.</div>
+  <p class="ana">🏦 Two people withdraw from one joint account at two windows. <b>Row lock</b>: the first cashier takes the account folder; the second waits for it. <b>Serializable</b>: both go ahead, and the bank cancels one if the result looks impossible; that customer queues again. <b>OCC</b>: each cashier notes the ledger's page number; if someone wrote a new page meanwhile, start over. <span class="add">➕ analogy</span></p>
+
+  <h4>🎯 When to Use PostgreSQL (and When Not To)</h4>
+  <p class="bridge">In an interview, PostgreSQL is the default unless you have a specific reason. Start with it, then justify any move away. That's much stronger than starting with a niche database and defending it.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔒 Strong ACID guarantees, and it still scales with replicas and partitions</b></li>
+    <li><b class="hd">🧾 Structured and unstructured data together (JSONB)</b></li>
+    <li><b class="hd">🔎 Full-text search and geospatial queries built in</b>See <a href="#sd-pg-reads">card ①</a>.</li>
+    <li><b class="hd">🧰 Excellent tooling and a mature ecosystem</b></li>
+  </ul>
+  <div class="grid2">
+    <div class="k-green"><b>✨ It shines when you need</b><div class="chk">🔗 Complex relationships</div><div class="chk">🔒 Strong consistency</div><div class="chk">🔍 Rich queries, search, geo</div><div class="chk">🧾 A mix of structured and JSONB data</div></div>
+    <div class="k-blue"><b>🎯 Perfect for</b><div class="chk">🛒 E-commerce: inventory, orders, users</div><div class="chk">💳 Finance: transactions, accounts, audit logs</div><div class="chk">📝 Content: posts, comments, users</div><div class="chk">📊 Analytics, up to a reasonable scale</div></div>
+  </div>
+
+  <h5>🔀 When to consider alternatives</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Extreme write throughput: millions of writes a second</b>Every write costs a WAL entry and index updates, so even the fastest disks become the bottleneck, and sharding adds coordination. Consider <b>Cassandra</b> for the write volume of event streams, or <b>Redis</b> for real-time counters.</li>
+    <li><b class="hd">2️⃣ Global multi-region writes (active-active)</b>PostgreSQL has one primary: one region writes, the others only read. Consider <b>CockroachDB</b> (global ACID), <b>Cassandra</b> (eventual consistency, last write wins) or <b>DynamoDB global tables</b>.</li>
+    <li><b class="hd">3️⃣ Pure key-value access: get and put by key, no joins</b>MVCC, the WAL and the query planner are overhead you don't need. Consider <b>Redis</b> (in memory), <b>DynamoDB</b> (managed) or <b>Cassandra</b> (write-heavy).</li>
+  </ul>
+  <p class="bridge">Why is one primary a problem across regions? The course admin's example, a social app with users in San Francisco and London:<br>1️⃣ San Francisco is the primary<br>2️⃣ A London user's like must travel to San Francisco<br>3️⃣ Synchronous: the like is slow. Asynchronous: the user may not see their own like for a few seconds<br>4️⃣ San Francisco goes down: London can't write at all<br>5️⃣ Let both regions write? Two users edit one post at once, and PostgreSQL has no built-in conflict resolution</p>
+  <div class="info"><b>💬 Why is Cassandra faster at writes? (course admin)</b> Cassandra appends to a commit log and a memory table, with no index or MVCC work per write, and spreads writes over nodes without coordinating. PostgreSQL updates every index, keeps row versions (MVCC) and keeps ACID on every write. Kafka is the stream itself; Cassandra is where its huge write volume lands.</div>
+  <div class="warn"><b>⚠️ Scalability alone is not a good reason to leave PostgreSQL</b> With good design it handles a lot. A reader cited OpenAI's engineering blog: ChatGPT's 800M users run on one PostgreSQL primary and about 50 read replicas.</div>
+  <p class="ana">🏦 One head office ledger serves almost every bank. You'd only switch systems for a stock exchange (millions of trades a second), banks on several continents that all write at once, or a coat check (just a ticket number and a coat). <span class="add">➕ analogy</span></p>
+
+  <h4>🏁 Summary</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⭐ PostgreSQL is the default unless a requirement says otherwise</b></li>
+    <li><b class="hd">🎯 Argue from requirements, not trends</b>Consistency needs, query patterns, scale. Know the trade-offs: ACID vs eventual consistency, read vs write scaling, which indexes.</li>
+    <li><b class="hd">🧩 One PostgreSQL can replace several systems</b>Full-text search instead of Elasticsearch, JSONB instead of MongoDB, PostGIS instead of a geo database, replicas for read scaling.</li>
+    <li><b class="hd">🚀 Extreme writes or global writes: Cassandra or CockroachDB</b></li>
+  </ul>
+  <div class="rem"><b>🎤 Say it</b> "The data is relational and the bids need strong consistency, so PostgreSQL: a transaction with a row lock on the auction row, read replicas for the feed, and a partial index for active auctions." Start simple; add complexity only when needed.</div>
+
+  <h4>📚 Appendix: Basic SQL Concepts</h4>
+  <p class="bridge">Tables, foreign keys, normalization and denormalization are explained once in <a href="#sd-dm-schema--normalization-vs-denormalization">Data Modeling</a>. Here is only what this lesson adds.</p>
+<pre>CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE posts (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  content TEXT NOT NULL
+);</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔑 <code>PRIMARY KEY</code>: each row gets a unique id</b></li>
+    <li><b class="hd">🚫 <code>UNIQUE</code>: no two users share a username or email</b></li>
+    <li><b class="hd">🔗 <code>REFERENCES users(id)</code>: a foreign key</b>Every post must belong to a real user; PostgreSQL enforces it.</li>
+  </ul>
+  <p class="bridge">Three kinds of relationship, worth naming in an interview:<br>1️⃣ <b>One-to-one</b>: a user and their profile settings<br>2️⃣ <b>One-to-many</b>: a user and their posts<br>3️⃣ <b>Many-to-many</b>: users and the posts they like, through a join table</p>
+<pre>CREATE TABLE likes (
+  user_id INTEGER REFERENCES users(id),
+  post_id INTEGER REFERENCES posts(id),
+  PRIMARY KEY (user_id, post_id)
+);</pre>
+  <div class="info"><b>➕ Keeping a copied value in step</b> Storing a like count on <code>posts</code> is denormalization. A reader pointed out that a PostgreSQL <b>trigger</b> can update the copy automatically, in the same transaction as the like.</div>
+
+  <h5>🏦 ACID with one bank transfer</h5>
+  <div class="grid2">
+    <div class="k-blue"><b>⚛️ Atomicity: all or nothing</b><div class="chk">Crash after taking $100 from savings but before adding it to checking? The whole transfer rolls back.</div></div>
+    <div class="k-green"><b>📏 Consistency: rules always hold</b><div class="chk"><code>CHECK (balance &gt;= 0)</code>: a transfer that would go negative is rejected. In NoSQL you often code such rules yourself.</div></div>
+    <div class="k-amber"><b>🚧 Isolation: no mixing</b><div class="chk">Concurrent transactions don't see each other's half-done work. How strictly: the isolation level.</div></div>
+    <div class="k-purple"><b>💾 Durability: saved for good</b><div class="chk">"Committed" means the WAL is on disk (<a href="#sd-pg-writes">card ②</a>): it survives a crash.</div></div>
+  </div>
+  <div class="info"><b>ℹ️ ACID's C is not CAP's C</b> See <a href="#sd-cap-what">CAP Theorem</a>. The course admin: with asynchronous replicas PostgreSQL is not CAP-consistent; read from the primary, or use synchronous replication, to get there.</div>
+  <p class="bridge">Which anomalies each level allows. PostgreSQL accepts all four standard names but has three behaviours: Read Uncommitted acts as Read Committed, because MVCC never shows uncommitted data.</p>
+  <div class="tscroll"><table class="dt"><tr><th>Level</th><th>Dirty read</th><th>Non-repeatable</th><th>Phantom</th><th><span class="nogl">Serialization anomaly</span></th></tr><tr><td>Read Uncommitted</td><td>no in PG</td><td>possible</td><td>possible</td><td>possible</td></tr><tr><td>Read Committed</td><td>no</td><td>possible</td><td>possible</td><td>possible</td></tr><tr><td>Repeatable Read</td><td>no</td><td>no</td><td>no in PG</td><td>possible</td></tr><tr><td>Serializable</td><td>no</td><td>no</td><td>no</td><td>no</td></tr></table></div>
+  <p class="figcap">Swipe the table →</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">👻 Dirty read: you see another transaction's uncommitted change</b></li>
+    <li><b class="hd">🔁 Non-repeatable read: the same row, read twice, has changed</b></li>
+    <li><b class="hd">➕ Phantom read: the same query, run twice, returns new rows</b></li>
+    <li><b class="hd">🧩 <span class="nogl">Serialization anomaly</span>: a result no one-at-a-time order could produce</b></li>
+  </ul>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚡ <code>synchronous_commit = off</code> trades a little durability for speed</b>PostgreSQL replies before the WAL flush. A crash can lose the last moment of commits, but the database stays intact.</li>
+  </ul>
+  <p class="bridge">When does ACID matter?<br>1️⃣ 💳 Payments: always, or money is lost or spent twice<br>2️⃣ 🔐 Login and auth: probably, to avoid security holes<br>3️⃣ ❤️ Social likes: eventual consistency is usually fine<br>4️⃣ 📊 Analytics: speed often beats strictness</p>
+
+  <h5>🗂️ SQL command types</h5>
+  <div class="grid2">
+    <div class="k-blue"><b>🏗️ DDL: define structure</b><div class="chk"><code>CREATE TABLE</code>, <code>ALTER TABLE</code>, <code>DROP TABLE</code></div></div>
+    <div class="k-green"><b>✏️ DML: work with data</b><div class="chk"><code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code></div></div>
+    <div class="k-amber"><b>🔑 DCL: control access</b><div class="chk"><code>GRANT SELECT ON users TO read_only_user</code>, <code>REVOKE</code></div></div>
+    <div class="k-purple"><b>🔒 TCL: control transactions</b><div class="chk"><code>BEGIN</code>, <code>COMMIT</code>, <code>ROLLBACK</code></div></div>
+  </div>
+  <p>Interviews rarely ask for SQL syntax. Expect "how would you query this efficiently?" or "which indexes would you create?" instead.</p>
+  <p class="ana">🏦 The bank's rule book: DDL designs the ledger's columns, DML writes entries, DCL decides who may open the ledger, TCL says when a group of entries counts as done. <span class="add">➕ analogy</span></p>
+  <p class="bridge">🔚 Consistency means naming the tool: transaction plus row lock, Serializable plus retries, or a version column. Then defend PostgreSQL as the default, and know the three reasons to leave it.</p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>🥊 "DynamoDB beats PostgreSQL for social media"</h5>
+    <ul>
+      <li>One reader argued for DynamoDB: no 128 TB storage cap (Aurora's), multi-region writes, faster regional failover.</li>
+      <li>Replies: OpenAI runs ChatGPT on one PostgreSQL primary plus ~50 replicas. Aurora failover is about 15 to 60 seconds, not hours. Media belongs in S3, not the database. Instagram, Facebook and Pinterest grew on sharded relational databases.</li>
+      <li>Takeaway: pick the store per use case. The social graph can live in PostgreSQL while posts or media live elsewhere. DynamoDB items are capped at 400 KB.</li>
+    </ul>
+    <h5>🎤 Choosing a database out loud (course admin)</h5>
+    <ul>
+      <li>Ops effort (managing, monitoring, schema changes) vs a managed service like DynamoDB is a valid trade-off. Avoid the shallow one: "NoSQL because it scales".</li>
+      <li>PostgreSQL vs DynamoDB: when in doubt, PostgreSQL. Often neither is wrong; the justification is what counts.</li>
+      <li>⚠️ One reader was marked down for "either works, but I know X best". Safer: "either works; I'd pick what the team already runs".</li>
+    </ul>
+    <h5>🔎 Search: when Elasticsearch? (course admin)</h5>
+    <ul>
+      <li>Triggers: relevance scoring, facets, fuzzy or search-as-you-type, hundreds of millions of rows. At that size you'd shard PostgreSQL and merge and rank results across shards yourself; Elasticsearch does that for you.</li>
+      <li><span class="add">➕ Fact-check</span> He also listed "real-time index updates". That's backwards: a PostgreSQL GIN index updates in the same transaction, while Elasticsearch shows new documents after a refresh (about 1 s) and must be kept in sync with the database, e.g. with CDC.</li>
+      <li>A reader added: newer extensions bring BM25 ranking to PostgreSQL full-text search.</li>
+    </ul>
+    <h5>📇 Indexes and numbers</h5>
+    <ul>
+      <li>Queries on <code>(a, c, b)</code> and <code>(a, b)</code>, all equality: one index on <code>(a, b, c)</code> serves both. <code>(a, b)</code> is its prefix, and the column order inside a <code>WHERE</code> doesn't matter for equality. <span class="add">➕ answer</span></li>
+      <li>Reads vs writes: an indexed read is ~50k a second per core, a simple write ~5k: about 10× apart. <span class="add">➕ answer</span></li>
+    </ul>
+    <h5>🌐 Across machines</h5>
+    <ul>
+      <li>Two-phase commit is only needed for a transaction that spans shards. On one node a normal transaction is already atomic.</li>
+      <li>Sharding with Citus: each shard has its own primary and replicas, so many primaries take writes in parallel, but each row still has exactly one primary. <span class="add">➕ answer</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="card" id="sd-redis-basics" data-topic="Technologies" data-course="hi-sd" data-lesson="redis">
+  <h2 class="cap"><b>🟥 Redis ①: Basics · Commands · Infrastructure · Performance</b></h2>
+  <p class="hook">Instead of learning dozens of narrow tools, master a few versatile ones. Redis is the most versatile of them: one tool covers a cache, a lock, a leaderboard, a rate limiter, a queue and real-time messages. And it stays simple: its data types are the ones you already use in coding problems.</p>
+  <p class="tldr">💡 Redis keeps everything in <b>memory</b> and runs <b>one command at a time</b>, so each command is fast and atomic. Values are data structures (hashes, sets, sorted sets, streams). A cluster splits keys into <b>16,384 slots</b> spread over nodes, so how you name keys is how you scale. The catch: replication is asynchronous and disk saves are periodic, so <b>it's not a system of record</b>. 🛎️ Think of a hotel front desk with one very fast receptionist. Explained below 👇</p>
+
+  <h4>🧱 Redis Basics</h4>
+  <p class="bridge">Redis calls itself a "data structure store", written in C. Two facts explain almost everything about it:<br>1️⃣ It holds <b>everything in memory</b>: fast<br>2️⃣ It runs commands <b>one at a time on a single thread</b>: no locks needed, and every command is atomic</p>
+  <div class="info"><b>➕ From the comments</b> Only <b>command execution</b> is single-threaded. Newer versions move network I/O and background work (like freeing memory) to other threads. The mental model stays: one command at a time, in order.</div>
+  <div class="warn"><b>⚠️ One reason to avoid Redis: you need durability</b> A write is acknowledged from memory. Saving to disk happens in one of two ways, and both can lose data that was already acknowledged.</div>
+  <div class="grid2">
+    <div class="k-blue"><b>📸 RDB: snapshots</b><div class="star">A full copy of memory every few minutes</div><div class="chk">✅ Small files, fast restarts</div><div class="chk">❌ A crash loses everything since the last snapshot</div></div>
+    <div class="k-amber"><b>📝 AOF: append-only file</b><div class="star">Logs every write, fsyncs once a second by default</div><div class="chk">✅ Loses at most about a second</div><div class="chk">❌ <code>fsync always</code> is safest, but costs the speed you chose Redis for</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔧 AOF has three fsync settings</b>1️⃣ <code>always</code>: fsync on every write, most durable, slowest<br>2️⃣ <code>everysec</code> (default): once a second, in a background thread<br>3️⃣ <code>no</code>: leave it to the operating system<br>An fsync is the moment the operating system really writes its page cache to disk. <span class="add">➕ from a reader</span></li>
+    <li><b class="hd">☁️ Need Redis with real durability? AWS MemoryDB</b>It trades a little speed for writes committed to a multi-AZ log before they're acknowledged. <span class="aws">☁️ MemoryDB</span></li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> AOF is <b>off by default</b> in open-source Redis (<code>appendonly no</code>); out of the box you get RDB snapshots only. "Fsyncs once a second" is true only once you turn AOF on.</div>
+
+  <p class="bridge">Redis is a key-value store. A key is a string; a value can be a whole data structure. For example, the key <code>leaderboard:game:123</code> can hold a sorted set of players and scores.</p>
+  <div class="grid2">
+    <div class="k-blue"><b>🔤 String</b><div class="chk">A value, a JSON blob, a counter (<code>INCR</code>)</div></div>
+    <div class="k-green"><b>🗂️ Hash</b><div class="chk">An object: <code>{ name, price, stock }</code></div></div>
+    <div class="k-amber"><b>📃 List</b><div class="chk">An ordered list, push and pop at both ends</div></div>
+    <div class="k-purple"><b>🎯 Set</b><div class="chk">Unique members: who liked a post</div></div>
+    <div class="k-blue"><b>🏆 Sorted set</b><div class="chk">Members ranked by a score: leaderboards</div></div>
+    <div class="k-green"><b>📜 Stream</b><div class="chk">An append-only log, like a Kafka topic</div></div>
+    <div class="k-amber"><b>📍 Geospatial index</b><div class="chk">Places by longitude and latitude: "who's nearby?"</div></div>
+    <div class="k-purple"><b>🧪 Redis 8 extras</b><div class="chk">Bloom filters, JSON, time series, now in core</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📣 It also does messaging: Pub/Sub and Streams</b>They can partly replace heavier tools like Kafka or SNS/SQS (card ③).</li>
+    <li><b class="hd">🔑 Key names matter: they decide which node holds the data</b>How you organise keys is how you organise your data and scale your cluster.</li>
+  </ul>
+  <div class="info"><b>➕ From the comments</b> The article calls sorted sets "priority queues". A reader pointed out they do more: a heap only peeks or pops the top, while a sorted set also answers rank lookups and score ranges.</div>
+  <p class="ana">🛎️ A hotel front desk with one very fast receptionist. Behind the desk is a wall of pigeonholes (keys). Each pigeonhole holds a different kind of thing: one note, a bundle of cards, a ranked list. The receptionist serves one guest at a time, so two guests never grab the same note at once. But the pigeonholes are not a safe: if the building floods, only the last photocopy (RDB) or the logbook (AOF) survives. <span class="add">➕ analogy</span></p>
+
+  <h4>⌨️ Commands</h4>
+  <p class="bridge">Redis speaks a simple wire protocol called RESP: a command travels over the wire almost as you'd type it. That's why the command line feels so direct.</p>
+<pre>SET foo 1
+GET foo     # returns 1
+INCR foo    # returns 2
+XADD mystream * name Sara surname OConnor  # adds an item to a stream</pre>
+  <p>The full command list reads easily when grouped by data structure. Sets, for example: <code>SADD</code> (add), <code>SCARD</code> (count), <code>SMEMBERS</code> (list all), <code>SISMEMBER</code> (is it there?). Just like a Set in any programming language.</p>
+
+  <h4>🏗️ Infrastructure Configurations</h4>
+  <div class="grid3">
+    <div class="k-blue"><b>1️⃣ Single node</b><div class="chk">One main server. Simple; if it dies, Redis is down.</div></div>
+    <div class="k-green"><b>2️⃣ Replicated</b><div class="chk">Main + a secondary that copies it, for high availability.</div></div>
+    <div class="k-amber"><b>3️⃣ Cluster</b><div class="chk">Several mains, each owning a share of the keys, each with its own secondary.</div></div>
+  </div>
+  <p class="bridge">In cluster mode Redis shards by <b>hash slots</b>:<br>1️⃣ Every key hashes to one of 16,384 slots<br>2️⃣ Each slot belongs to one node<br>3️⃣ The client caches the slot → node map and connects straight to the right node<br>4️⃣ Adding a node moves some slots, and their keys, to it<br>Why fixed slots instead of a ring: <a href="#sd-ch-use--ring-vs-fixed-slots-not-in-the-article">Consistent Hashing · Ring vs fixed slots</a>.</p>
+  <p class="bridge">What if the client's map is out of date? Press ▶️.</p>
+  <div class="seq" data-seq="redis-moved"></div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🗣️ Nodes share the slot map by gossip, so every node knows it</b>But a node never forwards your request: it answers <code>MOVED</code>, and the client fixes its map (e.g. with <code>CLUSTER SHARDS</code>). That's why clients cache the map and aim right the first time.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Replication is asynchronous</b> The primary acknowledges your write before the replica has it. If the primary dies and a replica is promoted, the last acknowledged writes can simply vanish. This is the deepest reason Redis isn't a system of record, and it comes back with locks (card ②).</div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📖 Replicas can serve reads, slightly behind</b>In a cluster the client sends <code>READONLY</code> on its connection (most libraries have a flag). Outside a cluster you point reads at the replica. Either way, reads lag the primary a little.</li>
+    <li><b class="hd">🚫 No <span class="nogl">query router</span>: a command's keys must live on one node</b>Nothing splits a request across nodes and merges results. Keys on two nodes give an error (<code>CROSSSLOT</code>), not a slow query. Structuring your keys is how you scale Redis.</li>
+    <li><b class="hd">🏷️ Hash tags keep related keys together</b>Only the part inside <code>{braces}</code> is hashed, so <code>{user:123}:posts</code> and <code>{user:123}:likes</code> always share a slot, ready for one <code>MULTI</code> transaction across both.</li>
+    <li><b class="hd">🛡️ High availability without sharding: Redis Sentinel</b>Sentinel processes watch one primary and its replicas, vote when it dies, and promote a replica. Clients ask Sentinel where the primary is. Cluster mode does this itself, by gossip. <span class="add">➕ from the comments</span></li>
+  </ul>
+  <p class="ana">🛎️ A big hotel opens several desks. The pigeonholes are numbered 0 to 16,383, and each desk owns a range. Guests carry a little map of "which desk has which numbers". Go to the wrong desk and the receptionist says "not mine, try desk 2" (<code>MOVED</code>) instead of walking over for you. <span class="add">➕ analogy</span></p>
+
+  <h4>⚡ Performance</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🚀 ~100k writes a second on one node; commands run in microseconds</b>Reads come back in under a millisecond over the network.</li>
+    <li><b class="hd">🔁 Even the N+1 pattern is survivable</b>One query per item in a list ruins a SQL database. Each Redis command costs microseconds, and pipelining or <code>MGET</code> pays one round trip instead of a hundred. Still better to avoid it.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> The speed comes purely from being in memory. Not a fit for every use case, but a great fit for many.</div>
+  <p class="bridge">🔚 Memory plus one thread makes Redis fast and simple; slots make it scale; async copies make it lossy. Next card: the five jobs Redis does in a design.</p>
+</section>
+<section class="card" id="sd-redis-uses" data-topic="Technologies" data-course="hi-sd" data-lesson="redis">
+  <h2 class="cap"><b>🟥 Redis ②: Cache · Distributed Lock · Leaderboard · Rate Limiting · Proximity</b></h2>
+  <p class="hook">Five jobs, one tool. Each works because of the two facts from card ①: data in memory, and one command at a time. Each also has one subtle bug that interviewers like to probe.</p>
+  <p class="tldr">💡 <b>Cache</b>: key = cache key, plus a TTL and an eviction policy. <b>Lock</b>: <code>SET … NX EX</code>, release only with your own token; good for efficiency, not for correctness. <b>Leaderboard</b>: a sorted set. <b>Rate limit</b>: <code>INCR</code> plus an expiry, in one Lua script. <b>Nearby</b>: <code>GEOSEARCH</code>. 🛎️ Same front desk, five services. Explained below 👇</p>
+
+  <h4>🗄️ Redis as a Cache</h4>
+  <p class="bridge">The most common use, and the mapping is direct: your cache keys are Redis keys, your cached values are Redis values. A cluster spreads this hash map over nodes, so you scale by adding nodes. Example: <code>product:123</code> holds a JSON blob, or a hash with <code>name</code>, <code>price</code>, <code>inventoryCount</code>. The pattern itself (check Redis, fall back to the database): <a href="#sd-cache-patterns--cache-aside-lazy-loading">Cache-Aside</a>.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⏰ A TTL per key handles staleness</b>Redis never returns a value after its TTL has passed.</li>
+    <li><b class="hd">🧹 An eviction policy handles a full memory</b>For a cache, set <code>allkeys-lru</code>: Redis drops least-recently-used keys to make room. It samples keys instead of tracking exact order, which is plenty for a cache. The policies: <a href="#sd-cache-patterns--cache-eviction-policies">Eviction Policies</a>.</li>
+  </ul>
+  <div class="info"><b>➕ Fact-check</b> The article says Redis rejects writes "out of the box" when memory is full. Precisely: open-source Redis starts with <code>maxmemory 0</code> (no limit), so it grows until the machine runs out. Once you set a limit, the default policy <code>noeviction</code> rejects writes. Managed services such as ElastiCache set the limit for you.</div>
+  <div class="warn"><b>⚠️ A cache doesn't fix hot keys</b> One key that takes a huge share of traffic still overloads its one node. Not unique to Redis: Memcached and DynamoDB have it too. Fixes: card ③.</div>
+
+  <h4>🔒 Redis as a Distributed Lock</h4>
+  <p class="bridge">Use it to keep data consistent during an update (reserving a seat in Ticketmaster) or to let only one actor act at a time (one ride offer per driver in Uber). It works because Redis is one shared server every app server can reach, and every command is atomic. The lock is just an agreed key, e.g. <code>lock:concert:343</code>.</p>
+<pre>SET lock:concert:343 my-token NX EX 30</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🙋 <code>NX</code>: set only if the key doesn't exist</b>Success = you own the lock. Failure = someone else does: wait and retry.</li>
+    <li><b class="hd">⏳ <code>EX 30</code>: expire after 30 s</b>A crashed process can't hold the lock forever.</li>
+    <li><b class="hd">🎟️ <code>my-token</code>: a random value only you know</b>It matters when you release.</li>
+  </ul>
+  <p class="bridge">Why not just <code>DEL</code> the key when you're done?<br>1️⃣ A takes the lock, then stalls for 31 s<br>2️⃣ The lock expires<br>3️⃣ B takes the lock<br>4️⃣ A wakes up and runs <code>DEL</code>: it deletes <b>B's</b> lock<br>So release = "delete only if it still holds my token", as one atomic Lua script (Redis runs the whole script as one command):</p>
+<pre>if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end</pre>
+  <div class="info"><b>➕ Fact-check: a reader's built-in alternative</b> A reader named it <code>DELX</code> in Redis 8.2. The real command is <code>DELEX key IFEQ value</code>, added in <b>Redis 8.4</b>: delete only if the value matches, no Lua needed. Valkey calls it <code>DELIFEQ</code>.</div>
+  <div class="info"><b>ℹ️ Is this optimistic locking?</b> The opposite: taking a lock first is <b>pessimistic</b>. Redis does support optimistic concurrency too: <code>WATCH</code> a key, run <code>MULTI</code> … <code>EXEC</code>, and the transaction aborts if the watched key changed meanwhile.</div>
+
+  <h5>💥 When the lock lies</h5>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Failover can hand the same lock out twice</b>Replication is async: the primary grants your lock and dies; the promoted replica never heard of it and grants it to someone else.</li>
+    <li><b class="hd">2️⃣ Redlock tries to fix that, and is controversial</b>Take the lock on a majority of independent Redis nodes. But a paused or slow client can still act after its lock expired (Martin Kleppmann's critique).</li>
+    <li><b class="hd">3️⃣ The standard defence: a fencing token</b>Each lock grant carries a rising number, and the <b>storage</b> rejects writes with an older number. Redis has nothing built in for this. Press ▶️.</li>
+  </ul>
+  <div class="seq" data-seq="redis-fence"></div>
+  <p class="bridge">⚖️ Ups and downs. If you propose a Redis lock, say the downsides too.</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Simple and fast: one command to lock, one script to release</b></li>
+    <li><b class="hd">1️⃣ It can occasionally fail: after a failover, or with a paused holder</b>Two holders at once is rare, but possible.</li>
+    <li><b class="hd">2️⃣ No fencing tokens built in</b>If a stale holder would corrupt data, enforce the rule where the data lives, or use a consensus system (ZooKeeper, etcd).</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> A Redis lock is an <b>efficiency tool</b> that occasionally fails, not a correctness guarantee. Often a database row lock (<code>SELECT … FOR UPDATE</code>) or a conditional <code>UPDATE … WHERE version = X</code> replaces it entirely: <a href="#sd-pg-consistency--transactions-and-concurrent-operations">PostgreSQL ③</a>.</div>
+  <p class="ana">🛎️ The front desk hands out the one key to the ballroom, with a 30-minute tag. A guest who dozes off for an hour may still walk in holding an expired key. The ballroom door only stops them if it checks the key's serial number: that's the fencing token. <span class="add">➕ analogy</span></p>
+
+  <h4>🏆 Redis for Leaderboards</h4>
+  <p class="bridge">A sorted set keeps members ordered by score, with reads and writes in log time: high write throughput and low read latency, where a SQL database would start to struggle. Example from the Post Search breakdown: keep the most-liked posts for each keyword.</p>
+<pre>ZADD tiger_posts 500 "SomeId1"    # the Tiger Woods post
+ZADD tiger_posts 1 "SomeId2"      # a post about zoo tigers
+ZREMRANGEBYRANK tiger_posts 0 -6  # keep only the top 5</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🔁 <code>ZADD</code> again with a new score just moves the member</b>A post gets more likes: re-add it, and its rank updates.</li>
+    <li><b class="hd">✂️ <code>ZREMRANGEBYRANK 0 -6</code> keeps exactly the top 5</b>Ranks go from lowest score (0) to highest (-1). Removing 0 up to -6 deletes everything below the 5th from the top.</li>
+  </ul>
+
+  <h4>🚦 Redis for Rate Limiting</h4>
+  <p class="bridge">Fixed window: allow at most N requests in each window W. On every request:<br>1️⃣ <code>INCR</code> the counter for this user and this window<br>2️⃣ The result is 1? This is the window's first request: set the expiry to W<br>3️⃣ The result is over N? Reject with <b>429</b> and a <code>Retry-After</code> header</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">⚠️ Set the expiry only when <code>INCR</code> returns 1</b>Calling <code>EXPIRE</code> on every request keeps pushing the reset forward, so steady traffic never gets a fresh window.</li>
+    <li><b class="hd">⚠️ Run <code>INCR</code> + <code>EXPIRE</code> as one Lua script</b>A crash between the two leaves a counter with no expiry: that user is locked out forever.</li>
+  </ul>
+<pre>local count = redis.call("INCR", KEYS[1])
+if count == 1 then
+  redis.call("EXPIRE", KEYS[1], ARGV[1])
+end
+return count</pre>
+  <p class="bridge">Sliding window: one sorted set per user, the request time as the score. On every request, in one Lua script:<br>1️⃣ <code>ZREMRANGEBYSCORE</code>: drop entries older than the window<br>2️⃣ <code>ZCARD</code>: count what's left<br>3️⃣ Under N? <code>ZADD</code> this request</p>
+  <p class="bridge">⚖️ Ups and downs. <span class="add">➕ not in the article</span></p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">✅ Fixed window: one small counter per user</b></li>
+    <li><b class="hd">1️⃣ Fixed window allows a burst at the edge</b>N requests at 0:59 and N more at 1:00 = 2N in two seconds.</li>
+    <li><b class="hd">2️⃣ Sliding window stores every request</b>Memory grows with N. Each member must be unique (time plus a request id), or two requests in the same millisecond count as one.</li>
+  </ul>
+
+  <h4>📍 Redis for Proximity Search</h4>
+<pre>GEOADD key longitude latitude member
+GEOSEARCH key FROMLONLAT longitude latitude BYRADIUS radius unit</pre>
+  <p class="bridge">Under the hood it's a <a href="#sd-idx-geo-text--geohash">geohash</a> stored in a sorted set. A search runs in two passes:<br>1️⃣ Seek into the sorted set to the geohash boxes around the circle: the log part<br>2️⃣ Collect the N candidates inside those square, grid-aligned boxes<br>3️⃣ Keep only the ones within the exact radius</p>
+  <div class="info"><b>➕ Fact-check: the complexity</b> The article writes O(N + log M), with M = items inside the radius. A reader is right that this doesn't add up: the log comes from seeking into the <b>whole</b> sorted set, so M is the total number of items in the index (the older <code>GEORADIUS</code> docs say exactly that). Why not just O(N)? For a small or empty area N is tiny, and the log of a million items is still there.</div>
+  <p class="bridge">🔚 Cache, lock, leaderboard, rate limiter, nearby search: all simple commands on simple structures. Next card: Redis as a message system, its hot-key weakness, and when not to use it.</p>
+</section>
+<section class="card" id="sd-redis-messaging" data-topic="Technologies" data-course="hi-sd" data-lesson="redis">
+  <h2 class="cap"><b>🟥 Redis ③: Streams · Pub/Sub · Hot Keys · When Not to Use It</b></h2>
+  <p class="hook">Redis can also move messages: <b>Streams</b> keep them until someone handles them, <b>Pub/Sub</b> delivers them only to whoever is listening right now. Then the two limits interviewers probe: hot keys, and data you can't afford to lose.</p>
+  <p class="tldr">💡 Streams = a job log with consumer groups; a dead worker's job gets reclaimed, so jobs must be idempotent. Pub/Sub = fire and forget, at most once, scales with sharded channels. Hot key fixes: a local cache, key copies, or replica reads. Never use Redis as the system of record. 🛎️ The front desk keeps a job book and a loudspeaker. Explained below 👇</p>
+
+  <h4>📜 Redis for Event Sourcing (Streams)</h4>
+  <p class="bridge">A stream is an append-only log, like a Kafka topic: the building block for event-sourced designs, which store the ordered events and derive state from them. Producers append with <code>XADD</code>. A <b>consumer group</b> is Redis's own name for a set of workers that share one stream: each entry goes to one worker in the group, and Redis remembers which worker has which entry.</p>
+  <p class="bridge">A work queue, step by step:<br>1️⃣ Producers add jobs with <code>XADD</code><br>2️⃣ A worker reads a job with <code>XREADGROUP</code>: it becomes "pending" for that worker<br>3️⃣ The worker processes it and acknowledges it (<code>XACK</code>)<br>4️⃣ A worker dies mid-job? Its pending job's idle time keeps growing<br>5️⃣ Another worker claims it with <code>XCLAIM</code> or <code>XAUTOCLAIM</code> and redoes it<br>Press ▶️.</p>
+  <div class="seq" data-seq="redis-xclaim"></div>
+  <div class="warn"><b>⚠️ A job can run twice</b> Redis can't tell a slow worker from a dead one, so a slow worker's job may be claimed while it's still running. Make processing <b>idempotent</b>.</div>
+  <div class="warn"><b>⚠️ Entries are only as durable as your persistence settings</b> With defaults, a crash can lose recent entries (card ①).</div>
+  <div class="grid2">
+    <div class="k-green"><b>🟥 Redis Streams</b><div class="star">Redis is already in the design, the queue is modest</div><div class="chk">Background jobs</div><div class="chk">Notification fan-out</div><div class="chk">Work distribution</div></div>
+    <div class="k-blue"><b>🟦 Kafka</b><div class="star">Worth its operational cost when you need</div><div class="chk">Long retention</div><div class="chk">Replay for many independent consumers</div><div class="chk">Durable, ordered throughput; no message may be lost</div></div>
+  </div>
+  <div class="rem"><b>✅ Remember</b> A reader's one-liner: a Redis Stream says "I have work that needs to get done". Kafka says "something happened; keep that fact and let different systems read it".</div>
+
+  <h4>📣 Redis for Pub/Sub</h4>
+  <p class="bridge">Streams suit consumers that must catch up on what they missed. When you only care about whoever is listening <b>right now</b>, use Pub/Sub: <span class="nogl">broadcast</span> to many subscribers in real time. Good for chat, live notifications, and decoupling producers from consumers.</p>
+<pre>PUBLISH channel message   # send to every subscriber of 'channel'
+SUBSCRIBE channel         # listen on 'channel'</pre>
+  <ul class="lines roomy heads">
+    <li><b class="hd">🏷️ A channel is just a name: nothing to create</b>Publishers send to a name, subscribers listen on it. A subscriber gets every message published while its connection is open.</li>
+    <li><b class="hd">🧩 In a cluster, use sharded Pub/Sub: <code>SPUBLISH</code> / <code>SSUBSCRIBE</code></b>The channel hashes to a slot like any key. Before Redis 7, cluster Pub/Sub sent every message to every node, so more nodes added no capacity. That limit is gone.</li>
+    <li><b class="hd">🔌 One connection per node, not per channel</b>A subscriber gets all its channels on a node over one connection. Millions of channels ≠ millions of connections. With sharded Pub/Sub it only connects to the nodes owning its channels.</li>
+  </ul>
+  <div class="warn"><b>⚠️ Not durable: at-most-once delivery</b> An offline subscriber misses the message for good. Need offline delivery or replay? Use Redis Streams, or pair Pub/Sub with a queue (SNS → SQS, Kafka) or an outbox so consumers can catch up later.</div>
+  <div class="info"><b>➕ Pub/Sub vs event sourcing (a reader's question)</b> Pub/Sub delivers a message and forgets it. Event sourcing keeps every event forever, and the log <b>is</b> the source of truth you rebuild state from.</div>
+
+  <h5>🛠️ Can I roll my own Pub/Sub?</h5>
+  <p class="bridge">Candidates sometimes avoid native Pub/Sub, wrongly thinking it opens a connection per channel. Their alternative: a key per topic holding the subscriber servers' addresses; to publish, look it up and send to each server.</p>
+  <div class="grid2">
+    <div class="k-green"><b>✅ Native Pub/Sub: 2 hops</b><div class="chk">1️⃣ Publisher → Redis node</div><div class="chk">2️⃣ Redis → every subscriber, over connections already open</div></div>
+    <div class="k-red"><b>❌ Homegrown: 3 hops</b><div class="chk">1️⃣ Ask Redis for the topic's servers</div><div class="chk">2️⃣ Redis replies with the list</div><div class="chk">3️⃣ Send to each server, usually opening a new connection first</div></div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ More hops, and the last one is the slowest</b>There's rarely an open TCP connection to each subscriber.</li>
+    <li><b class="hd">2️⃣ You must clean up dead subscribers yourself</b>Native Pub/Sub drops a channel when its last subscriber leaves. The homegrown map needs heartbeats or TTLs to remove a dead server: more code and more chatter.</li>
+  </ul>
+  <div class="rem"><b>✅ Remember</b> If your use case looks like Pub/Sub, use Pub/Sub.</div>
+  <p class="ana">🛎️ The job book on the desk (Streams): each job is written down, a porter signs for it, and if a porter vanishes, another takes over the unsigned job. The loudspeaker (Pub/Sub): an announcement reaches whoever is in the lobby right now; guests who are out never hear it. <span class="add">➕ analogy</span></p>
+
+  <h4>🔥 Hot Key Issues</h4>
+  <p class="bridge">An online shop caches products on 100 Redis nodes, spread evenly. One day a single product gets as much traffic as all the others combined. Its one node takes far more load than the rest and, unless heavily over-provisioned, starts failing. The general idea: <a href="#sd-cache-problems--hot-keys">Caching · Hot Keys</a>. Three Redis fixes:</p>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Client-side cache: each app server keeps the hottest items in memory</b>✅ Most reads never reach Redis. ⚠️ A second cache to keep fresh: data can be stale by its TTL, so use short TTLs on a small set of keys.</li>
+    <li><b class="hd">2️⃣ Key copies: <code>product:123:1</code> … <code>product:123:10</code> on different nodes</b>✅ Readers pick a copy at random, so the load spreads. ⚠️ Every write fans out to all copies, and clients must know which keys are copied (decide up front, or detect at runtime and share the list).</li>
+    <li><b class="hd">3️⃣ Read replicas: more copies of the whole node</b>✅ Multiplies read capacity. ⚠️ Cluster clients read the primary unless set to read replicas (<code>READONLY</code>). ⚠️ No help for a <b>write</b>-hot key: every write still goes to one primary.</li>
+  </ul>
+  <div class="info"><b>ℹ️ Note</b> In an interview, spotting a hot key earns a plus; designing the fix before you're asked earns two.</div>
+
+  <h4>🚫 When Not to Use Redis</h4>
+  <ul class="lines roomy heads">
+    <li><b class="hd">1️⃣ Not as your system of record</b>Async replication and the disk-save gap mean acknowledged writes can vanish.</li>
+    <li><b class="hd">2️⃣ Not when the working set can't fit in RAM at a sane cost</b>Memory is the most expensive place to keep data.</li>
+    <li><b class="hd">3️⃣ Not for flexible queries</b>No joins, no cross-key queries; in a cluster, multi-key commands work only within one slot.</li>
+    <li><b class="hd">4️⃣ Not instead of Kafka for durable, replayable streams</b>Long retention for many independent consumers is Kafka's job.</li>
+  </ul>
+
+  <h4>🏁 Summary</h4>
+  <p>Redis is powerful, versatile and simple. Its features rest on simple data structures, so you can reason about how your choices scale and go deep with the interviewer without knowing Redis internals.</p>
+  <div class="rem"><b>🎤 Say it</b> "Redis as the cache, in cluster mode, keys hashed by product id, <code>allkeys-lru</code> and a TTL. It's not the source of truth, so a lost write only costs a cache miss. For the hot product, a small local cache on each app server." <span class="add">➕ example answer</span></div>
+  <p class="bridge">🔚 Streams for work that must get done, Pub/Sub for now-or-never messages, three fixes for hot keys, and four places Redis doesn't belong.</p>
+
+  <div class="learned">
+    <h4>💬 What we learned from the comments</h4>
+    <h5>💾 "The lesson under-sells durability" (top comment)</h5>
+    <ul>
+      <li>If locks and leaderboards live in Redis, what happens when the primary dies? The course admin: most apps survive losing a few requests; if yours can't, Redis is the wrong tool.</li>
+      <li>A reader pushed back: frequent fsync isn't the answer. To get close to durable, use <code>WAIT</code> (block until N replicas have the write), which still has caveats, or AWS MemoryDB, which can even be a system of record if the data isn't too big.</li>
+      <li>Say failure modes out loud: "AOF persistence and Sentinel for failover, so a node failure loses little data".</li>
+    </ul>
+    <h5>🖥️ "My second server has its own Redis. Aren't they out of sync?"</h5>
+    <ul>
+      <li>Redis isn't inside each app server: it's one shared service every server talks to. In a cluster each key lives on exactly one node, so there's nothing to keep in sync. <span class="add">➕ answer</span></li>
+    </ul>
+    <h5>🔥 Key copies: how does a reader find them?</h5>
+    <ul>
+      <li>Fix the number of copies up front (say 10) and pick a random suffix 1 to 10 when reading. Use a separator no real key uses (<code>product:123#5</code>), so a copy can't clash with a real key named "apple5". <span class="add">➕ answer</span></li>
+      <li>The course admin: replicas work too, if you can afford them sized for your peak reads. Copies are the more surgical fix.</li>
+    </ul>
+    <h5>🎰 Slots vs modulo when you add a node</h5>
+    <ul>
+      <li>A reader's maths: going from 3 to 4 nodes with <code>hash % N</code> moves about 75% of keys. With 16,384 slots, the new node takes about 4,096 slots: only about 25% of keys move.</li>
+    </ul>
+    <h5>🧩 Small corrections</h5>
+    <ul>
+      <li>Single-threaded applies to running commands only; background threads do other work.</li>
+      <li>Geo complexity: M is the size of the whole index, not the items in the radius (card ②).</li>
+      <li>Safe lock release is built in since Redis 8.4: <code>DELEX key IFEQ value</code> (card ②).</li>
+    </ul>
   </div>
 </section>
 
@@ -6431,7 +7142,7 @@ const COURSES = {
         { n: '', id: 'common-patterns', title: 'Common Patterns', lessons: [
           ['common-patterns', 'Common Patterns']] },
         { n: '04', id: 'scaling-reads', title: 'Scaling Reads', lessons: [
-          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads']] },
+          ['review-bitly', 'Review: Bitly'], ['scaling-reads', 'Scaling Reads'], ['postgres', 'PostgreSQL'], ['redis', 'Redis']] },
         { n: '05', id: 'scaling-writes', title: 'Scaling Writes' },
         { n: '06', id: 'real-time-updates', title: 'Real-time Updates' },
         { n: '07', id: 'dealing-with-contention', title: 'Dealing with Contention' },
@@ -7338,6 +8049,87 @@ const SEQS = {
       { at: 1, m: '⚠️ pointer write lost?', k: 'err', cap: '⚠️ The limit: the pointer update in ⑤ is still a cache write. If the writer crashes before it, readers stay on v1 until the pointer expires. Versioning stops <b>stale overwrites</b>; on its own it doesn\'t make updates instantly visible.' },
     ],
   },
+  'pg-write': {
+    lanes: ['🖥️ App', '🧠 Memory', '📜 WAL (disk)', '📁 Data files'],
+    key: [['http', 'before "committed"'], ['gray', 'later'], ['lb', 'recovery']],
+    frames: [
+      { cap: 'One <code>INSERT</code> into <code>posts</code>, a table with two indexes 👇' },
+      { f: 0, t: 1, m: 'INSERT post', k: 'http', cap: '① The app sends the <code>INSERT</code> inside a transaction.' },
+      { at: 1, m: 'table + 2 index pages: dirty', k: 'http', cap: '② PostgreSQL changes the table page and both index pages in the shared buffer cache and marks them <b>dirty</b>. Each change also writes a WAL record into the WAL buffer. All in memory.' },
+      { f: 0, t: 1, m: 'COMMIT', k: 'http', cap: '③ The app commits.' },
+      { f: 1, t: 2, m: 'flush WAL records', k: 'http', cap: '④ The WAL records are flushed to disk: one sequential write. This is the wait that limits write speed.' },
+      { f: 1, t: 0, m: '✅ committed', k: 'http', cap: '⑤ Only now does PostgreSQL reply "committed". The data files still hold the old pages. That\'s fine: the WAL has every change.' },
+      { f: 1, t: 3, m: 'dirty pages, in batches', k: 'gray', cap: '⑥ Later, the background writer or a checkpoint writes the dirty pages to the data files, many changes in one go.' },
+      { at: 2, m: '💥 crash? replay the WAL', k: 'lb', cap: '💥 If the server crashes before ⑥, PostgreSQL replays the WAL on restart and rebuilds the missing changes. Nothing committed is lost.' },
+    ],
+  },
+  'pg-bid-race': {
+    lanes: ['👤 A bids $100', '🗄️ Auction 123', '👤 B bids $95'],
+    key: [['tcp', 'read'], ['http', 'write'], ['gray', 'no effect'], ['err', 'the bug']],
+    frames: [
+      { cap: 'The max bid is <b>$90</b>. A bids $100 and B bids $95 at the same moment. Default isolation level, Read Committed 👇' },
+      { f: 0, t: 1, m: 'SELECT maxBid → $90', k: 'tcp', bi: 1, cap: '① A reads the max: $90.' },
+      { f: 2, t: 1, m: 'SELECT maxBid → $90', k: 'tcp', bi: 1, cap: '② B reads the max too: still $90, because A hasn\'t written yet.' },
+      { f: 0, t: 1, m: 'INSERT $100 · max = $100', k: 'http', cap: '③ A: $100 beats $90, so it inserts its bid and sets the max to $100.' },
+      { at: 0, m: 'COMMIT ✅', k: 'http', cap: '④ A commits. The max is $100.' },
+      { f: 2, t: 1, m: 'INSERT bid $95', k: 'err', cap: '⑤ B: $95 beats $90, the value it read <b>before</b> A wrote. So it inserts its $95 bid.' },
+      { f: 2, t: 1, m: 'UPDATE … < 95 → 0 rows', k: 'gray', cap: '⑥ B\'s update re-checks the row: the max is $100 now, so 0 rows change. But the bid row from ⑤ stays.' },
+      { at: 2, m: 'COMMIT: $95 bid saved ❌', k: 'err', cap: '⑦ B commits. A $95 bid now exists after a $100 bid. The check in ⑤ used a stale read: another transaction slipped in between the read and the write.' },
+    ],
+  },
+  'redis-moved': {
+    lanes: ['💻 Client', '🟥 Node A', '🟥 Node B'],
+    key: [['lb', 'local'], ['tcp', 'request'], ['err', 'redirect'], ['gray', 'map update']],
+    frames: [
+      { cap: 'The client wants <code>user:42</code>. Its cached map says slot 9,000 lives on node A, but that slot just moved to node B 👇' },
+      { at: 0, m: 'hash → slot 9000 → A', k: 'lb', cap: '① The client hashes the key: slot 9,000. Its map says node A.' },
+      { f: 0, t: 1, m: 'GET user:42', k: 'tcp', cap: '② It sends the command straight to node A.' },
+      { f: 1, t: 0, m: 'MOVED 9000 → B', k: 'err', cap: '③ A no longer owns slot 9,000. It doesn\'t forward the request: it replies <code>MOVED</code> with node B\'s address.' },
+      { at: 0, m: 'refresh slot map', k: 'gray', cap: '④ The client updates its map (e.g. <code>CLUSTER SHARDS</code>).' },
+      { f: 0, t: 2, m: 'GET user:42 → value', k: 'tcp', bi: 1, cap: '⑤ It asks node B and gets the value. From now on it goes straight to B.' },
+    ],
+  },
+  'redis-fence': {
+    lanes: ['🖥️ Server A', '🟥 Redis', '🖥️ Server B', '🗄️ Storage'],
+    key: [['http', 'lock'], ['tcp', 'write'], ['gray', 'time passes'], ['err', 'rejected']],
+    frames: [
+      { cap: 'Every lock grant comes with a rising number, the <b>fencing token</b>. The storage remembers the highest token it has seen 👇' },
+      { f: 0, t: 1, m: 'lock → token 33', k: 'http', bi: 1, cap: '① Server A takes the lock and gets token 33.' },
+      { at: 0, m: '⏸️ long pause', k: 'gray', cap: '② A freezes for longer than 30 s: a garbage-collection pause, a slow network.' },
+      { at: 1, m: '⏰ lock expires', k: 'gray', cap: '③ The lock\'s 30 s run out.' },
+      { f: 2, t: 1, m: 'lock → token 34', k: 'http', bi: 1, cap: '④ Server B takes the lock and gets token 34.' },
+      { f: 2, t: 3, m: 'write, token 34 ✅', k: 'tcp', cap: '⑤ B writes. The storage records 34 as the highest token.' },
+      { f: 0, t: 3, m: 'write, token 33 ❌', k: 'err', cap: '⑥ A wakes up, still thinks it holds the lock, and writes with token 33. The storage has seen 34, so it rejects the write.' },
+      { cap: '✅ Without the token, A\'s late write would overwrite B\'s. Redis doesn\'t hand out these numbers; the storage must check them.' },
+    ],
+  },
+  'redis-xclaim': {
+    lanes: ['✍️ App', '📜 Stream', '👷 Worker 1', '👷 Worker 2'],
+    key: [['http', 'add / ack'], ['tcp', 'read'], ['err', 'crash'], ['gray', 'waiting'], ['lb', 'reclaim']],
+    frames: [
+      { cap: 'One stream, one consumer group, two workers. The app is the producer 👇' },
+      { f: 0, t: 1, m: 'XADD job 7', k: 'http', cap: '① The producer adds job 7.' },
+      { f: 2, t: 1, m: 'XREADGROUP → job 7', k: 'tcp', bi: 1, cap: '② Worker 1 reads job 7. The group marks it <b>pending</b> for Worker 1.' },
+      { at: 2, m: '💥 crash', k: 'err', cap: '③ Worker 1 dies mid-job, so it never acknowledges.' },
+      { at: 1, m: 'job 7 idle 60 s…', k: 'gray', cap: '④ The pending entry\'s idle time keeps growing.' },
+      { f: 3, t: 1, m: 'XAUTOCLAIM → job 7', k: 'lb', bi: 1, cap: '⑤ Worker 2 claims jobs idle for more than 60 s and gets job 7.' },
+      { f: 3, t: 1, m: 'XACK job 7 ✅', k: 'http', cap: '⑥ Worker 2 finishes and acknowledges: the job leaves the pending list. If Worker 1 was only slow, job 7 ran twice: keep jobs idempotent.' },
+    ],
+  },
+  'coalesce-path': {
+    lanes: ['📱 Phones', '⚖️ Load balancer', '🖥️ App server A', '🟥 Cache'],
+    key: [['tcp', 'request'], ['lb', 'inside app server'], ['gray', 'waiting'], ['http', 'cache trip']],
+    frames: [
+      { cap: '1,000,000 phones open Taylor Swift\'s feed at the same moment. There are 100 app servers; follow app server A 👇' },
+      { f: 0, t: 1, m: '1,000,000 × GET /feed', k: 'tcp', cap: '① Every phone sends its own request.' },
+      { f: 1, t: 2, m: '~10,000 of them', k: 'tcp', cap: '② The load balancer spreads them: about 10,000 to each app server. It only forwards; it merges nothing.' },
+      { at: 2, m: '#1: map empty → I fetch', k: 'lb', cap: '③ Request #1 checks the app server\'s in-memory map: is anyone already fetching <code>feed:taylor-swift</code>? No. It writes "I\'m fetching" in the map.' },
+      { f: 2, t: 3, m: 'GET feed:taylor-swift (once)', k: 'http', cap: '④ One GET goes to the cache server.' },
+      { at: 2, m: '#2 … #10,000: wait for #1', k: 'gray', cap: '⑤ Requests #2 to #10,000 arrive during that trip. They find the key in the map, so they send nothing and wait for #1\'s answer.' },
+      { f: 3, t: 2, m: 'value', k: 'http', cap: '⑥ The cache answers once.' },
+      { f: 2, t: 0, m: 'same value → all 10,000', k: 'lb', cap: '⑦ App server A sends that one value back to all 10,000 phones and clears the key from the map. 100 app servers = 100 requests to the cache, not 1,000,000.' },
+    ],
+  },
   'cache-cpu': {
     lanes: ['👥 Clients', '🧵 1 Redis thread', '🧠 RAM (1 TB)'],
     key: [['http', 'request'], ['lb', 'find key'], ['tcp', 'reply'], ['err', 'waiting']],
@@ -7970,7 +8762,7 @@ const GLOSSARY = [
   { id: 'covidx', t: 'Covering index', aka: 'covering index include index-only scan', s: 'An index that also stores the columns a query returns, so the table is never read.',
     an: 'A catalog card that already says the page count, so you skip the shelf.',
     b: '<p><code>(user_id, created_at) INCLUDE (likes)</code>: the feed query reads likes from the index itself. Bigger index, more write upkeep. A niche tool: have a reason.</p>', see: ['dbindex'] },
-  { id: 'normalize', t: 'Normalize vs denormalize', aka: 'normalization denormalization duplicate copy anomaly', s: 'Normalized: each fact stored once (clean writes, slower reads). Denormalized: copies stored where they are read (fast reads, messy writes).',
+  { id: 'normalize', t: 'Normalize vs denormalize', aka: 'normalization denormalization duplicate copy anomaly', s: 'Normalization: store data separately, each fact once, linked by keys (clean writes, slower reads). Denormalization: store duplicate data for faster reads (messy writes).',
     an: 'Phone contacts: change a number once and every chat shows it (normalized). The same number on 50 sticky notes is quicker to glance at, but all 50 need fixing (denormalized).',
     b: '<p>🧪 <b>See it:</b> john_doe renames to john_d.</p><ul><li>✅ Normalized: 1 row in users changes.</li><li>⚠️ Denormalized (username copied into each post): every post he wrote changes. Miss one → two names for one person.</li></ul><p>📏 Rule: start normalized. Copy (or cache) only when a read is measurably too slow.</p>', see: ['fk', 'shard'] },
   { id: 'shard', t: 'Sharding', aka: 'shard key horizontal scaling split machines cross-shard', s: 'Split one table\'s rows across several database machines, by a shard key.',
@@ -8015,6 +8807,48 @@ const GLOSSARY = [
   { id: 'distlock', t: 'Distributed lock', aka: 'distributed lock redis lock lease mutex across servers', s: 'A lock that many servers share (often in Redis), so only one of them does a task at a time.',
     an: 'One key to the stockroom, hanging at the front desk: whoever holds it goes in; everyone else waits.',
     b: '<p>🧪 <b>See it:</b> a hot cache entry expires. Server A takes the lock <code>rebuild:home</code> (with a 10 s lease) and rebuilds; servers B–Z see the lock and wait or serve old data.</p><p>⚠️ If A is slow or dies, everyone waits until the lease runs out: that\'s why the lesson calls it fragile under load.</p>', see: ['stampede', 'race', 'pesslock'] },
+  { id: 'isolvl', t: 'Isolation level', aka: 'isolation level read committed repeatable read serializable snapshot anomaly', s: 'How much one transaction can see of other transactions running at the same time.',
+    an: 'How thick the walls between cashier windows are: thin walls are fast, thick walls stop mix-ups.',
+    b: '<p>🧪 <b>See it:</b> in PostgreSQL:</p><ul><li>Read Committed (default): each query sees what was committed before it began.</li><li>Repeatable Read: one snapshot for the whole transaction.</li><li>Serializable: as if transactions ran one at a time; conflicts must be retried.</li></ul>', see: ['acid', 'mvcc', 'pesslock'] },
+  { id: 'mvcc', t: 'MVCC', aka: 'multiversion concurrency control row versions snapshot postgres vacuum', s: 'MultiVersion Concurrency Control: an update writes a new version of the row instead of overwriting it, so readers never wait for writers.',
+    an: 'A shared doc with version history: you keep reading your version while someone edits the next one.',
+    b: '<p>🧪 <b>See it:</b> a transaction updates a price. Readers who started earlier still see the old version until it commits. Old versions are cleaned up later (VACUUM).</p><p>⚠️ Every write creates a new row version and its index entries: one reason writes cost more than in an append-only store like Cassandra.</p>', see: ['isolvl', 'acid'] },
+  { id: 'jsonb', t: 'JSONB', aka: 'jsonb json binary postgres document flexible schema gin', s: 'A PostgreSQL column type that stores JSON in a binary form you can index and query.',
+    an: 'A labelled drawer of loose papers inside a filing cabinet: no fixed form, but you can still search it.',
+    b: '<p>🧪 <b>See it:</b> each post has different extra fields. Store them in a <code>metadata JSONB</code> column, add a GIN index, and query <code>WHERE metadata @&gt; \'{"type": "video"}\'</code>.</p><p>✅ Often replaces a separate document database like MongoDB.</p>', see: ['invidx', 'dbindex'] },
+  { id: 'postgis', t: 'PostGIS', aka: 'postgis geospatial location nearby distance gist postgres extension', s: 'A PostgreSQL extension for location data: points, distances, "find everything within 5 km".',
+    an: 'A city map pinned next to the filing cabinet.',
+    b: '<p>🧪 <b>See it:</b> <code>ST_DWithin(location, my_point, 5000)</code> finds places within 5 km, using a spatial (GiST) index instead of checking every row.</p><p>✅ Often replaces a separate geo database.</p>', see: ['geohash', 'quadtree', 'dbindex'] },
+  { id: 'partialidx', t: 'Partial index', aka: 'partial index where clause filtered index subset postgres', s: 'An index on only the rows that match a condition, e.g. only active users.',
+    an: 'Index cards only for open accounts; closed ones stay in the archive with no card.',
+    b: '<p>🧪 <b>See it:</b> <code>CREATE INDEX … ON users(email) WHERE status = \'active\'</code>. If 90% of users are inactive, the index is 10× smaller: faster to search and cheaper to update.</p>', see: ['dbindex', 'covidx'] },
+  { id: 'deadlock', t: 'Deadlock', aka: 'deadlock lock order wait cycle row lock', s: 'Two transactions each hold a lock the other needs, so both wait forever; the database cancels one.',
+    an: 'Two cars on a one-lane bridge, each waiting for the other to back up.',
+    b: '<p>🧪 <b>See it:</b> A locks row 1 then wants row 2; B locks row 2 then wants row 1. PostgreSQL detects the cycle and aborts one with an error.</p><p>🛠️ Fix: always lock rows in the same order (e.g. by id), and retry the aborted one.</p>', see: ['pesslock', 'race'] },
+  { id: 'rdbaof', t: 'RDB and AOF (Redis persistence)', aka: 'rdb aof snapshot append only file fsync everysec redis persistence durability', s: 'Two ways Redis saves memory to disk: RDB takes periodic snapshots, AOF logs every write.',
+    an: 'RDB is a photo of the whiteboard every few minutes; AOF is a notebook where every change is written down.',
+    b: '<p>🧪 <b>See it:</b> a crash 4 minutes after the last RDB snapshot loses 4 minutes of writes. With AOF <code>everysec</code> it loses about 1 second.</p><p>⚠️ Even AOF <code>always</code> doesn\'t stop loss on failover, because replication is asynchronous.</p><p>☁️ <b>On AWS:</b> MemoryDB for durable Redis</p>', see: ['wal', 'extcache'] },
+  { id: 'fencing', t: 'Fencing token', aka: 'fencing token monotonic lock number stale lock holder kleppmann', s: 'A number that grows with every lock grant; the storage rejects writes that carry an older number.',
+    an: 'A ballroom door that checks the serial number on your key, not only that you have one.',
+    b: '<p>🧪 <b>See it:</b> A gets token 33, pauses, the lock expires; B gets 34 and writes. A wakes and writes with 33: rejected, because the storage has seen 34.</p><p>Redis locks have no built-in fencing token; ZooKeeper and etcd can provide one.</p>', see: ['distlock', 'redlock'] },
+  { id: 'redlock', t: 'Redlock', aka: 'redlock redis lock majority independent nodes kleppmann', s: 'A Redis locking algorithm: take the lock on a majority of independent Redis nodes, so one node\'s failover can\'t give the lock out twice.',
+    an: 'Needing signatures from 3 of 5 managers before the ballroom opens.',
+    b: '<p>⚠️ Controversial: a client that pauses after getting the lock can still act once it expired. Use fencing tokens, or a consensus system, when correctness matters.</p>', see: ['distlock', 'fencing', 'quorum'] },
+  { id: 'sortedset', t: 'Sorted set', aka: 'zset zadd zrange score rank leaderboard redis', s: 'A Redis set where every member has a score and members stay ordered by it.',
+    an: 'A scoreboard that re-sorts itself every time a score changes.',
+    b: '<p>🧪 <b>See it:</b> <code>ZADD board 500 alice</code>, then the top 10 with <code>ZRANGE board 0 9 REV</code>. Adds, updates and rank lookups take log time.</p>', see: ['extcache'] },
+  { id: 'consgroup', t: 'Consumer group', aka: 'consumer group xreadgroup xack xclaim xautoclaim pending worker redis streams kafka', s: 'A set of workers that share one stream: each entry goes to one worker, and the group tracks what each worker hasn\'t acknowledged yet.',
+    an: 'Porters signing for jobs in the front-desk job book.',
+    b: '<p>🧪 <b>See it:</b> 3 workers read from <code>jobs</code> with <code>XREADGROUP</code>. Worker 2 crashes; its unacknowledged job is claimed by worker 3 with <code>XAUTOCLAIM</code>.</p><p>⚠️ A job may run twice, so keep processing idempotent.</p>', see: ['idem', 'evsrc', 'lag'] },
+  { id: 'sentinel', t: 'Redis Sentinel', aka: 'sentinel failover high availability promote replica redis', s: 'Processes that watch a Redis primary and its replicas, and promote a replica if the primary dies. High availability without sharding.',
+    an: 'Night guards who agree on a new head receptionist when the old one leaves.',
+    b: '<p>🧪 <b>See it:</b> clients ask Sentinel "where is the primary?"; after a failover Sentinel answers with the new one.</p><p>Redis Cluster does the same job itself, by gossip between nodes.</p>', see: ['replica', 'hashslot'] },
+  { id: 'hashtag', t: 'Hash tag (Redis Cluster)', aka: 'hash tag braces same slot crossslot multi key redis cluster', s: 'Only the part of a key inside {braces} is hashed, so related keys land in the same slot.',
+    an: 'Giving two parcels the same room number, so they go to the same desk.',
+    b: '<p>🧪 <b>See it:</b> <code>{user:123}:posts</code> and <code>{user:123}:likes</code> share a slot, so one <code>MULTI</code> or <code>MGET</code> can touch both. Without the tag: a <code>CROSSSLOT</code> error.</p><p>⚠️ Too much under one tag makes a hot slot.</p>', see: ['hashslot', 'hotshard'] },
+  { id: 'pipelining', t: 'Pipelining', aka: 'pipeline batch commands one round trip mget redis', s: 'Send many commands at once without waiting for each reply, so they share one network round trip.',
+    an: 'Handing the receptionist a list of ten requests instead of queuing ten times.',
+    b: '<p>🧪 <b>See it:</b> 100 <code>GET</code>s one by one = 100 round trips (~50 ms). Pipelined = 1 round trip (~0.5 ms).</p>', see: ['n1', 'latency'] },
   { id: 'replica', t: 'Read replica', aka: 'replica replication primary follower lag read scaling', s: 'A copy of the database that serves reads. The primary takes the writes and copies them over.',
     an: 'A teacher writes on the main board, and assistants copy it onto boards in other rooms so more students can read.',
     b: '<p>🧪 <b>See it:</b> 1 primary + 3 replicas → about 4× the read capacity. ⚠️ Copying takes a moment (replication lag), so a read just after a write may show old data. It doesn\'t add write capacity: that\'s what sharding is for.</p><p>☁️ <b>On AWS:</b> RDS / Aurora read replicas</p>', see: ['shard', 'consistency'] },
@@ -8375,7 +9209,7 @@ const GLOSSARY = [
     ratelimit: /rate[ -]limit(?:ing|ed|er|s)?/i, isp: /ISPs?/, cgnat: /CGNAT|carrier-grade NAT/i, btree: /B\+? ?-?trees?/, lsm: /LSM(?: trees?)?/, memtable: /memtables?/i, sstable: /SSTables?/, wal: /write-ahead log|WAL/, bloom: /bloom filters?/i, compaction: /compaction/i, hashidx: /hash index(?:es)?/i, geohash: /geohash(?:es|ing)?/i, quadtree: /quadtrees?/i, rtree: /R-trees?/, invidx: /inverted index(?:es)?/i, covidx: /covering index(?:es)?/i, heapfile: /heap file/i, tid: /TIDs?|ctid/, seqrand: /(?:random|sequential) access/i, socket: /sockets?(?!\.IO)/i, phz: /(?:Route 53 )?(?:private|public) hosted zones?/i, routetable: /route tables?/i, dnsrec: /DNS records?|\bCNAMEs?\b/, r53resolver: /Route 53 Resolver/, route53: /Route 53(?! (?:private|public) hosted| Resolver)/, vpce: /(?:VPC|Gateway|Interface) endpoints?/, vpc: /VPCs?/, netmask: /subnet masks?|netmask/i, subnet: /subnets?/i, igw: /Internet Gateway/, cidr: /CIDR/, netaddr: /network address(?:es)?(?! translation)/i, bcast: /broadcast(?: address(?:es)?)?/i, bgp: /BGP/, icmp: /ICMP/, firewall: /firewalls?/i, l4lb: /L4 (?:load balancers?|LBs?)/, hol: /head-of-line blocking/i, tcpdump: /tcpdump/, traceroute: /traceroute/, l7lb: /L7 (?:load balancers?|LBs?)/, tuple: /5-tuple/, handshake: /handshakes?/i,
     keepalive: /keep-alive/i, compat: /backward-compatible|backwards-compatible/i, registry: /schema registry/i, latency: /latency/i, acid: /ACID/, pk: /primary keys?/i, fk: /foreign keys?/i, refint: /referential integrity/i, dbindex: /index(?:es)?/i,
     normalize: /(?:de)?normali[sz](?:ation|ed|e|ing)/i, hotshard: /hot (?:shard|partition|spot)s?/i, shardkey: /shard keys?|partition keys?/i, rangeshard: /range[- ]based sharding/i, hashshard: /hash[- ]based sharding/i, dirshard: /directory[- ]based sharding/i, conhash: /consistent[- ]hashing|hash rings?/i, vnode: /virtual nodes?|vnodes?/i, hashslot: /(?:fixed )?hash slots?/i, salting: /(?:key(?:-space)? )?salting|cache key fan-?out/i, scatter: /cross-shard (?:queries|query|operations?)/i, twopc: /two-phase commit|2PC/, saga: /sagas?\b/i, shard: /shard(?:s|ing|ed)?/i,
-    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
+    partition: /(?<!network )partition(?:ing|ed|s)/i, replica: /read replicas?/i, rdbaof: /\bRDB\b|\bAOF\b/, fencing: /fencing tokens?/i, redlock: /Redlock/, sortedset: /sorted sets?/i, consgroup: /consumer groups?/i, sentinel: /Redis Sentinel|\bSentinel\b/, hashtag: /hash tags?/i, pipelining: /pipelining/i, isolvl: /isolation levels?/i, mvcc: /MVCC/, jsonb: /JSONB/, postgis: /PostGIS/, partialidx: /partial index(?:es)?/i, deadlock: /deadlocks?/i, replag: /replication lag/i, matview: /materiali[sz]ed views?/i, funcshard: /functional sharding/i, geoshard: /geographic sharding/i, xfetch: /probabilistic early (?:refresh|expiration)/i, verkey: /cache (?:key )?versioning|versioned (?:cache )?keys?/i, taginv: /tagged invalidation/i, delcache: /deleted items cache/i, explain: /\bEXPLAIN\b/, compidx: /composite index(?:es)?/i, distlock: /distributed locks?/i, connpool: /connection pool(?:ing|s)?/i,
     consistency: /(?:eventual(?:ly)?|strong(?:ly)?) consisten(?:t|cy)/i, cap: /CAP(?: [Tt]heorem)?/, netpart: /network partitions?|partition tolerance/i, causal: /causal(?:ly)? consisten(?:t|cy)/i, ryow: /read[- ]your[- ]own[- ]writes?/i, pacelc: /PACELC/, cdc: /CDC|[Cc]hange [Dd]ata [Cc]apture/, quorum: /quorums?/i,
     vscale: /(?:vertical|horizontal)(?:ly)? scal(?:ing|e[sd]?)|scal(?:e|ing) (?:vertically|horizontally)/i, tps: /\b(?:TPS|QPS|WPS|RPS)\b/, tib: /\bTiB\b|tebibytes?/i, lag: /consumer lag/i, rcuwcu: /\b[RW]CUs?\b/, tco: /\bTCO\b|total cost of ownership/i,
     pubsub: /pub\/sub|publish[- ]subscribe/i, dlq: /dead[- ]letter queues?|DLQs?/i, race: /race conditions?/i, occ: /optimistic concurrency(?: control)?|optimistic locking/i, pesslock: /pessimistic lock(?:ing|s)?/i, loadshed: /load shedding/i, presign: /pre-?signed URLs?/i, evsrc: /event sourcing/i, durable: /durable execution|workflow engines?|Temporal\b/, cqrs: /CQRS/, outbox: /outbox pattern/i,
@@ -8637,10 +9471,23 @@ Source: cacti23/tracker → sysdesign/system-design.html, <section id="${cardId}
 Link: ${LIVE}#${id}
 Size: 50 (if I change it to 20 or 30, use that)
 
-You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microsoft, now mentoring SDE2 and SDE3 candidates for system design interviews at these companies. This is a drill of many small questions, not the long quiz. Goal: cover every concept of this part with many small questions I can reason about and remember, and train me to think the way a principal engineer thinks: what changed, what the numbers say, what it costs, what breaks next. Mentor, not examiner: no scores, grades or hire signals.
+You are a Principal Software Engineer with 30+ years at Meta, Google and Nvidia, now mentoring SDE2 and SDE3 candidates for FAANG system design (HLD) interviews at these companies. This is a drill of many small questions, not the long quiz. I am in learning mode: options are welcome and there is no clock. Goal: cover every concept of this part with many small questions I can reason about and remember, bring back my weak old topics, and train me to think the way a principal engineer thinks: what changed, what the numbers say, what it costs, what breaks next. Mentor, not examiner: no scores or hire signals.
+
+🎯 MY ULTIMATE GOAL
+I am preparing for SDE2 interviews (Google L4, Meta E4, Amazon SDE II), with the eventual goal of SDE3-level engineering thinking. I want to:
+- Understand concepts deeply.
+- Learn how experienced engineers approach engineering problems.
+- Understand why a solution is chosen over the alternatives.
+- Develop strong architectural reasoning.
+- Explain concepts without memorising answers.
+- Practise enough to solve similar problems on my own in interviews.
+Your priority is teaching, explaining and building my engineering intuition.
+
+⚖️ If two rules clash: my commands win · Rapid stays short · chains go one step at a time · the bank decides what comes back.
 
 📖 1. SOURCE AND SIZE
 - Read the section above first (repo file, or the Link). If you can't open either, ask me to paste it. Don't guess its content.
+- Read the bank (section 7) before you start: its 🔑 Rules, 🗂️ Section scoreboard, due rows, and the 📒 Question ledger.
 - List every concept in it (headlines, terms, numbers, trade-offs). Each concept gets at least 2 questions. Before Q1 show the concepts as a bulleted list, one concept per line: emoji + bold name + a few words.
 - Default size 50. If the section is small, go deeper on each concept (new scenarios, edge cases) rather than repeat questions.
 - Extras beyond my notes are fine when they help. Tag them "➕ Beyond your notes".
@@ -8653,10 +9500,10 @@ You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microso
 - The ⚡ Rapid round is always 40 facts and is extra: Size counts only Recall, Connect and Chains.
 - ⚡ Rapid: facts I must know cold (see 2b).
 - 🟢 Recall: pick 1 of 4 · true or false + why · fill in the number. Of 20: 14 new on this section + 3 from the 🔁 Concept pile + 3 🔥 keep-warm (due rows from the bank's 🔥 Keep-warm queue, asked once as a new scenario; right → kept, wrong → into the pile). Smaller sizes keep the same mix (about 70 / 15 / 15).
-- 🟡 Connect: match 5 ↔ 5 · put in order · odd one out · spot the wrong decision.
+- 🟡 Connect: match 5 ↔ 5 · put in order · odd one out · spot the wrong decision. Join this section with older ones, weakest sections on the scoreboard first.
 - 🔴 Chains: one real product scenario split into small steps (see 3).
-- About 20% of all questions come from my drill bank's 🔁 Concept pile (section 7): rows due now first, same section first, then other sections. Reword them as new scenarios. Mark them 🔁 only in the feedback.
-- Wrong options are realistic engineering mistakes, never silly ones.
+- About 20% of all questions come from my drill bank's 🔁 Concept pile (section 7): rows due now first, same section first, then other sections. Reword them as new scenarios: check the 📒 ledger so no question repeats word for word. Mark them 🔁 only in the feedback.
+- Wrong options are realistic engineering mistakes, never silly ones. When one fits, use one of my 🪤 traps from the bank as the tempting option.
 - ✍️ Every question stands on its own, in plain words, as an interviewer would ask it. Never use my notes' labels or your own shorthand without saying what you mean ("hint words" → "which words in the problem tell you to pick GraphQL?"). Say "this section" or the topic name, never "the card". Before posting, re-read each question: would someone who never saw my notes know exactly what is being asked and what kind of answer fits (a number, a list of 3, a name)?
 - ✍️ About 1 in 5 questions has NO options: I answer in one line or with a number, like in the real interview.
 - 📌 Facts also appear inside Recall and Connect where they fit (e.g. match each need to its AWS service).
@@ -8675,7 +9522,7 @@ You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microso
 - First steps are SDE2 (what broke, which layer, why). Last 2–3 steps are SDE3: Size → Prove → Cost → Path → Break.
 - 🧮 Numbers decide: every chain has at least one step where I calculate the impact (traffic × failure % × value: money, users or seconds) and use it to choose what to fix first. Give the numbers, label them, ask for one blank at a time.
 - Post ONE step at a time and wait for my answer, so a wrong turn is caught at that step. Feedback on that step (see 4), then the next step in the same message.
-- 🗣️ At the end of a chain, ask ME to tell the whole story as a fill-in-the-blanks skeleton, one line per beat: 👀 Saw → 🛑 Stop the bleeding → 💰 Rank by cost → 🔎 Prove the cause → 🛠️ Fix the class → 🧪 Prove it's over → 🛡️ Prevent. Then give the filled skeleton and yours in 5–7 spoken lines, the way I'd say it to the interviewer, and tag what I said (✅ you said this).
+- 🗣️ At the end of a chain, ask ME to tell the whole story as a fill-in-the-blanks skeleton, one line per beat. 🔥 Incident chain: 👀 Saw → 🛑 Stop the bleeding → 💰 Rank by cost → 🔎 Prove the cause → 🛠️ Fix the class → 🧪 Prove it's over → 🛡️ Prevent. 🏗️ Design chain: 📋 Requirements → 🔢 Numbers → 🔌 API → 🗄️ Data model → 📦 Boxes → 🔬 Deep dive → ⚖️ Trade-offs & failures. Then give the filled skeleton and yours in 5–7 spoken lines, the way I'd say it to the interviewer, and tag what I said (✅ you said this).
 
 ⏩ 4. PACE AND LAYOUT
 - Recall and Connect come in batches of 3 (each explanation is full, so 3 keeps one message readable). Chains go one step at a time.
@@ -8684,6 +9531,7 @@ You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microso
 - I answer however I like: "1B 2D 3 A-3 B-1…", short words or voice.
 - Feedback for EVERY question and chain step, in two parts:
   Part 1, 📝 my answer (short): the question again → ✅ Correct / ⚠️ Partly / 🔧 Not correct → what I got right, my issue in one line (if any).
+  Grades mean only this: ✅ right answer AND right reason · ⚠️ right answer with a weak or missing reason, or partly right · 🔧 wrong or "don't know" · ⏭️ I asked for the answer. The bank counts ⚠️, 🔧 and ⏭️ as misses.
   Part 2, 📖 tight explanation (see 5), even when I'm right: enough that I could handle this exact question if an interviewer asked it, but clear, concise and coherent. Length follows the question (a hard scenario more, a simple recall question fewer). Each fact once, no filler.
 - Then a --- divider and the next batch in the SAME message. Don't wait for "next".
 - Start every reply with 📘 Terms, ONLY for words new in this drill (never repeat a term already explained): ONE term per line (acronym = full name, short memory hook). Skip the block if nothing is new.
@@ -8692,6 +9540,7 @@ You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microso
 - 🔑 Keep-forever box: the first time one of these 4 kinds appears, show it in its own quoted box (> 🔑 …) right after the explanation, same shape every time, with this drill's example:
   🧮 Formula (servers = load ÷ (capacity × target %) → 250k ÷ 25k = 10) · 🧭 Decision rule (both sides send often → WebSocket; one side rare → SSE + REST) · 🔢 Number to know (ALB idle timeout 60 s) · 🪤 Trap I fell into (0.1% = ÷1,000, not ÷10).
 - Never claim a company asked a question without evidence.
+- 📍 After a gap of a day or more, start the reply with where we are (round, question, score so far) in 2 lines.
 
 🧑‍🏫 5. HOW TO EXPLAIN (same teaching rules as my long quiz)
 - Understand what I'm trying to say. Don't penalise imperfect wording. Tag what I got right "(✅ you said this)". Never write "you missed".
@@ -8705,7 +9554,8 @@ You are a Principal Software Engineer with 30+ years at Meta, Nvidia and Microso
   2. 🎯 Why (ALWAYS): what really happens inside, as clue → proves → rules out. Each wrong option gets ONE line; the tempting one's line says why it tempts and when it WOULD be right.
   3. 🧩 Analogy (ONLY when it really helps: a new or confusing idea, or a step I got wrong). 2–3 lines. Skip it when 🎯 Why is already clear.
   4. ➕ Deeper + 💸 (ALWAYS, at most 2–3 bullets): one layer deeper (numbers, failure case, trade-off, how production does it) and why it matters in production (money, users or risk, and what a good engineer does differently).
-  5. 🧠 Takeaway (ALWAYS, one sticky line): the principle, phrased the way a principal engineer would think it.
+  5. 🎚️ Levels (chain steps): "Senior (L4/L5) says… · Principal adds…" in 2 lines.
+  6. 🧠 Takeaway (ALWAYS, one sticky line): the principle, phrased the way a principal engineer would think it.
 - On "deep" (or "explain"/"skip"): the long version: every block expanded, plus 🔍 tempting trap and 🧭 principal's lens as their own blocks.
 
 💬 6. MY COMMANDS
@@ -8722,18 +9572,20 @@ If I ask my own question, answer it before continuing.
 - File: /mnt/project-files/quiz/sd-drill-bank.md (drills only; the long quiz has its own bank). It holds only OPEN items, so it stays small. Read it before you start and follow its 🔑 Rules header.
 - One row per concept or fact (stable IDs like NET-C01), never one row per question. A repeat miss updates its row.
 - 🔑 Every keep-forever item gets a bank row: formulas in the 🧮 Formulas pile (IDs like API-M01), rules as concept rows, numbers as fact rows. Later drills ask them as a NEW scenario with new numbers, so I practise using them, not reciting them. 🪤 Traps come back as the tempting wrong option.
+- 📒 Question ledger /mnt/project-files/quiz/drills/ledger.md: one line per question asked (date, drill, section, round, concept ID, short question, grade). Update it with the bank.
+- 🗂️ Section scoreboard (in the bank): one row per section drilled (🟥 / 🟨 / 🟩, last drilled, open rows, weakest). Update it at the end.
 - Pull only rows with Due ≤ today, oldest first, same section first. Miss → Due today; right → Due +7 days; 2/2 → move to drills/learned.md. Right first time → 🔥 keep-warm row, Due +14 days.
-- 🏁 At the end, write the drill's log (shape, result, 💡 remember list, per-question detail) to its own file /mnt/project-files/quiz/drills/drill-NN-<section>.md and add one line to the bank's 📜 Drill index. Never paste logs into the bank.
+- 🏁 At the end, write the drill's log (shape, result, 💡 remember list, per-question detail) to its own file /mnt/project-files/quiz/drills/drill-NN-<section>.md add one line to the bank's 📜 Drill index, and update the scoreboard. Never paste logs into the bank.
 - Update it after every batch and chain. Never claim you updated it unless you did.
 
 🏁 8. END OF DRILL
-- 🗺️ Concept heatmap: each concept 🟢 / 🟡 / 🔴.
+- 🗺️ Concept heatmap: each concept 🟢 / 🟡 / 🔴, with the trend vs last time for concepts drilled before (🔴→🟡), and how many rows moved to learned today.
 - My 3 weakest concepts, each with one line to remember.
 - ⚡ Facts I missed today, as a short list to re-read.
 - The one chain worth redoing.
 - 🔑 Keep forever: one card with every 🔑 box from the drill in 4 groups (🧮 Formulas · 🧭 Decision rules · 🔢 Numbers to know · 🪤 Traps I fell into), one line each with this drill's example.
 - 💡 Remember from this drill: if I remember only 5 things, ranked, one sticky line each (principles and facts I didn't know or got wrong, e.g. "Silence = firewall, fast no = nobody listening, slow reply = server struggling"). What a principal would want me to still know in a month.
-- 📝 Update your notes: every fact or idea from this drill worth keeping in my notes, one line each, grouped by notes section (e.g. "AWS keeps 5 IPs per subnet", "NAT Gateway = private → out; Internet Gateway = public ↔ internet"). Check each against the notes page first and tag it ➕ missing or ✏️ there but unclear; leave out what the notes already say well.
+- 📝 Update your notes: every fact or idea from this drill worth keeping in my notes, one line each, grouped by notes section (e.g. "AWS keeps 5 IPs per subnet", "NAT Gateway = private → out; Internet Gateway = public ↔ internet"). Check each against the notes page first and tag it ➕ missing or ✏️ there but unclear; leave out what the notes already say well. Put this list in ONE copy-ready block (a code block, so I can copy and paste it into my notes in one go), and include every 🔑 formula, decision rule and number from the Keep-forever card that my notes don't have yet.
 No score, no grade.`
 
   const copy = async (text, btn) => {
@@ -8866,6 +9718,15 @@ No score, no grade.`
   rail.addEventListener('click', e => { if (e.target.closest('a') && rail.classList.contains('open')) open(false) })
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && rail.classList.contains('open')) open(false) })
   wide.addEventListener('change', () => { if (wide.matches) open(false); track() })
+  // Hide / show on wide screens, remembered on this device only (a reading preference, not progress)
+  const RAIL_OFF_KEY = 'sd-rail-hidden'
+  const setRailOff = off => {
+    document.body.classList.toggle('rail-off', off)
+    try { off ? localStorage.setItem(RAIL_OFF_KEY, '1') : localStorage.removeItem(RAIL_OFF_KEY) } catch {}
+  }
+  try { document.body.classList.toggle('rail-off', localStorage.getItem(RAIL_OFF_KEY) === '1') } catch {}
+  document.getElementById('rail-hide').addEventListener('click', () => setRailOff(true))
+  document.getElementById('rail-show').addEventListener('click', () => setRailOff(false))
   build()
 })()
 
