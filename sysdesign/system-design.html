@@ -9404,7 +9404,18 @@ setView(startView)
     jump()
     return () => goToHash(hash)
   }
+  // A reload (or the hub reopening the notes) brings no hash, so it would start at the top: go back
+  // to the heading you were last reading instead (Adi, 2026-11-27). A link with its own hash wins.
+  const POS_KEY = 'sd-last-section'
+  let saved = ''
+  try { saved = localStorage.getItem(POS_KEY) || '' } catch {}
+  if (!location.hash && saved && document.getElementById(decodeURIComponent(saved.slice(1))))
+    history.replaceState(history.state, '', location.pathname + location.search + saved)
   const firstJump = goToHash()
+  // The URL always names the heading you're reading (the follower below), so keep it when the page goes away
+  const savePos = () => { try { location.hash ? localStorage.setItem(POS_KEY, location.hash) : localStorage.removeItem(POS_KEY) } catch {} }
+  window.addEventListener('pagehide', savePos)
+  document.addEventListener('visibilitychange', () => { if (document.hidden) savePos() })
   if (firstJump) window.addEventListener('load', firstJump, { once: true })
   // The browser scrolls before it fires hashchange, so the follower may already have rewritten the hash
   // from half-rendered cards: take the clicked one from the event and put it back
