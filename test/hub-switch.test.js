@@ -57,8 +57,8 @@ test('an unknown stored mode falls back to DSA', () => {
   assert.equal(mode(sandbox), 'dsa')
 })
 
-test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now Life', () => {
-  assert.match(HTML, /class="hub-switch"[^>]*role="group"/)
+test('the top bar has the notebook tabs, DSA-only sections are tagged, and Apps is now Life', () => {
+  assert.match(HTML, /<nav class="hub-tabs" id="hub-tabs" aria-label="Notebooks">/)
   assert.match(HTML, /data-click="switchHub" data-args='\["dsa"\]'/)
   assert.match(HTML, /data-click="switchHub" data-args='\["sd"\]'/)
   for (const id of ['nav-dashboard', 'nav-thoughts', 'nav-jsbuiltins', 'nav-visuals', 'nav-topics']) {

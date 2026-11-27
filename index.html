@@ -192,9 +192,9 @@
       transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
     .sidebar-close-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
-    .sidebar-account { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--border); }
-    .sidebar-account-btn { width: 100%; font-size: var(--fs-xs); padding: 0.45rem 0.6rem; }
-    .sidebar-account-btn .ds-account-label { overflow: hidden; text-overflow: ellipsis; }
+    /* Account sits top right, where people look for it. */
+    header .header-account-btn { flex: 0 0 auto; max-width: 180px; min-height: 32px; font-size: var(--fs-xs); padding: 0 0.65rem; }
+    .header-account-btn .ds-account-label { overflow: hidden; text-overflow: ellipsis; }
     .sidebar-section-label {
       font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--text-faint); padding: 0.5rem 0.75rem 0.3rem; white-space: nowrap;
@@ -208,12 +208,6 @@
     .sidebar-nocollect { white-space: normal; line-height: 1.35; }
     .sidebar-feedback-link { color: var(--text-muted); text-decoration: none; font-size: var(--fs-2xs); }
     .sidebar-feedback-link:hover { color: var(--accent); }
-    #sidebar button.nav-link.nav-howto-card {
-      border: 1px solid var(--border-glow); background: var(--accent-dim); margin-bottom: 0.5rem; padding: 0.55rem 0.75rem;
-    }
-    .nav-howto-text { display: flex; flex-direction: column; line-height: 1.25; white-space: normal; text-align: left; }
-    .nav-howto-text b { color: var(--text-primary); font-weight: 700; }
-    .nav-howto-text small { color: var(--text-muted); font-size: var(--fs-2xs); }
     #sidebar .sidebar-footer button.sidebar-privacy-link {
       width: auto; padding: 0.15rem 0.4rem; margin: 0 0 0 -0.4rem; font-size: var(--fs-2xs); color: var(--text-muted);
     }
@@ -256,20 +250,51 @@
       transition: background 0.14s, color 0.14s, border-color 0.14s;
     }
     .sidebar-gym-link:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-glow); }
-    /* DSA | System Design | Interview experiences switch: one named mode on <body data-hub-mode>,
-       set by setHubMode(). Interview experiences takes its own full-width row under the other two. */
-    .hub-switch {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; margin-top: 0.5rem; padding: 0.2rem;
+    /* DSA | System Design | Interviews: one named mode on <body data-hub-mode>, set by setHubMode().
+       Tabs in the top bar; on phones the same tabs become a bottom bar, like most phone apps. */
+    .hub-tabs {
+      display: flex; gap: 2px; padding: 2px; flex: none;
       border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-hover);
     }
-    .hub-switch button {
-      flex: 1 1 50%; border: 0; border-radius: calc(var(--radius) - 2px); background: transparent;
-      padding: 0.4rem 0.3rem; min-height: 32px; white-space: nowrap; cursor: pointer;
+    .hub-tabs button {
+      display: flex; align-items: center; gap: 0.35rem; border: 0; border-radius: calc(var(--radius) - 2px);
+      background: transparent; padding: 0.3rem 0.7rem; min-height: 30px; white-space: nowrap; cursor: pointer;
       font: 600 var(--fs-xs) var(--font-body); color: var(--text-muted);
     }
-    .hub-switch button:hover { color: var(--text-primary); }
-    .hub-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-    .hub-switch button.hub-exp { grid-column: 1 / -1; }
+    .hub-tabs button:hover { color: var(--text-primary); }
+    .hub-tabs button[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
+    @media (max-width: 768px) {
+      .hub-tabs {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 1020; height: 56px;
+        border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: 0 0 env(safe-area-inset-bottom);
+        background: var(--bg-surface); display: grid; grid-template-columns: repeat(3, 1fr);
+      }
+      .hub-tabs button { flex-direction: column; justify-content: center; gap: 1px; border-radius: 0; font-size: var(--fs-2xs); padding: 0; }
+      .hub-tabs button .hub-tab-icon { font-size: 1.15rem; line-height: 1; }
+      .hub-tabs button[aria-current="page"] { background: transparent; color: var(--accent); }
+      body { padding-bottom: 56px; }
+      body.embed-view > .d-flex, body.embed-view #main-col { height: calc(100vh - 56px); }
+      header #page-title, header .header-github { display: none; }   /* the repo link is in the sidebar footer here */
+    }
+    /* Mid-size screens: keep the top bar on one line. */
+    @media (min-width: 769px) and (max-width: 1100px) { .hub-tabs .hub-tab-icon { display: none; } }
+    @media (max-width: 1100px) {
+      .header-github .gh-label { display: none; } .header-github { width: 32px; padding: 0; }
+      /* Signed out: a short "Sign in"; signed in: the green GitHub mark (the title names the account). */
+      .header-account-btn .ds-account-label { display: none; }
+      .header-account-btn:not(.ds-token-set)::before { content: 'Sign in'; order: 2; }
+    }
+
+    /* System Design lesson map (renderSdTree): order toggle, filter, one topic open at a time. */
+    .sd-by { display: flex; margin: 0.15rem 0.25rem 0.4rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .sd-by button { flex: 1; border: 0; background: transparent; padding: 0.3rem 0; font: 600 var(--fs-2xs) var(--font-body); color: var(--text-muted); cursor: pointer; }
+    .sd-by button[aria-pressed="true"] { background: var(--accent-dim); color: var(--accent); }
+    .sd-filter { margin: 0 0.25rem 0.4rem; width: calc(100% - 0.5rem); font-size: var(--fs-xs); }
+    #sidebar button.nav-link.sd-group { justify-content: space-between; }
+    .sd-group .sd-count { font-size: var(--fs-2xs); color: var(--text-faint); }
+    .sd-group .sd-caret { display: inline-block; width: 0.8em; transition: transform 0.15s; }
+    .sd-group[aria-expanded="true"] .sd-caret { transform: rotate(90deg); }
+    #sidebar button.nav-link.sd-card { padding: 0.3rem 0.75rem 0.3rem 1.9rem; font-size: var(--fs-xs); white-space: normal; line-height: 1.3; }
     body:not([data-hub-mode="dsa"]) #sidebar [data-hub="dsa"],
     body:not([data-hub-mode="sd"]) #sidebar [data-hub="sd"],
     body:not([data-hub-mode="exp"]) #sidebar [data-hub="exp"],
@@ -319,7 +344,6 @@
     body.embed-view #main-col { min-height: 0; height: 100vh; }
     body.embed-view main { min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
     /* The title/tag search finds tracker questions: it belongs to the DSA pages, not embedded ones. */
-    body.embed-view #global-search-input { display: none; }
     /* Embedded pages: the top bar tucks away while you scroll down and returns on scroll up. */
     body.embed-view.header-tucked header { display: none; }
     .site-open { font-size: var(--fs-xs); white-space: nowrap; }
@@ -336,7 +360,7 @@
       background: var(--bg-surface);
       border-bottom: 1px solid var(--border);
       padding: 0.6rem 1.4rem;
-      display: flex; align-items: center; gap: 0.85rem;
+      display: flex; align-items: center; gap: 0.6rem;
       position: sticky; top: 0; z-index: 100;
     }
     .header-menu-btn {
@@ -348,12 +372,14 @@
     }
     .header-menu-btn:hover { border-color: var(--border-glow); color: var(--text-primary); background: var(--bg-hover); }
     /* Wider than the square icon buttons: it carries a short "PRs welcome" label, the usual open-source invite. */
-    .header-github { margin-left: 0.4rem; text-decoration: none; width: auto; padding: 0 0.6rem; gap: 0.4rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+    .header-github { text-decoration: none; width: auto; padding: 0 0.6rem; gap: 0.4rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
     @media (max-width: 575.98px) { .header-github .gh-label { display: none; } .header-github { width: 32px; padding: 0; } }
     #page-title {
       font-size: var(--fs-base); font-weight: 600; color: var(--text-primary);
       margin: 0; padding: 0; border: none; background: transparent;
       cursor: pointer; transition: color 0.15s;
+      /* One line, shortened with … when the top bar is tight (the tabs come first). */
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 2.2rem; flex: 0 1 auto;
     }
     #page-title:hover { color: var(--accent); }
 
@@ -1059,7 +1085,9 @@
       background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); font-weight: 700;
     }
     .btn-accent:hover, .btn-accent:focus-visible { background: var(--accent); color: var(--on-accent); filter: brightness(1.08); }
-    #global-search-input { width: clamp(160px, 28vw, 320px) !important; }
+    /* Shrinks before the page title does, down to a usable minimum. */
+    #global-search-input { width: auto !important; flex: 0 1 240px; min-width: 120px; margin: 0 0 0 0.4rem !important; }
+    #header-tabs:empty { display: none; }
 
     /* Bootstrap components (accordion, outline buttons) read these; point them at our tokens. */
     [data-bs-theme] {
@@ -1177,20 +1205,6 @@
       <button type="button" data-click="toggleSidebar" class="sidebar-close-btn" title="Close sidebar" aria-label="Close sidebar">✕</button>
     </div>
 
-    <!-- Sign in with GitHub / signed-in account; label and state set by js/sync.js -->
-    <div class="sidebar-account">
-      <button type="button" id="dataAccountBtn" class="sidebar-data-btn sidebar-account-btn" data-click="DataSync.account">
-        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="flex:none"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="ds-account-label">Sign in with GitHub</span>
-      </button>
-      <!-- Two notebooks; the sidebar shows the picked one's pages (data-hub), shared pages have none.
-           Inside the account box so the box's bottom line sits under both, not between them. -->
-      <div class="hub-switch" role="group" aria-label="Notebook">
-        <button type="button" data-mode="dsa" aria-pressed="true" data-click="switchHub" data-args='["dsa"]'>🧩 DSA</button>
-        <button type="button" data-mode="sd" aria-pressed="false" data-click="switchHub" data-args='["sd"]'>🏛️ System Design</button>
-        <button type="button" data-mode="exp" aria-pressed="false" data-click="switchHub" data-args='["exp"]' class="hub-exp">💼 Interview experiences</button>
-      </div>
-    </div>
-
     <nav class="flex-grow-1 p-2 pb-3 overflow-auto sidebar-nav">
       <!-- Interview experiences are their own notebook (the third switch button): a real loop mixes
            DSA, system design (HLD, LLD) and behavioral rounds (Adi, 2026-11-26). The sidebar then
@@ -1199,11 +1213,6 @@
       <button type="button" id="nav-google" data-hub="exp" data-click="loadGoogle" class="nav-link" title="Google: the worked onsite log, with interview sources">
         <span class="nav-topic-icon" aria-hidden="true">🔍</span>
         <span class="nav-topic-label">Google</span>
-      </button>
-      <!-- First thing a new visitor sees in the DSA notebook: a card, not a plain row. -->
-      <button type="button" id="nav-howto" data-hub="dsa" data-click="loadEmbed" data-args='["howto"]' class="nav-link nav-howto-card" title="How to use the DSA tracker: what it is, how revision works, a daily routine">
-        <span class="nav-topic-icon" aria-hidden="true">📖</span>
-        <span class="nav-howto-text"><b>How to use the DSA tracker</b><small>2-minute guide</small></span>
       </button>
       <button type="button" id="nav-dashboard" data-hub="dsa" data-click="loadDashboard"
         class="nav-link">
@@ -1214,11 +1223,16 @@
         <span class="nav-topic-icon" aria-hidden="true">🕘</span>
         <span class="nav-topic-label">Recently solved</span>
       </button>
-      <button type="button" id="nav-sysdesign" data-hub="sd" data-click="loadEmbed" data-args='["sysdesign"]' class="nav-link" title="System Design notes: lessons, designs, the AWS map and the glossary">
+      <button type="button" id="nav-sysdesign" data-hub="sd" data-click="sdAllNotes" class="nav-link" title="System Design notes: lessons, designs, the AWS map and the glossary">
         <span class="nav-topic-icon" aria-hidden="true">🏛️</span>
-        <span class="nav-topic-label">System Design notes</span>
+        <span class="nav-topic-label">All notes</span>
       </button>
-      <!-- One "Study tools" heading for both notebooks: each item carries the notebook it belongs to
+      <!-- System Design's lessons, drawn from the notes page itself (renderSdTree) once it loads,
+           so the hub sidebar is the one map: by topic or by course, with a filter. -->
+      <div id="nav-sd-tree" data-hub="sd"></div>
+      <p class="sidebar-section-label" data-hub="dsa">Topics</p>
+      <div id="nav-topics" data-hub="dsa"></div>
+      <!-- Study tools come after the topics (the main content first) and stay visible (#268). One heading for both notebooks: each item carries the notebook it belongs to
            (data-hub), and Study Sites has none, so it shows in both. Privacy sits in the footer. -->
       <p class="sidebar-section-label">Study tools</p>
       <button type="button" id="nav-thoughts" data-hub="dsa" data-click="loadEmbed" data-args='["thoughts"]' class="nav-link" title="DSA Thoughts: short insights per topic, each with a diagram">
@@ -1245,8 +1259,6 @@
         <span class="nav-topic-icon" aria-hidden="true">🔖</span>
         <span class="nav-topic-label">Study Sites</span>
       </button>
-      <p class="sidebar-section-label" data-hub="dsa">Topics</p>
-      <div id="nav-topics" data-hub="dsa"></div>
 
 
     </nav>
@@ -1266,9 +1278,11 @@
     </details>
 
     <div class="sidebar-footer">
+      <button type="button" id="nav-howto" data-click="loadEmbed" data-args='["howto"]' class="nav-link sidebar-privacy-link" title="How to use the DSA tracker: what it is, how revision works, a daily routine">📖 How to use</button>
       <button type="button" id="nav-privacy" data-click="loadEmbed" data-args='["privacy"]' class="nav-link sidebar-privacy-link" title="Privacy and your data: what is stored, signing out, delete my data">🔒 Privacy &amp; data</button>
+      <a class="sidebar-feedback-link" href="https://github.com/cacti23/tracker" target="_blank" rel="noopener">⭐ GitHub · PRs welcome</a>
       <a class="sidebar-feedback-link" href="https://docs.google.com/forms/d/e/1FAIpQLSclEDL8hfAxdj1hShNecfGP61chtrLakMT_zNqLiUJTbplAyw/viewform" target="_blank" rel="noopener">💬 Send feedback</a>
-      <span>v612 · Interview Prep Hub</span>
+      <span>v613 · Interview Prep Hub</span>
       <span class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</span>
     </div>
   </aside>
@@ -1280,15 +1294,26 @@
     <!-- Top Bar -->
     <header>
       <button type="button" data-click="toggleSidebar" class="header-menu-btn" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+      <!-- The three notebooks are the top level, so they sit in the top bar (Adi, 2026-11-27).
+           On phones the same buttons become a bottom tab bar (CSS only). -->
+      <nav class="hub-tabs" id="hub-tabs" aria-label="Notebooks">
+        <button type="button" data-mode="dsa" aria-current="page" data-click="switchHub" data-args='["dsa"]'><span class="hub-tab-icon" aria-hidden="true">🧩</span><span class="hub-tab-label">DSA</span></button>
+        <button type="button" data-mode="sd" data-click="switchHub" data-args='["sd"]'><span class="hub-tab-icon" aria-hidden="true">🏛️</span><span class="hub-tab-label">System Design</span></button>
+        <button type="button" data-mode="exp" data-click="switchHub" data-args='["exp"]'><span class="hub-tab-icon" aria-hidden="true">💼</span><span class="hub-tab-label">Interviews</span></button>
+      </nav>
       <button type="button" id="page-title" class="fs-6 fw-semibold mb-0"
           data-click="loadDashboard" title="Go to Dashboard" aria-label="Go to Dashboard">
         🏠 Dashboard
       </button>
       <div id="header-tabs" class="ms-2"></div>
-      <input type="search" id="global-search-input" class="form-control form-control-sm" placeholder="🔍 Search by title or tag…" aria-label="Search questions by title or tag" autocomplete="off" spellcheck="false" style="width: 200px; margin: 0 1rem;" data-keyup="handleGlobalSearch">
+      <input type="search" id="global-search-input" class="form-control form-control-sm" placeholder="🔍 Search problems…" aria-label="Search" autocomplete="off" spellcheck="false" style="width: 200px; margin: 0 1rem;" data-keyup="handleGlobalSearch">
       <button type="button" data-click="toggleTheme" class="header-menu-btn ms-auto" id="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
       <!-- Open source: the repo, for anyone who wants to read the code or contribute. -->
       <a href="https://github.com/cacti23/tracker" target="_blank" rel="noopener" class="header-menu-btn header-github" id="header-github" title="Open source (MIT) on GitHub: star it, report a bug or open a pull request" aria-label="Source code on GitHub, pull requests welcome"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="gh-label">PRs welcome</span></a>
+      <!-- Sign in with GitHub / signed-in account, top right; label and state set by js/sync.js -->
+      <button type="button" id="dataAccountBtn" class="sidebar-data-btn header-account-btn" data-click="DataSync.account">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="flex:none"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="ds-account-label">Sign in with GitHub</span>
+      </button>
     </header>
 
     <!-- Content -->
@@ -1785,6 +1810,10 @@ function handleGlobalSearch() {
   
   const query = input.value.trim()
   
+  if (query.length === 0 && document.body.dataset.hubMode === 'sd') {
+    try { document.getElementById(EMBEDS.sysdesign.frame).contentWindow.SDNAV_search('') } catch {}
+    return
+  }
   if (query.length === 0) {
     // If search is empty, go back to dashboard
     document.getElementById('global-search-input').value = ''
@@ -1792,6 +1821,12 @@ function handleGlobalSearch() {
     return
   }
   
+  // In System Design the same box searches the notes and glossary, inside the notes page.
+  if (document.body.dataset.hubMode === 'sd') {
+    if (document.getElementById('view-sysdesign').classList.contains('d-none')) loadEmbed('sysdesign')
+    try { document.getElementById(EMBEDS.sysdesign.frame).contentWindow.SDNAV_search(query) } catch {}
+    return
+  }
   // Perform search
   const results = searchGlobalQuestions(query)
   renderSearchResults(results)
@@ -1977,7 +2012,18 @@ const HUB_MODES = ['dsa', 'sd', 'exp']
 function setHubMode(m) {
   if (!HUB_MODES.includes(m)) m = 'dsa'
   document.body.dataset.hubMode = m
-  document.querySelectorAll('.hub-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)))
+  document.querySelectorAll('.hub-tabs button').forEach(b => {
+    if (b.dataset.mode === m) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current')
+  })
+  // One search box: in System Design it searches the notes and glossary, elsewhere the problems.
+  const search = document.getElementById('global-search-input')
+  if (search) search.placeholder = m === 'sd' ? '🔍 Search notes and terms…' : '🔍 Search problems…'
+  // The System Design sidebar is drawn from the notes page, so load it as soon as the notebook
+  // opens (from Paper Club too), not only when the notes themselves are shown.
+  if (m === 'sd') {
+    const f = document.getElementById(EMBEDS.sysdesign.frame)
+    if (f && !f.getAttribute('src')) f.setAttribute('src', EMBEDS.sysdesign.src)
+  }
   try { localStorage.setItem(HUB_MODE_KEY, m) } catch {}
 }
 function switchHub(m) {
@@ -1985,6 +2031,106 @@ function switchHub(m) {
   else if (m === 'exp') loadGoogle()
   else loadDashboard()
 }
+
+// ─── SYSTEM DESIGN LESSON MAP ─────────────────────────────────────────────────
+// The notes page (sysdesign/system-design.html, same origin) exposes SDNAV: its lesson tree, its
+// current view and a way to open a card. The hub draws that tree in its own sidebar, so there is
+// one map instead of tabs + chips + an index inside the page (Adi, 2026-11-27). Only what the page
+// can't know lives here: which group is open, the filter text, and the card last opened.
+const _sdTree = { open: null, filter: '', active: null }
+function _sdNav() {
+  try { return document.getElementById(EMBEDS.sysdesign.frame).contentWindow.SDNAV || null } catch { return null }
+}
+function renderSdTree() {
+  const box = document.getElementById('nav-sd-tree')
+  const nav = _sdNav()
+  if (!box) return
+  if (!nav) { box.innerHTML = ''; return }
+  const by = nav.view() === 'courses' ? 'courses' : 'topics'
+  const tree = nav.tree()
+  const groups = by === 'courses' ? tree.lessons : tree.topics
+  if (_sdTree.active && !groups.some(g => g.key === _sdTree.open)) {
+    const g = groups.find(g => g.cards.some(c => c.id === _sdTree.active))
+    if (g) _sdTree.open = g.key
+  }
+  let html = '<div class="sd-by" role="group" aria-label="Order the lessons">' +
+    [['topics', 'By topic'], ['courses', 'By course']].map(([k, label]) =>
+      '<button type="button" aria-pressed="' + (k === by) + '" data-click="sdTreeBy" data-args="' + Actions.attrArgs([k]) + '">' + label + '</button>').join('') +
+    '</div>' +
+    '<input type="search" class="form-control form-control-sm sd-filter" placeholder="Filter lessons" aria-label="Filter lessons" autocomplete="off" value="' + escHtml(_sdTree.filter) + '" data-input="sdTreeFilter" data-args=\'["$value"]\'>'
+  for (const g of groups) {
+    const open = g.key === _sdTree.open
+    html += '<div class="sd-g" data-key="' + escHtml(g.key) + '">' +
+      '<button type="button" class="nav-link sd-group" aria-expanded="' + open + '" data-click="sdTreeToggle" data-args="' + Actions.attrArgs([g.key]) + '">' +
+        '<span><span class="sd-caret" aria-hidden="true">▸</span> ' + escHtml(g.title) + '</span><span class="sd-count">' + g.cards.length + '</span></button>' +
+      g.cards.map(c => '<button type="button" class="nav-link sd-card' + (c.id === _sdTree.active ? ' active' : '') + '"' + (open ? '' : ' hidden') +
+        ' data-click="sdOpenCard" data-args="' + Actions.attrArgs([by, g.key, c.id]) + '">' + escHtml(c.title) + '</button>').join('') +
+    '</div>'
+  }
+  html += '<button type="button" class="nav-link" id="nav-sd-map" data-click="sdOpenCard" data-args="' + Actions.attrArgs(['map']) + '">' +
+    '<span class="nav-topic-icon" aria-hidden="true">🗺️</span><span class="nav-topic-label">AWS map</span></button>'
+  box.innerHTML = html
+  _applySdFilter()
+}
+// Filtering hides rows instead of redrawing, so the box keeps focus while you type.
+function _applySdFilter() {
+  const f = _sdTree.filter.trim().toLowerCase()
+  document.querySelectorAll('#nav-sd-tree .sd-g').forEach(g => {
+    const open = f ? false : g.dataset.key === _sdTree.open
+    let hits = 0
+    g.querySelectorAll('.sd-card').forEach(c => {
+      const hit = !f || c.textContent.toLowerCase().includes(f) || g.querySelector('.sd-group').textContent.toLowerCase().includes(f)
+      if (hit && f) hits++
+      c.hidden = f ? !hit : !open
+    })
+    g.hidden = !!f && !hits
+    g.querySelector('.sd-group').setAttribute('aria-expanded', String(f ? hits > 0 : open))
+  })
+}
+function sdTreeFilter(value) { _sdTree.filter = String(value || ''); _applySdFilter() }
+function sdTreeToggle(key) {
+  _sdTree.open = _sdTree.open === key ? null : key
+  _sdTree.filter = ''
+  renderSdTree()
+}
+function sdTreeBy(view) {
+  const nav = _sdNav()
+  if (!nav) return
+  loadEmbed('sysdesign')
+  nav.go(view === 'courses' ? 'courses' : 'topics')
+  _sdTree.open = null
+  renderSdTree()
+}
+function sdOpenCard(view, groupKey, cardId) {
+  const nav = _sdNav()
+  if (!nav) return
+  loadEmbed('sysdesign')
+  clearActiveNav()
+  document.getElementById('nav-sysdesign')?.classList.remove('active')
+  if (view === 'map') {
+    nav.go('map')
+    _sdTree.active = null
+    renderSdTree()
+    document.getElementById('nav-sd-map')?.classList.add('active')
+    return
+  }
+  nav.go(view, view === 'topics' ? groupKey : null, cardId)
+  // Jumping to a card scrolls the notes down, which would tuck the top bar (and its tabs) away.
+  setTimeout(() => document.body.classList.remove('header-tucked'), 150)
+  _sdTree.active = cardId
+  _sdTree.open = groupKey
+  renderSdTree()
+}
+// "All notes": every topic (or the whole course), from the top
+function sdAllNotes() {
+  loadEmbed('sysdesign')
+  const nav = _sdNav()
+  if (nav) nav.go(nav.view() === 'courses' ? 'courses' : 'topics', 'All')
+  _sdTree.active = null
+  renderSdTree()
+}
+document.getElementById(EMBEDS.sysdesign.frame)?.addEventListener('load', renderSdTree)
+
 const PAPERS_SRC = EMBEDS.papers.src
 const VISUALS_SRC = EMBEDS.visuals.src
 function loadEmbed(key) {
@@ -2250,6 +2396,7 @@ function _dashWelcomeHtml(nQuestions, nTopics) {
     '<div class="dash-actions">' +
       (first ? '<button type="button" class="dash-btn dash-btn-primary" data-click="loadTopic" data-args="' + Actions.attrArgs([first.key]) + '">Start with ' + escHtml(first.label) + '</button>' : '') +
       (signedIn ? '' : '<button type="button" class="dash-btn" data-click="DataSync.account">Sign in with GitHub</button>') +
+      '<button type="button" class="dash-btn" data-click="loadEmbed" data-args="' + Actions.attrArgs(['howto']) + '">📖 2-minute guide</button>' +
     '</div>' +
   '</section>'
 }
@@ -4801,7 +4948,8 @@ function _isPhoneLayout() {
 }
 // On a phone, picking a destination closes the drawer so the page underneath is visible.
 function _closeDrawerOnPick(e) {
-  if (_isPhoneLayout() && e.target.closest && e.target.closest('.nav-link')) {
+  // Opening a lesson group is not a destination: keep the drawer open for the pick inside it.
+  if (_isPhoneLayout() && e.target.closest && e.target.closest('.nav-link') && !e.target.closest('.sd-group')) {
     document.getElementById('sidebar').classList.add('collapsed')
   }
 }
@@ -4898,7 +5046,7 @@ Actions.register({
   removeSubmission, removeTopicNote, saveAnimationFromMenu, saveNoteFromTextarea, saveSubmissionFromInput, saveSubmissionFromMenu,
   saveTopicNoteFromEditor, scrollToTop, setCompanyFilter, setFreqFilter, setQFilter, showAddSubmission,
   showTopicTab, skipToDailyQuestion, startNewTopicNote, switchHub, toggleAllNotes, toggleNoteOpen,
-  toggleSidebar, toggleTheme, toggleTopicNotePin,
+  toggleSidebar, toggleTheme, toggleTopicNotePin, sdTreeBy, sdTreeFilter, sdTreeToggle, sdOpenCard, sdAllNotes,
   'DataSync.account': () => DataSync.account(),
   open: (url, target) => window.open(url, target),
   _rememberAppsOpen, _clearNoteSearchOnEscape, _subInputKey, _openSubMenuAdd,
