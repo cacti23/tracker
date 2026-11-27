@@ -927,6 +927,7 @@ body.map-on .wrap { max-width: 1640px; }
 /* 3.6 one icon set for the player buttons: text glyphs in the accent colour, not colour emoji */
 .seq-ctl button { color: var(--accent); font-family: var(--font-body); }
 /* 3.3 skip link: the first Tab stop jumps over the header, tabs and chips into the notes */
+.in-hub #views, .in-hub #chips, .in-hub #index, .in-hub .gl-fab { display: none !important; }
 .skip { position: absolute; left: 12px; top: -60px; z-index: 100; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 700; text-decoration: none; }
 .skip:focus { top: 12px; }
 /* 3.4 phones: the floating Tracker and Search pills slide away while you scroll down, back on scroll up */
@@ -7274,6 +7275,33 @@ function setView(view) {
   listChanged()
 }
 document.querySelectorAll('#views button').forEach(b => { b.onclick = () => setView(b.dataset.view) })
+
+// The hub (index.html) lists these lessons in its own sidebar (Adi, 2026-11-27), so inside the hub
+// the Topics/Courses/AWS tabs, the chips and the Index step aside (.in-hub). Opened on its own, the
+// page keeps them. The current view is read from the tabs, so there is no second copy of it.
+const currentView = () => (document.querySelector('#views button.on') || {}).dataset?.view || 'topics'
+window.SDNAV = {
+  view: currentView,
+  // topics: one group per topic; lessons: the course's lessons that have notes, in course order
+  tree() {
+    const entry = c => ({ id: c.id, title: cardTitle(c) })
+    const topics = [...new Set(cards.map(c => c.dataset.topic))]
+      .map(t => ({ key: t, title: t, cards: cards.filter(c => c.dataset.topic === t).map(entry) }))
+    const course = Object.keys(COURSES)[0]
+    const lessons = courseNodes(course)
+      .map(n => ({ key: n.id, title: (n.sec.n ? n.sec.n + ' · ' : '') + n.title, cards: cards.filter(c => c.dataset.course === course && c.dataset.lesson === n.id).map(entry) }))
+      .filter(n => n.cards.length)
+    return { topics, lessons }
+  },
+  // Open a view; in Topics, show one topic (or All); then bring a card to the top
+  go(view, topic, cardId) {
+    if (view !== currentView()) setView(view)
+    if (view === 'topics') showTopics(topic || 'All')
+    const c = cardId && document.getElementById(cardId)
+    if (c) { c.hidden = false; c.scrollIntoView({ block: 'start' }) } else window.scrollTo(0, 0)
+  },
+}
+try { if (window.top !== window.self && typeof window.top.renderSdTree === 'function') document.documentElement.classList.add('in-hub') } catch (e) {}
 document.querySelectorAll('[data-go-view]').forEach(b => { b.onclick = () => { setView(b.dataset.goView); document.getElementById('views').scrollIntoView() } })
 // Step-through diagrams: rows appear at their step (data-at), leave after data-to, and light up while in use
 document.querySelectorAll('.hld').forEach(box => {
@@ -9180,6 +9208,12 @@ const GLOSSARY = [
   document.getElementById('gl-close').onclick = () => { panel.hidden = true }
   back.onclick = list
   q.oninput = list
+  // Inside the hub the top-bar search box types here (one search for the whole hub), so this
+  // page's own Search pill steps aside there. An empty box closes the results.
+  window.SDNAV_search = text => {
+    if (!text) { panel.hidden = true; return }
+    panel.hidden = false; q.value = text; list()
+  }
   // Shortcuts: "/" or "g" (when not typing) or Ctrl/⌘+K open the glossary with the search focused; Esc closes it
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { panel.hidden = true; return }

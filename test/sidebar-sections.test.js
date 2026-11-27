@@ -21,13 +21,14 @@ function sections() {
   return out
 }
 
-test('How to use the DSA tracker is a card above the Dashboard', () => {
-  assert.match(HTML, /class="nav-link nav-howto-card"/)
-  assert.match(HTML, /<b>How to use the DSA tracker<\/b>/)
+// Adi, 2026-11-27 (navigation redesign): the main content comes first. Dashboard, then the topics,
+// then the study tools, which stay visible (they were moved out of a closed box on purpose, #268).
+test('DSA sidebar: Dashboard first, then Topics, then Study tools', () => {
   const ids = Object.keys(sections()).filter(id => sections()[id].hub === 'dsa')
-  assert.strictEqual(ids[0], 'nav-howto', 'first DSA-only item')
-  assert.strictEqual(ids[1], 'nav-dashboard')
-  assert.ok(sections()['nav-howto'].hub === 'dsa')
+  assert.strictEqual(ids[0], 'nav-dashboard')
+  assert.ok(nav.indexOf('<div id="nav-topics"') < nav.indexOf('>Study tools</p>'), 'topics before tools')
+  assert.ok(nav.indexOf('id="nav-sd-tree"') < nav.indexOf('>Study tools</p>'), 'SD lessons before tools')
+  assert.ok(!nav.includes('nav-howto'))
 })
 
 test('one Study tools heading: DSA items, System Design items, and Study Sites in both', () => {
@@ -45,7 +46,7 @@ test('one Study tools heading: DSA items, System Design items, and Study Sites i
 test('Interview experiences is the third notebook: its sidebar lists the companies', () => {
   const s = sections()
   assert.deepStrictEqual([s['nav-google'].label, s['nav-google'].hub], ['Companies', 'exp'])
-  assert.match(HTML, /<button type="button" data-mode="exp"[^>]*data-click="switchHub" data-args='\["exp"\]'[^>]*>💼 Interview experiences<\/button>/)
+  assert.match(HTML, /<button type="button" data-mode="exp"[^>]*data-click="switchHub" data-args='\["exp"\]'[^>]*>.*💼.*Interviews<\/span><\/button>/)
   assert.match(HTML, /body\[data-hub-mode="exp"\] #sidebar \.sidebar-nav > :not\(\[data-hub="exp"\]\)/, 'only the companies show in that notebook')
 })
 
@@ -55,7 +56,7 @@ test('opening Paper Club or Postmortems switches to the System Design notebook',
 
 test('Privacy is in the sidebar footer with the "we collect nothing" line', () => {
   assert.ok(!nav.includes('id="nav-privacy"'))
-  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 900)
+  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 3200)
   assert.match(footer, /id="nav-privacy"[^>]*data-click="loadEmbed" data-args='\["privacy"\]'/)
   assert.match(footer, /We collect nothing\. Your progress stays in your browser and your own GitHub\./)
 })

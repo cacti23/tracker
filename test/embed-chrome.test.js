@@ -43,8 +43,10 @@ test('the CSP lets the hub frame https sites, and the site frame is sandboxed', 
   assert.match(HTML, /<iframe id="site-frame" class="embed-frame"[^>]*sandbox="allow-scripts allow-same-origin allow-forms allow-popups"/)
 })
 
-test('search shows only on the DSA tracker pages', () => {
-  assert.match(HTML, /body\.embed-view #global-search-input \{ display: none/)
+// Adi, 2026-11-27: one search box in one place. It used to hide on embedded pages; now it stays,
+// and in System Design it searches the notes (navigation redesign).
+test('search stays in the top bar on every page', () => {
+  assert.doesNotMatch(HTML, /body\.embed-view #global-search-input \{ display: none/)
 })
 
 test('embedded pages tuck the top bar away while scrolling down', () => {

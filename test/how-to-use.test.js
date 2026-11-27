@@ -10,10 +10,13 @@ const { loadAppWithDom, evalIn } = require('./load-app')
 const ROOT = path.join(__dirname, '..')
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
 
-test('How to use sits in the DSA sidebar right before the topic list', () => {
-  const i = HTML.indexOf('id="nav-howto"'), j = HTML.indexOf('<div id="nav-topics"')
-  assert.ok(i > 0 && i < j, 'nav-howto should come before #nav-topics')
-  assert.match(HTML, /id="nav-howto" data-hub="dsa" data-click="loadEmbed" data-args='\["howto"\]'/)
+// Adi, 2026-11-27 (navigation redesign): the big sidebar card moved out of the way. New visitors
+// get the guide from the welcome card on the dashboard; everyone else from the sidebar footer.
+test('How to use is in the sidebar footer and on the welcome card', () => {
+  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 1200)
+  assert.match(footer, /id="nav-howto" data-click="loadEmbed" data-args='\["howto"\]'/)
+  assert.match(HTML, /data-click="loadEmbed" data-args="' \+ Actions\.attrArgs\(\['howto'\]\) \+ '">📖 2-minute guide<\/button>/)
+  assert.doesNotMatch(HTML, /nav-howto-card/)
 })
 
 test('How to use opens in-pane and keeps the DSA notebook', () => {
