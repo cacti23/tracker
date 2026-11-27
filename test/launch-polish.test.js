@@ -36,3 +36,8 @@ test('page titles match the sidebar names', () => {
   assert.match(read('dsa/how-to-use.html'), /<title>How to use the DSA tracker<\/title>/)
   assert.match(read('visuals/visuals.html'), /<title>DSA Visuals<\/title>/)
 })
+
+test('the top bar links to the source on GitHub, so people can star it or contribute', () => {
+  const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8')
+  assert.match(html, /<a href="https:\/\/github\.com\/cacti23\/tracker" target="_blank" rel="noopener" class="header-menu-btn header-github" id="header-github"/)
+})

@@ -1,38 +1,43 @@
-# Tracker
+# ⚡ Interview Prep Hub
 
-Personal tracker for DSA interview prep, plus a few small side apps. It's a plain static site with no build step, deployed on Vercel at https://tracker-roan-nine.vercel.app/. Every push to the connected branch redeploys it.
+A free, open-source place to prepare for software engineering interviews: DSA, system design and real interview experiences in one app.
 
-## What's in here
+**Live:** https://tracker-roan-nine.vercel.app/
 
-| Path | What it is |
+No account, no server, no tracking. Your progress stays in your browser. Sign in with GitHub only if you want it on every device: it then syncs to a private gist in **your own** GitHub account.
+
+## What you get
+
+| | |
 |---|---|
-| `index.html` | **Interview Prep Hub**, the main app (the DSA notebook). Dashboard, 16 topics, 600+ questions, practice sessions (Worked / Graded / Mock), spaced-repetition revision, daily question, streaks, notes, pins, search. |
-| `js/data.js` | Topic and question data, plus the localStorage helpers for progress, notes and revision state. |
-| `js/sync.js` | Cross-device sync through a private GitHub gist. Shared by every app. |
-| `js/back-button.js` | Floating "← Tracker" pill on every standalone page (`dsa/`, `apps/`, `google/`, `visuals/`, `sysdesign/`). |
-| `dsa/*.html` | One cheatsheet per topic, plus the thoughts, JS built-ins and study sites pages. |
-| `google/*.html` | Google prep hub and the onsite log (interview sources are an accordion at its top). They're shown inside the main app's Google view. |
-| `visuals/visuals.html` | Image cheat sheets (inline SVG cards, one picture per idea). Shown inside the main app's Visuals view. |
-| `sysdesign/system-design.html` | System design notes, one card per topic. Linked from the sidebar bottom. |
-| `apps/gym-5day.html` | 5-day PPL workout tracker. |
-| `apps/habits.html` | Habits tracker (its own PWA: `habits-manifest.json`, `habits-sw.js`). |
-| `docs/` | Prompts and personal notes (`docs/notes`). |
-| `sw.js`, `manifest.json` | Service worker and manifest for the main PWA (works offline). |
-| `test/` | Node tests. |
-| `vercel.json` | Security headers, including the Content-Security-Policy. |
+| 🧩 **DSA** | 610 hand-picked problems in 16 topics, each grouped by the pattern that solves it. Mark a problem solved, then grade how well you remembered it (✓ solid, ~ shaky, ✗ forgot) and it comes back on the day it is due. Dashboard, question of the day, 🕘 Recently solved, notes, pins and search. |
+| 🏛️ **System Design** | Lesson notes with diagrams and step-by-step animations, an AWS map, a glossary and practice questions. Inspired by [Hello Interview's](https://www.hellointerview.com/learn/system-design/in-a-hurry/introduction) system design lessons. |
+| 💼 **Interview experiences** | Real Google L3/L4 interview experiences, matched to LeetCode and rebuilt in code. More companies to come. |
+| 🧰 **Study tools** | DSA Thoughts, JS built-ins, DSA visuals, Paper Club, production postmortems and a list of the best study sites. |
 
-All state lives in the browser's localStorage. Nothing is stored on a server.
+Works offline once loaded (it is a PWA), in light and dark themes, on desktop and phone.
+
+## Contributing
+
+Found a bug, a wrong answer or a better resource? Contributions are welcome.
+
+1. Open an [issue](https://github.com/cacti23/tracker/issues) to report a bug or suggest an idea, or use **💬 Send feedback** in the app.
+2. For a fix, fork the repo, make the change on a branch and open a pull request.
+3. Run the tests before you push (see below). CI runs them on every pull request.
+4. Bump the version in the sidebar footer (`vNNN · Interview Prep Hub` in `index.html`) to the next number. A test checks it.
+
+[`CLAUDE.md`](CLAUDE.md) has the coding conventions (it is written for AI assistants but reads fine for people too).
 
 ## Run it locally
 
-No install step. Serve the repo root with any static server and open `index.html`:
+No install and no build step. Serve the repo root with any static server:
 
 ```sh
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-Opening the file directly (`file://`) won't work properly because of the service worker and the page loading other files.
+Opening `index.html` as a file (`file://`) won't work properly, because of the service worker and the pages it loads.
 
 ## Tests
 
@@ -40,19 +45,46 @@ Opening the file directly (`file://`) won't work properly because of the service
 node --test test/*.test.js
 ```
 
-The tests load `js/data.js` and the inline script from `index.html` into a Node `vm` with a fake localStorage, so they check state logic (grading, sync, security rules, link integrity), not how things look in a real browser.
+Most tests load `js/data.js` and the inline script from `index.html` into a Node `vm` with a fake localStorage, so they check state logic (grading, sync, security rules, link integrity). The browser tests use Playwright and are skipped when it isn't installed.
 
-## Cloud sync
+## Project layout
 
-Tap **Sign in with GitHub** once per device. There are no Sync, Pull, Token, Export or Import buttons: every app checks the cloud when it opens and when you come back to the tab, and uploads a few seconds after each edit. Data is synced to one private gist called `tracker-sync-v1`, one JSON file per app. The token is stored only in that browser's localStorage.
+| Path | What it is |
+|---|---|
+| `index.html` | The app: sidebar, DSA notebook, and the frame that shows the other pages. |
+| `js/data.js` | Topic and question data, plus the localStorage helpers for progress, notes and revision. |
+| `js/sync.js` | Optional sync through a private GitHub gist. |
+| `js/actions.js` | Event handlers by `data-click` attributes (the CSP allows no inline handlers). |
+| `dsa/` | Topic cheat sheets, DSA Thoughts, JS built-ins, Study Sites, How to use, Privacy. |
+| `sysdesign/system-design.html` | System design notes. |
+| `google/` | Google interview experience log. |
+| `papers/` | Paper Club and Postmortems. |
+| `visuals/visuals.html` | DSA visuals, one picture per idea. |
+| `apps/` | Personal side apps (habits, gym), shown only to the owner. |
+| `api/github-oauth.js` | Vercel function for Sign in with GitHub. Stores nothing. |
+| `sw.js`, `manifest.json` | Service worker and manifest (offline support). |
+| `test/` | Node tests. |
+| `vercel.json` | Security headers, including the Content-Security-Policy. |
 
-Sign in with GitHub runs through `api/github-oauth.js`, a Vercel serverless function that swaps GitHub's one-time code for a token (the client secret must stay off the browser) and hands it back in the URL fragment. It stores nothing server-side. Preferred setup: a **GitHub App** (Settings → Developer settings → GitHub Apps) with Account permissions → Gists: Read and write, callback URL `https://<your-site>/api/github-oauth`, "Expire user authorization tokens" on and the webhook off; add `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` to Vercel and redeploy. Its tokens last 8 hours; the refresh token lives in an HttpOnly cookie only the function can read, and `sync.js` renews through `POST /api/github-oauth?action=refresh`. Without those keys, the older OAuth App setup (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, never-expiring `gist`-scope tokens) is used; keep its keys until every device has signed in again, since sign-out needs them to cancel old tokens.
+## Privacy
 
-- The DSA notebook and the gym app upload a few seconds after every edit. The habits app syncs after its own edits.
-- If two devices both changed things, the data is merged entry by entry rather than one device overwriting the other. If both changed the same entry, the most recently edited side wins.
-- Safety nets: every upload is a new gist revision, so earlier cloud copies stay in the gist's revision history, and each device keeps its last three pre-sync snapshots in localStorage (`<app>-presync`, `-presync-2`, `-presync-3`).
-- Known limit: there are no per-entry timestamps, so deleting something on one device can be undone by another device that still has it.
+- Everything you do is saved in your browser's localStorage. There is no database and no analytics.
+- Sign in with GitHub is optional. It lets the app save your progress to one private gist, `tracker-sync-v1`, in your own account. The token stays in your browser.
+- 🔒 **Privacy & data** in the sidebar explains what is stored and lets you delete it.
 
-## Deploying
+## Self-hosting and sync setup
 
-Pushing to the branch Vercel watches deploys automatically. Pull requests get a Vercel preview URL if the Vercel GitHub integration is on for this repo. The service worker serves HTML and JS network-first, so a new deploy shows up on the next load.
+Fork the repo and import it into [Vercel](https://vercel.com/) (no build settings needed). The app works without sync. To turn on Sign in with GitHub:
+
+1. Create a **GitHub App** (Settings → Developer settings → GitHub Apps) with Account permissions → Gists: Read and write, callback URL `https://<your-site>/api/github-oauth`, "Expire user authorization tokens" on and the webhook off.
+2. Add `GITHUB_APP_CLIENT_ID` and `GITHUB_APP_CLIENT_SECRET` to the Vercel project and redeploy.
+
+Tokens last 8 hours. The refresh token lives in an HttpOnly cookie that only the function can read, and `sync.js` renews it through `POST /api/github-oauth?action=refresh`. Without those keys, the older OAuth App setup (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `gist`-scope tokens that don't expire) is used.
+
+How sync behaves:
+
+- The app checks the cloud when it opens and when you come back to the tab, and uploads a few seconds after each edit.
+- If two devices both changed things, the data is merged entry by entry instead of one device overwriting the other.
+- Every upload is a new gist revision, so earlier copies stay in the gist's history, and each device keeps its last three pre-sync snapshots.
+
+Pushing to the branch Vercel watches deploys automatically. The service worker loads HTML and JS from the network first, so a new deploy shows up on the next load.
