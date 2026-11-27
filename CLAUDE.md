@@ -5,7 +5,7 @@ Static site (no build, no package.json). The main app is `index.html` (DSA Noteb
 ## Run and test
 
 - Serve the repo root: `python3 -m http.server 8000`
-- Tests: `node --test test/*.test.js`. All of them should pass before you push.
+- Tests: `node --test --test-concurrency=6 test/*.test.js` (about 13 s; CI runs the same). All of them should pass before you push. Test files run side by side, so each file must build its own state (server, browser, fake cloud) and never rely on another file. Inside `test/sync-races.test.js` the tests also run side by side (each makes its own cloud and devices), so keep new tests there self-contained.
 
 ## How the code is organised
 

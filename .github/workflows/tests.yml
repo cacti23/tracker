@@ -27,4 +27,6 @@ jobs:
       # release can't change results under us. No package.json, so install it on its own.
       - run: npm install --no-save --no-package-lock playwright@1.63.0
       - run: npx playwright install --with-deps chromium
-      - run: node --test test/*.test.js
+      # Most test files spend their time waiting (browser pages, sync timers), not on CPU, so
+      # run 6 files at once instead of the default (cores - 1 = 3). Same tests, about half the time.
+      - run: node --test --test-concurrency=6 test/*.test.js

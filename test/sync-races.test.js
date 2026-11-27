@@ -17,7 +17,13 @@
 //   • each device can have its own clock skew.
 // Run with: node --test test/sync-races.test.js
 
-const { test } = require('node:test')
+const { describe, it } = require('node:test')
+// Every test builds its own cloud, origins and devices, and mostly waits on real timers
+// (reload windows of ~750 ms). Run one by one they take ~50 s; run side by side, about as
+// long as the slowest one. So tests are queued here and registered as one concurrent suite
+// at the end of the file.
+const queued = []
+const test = (name, fn) => queued.push([name, fn])
 const assert = require('node:assert/strict')
 const fs = require('fs')
 const path = require('path')
@@ -601,3 +607,5 @@ test('H7: two tabs with Web Locks sync one at a time, so the second sends nothin
   await tick(80)
   assert.equal(cloud.patches, 1, 'one upload for one edit, not one per tab')
 })
+
+describe('sync races', { concurrency: true }, () => { queued.forEach(([name, fn]) => it(name, fn)) })

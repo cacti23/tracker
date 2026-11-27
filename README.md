@@ -44,7 +44,7 @@ Opening `index.html` as a file (`file://`) won't work properly, because of the s
 ## Tests
 
 ```sh
-node --test test/*.test.js
+node --test --test-concurrency=6 test/*.test.js
 ```
 
 Most tests load `js/data.js` and the inline script from `index.html` into a Node `vm` with a fake localStorage, so they check state logic (grading, sync, security rules, link integrity). The browser tests use Playwright and are skipped when it isn't installed.
