@@ -1,5 +1,7 @@
 # ⚡ Interview Prep Hub
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+
 A free, open-source place to prepare for software engineering interviews: DSA, system design and real interview experiences in one app.
 
 **Live:** https://tracker-roan-nine.vercel.app/
@@ -88,3 +90,7 @@ How sync behaves:
 - Every upload is a new gist revision, so earlier copies stay in the gist's history, and each device keeps its last three pre-sync snapshots.
 
 Pushing to the branch Vercel watches deploys automatically. The service worker loads HTML and JS from the network first, so a new deploy shows up on the next load.
+
+## License
+
+[MIT](LICENSE). Use it, fork it, change it; just keep the copyright notice.
