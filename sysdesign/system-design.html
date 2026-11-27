@@ -9302,24 +9302,45 @@ setView(startView)
 
   // On load, and when a link changes the hash of an open page: open whatever hides the target, then jump to it once layout has settled
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-  const goToHash = () => {
-    const target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)))
+  // Cards skip rendering until near the screen (content-visibility), so after a jump the cards around the
+  // target render, grow or shrink, and push it away. Re-jump each frame until it stays put; a wheel, touch
+  // or key from the user ends it early. While it settles, the hash follower below keeps still.
+  let settling = 0
+  const stopSettle = () => { settling = 0 }
+  for (const ev of ['wheel', 'touchstart', 'keydown']) window.addEventListener(ev, stopSettle, { passive: true })
+  const goToHash = (hash = location.hash) => {
+    const target = hash && document.getElementById(decodeURIComponent(hash.slice(1)))
     if (!target) return
     if (target.closest('#mapview')) setView('map')
     else if (target.closest('section.card')?.hidden || list.hidden) setView('topics')
     for (let d = target.closest('details'); d; d = d.parentElement.closest('details')) d.open = true
-    const jump = () => target.scrollIntoView({ block: 'start' })
-    jump(); requestAnimationFrame(jump)
-    return jump
+    const run = ++settling, until = performance.now() + 2000
+    let still = 0, prev = NaN
+    const jump = () => {
+      if (settling !== run) return
+      target.scrollIntoView({ block: 'start' })
+      const top = Math.round(target.getBoundingClientRect().top)
+      still = top === prev ? still + 1 : 0; prev = top
+      if (still < 5 && performance.now() < until) requestAnimationFrame(jump)
+      else settling = 0
+    }
+    jump()
+    return () => goToHash(hash)
   }
   const firstJump = goToHash()
   if (firstJump) window.addEventListener('load', firstJump, { once: true })
-  window.addEventListener('hashchange', () => { last = location.hash; goToHash() })
+  // The browser scrolls before it fires hashchange, so the follower may already have rewritten the hash
+  // from half-rendered cards: take the clicked one from the event and put it back
+  window.addEventListener('hashchange', e => {
+    const hash = new URL(e.newURL).hash
+    if (location.hash !== hash) history.replaceState(history.state, '', location.pathname + location.search + hash)
+    last = hash; goToHash(hash)
+  })
 
   let last = location.hash, ticking = false
   const update = () => {
     ticking = false
-    if (list.hidden) return // the map tab has no sections to follow
+    if (list.hidden || settling) return // the map tab has no sections to follow; a jump is still settling
     const line = 90 // px from the top: the heading you're reading under
     let cur = null
     for (const e of marks()) { if (e.getBoundingClientRect().top <= line) cur = e; else break }
