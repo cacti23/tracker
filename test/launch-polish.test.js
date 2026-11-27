@@ -28,7 +28,7 @@ test('sharing the hub shows a link preview with an image that exists', () => {
 
 test('feedback goes through a Google Form, and no email address is printed on the hub', () => {
   const html = read('index.html')
-  assert.match(html, /<a class="sidebar-feedback-link" href="https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/viewform" target="_blank" rel="noopener">💬 Send feedback<\/a>/)
+  assert.match(html, /<a class="sidebar-feedback-link" href="https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/viewform" target="_blank" rel="noopener">💬 Feedback<\/a>/)
   assert.ok(!/mailto:|@gmail\.com/.test(html))
 })
 

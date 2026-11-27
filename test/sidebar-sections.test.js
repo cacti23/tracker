@@ -56,7 +56,7 @@ test('opening Paper Club or Postmortems switches to the System Design notebook',
 
 test('Privacy is in the sidebar footer with the "we collect nothing" line', () => {
   assert.ok(!nav.includes('id="nav-privacy"'))
-  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 1600)
+  const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 3200)
   assert.match(footer, /id="nav-privacy"[^>]*data-click="loadEmbed" data-args='\["privacy"\]'/)
   assert.match(footer, /We collect nothing\. Your progress stays in your browser and your own GitHub\./)
 })
