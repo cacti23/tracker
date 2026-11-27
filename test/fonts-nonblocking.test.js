@@ -23,12 +23,15 @@ test('no stylesheet @imports Google Fonts (an @import always blocks the first pa
   assert.deepStrictEqual(bad.map(f => path.relative(ROOT, f)), [])
 })
 
-test('every Google Fonts <link> loads as media="print" and switches on load', () => {
+// The switch is js/font-swap.js, not onload="": the CSP refuses inline handlers.
+test('every Google Fonts <link> loads as media="print" and font-swap.js switches it on load', () => {
   const bad = []
   for (const f of files(ROOT).filter(f => f.endsWith('.html'))) {
-    for (const tag of fs.readFileSync(f, 'utf8').match(/<link[^>]*fonts\.googleapis\.com\/css2[^>]*>/g) || []) {
-      if (!/media="print"/.test(tag) || !/onload="this\.media='all'"/.test(tag)) bad.push(path.relative(ROOT, f))
+    const html = fs.readFileSync(f, 'utf8')
+    for (const tag of html.match(/<link[^>]*fonts\.googleapis\.com\/css2[^>]*>/g) || []) {
+      if (!/media="print"/.test(tag) || !/data-font-swap/.test(tag)) bad.push(path.relative(ROOT, f))
     }
+    if ((html.match(/data-font-swap/g) || []).length && !/<script src="(\.\.\/)?js\/font-swap\.js"><\/script>/.test(html)) bad.push(path.relative(ROOT, f) + ' (no font-swap.js)')
   }
   assert.deepStrictEqual(bad, [])
 })

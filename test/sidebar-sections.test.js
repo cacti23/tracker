@@ -45,7 +45,7 @@ test('one Study tools heading: DSA items, System Design items, and Study Sites i
 test('Interview experiences is the third notebook: its sidebar lists the companies', () => {
   const s = sections()
   assert.deepStrictEqual([s['nav-google'].label, s['nav-google'].hub], ['Companies', 'exp'])
-  assert.match(HTML, /<button type="button" data-mode="exp"[^>]*onclick="switchHub\('exp'\)"[^>]*>💼 Interview experiences<\/button>/)
+  assert.match(HTML, /<button type="button" data-mode="exp"[^>]*data-click="switchHub" data-args='\["exp"\]'[^>]*>💼 Interview experiences<\/button>/)
   assert.match(HTML, /body\[data-hub-mode="exp"\] #sidebar \.sidebar-nav > :not\(\[data-hub="exp"\]\)/, 'only the companies show in that notebook')
 })
 
@@ -56,6 +56,6 @@ test('opening Paper Club or Postmortems switches to the System Design notebook',
 test('Privacy is in the sidebar footer with the "we collect nothing" line', () => {
   assert.ok(!nav.includes('id="nav-privacy"'))
   const footer = HTML.slice(HTML.indexOf('<div class="sidebar-footer">')).slice(0, 900)
-  assert.match(footer, /id="nav-privacy"[^>]*onclick="loadEmbed\('privacy'\)"/)
+  assert.match(footer, /id="nav-privacy"[^>]*data-click="loadEmbed" data-args='\["privacy"\]'/)
   assert.match(footer, /We collect nothing\. Your progress stays in your browser and your own GitHub\./)
 })

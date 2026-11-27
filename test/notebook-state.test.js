@@ -160,13 +160,25 @@ test('N3: switching topic and back brings an unsaved draft back (and does not sa
   assert.equal(a.ev(`getTopicNotes('graph').find(n => n.id === 'a').body`), 'old body')
 })
 
+// The code a browser would run for the `type` action of the element whose id or class is `hook`
+// (data-<type>="name" data-args="[...]", see js/actions.js).
+function actionCall(html, hook, type) {
+  const tag = (html.match(new RegExp('<[^>]*(?:id|class)="' + hook + '"[^>]*>')) || [])[0]
+  if (!tag) return null
+  const name = (tag.match(new RegExp('data-' + type + '="([^"]+)"')) || [])[1]
+  if (!name) return null
+  const raw = (tag.match(/data-args="([^"]*)"/) || [])[1]
+  const args = raw ? raw.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '[]'
+  return `Actions._registry[${JSON.stringify(name)}].apply(null, ${args})`
+}
+
 test('N3: a reload restores the draft typed into the editor', () => {
   const session = makeLocalStorage()
   const a = notesApp(session)
   a.ev(`loadTopic('graph'); renderTopicNotes(); editTopicNote('a')`)
   a.type('A', 'TYPED BEFORE RELOAD')
-  // Run the editor's own oninput handler, as the browser does on each keystroke.
-  const handler = (a.editorHtml().match(/id="note-edit-body"[^>]*oninput="([^"]+)"/) || [])[1]
+  // Run the editor's own input action, as the browser does on each keystroke.
+  const handler = actionCall(a.editorHtml(), 'note-edit-body', 'input')
   assert.ok(handler, 'the note body input saves the draft as you type')
   a.ev(handler)
   const b = notesApp(session)                      // same tab reloaded: new page, same sessionStorage
@@ -179,7 +191,7 @@ test('N3: a per-question note saves while you type, not only on blur', async () 
   const ev = code => evalIn(a.sandbox, code)
   const k = ev(`Object.keys(TOPIC_MODULES.graph.questions)[0]`)
   const html = ev(`buildQuestionAccordionItem(${JSON.stringify(k)}, TOPIC_MODULES.graph.questions[${JSON.stringify(k)}], 'g', 0)`)
-  const handler = (html.match(/class="note-area"[^>]*oninput="([^"]+)"/) || [])[1]
+  const handler = actionCall(html, 'note-area', 'input')
   assert.ok(handler, 'the note box has an input handler')
   a.sandbox.document.getElementById('note-' + k).value = 'typed, never blurred'
   ev(handler)

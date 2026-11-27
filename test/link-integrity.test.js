@@ -119,7 +119,7 @@ test('index.html links out to every moved sub-app with the correct folder prefix
 
 test('Google opens in-pane from the sidebar (not a new tab) and embeds the onsite log', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
-  assert.match(html, /id="nav-google"[^>]*onclick="loadGoogle\(\)"/, 'sidebar Google entry must be a button calling loadGoogle()')
+  assert.match(html, /id="nav-google"[^>]*data-click="loadGoogle"/, 'sidebar Google entry must be a button calling loadGoogle()')
   assert.doesNotMatch(html, /<a[^>]*href="google\/[^"]*"[^>]*target="_blank"/, 'Google must not open in a new tab from the sidebar')
   assert.match(html, /id="view-google"/, 'index.html needs a #view-google pane')
   for (const f of ['google/google-onsite-log.html']) {

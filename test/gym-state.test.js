@@ -47,7 +47,7 @@ function loadGym(nowMs = NOW, seed = {}) {
   }
   const sandbox = { window, document, localStorage, console, JSON, Math, Date: fakeDate(nowMs), setTimeout, clearTimeout }
   vm.createContext(sandbox)
-  loadScripts(sandbox, ['dates.js'])
+  loadScripts(sandbox, ['actions.js', 'dates.js'])   // the page renders data-args with Actions.attrArgs
   vm.runInContext(APP_JS, sandbox, { filename: 'gym-5day.html (inline script)' })
   const read = k => JSON.parse(localStorage.getItem(k) || 'null')
   return { w: window, read }

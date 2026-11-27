@@ -25,7 +25,7 @@ for (const [key, src, title] of [
     assert.equal(again.getElement('page-frame').getAttribute('src'), src)
   })
   test('the sidebar opens ' + title + ' in-pane, not as a separate page', () => {
-    assert.match(HTML, new RegExp(`id="nav-${key}"[^>]*onclick="loadEmbed\\('${key}'\\)"`))
+    assert.match(HTML, new RegExp(`id="nav-${key}"[^>]*data-click="loadEmbed" data-args='\\["${key}"\\]'`))
     assert.doesNotMatch(HTML, new RegExp(`<a href="${src}"`))
   })
 }

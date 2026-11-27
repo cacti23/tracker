@@ -22,7 +22,7 @@ test('Postmortems opens in-pane, and a reload returns to it', () => {
 })
 
 test('the sidebar entry lives in the System Design notebook (Adi, 2026-11-26), and Paper Club keeps its name', () => {
-  assert.match(HTML, /id="nav-postmortems" data-hub="sd" onclick="loadEmbed\('postmortems'\)"/)
+  assert.match(HTML, /id="nav-postmortems" data-hub="sd" data-click="loadEmbed" data-args='\["postmortems"\]'/)
   assert.match(HTML, /<span class="nav-topic-label">Paper Club<\/span>/)
 })
 

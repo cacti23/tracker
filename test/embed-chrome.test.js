@@ -21,7 +21,7 @@ test('openSite shows the site in-pane, names it in the header with an open-in-ne
   const tabs = getElement('header-tabs').innerHTML
   assert.match(tabs, /href="https:\/\/visualgo\.net\/en" target="_blank" rel="noopener"/)
   assert.doesNotMatch(tabs, /Visu<Algo/, 'names go into the header escaped')
-  assert.match(tabs, /onclick="loadEmbed\('sites'\)"/, 'a way back to the list')
+  assert.match(tabs, /data-click="loadEmbed" data-args="\[&quot;sites&quot;\]"/, 'a way back to the list')
 })
 
 test('openSite refuses anything but an http(s) URL', () => {

@@ -140,7 +140,7 @@ test('Delete my data does nothing unless DELETE is typed', async () => {
 
 test('the Privacy page is in the hub sidebar and its button has no inline handler', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
-  assert.match(html, /id="nav-privacy"[^>]*onclick="loadEmbed\('privacy'\)"/)
+  assert.match(html, /id="nav-privacy"[^>]*data-click="loadEmbed" data-args='\["privacy"\]'/)
   assert.match(html, /src: 'dsa\/privacy\.html'/)
   const page = fs.readFileSync(path.join(ROOT, 'dsa', 'privacy.html'), 'utf8')
   assert.match(page, /id="deleteBtn"/)

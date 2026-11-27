@@ -33,7 +33,7 @@ test('the view groups by day and opens the question in its topic', () => {
   assert.match(html, /<h3 class="recent-day">Today<\/h3>/)
   assert.strictEqual((html.match(/class="recent-day"/g) || []).length, 2, 'today + 3 days ago')
   assert.strictEqual((html.match(/class="ps-q-row recent-row"/g) || []).length, 3, 'unknown keys are skipped')
-  assert.ok(html.includes('goToQuestion(&quot;two-pointers&quot;, &quot;' + a + '&quot;)'))
+  assert.ok(html.includes('data-click="goToQuestion" data-args="[&quot;two-pointers&quot;,&quot;' + a + '&quot;]"'))
   assert.match(html, /3 graded · <span class="rg-solid">✓ 1<\/span> <span class="rg-shaky">~ 1<\/span> <span class="rg-forgot">✗ 1<\/span>/)
 })
 
@@ -50,7 +50,7 @@ test('it has a sidebar entry in the DSA notebook, and a reload returns to it', (
   const again = loadAppWithDom({ 'dsa-current-view-v1': 'recent' })
   assert.strictEqual(again.getElement('page-title').textContent, '🕘 Recently solved')
   const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8')
-  assert.match(html, /id="nav-recent" data-hub="dsa" onclick="loadRecent\(\)"/)
+  assert.match(html, /id="nav-recent" data-hub="dsa" data-click="loadRecent"/)
 })
 
 test('with nothing graded it says how to start', () => {
