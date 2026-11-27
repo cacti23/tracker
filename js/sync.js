@@ -31,6 +31,8 @@
   var TOKEN_KEY  = 'tracker-sync-token';
   var GISTID_KEY = 'tracker-sync-gistid';
   var LOGIN_KEY  = 'tracker-sync-login';   // GitHub username, only for the account button's label
+  var EXPIRES_KEY = 'tracker-sync-expires'; // ms epoch when a GitHub App token (ghu_) runs out
+  var REFRESH_EARLY_MS = 5 * 60 * 1000;     // renew a little before, so no request meets a dead token
   var GIST_DESC  = 'tracker-sync-v1';
   var API        = 'https://api.github.com';
   var DAY_MS     = 24 * 60 * 60 * 1000;
@@ -55,11 +57,52 @@
 
   // ── config / meta ──────────────────────────────────────────────────────
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
-  function setTokenValue(t) {
+  function setTokenValue(t, expiresIn) {
     whoAmI = null;   // a new token may belong to another account
+    storeToken(t, expiresIn);
+  }
+  // expiresIn: seconds the token lives (GitHub App sign-in: 8 h); none = it never expires.
+  function storeToken(t, expiresIn) {
     if (t) localStorage.setItem(TOKEN_KEY, t);
     else localStorage.removeItem(TOKEN_KEY);
+    if (t && Number(expiresIn) > 0) localStorage.setItem(EXPIRES_KEY, String(Date.now() + Number(expiresIn) * 1000));
+    else localStorage.removeItem(EXPIRES_KEY);
   }
+
+  // ── short-lived tokens ─────────────────────────────────────────────────
+  // A "Sign in with GitHub" token from the GitHub App (ghu_…) works for 8 hours. The refresh
+  // token that renews it never reaches this script: it sits in an HttpOnly cookie that only
+  // api/github-oauth.js can read. So renewing is one same-site POST, and a script injected into
+  // the page could steal at most a token that dies within hours. Older tokens (gho_…, pasted
+  // ones) have no expiry and are used as they are.
+  function expiresAt() { return Number(localStorage.getItem(EXPIRES_KEY)) || 0; }
+  function canRenew() { return /^ghu_/.test(getToken()); }
+  function needsRenew() { return canRenew() && expiresAt() > 0 && Date.now() > expiresAt() - REFRESH_EARLY_MS; }
+  var renewing = null;
+  // Resolves true when a usable token is stored. GitHub replaces the refresh token on every use,
+  // so two tabs renewing at once would race; the Web Lock lets the second one see the first
+  // one's new token and skip its own request.
+  function renewToken() {
+    if (renewing) return renewing;
+    var before = getToken();
+    function run() {
+      if (getToken() !== before && !needsRenew()) return Promise.resolve(true);   // another tab renewed
+      if (typeof fetch !== 'function') return Promise.resolve(false);
+      return fetch('/api/github-oauth?action=refresh', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
+        if (!r || !r.ok) return false;
+        return r.json().then(function (b) {
+          if (!b || typeof b.access_token !== 'string' || !b.access_token) return false;
+          storeToken(b.access_token, b.expires_in);
+          return true;
+        });
+      }).catch(function () { return false; });
+    }
+    var locks = typeof navigator !== 'undefined' && navigator && navigator.locks;
+    var p = locks && typeof locks.request === 'function' ? locks.request('tracker-token-refresh', run) : run();
+    renewing = p.then(function (ok) { renewing = null; return ok; }, function () { renewing = null; return false; });
+    return renewing;
+  }
+  function freshToken() { return needsRenew() ? renewToken() : Promise.resolve(true); }
   function metaKey(appId) { return appId + '-sync-meta'; }
   function getMeta(appId) {
     try { return JSON.parse(localStorage.getItem(metaKey(appId)) || '{}'); }
@@ -104,8 +147,16 @@
     e.kind = 'network';
     return e;
   }
-  function api(path, opts) {
+  // A ghu_ token is renewed before it runs out, and once more if GitHub still says 401 (it was
+  // revoked early, or this device's clock is off); a second 401 is a real lost sign-in.
+  function api(path, opts, renewed) {
     opts = opts || {};
+    return freshToken().then(function () { return send(path, opts); }).catch(function (e) {
+      if (renewed || !e || e.status !== 401 || !canRenew()) throw e;
+      return renewToken().then(function (ok) { if (!ok) throw e; return api(path, opts, true); });
+    });
+  }
+  function send(path, opts) {
     opts.headers = headers();
     // api.github.com answers GETs with "Cache-Control: private, max-age=60", so without
     // this a re-pull within a minute of the last one can be served from Chrome's HTTP
@@ -919,11 +970,11 @@
     });
   }
 
-  // Cancel a "Sign in with GitHub" token (gho_…) through api/github-oauth.js, which holds the
-  // app secret GitHub requires. A pasted personal token is the user's own to manage, so it is
+  // Cancel a "Sign in with GitHub" token (gho_… or ghu_…) through api/github-oauth.js, which
+  // holds the app secret GitHub requires, and drops this browser's refresh cookie. A pasted personal token is the user's own to manage, so it is
   // left alone. Never rejects: signing out must not depend on the network.
   function revokeToken(token) {
-    if (!/^gho_/.test(token || '') || typeof fetch !== 'function') return Promise.resolve(false);
+    if (!/^gh[ou]_/.test(token || '') || typeof fetch !== 'function') return Promise.resolve(false);
     return fetch('/api/github-oauth?action=revoke', { method: 'POST', keepalive: true, headers: { Authorization: 'Bearer ' + token } })
       .then(function (r) { return !!r && (r.status === 204 || r.ok); }, function () { return false; });
   }
@@ -942,6 +993,7 @@
       'Other devices keep their own copy until you erase them too.\n\nType DELETE to confirm.', '');
     if (typed === null || typed.trim().toUpperCase() !== 'DELETE') return Promise.resolve('Nothing was deleted.');
     var gone = token ? listTrackerGists().then(function (list) {
+      token = getToken();   // listing may have renewed an expiring token
       return Promise.all(list.map(function (g) {
         return fetch(API + '/gists/' + g.id, { method: 'DELETE', headers: headers() }).then(function (r) {
           if (!(r.status === 204 || r.status === 404)) throw new Error('GitHub API ' + r.status);
@@ -967,14 +1019,14 @@
   var signIn = { done: false, error: '' };
   function takeSignInFromUrl() {
     var h = (typeof location !== 'undefined' && location.hash) || '';
-    var m = /^#tracker-signin(-error)?=([^&]*)$/.exec(h);
+    var m = /^#tracker-signin(-error)?=([^&]*)(?:&expires_in=(\d+))?$/.exec(h);
     if (!m) return;
     var value = '';
     try { value = decodeURIComponent(m[2]); } catch (e) {}
     if (typeof history !== 'undefined' && history.replaceState) history.replaceState(null, '', location.pathname + location.search);
     if (m[1]) { signIn.error = value || 'unknown'; return; }
     if (!value) return;
-    setTokenValue(value);
+    setTokenValue(value, m[3]);
     localStorage.removeItem(GISTID_KEY);   // re-resolve the gist for this account
     localStorage.removeItem(LOGIN_KEY);
     signIn.done = true;
