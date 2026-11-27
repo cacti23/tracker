@@ -569,6 +569,9 @@ section.card, section.card h4, section.card h5, h3.lesson { scroll-margin-top: 1
 .vpc .items { display: flex; flex-wrap: wrap; gap: 5px; }
 .vpc .it { padding: 4px 8px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); }
 .vpc .rt { margin-top: 6px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--c); }
+.vpc.nest .box { padding: 6px 8px 8px; } .vpc.nest .box .box { margin-top: 6px; }
+.vpc.nest .rt b { background: var(--card); border-radius: 4px; padding: 0 3px; }
+.vpc.nest .box.dim { opacity: .55; border-style: dotted; }
 .vpc .door { display: inline-block; padding: 4px 10px; border-radius: 8px; border: 2px solid var(--blue-fg); background: var(--card); font-weight: 700; }
 .pipes { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
 .pp { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--card); }
@@ -1621,6 +1624,25 @@ $ curl -s ifconfig.me  # after NAT
   </ul>
   <p class="ana">🏢 A VPC is a <b>gated office campus</b>. The Internet Gateway is the main gate. The public subnet is the reception lobby, where visitors are let in. The private subnet is the badge-only offices: staff can step out for coffee (NAT), but no stranger walks in. Route tables are the signposts. <span class="add">➕ analogy not in the article</span></p>
   <div class="rem"><b>✅ Remember</b> 🛣️ A subnet is public because its route table points to the Internet Gateway, not because its servers have public IPs.<br>🎤 Say it in a design: "One VPC across 2–3 Availability Zones. Only the load balancer sits in public subnets. Services, databases and caches sit in private subnets and reach the internet through a NAT Gateway."</div>
+  <h5>📏 How big can a VPC be? /8 → /16 → /24 <span class="add">➕ not in the article</span></h5>
+  <p class="bridge">The private range <code>10.0.0.0/8</code> is not your VPC. It's the pool your VPC is cut from. Each smaller block sits inside the bigger one because it starts with the same numbers: fewer free numbers, fewer addresses.</p>
+  <div class="vpc nest" role="img" aria-label="Nested blocks: the private range 10.0.0.0/8 holds the VPC 10.0.0.0/16 (and other VPCs like 10.1.0.0/16), and the VPC holds subnets 10.0.1.0/24 and 10.0.2.0/24.">
+    <div class="box v"><div class="h">🏙️ Private range <small>10.0.0.0/8 · 16.7 M</small></div>
+      <div class="rt"><b>10</b> . x . x . x &nbsp;1 number fixed</div>
+      <div class="box pub"><div class="h">☁️ Your VPC <small>10.0.0.0/16 · 65,536</small></div>
+        <div class="rt"><b>10 . 0</b> . x . x &nbsp;2 fixed</div>
+        <div class="box prv"><div class="h">🧩 Subnet A <small>10.0.1.0/24 · 256</small></div><div class="rt"><b>10 . 0 . 1</b> . x &nbsp;3 fixed</div></div>
+        <div class="box prv"><div class="h">🧩 Subnet B <small>10.0.2.0/24 · 256</small></div><div class="rt"><b>10 . 0 . 2</b> . x</div></div>
+      </div>
+      <div class="box pub dim"><div class="h">☁️ Another VPC <small>10.1.0.0/16</small></div><div class="rt"><b>10 . 1</b> . x . x &nbsp;… up to 10.255</div></div>
+    </div>
+  </div>
+  <ul class="lines roomy heads">
+    <li><b class="hd">📏 On AWS, a VPC block and a subnet are each /16 to /28</b>/16 (65,536 addresses) is the biggest, /28 (16, so 11 usable) the smallest. So one VPC can never be the whole <code>10.0.0.0/8</code>: you take a /16 slice of it. The /8 holds 256 such slices (<code>10.0</code> to <code>10.255</code>).</li>
+    <li><b class="hd">🧩 Each subnet must fit inside its VPC, and subnets can't overlap</b><code>10.0.1.0/24</code> fits in <code>10.0.0.0/16</code>; <code>10.1.1.0/24</code> doesn't, because it starts with <code>10.1</code>.</li>
+    <li><b class="hd">➕ Need more room? Add more CIDR blocks to the VPC</b>Up to 5 per VPC by default, each again /16 to /28.</li>
+  </ul>
+  <p class="ana">🏙️ The private range is the whole city. AWS sells you a plot of at most /16 (your VPC), and the rooms you build on it are subnets. A room can't stick out of your plot, and two rooms can't overlap. <span class="add">➕ analogy</span></p>
   <h5>🧠 Stateful vs stateless: which firewall remembers? <span class="add">➕ not in the article</span></h5>
   <p class="bridge"><b>State = memory.</b> That is the whole difference. A <b>stateful</b> firewall remembers what went out, so the reply comes back in by itself. A <span class="nogl">stateless</span> one remembers nothing, so the reply needs its own rule. First a pizza, then the network.</p>
   <div class="grid2">
