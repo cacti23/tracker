@@ -13,7 +13,7 @@ const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
 for (const [key, src, title] of [
   ['thoughts', 'dsa/dsa-thoughts.html', 'DSA Thoughts'],
   ['jsbuiltins', 'dsa/js-builtins.html', 'JS Built-ins'],
-  ['sites', 'dsa/study-sites.html', 'Study Sites'],
+  ['sites', 'dsa/study-sites.html#dsa', 'Study Sites'],
 ]) {
   test(title + ' opens in-pane, and a reload returns to it', () => {
     const { sandbox, getElement } = loadAppWithDom()

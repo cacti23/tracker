@@ -61,9 +61,17 @@ const SITES = [
   { name: 'AlgoVision', url: 'https://www.algovision.dev/', cat: 'DSA', sub: 'LeetCode', icon: '🎞️', use: 'Step through LeetCode solutions' },
 ]
 
+// Inside the hub the hash names the notebook (#dsa or #sd), and only its sites show.
+// Behavioral helps in both. Opened on its own, with no hash, the page lists everything.
+function sitesFor(hub) {
+  if (hub === 'dsa') return SITES.filter(s => s.cat === 'DSA' || s.cat === 'Behavioral')
+  if (hub === 'sd') return SITES.filter(s => s.cat !== 'DSA')
+  return SITES
+}
+
 const chips = document.getElementById('chips')
 const list = document.getElementById('list')
-const cats = [...new Set(SITES.map(s => s.cat))]
+let shown, cats
 let current = 'All'
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e }
@@ -120,7 +128,7 @@ const tiles = new Map(SITES.map(s => [s, tile(s)]))
 
 function render() {
   chips.replaceChildren(...['All', ...cats].map(c => {
-    const n = c === 'All' ? SITES.length : SITES.filter(s => s.cat === c).length
+    const n = c === 'All' ? shown.length : shown.filter(s => s.cat === c).length
     const b = el('button', c === current ? 'on' : '', c + ' ')
     b.append(el('span', '', String(n)))
     b.type = 'button'
@@ -128,9 +136,17 @@ function render() {
     b.onclick = () => { current = c; render() }
     return b
   }))
-  list.replaceChildren(...SITES.filter(s => current === 'All' || s.cat === current).map(s => tiles.get(s)))
+  list.replaceChildren(...shown.filter(s => current === 'All' || s.cat === current).map(s => tiles.get(s)))
 }
-render()
+// The hub reuses this frame across notebooks, so a switch only changes the hash.
+function showHub() {
+  shown = sitesFor(location.hash.slice(1))
+  cats = [...new Set(shown.map(s => s.cat))]
+  current = 'All'
+  render()
+}
+window.addEventListener('hashchange', showHub)
+showHub()
 </script>
 <script src="../js/back-button.js"></script>
 </body></html>

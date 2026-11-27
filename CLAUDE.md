@@ -38,5 +38,6 @@ The service worker (`sw.js`) caches an app-shell list in `ASSETS`. If you add a 
 ## Conventions
 
 - Commits have mostly been bare version bumps (`v219`). Descriptive messages are preferred for real changes.
+- Every PR bumps the version in the sidebar footer (`vNNN · Interview Prep Hub` in `index.html`) to its commit's `vNNN`; pick the next number after the newest `vNNN` in `git log origin/main`. `test/footer-version.test.js` fails if the footer is older than any `vNNN` commit, so other PRs' versions can't leave the live site showing an old number.
 - Comments explain why, not what. Match the surrounding style (the inline script uses no semicolons, `data.js` is mixed).
 - No new implicit state: model a mode as one status value with named states, or derive it from the source of truth. Any change to sync or merge needs a test that fails before the change.

@@ -47,7 +47,7 @@ test('System Design keeps its own frame, so a hop to Study Sites and back does n
   const { sandbox, getElement } = loadAppWithDom()
   evalIn(sandbox, "switchHub('sd')")
   evalIn(sandbox, "loadEmbed('sites')")
-  assert.equal(getElement('page-frame').getAttribute('src'), 'dsa/study-sites.html')
+  assert.equal(getElement('page-frame').getAttribute('src'), 'dsa/study-sites.html#sd')
   assert.equal(getElement('sysdesign-frame').getAttribute('src'), 'sysdesign/system-design.html')
   assert.match(HTML, /<div id="view-sysdesign" class="d-none">\s*<iframe id="sysdesign-frame"/)
 })
@@ -61,12 +61,13 @@ test('the sidebar has the switch, DSA-only sections are tagged, and Apps is now 
   assert.match(HTML, /class="hub-switch"[^>]*role="group"/)
   assert.match(HTML, /data-click="switchHub" data-args='\["dsa"\]'/)
   assert.match(HTML, /data-click="switchHub" data-args='\["sd"\]'/)
-  for (const id of ['nav-dashboard', 'nav-thoughts', 'nav-jsbuiltins', 'nav-visuals', 'nav-google', 'nav-topics']) {
+  for (const id of ['nav-dashboard', 'nav-thoughts', 'nav-jsbuiltins', 'nav-visuals', 'nav-topics']) {
     assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="dsa"`), id + ' should show only in DSA')
   }
   assert.match(HTML, /id="nav-sysdesign"[^>]*data-hub="sd"/)
   for (const id of ['nav-papers', 'nav-postmortems']) assert.match(HTML, new RegExp(`id="${id}"[^>]*data-hub="sd"`), id + ' is System Design only')
   assert.doesNotMatch(HTML, /id="nav-sites"[^>]*data-hub=/, 'Study Sites is shared')
+  assert.match(HTML, /id="nav-google"[^>]*data-hub="exp"/, 'Google lives in Interview experiences')
   assert.doesNotMatch(HTML, /<a href="sysdesign\/system-design\.html"/, 'System Design is no longer an app link')
   assert.match(HTML, /<summary[^>]*>🌱 Life<\/summary>/)
 })
@@ -80,4 +81,15 @@ test('the System Design page skips layout for off-screen cards (it shares the hu
 test('the System Design page follows the hub theme live when embedded', () => {
   const sd = fs.readFileSync(path.join(ROOT, 'sysdesign', 'system-design.html'), 'utf8')
   assert.match(sd, /addEventListener\('storage'[\s\S]{0,200}dsa-theme/)
+})
+
+test('the Interview experiences button opens Google, and a reload stays there', () => {
+  const { sandbox, getElement } = loadAppWithDom()
+  evalIn(sandbox, "switchHub('exp')")
+  assert.equal(mode(sandbox), 'exp')
+  assert.equal(getElement('google-frame').getAttribute('src'), 'google/google-onsite-log.html')
+  const again = loadAppWithDom({ 'dsa-hub-mode': 'exp', 'dsa-current-view-v1': 'google' })
+  assert.equal(mode(again.sandbox), 'exp')
+  evalIn(sandbox, "switchHub('dsa')")
+  assert.equal(mode(sandbox), 'dsa')
 })

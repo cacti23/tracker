@@ -65,6 +65,20 @@ function _readMap(key) {
   const v = JSON.parse(localStorage.getItem(key) || '{}')
   return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
 }
+// Read-only twin of _readMap for hot getters. The dashboard asks about every question several
+// times (solve count, status, revise, code-force), and re-parsing the whole map on each ask made
+// opening the DSA dashboard take most of a second with a few hundred practised questions. The
+// parsed map is kept for as long as the stored string is the same, so a write from any tab or a
+// sync is seen on the next read. Callers must not mutate what it returns: writers use _readMap.
+const _sharedMaps = new Map()
+function _readMapShared(key) {
+  const raw = localStorage.getItem(key)
+  const hit = _sharedMaps.get(key)
+  if (hit && hit.raw === raw) return hit.val
+  const val = _readMap(key)
+  _sharedMaps.set(key, { raw, val })
+  return val
+}
 
 // shape: { [lcKey]: { status: 'Solved'|'In Progress'|'Pending' } }
 const PROGRESS_KEY = 'dsa-progress-v1'
@@ -216,7 +230,7 @@ function _jsonMap(key) {
     try { return _readMap(key) } catch { return null }
   }
   return {
-    get(lcKey) { const m = read(); return m ? m[lcKey] : undefined },
+    get(lcKey) { try { return _readMapShared(key)[lcKey] } catch { return undefined } },
     // fn(old) → new value for one entry; undefined/null deletes it. Returns the new value.
     put(lcKey, fn) {
       const m = read()
@@ -302,7 +316,7 @@ function getStreak() {
 const SEEN_KEY = 'dsa-seen-v1'
 const SEEN_FRESH_DAYS = 15
 function getSeen(lcKey) {
-  try { return _readMap(SEEN_KEY)[lcKey] || null } catch { return null }
+  try { return _readMapShared(SEEN_KEY)[lcKey] || null } catch { return null }
 }
 function markSeen(lcKey) {
   try {
@@ -336,7 +350,7 @@ function getSeenState(lcKey) {
 const REVISE_KEY = 'dsa-revise-v1'
 const REVISE_LADDER = [1, 2, 4, 8, 16]   // days — deliberately shorter than the code ladder (1,3,7,14,30)
 function _reviseAll() { try { return _readMap(REVISE_KEY) } catch { return {} } }
-function getRevise(lcKey) { return _reviseAll()[lcKey] || null }
+function getRevise(lcKey) { try { return _readMapShared(REVISE_KEY)[lcKey] || null } catch { return null } }
 // With `base`, the ladder steps from base.rev (the record before today's first grade) rather than
 // from the stored record, and `base` is kept on the record for the next same-day correction.
 function markRevised(lcKey, grade, base) {
@@ -391,7 +405,7 @@ function logRecent(lcKey, grade) {
 // clean cold solve (a ✓ in Graded / a solve list), never by a later recall grade. shape: { [lcKey]: true }
 const CODE_FORCE_KEY = 'dsa-code-force-v1'
 function _codeForceAll() { try { return _readMap(CODE_FORCE_KEY) } catch { return {} } }
-function isCodeForced(lcKey) { return !!_codeForceAll()[lcKey] }
+function isCodeForced(lcKey) { try { return !!_readMapShared(CODE_FORCE_KEY)[lcKey] } catch { return false } }
 function setCodeForced(lcKey, on) {
   const all = _codeForceAll()
   if (on) all[lcKey] = true; else delete all[lcKey]
