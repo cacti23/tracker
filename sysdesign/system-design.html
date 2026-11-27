@@ -2753,6 +2753,9 @@ GET  /bookings/{id}          # one booking</pre>
     <li><b class="hd">🏷️ ETag is a version tag, so "has it changed?" costs almost nothing</b>1️⃣ The server answers <code>200</code> with <code>ETag: "v42"</code><br>2️⃣ Later the browser asks again with <code>If-None-Match: "v42"</code><br>3️⃣ Unchanged → <code>304 Not Modified</code>, no body. Changed → <code>200</code> with the new body and a new ETag.</li>
     <li><b class="hd">⚖️ Cache-Control skips the whole request; ETag still asks, but skips the body</b>Use both: reuse for a short time, then check cheaply.</li>
   </ul>
+  <p class="bridge">The whole flow, from the first call to "the data changed". Press ▶️.</p>
+  <div class="seq" data-seq="http-etag"></div>
+  <div class="info"><b>➕ Fact-check: a common picture of this flow has two slips</b> 1️⃣ It draws <code>If-None-Match</code> leaving the server. It is a <b>request</b> header: the browser sends it to the server. 2️⃣ It leaves out that a <code>304</code> also renews the copy: it carries <code>max-age=60</code> again, so the next 60 s need no request either.</div>
   <p class="ana">🥛 Cache-Control is the "use by" date on the milk: until then, don't even ask. ETag is asking the shop "still batch 42?" and hearing "yes, keep yours". <span class="add">➕ analogy</span></p>
 
   <h5>⏳ Long jobs: 202 Accepted + a job id <span class="add">➕ from the drill</span></h5>
@@ -8178,6 +8181,24 @@ const SEQS = {
       { at: 2, m: '#2 … #10,000: wait for #1', k: 'gray', cap: '⑤ Requests #2 to #10,000 arrive during that trip. They find the key in the map, so they send nothing and wait for #1\'s answer.' },
       { f: 3, t: 2, m: 'value', k: 'http', cap: '⑥ The cache answers once.' },
       { f: 2, t: 0, m: 'same value → all 10,000', k: 'lb', cap: '⑦ App server A sends that one value back to all 10,000 phones and clears the key from the map. 100 app servers = 100 requests to the cache, not 1,000,000.' },
+    ],
+  },
+  'http-etag': {
+    lanes: ['🌐 Browser', '🗄️ Browser cache', '🖥️ Server'],
+    key: [['tcp', 'request'], ['http', 'response'], ['lb', 'inside the browser'], ['ws', 'data changed']],
+    frames: [
+      { cap: 'One API, <code>GET /api/products</code>, called three times. Watch which calls reach the server 👇' },
+      { f: 0, t: 2, m: 'GET /api/products', k: 'tcp', cap: '① t = 0 s: the first call. The cache is empty, so it goes to the server.' },
+      { f: 2, t: 0, m: '200 · max-age=60 · ETag "v1"', k: 'http', cap: '② The server answers <code>200 OK</code> with the data, <code>Cache-Control: public, max-age=60</code> and <code>ETag: "v1"</code>.' },
+      { f: 0, t: 1, m: 'keep copy "v1", fresh 60 s', k: 'lb', cap: '③ The browser stores the response, with its ETag, and starts a 60 s clock.' },
+      { f: 0, t: 1, m: 't = 20 s: GET again', k: 'lb', cap: '④ t = 20 s: the same call again. The browser checks its cache first.' },
+      { f: 1, t: 0, m: 'fresh → reuse it ✅', k: 'lb', cap: '⑤ The copy is under 60 s old, so it is fresh: the browser uses it. <b>Cache hit, no request to the server at all.</b>' },
+      { at: 1, m: 't = 61 s: copy is stale', k: 'gray', cap: '⑥ t = 61 s: the 60 s are up. The copy is stale, but the browser keeps it: it may still be right.' },
+      { f: 0, t: 2, m: 'GET · If-None-Match: "v1"', k: 'tcp', cap: '⑦ So the browser asks the server, and <b>the browser</b> adds <code>If-None-Match: "v1"</code>: "I have v1. Is that still current?"' },
+      { at: 2, m: 'current = "v1"? compare', k: 'gray', cap: '⑧ The server compares "v1" with the current version\'s ETag. Two possible answers 👇' },
+      { f: 2, t: 0, m: 'A · 304 Not Modified (no body)', k: 'http', cap: '⑨ A · Same version: <code>304 Not Modified</code>, no body. The browser uses its copy, and the 304\'s <code>max-age=60</code> makes it fresh for another 60 s.' },
+      { f: 2, t: 0, m: 'B · 200 · ETag "v2" + new data', k: 'ws', cap: '⑩ B · The data changed: <code>200 OK</code> with the new data and <code>ETag: "v2"</code>.' },
+      { f: 0, t: 1, m: 'replace copy with "v2"', k: 'ws', cap: '⑪ The browser replaces its copy with v2 and starts a new 60 s clock. Next time it asks with <code>If-None-Match: "v2"</code>.' },
     ],
   },
   'cache-cpu': {
