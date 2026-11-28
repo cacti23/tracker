@@ -3,6 +3,15 @@
 
 // ─── QUICK PRACTICE (Dashboard) ───────────────────────────────────────────────
 
+// Dispatcher: Graded renders grade-rows (✓/~/✗ + saved-solution link, right on the row);
+// anything else (Worked-on-only pool, plain generated sets) renders solve-rows.
+function _qpRowsHtml() {
+  if (!_qpResults) return ''
+  if (_qpRevised) return _qpResults.map((entry, i) => _buildReviseItem(entry, i, 'qp')).join('')
+  return _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
+}
+
+
 function _renderQuickPractice() {
   const el = document.getElementById('quick-practice-panel')
   if (!el) return
@@ -208,9 +217,7 @@ function _qpGenerate() {
   // A plain set goes weakest-first (✗ forgot → ~ shaky → ✓ confident → rest).
   let generated
   if (_qpRevised) {
-    const weak      = _weightedShuffleByImpact(pool.filter(([k]) => _weaknessRank(k) < 2)).sort((a, b) => _weaknessRank(a[0]) - _weaknessRank(b[0]))
-    const solid     = _weightedShuffleByImpact(pool.filter(([k]) => _weaknessRank(k) === 2))
-    generated = [...weak, ...solid.slice(0, Math.max(0, count - weak.length))]
+    generated = _weakThenSolid(pool, _weaknessRank, count)
   } else {
     generated = _orderByWeakness(_orderPracticePool(pool)).slice(0, count)
   }
