@@ -153,7 +153,7 @@
       <a class="sf-github" href="https://github.com/cacti23/tracker" target="_blank" rel="noopener" title="Open source (MIT) on GitHub"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span><b>Open source on GitHub</b><small>⭐ Star it · PRs welcome</small></span></a>
       <div class="sf-fine">
         <p class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</p>
-        <span>v624 · Interview Prep Hub</span>
+        <span>v625 · Interview Prep Hub</span>
       </div>
       <nav class="sf-social" aria-label="Made by Adi">
         <a href="https://www.linkedin.com/in/adityap314/" target="_blank" rel="noopener">💼 LinkedIn</a>
@@ -1124,7 +1124,7 @@ function loadRecent() {
       '<span class="recent-topic">' + escHtml(e.topic.icon + ' ' + e.topic.label) + '</span>' +
       '<span class="badge bg-' + DIFFICULTY_BADGE[e.q.difficulty] + ' q-badge flex-shrink-0">' + escHtml(e.q.difficulty) + '</span>' +
       '<span class="rev-ago">' + escHtml(time) + '</span>' +
-      '<a href="' + escHtml(e.q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' +
+      _lcLink(e.q) +
       '</div>'
   }
   view.innerHTML = html + '</div>'
@@ -2619,6 +2619,26 @@ function _qpRevisedGrade(ev, lcKey, grade) {
 
 // Render one REVISE row: title + difficulty + a "last grade" tag + the ✓/~/✗ recall buttons.
 // No click-to-solve — only the grade buttons act (recall ≠ coding).
+// Pieces every practice-list row shares (Graded, By Pattern, solve list, Recent, Pinned).
+function _lcLink(q) { return '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' }
+function _titleLink(q) { return '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' }
+function _diffBadge(q) { return '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' }
+function _jumpBtn(lcKey) { return '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" data-click="_jumpToQuestion" data-args="' + Actions.attrArgs(['$event', lcKey]) + '">⤵</button>' }
+// A forced-to-code question reads as forgot; otherwise the tint is this session's grade.
+function _rowTint(forced, rv) { return forced ? ' ps-q-forgot' : rv && rv.grade === 'solid' ? ' ps-q-solid' : rv && rv.grade === 'shaky' ? ' ps-q-shaky' : '' }
+function _subLink(lcKey) {
+  const subs = getSubmissions(lcKey)
+  return subs.length ?
+    '<a href="' + escHtml(subs[subs.length - 1].url) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open your' +
+    (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
+    '" data-click="stop" data-stop>🔗</a>' : ''
+}
+function _topicIcon(lcKey) {
+  const tKey = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
+  const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
+  return tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
+}
+
 function _buildReviseItem([lcKey, q], i, ctx) {
   const fn = ctx === 'ps' ? '_psRecallGrade' : '_qpReviseGrade'   // which list this row lives in
   // Every graded row stays in place (never swept off the list) — grading just tints the row and
@@ -2628,16 +2648,10 @@ function _buildReviseItem([lcKey, q], i, ctx) {
   const doneThisSession = ctx === 'ps' ? _psDoneThisSession.has(lcKey) : _qpDoneThisSession.has(lcKey)
   const forced = isCodeForced(lcKey)
   const rv     = doneThisSession ? getRevise(lcKey) : null
-  const rowCls = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
-  const tKey   = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
-  const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
-  const topicIcon = tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
+  const rowCls = _rowTint(forced, rv)
+  const topicIcon = _topicIcon(lcKey)
   const chosen = g => (rv && rv.grade === g) ? ' rev-chosen' : ''
-  const subs = getSubmissions(lcKey)
-  const subLink = subs.length ?
-    '<a href="' + escHtml(subs[subs.length - 1].url) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open your' +
-    (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
-    '" data-click="stop" data-stop>🔗</a>' : ''
+  const subLink = _subLink(lcKey)
   // ~20% of a freshly generated Revise/By Pattern set is randomly flagged to actually CODE,
   // not just recall — a spot-check so pure mental recall can't quietly become the whole habit.
   const codePick = ctx === 'ps' && _psReviseCodeFlagged.has(lcKey)
@@ -2645,16 +2659,15 @@ function _buildReviseItem([lcKey, q], i, ctx) {
     '<span class="ps-code-pick flex-shrink-0" title="Randomly picked to CODE this one — actually write and run the solution, don\'t just recall it">⌨️ Code</span>' : ''
   // Jump-to-question assumes a single "current topic" page context, which the dashboard doesn't
   // have — it doesn't work there. Only offer it in the per-topic Practice Session.
-  const jumpBtn = ctx === 'ps' ?
-    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" data-click="_jumpToQuestion" data-args="' + Actions.attrArgs(['$event', lcKey]) + '">⤵</button>' : ''
+  const jumpBtn = ctx === 'ps' ? _jumpBtn(lcKey) : ''
   return (
     '<div class="ps-q-row' + rowCls + '" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
     topicIcon +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
+    _titleLink(q) +
     // Dashboard rows drop difficulty (and never had status) to match the plain generator's rows —
     // frequency stays instead. Per-topic Graded/By Pattern keep difficulty, untouched.
-    (ctx === 'ps' ? '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' : (q.freq ? freqBadge(q, ' flex-shrink-0') : '')) +
+    (ctx === 'ps' ? _diffBadge(q) : (q.freq ? freqBadge(q, ' flex-shrink-0') : '')) +
     codeBadge +
     (doneThisSession ? _reviseGradeBadge(lcKey) : '') +
     '<span class="rev-grade-group flex-shrink-0">' +
@@ -2664,7 +2677,7 @@ function _buildReviseItem([lcKey, q], i, ctx) {
     '</span>' +
     jumpBtn +
     subLink +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' +
+    _lcLink(q) +
     '</div>'
   )
 }
@@ -2680,11 +2693,11 @@ function _buildRecentItem([lcKey, q], i) {
   return (
     '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
-    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
+    _titleLink(q) +
+    _diffBadge(q) +
     '<span class="revise-grade-badge ' + badge[0] + '">' + badge[1] + '</span>' +
     (ts ? '<span class="rev-ago" title="' + escHtml(new Date(ts).toLocaleString()) + '">' + _agoLabel(ts) + ' ago</span>' : '') +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' +
+    _lcLink(q) +
     '</div>'
   )
 }
@@ -2738,11 +2751,11 @@ function _buildPinnedItem([lcKey, q], i) {
   return (
     '<div class="ps-q-row" data-lc-key="' + lcKey + '">' +
     '<span class="ps-q-num">' + (i + 1) + '</span>' +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' +
-    '<span class="badge bg-' + DIFFICULTY_BADGE[q.difficulty] + ' q-badge flex-shrink-0">' + q.difficulty + '</span>' +
-    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" data-click="_jumpToQuestion" data-args="' + Actions.attrArgs(['$event', lcKey]) + '">⤵</button>' +
+    _titleLink(q) +
+    _diffBadge(q) +
+    _jumpBtn(lcKey) +
     '<button type="button" class="ps-q-link" title="Unpin" aria-label="Unpin" data-click="onPinBtnClick" data-args="' + Actions.attrArgs([lcKey]) + '" data-stop>📌</button>' +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' +
+    _lcLink(q) +
     '</div>'
   )
 }
@@ -2772,12 +2785,7 @@ function _jumpToQuestion(ev, lcKey) {
 
 function _buildPracticeItem([lcKey, q], i, showTopic) {
   const due = isDue(lcKey)
-  let topicIcon = ''
-  if (showTopic) {
-    const tKey = Object.keys(TOPIC_MODULES).find(k => TOPIC_MODULES[k].questions?.[lcKey])
-    const tEntry = tKey ? TOPICS.find(t => t.key === tKey) : null
-    if (tEntry) topicIcon = '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>'
-  }
+  const topicIcon = showTopic ? _topicIcon(lcKey) : ''
   // The row itself does nothing on click anymore — only the grade buttons act. Tint/chosen-button
   // only reflect a grade thrown in THIS generated set (same rule as Graded/By Pattern rows) — a
   // stale grade from before this generate doesn't pre-color the row; every row starts neutral until
@@ -2786,19 +2794,14 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
   const doneInSession = showTopic ? _qpDoneThisSession.has(lcKey) : _psDoneThisSession.has(lcKey)
   const forced   = isCodeForced(lcKey)
   const rv       = doneInSession ? getRevise(lcKey) : null
-  const rowCls   = forced ? ' ps-q-forgot' : (rv && rv.grade === 'solid') ? ' ps-q-solid' : (rv && rv.grade === 'shaky') ? ' ps-q-shaky' : ''
+  const rowCls   = _rowTint(forced, rv)
   const dueDot   = ((due || forced) && !rv) ? '<span class="ps-due-dot" title="Due for review">●</span>' : ''
   // Jump-to-question assumes you're already inside that topic's page (currentTopicKey) — on the
   // dashboard there's no single "current topic" to jump within, so it doesn't actually work
   // there. Only offer it in the per-topic Practice Session.
-  const jumpBtn = showTopic ? '' :
-    '<button type="button" class="ps-q-link ps-jump-btn" title="Jump to the full question below" aria-label="Jump to question" data-click="_jumpToQuestion" data-args="' + Actions.attrArgs(['$event', lcKey]) + '">⤵</button>'
+  const jumpBtn = showTopic ? '' : _jumpBtn(lcKey)
   // Saved-solution link — same 🔗 to your last submission that Graded/By Pattern rows have.
-  const subs = getSubmissions(lcKey)
-  const subLink = subs.length ?
-    '<a href="' + escHtml(subs[subs.length - 1].url) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open your' +
-    (subs.length > 1 ? ' most recent saved submission (' + subs.length + ' saved)' : ' saved submission') +
-    '" data-click="stop" data-stop>🔗</a>' : ''
+  const subLink = _subLink(lcKey)
   // Solve-list rows also get the same ✓/~/✗ grade buttons Graded/By Pattern have. ✓ is the ONLY
   // way to mark a question Solved here now (see _practiceGrade / _psCreditCleanSolve).
   const chosen = g => (rv && rv.grade === g) ? ' rev-chosen' : ''
@@ -2818,7 +2821,7 @@ function _buildPracticeItem([lcKey, q], i, showTopic) {
     gradeBtns +
     jumpBtn +
     subLink +
-    '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' +
+    _lcLink(q) +
     '</div>'
   )
 }
