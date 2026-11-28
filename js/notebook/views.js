@@ -7,15 +7,28 @@
 // returns you to where you were instead of always dumping you on the dashboard.
 // Per-device UI state (intentionally NOT synced via BACKUP_KEYS).
 const CURRENT_VIEW_KEY = 'dsa-current-view-v1'
-function _saveCurrentView(v) { try { localStorage.setItem(CURRENT_VIEW_KEY, v) } catch {} }
-function _restoreView() {
-  let saved = null
-  try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
+// Each notebook tab (dsa | sd | exp) also keeps its own last view, so DSA → System Design → DSA
+// lands back on the topic you left, not the dashboard (Adi, 2026-11-28). Local only, like the above.
+const HUB_LAST_VIEW_KEY = 'dsa-hub-last-view-v1'
+function _saveCurrentView(v) {
+  try {
+    localStorage.setItem(CURRENT_VIEW_KEY, v)
+    const last = JSON.parse(localStorage.getItem(HUB_LAST_VIEW_KEY) || '{}')
+    last[document.body.dataset.hubMode] = v
+    localStorage.setItem(HUB_LAST_VIEW_KEY, JSON.stringify(last))
+  } catch {}
+}
+function _openView(saved, fallback = loadDashboard) {
   if (saved === 'google') loadGoogle()
   else if (saved === 'recent') loadRecent()
   else if (saved && Object.prototype.hasOwnProperty.call(EMBEDS, saved)) loadEmbed(saved)
   else if (saved && saved !== 'dashboard' && TOPICS.some(t => t.key === saved)) loadTopic(saved)
-  else loadDashboard()
+  else fallback()
+}
+function _restoreView() {
+  let saved = null
+  try { saved = localStorage.getItem(CURRENT_VIEW_KEY) } catch {}
+  _openView(saved)
 }
 
 // ─── GOOGLE (in-pane, same layout as a topic: header title + tab pills + content) ───
@@ -89,9 +102,12 @@ function setHubMode(m) {
   try { localStorage.setItem(HUB_MODE_KEY, m) } catch {}
 }
 function switchHub(m) {
-  if (m === 'sd') loadEmbed('sysdesign')
-  else if (m === 'exp') loadGoogle()
-  else loadDashboard()
+  let last = null
+  try { last = JSON.parse(localStorage.getItem(HUB_LAST_VIEW_KEY) || '{}')[m] } catch {}
+  // Set the mode first: a shared page (Study Sites, Privacy) opens in the tab you clicked.
+  setHubMode(m)
+  const home = m === 'sd' ? () => loadEmbed('sysdesign') : m === 'exp' ? loadGoogle : loadDashboard
+  _openView(last, home)
 }
 
 // ─── SYSTEM DESIGN LESSON MAP ─────────────────────────────────────────────────
