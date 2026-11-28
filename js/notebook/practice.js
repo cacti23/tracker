@@ -66,16 +66,13 @@ function _qpRowsHtml() {
 }
 
 // Fine-grained relative time: "just now" / "30 min" / "4h" / "1d" / "12d" from an ISO timestamp.
+// How long ago, ready to show: 'just now', '5 min ago', '3h ago', '2d ago'.
 function _agoLabel(iso) {
   if (!iso) return ''
-  const ms = Date.now() - new Date(iso).getTime()
-  const min = Math.floor(ms / 60000)
-  if (min < 1)  return 'just now'
-  if (min < 60) return min + ' min'
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (min < 1) return 'just now'
   const hr = Math.floor(min / 60)
-  if (hr < 24)  return hr + 'h'
-  const days = Math.floor(hr / 24)
-  return days + 'd'
+  return (min < 60 ? min + ' min' : hr < 24 ? hr + 'h' : Math.floor(hr / 24) + 'd') + ' ago'
 }
 
 // Re-grade a row in the Revised log: updates the grade (and badge, via gradeRevise) + the "ago"
@@ -166,7 +163,7 @@ function _buildRecentItem([lcKey, q], i) {
     _titleLink(q) +
     _diffBadge(q) +
     '<span class="revise-grade-badge ' + badge[0] + '">' + badge[1] + '</span>' +
-    (ts ? '<span class="rev-ago" title="' + escHtml(new Date(ts).toLocaleString()) + '">' + _agoLabel(ts) + ' ago</span>' : '') +
+    (ts ? '<span class="rev-ago" title="' + escHtml(new Date(ts).toLocaleString()) + '">' + _agoLabel(ts) + '</span>' : '') +
     _lcLink(q) +
     '</div>'
   )
