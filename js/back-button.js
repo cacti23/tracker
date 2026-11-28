@@ -14,6 +14,7 @@
   'use strict';
   if (window.top !== window.self) return;
   if (document.getElementById('tracker-back-btn')) return;
+  if (document.querySelector && document.querySelector('.hub-bar')) return;   // the Life apps have a top bar that links home
 
   var src = document.currentScript && document.currentScript.src;
   var home;
