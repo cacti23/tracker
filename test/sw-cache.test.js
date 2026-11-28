@@ -63,3 +63,20 @@ test('offline, a cached page still opens itself, and an uncached page is not swa
   assert.strictEqual(await offlineFetch('sw.js', 'https://t.example/index.html', ['https://t.example/index.html']), 'CACHED https://t.example/index.html')
   assert.strictEqual(await offlineFetch('sw.js', 'https://t.example/apps/gym-5day.html', ['https://t.example/index.html']), undefined)
 })
+
+// Pokémon sprites showed as ⚪ in production: the habits worker re-fetched them itself, and a
+// worker's fetch is checked against connect-src, which doesn't list the sprite hosts.
+// Requests to other sites must go straight to the browser (no respondWith).
+test('habits service worker leaves other sites\' requests alone', () => {
+  const handlers = {}
+  const self = { addEventListener: (t, fn) => { handlers[t] = fn }, skipWaiting() {}, clients: { claim() {} }, location: { origin: 'https://tracker.example' } }
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'apps/habits-sw.js'), 'utf8'), { self, caches: { match: async () => undefined }, fetch: async () => ({}), URL })
+  const handled = (url) => {
+    let used = false
+    handlers.fetch({ request: { method: 'GET', url, mode: 'no-cors' }, respondWith() { used = true } })
+    return used
+  }
+  assert.strictEqual(handled('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png'), false)
+  assert.strictEqual(handled('https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/4.png'), false)
+  assert.strictEqual(handled('https://tracker.example/icons/icon-192.png'), true)
+})
