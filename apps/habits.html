@@ -13,6 +13,7 @@
 <link rel="icon" href="../icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" data-font-swap><script src="../js/font-swap.js"></script>
+<link rel="stylesheet" href="../css/apps.css">
 <style>
   :root {
     --bg: #070710;
@@ -54,12 +55,6 @@
     --dot-empty-border: rgba(0,0,0,0.06);
     --modal-overlay: rgba(0,0,0,0.4);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif;
-    transition: background 0.3s, color 0.3s; padding-bottom: 2rem;
-  }
   .glow-layer {
     position: fixed; inset: 0; pointer-events: none; z-index: 0;
     background: radial-gradient(ellipse 55% 35% at 15% 8%, rgba(224,90,43,0.08) 0%, transparent 65%),
@@ -70,9 +65,7 @@
     padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: max(100px, calc(100px + env(safe-area-inset-bottom))); }
   .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
     margin-bottom: 28px; border-left: 3px solid var(--accent); padding-left: 20px; }
-  .header-mono { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
   .header-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px,9vw,64px); line-height: 0.9; color: var(--heading-color); }
-  .header-title span { color: var(--accent); }
   .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
   .toggle-btn {
     cursor: pointer; border: 1px solid var(--toggle-border); background: var(--toggle-bg);
@@ -82,15 +75,11 @@
   }
   .toggle-btn:hover { color: var(--text); border-color: var(--accent); }
   .toggle-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  /* Token is set on this device — sync is live, not just a dormant button. */
-  .toggle-btn.ds-token-set { border-color: #3dd68c; color: #3dd68c; background: rgba(61,214,140,0.12); }
   .toggle-btn.ds-token-set:hover { border-color: #3dd68c; color: #3dd68c; }
-
   .view-row { display: flex; gap: 6px; margin-bottom: 20px; background: var(--surface2); border-radius: 10px; padding: 4px; width: fit-content; }
   .view-btn { border: none; background: transparent; color: var(--text-muted); font-family: 'DM Mono', monospace;
     font-size: 11px; letter-spacing: 0.06em; padding: 8px 14px; border-radius: 7px; cursor: pointer; transition: background-color 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s, transform 0.15s; }
   .view-btn.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
-
   .habit-card { background: var(--surface); border: 1px solid var(--border); border-left-width: 4px; border-left-style: solid; border-radius: 14px; padding: 16px 16px 14px; margin-bottom: 12px; }
   .habit-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .habit-icon { flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 1; }
@@ -116,7 +105,6 @@
   .icon-btn:hover { color: var(--text); background: var(--surface2); }
   .icon-btn:disabled { opacity: 0.25; cursor: default; }
   .icon-btn:disabled:hover { background: transparent; color: var(--text-faint); }
-
   .dots-row { display: flex; gap: 5px; flex-wrap: wrap; }
   .dots-row.dots-30 { gap: 4px; }
   .dot {
@@ -130,7 +118,6 @@
   .dot.future:hover { transform: none; }
   .dot-label { width: 22px; font-family: 'DM Mono', monospace; font-size: 8.5px; color: var(--text-faintest); text-align: center; margin-top: 3px; }
   .dots-wrap { display: flex; flex-direction: column; }
-
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .cal-nav-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.05em; color: var(--text-muted); }
   .cal-nav button { border: none; background: var(--surface2); color: var(--text-muted); width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-size: 12px; }
@@ -144,16 +131,13 @@
   .cal-cell.today { box-shadow: 0 0 0 2px var(--accent) inset; }
   .cal-cell.future { cursor: default; opacity: 0.35; }
   .cal-cell.future:hover { transform: none; }
-
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); }
   .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
   .empty-state p { font-size: 13px; }
-
   /* reorder handle drag */
   .habit-card[draggable="true"] { cursor: grab; }
   .habit-card.dragging { opacity: 0.4; }
   .drag-handle { cursor: grab; color: var(--text-faintest); padding: 0 2px; font-size: 13px; }
-
   /* modal */
   .modal-overlay { position: fixed; inset: 0; background: var(--modal-overlay); z-index: 50; display: none; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.open { display: flex; }
@@ -194,23 +178,12 @@
   .preview-hint { font-size: 11px; color: var(--text-faint); }
   .modal-actions { display: flex; gap: 8px; margin-top: 22px; }
   .modal-actions .toggle-btn { flex: 1; justify-content: center; }
-
   @media (max-width: 480px) {
     .dot { width: 18px; height: 18px; }
     .dot-label { width: 18px; }
     .dots-30 .dot { width: 12px; height: 12px; }
   }
-
-  /* Quality floor: every text token reads at 4.5:1 or better (the faintest, 3:1, is only for
-     tiny decorative labels), keyboard focus is always visible, native controls follow the theme,
-     and motion stops for people who ask their OS for less of it. */
-  :root { color-scheme: dark; }
   [data-theme="light"] { color-scheme: light; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  button, a, label, input, select, textarea { touch-action: manipulation; }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-  }
 </style>
 </head>
 <body>
