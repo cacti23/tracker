@@ -72,10 +72,10 @@ test('dashboard: declining the confirm keeps the set (only asked when rows were 
 
 test('dashboard: Clear ends a running timer so it cannot keep counting on an empty list', () => {
   qpSetup()
-  ev('_qpTimerTotal = 300; _qpTimerRem = 120; _qpTimerRun = true')
+  ev('qpTimer.total = 300; qpTimer.rem = 120; qpTimer.run = true')
   ev('_qpClear()')
-  assert.equal(ev('_qpTimerRun'), false)
-  assert.equal(ev('_qpTimerRem'), 300, 'back to the preset, not a half-run clock')
+  assert.equal(ev('qpTimer.run'), false)
+  assert.equal(ev('qpTimer.rem'), 300, 'back to the preset, not a half-run clock')
   ev('_qpGenerate()')                                            // Generate is locked while a timer runs — must be free now
   assert.equal(ev('_qpResults.length'), 5)
 })
