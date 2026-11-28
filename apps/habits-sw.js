@@ -16,6 +16,9 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // Leave other sites (Pokémon sprites, GitHub) to the browser. A fetch made here is checked against
+  // the page CSP's connect-src, which doesn't list the sprite hosts, so every sprite failed (⚪).
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   // network-first for the GitHub sync API, cache-first for the app shell
   if (e.request.url.includes('api.github.com') || e.request.url.includes('gist.githubusercontent.com')) return;
   // HTML/JS: network-first so new deploys show immediately; cache is the offline fallback
