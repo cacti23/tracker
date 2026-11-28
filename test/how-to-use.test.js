@@ -8,7 +8,7 @@ const path = require('path')
 const { loadAppWithDom, evalIn } = require('./load-app')
 
 const ROOT = path.join(__dirname, '..')
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
 
 // Adi, 2026-11-27 (navigation redesign): the big sidebar card moved out of the way. New visitors
 // get the guide from the welcome card on the dashboard; everyone else from the sidebar footer.

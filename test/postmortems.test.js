@@ -8,7 +8,7 @@ const path = require('path')
 const { loadAppWithDom, evalIn } = require('./load-app')
 
 const ROOT = path.join(__dirname, '..')
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
 const PAGE = fs.readFileSync(path.join(ROOT, 'papers', 'postmortems.html'), 'utf8')
 
 test('Postmortems opens in-pane, and a reload returns to it', () => {

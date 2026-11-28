@@ -9,7 +9,7 @@ const path = require('path')
 const { loadAppWithDom, evalIn } = require('./load-app')
 
 const ROOT = path.join(__dirname, '..')
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
 const mode = (sb) => evalIn(sb, 'document.body.dataset.hubMode')
 
 test('the System Design switch opens the notes in-pane, and a reload stays there', () => {

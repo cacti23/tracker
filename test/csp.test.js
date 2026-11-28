@@ -20,7 +20,7 @@ test('vercel.json pins the current inline scripts (else run: node scripts/csp-ha
 })
 
 test('no page or script has an inline event handler (the CSP would silently ignore it)', () => {
-  const files = pages().concat(fs.readdirSync(path.join(ROOT, 'js')).map((f) => 'js/' + f))
+  const files = pages().concat(fs.readdirSync(path.join(ROOT, 'js'), { recursive: true }).filter((f) => f.endsWith('.js')).map((f) => 'js/' + f))
   const bad = []
   for (const f of files) {
     fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n').forEach((line, i) => {
@@ -31,7 +31,7 @@ test('no page or script has an inline event handler (the CSP would silently igno
 })
 
 test('every action named in the notebook\'s markup is registered', () => {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
   const names = new Set([...html.matchAll(/data-(?:click|input|change|keydown|keyup|mouseup|focusout|toggle|error|load)="([\w$.]+)"/g)].map((m) => m[1]))
   names.add('_psRecallGrade'); names.add('_qpReviseGrade')   // picked at run time (fn variable)
   const { sandbox } = loadApp()

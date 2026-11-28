@@ -28,7 +28,8 @@ test('addDays() moves by calendar days and does not change its input', () => {
 
 test('every page that uses LocalDate loads js/dates.js first, and its service worker caches it', () => {
   for (const [page, sw] of [['index.html', 'sw.js'], ['apps/habits.html', 'apps/habits-sw.js'], ['apps/gym-5day.html', null]]) {
-    const html = fs.readFileSync(path.join(ROOT, page), 'utf8')
+    // index.html's own code is in js/notebook/*.js
+    const html = fs.readFileSync(path.join(ROOT, page), 'utf8') + (page === 'index.html' ? require('./load-app').notebookSource() : '')
     assert.match(html, /LocalDate\./, page + ' uses LocalDate')
     const tags = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m => m[1])
     const i = tags.findIndex(s => s.endsWith('js/dates.js'))

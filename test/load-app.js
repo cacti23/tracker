@@ -34,16 +34,16 @@ function makeLocalStorage() {
   }
 }
 
-function extractInlineScript(html) {
-  // The app's real logic is the LARGEST inline <script>...</script> block (no src=).
-  // Don't pick by position: small inline snippets exist on both sides of it (the
-  // pre-paint theme guard before, the service-worker registration after — which
-  // silently became the "last" block in v210 and left every app function undefined).
-  const blocks = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
-    .filter(m => !/<script\s+src=/.test(m[0]))
-  if (blocks.length === 0) throw new Error('No inline <script> block found in index.html')
-  const biggest = blocks.reduce((a, b) => (b[1].length > a[1].length ? b : a))
-  return biggest[1].replace(/\/\*\s*<!\[CDATA\[\s*\*\/|\/\*\s*\]\]>\s*\*\//g, '')
+// The notebook's own code: the js/notebook/*.js files index.html loads, in page order. They are
+// plain scripts sharing one global scope, so running them as one script here behaves the same.
+function notebookFiles() {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  return [...html.matchAll(/<script src="(js\/notebook\/[\w-]+\.js)"><\/script>/g)].map(m => m[1])
+}
+function notebookSource() {
+  const files = notebookFiles()
+  if (!files.length) throw new Error('index.html loads no js/notebook/*.js files')
+  return files.map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n')
 }
 
 // The plain <script src> files index.html loads before its inline script, in page order.
@@ -94,9 +94,7 @@ function loadApp() {
 
   loadScripts(sandbox)
 
-  const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
-  const appJs = extractInlineScript(indexHtml)
-  vm.runInContext(appJs, sandbox, { filename: 'index.html (inline script)' })
+  vm.runInContext(notebookSource(), sandbox, { filename: 'js/notebook/*.js' })
 
   return { sandbox, localStorage }
 }
@@ -166,9 +164,7 @@ function loadAppWithDom(seed = {}) {
 
   loadScripts(sandbox)
 
-  const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
-  const appJs = extractInlineScript(indexHtml)
-  vm.runInContext(appJs, sandbox, { filename: 'index.html (inline script)' })
+  vm.runInContext(notebookSource(), sandbox, { filename: 'js/notebook/*.js' })
 
   // Fire DOMContentLoaded exactly like a real browser would on page load —
   // this is the step loadApp() skips, and the step buildNav() runs from.
@@ -200,4 +196,4 @@ function nQuestions(sandbox, topicKey, n) {
   return evalIn(sandbox, `Object.keys(TOPIC_MODULES[${JSON.stringify(topicKey)}].questions).slice(0, ${n})`)
 }
 
-module.exports = { loadScripts, loadApp, loadAppWithDom, makeLocalStorage, evalIn, anyQuestion, nQuestions }
+module.exports = { notebookFiles, notebookSource, loadScripts, loadApp, loadAppWithDom, makeLocalStorage, evalIn, anyQuestion, nQuestions }

@@ -44,7 +44,7 @@ test('the top bar links to the source on GitHub, so people can star it or contri
 
 test('the GitHub link invites pull requests and the repo is MIT licensed', () => {
   const fs = require('fs'), path = require('path')
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + require('./load-app').notebookSource()
   assert.match(html, /id="header-github"[^>]*>[\s\S]*?<span class="gh-label">PRs welcome<\/span><\/a>/)
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'LICENSE'), 'utf8'), /^MIT License/)
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8'), /## License\n\n\[MIT\]\(LICENSE\)/)

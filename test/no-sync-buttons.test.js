@@ -13,7 +13,8 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8')
 
 for (const f of ['index.html', 'apps/habits.html', 'apps/gym-5day.html']) {
   test(`${f}: only the account button is left, and the cloud is checked on open and on return`, () => {
-    const html = read(f)
+    // The notebook's code lives in js/notebook/*.js, loaded by index.html.
+    const html = read(f) + (f === 'index.html' ? require('./load-app').notebookSource() : '')
     assert.match(html, /id="dataAccountBtn"/)
     for (const gone of ['DataSync.syncNow()', 'DataSync.pullLatest()', 'DataSync.setToken()', 'exportData()', 'import-file-input']) {
       assert.ok(!html.includes(gone), `${f} still has ${gone}`)
