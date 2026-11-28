@@ -196,7 +196,7 @@ test('body data-signed-in-as follows sign-in and sign-out', async () => {
 })
 
 test('the 🌱 Life box is hidden unless signed in as cacti23', () => {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource() + fs.readFileSync(path.join(ROOT, 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
   assert.match(html, /#sidebar-apps \{ display: none; \}/)
   assert.match(html, /body\[data-signed-in-as="cacti23"\] #sidebar-apps \{ display: block; \}/)
 })

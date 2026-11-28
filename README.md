@@ -47,18 +47,20 @@ Opening `index.html` as a file (`file://`) won't work properly, because of the s
 node --test --test-concurrency=6 test/*.test.js
 ```
 
-Most tests load `js/data.js` and the inline script from `index.html` into a Node `vm` with a fake localStorage, so they check state logic (grading, sync, security rules, link integrity). The browser tests use Playwright and are skipped when it isn't installed.
+Most tests load `js/data.js` and the notebook scripts (`js/notebook/*.js`) into a Node `vm` with a fake localStorage, so they check state logic (grading, sync, security rules, link integrity). The browser tests use Playwright and are skipped when it isn't installed.
 
 ## Project layout
 
 | Path | What it is |
 |---|---|
-| `index.html` | The app: sidebar, DSA notebook, and the frame that shows the other pages. |
+| `index.html` | The app's markup: sidebar, DSA notebook, and the frame that shows the other pages. |
+| `js/notebook/` | The notebook's code, one file per area (state, nav, views, topic, notes, questions, practice, quick practice, main). |
+| `css/notebook.css` | The notebook's styles. |
 | `js/data.js` | Topic and question data, plus the localStorage helpers for progress, notes and revision. |
 | `js/sync.js` | Optional sync through a private GitHub gist. |
 | `js/actions.js` | Event handlers by `data-click` attributes (the CSP allows no inline handlers). |
 | `dsa/` | Topic cheat sheets, DSA Thoughts, JS built-ins, Study Sites, How to use, Privacy. |
-| `sysdesign/system-design.html` | System design notes. |
+| `sysdesign/system-design.html` | System design notes (data in `seqs.js` and `glossary.js`). |
 | `google/` | Google interview experience log. |
 | `papers/` | Paper Club and Postmortems. |
 | `visuals/visuals.html` | DSA visuals, one picture per idea. |

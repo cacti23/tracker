@@ -13,7 +13,7 @@ const { loadAppWithDom, evalIn } = require('./load-app')
 const { startServer, openBrowser, SKIP } = require('./prod-server')
 
 const ROOT = path.join(__dirname, '..')
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource() + fs.readFileSync(path.join(ROOT, 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
 const SD = fs.readFileSync(path.join(ROOT, 'sysdesign', 'system-design.html'), 'utf8')
 const header = HTML.slice(HTML.indexOf('<header>'), HTML.indexOf('</header>'))
 const sidebar = HTML.slice(HTML.indexOf('<aside id="sidebar"'), HTML.indexOf('</aside>'))

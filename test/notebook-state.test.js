@@ -223,7 +223,7 @@ test('N4: a graded question cycled back to 📋 is not counted in the Pending ba
 // ── N5 ─────────────────────────────────────────────────────────────────────────────────────────
 
 test('N5: practice-session keys are synced but are sync noise, not edits', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + require('./load-app').notebookSource()
   const noise = (html.match(/noiseKeys:\s*\[([^\]]*)\]/) || [])[1] || ''
   const { sandbox } = loadApp()
   for (const key of ['dsa-qp-state-v1', 'dsa-practice-session-v1']) {

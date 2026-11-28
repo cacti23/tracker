@@ -516,7 +516,7 @@ test('AUTO-PUSH: off by default, and edits to keys that are not synced never tri
 })
 
 test('the DSA app syncs its in-progress practice sessions too', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + require('./load-app').notebookSource()
   const block = html.slice(html.indexOf('const BACKUP_KEYS'), html.indexOf(']', html.indexOf('const BACKUP_KEYS')))
   assert.match(block, /'dsa-practice-session-v1'/)
 })

@@ -10,7 +10,7 @@ const path = require('node:path')
 const { loadApp, evalIn } = require('./load-app')
 
 const log = fs.readFileSync(path.join(__dirname, '..', 'google', 'google-onsite-log.html'), 'utf8')
-const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + require('./load-app').notebookSource()
 
 test('review counter keys are synced, and the count keeps the larger value on a conflict', () => {
   const ctx = loadApp()

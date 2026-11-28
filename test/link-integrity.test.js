@@ -94,7 +94,7 @@ test('habits service worker caches only assets that actually exist', () => {
 
 test('index.html stays at the repo root and loads js/data.js + js/sync.js from there', () => {
   assert.ok(fs.existsSync(path.join(ROOT, 'index.html')), 'index.html must exist directly at the repo root')
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
   assert.match(html, /<script src="js\/data\.js">/, 'index.html must load js/data.js')
   assert.match(html, /<script src="js\/sync\.js">/, 'index.html must load js/sync.js')
   assert.ok(fs.existsSync(path.join(ROOT, 'js', 'data.js')), 'js/data.js must exist (test/load-app.js hardcodes this path)')
@@ -102,7 +102,7 @@ test('index.html stays at the repo root and loads js/data.js + js/sync.js from t
 })
 
 test('index.html links out to every moved sub-app with the correct folder prefix', () => {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
   // DSA Thoughts, JS Built-ins, Study Sites and System Design open in-pane (EMBEDS, see study-tools-inpane.test.js).
   for (const f of ['dsa/dsa-thoughts.html', 'dsa/js-builtins.html', 'dsa/study-sites.html', 'sysdesign/system-design.html']) {
     assert.ok(html.includes(`src: '${f}'`), `EMBEDS should embed ${f}`)
@@ -118,7 +118,7 @@ test('index.html links out to every moved sub-app with the correct folder prefix
 })
 
 test('Google opens in-pane from the sidebar (not a new tab) and embeds the onsite log', () => {
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + require('./load-app').notebookSource()
   assert.match(html, /id="nav-google"[^>]*data-click="loadGoogle"/, 'sidebar Google entry must be a button calling loadGoogle()')
   assert.doesNotMatch(html, /<a[^>]*href="google\/[^"]*"[^>]*target="_blank"/, 'Google must not open in a new tab from the sidebar')
   assert.match(html, /id="view-google"/, 'index.html needs a #view-google pane')

@@ -8,7 +8,7 @@ const fs = require('fs')
 const path = require('path')
 const { loadAppWithDom, evalIn } = require('./load-app')
 
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + require('./load-app').notebookSource()
 
 for (const [key, src, title] of [
   ['thoughts', 'dsa/dsa-thoughts.html', 'DSA Thoughts'],
