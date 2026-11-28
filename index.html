@@ -153,7 +153,7 @@
       <a class="sf-github" href="https://github.com/cacti23/tracker" target="_blank" rel="noopener" title="Open source (MIT) on GitHub"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span><b>Open source on GitHub</b><small>⭐ Star it · PRs welcome</small></span></a>
       <div class="sf-fine">
         <p class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</p>
-        <span>v625 · Interview Prep Hub</span>
+        <span>v626 · Interview Prep Hub</span>
       </div>
       <nav class="sf-social" aria-label="Made by Adi">
         <a href="https://www.linkedin.com/in/adityap314/" target="_blank" rel="noopener">💼 LinkedIn</a>
@@ -2713,22 +2713,20 @@ function _qpReviseGrade(ev, lcKey, grade) {
   _qpDoneThisSession.add(lcKey)
   _saveQpState()
   const listEl = document.getElementById('qp-results')
-  if (!listEl) return
-  // Re-render just this row in place so its tint + chosen grade button update immediately.
-  const idx = (_qpResults || []).findIndex(([k]) => k === lcKey)
-  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
-  if (row && idx !== -1) row.outerHTML = _buildReviseItem(_qpResults[idx], idx, 'qp')
-  // Once everything's graded, show the closing banner (it's a summary, not a sweep — rows stay).
-  const ungraded = (_qpResults || []).filter(([k]) => !_qpDoneThisSession.has(k)).length
-  if (ungraded === 0 && !listEl.querySelector('.ps-session-done')) {
-    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span></div>')
-  }
+  if (listEl) _regradeRow(listEl, _qpResults || [], _qpDoneThisSession, lcKey, (e, i) => _buildReviseItem(e, i, 'qp'), '🧠 Recall sweep complete')
 }
 
-function _qpReviseShowComplete() {
-  const listEl = document.getElementById('qp-results')
-  if (!listEl || listEl.querySelector('.ps-session-done')) return
-  listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span></div>')
+// After a grade: redraw that row in place (tint + chosen button), and once every row is graded
+// put the closing banner on top. Rows stay, so regrading is always possible.
+function _regradeRow(listEl, items, done, lcKey, build, banner) {
+  const idx = items.findIndex(([k]) => k === lcKey)
+  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
+  if (row && idx !== -1) row.outerHTML = build(items[idx], idx)
+  if (banner && items.every(([k]) => done.has(k))) _doneBanner(listEl, banner + ' · <span style="color:var(--green)">' + done.size + ' graded</span>')
+}
+// The one closing banner a list gets (never a second).
+function _doneBanner(listEl, html) {
+  if (listEl && !listEl.querySelector('.ps-session-done')) listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + html + '</div>')
 }
 
 // Generate a practice set for a single topic.
@@ -2839,16 +2837,8 @@ function _practiceGrade(ev, lcKey, grade, showTopic) {
   const items  = showTopic ? _qpResults : _psCurrentItems
   const listEl = document.getElementById(showTopic ? 'qp-results' : 'ps-list')
   if (!listEl || !items) return
-  const idx = items.findIndex(([k]) => k === lcKey)
-  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
-  if (row && idx !== -1) row.outerHTML = _buildPracticeItem(items[idx], idx, showTopic)
-  // Session-complete banner once every row here has been graded (mirrors Graded's sweep-complete).
-  if (showTopic) {
-    const ungraded = items.filter(([k]) => !_qpDoneThisSession.has(k)).length
-    if (ungraded === 0 && !listEl.querySelector('.ps-session-done')) {
-      listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">✅ Session complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span></div>')
-    }
-  }
+  // Only the dashboard list gets a session-complete banner.
+  _regradeRow(listEl, items, showTopic ? _qpDoneThisSession : _psDoneThisSession, lcKey, (e, i) => _buildPracticeItem(e, i, showTopic), showTopic && '✅ Session complete')
 }
 
 // Build the full inner HTML for the Practice Session accordion body.
@@ -3054,10 +3044,22 @@ function _psSyncCountDisplay(count) {
 // 🗑 Clear: drop every question from this topic's practice list and return the panel to its
 // empty "pick a count and hit Generate" state. Only the SET is discarded — grades, statuses,
 // solve counts and the Recent log live elsewhere and are untouched.
+// − on either list: shrink to n rows from the end, dropping ungraded rows before graded ones.
+function _trimKeepDone(items, n, done) {
+  const out = [...items]
+  for (const drop of [k => !done.has(k), () => true])
+    for (let i = out.length - 1; i >= 0 && out.length > n; i--) if (drop(out[i][0])) out.splice(i, 1)
+  return out
+}
+// 🗑 Clear asks first only when rows were graded (the grades themselves are kept).
+function _confirmClear(items, done) {
+  const graded = items.filter(([k]) => done.has(k)).length
+  return !graded || confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')
+}
+function _qpSolvedMsg() { return '✅ Session complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' solved</span>' }
 function _psClear(topicKey) {
   if (!TOPIC_MODULES[topicKey] || !_psCurrentItems.length) return
-  const graded = _psCurrentItems.filter(([k]) => _psDoneThisSession.has(k)).length
-  if (graded && !confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')) return
+  if (!_confirmClear(_psCurrentItems, _psDoneThisSession)) return
   psTimer.stop()
   psTimer.rem = psTimer.total                       // back to the preset, not a half-run clock
   _psCurrentItems = []
@@ -3106,19 +3108,7 @@ function _psAdjCount(delta, topicKey) {
     const toAdd = _orderPracticePool(pool).slice(0, newCount - currentCount)
     _psCurrentItems = [..._psCurrentItems, ...toAdd]
   } else {
-    // Remove from end — skip done-in-session items (preserve their solved state)
-    const toRemove = currentCount - newCount
-    const newItems = [..._psCurrentItems]
-    let removed = 0
-    // Pass 1: remove undone questions from the end
-    for (let i = newItems.length - 1; i >= 0 && removed < toRemove; i--) {
-      if (!_psDoneThisSession.has(newItems[i][0])) { newItems.splice(i, 1); removed++ }
-    }
-    // Pass 2: if still need to remove, take done ones from the end
-    for (let i = newItems.length - 1; i >= 0 && removed < toRemove; i--) {
-      newItems.splice(i, 1); removed++
-    }
-    _psCurrentItems = newItems
+    _psCurrentItems = _trimKeepDone(_psCurrentItems, newCount, _psDoneThisSession)
   }
 
   _psQCount = _psCurrentItems.length
@@ -3322,14 +3312,7 @@ function _psRecallGrade(ev, lcKey, grade) {
   _psDoneThisSession.add(lcKey)
   _psSaveSession()
   const listEl = document.getElementById('ps-list')
-  if (!listEl) return
-  const idx = _psCurrentItems.findIndex(([k]) => k === lcKey)
-  const row = listEl.querySelector('.ps-q-row[data-lc-key="' + lcKey + '"]')
-  if (row && idx !== -1) row.outerHTML = _buildReviseItem(_psCurrentItems[idx], idx, 'ps')
-  const ungraded = _psCurrentItems.filter(([k]) => !_psDoneThisSession.has(k)).length
-  if (ungraded === 0 && !listEl.querySelector('.ps-session-done')) {
-    listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">🧠 Recall sweep complete · <span style="color:var(--green)">' + _psDoneThisSession.size + ' graded</span></div>')
-  }
+  if (listEl) _regradeRow(listEl, _psCurrentItems, _psDoneThisSession, lcKey, (e, i) => _buildReviseItem(e, i, 'ps'), '🧠 Recall sweep complete')
 }
 
 function _psShuffle(topicKey) {
@@ -3438,13 +3421,6 @@ function _refreshReviseOnSolve(lcKey) {
   _refreshDueCounts()
 }
 
-function _qpShowSessionComplete() {
-  const listEl = document.getElementById('qp-results')
-  if (!listEl || listEl.querySelector('.ps-session-done')) return
-  const total = _qpDoneThisSession.size
-  let msg = '✅ Session complete · <span style="color:var(--green)">' + total + ' solved</span>'
-  listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
-}
 
 // ─── QUICK PRACTICE (Dashboard) ───────────────────────────────────────────────
 
@@ -3508,7 +3484,7 @@ function _renderQuickPractice() {
     document.getElementById('qp-results').innerHTML =
       _qpRowsHtml()
     // Restore session-complete banner if the full set was already finished
-    if (_qpDoneThisSession.size >= _qpResults.length) (_qpRevised ? _qpReviseShowComplete : _qpShowSessionComplete)()
+    if (_qpDoneThisSession.size >= _qpResults.length) _doneBanner(document.getElementById('qp-results'), _qpRevised ? '🧠 Recall sweep complete · <span style="color:var(--green)">' + _qpDoneThisSession.size + ' graded</span>' : _qpSolvedMsg())
   } else {
     // Nothing generated yet — selecting a topic or toggling Graded/Mock only sets up what
     // WILL be generated; without this, the results area just looks blank/broken.
@@ -3533,8 +3509,7 @@ function _qpSyncClearBtn() {
 // untouched (they're stored per question, not per set).
 function _qpClear() {
   if (!_qpResults || !_qpResults.length) return
-  const graded = _qpResults.filter(([k]) => _qpDoneThisSession.has(k)).length
-  if (graded && !confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')) return
+  if (!_confirmClear(_qpResults, _qpDoneThisSession)) return
   qpTimer.stop()
   qpTimer.rem = qpTimer.total
   _qpResults = null
@@ -3593,17 +3568,7 @@ function _qpAdjCount(delta) {
     const toAdd = _orderPracticePool(pool).slice(0, _qpCount - currentCount)
     _qpResults = [..._qpResults, ...toAdd]
   } else if (_qpCount < currentCount) {
-    // Remove from end, skip done-in-session items first
-    const toRemove = currentCount - _qpCount
-    const newResults = [..._qpResults]
-    let removed = 0
-    for (let i = newResults.length - 1; i >= 0 && removed < toRemove; i--) {
-      if (!_qpDoneThisSession.has(newResults[i][0])) { newResults.splice(i, 1); removed++ }
-    }
-    for (let i = newResults.length - 1; i >= 0 && removed < toRemove; i--) {
-      newResults.splice(i, 1); removed++
-    }
-    _qpResults = newResults
+    _qpResults = _trimKeepDone(_qpResults, _qpCount, _qpDoneThisSession)
   }
 
   // Sync count display to actual list length and re-render
@@ -3615,7 +3580,7 @@ function _qpAdjCount(delta) {
     // Only show session-complete if every question currently in the list is done
     // (not just because count was reduced below the done count)
     const doneInCurrentResults = _qpResults.filter(([k]) => _qpDoneThisSession.has(k)).length
-    if (doneInCurrentResults > 0 && doneInCurrentResults >= _qpResults.length) _qpShowSessionComplete()
+    if (doneInCurrentResults > 0 && doneInCurrentResults >= _qpResults.length) _doneBanner(resultsEl, _qpSolvedMsg())
   }
 }
 
