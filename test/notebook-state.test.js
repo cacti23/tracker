@@ -291,10 +291,10 @@ test('N7: a topic with no saved session opens in the default mode, not the last 
 
 test('N8: an expired timer reads 00:00 after a re-render, not the full preset', () => {
   const a = loadAppWithDom()
-  evalIn(a.sandbox, `_psTimerTotal = 300; _psTimerRem = 0; _syncTimerDisplay()`)
+  evalIn(a.sandbox, `psTimer.total = 300; psTimer.rem = 0; psTimer.sync()`)
   assert.equal(a.getElement('ps-timer-disp').textContent, '00:00')
   const html = evalIn(a.sandbox, `currentTopicKey = 'graph'; _buildPracticePanel('graph', TOPIC_MODULES.graph)`)
   assert.match(html, /id="ps-timer-disp">00:00</)
-  evalIn(a.sandbox, `_psTimerTotal = 0; _psTimerRem = 0; _syncTimerDisplay()`)
+  evalIn(a.sandbox, `psTimer.total = 0; psTimer.rem = 0; psTimer.sync()`)
   assert.equal(a.getElement('ps-timer-disp').textContent, 'Off', 'no timer set still reads Off')
 })

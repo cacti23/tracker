@@ -153,7 +153,7 @@
       <a class="sf-github" href="https://github.com/cacti23/tracker" target="_blank" rel="noopener" title="Open source (MIT) on GitHub"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span><b>Open source on GitHub</b><small>⭐ Star it · PRs welcome</small></span></a>
       <div class="sf-fine">
         <p class="sidebar-nocollect">🛡️ We collect nothing. Your progress stays in your browser and your own GitHub.</p>
-        <span>v623 · Interview Prep Hub</span>
+        <span>v624 · Interview Prep Hub</span>
       </div>
       <nav class="sf-social" aria-label="Made by Adi">
         <a href="https://www.linkedin.com/in/adityap314/" target="_blank" rel="noopener">💼 LinkedIn</a>
@@ -383,11 +383,9 @@ function companyPillsRow(lc, max) {
 
 // ─── PRACTICE SESSION STATE ──────────────────────────────────────────────────
 let _psQCount     = 5     // question count — shared across ALL modes (Worked/Graded/Mock/Revise/By Pattern) so it's exactly what you set it to, no matter which mode you're in
-let _psTimerTotal = 0     // timer set value in seconds (0 = off)
-let _psTimerRem   = 0     // remaining seconds
-let _psTimerRun   = false // is timer running?
-let _psTimerIv    = null  // setInterval handle
-let _psTimerPreset = 0    // last selected preset in minutes
+const TIMERS = {}           // ⏱ the two countdowns by id, for the timerSet/Toggle/Reset actions
+// The topic panel's −/+/All have no ids to lock: _psAdjCount and _psSetAll refuse while it runs.
+const psTimer = makeTimer('ps', [])
 let _psDoneThisSession      = new Set()  // keys done in current per-topic practice batch
 let _psCurrentItems         = []         // current ordered list for per-topic session
 let _psCurrentTopic         = null       // currently active topic key for practice session
@@ -516,11 +514,7 @@ function _refreshDueCounts() {
 let _qpTopics  = new Set()  // selected topic keys
 let _qpCount   = 10         // question count
 let _qpResults = null       // last generated results ([lcKey, q][])
-let _qpTimerTotal  = 0      // set value in seconds
-let _qpTimerRem    = 0      // remaining seconds
-let _qpTimerRun    = false  // is running?
-let _qpTimerIv     = null   // setInterval handle
-let _qpTimerPreset = 0      // last preset in minutes
+const qpTimer = makeTimer('qp', ['qp-btn-dec', 'qp-btn-inc'])
 let _qpRevised     = false  // Dashboard 🕒 Graded mode: the set is your graded questions, weakest first (✗ → ~ → ✓), graded in place; a ✓ there gets clean-solve credit.
 
 // ─── QP STATE PERSISTENCE ─────────────────────────────────────────────────────
@@ -842,8 +836,8 @@ function loadGoogle(tab) {
   if (tab) currentGoogleTab = tab
   setHubMode('exp')
   showView('view-google')
-  _stopTimer()
-  _qpStopTimer()
+  psTimer.stop()
+  qpTimer.stop()
   document.getElementById('page-title').textContent = '🔍 Google'
   document.getElementById('header-tabs').innerHTML = ''
   clearActiveNav()
@@ -1014,8 +1008,8 @@ function loadEmbed(key) {
   if (!e) return loadDashboard()
   if (e.hub) setHubMode(e.hub)
   showView(e.view)
-  _stopTimer()
-  _qpStopTimer()
+  psTimer.stop()
+  qpTimer.stop()
   document.getElementById('page-title').textContent = e.title
   document.getElementById('header-tabs').innerHTML = ''
   clearActiveNav()
@@ -1039,8 +1033,8 @@ function openSite(site) {
   const url = site && String(site.url || '')
   if (!/^https?:\/\//i.test(url)) return
   showView('view-site')
-  _stopTimer()
-  _qpStopTimer()
+  psTimer.stop()
+  qpTimer.stop()
   document.getElementById('page-title').textContent = (site.icon ? site.icon + ' ' : '') + String(site.name || 'Study site')
   document.getElementById('header-tabs').innerHTML =
     '<span class="site-open"><button type="button" data-click="loadEmbed" data-args="' + Actions.attrArgs(['sites']) + '">← Study Sites</button>' +
@@ -1099,8 +1093,8 @@ function _recentDayLabel(dayKey) {
 function loadRecent() {
   setHubMode('dsa')
   showView('view-recent')
-  _stopTimer()
-  _qpStopTimer()
+  psTimer.stop()
+  qpTimer.stop()
   document.getElementById('page-title').textContent = '🕘 Recently solved'
   document.getElementById('header-tabs').innerHTML = ''
   clearActiveNav()
@@ -1139,7 +1133,7 @@ function loadRecent() {
 function loadDashboard() {
   setHubMode('dsa')
   showView('view-dashboard')
-  _stopTimer()       // stop per-topic timer if navigating here from a topic page
+  psTimer.stop()       // stop per-topic timer if navigating here from a topic page
   document.getElementById('page-title').textContent = '🏠 Dashboard'
   document.getElementById('header-tabs').innerHTML = ''
   clearActiveNav()
@@ -1279,7 +1273,7 @@ function _dashWelcomeHtml(nQuestions, nTopics) {
 
 // "Open revision list": switch Quick Practice to Graded, build the set, and bring it into view.
 function _dashOpenRevision() {
-  if (_qpTimerRun) { document.getElementById('quick-practice-panel')?.scrollIntoView({ block: 'start' }); return }
+  if (qpTimer.run) { document.getElementById('quick-practice-panel')?.scrollIntoView({ block: 'start' }); return }
   if (!_qpRevised) _qpToggleRevised()
   _qpGenerate()
   document.getElementById('quick-practice-panel')?.scrollIntoView({ block: 'start' })
@@ -1323,8 +1317,8 @@ function loadTopic(key) {
   currentQFilter = 'all'          // reset filter on topic switch
   currentCompanyFilter = null     // reset company filter on topic switch
   currentFreqFilter = 'all'       // reset frequency filter on topic switch
-  _stopTimer()                    // stop any running per-topic practice timer
-  _qpStopTimer()                  // stop QP timer if it was running on dashboard
+  psTimer.stop()                    // stop any running per-topic practice timer
+  qpTimer.stop()                  // stop QP timer if it was running on dashboard
 
   // Clear in-memory session state — the practice panel build restores this topic's saved session
   _psCurrentItems = []
@@ -2970,17 +2964,7 @@ function _buildPracticePanel(topicKey, mod) {
   }
   html += '</div>'
   // ── Timer bar ──────────────────────────────────────────────────────────────
-  html += '<div class="ps-timer-bar">'
-  html += '<span class="text-secondary text-xs flex-shrink-0">⏱ Timer:</span>'
-  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===1  ? ' ps-active':'') + '" data-click="_psTimerSet" data-args="' + Actions.attrArgs([1, '$this']) + '">1m</button>'
-  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===5  ? ' ps-active':'') + '" data-click="_psTimerSet" data-args="' + Actions.attrArgs([5, '$this']) + '">5m</button>'
-  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===10 ? ' ps-active':'') + '" data-click="_psTimerSet" data-args="' + Actions.attrArgs([10, '$this']) + '">10m</button>'
-  html += '<button type="button" class="ps-preset-btn' + (_psTimerPreset===20 ? ' ps-active':'') + '" data-click="_psTimerSet" data-args="' + Actions.attrArgs([20, '$this']) + '">20m</button>'
-  html += '<span class="ps-timer-display' + (_psTimerRun ? ' ps-running' : '') + (_psTimerRem === 0 && _psTimerTotal > 0 ? ' ps-expired' : '') + '" id="ps-timer-disp">' + _timerText(_psTimerRem, _psTimerTotal) + '</span>'
-  html += '<button type="button" class="ps-timer-ctrl" id="ps-timer-play" data-click="_psTimerToggle" title="Start / Pause">'
-  html += (_psTimerRun ? '⏸' : '▶') + '</button>'
-  html += '<button type="button" class="ps-timer-ctrl" data-click="_psTimerReset" title="Reset timer">↺</button>'
-  html += '</div>'
+  html += _timerBarHtml(psTimer, [1, 5, 10, 20], '')
   return html
 }
 
@@ -2993,6 +2977,64 @@ function _fmtTimer(secs) {
 // timer has run out — that must stay 00:00 on a re-render, not jump back to the full preset.
 function _timerText(rem, total) {
   return total && !rem ? '00:00' : _fmtTimer(rem || total)
+}
+
+// ⏱ One countdown, used twice: the topic Practice Session (id 'ps') and the dashboard Quick
+// Practice ('qp'). Its elements are <id>-timer-disp and <id>-timer-play; lockIds are the count
+// buttons disabled while it runs. TIMERS (by id) is declared with psTimer, before either is made.
+function makeTimer(id, lockIds) {
+  const el = part => document.getElementById(id + '-timer-' + part)
+  const t = TIMERS[id] = { id, total: 0, rem: 0, run: false, iv: null, preset: 0 }
+  t.lock = on => lockIds.forEach(i => { const b = document.getElementById(i); if (b) b.disabled = on })
+  t.sync = () => {
+    const disp = el('disp')
+    if (!disp) return
+    disp.textContent = _timerText(t.rem, t.total)
+    disp.className = 'ps-timer-display' + (t.run ? ' ps-running' : '') + (!t.rem && t.total > 0 ? ' ps-expired' : '')
+  }
+  t.stop = () => {
+    if (t.iv) { clearInterval(t.iv); t.iv = null }
+    t.run = false
+    const btn = el('play')
+    if (btn) btn.textContent = '▶'
+    t.lock(false)
+  }
+  t.set = (mins, btn) => {
+    t.stop()
+    t.preset = mins
+    t.rem = t.total = mins * 60
+    // Only this bar's presets: the other timer's bar may be on the page too
+    btn?.closest('.ps-timer-bar')?.querySelectorAll('.ps-preset-btn').forEach(b => b.classList.remove('ps-active'))
+    btn?.classList.add('ps-active')
+    t.sync()
+  }
+  t.toggle = () => {
+    if (!t.total) return   // nothing set yet
+    if (t.run) return t.stop()
+    if (t.rem <= 0) t.rem = t.total
+    t.run = true
+    const btn = el('play')
+    if (btn) btn.textContent = '⏸'
+    t.iv = setInterval(t.tick, 1000)
+    t.lock(true)
+  }
+  t.reset = () => { t.stop(); t.rem = t.total; t.sync() }
+  t.tick = () => {
+    if (t.rem <= 0) { t.stop(); t.rem = 0; return t.sync() }
+    t.rem--
+    t.sync()
+  }
+  return t
+}
+
+function _timerBarHtml(t, presets, cls) {
+  return '<div class="ps-timer-bar' + cls + '">' +
+    '<span class="text-secondary text-xs flex-shrink-0">⏱ Timer:</span>' +
+    presets.map(m => '<button type="button" class="ps-preset-btn' + (t.preset === m ? ' ps-active' : '') + '" data-click="timerSet" data-args="' + Actions.attrArgs([t.id, m, '$this']) + '">' + m + 'm</button>').join('') +
+    '<span class="ps-timer-display' + (t.run ? ' ps-running' : '') + (t.rem === 0 && t.total > 0 ? ' ps-expired' : '') + '" id="' + t.id + '-timer-disp">' + _timerText(t.rem, t.total) + '</span>' +
+    '<button type="button" class="ps-timer-ctrl" id="' + t.id + '-timer-play" data-click="timerToggle" data-args="' + Actions.attrArgs([t.id]) + '" title="Start / Pause">' + (t.run ? '⏸' : '▶') + '</button>' +
+    '<button type="button" class="ps-timer-ctrl" data-click="timerReset" data-args="' + Actions.attrArgs([t.id]) + '" title="Reset timer">↺</button>' +
+    '</div>'
 }
 
 // The count control is a plain <span> in most modes, but an editable <input> in Graded
@@ -3013,8 +3055,8 @@ function _psClear(topicKey) {
   if (!TOPIC_MODULES[topicKey] || !_psCurrentItems.length) return
   const graded = _psCurrentItems.filter(([k]) => _psDoneThisSession.has(k)).length
   if (graded && !confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')) return
-  _stopTimer()
-  _psTimerRem = _psTimerTotal                       // back to the preset, not a half-run clock
+  psTimer.stop()
+  psTimer.rem = psTimer.total                       // back to the preset, not a half-run clock
   _psCurrentItems = []
   _psDoneThisSession.clear()
   _psReviseCodeFlagged.clear(); _psReviseShownThisSession.clear()
@@ -3039,7 +3081,7 @@ function _psGenerateGraded(topicKey) {
 function _psAdjCount(delta, topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
-  if (_psTimerRun) return  // locked while timer is running — use Reset to restart
+  if (psTimer.run) return  // locked while timer is running — use Reset to restart
 
   // Graded/Mock pools are mode-defined — just change the cap and regenerate.
   if (_psMode !== 'worked') {
@@ -3090,7 +3132,7 @@ function _psAdjCount(delta, topicKey) {
 function _psSetAll(topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
-  if (_psTimerRun) return  // locked while timer is running
+  if (psTimer.run) return  // locked while timer is running
   if (_psMode !== 'worked') {   // Graded/Mock: show the whole topic's mode pool
     _psQCount = Object.keys(mod.questions).length
     _psShuffle(topicKey)
@@ -3213,11 +3255,11 @@ function _renderPracticePanel() {
 }
 // Switch per-topic mode → regenerate for that mode and re-render the whole panel.
 function _psSetMode(mode, topicKey) {
-  if (_psTimerRun) return  // don't switch mid-timed-run
+  if (psTimer.run) return  // don't switch mid-timed-run
   if (_psMode === mode) return
   _psMode = mode
   _psClearedTopics.delete(topicKey)   // a mode switch regenerates, so the topic is no longer 'cleared'
-  _stopTimer()
+  psTimer.stop()
   _psDoneThisSession.clear()
   _psReviseShownThisSession.clear()  // fresh recall-rotation memory on every mode switch
   const total = Object.keys(TOPIC_MODULES[topicKey].questions).length
@@ -3245,13 +3287,13 @@ function _psSetMode(mode, topicKey) {
 // 'revise-pattern' mode only: toggle which pattern(s) (P1, P2…) scope the due-set. Regenerates
 // the pool immediately, same as switching mode.
 function _psToggleRevisePattern(patternId, topicKey) {
-  if (_psTimerRun) return  // don't reshuffle mid-timed-run
+  if (psTimer.run) return  // don't reshuffle mid-timed-run
   if (_psRevisePatterns.has(patternId)) _psRevisePatterns.delete(patternId)
   else _psRevisePatterns.add(patternId)
   _psRevisePatternsShuffle(topicKey)
 }
 function _psSetRevisePatterns(ids, topicKey) {
-  if (_psTimerRun) return
+  if (psTimer.run) return
   _psRevisePatterns = new Set(ids)
   _psRevisePatternsShuffle(topicKey)
 }
@@ -3290,7 +3332,7 @@ function _psRecallGrade(ev, lcKey, grade) {
 function _psShuffle(topicKey) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return
-  _stopTimer()
+  psTimer.stop()
   _psClearedTopics.delete(topicKey)
 
   // Save which keys were done this session BEFORE clearing, so we can push
@@ -3401,72 +3443,6 @@ function _qpShowSessionComplete() {
   listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + msg + '</div>')
 }
 
-// ── Timer controls ────────────────────────────────────────────────────────────
-function _psTimerSet(mins, btn) {
-  _stopTimer()
-  _psTimerPreset = mins
-  _psTimerTotal  = mins * 60
-  _psTimerRem    = _psTimerTotal
-  // Scope to this panel's timer bar only — avoids clearing dashboard preset buttons
-  const bar = btn ? btn.closest('.ps-timer-bar') : null
-  if (bar) bar.querySelectorAll('.ps-preset-btn').forEach(b => b.classList.remove('ps-active'))
-  if (btn) btn.classList.add('ps-active')
-  _syncTimerDisplay()
-}
-
-function _psTimerToggle() {
-  if (!_psTimerTotal) return   // nothing configured yet
-  if (_psTimerRun) {
-    _stopTimer()
-  } else {
-    if (_psTimerRem <= 0) _psTimerRem = _psTimerTotal
-    _psTimerRun = true
-    const btn = document.getElementById('ps-timer-play')
-    if (btn) btn.textContent = '⏸'
-    _psTimerIv = setInterval(_psTimerTick, 1000)
-    // Lock count controls while session is running
-    ;['ps-btn-dec','ps-btn-inc','ps-btn-all'].forEach(id => { const b = document.getElementById(id); if (b) { b.disabled = true } })
-  }
-}
-
-function _stopTimer() {
-  if (_psTimerIv) { clearInterval(_psTimerIv); _psTimerIv = null }
-  _psTimerRun = false
-  const btn = document.getElementById('ps-timer-play')
-  if (btn) btn.textContent = '▶'
-  // Re-enable count controls when timer is stopped/reset
-  ;['ps-btn-dec','ps-btn-inc','ps-btn-all'].forEach(id => { const b = document.getElementById(id); if (b) { b.disabled = false } })
-}
-
-function _psTimerReset() {
-  _stopTimer()
-  _psTimerRem = _psTimerTotal
-  const disp = document.getElementById('ps-timer-disp')
-  if (disp) disp.classList.remove('ps-expired', 'ps-running')
-  _syncTimerDisplay()
-}
-
-function _psTimerTick() {
-  if (_psTimerRem <= 0) {
-    _stopTimer()
-    _psTimerRem = 0
-    const disp = document.getElementById('ps-timer-disp')
-    if (disp) { disp.textContent = '00:00'; disp.className = 'ps-timer-display ps-expired' }
-    return
-  }
-  _psTimerRem--
-  _syncTimerDisplay()
-}
-
-function _syncTimerDisplay() {
-  const disp = document.getElementById('ps-timer-disp')
-  if (!disp) return
-  disp.textContent = _timerText(_psTimerRem, _psTimerTotal)
-  disp.className = 'ps-timer-display' +
-    (_psTimerRun ? ' ps-running' : '') +
-    (!_psTimerRem && _psTimerTotal > 0 ? ' ps-expired' : '')
-}
-
 // ─── QUICK PRACTICE (Dashboard) ───────────────────────────────────────────────
 
 function _renderQuickPractice() {
@@ -3517,17 +3493,7 @@ function _renderQuickPractice() {
   }
 
   // Timer bar (mirrors per-topic timer)
-  const qpTimerDisp = _timerText(_qpTimerRem, _qpTimerTotal)
-  html += '<div class="ps-timer-bar mt-2">'
-  html += '<span class="text-secondary text-xs flex-shrink-0">⏱ Timer:</span>'
-  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===5  ? ' ps-active':'') + '" data-click="_qpTimerSet" data-args="' + Actions.attrArgs([5, '$this']) + '">5m</button>'
-  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===10 ? ' ps-active':'') + '" data-click="_qpTimerSet" data-args="' + Actions.attrArgs([10, '$this']) + '">10m</button>'
-  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===20 ? ' ps-active':'') + '" data-click="_qpTimerSet" data-args="' + Actions.attrArgs([20, '$this']) + '">20m</button>'
-  html += '<button type="button" class="ps-preset-btn' + (_qpTimerPreset===30 ? ' ps-active':'') + '" data-click="_qpTimerSet" data-args="' + Actions.attrArgs([30, '$this']) + '">30m</button>'
-  html += '<span class="ps-timer-display' + (_qpTimerRun ? ' ps-running' : '') + (_qpTimerRem===0 && _qpTimerTotal>0 ? ' ps-expired':'') + '" id="qp-timer-disp">' + qpTimerDisp + '</span>'
-  html += '<button type="button" class="ps-timer-ctrl" id="qp-timer-play" data-click="_qpTimerToggle" title="Start / Pause">' + (_qpTimerRun ? '⏸' : '▶') + '</button>'
-  html += '<button type="button" class="ps-timer-ctrl" data-click="_qpTimerReset" title="Reset timer">↺</button>'
-  html += '</div>'
+  html += _timerBarHtml(qpTimer, [5, 10, 20, 30], ' mt-2')
 
   // Results
   html += '<div id="qp-results" class="mt-3"></div>'
@@ -3551,12 +3517,7 @@ function _renderQuickPractice() {
     }
   }
   // Re-apply +/- lock if timer was running when we navigated away
-  if (_qpTimerRun) {
-    const dec = document.getElementById('qp-btn-dec')
-    const inc = document.getElementById('qp-btn-inc')
-    if (dec) dec.disabled = true
-    if (inc) inc.disabled = true
-  }
+  if (qpTimer.run) qpTimer.lock(true)
 }
 
 // Keep 🗑 Clear enabled only while there is a list to clear.
@@ -3571,8 +3532,8 @@ function _qpClear() {
   if (!_qpResults || !_qpResults.length) return
   const graded = _qpResults.filter(([k]) => _qpDoneThisSession.has(k)).length
   if (graded && !confirm('Clear this set? ' + graded + ' graded row' + (graded === 1 ? '' : 's') + ' will disappear from the list (your grades are kept).')) return
-  _qpStopTimer()
-  _qpTimerRem = _qpTimerTotal
+  qpTimer.stop()
+  qpTimer.rem = qpTimer.total
   _qpResults = null
   _qpDoneThisSession.clear()
   _saveQpState()
@@ -3580,7 +3541,7 @@ function _qpClear() {
 }
 
 function _qpToggleTopic(key) {
-  if (_qpTimerRun) return  // don't change topic selection mid-session
+  if (qpTimer.run) return  // don't change topic selection mid-session
   if (_qpTopics.has(key)) _qpTopics.delete(key); else _qpTopics.add(key)
   _qpResults = null  // clear stale results when topic selection changes
   _saveQpState()
@@ -3588,7 +3549,7 @@ function _qpToggleTopic(key) {
 }
 
 function _qpSelectAll() {
-  if (_qpTimerRun) return  // don't change topic selection mid-session
+  if (qpTimer.run) return  // don't change topic selection mid-session
   const validTopics = TOPICS.filter(t => TOPIC_MODULES[t.key])
   const allSelected = validTopics.every(t => _qpTopics.has(t.key))
   if (allSelected) {
@@ -3602,7 +3563,7 @@ function _qpSelectAll() {
 }
 
 function _qpAdjCount(delta) {
-  if (_qpTimerRun) return  // locked while timer is running
+  if (qpTimer.run) return  // locked while timer is running
   const maxQ = _uniqueQuestionKeys(Array.from(_qpTopics)).size
   _qpCount = Math.max(1, Math.min(maxQ || 99, _qpCount + delta))
   const el = document.getElementById('qp-count-val')
@@ -3659,7 +3620,7 @@ function _qpGenerate() {
   const allTopics = TOPICS.filter(t => TOPIC_MODULES[t.key]).map(t => t.key)
   // A plain set needs a topic selected; Graded can sweep all topics on its own.
   if (!_qpRevised && _qpTopics.size === 0) return
-  if (_qpTimerRun) return  // don't reset session while timer is running
+  if (qpTimer.run) return  // don't reset session while timer is running
 
   // Pool topics: Graded = selected (or all if none) · plain set = selected.
   const poolTopics = _qpTopics.size ? Array.from(_qpTopics) : (_qpRevised ? allTopics : [])
@@ -3713,12 +3674,7 @@ function _qpGenerate() {
   _saveQpState()
 
   // Lock +/- while timer is running
-  if (_qpTimerRun) {
-    const dec = document.getElementById('qp-btn-dec')
-    const inc = document.getElementById('qp-btn-inc')
-    if (dec) dec.disabled = true
-    if (inc) inc.disabled = true
-  }
+  if (qpTimer.run) qpTimer.lock(true)
 
   const el = document.getElementById('qp-results')
   if (el) el.innerHTML = _qpRowsHtml()
@@ -3730,83 +3686,12 @@ function _qpGenerate() {
 }
 
 function _qpToggleRevised() {
-  if (_qpTimerRun) return
+  if (qpTimer.run) return
   _qpRevised = !_qpRevised
   _qpResults = null
   _qpDoneThisSession.clear()
   _saveQpState()
   _renderQuickPractice()
-}
-
-// ── Dashboard timer ───────────────────────────────────────────────────────────
-function _qpTimerSet(mins, btn) {
-  _qpStopTimer()
-  _qpTimerPreset = mins
-  _qpTimerTotal  = mins * 60
-  _qpTimerRem    = _qpTimerTotal
-  // Scope selector to qp timer bar only to avoid conflicting with per-topic preset buttons
-  const bar = btn ? btn.closest('.ps-timer-bar') : null
-  if (bar) bar.querySelectorAll('.ps-preset-btn').forEach(b => b.classList.remove('ps-active'))
-  if (btn) btn.classList.add('ps-active')
-  _qpSyncTimerDisplay()
-}
-
-function _qpTimerToggle() {
-  if (!_qpTimerTotal) return
-  if (_qpTimerRun) {
-    _qpStopTimer()
-  } else {
-    if (_qpTimerRem <= 0) _qpTimerRem = _qpTimerTotal
-    _qpTimerRun = true
-    const btn = document.getElementById('qp-timer-play')
-    if (btn) btn.textContent = '⏸'
-    _qpTimerIv = setInterval(_qpTimerTick, 1000)
-    // Lock count controls while running
-    const dec = document.getElementById('qp-btn-dec')
-    const inc = document.getElementById('qp-btn-inc')
-    if (dec) dec.disabled = true
-    if (inc) inc.disabled = true
-  }
-}
-
-function _qpStopTimer() {
-  if (_qpTimerIv) { clearInterval(_qpTimerIv); _qpTimerIv = null }
-  _qpTimerRun = false
-  const btn = document.getElementById('qp-timer-play')
-  if (btn) btn.textContent = '▶'
-  const dec = document.getElementById('qp-btn-dec')
-  const inc = document.getElementById('qp-btn-inc')
-  if (dec) dec.disabled = false
-  if (inc) inc.disabled = false
-}
-
-function _qpTimerReset() {
-  _qpStopTimer()
-  _qpTimerRem = _qpTimerTotal
-  const disp = document.getElementById('qp-timer-disp')
-  if (disp) disp.classList.remove('ps-expired', 'ps-running')
-  _qpSyncTimerDisplay()
-}
-
-function _qpTimerTick() {
-  if (_qpTimerRem <= 0) {
-    _qpStopTimer()
-    _qpTimerRem = 0
-    const disp = document.getElementById('qp-timer-disp')
-    if (disp) { disp.textContent = '00:00'; disp.className = 'ps-timer-display ps-expired' }
-    return
-  }
-  _qpTimerRem--
-  _qpSyncTimerDisplay()
-}
-
-function _qpSyncTimerDisplay() {
-  const disp = document.getElementById('qp-timer-disp')
-  if (!disp) return
-  disp.textContent = _timerText(_qpTimerRem, _qpTimerTotal)
-  disp.className = 'ps-timer-display' +
-    (_qpTimerRun ? ' ps-running' : '') +
-    (!_qpTimerRem && _qpTimerTotal > 0 ? ' ps-expired' : '')
 }
 
 // renderInterviewTips removed — now rendered inside renderTopicAlwaysVisible
@@ -3911,11 +3796,12 @@ function _openSubMenuAdd(lcKey) {
   document.getElementById('sub-menu-input')?.focus({ preventScroll: true })
 }
 Actions.register({
+  timerSet: (id, mins, btn) => TIMERS[id].set(mins, btn), timerToggle: id => TIMERS[id].toggle(), timerReset: id => TIMERS[id].reset(),
   _adjSolveCount, _captureNoteDraft, _closeSubMenu, _dashOpenRevision, _jumpToQuestion, _onNoteSearch,
   _practiceGrade, _psAdjCount, _psClear, _psGenerateGraded, _psRecallGrade, _psSetAll,
-  _psSetMode, _psSetRevisePatterns, _psShuffle, _psTimerReset, _psTimerSet, _psTimerToggle,
+  _psSetMode, _psSetRevisePatterns, _psShuffle,
   _psToggleRevisePattern, _qpAdjCount, _qpClear, _qpGenerate, _qpReviseGrade, _qpSelectAll,
-  _qpTimerReset, _qpTimerSet, _qpTimerToggle, _qpToggleRevised, _qpToggleTopic, _queueNoteSave,
+  _qpToggleRevised, _qpToggleTopic, _queueNoteSave,
   _saveNoteEditorHeight, _toggleNoteEditorExpand, cancelAddSubmission, cancelNoteEditor, cycleQuestionStatus, editTopicNote,
   goToQuestion, gradeRevise, handleGlobalSearch, loadDashboard, loadEmbed, loadGoogle, loadRecent,
   loadTopic, onAnimBtnClick, onPinBtnClick, onSubBtnClick, printTopicNote, removeAnimation,
