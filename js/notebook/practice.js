@@ -57,15 +57,6 @@ function _orderByWeakness(pairs) {
     .map(x => x[0])
 }
 
-// Dispatcher: Graded renders grade-rows (✓/~/✗ + saved-solution link, right on the row);
-// anything else (Worked-on-only pool, plain generated sets) renders solve-rows.
-function _qpRowsHtml() {
-  if (!_qpResults) return ''
-  if (_qpRevised) return _qpResults.map((entry, i) => _buildReviseItem(entry, i, 'qp')).join('')
-  return _qpResults.map((entry, i) => _buildPracticeItem(entry, i, true)).join('')
-}
-
-// Fine-grained relative time: "just now" / "30 min" / "4h" / "1d" / "12d" from an ISO timestamp.
 // How long ago, ready to show: 'just now', '5 min ago', '3h ago', '2d ago'.
 function _agoLabel(iso) {
   if (!iso) return ''
@@ -75,17 +66,6 @@ function _agoLabel(iso) {
   return (min < 60 ? min + ' min' : hr < 24 ? hr + 'h' : Math.floor(hr / 24) + 'd') + ' ago'
 }
 
-// Re-grade a row in the Revised log: updates the grade (and badge, via gradeRevise) + the "ago"
-// label, in place. The row stays — it's a log, not a sweep.
-function _qpRevisedGrade(ev, lcKey, grade) {
-  ev.stopPropagation()
-  gradeRevise(lcKey, grade)
-  const row = ev.currentTarget.closest('.ps-q-row')
-  if (row) { const a = row.querySelector('.rev-ago'); if (a) a.textContent = 'today' }
-}
-
-// Render one REVISE row: title + difficulty + a "last grade" tag + the ✓/~/✗ recall buttons.
-// No click-to-solve — only the grade buttons act (recall ≠ coding).
 // Pieces every practice-list row shares (Graded, By Pattern, solve list, Recent, Pinned).
 function _lcLink(q) { return '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-link" title="Open on LeetCode" data-click="stop" data-stop>↗</a>' }
 function _titleLink(q) { return '<a href="' + escHtml(q.link) + '" target="_blank" rel="noopener noreferrer" class="ps-q-title ps-q-title-link" title="Open to read: ' + escHtml(q.title) + '">' + escHtml(q.title) + '</a>' }
@@ -106,6 +86,8 @@ function _topicIcon(lcKey) {
   return tEntry ? '<span class="text-xxs text-secondary flex-shrink-0">' + tEntry.icon + '</span>' : ''
 }
 
+// One Graded / By Pattern row: title, difficulty, last grade, and the ✓/~/✗ recall buttons.
+// No click-to-solve — only the grade buttons act (recall ≠ coding).
 function _buildReviseItem([lcKey, q], i, ctx) {
   const fn = ctx === 'ps' ? '_psRecallGrade' : '_qpReviseGrade'   // which list this row lives in
   // Every graded row stays in place (never swept off the list) — grading just tints the row and
@@ -194,16 +176,6 @@ function _regradeRow(listEl, items, done, lcKey, build, banner) {
 // The one closing banner a list gets (never a second).
 function _doneBanner(listEl, html) {
   if (listEl && !listEl.querySelector('.ps-session-done')) listEl.insertAdjacentHTML('afterbegin', '<div class="ps-session-done">' + html + '</div>')
-}
-
-// Generate a practice set for a single topic.
-// Priority: Unsolved (weighted) → Solved (weighted), weakest grade first.
-function _genPracticeSet(topicKey, count) {
-  const mod = TOPIC_MODULES[topicKey]
-  if (!mod) return []
-  const all         = Object.entries(mod.questions)
-  // Serve your weakest (forgot → shaky) first within the topic.
-  return _orderByWeakness(_orderPracticePool(all)).slice(0, count)
 }
 
 // Render a single practice row. showTopic=true adds the topic icon (dashboard).
@@ -309,6 +281,13 @@ function _practiceGrade(ev, lcKey, grade, showTopic) {
 }
 
 // Build the full inner HTML for the Practice Session accordion body.
+// The topic panel's modes: [mode, button label, tooltip].
+const PS_MODES = [
+  ['graded', '🕒 Graded', 'Graded — solve the questions you have graded on the cards; ranked ✗ forgot → ~ shaky → ✓ confident'],
+  ['revise-pattern', '🧩 By Pattern', 'By Pattern — active recall scoped to just the pattern(s) you pick'],
+  ['recent', '🕘 Recent', 'Recent — a read-only log of what you graded in Graded/By Pattern, newest first'],
+  ['pinned', '📌 Pinned', 'Pinned — every question you pinned 📌 on the cards in this topic'],
+]
 function _buildPracticePanel(topicKey, mod) {
   const total    = Object.keys(mod.questions).length
   const count    = Math.max(1, Math.min(_psQCount, total))
@@ -373,10 +352,9 @@ function _buildPracticePanel(topicKey, mod) {
   let html = ''
   // ── Mode toggle: Graded (solve) / By Pattern (recall, scoped to a pattern) ──
   html += '<div class="ps-mode-bar d-flex flex-wrap gap-2 mb-2">'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'graded' ? ' active' : '') + '" data-click="_psSetMode" data-args="' + Actions.attrArgs(['graded', topicKey]) + '" title="Graded — solve the questions you have graded on the cards; ranked ✗ forgot → ~ shaky → ✓ confident">🕒 Graded</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'revise-pattern' ? ' active' : '') + '" data-click="_psSetMode" data-args="' + Actions.attrArgs(['revise-pattern', topicKey]) + '" title="By Pattern — active recall scoped to just the pattern(s) you pick">🧩 By Pattern</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'recent' ? ' active' : '') + '" data-click="_psSetMode" data-args="' + Actions.attrArgs(['recent', topicKey]) + '" title="Recent — a read-only log of what you graded in Graded/By Pattern, newest first">🕘 Recent</button>'
-  html += '<button type="button" class="qp-chip' + (_psMode === 'pinned' ? ' active' : '') + '" data-click="_psSetMode" data-args="' + Actions.attrArgs(['pinned', topicKey]) + '" title="Pinned — every question you pinned 📌 on the cards in this topic">📌 Pinned</button>'
+  html += PS_MODES.map(([mode, label, title]) =>
+    '<button type="button" class="qp-chip' + (_psMode === mode ? ' active' : '') + '" data-click="_psSetMode" data-args="' + Actions.attrArgs([mode, topicKey]) + '" title="' + title + '">' + label + '</button>'
+  ).join('')
   html += '</div>'
   // ── Controls bar ──────────────────────────────────────────────────────────
   html += '<div class="ps-ctrl-bar">'
@@ -592,6 +570,14 @@ function _psRankedRevisePool(due, count) {
 // ── Per-topic mode helpers (Graded / By Pattern / Recent / Pinned) ──────────
 // Graded and By Pattern decide which of this topic's questions you practice, graded ✓/~/✗ on
 // the row (see _buildReviseItem / _psRecallGrade). Recent and Pinned are read-only lists.
+// Both Graded lists: every ✗ forgot / ~ shaky row (rank 0/1, weakest first), then ✓ rows (rank 2,
+// those solidOk allows) padding up to count. Weighted by interview frequency so limited practice
+// time goes to your weakest AND highest-impact problems.
+function _weakThenSolid(pool, rank, count, solidOk = () => true) {
+  const weak  = _weightedShuffleByImpact(pool.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
+  const solid = _weightedShuffleByImpact(pool.filter(([k]) => rank(k) === 2 && solidOk(k)))
+  return [...weak, ...solid.slice(0, Math.max(0, count - weak.length))]
+}
 function _psModePool(topicKey, count) {
   const mod = TOPIC_MODULES[topicKey]
   if (!mod) return []
@@ -602,12 +588,8 @@ function _psModePool(topicKey, count) {
     // re-grades the question ✓ solid, and THAT is what sinks it). ✗ forgot /
     // ~ shaky ALWAYS appear; ✓ solid only rejoins once its REVISE_LADDER interval is up
     // (isReviseDue), and `count` caps how many of those due-solid rows pad the list after them.
-    const graded    = Object.entries(mod.questions).filter(([k]) => getRevise(k))
-    const rank      = k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2)
-    const weak      = _weightedShuffleByImpact(graded.filter(([k]) => rank(k) < 2)).sort((a, b) => rank(a[0]) - rank(b[0]))
-    const solid     = _weightedShuffleByImpact(graded.filter(([k]) => rank(k) === 2 && isReviseDue(k)))
-    const solidFill = Math.max(0, count - weak.length)
-    return [...weak, ...solid.slice(0, solidFill)]
+    const graded = Object.entries(mod.questions).filter(([k]) => getRevise(k))
+    return _weakThenSolid(graded, k => ({ forgot: 0, shaky: 1 }[getRevise(k).grade] ?? 2), count, isReviseDue)
   }
   if (_psMode === 'revise-pattern') {
     // By Pattern = same active-recall pass as Revise, but scoped to only the pattern(s) selected
