@@ -107,7 +107,7 @@ test('design tokens: every text colour token is defined for both themes, and no 
 })
 
 test('a long topic name truncates in the sidebar so its count badge stays inside', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + fs.readFileSync(path.join(__dirname, '..', 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
   assert.match(html, /\.nav-topic-label \{[^}]*min-width: 0;[^}]*text-overflow: ellipsis;[^}]*white-space: nowrap;/)
   assert.match(html, /#sidebar \.nav-link \.badge \{ flex-shrink: 0; \}/)
   assert.match(html, /class="nav-link" title="\$\{escHtml\(t\.label\)\}"/, 'the full name stays available on hover')
