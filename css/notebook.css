@@ -36,13 +36,13 @@
   --bs-tertiary-bg:              var(--bg-elevated);
   /* Card */
   --bs-card-bg:                  var(--bg-elevated);
-  --bs-card-border-color:        var(--border);
+  --bs-card-border-color:        var(--hairline);
   --bs-card-cap-bg:              var(--bg-elevated);
   --bs-card-color:               var(--text-primary);
   --bs-card-border-radius:       var(--radius-lg);
   /* Accordion */
   --bs-accordion-bg:             var(--bg-elevated);
-  --bs-accordion-border-color:   var(--border);
+  --bs-accordion-border-color:   var(--hairline);
   --bs-accordion-border-radius:  var(--radius);
   --bs-accordion-inner-border-radius: calc(var(--radius) - 1px);
   --bs-accordion-btn-bg:         var(--bg-elevated);
@@ -145,7 +145,7 @@ small, .small { font-size: var(--fs-sm); }
 header .header-account-btn { flex: 0 0 auto; max-width: 180px; min-height: 32px; font-size: var(--fs-xs); padding: 0 0.65rem; }
 .header-account-btn .ds-account-label { overflow: hidden; text-overflow: ellipsis; }
 .sidebar-section-label {
-  font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--text-faint); padding: 0.5rem 0.75rem 0.3rem; white-space: nowrap;
 }
 /* Footer, three quiet layers (Adi, 2026-11-27): help links in one row, the open-source card,
@@ -222,7 +222,7 @@ body[data-signed-in-as="cacti23"] #sidebar-apps { display: block; }
    Tabs in the top bar; on phones the same tabs become a bottom bar, like most phone apps. */
 .hub-tabs {
   display: flex; gap: 2px; padding: 2px; flex: none;
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-hover);
+  border: 1px solid var(--hairline); border-radius: var(--radius); background: transparent;
 }
 .hub-tabs button {
   display: flex; align-items: center; gap: 0.35rem; border: 0; border-radius: calc(var(--radius) - 2px);
@@ -230,7 +230,8 @@ body[data-signed-in-as="cacti23"] #sidebar-apps { display: block; }
   font: 600 var(--fs-xs) var(--font-body); color: var(--text-muted);
 }
 .hub-tabs button:hover { color: var(--text-primary); }
-.hub-tabs button[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
+/* Selected = lifted surface + accent underline (Linear): blue fill is kept for the one main button. */
+.hub-tabs button[aria-current="page"] { background: var(--bg-hover); color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--accent); }
 @media (max-width: 768px) {
   .hub-tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1020; height: 56px;
@@ -239,7 +240,7 @@ body[data-signed-in-as="cacti23"] #sidebar-apps { display: block; }
   }
   .hub-tabs button { flex-direction: column; justify-content: center; gap: 1px; border-radius: 0; font-size: var(--fs-2xs); padding: 0; }
   .hub-tabs button .hub-tab-icon { font-size: 1.15rem; line-height: 1; }
-  .hub-tabs button[aria-current="page"] { background: transparent; color: var(--accent); }
+  .hub-tabs button[aria-current="page"] { background: transparent; color: var(--accent); box-shadow: none; }
   body { padding-bottom: 56px; }
   body.embed-view > .d-flex, body.embed-view #main-col { height: calc(100vh - 56px); }
   header #page-title, header .header-github { display: none; }   /* the repo link is in the sidebar footer here */
@@ -258,7 +259,9 @@ body[data-signed-in-as="cacti23"] #sidebar-apps { display: block; }
 .sd-by button { flex: 1; border: 0; background: transparent; padding: 0.3rem 0; font: 600 var(--fs-2xs) var(--font-body); color: var(--text-muted); cursor: pointer; }
 .sd-by button[aria-pressed="true"] { background: var(--accent-dim); color: var(--accent); }
 .sd-filter { margin: 0 0.25rem 0.4rem; width: calc(100% - 0.5rem); font-size: var(--fs-xs); }
-#sidebar button.nav-link.sd-group { justify-content: space-between; }
+/* Group names read as labels, so lesson titles stand out (Mintlify-style docs nav). */
+#sidebar button.nav-link.sd-group { justify-content: space-between; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+#sidebar button.nav-link.sd-group:hover { color: var(--text-primary); }
 .sd-group .sd-count { font-size: var(--fs-2xs); color: var(--text-faint); }
 .sd-group .sd-caret { display: inline-block; width: 0.8em; transition: transform 0.15s; }
 .sd-group[aria-expanded="true"] .sd-caret { transform: rotate(90deg); }
@@ -289,9 +292,9 @@ button.nav-link:focus-visible, a.nav-link:focus-visible { outline: 2px solid var
 button.nav-link:focus:not(:focus-visible), a.nav-link:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 /* Scoped to #sidebar — id specificity beats any Bootstrap .nav-link rule */
 #sidebar button.nav-link.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border-color: var(--border-glow);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: transparent;
   border-left: 3px solid var(--accent);
   padding-left: calc(0.75rem - 2px); /* compensate 3px border */
 }
@@ -332,7 +335,7 @@ header {
   position: sticky; top: 0; z-index: 100;
 }
 .header-menu-btn {
-  background: transparent; border: 1px solid var(--border); border-radius: 8px;
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
   color: var(--text-muted); width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: var(--fs-base); flex-shrink: 0;
@@ -1035,7 +1038,7 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
-h1, h2, h3, h4, h5, h6, .h5, .h6 { font-weight: 700; letter-spacing: 0; }
+h1, h2, h3, h4, h5, h6, .h5, .h6 { font-weight: 700; letter-spacing: -0.01em; }
 .fw-semibold { font-weight: 700 !important; }
 /* Bootstrap's own status text colours fail contrast on these surfaces; use the tokens. */
 .text-success   { color: var(--green) !important; }
@@ -1046,7 +1049,6 @@ h1, h2, h3, h4, h5, h6, .h5, .h6 { font-weight: 700; letter-spacing: 0; }
 .badge { font-size: var(--fs-2xs); font-weight: 700; }
 /* Bootstrap's amber badge is white-on-yellow in light mode (2.2:1); use the tinted pair instead. */
 .badge.bg-warning { background: var(--yellow-dim) !important; color: var(--yellow) !important; }
-.sidebar-section-label { text-transform: none; letter-spacing: 0; font-size: var(--fs-xs); }
 /* WCAG 2.5.8: every filter and choice chip is at least 24px tall. */
 .q-filter-btn, .company-chip, .qp-chip, .ps-preset-btn { min-height: 28px; }
 .btn-accent {
@@ -1117,7 +1119,7 @@ h1, h2, h3, h4, h5, h6, .h5, .h6 { font-weight: 700; letter-spacing: 0; }
 .dash-due-list + .dash-actions { margin-top: var(--sp-3); }
 .dash-daily-solo h2 { font-size: var(--fs-sm); color: var(--text-muted); margin: 0 0 var(--sp-3); }
 .dash-daily-solo h3 { font-size: var(--fs-lg); margin: 0 0 var(--sp-2); }
-.dash-daily { border-left: 1px solid var(--border); padding-left: var(--sp-5); min-width: 0; }
+.dash-daily { border-left: 1px solid var(--hairline); padding-left: var(--sp-5); min-width: 0; }
 .dash-daily h3 { font-size: var(--fs-lg); line-height: 1.25; margin: 0 0 var(--sp-2); }
 .dash-daily-meta { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: var(--sp-3); }
 .dash-hint { margin-bottom: var(--sp-4); font-size: var(--fs-sm); color: var(--text-muted); }
@@ -1130,7 +1132,7 @@ h1, h2, h3, h4, h5, h6, .h5, .h6 { font-weight: 700; letter-spacing: 0; }
 .dash-topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 var(--sp-5); }
 .dash-topic {
   display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto; align-items: center; column-gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-2); border: 0; border-bottom: 1px solid var(--border); background: transparent;
+  padding: var(--sp-3) var(--sp-2); border: 0; border-bottom: 1px solid var(--hairline); background: transparent;
   color: var(--text-primary); text-align: left; width: 100%; min-height: 52px; cursor: pointer; font: inherit;
 }
 .dash-topic:hover { background: var(--bg-hover); }
