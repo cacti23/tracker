@@ -11,7 +11,7 @@ const path = require('path')
 const { loadAppWithDom, evalIn } = require('./load-app')
 
 const ROOT = path.join(__dirname, '..')
-const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') + fs.readFileSync(path.join(ROOT, 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
 
 test('openSite shows the site in-pane, names it in the header with an open-in-new-tab link', () => {
   const { sandbox, getElement } = loadAppWithDom()

@@ -3,7 +3,7 @@ const test = require('node:test')
 const assert = require('node:assert')
 const fs = require('fs')
 const path = require('path')
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + fs.readFileSync(path.join(__dirname, '..', 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
 
 test('question-body sections share one spaced divider style', () => {
   assert.match(HTML, /\.q-section \{ margin-top: 1\.1rem; padding-top: 0\.9rem; border-top: 1px solid var\(--border\); \}/)

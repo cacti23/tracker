@@ -5,7 +5,7 @@ const assert = require('node:assert')
 const fs = require('fs')
 const path = require('path')
 
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8')
+const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8') + fs.readFileSync(path.join(__dirname, '..', 'css', 'notebook.css'), 'utf8')  // the page's CSS lives in css/notebook.css
 const nav = HTML.slice(HTML.indexOf('<nav class="flex-grow-1'), HTML.indexOf('</nav>'))
 
 // Map each nav button id to the section label above it.
